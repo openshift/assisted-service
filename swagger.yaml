@@ -1,0 +1,81 @@
+swagger: '2.0'
+info:
+  description: 'Bare metal inventory'
+  version: 1.0.0
+  title: BMInventory
+host: api.openshift.com
+basePath: /api/bm.inventory/v1
+tags:
+  - name: Bare metal inventory
+    description: mange bare metal inventory
+
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+
+
+paths:
+  /node/register:
+    post:
+      tags:
+        - inventory
+      summary: Register a new node
+      operationId: RegisterNode
+      parameters:
+        - in: body
+          name: body
+          description: Register a new node
+          required: true
+          schema:
+            $ref: '#/definitions/node'
+      responses:
+        201:
+          description: Created
+          schema:
+            $ref: '#/definitions/registeredNode'
+        405:
+          description: Invalid input
+  /node:
+    get:
+      operationId: ListNodes
+      tags:
+        - inventory
+      responses:
+        200:
+          description: List of nodes
+          schema:
+            $ref: '#/definitions/nodes'
+
+definitions:
+  base:
+    type: object
+    properties:
+      kind:
+        type: string
+        example: node
+      id:
+        type: string
+      href:
+        type: string
+  node:
+    type: object
+    properties:
+      name:
+        type: string
+        example: doggie
+        x-go-custom-tag: query:"filter,sort"
+      url:
+        type: string
+        example: https://10.12.1.150
+  registeredNode:
+    type: object
+    allOf:
+      - $ref: '#/definitions/node'
+      - $ref: '#/definitions/base'
+  nodes:
+    type: array
+    items:
+      $ref: '#/definitions/registeredNode'
