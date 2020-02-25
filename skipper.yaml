@@ -6,5 +6,5 @@ container-context: .
 containers:
     bm-inventory-build: Dockerfile.bm-inventory-build
     bm-inventory: Dockerfile.bm-inventory
-env:
-    VAR: value
+volumes:
+    - $HOME/.cache/go-build:/go/pkg/mod
