@@ -16,7 +16,7 @@ import (
 // RegisterNodeCreatedCode is the HTTP code returned for type RegisterNodeCreated
 const RegisterNodeCreatedCode int = 201
 
-/*RegisterNodeCreated Created
+/*RegisterNodeCreated Registered node
 
 swagger:response registerNodeCreated
 */
@@ -25,7 +25,7 @@ type RegisterNodeCreated struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.RegisteredNode `json:"body,omitempty"`
+	Payload *models.Node `json:"body,omitempty"`
 }
 
 // NewRegisterNodeCreated creates RegisterNodeCreated with default headers values
@@ -35,13 +35,13 @@ func NewRegisterNodeCreated() *RegisterNodeCreated {
 }
 
 // WithPayload adds the payload to the register node created response
-func (o *RegisterNodeCreated) WithPayload(payload *models.RegisteredNode) *RegisterNodeCreated {
+func (o *RegisterNodeCreated) WithPayload(payload *models.Node) *RegisterNodeCreated {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the register node created response
-func (o *RegisterNodeCreated) SetPayload(payload *models.RegisteredNode) {
+func (o *RegisterNodeCreated) SetPayload(payload *models.Node) {
 	o.Payload = payload
 }
 
@@ -57,26 +57,26 @@ func (o *RegisterNodeCreated) WriteResponse(rw http.ResponseWriter, producer run
 	}
 }
 
-// RegisterNodeMethodNotAllowedCode is the HTTP code returned for type RegisterNodeMethodNotAllowed
-const RegisterNodeMethodNotAllowedCode int = 405
+// RegisterNodeBadRequestCode is the HTTP code returned for type RegisterNodeBadRequest
+const RegisterNodeBadRequestCode int = 400
 
-/*RegisterNodeMethodNotAllowed Invalid input
+/*RegisterNodeBadRequest Invalid input
 
-swagger:response registerNodeMethodNotAllowed
+swagger:response registerNodeBadRequest
 */
-type RegisterNodeMethodNotAllowed struct {
+type RegisterNodeBadRequest struct {
 }
 
-// NewRegisterNodeMethodNotAllowed creates RegisterNodeMethodNotAllowed with default headers values
-func NewRegisterNodeMethodNotAllowed() *RegisterNodeMethodNotAllowed {
+// NewRegisterNodeBadRequest creates RegisterNodeBadRequest with default headers values
+func NewRegisterNodeBadRequest() *RegisterNodeBadRequest {
 
-	return &RegisterNodeMethodNotAllowed{}
+	return &RegisterNodeBadRequest{}
 }
 
 // WriteResponse to the client
-func (o *RegisterNodeMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *RegisterNodeBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
-	rw.WriteHeader(405)
+	rw.WriteHeader(400)
 }

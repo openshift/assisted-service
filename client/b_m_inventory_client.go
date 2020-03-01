@@ -22,7 +22,7 @@ const (
 	DefaultHost string = "api.openshift.com"
 	// DefaultBasePath is the default BasePath
 	// found in Meta (info) section of spec file
-	DefaultBasePath string = "/api/bm.inventory/v1"
+	DefaultBasePath string = "/api/bm-inventory/v1"
 )
 
 // DefaultSchemes are the default schemes found in Meta (info) section of spec file

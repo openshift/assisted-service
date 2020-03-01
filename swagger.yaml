@@ -4,10 +4,10 @@ info:
   version: 1.0.0
   title: BMInventory
 host: api.openshift.com
-basePath: /api/bm.inventory/v1
+basePath: /api/bm-inventory/v1
 tags:
   - name: Bare metal inventory
-    description: mange bare metal inventory
+    description: Manage bare metal inventory
 
 schemes:
   - http
@@ -18,64 +18,336 @@ produces:
 
 
 paths:
-  /node/register:
+  /images:
     post:
       tags:
         - inventory
-      summary: Register a new node
+      summary: Create an OpenShift bare metal cluster-assist installation image
+      operationId: CreateImage
+      parameters:
+        - in: body
+          name: new-image-params
+          description: New image parameters
+          required: true
+          schema:
+            $ref: '#/definitions/image-create-params'
+      responses:
+        201:
+          description: Created image
+          schema:
+            $ref: '#/definitions/image'
+        400:
+          description: Invalid input
+        500:
+          description: Internal server error
+    get:
+      tags:
+        - inventory
+      summary: List installation images
+      operationId: ListImages
+      responses:
+        200:
+          description: Image list
+          schema:
+            $ref: '#/definitions/image-list'
+        500:
+          description: Internal server error
+
+  /images/{image_id}:
+    get:
+      tags:
+        - inventory
+      summary: Retrieve installation image information
+      operationId: GetImage
+      parameters:
+        - in: path
+          name: image_id
+          description: The ID of the image to retrieve
+          type: string
+          required: true
+      responses:
+        200:
+          description: Image information
+          schema:
+            $ref: '#/definitions/image'
+        404:
+          description: Image not found
+
+  /nodes:
+    post:
+      tags:
+        - inventory
+      summary: Register a new OpenShift bare metal node
       operationId: RegisterNode
       parameters:
         - in: body
-          name: body
-          description: Register a new node
+          name: new-node-params
+          description: New node parameters
           required: true
           schema:
-            $ref: '#/definitions/node'
+            $ref: '#/definitions/node-create-params'
       responses:
         201:
-          description: Created
+          description: Registered node
           schema:
-            $ref: '#/definitions/registeredNode'
-        405:
+            $ref: '#/definitions/node'
+        400:
           description: Invalid input
-  /node:
+
     get:
-      operationId: ListNodes
       tags:
         - inventory
+      summary: List OpenShift bare metal nodes
+      operationId: ListNodes
       responses:
         200:
-          description: List of nodes
+          description: Node list
           schema:
-            $ref: '#/definitions/nodes'
+            $ref: '#/definitions/node-list'
+
+  /nodes/{node_id}:
+    get:
+      tags:
+        - inventory
+      summary: Retrieve OpenShift bare metal node information
+      operationId: GetNode
+      parameters:
+        - in: path
+          name: node_id
+          description: The ID of the node to retrieve
+          type: string
+          required: true
+      responses:
+        200:
+          description: Node information
+          schema:
+            $ref: '#/definitions/node'
+        404:
+          description: Node not found
+
+    delete:
+      tags:
+        - inventory
+      summary: Deregister OpenShift bare metal node
+      operationId: DeregisterNode
+      parameters:
+        - in: path
+          name: node_id
+          description: The ID of the node to retrieve
+          type: string
+          required: true
+      responses:
+        204:
+          description: Node deregistered
+        400:
+          description: Node in use
+        404:
+          description: Node not found
+
+  /clusters:
+    post:
+      tags:
+        - inventory
+      summary: Register a new OpenShift bare metal cluster
+      operationId: RegisterCluster
+      parameters:
+        - in: body
+          name: new-cluster-params
+          description: New cluster parameters
+          required: true
+          schema:
+            $ref: '#/definitions/cluster-create-params'
+      responses:
+        201:
+          description: Registered cluster
+          schema:
+            $ref: '#/definitions/cluster'
+        400:
+          description: Invalid input
+
+    get:
+      tags:
+        - inventory
+      summary: List OpenShift bare metal clusters
+      operationId: ListClusters
+      responses:
+        200:
+          description: Cluster list
+          schema:
+            $ref: '#/definitions/cluster-list'
+
+  /clusters/{cluster_id}:
+    get:
+      tags:
+        - inventory
+      summary: Retrieve OpenShift bare metal cluster information
+      operationId: GetCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to retrieve
+          type: string
+          required: true
+      responses:
+        200:
+          description: Cluster information
+          schema:
+            $ref: '#/definitions/cluster'
+        404:
+          description: Cluster not found
+
+    delete:
+      tags:
+        - inventory
+      summary: Deregister OpenShift bare metal cluster
+      operationId: DeregisterCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to retrieve
+          type: string
+          required: true
+      responses:
+        204:
+          description: Cluster deregistered
+        404:
+          description: Cluster not found
+
 
 definitions:
   base:
     type: object
+    required:
+      - kind
+      - id
+      - href
     properties:
       kind:
         type: string
-        example: node
+        enum: ['image', 'node', 'cluster']
       id:
         type: string
+        format: uuid
+        x-go-custom-tag: gorm:"primary_key" query:"filter,sort"
       href:
         type: string
-  node:
+        format: uri
+
+  image-create-params:
     type: object
+    required:
+      - name
+      - namespace
     properties:
       name:
         type: string
-        example: doggie
-        x-go-custom-tag: query:"filter,sort"
-      url:
+      description:
         type: string
-        example: https://10.12.1.150
-  registeredNode:
+      namespace:
+        type: string
+      proxy_ip:
+        type: string
+        format: hostname
+      proxy_port:
+        type: integer
+        minimum: 0
+        maximum: 65535
+
+  image:
     type: object
     allOf:
-      - $ref: '#/definitions/node'
       - $ref: '#/definitions/base'
-  nodes:
+      - $ref: '#/definitions/image-create-params'
+      - type: object
+        required:
+          - status
+        properties:
+          status:
+            type: string
+            enum: ['creating', 'ready', 'error']
+          download_url:
+            type: string
+            format: uri
+
+  image-list:
     type: array
     items:
-      $ref: '#/definitions/registeredNode'
+      $ref: '#/definitions/image'
+
+  node-create-params:
+    type: object
+    required:
+      - namespace
+      - hardware_info
+    properties:
+      namespace:
+        type: string
+      hardware_info:
+        type: string
+        format: json
+
+  node:
+    type: object
+    allOf:
+      - $ref: '#/definitions/base'
+      - $ref: '#/definitions/node-create-params'
+      - type: object
+        required:
+          - kind
+          - status
+          - hardware_info
+        properties:
+          status:
+            type: string
+            enum: ['tbd']
+          cluster_id:
+            type: string
+            format: uuid
+
+  node-list:
+    type: array
+    items:
+      $ref: '#/definitions/node'
+
+  cluster-create-params:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      master_nodes:
+        type: array
+        x-go-custom-tag: gorm:"type:varchar(64)[]"
+        items:
+          type: string
+          format: uuid
+      worker_nodes:
+        type: array
+        x-go-custom-tag: gorm:"type:varchar(64)[]"
+        items:
+          type: string
+          format: uuid
+
+  cluster:
+    type: object
+    allOf:
+      - $ref: '#/definitions/base'
+      - $ref: '#/definitions/cluster-create-params'
+      - type: object
+        required:
+          - status
+          - namespace
+        properties:
+          namespace:
+            type: string
+          status:
+            type: string
+            enum: ['creating', 'ready', 'error']
+
+  cluster-list:
+    type: array
+    items:
+      $ref: '#/definitions/cluster'

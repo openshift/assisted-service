@@ -63,11 +63,11 @@ for the register node operation typically these are written to a http.Request
 */
 type RegisterNodeParams struct {
 
-	/*Body
-	  Register a new node
+	/*NewNodeParams
+	  New node parameters
 
 	*/
-	Body *models.Node
+	NewNodeParams *models.NodeCreateParams
 
 	timeout    time.Duration
 	Context    context.Context
@@ -107,15 +107,15 @@ func (o *RegisterNodeParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithBody adds the body to the register node params
-func (o *RegisterNodeParams) WithBody(body *models.Node) *RegisterNodeParams {
-	o.SetBody(body)
+// WithNewNodeParams adds the newNodeParams to the register node params
+func (o *RegisterNodeParams) WithNewNodeParams(newNodeParams *models.NodeCreateParams) *RegisterNodeParams {
+	o.SetNewNodeParams(newNodeParams)
 	return o
 }
 
-// SetBody adds the body to the register node params
-func (o *RegisterNodeParams) SetBody(body *models.Node) {
-	o.Body = body
+// SetNewNodeParams adds the newNodeParams to the register node params
+func (o *RegisterNodeParams) SetNewNodeParams(newNodeParams *models.NodeCreateParams) {
+	o.NewNodeParams = newNodeParams
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -126,8 +126,8 @@ func (o *RegisterNodeParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 	}
 	var res []error
 
-	if o.Body != nil {
-		if err := r.SetBodyParam(o.Body); err != nil {
+	if o.NewNodeParams != nil {
+		if err := r.SetBodyParam(o.NewNodeParams); err != nil {
 			return err
 		}
 	}

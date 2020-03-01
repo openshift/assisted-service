@@ -30,8 +30,8 @@ func (o *RegisterNodeReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return result, nil
-	case 405:
-		result := NewRegisterNodeMethodNotAllowed()
+	case 400:
+		result := NewRegisterNodeBadRequest()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,23 +49,23 @@ func NewRegisterNodeCreated() *RegisterNodeCreated {
 
 /*RegisterNodeCreated handles this case with default header values.
 
-Created
+Registered node
 */
 type RegisterNodeCreated struct {
-	Payload *models.RegisteredNode
+	Payload *models.Node
 }
 
 func (o *RegisterNodeCreated) Error() string {
-	return fmt.Sprintf("[POST /node/register][%d] registerNodeCreated  %+v", 201, o.Payload)
+	return fmt.Sprintf("[POST /nodes][%d] registerNodeCreated  %+v", 201, o.Payload)
 }
 
-func (o *RegisterNodeCreated) GetPayload() *models.RegisteredNode {
+func (o *RegisterNodeCreated) GetPayload() *models.Node {
 	return o.Payload
 }
 
 func (o *RegisterNodeCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.RegisteredNode)
+	o.Payload = new(models.Node)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -75,23 +75,23 @@ func (o *RegisterNodeCreated) readResponse(response runtime.ClientResponse, cons
 	return nil
 }
 
-// NewRegisterNodeMethodNotAllowed creates a RegisterNodeMethodNotAllowed with default headers values
-func NewRegisterNodeMethodNotAllowed() *RegisterNodeMethodNotAllowed {
-	return &RegisterNodeMethodNotAllowed{}
+// NewRegisterNodeBadRequest creates a RegisterNodeBadRequest with default headers values
+func NewRegisterNodeBadRequest() *RegisterNodeBadRequest {
+	return &RegisterNodeBadRequest{}
 }
 
-/*RegisterNodeMethodNotAllowed handles this case with default header values.
+/*RegisterNodeBadRequest handles this case with default header values.
 
 Invalid input
 */
-type RegisterNodeMethodNotAllowed struct {
+type RegisterNodeBadRequest struct {
 }
 
-func (o *RegisterNodeMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /node/register][%d] registerNodeMethodNotAllowed ", 405)
+func (o *RegisterNodeBadRequest) Error() string {
+	return fmt.Sprintf("[POST /nodes][%d] registerNodeBadRequest ", 400)
 }
 
-func (o *RegisterNodeMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *RegisterNodeBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

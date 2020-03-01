@@ -18,10 +18,37 @@ import (
 // API is the interface of the inventory client
 type API interface {
 	/*
-	   ListNodes list nodes API*/
+	   CreateImage creates an open shift bare metal cluster assist installation image*/
+	CreateImage(ctx context.Context, params *CreateImageParams) (*CreateImageCreated, error)
+	/*
+	   DeregisterCluster deregisters open shift bare metal cluster*/
+	DeregisterCluster(ctx context.Context, params *DeregisterClusterParams) (*DeregisterClusterNoContent, error)
+	/*
+	   DeregisterNode deregisters open shift bare metal node*/
+	DeregisterNode(ctx context.Context, params *DeregisterNodeParams) (*DeregisterNodeNoContent, error)
+	/*
+	   GetCluster retrieves open shift bare metal cluster information*/
+	GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error)
+	/*
+	   GetImage retrieves installation image information*/
+	GetImage(ctx context.Context, params *GetImageParams) (*GetImageOK, error)
+	/*
+	   GetNode retrieves open shift bare metal node information*/
+	GetNode(ctx context.Context, params *GetNodeParams) (*GetNodeOK, error)
+	/*
+	   ListClusters lists open shift bare metal clusters*/
+	ListClusters(ctx context.Context, params *ListClustersParams) (*ListClustersOK, error)
+	/*
+	   ListImages lists installation images*/
+	ListImages(ctx context.Context, params *ListImagesParams) (*ListImagesOK, error)
+	/*
+	   ListNodes lists open shift bare metal nodes*/
 	ListNodes(ctx context.Context, params *ListNodesParams) (*ListNodesOK, error)
 	/*
-	   RegisterNode registers a new node*/
+	   RegisterCluster registers a new open shift bare metal cluster*/
+	RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error)
+	/*
+	   RegisterNode registers a new open shift bare metal node*/
 	RegisterNode(ctx context.Context, params *RegisterNodeParams) (*RegisterNodeCreated, error)
 }
 
@@ -44,14 +71,206 @@ type Client struct {
 }
 
 /*
-ListNodes list nodes API
+CreateImage creates an open shift bare metal cluster assist installation image
+*/
+func (a *Client) CreateImage(ctx context.Context, params *CreateImageParams) (*CreateImageCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CreateImage",
+		Method:             "POST",
+		PathPattern:        "/images",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CreateImageReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CreateImageCreated), nil
+
+}
+
+/*
+DeregisterCluster deregisters open shift bare metal cluster
+*/
+func (a *Client) DeregisterCluster(ctx context.Context, params *DeregisterClusterParams) (*DeregisterClusterNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DeregisterCluster",
+		Method:             "DELETE",
+		PathPattern:        "/clusters/{cluster_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DeregisterClusterReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DeregisterClusterNoContent), nil
+
+}
+
+/*
+DeregisterNode deregisters open shift bare metal node
+*/
+func (a *Client) DeregisterNode(ctx context.Context, params *DeregisterNodeParams) (*DeregisterNodeNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DeregisterNode",
+		Method:             "DELETE",
+		PathPattern:        "/nodes/{node_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DeregisterNodeReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DeregisterNodeNoContent), nil
+
+}
+
+/*
+GetCluster retrieves open shift bare metal cluster information
+*/
+func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetCluster",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetClusterReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterOK), nil
+
+}
+
+/*
+GetImage retrieves installation image information
+*/
+func (a *Client) GetImage(ctx context.Context, params *GetImageParams) (*GetImageOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetImage",
+		Method:             "GET",
+		PathPattern:        "/images/{image_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetImageReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetImageOK), nil
+
+}
+
+/*
+GetNode retrieves open shift bare metal node information
+*/
+func (a *Client) GetNode(ctx context.Context, params *GetNodeParams) (*GetNodeOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetNode",
+		Method:             "GET",
+		PathPattern:        "/nodes/{node_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetNodeReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetNodeOK), nil
+
+}
+
+/*
+ListClusters lists open shift bare metal clusters
+*/
+func (a *Client) ListClusters(ctx context.Context, params *ListClustersParams) (*ListClustersOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ListClusters",
+		Method:             "GET",
+		PathPattern:        "/clusters",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ListClustersReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListClustersOK), nil
+
+}
+
+/*
+ListImages lists installation images
+*/
+func (a *Client) ListImages(ctx context.Context, params *ListImagesParams) (*ListImagesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ListImages",
+		Method:             "GET",
+		PathPattern:        "/images",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ListImagesReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListImagesOK), nil
+
+}
+
+/*
+ListNodes lists open shift bare metal nodes
 */
 func (a *Client) ListNodes(ctx context.Context, params *ListNodesParams) (*ListNodesOK, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListNodes",
 		Method:             "GET",
-		PathPattern:        "/node",
+		PathPattern:        "/nodes",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -68,14 +287,38 @@ func (a *Client) ListNodes(ctx context.Context, params *ListNodesParams) (*ListN
 }
 
 /*
-RegisterNode registers a new node
+RegisterCluster registers a new open shift bare metal cluster
+*/
+func (a *Client) RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "RegisterCluster",
+		Method:             "POST",
+		PathPattern:        "/clusters",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &RegisterClusterReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*RegisterClusterCreated), nil
+
+}
+
+/*
+RegisterNode registers a new open shift bare metal node
 */
 func (a *Client) RegisterNode(ctx context.Context, params *RegisterNodeParams) (*RegisterNodeCreated, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "RegisterNode",
 		Method:             "POST",
-		PathPattern:        "/node/register",
+		PathPattern:        "/nodes",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},

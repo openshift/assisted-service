@@ -32,11 +32,11 @@ type RegisterNodeParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*Register a new node
+	/*New node parameters
 	  Required: true
 	  In: body
 	*/
-	Body *models.Node
+	NewNodeParams *models.NodeCreateParams
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -50,12 +50,12 @@ func (o *RegisterNodeParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body models.Node
+		var body models.NodeCreateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("body", "body"))
+				res = append(res, errors.Required("newNodeParams", "body"))
 			} else {
-				res = append(res, errors.NewParseError("body", "body", "", err))
+				res = append(res, errors.NewParseError("newNodeParams", "body", "", err))
 			}
 		} else {
 			// validate body object
@@ -64,11 +64,11 @@ func (o *RegisterNodeParams) BindRequest(r *http.Request, route *middleware.Matc
 			}
 
 			if len(res) == 0 {
-				o.Body = &body
+				o.NewNodeParams = &body
 			}
 		}
 	} else {
-		res = append(res, errors.Required("body", "body"))
+		res = append(res, errors.Required("newNodeParams", "body"))
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

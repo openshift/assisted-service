@@ -16,7 +16,7 @@ import (
 // ListNodesOKCode is the HTTP code returned for type ListNodesOK
 const ListNodesOKCode int = 200
 
-/*ListNodesOK List of nodes
+/*ListNodesOK Node list
 
 swagger:response listNodesOK
 */
@@ -25,7 +25,7 @@ type ListNodesOK struct {
 	/*
 	  In: Body
 	*/
-	Payload models.Nodes `json:"body,omitempty"`
+	Payload models.NodeList `json:"body,omitempty"`
 }
 
 // NewListNodesOK creates ListNodesOK with default headers values
@@ -35,13 +35,13 @@ func NewListNodesOK() *ListNodesOK {
 }
 
 // WithPayload adds the payload to the list nodes o k response
-func (o *ListNodesOK) WithPayload(payload models.Nodes) *ListNodesOK {
+func (o *ListNodesOK) WithPayload(payload models.NodeList) *ListNodesOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the list nodes o k response
-func (o *ListNodesOK) SetPayload(payload models.Nodes) {
+func (o *ListNodesOK) SetPayload(payload models.NodeList) {
 	o.Payload = payload
 }
 
@@ -52,7 +52,7 @@ func (o *ListNodesOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pro
 	payload := o.Payload
 	if payload == nil {
 		// return empty array
-		payload = models.Nodes{}
+		payload = models.NodeList{}
 	}
 
 	if err := producer.Produce(rw, payload); err != nil {

@@ -13,12 +13,12 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// Nodes nodes
-// swagger:model nodes
-type Nodes []*RegisteredNode
+// ClusterList cluster list
+// swagger:model cluster-list
+type ClusterList []*Cluster
 
-// Validate validates this nodes
-func (m Nodes) Validate(formats strfmt.Registry) error {
+// Validate validates this cluster list
+func (m ClusterList) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	for i := 0; i < len(m); i++ {

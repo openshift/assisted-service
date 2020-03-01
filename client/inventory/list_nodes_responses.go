@@ -43,17 +43,17 @@ func NewListNodesOK() *ListNodesOK {
 
 /*ListNodesOK handles this case with default header values.
 
-List of nodes
+Node list
 */
 type ListNodesOK struct {
-	Payload models.Nodes
+	Payload models.NodeList
 }
 
 func (o *ListNodesOK) Error() string {
-	return fmt.Sprintf("[GET /node][%d] listNodesOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /nodes][%d] listNodesOK  %+v", 200, o.Payload)
 }
 
-func (o *ListNodesOK) GetPayload() models.Nodes {
+func (o *ListNodesOK) GetPayload() models.NodeList {
 	return o.Payload
 }
 

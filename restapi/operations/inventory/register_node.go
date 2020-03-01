@@ -29,9 +29,9 @@ func NewRegisterNode(ctx *middleware.Context, handler RegisterNodeHandler) *Regi
 	return &RegisterNode{Context: ctx, Handler: handler}
 }
 
-/*RegisterNode swagger:route POST /node/register inventory registerNode
+/*RegisterNode swagger:route POST /nodes inventory registerNode
 
-Register a new node
+Register a new OpenShift bare metal node
 
 */
 type RegisterNode struct {

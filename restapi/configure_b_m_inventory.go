@@ -25,7 +25,16 @@ const AuthKey contextKey = "Auth"
 
 // InventoryAPI
 type InventoryAPI interface {
+	CreateImage(ctx context.Context, params inventory.CreateImageParams) middleware.Responder
+	DeregisterCluster(ctx context.Context, params inventory.DeregisterClusterParams) middleware.Responder
+	DeregisterNode(ctx context.Context, params inventory.DeregisterNodeParams) middleware.Responder
+	GetCluster(ctx context.Context, params inventory.GetClusterParams) middleware.Responder
+	GetImage(ctx context.Context, params inventory.GetImageParams) middleware.Responder
+	GetNode(ctx context.Context, params inventory.GetNodeParams) middleware.Responder
+	ListClusters(ctx context.Context, params inventory.ListClustersParams) middleware.Responder
+	ListImages(ctx context.Context, params inventory.ListImagesParams) middleware.Responder
 	ListNodes(ctx context.Context, params inventory.ListNodesParams) middleware.Responder
+	RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder
 	RegisterNode(ctx context.Context, params inventory.RegisterNodeParams) middleware.Responder
 }
 
@@ -63,9 +72,45 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 
 	api.JSONConsumer = runtime.JSONConsumer()
 	api.JSONProducer = runtime.JSONProducer()
+	api.InventoryCreateImageHandler = inventory.CreateImageHandlerFunc(func(params inventory.CreateImageParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.CreateImage(ctx, params)
+	})
+	api.InventoryDeregisterClusterHandler = inventory.DeregisterClusterHandlerFunc(func(params inventory.DeregisterClusterParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.DeregisterCluster(ctx, params)
+	})
+	api.InventoryDeregisterNodeHandler = inventory.DeregisterNodeHandlerFunc(func(params inventory.DeregisterNodeParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.DeregisterNode(ctx, params)
+	})
+	api.InventoryGetClusterHandler = inventory.GetClusterHandlerFunc(func(params inventory.GetClusterParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.GetCluster(ctx, params)
+	})
+	api.InventoryGetImageHandler = inventory.GetImageHandlerFunc(func(params inventory.GetImageParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.GetImage(ctx, params)
+	})
+	api.InventoryGetNodeHandler = inventory.GetNodeHandlerFunc(func(params inventory.GetNodeParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.GetNode(ctx, params)
+	})
+	api.InventoryListClustersHandler = inventory.ListClustersHandlerFunc(func(params inventory.ListClustersParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.ListClusters(ctx, params)
+	})
+	api.InventoryListImagesHandler = inventory.ListImagesHandlerFunc(func(params inventory.ListImagesParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.ListImages(ctx, params)
+	})
 	api.InventoryListNodesHandler = inventory.ListNodesHandlerFunc(func(params inventory.ListNodesParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.ListNodes(ctx, params)
+	})
+	api.InventoryRegisterClusterHandler = inventory.RegisterClusterHandlerFunc(func(params inventory.RegisterClusterParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.RegisterCluster(ctx, params)
 	})
 	api.InventoryRegisterNodeHandler = inventory.RegisterNodeHandlerFunc(func(params inventory.RegisterNodeParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

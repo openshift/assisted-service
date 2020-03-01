@@ -6,8 +6,12 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+
+	"github.com/go-openapi/errors"
 	strfmt "github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Base base
@@ -15,17 +19,112 @@ import (
 type Base struct {
 
 	// href
-	Href string `json:"href,omitempty"`
+	// Required: true
+	// Format: uri
+	Href *strfmt.URI `json:"href"`
 
 	// id
-	ID string `json:"id,omitempty"`
+	// Required: true
+	// Format: uuid
+	ID *strfmt.UUID `json:"id" gorm:"primary_key" query:"filter,sort"`
 
 	// kind
-	Kind string `json:"kind,omitempty"`
+	// Required: true
+	// Enum: [image node cluster]
+	Kind *string `json:"kind"`
 }
 
 // Validate validates this base
 func (m *Base) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateHref(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateKind(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *Base) validateHref(formats strfmt.Registry) error {
+
+	if err := validate.Required("href", "body", m.Href); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("href", "body", "uri", m.Href.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Base) validateID(formats strfmt.Registry) error {
+
+	if err := validate.Required("id", "body", m.ID); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var baseTypeKindPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["image","node","cluster"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		baseTypeKindPropEnum = append(baseTypeKindPropEnum, v)
+	}
+}
+
+const (
+
+	// BaseKindImage captures enum value "image"
+	BaseKindImage string = "image"
+
+	// BaseKindNode captures enum value "node"
+	BaseKindNode string = "node"
+
+	// BaseKindCluster captures enum value "cluster"
+	BaseKindCluster string = "cluster"
+)
+
+// prop value enum
+func (m *Base) validateKindEnum(path, location string, value string) error {
+	if err := validate.Enum(path, location, value, baseTypeKindPropEnum); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Base) validateKind(formats strfmt.Registry) error {
+
+	if err := validate.Required("kind", "body", m.Kind); err != nil {
+		return err
+	}
+
+	// value enum
+	if err := m.validateKindEnum("kind", "body", *m.Kind); err != nil {
+		return err
+	}
+
 	return nil
 }
 

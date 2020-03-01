@@ -34,51 +34,286 @@ func init() {
     "version": "1.0.0"
   },
   "host": "api.openshift.com",
-  "basePath": "/api/bm.inventory/v1",
+  "basePath": "/api/bm-inventory/v1",
   "paths": {
-    "/node": {
+    "/clusters": {
       "get": {
         "tags": [
           "inventory"
         ],
-        "operationId": "ListNodes",
+        "summary": "List OpenShift bare metal clusters",
+        "operationId": "ListClusters",
         "responses": {
           "200": {
-            "description": "List of nodes",
+            "description": "Cluster list",
             "schema": {
-              "$ref": "#/definitions/nodes"
+              "$ref": "#/definitions/cluster-list"
             }
           }
         }
-      }
-    },
-    "/node/register": {
+      },
       "post": {
         "tags": [
           "inventory"
         ],
-        "summary": "Register a new node",
-        "operationId": "RegisterNode",
+        "summary": "Register a new OpenShift bare metal cluster",
+        "operationId": "RegisterCluster",
         "parameters": [
           {
-            "description": "Register a new node",
-            "name": "body",
+            "description": "New cluster parameters",
+            "name": "new-cluster-params",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/node"
+              "$ref": "#/definitions/cluster-create-params"
             }
           }
         ],
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Registered cluster",
             "schema": {
-              "$ref": "#/definitions/registeredNode"
+              "$ref": "#/definitions/cluster"
             }
           },
-          "405": {
+          "400": {
             "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve OpenShift bare metal cluster information",
+        "operationId": "GetCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the cluster to retrieve",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cluster information",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "404": {
+            "description": "Cluster not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Deregister OpenShift bare metal cluster",
+        "operationId": "DeregisterCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the cluster to retrieve",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cluster deregistered"
+          },
+          "404": {
+            "description": "Cluster not found"
+          }
+        }
+      }
+    },
+    "/images": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "List installation images",
+        "operationId": "ListImages",
+        "responses": {
+          "200": {
+            "description": "Image list",
+            "schema": {
+              "$ref": "#/definitions/image-list"
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Create an OpenShift bare metal cluster-assist installation image",
+        "operationId": "CreateImage",
+        "parameters": [
+          {
+            "description": "New image parameters",
+            "name": "new-image-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/image-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created image",
+            "schema": {
+              "$ref": "#/definitions/image"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/images/{image_id}": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve installation image information",
+        "operationId": "GetImage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the image to retrieve",
+            "name": "image_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image information",
+            "schema": {
+              "$ref": "#/definitions/image"
+            }
+          },
+          "404": {
+            "description": "Image not found"
+          }
+        }
+      }
+    },
+    "/nodes": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "List OpenShift bare metal nodes",
+        "operationId": "ListNodes",
+        "responses": {
+          "200": {
+            "description": "Node list",
+            "schema": {
+              "$ref": "#/definitions/node-list"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Register a new OpenShift bare metal node",
+        "operationId": "RegisterNode",
+        "parameters": [
+          {
+            "description": "New node parameters",
+            "name": "new-node-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/node-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Registered node",
+            "schema": {
+              "$ref": "#/definitions/node"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve OpenShift bare metal node information",
+        "operationId": "GetNode",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the node to retrieve",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Node information",
+            "schema": {
+              "$ref": "#/definitions/node"
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Deregister OpenShift bare metal node",
+        "operationId": "DeregisterNode",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the node to retrieve",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Node deregistered"
+          },
+          "400": {
+            "description": "Node in use"
+          },
+          "404": {
+            "description": "Node not found"
           }
         }
       }
@@ -87,54 +322,218 @@ func init() {
   "definitions": {
     "base": {
       "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "href"
+      ],
       "properties": {
         "href": {
-          "type": "string"
+          "type": "string",
+          "format": "uri"
         },
         "id": {
-          "type": "string"
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key\" query:\"filter,sort\""
         },
         "kind": {
           "type": "string",
-          "example": "node"
+          "enum": [
+            "image",
+            "node",
+            "cluster"
+          ]
         }
+      }
+    },
+    "cluster": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/base"
+        },
+        {
+          "$ref": "#/definitions/cluster-create-params"
+        },
+        {
+          "type": "object",
+          "required": [
+            "status",
+            "namespace"
+          ],
+          "properties": {
+            "namespace": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "creating",
+                "ready",
+                "error"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "cluster-create-params": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "master_nodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
+        },
+        "name": {
+          "type": "string"
+        },
+        "worker_nodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
+        }
+      }
+    },
+    "cluster-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/cluster"
+      }
+    },
+    "image": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/base"
+        },
+        {
+          "$ref": "#/definitions/image-create-params"
+        },
+        {
+          "type": "object",
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "download_url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "creating",
+                "ready",
+                "error"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "image-create-params": {
+      "type": "object",
+      "required": [
+        "name",
+        "namespace"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "proxy_ip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "proxy_port": {
+          "type": "integer",
+          "maximum": 65535
+        }
+      }
+    },
+    "image-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/image"
       }
     },
     "node": {
       "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "x-go-custom-tag": "query:\"filter,sort\"",
-          "example": "doggie"
-        },
-        "url": {
-          "type": "string",
-          "example": "https://10.12.1.150"
-        }
-      }
-    },
-    "nodes": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/registeredNode"
-      }
-    },
-    "registeredNode": {
-      "type": "object",
       "allOf": [
         {
-          "$ref": "#/definitions/node"
+          "$ref": "#/definitions/base"
         },
         {
-          "$ref": "#/definitions/base"
+          "$ref": "#/definitions/node-create-params"
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "status",
+            "hardware_info"
+          ],
+          "properties": {
+            "cluster_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "tbd"
+              ]
+            }
+          }
         }
       ]
+    },
+    "node-create-params": {
+      "type": "object",
+      "required": [
+        "namespace",
+        "hardware_info"
+      ],
+      "properties": {
+        "hardware_info": {
+          "type": "string",
+          "format": "json"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      }
+    },
+    "node-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
     }
   },
   "tags": [
     {
-      "description": "mange bare metal inventory",
+      "description": "Manage bare metal inventory",
       "name": "Bare metal inventory"
     }
   ]
@@ -156,51 +555,286 @@ func init() {
     "version": "1.0.0"
   },
   "host": "api.openshift.com",
-  "basePath": "/api/bm.inventory/v1",
+  "basePath": "/api/bm-inventory/v1",
   "paths": {
-    "/node": {
+    "/clusters": {
       "get": {
         "tags": [
           "inventory"
         ],
-        "operationId": "ListNodes",
+        "summary": "List OpenShift bare metal clusters",
+        "operationId": "ListClusters",
         "responses": {
           "200": {
-            "description": "List of nodes",
+            "description": "Cluster list",
             "schema": {
-              "$ref": "#/definitions/nodes"
+              "$ref": "#/definitions/cluster-list"
             }
           }
         }
-      }
-    },
-    "/node/register": {
+      },
       "post": {
         "tags": [
           "inventory"
         ],
-        "summary": "Register a new node",
-        "operationId": "RegisterNode",
+        "summary": "Register a new OpenShift bare metal cluster",
+        "operationId": "RegisterCluster",
         "parameters": [
           {
-            "description": "Register a new node",
-            "name": "body",
+            "description": "New cluster parameters",
+            "name": "new-cluster-params",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/node"
+              "$ref": "#/definitions/cluster-create-params"
             }
           }
         ],
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Registered cluster",
             "schema": {
-              "$ref": "#/definitions/registeredNode"
+              "$ref": "#/definitions/cluster"
             }
           },
-          "405": {
+          "400": {
             "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve OpenShift bare metal cluster information",
+        "operationId": "GetCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the cluster to retrieve",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cluster information",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "404": {
+            "description": "Cluster not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Deregister OpenShift bare metal cluster",
+        "operationId": "DeregisterCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the cluster to retrieve",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cluster deregistered"
+          },
+          "404": {
+            "description": "Cluster not found"
+          }
+        }
+      }
+    },
+    "/images": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "List installation images",
+        "operationId": "ListImages",
+        "responses": {
+          "200": {
+            "description": "Image list",
+            "schema": {
+              "$ref": "#/definitions/image-list"
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Create an OpenShift bare metal cluster-assist installation image",
+        "operationId": "CreateImage",
+        "parameters": [
+          {
+            "description": "New image parameters",
+            "name": "new-image-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/image-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created image",
+            "schema": {
+              "$ref": "#/definitions/image"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/images/{image_id}": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve installation image information",
+        "operationId": "GetImage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the image to retrieve",
+            "name": "image_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image information",
+            "schema": {
+              "$ref": "#/definitions/image"
+            }
+          },
+          "404": {
+            "description": "Image not found"
+          }
+        }
+      }
+    },
+    "/nodes": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "List OpenShift bare metal nodes",
+        "operationId": "ListNodes",
+        "responses": {
+          "200": {
+            "description": "Node list",
+            "schema": {
+              "$ref": "#/definitions/node-list"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Register a new OpenShift bare metal node",
+        "operationId": "RegisterNode",
+        "parameters": [
+          {
+            "description": "New node parameters",
+            "name": "new-node-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/node-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Registered node",
+            "schema": {
+              "$ref": "#/definitions/node"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve OpenShift bare metal node information",
+        "operationId": "GetNode",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the node to retrieve",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Node information",
+            "schema": {
+              "$ref": "#/definitions/node"
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Deregister OpenShift bare metal node",
+        "operationId": "DeregisterNode",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the node to retrieve",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Node deregistered"
+          },
+          "400": {
+            "description": "Node in use"
+          },
+          "404": {
+            "description": "Node not found"
           }
         }
       }
@@ -209,54 +843,219 @@ func init() {
   "definitions": {
     "base": {
       "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "href"
+      ],
       "properties": {
         "href": {
-          "type": "string"
+          "type": "string",
+          "format": "uri"
         },
         "id": {
-          "type": "string"
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key\" query:\"filter,sort\""
         },
         "kind": {
           "type": "string",
-          "example": "node"
+          "enum": [
+            "image",
+            "node",
+            "cluster"
+          ]
         }
+      }
+    },
+    "cluster": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/base"
+        },
+        {
+          "$ref": "#/definitions/cluster-create-params"
+        },
+        {
+          "type": "object",
+          "required": [
+            "status",
+            "namespace"
+          ],
+          "properties": {
+            "namespace": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "creating",
+                "ready",
+                "error"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "cluster-create-params": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "master_nodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
+        },
+        "name": {
+          "type": "string"
+        },
+        "worker_nodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
+        }
+      }
+    },
+    "cluster-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/cluster"
+      }
+    },
+    "image": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/base"
+        },
+        {
+          "$ref": "#/definitions/image-create-params"
+        },
+        {
+          "type": "object",
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "download_url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "creating",
+                "ready",
+                "error"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "image-create-params": {
+      "type": "object",
+      "required": [
+        "name",
+        "namespace"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "proxy_ip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "proxy_port": {
+          "type": "integer",
+          "maximum": 65535,
+          "minimum": 0
+        }
+      }
+    },
+    "image-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/image"
       }
     },
     "node": {
       "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "x-go-custom-tag": "query:\"filter,sort\"",
-          "example": "doggie"
-        },
-        "url": {
-          "type": "string",
-          "example": "https://10.12.1.150"
-        }
-      }
-    },
-    "nodes": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/registeredNode"
-      }
-    },
-    "registeredNode": {
-      "type": "object",
       "allOf": [
         {
-          "$ref": "#/definitions/node"
+          "$ref": "#/definitions/base"
         },
         {
-          "$ref": "#/definitions/base"
+          "$ref": "#/definitions/node-create-params"
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "status",
+            "hardware_info"
+          ],
+          "properties": {
+            "cluster_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "tbd"
+              ]
+            }
+          }
         }
       ]
+    },
+    "node-create-params": {
+      "type": "object",
+      "required": [
+        "namespace",
+        "hardware_info"
+      ],
+      "properties": {
+        "hardware_info": {
+          "type": "string",
+          "format": "json"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      }
+    },
+    "node-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
     }
   },
   "tags": [
     {
-      "description": "mange bare metal inventory",
+      "description": "Manage bare metal inventory",
       "name": "Bare metal inventory"
     }
   ]

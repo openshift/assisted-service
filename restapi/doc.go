@@ -6,7 +6,7 @@
 //  Schemes:
 //    http
 //  Host: api.openshift.com
-//  BasePath: /api/bm.inventory/v1
+//  BasePath: /api/bm-inventory/v1
 //  Version: 1.0.0
 //
 //  Consumes:

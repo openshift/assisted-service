@@ -29,9 +29,9 @@ func NewListNodes(ctx *middleware.Context, handler ListNodesHandler) *ListNodes 
 	return &ListNodes{Context: ctx, Handler: handler}
 }
 
-/*ListNodes swagger:route GET /node inventory listNodes
+/*ListNodes swagger:route GET /nodes inventory listNodes
 
-ListNodes list nodes API
+List OpenShift bare metal nodes
 
 */
 type ListNodes struct {

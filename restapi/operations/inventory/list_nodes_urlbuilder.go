@@ -35,11 +35,11 @@ func (o *ListNodesURL) SetBasePath(bp string) {
 func (o *ListNodesURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/node"
+	var _path = "/nodes"
 
 	_basePath := o._basePath
 	if _basePath == "" {
-		_basePath = "/api/bm.inventory/v1"
+		_basePath = "/api/bm-inventory/v1"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 

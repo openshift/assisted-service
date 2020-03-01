@@ -35,11 +35,11 @@ func (o *RegisterNodeURL) SetBasePath(bp string) {
 func (o *RegisterNodeURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/node/register"
+	var _path = "/nodes"
 
 	_basePath := o._basePath
 	if _basePath == "" {
-		_basePath = "/api/bm.inventory/v1"
+		_basePath = "/api/bm-inventory/v1"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 

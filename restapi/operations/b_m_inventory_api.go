@@ -40,8 +40,35 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		BearerAuthenticator: security.BearerAuth,
 		JSONConsumer:        runtime.JSONConsumer(),
 		JSONProducer:        runtime.JSONProducer(),
+		InventoryCreateImageHandler: inventory.CreateImageHandlerFunc(func(params inventory.CreateImageParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.CreateImage has not yet been implemented")
+		}),
+		InventoryDeregisterClusterHandler: inventory.DeregisterClusterHandlerFunc(func(params inventory.DeregisterClusterParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.DeregisterCluster has not yet been implemented")
+		}),
+		InventoryDeregisterNodeHandler: inventory.DeregisterNodeHandlerFunc(func(params inventory.DeregisterNodeParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.DeregisterNode has not yet been implemented")
+		}),
+		InventoryGetClusterHandler: inventory.GetClusterHandlerFunc(func(params inventory.GetClusterParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.GetCluster has not yet been implemented")
+		}),
+		InventoryGetImageHandler: inventory.GetImageHandlerFunc(func(params inventory.GetImageParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.GetImage has not yet been implemented")
+		}),
+		InventoryGetNodeHandler: inventory.GetNodeHandlerFunc(func(params inventory.GetNodeParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.GetNode has not yet been implemented")
+		}),
+		InventoryListClustersHandler: inventory.ListClustersHandlerFunc(func(params inventory.ListClustersParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.ListClusters has not yet been implemented")
+		}),
+		InventoryListImagesHandler: inventory.ListImagesHandlerFunc(func(params inventory.ListImagesParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.ListImages has not yet been implemented")
+		}),
 		InventoryListNodesHandler: inventory.ListNodesHandlerFunc(func(params inventory.ListNodesParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.ListNodes has not yet been implemented")
+		}),
+		InventoryRegisterClusterHandler: inventory.RegisterClusterHandlerFunc(func(params inventory.RegisterClusterParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.RegisterCluster has not yet been implemented")
 		}),
 		InventoryRegisterNodeHandler: inventory.RegisterNodeHandlerFunc(func(params inventory.RegisterNodeParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.RegisterNode has not yet been implemented")
@@ -77,8 +104,26 @@ type BMInventoryAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
+	// InventoryCreateImageHandler sets the operation handler for the create image operation
+	InventoryCreateImageHandler inventory.CreateImageHandler
+	// InventoryDeregisterClusterHandler sets the operation handler for the deregister cluster operation
+	InventoryDeregisterClusterHandler inventory.DeregisterClusterHandler
+	// InventoryDeregisterNodeHandler sets the operation handler for the deregister node operation
+	InventoryDeregisterNodeHandler inventory.DeregisterNodeHandler
+	// InventoryGetClusterHandler sets the operation handler for the get cluster operation
+	InventoryGetClusterHandler inventory.GetClusterHandler
+	// InventoryGetImageHandler sets the operation handler for the get image operation
+	InventoryGetImageHandler inventory.GetImageHandler
+	// InventoryGetNodeHandler sets the operation handler for the get node operation
+	InventoryGetNodeHandler inventory.GetNodeHandler
+	// InventoryListClustersHandler sets the operation handler for the list clusters operation
+	InventoryListClustersHandler inventory.ListClustersHandler
+	// InventoryListImagesHandler sets the operation handler for the list images operation
+	InventoryListImagesHandler inventory.ListImagesHandler
 	// InventoryListNodesHandler sets the operation handler for the list nodes operation
 	InventoryListNodesHandler inventory.ListNodesHandler
+	// InventoryRegisterClusterHandler sets the operation handler for the register cluster operation
+	InventoryRegisterClusterHandler inventory.RegisterClusterHandler
 	// InventoryRegisterNodeHandler sets the operation handler for the register node operation
 	InventoryRegisterNodeHandler inventory.RegisterNodeHandler
 	// ServeError is called when an error is received, there is a default handler
@@ -147,8 +192,44 @@ func (o *BMInventoryAPI) Validate() error {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
+	if o.InventoryCreateImageHandler == nil {
+		unregistered = append(unregistered, "Inventory.CreateImageHandler")
+	}
+
+	if o.InventoryDeregisterClusterHandler == nil {
+		unregistered = append(unregistered, "Inventory.DeregisterClusterHandler")
+	}
+
+	if o.InventoryDeregisterNodeHandler == nil {
+		unregistered = append(unregistered, "Inventory.DeregisterNodeHandler")
+	}
+
+	if o.InventoryGetClusterHandler == nil {
+		unregistered = append(unregistered, "Inventory.GetClusterHandler")
+	}
+
+	if o.InventoryGetImageHandler == nil {
+		unregistered = append(unregistered, "Inventory.GetImageHandler")
+	}
+
+	if o.InventoryGetNodeHandler == nil {
+		unregistered = append(unregistered, "Inventory.GetNodeHandler")
+	}
+
+	if o.InventoryListClustersHandler == nil {
+		unregistered = append(unregistered, "Inventory.ListClustersHandler")
+	}
+
+	if o.InventoryListImagesHandler == nil {
+		unregistered = append(unregistered, "Inventory.ListImagesHandler")
+	}
+
 	if o.InventoryListNodesHandler == nil {
 		unregistered = append(unregistered, "Inventory.ListNodesHandler")
+	}
+
+	if o.InventoryRegisterClusterHandler == nil {
+		unregistered = append(unregistered, "Inventory.RegisterClusterHandler")
 	}
 
 	if o.InventoryRegisterNodeHandler == nil {
@@ -247,15 +328,60 @@ func (o *BMInventoryAPI) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/images"] = inventory.NewCreateImage(o.context, o.InventoryCreateImageHandler)
+
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/clusters/{cluster_id}"] = inventory.NewDeregisterCluster(o.context, o.InventoryDeregisterClusterHandler)
+
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/nodes/{node_id}"] = inventory.NewDeregisterNode(o.context, o.InventoryDeregisterNodeHandler)
+
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/node"] = inventory.NewListNodes(o.context, o.InventoryListNodesHandler)
+	o.handlers["GET"]["/clusters/{cluster_id}"] = inventory.NewGetCluster(o.context, o.InventoryGetClusterHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/images/{image_id}"] = inventory.NewGetImage(o.context, o.InventoryGetImageHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/nodes/{node_id}"] = inventory.NewGetNode(o.context, o.InventoryGetNodeHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters"] = inventory.NewListClusters(o.context, o.InventoryListClustersHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/images"] = inventory.NewListImages(o.context, o.InventoryListImagesHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/nodes"] = inventory.NewListNodes(o.context, o.InventoryListNodesHandler)
 
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/node/register"] = inventory.NewRegisterNode(o.context, o.InventoryRegisterNodeHandler)
+	o.handlers["POST"]["/clusters"] = inventory.NewRegisterCluster(o.context, o.InventoryRegisterClusterHandler)
+
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/nodes"] = inventory.NewRegisterNode(o.context, o.InventoryRegisterNodeHandler)
 
 }
 
