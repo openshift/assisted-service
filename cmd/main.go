@@ -30,7 +30,7 @@ func main() {
 		logrus.Fatal("failed to auto migrate, ", err)
 	}
 
-	bm := bminventory.NewBareMetalInventory()
+	bm := bminventory.NewBareMetalInventory(db)
 	h, err := restapi.Handler(restapi.Config{
 		InventoryAPI: bm,
 		Logger:       logrus.Printf,
