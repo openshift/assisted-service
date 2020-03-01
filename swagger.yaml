@@ -93,6 +93,8 @@ paths:
             $ref: '#/definitions/node'
         400:
           description: Invalid input
+        500:
+          description: Internal server error
 
     get:
       tags:
@@ -104,6 +106,8 @@ paths:
           description: Node list
           schema:
             $ref: '#/definitions/node-list'
+        500:
+          description: Internal server error
 
   /nodes/{node_id}:
     get:
@@ -164,6 +168,8 @@ paths:
             $ref: '#/definitions/cluster'
         400:
           description: Invalid input
+        500:
+          description: Internal server error
 
     get:
       tags:
@@ -175,6 +181,8 @@ paths:
           description: Cluster list
           schema:
             $ref: '#/definitions/cluster-list'
+        500:
+          description: Internal server error
 
   /clusters/{cluster_id}:
     get:
@@ -313,23 +321,24 @@ definitions:
     type: object
     required:
       - name
+      - nodes
     properties:
       name:
         type: string
       description:
         type: string
-      master_nodes:
+      nodes:
         type: array
         x-go-custom-tag: gorm:"type:varchar(64)[]"
         items:
-          type: string
-          format: uuid
-      worker_nodes:
-        type: array
-        x-go-custom-tag: gorm:"type:varchar(64)[]"
-        items:
-          type: string
-          format: uuid
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            role:
+              type: string
+              enum: ['master', 'worker']
 
   cluster:
     type: object

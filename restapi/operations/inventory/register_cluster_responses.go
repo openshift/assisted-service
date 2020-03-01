@@ -80,3 +80,27 @@ func (o *RegisterClusterBadRequest) WriteResponse(rw http.ResponseWriter, produc
 
 	rw.WriteHeader(400)
 }
+
+// RegisterClusterInternalServerErrorCode is the HTTP code returned for type RegisterClusterInternalServerError
+const RegisterClusterInternalServerErrorCode int = 500
+
+/*RegisterClusterInternalServerError Internal server error
+
+swagger:response registerClusterInternalServerError
+*/
+type RegisterClusterInternalServerError struct {
+}
+
+// NewRegisterClusterInternalServerError creates RegisterClusterInternalServerError with default headers values
+func NewRegisterClusterInternalServerError() *RegisterClusterInternalServerError {
+
+	return &RegisterClusterInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *RegisterClusterInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}

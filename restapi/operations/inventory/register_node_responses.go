@@ -80,3 +80,27 @@ func (o *RegisterNodeBadRequest) WriteResponse(rw http.ResponseWriter, producer 
 
 	rw.WriteHeader(400)
 }
+
+// RegisterNodeInternalServerErrorCode is the HTTP code returned for type RegisterNodeInternalServerError
+const RegisterNodeInternalServerErrorCode int = 500
+
+/*RegisterNodeInternalServerError Internal server error
+
+swagger:response registerNodeInternalServerError
+*/
+type RegisterNodeInternalServerError struct {
+}
+
+// NewRegisterNodeInternalServerError creates RegisterNodeInternalServerError with default headers values
+func NewRegisterNodeInternalServerError() *RegisterNodeInternalServerError {
+
+	return &RegisterNodeInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *RegisterNodeInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}

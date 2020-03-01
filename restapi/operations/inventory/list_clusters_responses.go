@@ -59,3 +59,27 @@ func (o *ListClustersOK) WriteResponse(rw http.ResponseWriter, producer runtime.
 		panic(err) // let the recovery middleware deal with this
 	}
 }
+
+// ListClustersInternalServerErrorCode is the HTTP code returned for type ListClustersInternalServerError
+const ListClustersInternalServerErrorCode int = 500
+
+/*ListClustersInternalServerError Internal server error
+
+swagger:response listClustersInternalServerError
+*/
+type ListClustersInternalServerError struct {
+}
+
+// NewListClustersInternalServerError creates ListClustersInternalServerError with default headers values
+func NewListClustersInternalServerError() *ListClustersInternalServerError {
+
+	return &ListClustersInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *ListClustersInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}

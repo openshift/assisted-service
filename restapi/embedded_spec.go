@@ -49,6 +49,9 @@ func init() {
             "schema": {
               "$ref": "#/definitions/cluster-list"
             }
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       },
@@ -78,6 +81,9 @@ func init() {
           },
           "400": {
             "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -229,6 +235,9 @@ func init() {
             "schema": {
               "$ref": "#/definitions/node-list"
             }
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       },
@@ -258,6 +267,9 @@ func init() {
           },
           "400": {
             "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -381,28 +393,33 @@ func init() {
     "cluster-create-params": {
       "type": "object",
       "required": [
-        "name"
+        "name",
+        "nodes"
       ],
       "properties": {
         "description": {
           "type": "string"
         },
-        "master_nodes": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
-        },
         "name": {
           "type": "string"
         },
-        "worker_nodes": {
+        "nodes": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "uuid"
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "master",
+                  "worker"
+                ]
+              }
+            }
           },
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
         }
@@ -570,6 +587,9 @@ func init() {
             "schema": {
               "$ref": "#/definitions/cluster-list"
             }
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       },
@@ -599,6 +619,9 @@ func init() {
           },
           "400": {
             "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -750,6 +773,9 @@ func init() {
             "schema": {
               "$ref": "#/definitions/node-list"
             }
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       },
@@ -779,6 +805,9 @@ func init() {
           },
           "400": {
             "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -841,6 +870,22 @@ func init() {
     }
   },
   "definitions": {
+    "ClusterCreateParamsNodesItems0": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "master",
+            "worker"
+          ]
+        }
+      }
+    },
     "base": {
       "type": "object",
       "required": [
@@ -902,28 +947,20 @@ func init() {
     "cluster-create-params": {
       "type": "object",
       "required": [
-        "name"
+        "name",
+        "nodes"
       ],
       "properties": {
         "description": {
           "type": "string"
         },
-        "master_nodes": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
-        },
         "name": {
           "type": "string"
         },
-        "worker_nodes": {
+        "nodes": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "uuid"
+            "$ref": "#/definitions/ClusterCreateParamsNodesItems0"
           },
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
         }

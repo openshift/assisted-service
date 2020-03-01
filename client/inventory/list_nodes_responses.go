@@ -30,6 +30,12 @@ func (o *ListNodesReader) ReadResponse(response runtime.ClientResponse, consumer
 			return nil, err
 		}
 		return result, nil
+	case 500:
+		result := NewListNodesInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
@@ -63,6 +69,27 @@ func (o *ListNodesOK) readResponse(response runtime.ClientResponse, consumer run
 	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
+
+	return nil
+}
+
+// NewListNodesInternalServerError creates a ListNodesInternalServerError with default headers values
+func NewListNodesInternalServerError() *ListNodesInternalServerError {
+	return &ListNodesInternalServerError{}
+}
+
+/*ListNodesInternalServerError handles this case with default header values.
+
+Internal server error
+*/
+type ListNodesInternalServerError struct {
+}
+
+func (o *ListNodesInternalServerError) Error() string {
+	return fmt.Sprintf("[GET /nodes][%d] listNodesInternalServerError ", 500)
+}
+
+func (o *ListNodesInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

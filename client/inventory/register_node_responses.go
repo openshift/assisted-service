@@ -36,6 +36,12 @@ func (o *RegisterNodeReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
+	case 500:
+		result := NewRegisterNodeInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
@@ -92,6 +98,27 @@ func (o *RegisterNodeBadRequest) Error() string {
 }
 
 func (o *RegisterNodeBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewRegisterNodeInternalServerError creates a RegisterNodeInternalServerError with default headers values
+func NewRegisterNodeInternalServerError() *RegisterNodeInternalServerError {
+	return &RegisterNodeInternalServerError{}
+}
+
+/*RegisterNodeInternalServerError handles this case with default header values.
+
+Internal server error
+*/
+type RegisterNodeInternalServerError struct {
+}
+
+func (o *RegisterNodeInternalServerError) Error() string {
+	return fmt.Sprintf("[POST /nodes][%d] registerNodeInternalServerError ", 500)
+}
+
+func (o *RegisterNodeInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

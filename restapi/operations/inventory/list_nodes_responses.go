@@ -59,3 +59,27 @@ func (o *ListNodesOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pro
 		panic(err) // let the recovery middleware deal with this
 	}
 }
+
+// ListNodesInternalServerErrorCode is the HTTP code returned for type ListNodesInternalServerError
+const ListNodesInternalServerErrorCode int = 500
+
+/*ListNodesInternalServerError Internal server error
+
+swagger:response listNodesInternalServerError
+*/
+type ListNodesInternalServerError struct {
+}
+
+// NewListNodesInternalServerError creates ListNodesInternalServerError with default headers values
+func NewListNodesInternalServerError() *ListNodesInternalServerError {
+
+	return &ListNodesInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *ListNodesInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}
