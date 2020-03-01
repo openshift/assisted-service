@@ -1,6 +1,8 @@
 PWD = $(shell pwd)
 UID = $(shell id -u)
 
+SERVICE = quay.io/mfilanov/bm-inventory:latest
+
 all: build
 
 .PHONY: build
@@ -15,3 +17,7 @@ generate-swagger:
 	rm -rf client models restapi
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD) -v /etc/passwd:/etc/passwd -w $(PWD) quay.io/goswagger/swagger generate server	--template=stratoscale -f swagger.yaml --template-dir=/templates/contrib
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD) -v /etc/passwd:/etc/passwd -w $(PWD) quay.io/goswagger/swagger generate client	--template=stratoscale -f swagger.yaml --template-dir=/templates/contrib
+
+update: build
+	docker build -f Dockerfile.bm-inventory . -t $(SERVICE)
+	docker push $(SERVICE)
