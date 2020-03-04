@@ -287,12 +287,15 @@ definitions:
     required:
       - namespace
       - hardware_info
+      - serial
     properties:
       namespace:
         type: string
       hardware_info:
         type: string
         format: json
+      serial:
+        type: string
 
   node:
     type: object

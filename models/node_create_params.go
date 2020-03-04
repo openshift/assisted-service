@@ -23,6 +23,10 @@ type NodeCreateParams struct {
 	// namespace
 	// Required: true
 	Namespace *string `json:"namespace"`
+
+	// serial
+	// Required: true
+	Serial *string `json:"serial"`
 }
 
 // Validate validates this node create params
@@ -34,6 +38,10 @@ func (m *NodeCreateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateNamespace(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSerial(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -55,6 +63,15 @@ func (m *NodeCreateParams) validateHardwareInfo(formats strfmt.Registry) error {
 func (m *NodeCreateParams) validateNamespace(formats strfmt.Registry) error {
 
 	if err := validate.Required("namespace", "body", m.Namespace); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *NodeCreateParams) validateSerial(formats strfmt.Registry) error {
+
+	if err := validate.Required("serial", "body", m.Serial); err != nil {
 		return err
 	}
 

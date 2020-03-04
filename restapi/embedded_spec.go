@@ -529,7 +529,8 @@ func init() {
       "type": "object",
       "required": [
         "namespace",
-        "hardware_info"
+        "hardware_info",
+        "serial"
       ],
       "properties": {
         "hardware_info": {
@@ -537,6 +538,9 @@ func init() {
           "format": "json"
         },
         "namespace": {
+          "type": "string"
+        },
+        "serial": {
           "type": "string"
         }
       }
@@ -1071,7 +1075,8 @@ func init() {
       "type": "object",
       "required": [
         "namespace",
-        "hardware_info"
+        "hardware_info",
+        "serial"
       ],
       "properties": {
         "hardware_info": {
@@ -1079,6 +1084,9 @@ func init() {
           "format": "json"
         },
         "namespace": {
+          "type": "string"
+        },
+        "serial": {
           "type": "string"
         }
       }
