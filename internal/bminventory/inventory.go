@@ -3,17 +3,20 @@ package bminventory
 import (
 	"context"
 	"fmt"
-
-	"github.com/sirupsen/logrus"
-
-	"github.com/google/uuid"
+	"strings"
 
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/restapi/operations/inventory"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
+	"github.com/sirupsen/logrus"
+	batch "k8s.io/api/batch/v1"
+	core "k8s.io/api/core/v1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const baseHref = "/api/bm.inventory/v1"
@@ -36,12 +39,19 @@ const (
 	ResourceKindCluster = "cluster"
 )
 
-type bareMetalInventory struct {
-	db *gorm.DB
+type Config struct {
+	ImageBuilder    string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
+	ImageBuilderCmd string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
 }
 
-func NewBareMetalInventory(db *gorm.DB) *bareMetalInventory {
-	return &bareMetalInventory{db: db}
+type bareMetalInventory struct {
+	Config
+	db   *gorm.DB
+	kube client.Client
+}
+
+func NewBareMetalInventory(db *gorm.DB, kclient client.Client, cfg Config) *bareMetalInventory {
+	return &bareMetalInventory{db: db, kube: kclient, Config: cfg}
 }
 
 func strToURI(str string) *strfmt.URI {
@@ -53,7 +63,7 @@ func buildHrefURI(base, id string) *strfmt.URI {
 	return strToURI(fmt.Sprintf("%s/%s/%s", baseHref, base, id))
 }
 
-func (b bareMetalInventory) CreateImage(ctx context.Context, params inventory.CreateImageParams) middleware.Responder {
+func (b *bareMetalInventory) CreateImage(ctx context.Context, params inventory.CreateImageParams) middleware.Responder {
 	id := strfmt.UUID(uuid.New().String())
 	image := &models.Image{
 		Base: models.Base{
@@ -69,16 +79,90 @@ func (b bareMetalInventory) CreateImage(ctx context.Context, params inventory.Cr
 	}
 
 	logrus.Info("new image create request", image)
+	if err := b.createImageJob(ctx, id.String()); err != nil {
+		logrus.WithError(err).Error("failed to run job")
+		return inventory.NewCreateImageInternalServerError()
+	}
 
 	if err := b.db.Create(image).Error; err != nil {
 		logrus.WithError(err).Error("failed to create image")
 		return inventory.NewCreateImageInternalServerError()
 	}
 
+	// TODO: should be async
+	if err := b.monitorImageBuild(ctx, image); err != nil {
+		return inventory.NewCreateImageInternalServerError()
+	}
+
 	return inventory.NewCreateImageCreated().WithPayload(image)
 }
 
-func (b bareMetalInventory) GetImage(ctx context.Context, params inventory.GetImageParams) middleware.Responder {
+func (b *bareMetalInventory) monitorImageBuild(ctx context.Context, image *models.Image) error {
+	var job batch.Job
+	b.kube.Get(ctx, client.ObjectKey{
+		Namespace: "default",
+		Name:      fmt.Sprintf("create-image-%s", image.ID.String()),
+	}, &job)
+
+	for job.Status.Succeeded == 0 && job.Status.Failed == 0 {
+		b.kube.Get(ctx, client.ObjectKey{
+			Namespace: "default",
+			Name:      fmt.Sprintf("create-image-%s", image.ID.String()),
+		}, &job)
+	}
+
+	if job.Status.Failed > 0 {
+		logrus.Error("job failed")
+		return fmt.Errorf("job failed")
+	}
+
+	if err := b.kube.Delete(context.Background(), &job); err != nil {
+		logrus.WithError(err).Error("failed to delete job")
+	}
+
+	if err := b.db.Model(image).Update("status", ImageStatusReady).Error; err != nil {
+		logrus.WithError(err).Error("failed to update image")
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) createImageJob(ctx context.Context, id string) error {
+	if err := b.kube.Create(ctx, &batch.Job{
+		TypeMeta: meta.TypeMeta{
+			Kind:       "Job",
+			APIVersion: "batch/v1",
+		},
+		ObjectMeta: meta.ObjectMeta{
+			Name:      fmt.Sprintf("create-image-%s", id),
+			Namespace: "default",
+		},
+		Spec: batch.JobSpec{
+			BackoffLimit: swag.Int32(2),
+			Template: core.PodTemplateSpec{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      "image-create-%s-job",
+					Namespace: "default",
+				},
+				Spec: core.PodSpec{
+					Containers: []core.Container{
+						{
+							Name:            "image-creator",
+							Image:           b.Config.ImageBuilder,
+							Command:         strings.Split(b.Config.ImageBuilderCmd, " "),
+							ImagePullPolicy: "IfNotPresent",
+						},
+					},
+					RestartPolicy: "Never",
+				},
+			},
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) GetImage(ctx context.Context, params inventory.GetImageParams) middleware.Responder {
 	var image models.Image
 	if err := b.db.First(&image, "id = (?)", params.ImageID).Error; err != nil {
 		logrus.WithError(err).Errorf("failed to find image %s", params.ImageID)
@@ -87,7 +171,7 @@ func (b bareMetalInventory) GetImage(ctx context.Context, params inventory.GetIm
 	return inventory.NewGetImageOK().WithPayload(&image)
 }
 
-func (b bareMetalInventory) ListImages(ctx context.Context, params inventory.ListImagesParams) middleware.Responder {
+func (b *bareMetalInventory) ListImages(ctx context.Context, params inventory.ListImagesParams) middleware.Responder {
 	var images []*models.Image
 	if err := b.db.Find(&images).Error; err != nil {
 		return inventory.NewListImagesInternalServerError()
@@ -95,7 +179,7 @@ func (b bareMetalInventory) ListImages(ctx context.Context, params inventory.Lis
 	return inventory.NewListImagesOK().WithPayload(images)
 }
 
-func (b bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {
+func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {
 	logrus.Info("Register cluster:", params.NewClusterParams)
 	id := strfmt.UUID(uuid.New().String())
 	cluster := models.Cluster{
@@ -118,7 +202,7 @@ func (b bareMetalInventory) RegisterCluster(ctx context.Context, params inventor
 	return inventory.NewRegisterClusterCreated().WithPayload(&cluster)
 }
 
-func (b bareMetalInventory) DeregisterCluster(ctx context.Context, params inventory.DeregisterClusterParams) middleware.Responder {
+func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inventory.DeregisterClusterParams) middleware.Responder {
 	var cluster models.Cluster
 	var txErr error
 	tx := b.db.Begin()
@@ -129,7 +213,7 @@ func (b bareMetalInventory) DeregisterCluster(ctx context.Context, params invent
 		}
 	}()
 
-	if err := tx.First(&cluster, "id = ?", params.ClusterID); err != nil {
+	if err := tx.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return inventory.NewDeregisterClusterNotFound()
 	}
 
@@ -155,7 +239,7 @@ func (b bareMetalInventory) DeregisterCluster(ctx context.Context, params invent
 	return inventory.NewDeregisterClusterNoContent()
 }
 
-func (b bareMetalInventory) ListClusters(ctx context.Context, params inventory.ListClustersParams) middleware.Responder {
+func (b *bareMetalInventory) ListClusters(ctx context.Context, params inventory.ListClustersParams) middleware.Responder {
 	var clusters []*models.Cluster
 	if err := b.db.Find(&clusters).Error; err != nil {
 		logrus.WithError(err).Error("failed to list clusters")
@@ -165,16 +249,16 @@ func (b bareMetalInventory) ListClusters(ctx context.Context, params inventory.L
 	return inventory.NewListClustersOK().WithPayload(clusters)
 }
 
-func (b bareMetalInventory) GetCluster(ctx context.Context, params inventory.GetClusterParams) middleware.Responder {
-	var cluster *models.Cluster
-	if err := b.db.First(cluster, "id = ?", params.ClusterID); err != nil {
+func (b *bareMetalInventory) GetCluster(ctx context.Context, params inventory.GetClusterParams) middleware.Responder {
+	var cluster models.Cluster
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		// TODO: check for the right error
 		return inventory.NewGetClusterNotFound()
 	}
-	return inventory.NewGetClusterOK().WithPayload(cluster)
+	return inventory.NewGetClusterOK().WithPayload(&cluster)
 }
 
-func (b bareMetalInventory) RegisterNode(ctx context.Context, params inventory.RegisterNodeParams) middleware.Responder {
+func (b *bareMetalInventory) RegisterNode(ctx context.Context, params inventory.RegisterNodeParams) middleware.Responder {
 	id := strfmt.UUID(uuid.New().String())
 	node := &models.Node{
 		Base: models.Base{
@@ -195,9 +279,9 @@ func (b bareMetalInventory) RegisterNode(ctx context.Context, params inventory.R
 	return inventory.NewRegisterNodeCreated().WithPayload(node)
 }
 
-func (b bareMetalInventory) DeregisterNode(ctx context.Context, params inventory.DeregisterNodeParams) middleware.Responder {
+func (b *bareMetalInventory) DeregisterNode(ctx context.Context, params inventory.DeregisterNodeParams) middleware.Responder {
 	var node models.Node
-	if err := b.db.Delete(&node, "id = ?", params.NodeID); err != nil {
+	if err := b.db.Delete(&node, "id = ?", params.NodeID).Error; err != nil {
 		// TODO: check error type
 		return inventory.NewDeregisterNodeBadRequest()
 	}
@@ -206,18 +290,18 @@ func (b bareMetalInventory) DeregisterNode(ctx context.Context, params inventory
 	return inventory.NewDeregisterNodeNoContent()
 }
 
-func (b bareMetalInventory) GetNode(ctx context.Context, params inventory.GetNodeParams) middleware.Responder {
-	var node *models.Node
+func (b *bareMetalInventory) GetNode(ctx context.Context, params inventory.GetNodeParams) middleware.Responder {
+	var node models.Node
 
 	// TODO: validate what is the error
-	if err := b.db.First(node, "id = ?", params.NodeID); err != nil {
+	if err := b.db.First(&node, "id = ?", params.NodeID).Error; err != nil {
 		return inventory.NewGetNodeNotFound()
 	}
 
-	return inventory.NewGetNodeOK().WithPayload(node)
+	return inventory.NewGetNodeOK().WithPayload(&node)
 }
 
-func (b bareMetalInventory) ListNodes(ctx context.Context, params inventory.ListNodesParams) middleware.Responder {
+func (b *bareMetalInventory) ListNodes(ctx context.Context, params inventory.ListNodesParams) middleware.Responder {
 	var nodes []*models.Node
 	if err := b.db.Find(&nodes).Error; err != nil {
 		return inventory.NewListNodesInternalServerError()
