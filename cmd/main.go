@@ -22,7 +22,7 @@ import (
 
 var Options struct {
 	BMConfig bminventory.Config
-	DBHost   string `envconfig:"DB_HOST" default:"172.17.0.7"`
+	DBHost   string `envconfig:"DB_HOST" default:"postgres"`
 	DBPort   string `envconfig:"DB_PORT" default:"5432"`
 }
 
