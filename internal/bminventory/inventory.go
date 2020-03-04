@@ -140,7 +140,7 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, id string) erro
 			BackoffLimit: swag.Int32(2),
 			Template: core.PodTemplateSpec{
 				ObjectMeta: meta.ObjectMeta{
-					Name:      "image-create-%s-job",
+					Name:      fmt.Sprintf("create-image-%s", id),
 					Namespace: "default",
 				},
 				Spec: core.PodSpec{

@@ -21,6 +21,7 @@ var _ = Describe("Node tests", func() {
 			NewNodeParams: &models.NodeCreateParams{
 				HardwareInfo: swag.String("some HW info"),
 				Namespace:    swag.String("my namespace"),
+				Serial:       swag.String("BLABLA123"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
