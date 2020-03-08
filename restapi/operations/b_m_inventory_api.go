@@ -55,6 +55,9 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		InventoryGetImageHandler: inventory.GetImageHandlerFunc(func(params inventory.GetImageParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.GetImage has not yet been implemented")
 		}),
+		InventoryGetNextStepsHandler: inventory.GetNextStepsHandlerFunc(func(params inventory.GetNextStepsParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.GetNextSteps has not yet been implemented")
+		}),
 		InventoryGetNodeHandler: inventory.GetNodeHandlerFunc(func(params inventory.GetNodeParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.GetNode has not yet been implemented")
 		}),
@@ -66,6 +69,9 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		}),
 		InventoryListNodesHandler: inventory.ListNodesHandlerFunc(func(params inventory.ListNodesParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.ListNodes has not yet been implemented")
+		}),
+		InventoryPostNextStepsReplyHandler: inventory.PostNextStepsReplyHandlerFunc(func(params inventory.PostNextStepsReplyParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.PostNextStepsReply has not yet been implemented")
 		}),
 		InventoryRegisterClusterHandler: inventory.RegisterClusterHandlerFunc(func(params inventory.RegisterClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.RegisterCluster has not yet been implemented")
@@ -114,6 +120,8 @@ type BMInventoryAPI struct {
 	InventoryGetClusterHandler inventory.GetClusterHandler
 	// InventoryGetImageHandler sets the operation handler for the get image operation
 	InventoryGetImageHandler inventory.GetImageHandler
+	// InventoryGetNextStepsHandler sets the operation handler for the get next steps operation
+	InventoryGetNextStepsHandler inventory.GetNextStepsHandler
 	// InventoryGetNodeHandler sets the operation handler for the get node operation
 	InventoryGetNodeHandler inventory.GetNodeHandler
 	// InventoryListClustersHandler sets the operation handler for the list clusters operation
@@ -122,6 +130,8 @@ type BMInventoryAPI struct {
 	InventoryListImagesHandler inventory.ListImagesHandler
 	// InventoryListNodesHandler sets the operation handler for the list nodes operation
 	InventoryListNodesHandler inventory.ListNodesHandler
+	// InventoryPostNextStepsReplyHandler sets the operation handler for the post next steps reply operation
+	InventoryPostNextStepsReplyHandler inventory.PostNextStepsReplyHandler
 	// InventoryRegisterClusterHandler sets the operation handler for the register cluster operation
 	InventoryRegisterClusterHandler inventory.RegisterClusterHandler
 	// InventoryRegisterNodeHandler sets the operation handler for the register node operation
@@ -212,6 +222,10 @@ func (o *BMInventoryAPI) Validate() error {
 		unregistered = append(unregistered, "Inventory.GetImageHandler")
 	}
 
+	if o.InventoryGetNextStepsHandler == nil {
+		unregistered = append(unregistered, "Inventory.GetNextStepsHandler")
+	}
+
 	if o.InventoryGetNodeHandler == nil {
 		unregistered = append(unregistered, "Inventory.GetNodeHandler")
 	}
@@ -226,6 +240,10 @@ func (o *BMInventoryAPI) Validate() error {
 
 	if o.InventoryListNodesHandler == nil {
 		unregistered = append(unregistered, "Inventory.ListNodesHandler")
+	}
+
+	if o.InventoryPostNextStepsReplyHandler == nil {
+		unregistered = append(unregistered, "Inventory.PostNextStepsReplyHandler")
 	}
 
 	if o.InventoryRegisterClusterHandler == nil {
@@ -356,6 +374,11 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/nodes/{node_id}/next-steps"] = inventory.NewGetNextSteps(o.context, o.InventoryGetNextStepsHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/nodes/{node_id}"] = inventory.NewGetNode(o.context, o.InventoryGetNodeHandler)
 
 	if o.handlers["GET"] == nil {
@@ -372,6 +395,11 @@ func (o *BMInventoryAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/nodes"] = inventory.NewListNodes(o.context, o.InventoryListNodesHandler)
+
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/nodes/{node_id}/next-steps/reply"] = inventory.NewPostNextStepsReply(o.context, o.InventoryPostNextStepsReplyHandler)
 
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)

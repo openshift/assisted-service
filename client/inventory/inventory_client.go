@@ -33,6 +33,9 @@ type API interface {
 	   GetImage retrieves installation image information*/
 	GetImage(ctx context.Context, params *GetImageParams) (*GetImageOK, error)
 	/*
+	   GetNextSteps retrieves the next operations that the agent need to perform*/
+	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
+	/*
 	   GetNode retrieves open shift bare metal node information*/
 	GetNode(ctx context.Context, params *GetNodeParams) (*GetNodeOK, error)
 	/*
@@ -44,6 +47,9 @@ type API interface {
 	/*
 	   ListNodes lists open shift bare metal nodes*/
 	ListNodes(ctx context.Context, params *ListNodesParams) (*ListNodesOK, error)
+	/*
+	   PostNextStepsReply posts the result of the required operations from the server*/
+	PostNextStepsReply(ctx context.Context, params *PostNextStepsReplyParams) (*PostNextStepsReplyOK, error)
 	/*
 	   RegisterCluster registers a new open shift bare metal cluster*/
 	RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error)
@@ -191,6 +197,30 @@ func (a *Client) GetImage(ctx context.Context, params *GetImageParams) (*GetImag
 }
 
 /*
+GetNextSteps retrieves the next operations that the agent need to perform
+*/
+func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetNextSteps",
+		Method:             "GET",
+		PathPattern:        "/nodes/{node_id}/next-steps",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetNextStepsReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetNextStepsOK), nil
+
+}
+
+/*
 GetNode retrieves open shift bare metal node information
 */
 func (a *Client) GetNode(ctx context.Context, params *GetNodeParams) (*GetNodeOK, error) {
@@ -283,6 +313,30 @@ func (a *Client) ListNodes(ctx context.Context, params *ListNodesParams) (*ListN
 		return nil, err
 	}
 	return result.(*ListNodesOK), nil
+
+}
+
+/*
+PostNextStepsReply posts the result of the required operations from the server
+*/
+func (a *Client) PostNextStepsReply(ctx context.Context, params *PostNextStepsReplyParams) (*PostNextStepsReplyOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "PostNextStepsReply",
+		Method:             "POST",
+		PathPattern:        "/nodes/{node_id}/next-steps/reply",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &PostNextStepsReplyReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PostNextStepsReplyOK), nil
 
 }
 

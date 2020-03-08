@@ -329,6 +329,64 @@ func init() {
           }
         }
       }
+    },
+    "/nodes/{node_id}/next-steps": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve the next operations that the agent need to perform",
+        "operationId": "GetNextSteps",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "ID of node",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Steps information",
+            "schema": {
+              "$ref": "#/definitions/steps"
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}/next-steps/reply": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Post the result of the required operations from the server",
+        "operationId": "PostNextStepsReply",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "ID of node",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Steps reply",
+            "schema": {
+              "$ref": "#/definitions/steps-reply"
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -429,6 +487,31 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
+      }
+    },
+    "connectivity-check-params": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ip-address": {
+                  "type": "string"
+                },
+                "mac": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "node-id": {
+            "type": "string"
+          }
+        }
       }
     },
     "image": {
@@ -549,6 +632,51 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/node"
+      }
+    },
+    "step": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string",
+          "format": "json"
+        },
+        "step-type": {
+          "$ref": "#/definitions/step-type"
+        }
+      }
+    },
+    "step-reply": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "return-code": {
+          "type": "integer"
+        },
+        "step-type": {
+          "$ref": "#/definitions/step-type"
+        }
+      }
+    },
+    "step-type": {
+      "type": "string",
+      "enum": [
+        "hardaware-info",
+        "connectivity-check"
+      ]
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/step"
+      }
+    },
+    "steps-reply": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/step-reply"
       }
     }
   },
@@ -871,6 +999,64 @@ func init() {
           }
         }
       }
+    },
+    "/nodes/{node_id}/next-steps": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve the next operations that the agent need to perform",
+        "operationId": "GetNextSteps",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "ID of node",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Steps information",
+            "schema": {
+              "$ref": "#/definitions/steps"
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}/next-steps/reply": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Post the result of the required operations from the server",
+        "operationId": "PostNextStepsReply",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "ID of node",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Steps reply",
+            "schema": {
+              "$ref": "#/definitions/steps-reply"
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -887,6 +1073,31 @@ func init() {
             "master",
             "worker"
           ]
+        }
+      }
+    },
+    "ConnectivityCheckParamsItems0": {
+      "type": "object",
+      "properties": {
+        "nics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConnectivityCheckParamsItems0NicsItems0"
+          }
+        },
+        "node-id": {
+          "type": "string"
+        }
+      }
+    },
+    "ConnectivityCheckParamsItems0NicsItems0": {
+      "type": "object",
+      "properties": {
+        "ip-address": {
+          "type": "string"
+        },
+        "mac": {
+          "type": "string"
         }
       }
     },
@@ -974,6 +1185,12 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
+      }
+    },
+    "connectivity-check-params": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ConnectivityCheckParamsItems0"
       }
     },
     "image": {
@@ -1095,6 +1312,51 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/node"
+      }
+    },
+    "step": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string",
+          "format": "json"
+        },
+        "step-type": {
+          "$ref": "#/definitions/step-type"
+        }
+      }
+    },
+    "step-reply": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "return-code": {
+          "type": "integer"
+        },
+        "step-type": {
+          "$ref": "#/definitions/step-type"
+        }
+      }
+    },
+    "step-type": {
+      "type": "string",
+      "enum": [
+        "hardaware-info",
+        "connectivity-check"
+      ]
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/step"
+      }
+    },
+    "steps-reply": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/step-reply"
       }
     }
   },
