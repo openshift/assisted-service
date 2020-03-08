@@ -148,6 +148,46 @@ paths:
         404:
           description: Node not found
 
+  /nodes/{node_id}/next-steps:
+    get:
+      tags:
+        - inventory
+      summary: Retrieve the next operations that the agent need to perform
+      operationId: GetNextSteps
+      parameters:
+        - in: path
+          name: node_id
+          description: ID of node
+          type: string
+          required: true
+      responses:
+        200:
+          description: Steps information
+          schema:
+            $ref: '#/definitions/steps'
+        404:
+          description: Node not found
+
+  /nodes/{node_id}/next-steps/reply:
+    post:
+      tags:
+        - inventory
+      summary: Post the result of the required operations from the server
+      operationId: PostNextStepsReply
+      parameters:
+        - in: path
+          name: node_id
+          description: ID of node
+          type: string
+          required: true
+      responses:
+        200:
+          description: Steps reply
+          schema:
+            $ref: '#/definitions/steps-reply'
+        404:
+          description: Node not found
+
   /clusters:
     post:
       tags:
@@ -314,6 +354,32 @@ definitions:
           cluster_id:
             type: string
             format: uuid
+
+  steps:
+    type: array
+    items:
+      $ref: '#/definitions/step'
+
+  step:
+    type: object
+    properties:
+      op_code:
+        type: integer
+      data:
+        type: string
+
+  steps-reply:
+    type: array
+    items:
+      $ref: '#/definitions/step-reply'
+
+  step-reply:
+    type: object
+    properties:
+      op_code:
+        type: integer
+      data:
+        type: string
 
   node-list:
     type: array
