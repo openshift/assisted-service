@@ -336,3 +336,11 @@ func (b *bareMetalInventory) ListNodes(ctx context.Context, params inventory.Lis
 	}
 	return inventory.NewListNodesOK().WithPayload(nodes)
 }
+
+func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder {
+	return inventory.NewGetNextStepsOK()
+}
+
+func (b *bareMetalInventory) PostNextStepsReply(ctx context.Context, params inventory.PostNextStepsReplyParams) middleware.Responder {
+	return inventory.NewPostNextStepsReplyOK()
+}
