@@ -42,7 +42,21 @@ const (
 type Config struct {
 	ImageBuilder    string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
 	ImageBuilderCmd string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
+	InventoryURL    string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
+	InventoryPort   string `envconfig:"INVENTORY_PORT" default:"30485"`
+	S3EndpointURL   string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
 }
+
+const ignitionConfigFormat = `{
+"ignition": { "version": "2.2.0" },
+"systemd": {
+"units": [{
+"name": "introspector.service",
+"enabled": true,
+"contents": "[Service]\nType=oneshot\nExecStart=docker run --rm --privileged --net=host quay.io/oamizur/introspector:latest /usr/bin/introspector --host %s --port %s\n\n[Install]\nWantedBy=multi-user.target"
+}]
+}
+}`
 
 type bareMetalInventory struct {
 	Config
@@ -150,6 +164,20 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, id string) erro
 							Image:           b.Config.ImageBuilder,
 							Command:         strings.Split(b.Config.ImageBuilderCmd, " "),
 							ImagePullPolicy: "IfNotPresent",
+							Env: []core.EnvVar{
+								{
+									Name:  "S3_ENDPOINT_URL",
+									Value: b.S3EndpointURL,
+								},
+								{
+									Name:  "IGNITION_CONFIG",
+									Value: fmt.Sprintf(ignitionConfigFormat, b.InventoryURL, b.InventoryPort),
+								},
+								{
+									Name:  "IMAGE_NAME",
+									Value: fmt.Sprintf("installer-image-%s", id),
+								},
+							},
 						},
 					},
 					RestartPolicy: "Never",
