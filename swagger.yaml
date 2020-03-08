@@ -360,13 +360,20 @@ definitions:
     items:
       $ref: '#/definitions/step'
 
+  step-type:
+    type: string
+    enum:
+      - hardaware-info
+      - connectivity-check
+
   step:
     type: object
     properties:
-      op_code:
-        type: integer
+      step-type:
+        $ref: '#/definitions/step-type'
       data:
         type: string
+        format: json
 
   steps-reply:
     type: array
@@ -376,10 +383,29 @@ definitions:
   step-reply:
     type: object
     properties:
-      op_code:
+      step-type:
+        $ref: '#/definitions/step-type'
+      return-code:
         type: integer
       data:
         type: string
+
+  connectivity-check-params:
+    type: array
+    items:
+      type: object
+      properties:
+        node-id:
+          type: string
+        nics:
+          type: array
+          items:
+            type: object
+            properties:
+              mac:
+                type: string
+              ip-address:
+                type: string
 
   node-list:
     type: array
