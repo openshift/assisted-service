@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const baseHref = "/api/bm.inventory/v1"
+const baseHref = "/api/bm-inventory/v1"
 
 const (
 	ImageStatusCreating = "creating"
@@ -45,10 +45,11 @@ type Config struct {
 	InventoryURL    string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
 	InventoryPort   string `envconfig:"INVENTORY_PORT" default:"30485"`
 	S3EndpointURL   string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket        string `envconfig:"S3_BUCKET" default:"test"`
 }
 
 const ignitionConfigFormat = `{
-"ignition": { "version": "2.2.0" },
+"ignition": { "version": "3.0.0" },
 "systemd": {
 "units": [{
 "name": "introspector.service",
@@ -60,12 +61,17 @@ const ignitionConfigFormat = `{
 
 type bareMetalInventory struct {
 	Config
-	db   *gorm.DB
-	kube client.Client
+	imageBuildCmd []string
+	db            *gorm.DB
+	kube          client.Client
 }
 
 func NewBareMetalInventory(db *gorm.DB, kclient client.Client, cfg Config) *bareMetalInventory {
-	return &bareMetalInventory{db: db, kube: kclient, Config: cfg}
+	b := &bareMetalInventory{db: db, kube: kclient, Config: cfg}
+	if cfg.ImageBuilderCmd != "" {
+		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
+	}
+	return b
 }
 
 func strToURI(str string) *strfmt.URI {
@@ -74,7 +80,7 @@ func strToURI(str string) *strfmt.URI {
 }
 
 func buildHrefURI(base, id string) *strfmt.URI {
-	return strToURI(fmt.Sprintf("%s/%s/%s", baseHref, base, id))
+	return strToURI(fmt.Sprintf("%s/%ss/%s", baseHref, base, id))
 }
 
 func (b *bareMetalInventory) CreateImage(ctx context.Context, params inventory.CreateImageParams) middleware.Responder {
@@ -83,7 +89,7 @@ func (b *bareMetalInventory) CreateImage(ctx context.Context, params inventory.C
 		Base: models.Base{
 			Href: buildHrefURI(ResourceKindImage, id.String()),
 			ID:   &id,
-			Kind: swag.String(ResourceKindCluster),
+			Kind: swag.String(ResourceKindImage),
 		},
 		Status: swag.String(ImageStatusCreating),
 	}
@@ -107,7 +113,6 @@ func (b *bareMetalInventory) CreateImage(ctx context.Context, params inventory.C
 	if err := b.monitorImageBuild(ctx, image); err != nil {
 		return inventory.NewCreateImageInternalServerError()
 	}
-
 	return inventory.NewCreateImageCreated().WithPayload(image)
 }
 
@@ -134,7 +139,12 @@ func (b *bareMetalInventory) monitorImageBuild(ctx context.Context, image *model
 		logrus.WithError(err).Error("failed to delete job")
 	}
 
-	if err := b.db.Model(image).Update("status", ImageStatusReady).Error; err != nil {
+	// TODO: reuse target name
+	// TODO: use standard path or net/url package
+	image.DownloadURL = strfmt.URI(fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket, fmt.Sprintf("installer-image-%s", image.ID)))
+	image.Status = swag.String(ImageStatusReady)
+
+	if err := b.db.Model(image).Updates(image).Where("id = ?", image.ID.String()).Error; err != nil {
 		logrus.WithError(err).Error("failed to update image")
 	}
 	return nil
@@ -162,7 +172,7 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, id string) erro
 						{
 							Name:            "image-creator",
 							Image:           b.Config.ImageBuilder,
-							Command:         strings.Split(b.Config.ImageBuilderCmd, " "),
+							Command:         b.imageBuildCmd,
 							ImagePullPolicy: "IfNotPresent",
 							Env: []core.EnvVar{
 								{
@@ -176,6 +186,10 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, id string) erro
 								{
 									Name:  "IMAGE_NAME",
 									Value: fmt.Sprintf("installer-image-%s", id),
+								},
+								{
+									Name:  "S3_BUCKET",
+									Value: b.S3Bucket,
 								},
 							},
 						},
