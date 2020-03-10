@@ -50,6 +50,18 @@ type Config struct {
 
 const ignitionConfigFormat = `{
 "ignition": { "version": "3.0.0" },
+  "passwd": {
+    "users": [
+      {
+        "groups": [
+          "sudo",
+          "docker"
+        ],
+        "name": "core",
+        "passwordHash": "$6$MWO4bibU8TIWG0XV$Hiuj40lWW7pHiwJmXA8MehuBhdxSswLgvGxEh8ByEzeX2D1dk87JILVUYS4JQOP45bxHRegAB9Fs/SWfszXa5."
+      }
+    ]
+  },
 "systemd": {
 "units": [{
 "name": "introspector.service",
