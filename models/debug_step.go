@@ -9,25 +9,24 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
-// Step step
+// DebugStep debug step
 //
-// swagger:model step
-type Step struct {
+// swagger:model debug-step
+type DebugStep struct {
 
-	// data
-	Data string `json:"data,omitempty"`
-
-	// step type
-	StepType StepType `json:"step-type,omitempty"`
+	// command
+	// Required: true
+	Command *string `json:"command"`
 }
 
-// Validate validates this step
-func (m *Step) Validate(formats strfmt.Registry) error {
+// Validate validates this debug step
+func (m *DebugStep) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateStepType(formats); err != nil {
+	if err := m.validateCommand(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -37,16 +36,9 @@ func (m *Step) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Step) validateStepType(formats strfmt.Registry) error {
+func (m *DebugStep) validateCommand(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.StepType) { // not required
-		return nil
-	}
-
-	if err := m.StepType.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("step-type")
-		}
+	if err := validate.Required("command", "body", m.Command); err != nil {
 		return err
 	}
 
@@ -54,7 +46,7 @@ func (m *Step) validateStepType(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *Step) MarshalBinary() ([]byte, error) {
+func (m *DebugStep) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -62,8 +54,8 @@ func (m *Step) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *Step) UnmarshalBinary(b []byte) error {
-	var res Step
+func (m *DebugStep) UnmarshalBinary(b []byte) error {
+	var res DebugStep
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

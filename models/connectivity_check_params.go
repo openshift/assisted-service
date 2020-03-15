@@ -9,11 +9,12 @@ import (
 	"strconv"
 
 	"github.com/go-openapi/errors"
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // ConnectivityCheckParams connectivity check params
+//
 // swagger:model connectivity-check-params
 type ConnectivityCheckParams []*ConnectivityCheckParamsItems0
 
@@ -44,6 +45,7 @@ func (m ConnectivityCheckParams) Validate(formats strfmt.Registry) error {
 }
 
 // ConnectivityCheckParamsItems0 connectivity check params items0
+//
 // swagger:model ConnectivityCheckParamsItems0
 type ConnectivityCheckParamsItems0 struct {
 
@@ -112,6 +114,7 @@ func (m *ConnectivityCheckParamsItems0) UnmarshalBinary(b []byte) error {
 }
 
 // ConnectivityCheckParamsItems0NicsItems0 connectivity check params items0 nics items0
+//
 // swagger:model ConnectivityCheckParamsItems0NicsItems0
 type ConnectivityCheckParamsItems0NicsItems0 struct {
 

@@ -8,7 +8,7 @@ package inventory
 import (
 	"net/http"
 
-	middleware "github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/runtime/middleware"
 )
 
 // PostNextStepsReplyHandlerFunc turns a function with the right signature into a post next steps reply handler

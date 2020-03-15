@@ -8,7 +8,7 @@ package inventory
 import (
 	"net/http"
 
-	middleware "github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/runtime/middleware"
 )
 
 // RegisterNodeHandlerFunc turns a function with the right signature into a register node handler

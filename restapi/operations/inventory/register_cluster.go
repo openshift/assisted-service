@@ -8,7 +8,7 @@ package inventory
 import (
 	"net/http"
 
-	middleware "github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/runtime/middleware"
 )
 
 // RegisterClusterHandlerFunc turns a function with the right signature into a register cluster handler

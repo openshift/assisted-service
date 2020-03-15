@@ -141,6 +141,34 @@ func init() {
         }
       }
     },
+    "/debug": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
+        "operationId": "SetDebugStep",
+        "parameters": [
+          {
+            "description": "Next debug step",
+            "name": "step",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/debug-step"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registered"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/images": {
       "get": {
         "tags": [
@@ -514,6 +542,17 @@ func init() {
         }
       }
     },
+    "debug-step": {
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "command": {
+          "type": "string"
+        }
+      }
+    },
     "image": {
       "type": "object",
       "allOf": [
@@ -664,7 +703,8 @@ func init() {
       "type": "string",
       "enum": [
         "hardaware-info",
-        "connectivity-check"
+        "connectivity-check",
+        "debug"
       ]
     },
     "steps": {
@@ -807,6 +847,34 @@ func init() {
           },
           "404": {
             "description": "Cluster not found"
+          }
+        }
+      }
+    },
+    "/debug": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
+        "operationId": "SetDebugStep",
+        "parameters": [
+          {
+            "description": "Next debug step",
+            "name": "step",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/debug-step"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registered"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -1193,6 +1261,17 @@ func init() {
         "$ref": "#/definitions/ConnectivityCheckParamsItems0"
       }
     },
+    "debug-step": {
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "command": {
+          "type": "string"
+        }
+      }
+    },
     "image": {
       "type": "object",
       "allOf": [
@@ -1344,7 +1423,8 @@ func init() {
       "type": "string",
       "enum": [
         "hardaware-info",
-        "connectivity-check"
+        "connectivity-check",
+        "debug"
       ]
     },
     "steps": {

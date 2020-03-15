@@ -8,7 +8,7 @@ package inventory
 import (
 	"net/http"
 
-	middleware "github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/runtime/middleware"
 )
 
 // ListImagesHandlerFunc turns a function with the right signature into a list images handler

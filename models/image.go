@@ -9,12 +9,13 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // Image image
+//
 // swagger:model image
 type Image struct {
 	Base
@@ -79,7 +80,6 @@ func (m Image) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	_parts = append(_parts, aO1)
-
 	var dataAO2 struct {
 		DownloadURL strfmt.URI `json:"download_url,omitempty"`
 
@@ -95,7 +95,6 @@ func (m Image) MarshalJSON() ([]byte, error) {
 		return nil, errAO2
 	}
 	_parts = append(_parts, jsonDataAO2)
-
 	return swag.ConcatJSON(_parts...), nil
 }
 

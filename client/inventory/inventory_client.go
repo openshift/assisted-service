@@ -56,6 +56,9 @@ type API interface {
 	/*
 	   RegisterNode registers a new open shift bare metal node*/
 	RegisterNode(ctx context.Context, params *RegisterNodeParams) (*RegisterNodeCreated, error)
+	/*
+	   SetDebugStep sets a single shot debug step that will be sent next time the agent will ask for a command*/
+	SetDebugStep(ctx context.Context, params *SetDebugStepParams) (*SetDebugStepOK, error)
 }
 
 // New creates a new inventory API client.
@@ -385,5 +388,29 @@ func (a *Client) RegisterNode(ctx context.Context, params *RegisterNodeParams) (
 		return nil, err
 	}
 	return result.(*RegisterNodeCreated), nil
+
+}
+
+/*
+SetDebugStep sets a single shot debug step that will be sent next time the agent will ask for a command
+*/
+func (a *Client) SetDebugStep(ctx context.Context, params *SetDebugStepParams) (*SetDebugStepOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SetDebugStep",
+		Method:             "POST",
+		PathPattern:        "/debug",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &SetDebugStepReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*SetDebugStepOK), nil
 
 }

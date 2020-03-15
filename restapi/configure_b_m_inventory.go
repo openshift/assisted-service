@@ -38,6 +38,7 @@ type InventoryAPI interface {
 	PostNextStepsReply(ctx context.Context, params inventory.PostNextStepsReplyParams) middleware.Responder
 	RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder
 	RegisterNode(ctx context.Context, params inventory.RegisterNodeParams) middleware.Responder
+	SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder
 }
 
 // Config is configuration for Handler
@@ -125,6 +126,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.InventoryRegisterNodeHandler = inventory.RegisterNodeHandlerFunc(func(params inventory.RegisterNodeParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.RegisterNode(ctx, params)
+	})
+	api.InventorySetDebugStepHandler = inventory.SetDebugStepHandlerFunc(func(params inventory.SetDebugStepParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.SetDebugStep(ctx, params)
 	})
 	api.ServerShutdown = func() {}
 	return api.Serve(c.InnerMiddleware), api, nil

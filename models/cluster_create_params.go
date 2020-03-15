@@ -10,12 +10,13 @@ import (
 	"strconv"
 
 	"github.com/go-openapi/errors"
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // ClusterCreateParams cluster create params
+//
 // swagger:model cluster-create-params
 type ClusterCreateParams struct {
 
@@ -102,6 +103,7 @@ func (m *ClusterCreateParams) UnmarshalBinary(b []byte) error {
 }
 
 // ClusterCreateParamsNodesItems0 cluster create params nodes items0
+//
 // swagger:model ClusterCreateParamsNodesItems0
 type ClusterCreateParamsNodesItems0 struct {
 
