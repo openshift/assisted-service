@@ -76,6 +76,8 @@ type bareMetalInventory struct {
 	imageBuildCmd []string
 	db            *gorm.DB
 	kube          client.Client
+	debugCmd      string
+	isDebugCalled bool
 }
 
 func NewBareMetalInventory(db *gorm.DB, kclient client.Client, cfg Config) *bareMetalInventory {
@@ -364,9 +366,20 @@ func (b *bareMetalInventory) ListNodes(ctx context.Context, params inventory.Lis
 }
 
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder {
-	return inventory.NewGetNextStepsOK()
+	step := &models.Step{}
+	if !b.isDebugCalled {
+		step.StepType = models.StepTypeDebug
+		step.Data = b.debugCmd
+	}
+	return inventory.NewGetNextStepsOK().WithPayload(models.Steps{step})
 }
 
 func (b *bareMetalInventory) PostNextStepsReply(ctx context.Context, params inventory.PostNextStepsReplyParams) middleware.Responder {
 	return inventory.NewPostNextStepsReplyOK()
+}
+
+func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder {
+	b.debugCmd = swag.StringValue(params.Step.Command)
+	b.isDebugCalled = false
+	return inventory.NewSetDebugStepOK()
 }
