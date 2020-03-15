@@ -148,6 +148,25 @@ paths:
         404:
           description: Node not found
 
+  /debug:
+    post:
+      tags:
+        - inventory
+      summary: Set a single shot debug step that will be sent next time the agent will ask for a command
+      operationId: SetDebugStep
+      parameters:
+        - in: body
+          name: step
+          description: Next debug step
+          required: true
+          schema:
+            $ref: '#/definitions/debug-step'
+      responses:
+        200:
+          description: Registered
+        500:
+          description: Internal server error
+
   /nodes/{node_id}/next-steps:
     get:
       tags:
@@ -365,6 +384,7 @@ definitions:
     enum:
       - hardaware-info
       - connectivity-check
+      - debug
 
   step:
     type: object
@@ -455,3 +475,11 @@ definitions:
     type: array
     items:
       $ref: '#/definitions/cluster'
+
+  debug-step:
+    type: object
+    required:
+      - command
+    properties:
+      command:
+        type: string
