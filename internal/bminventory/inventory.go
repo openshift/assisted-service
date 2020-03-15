@@ -370,6 +370,7 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 	if !b.isDebugCalled {
 		step.StepType = models.StepTypeDebug
 		step.Data = b.debugCmd
+		defer func() { b.isDebugCalled = false }()
 	}
 	return inventory.NewGetNextStepsOK().WithPayload(models.Steps{step})
 }
