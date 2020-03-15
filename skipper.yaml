@@ -1,7 +1,5 @@
 registry: quay.io
 build-container-image: bm-inventory-build
-build-container-tag: latest
-container-context: . 
 
 containers:
     bm-inventory-build: Dockerfile.bm-inventory-build
