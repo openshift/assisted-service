@@ -81,7 +81,7 @@ type bareMetalInventory struct {
 }
 
 func NewBareMetalInventory(db *gorm.DB, kclient client.Client, cfg Config) *bareMetalInventory {
-	b := &bareMetalInventory{db: db, kube: kclient, Config: cfg}
+	b := &bareMetalInventory{db: db, kube: kclient, Config: cfg, isDebugCalled: true}
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
 	}
@@ -366,13 +366,15 @@ func (b *bareMetalInventory) ListNodes(ctx context.Context, params inventory.Lis
 }
 
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder {
-	step := &models.Step{}
+	steps := models.Steps{}
 	if !b.isDebugCalled {
+		step := &models.Step{}
 		step.StepType = models.StepTypeDebug
 		step.Data = b.debugCmd
-		defer func() { b.isDebugCalled = false }()
+		steps = append(steps, step)
+		defer func() { b.isDebugCalled = true }()
 	}
-	return inventory.NewGetNextStepsOK().WithPayload(models.Steps{step})
+	return inventory.NewGetNextStepsOK().WithPayload(steps)
 }
 
 func (b *bareMetalInventory) PostNextStepsReply(ctx context.Context, params inventory.PostNextStepsReplyParams) middleware.Responder {
