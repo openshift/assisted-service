@@ -178,6 +178,7 @@ paths:
           name: node_id
           description: ID of node
           type: string
+          format: uuid
           required: true
       responses:
         200:
@@ -192,18 +193,21 @@ paths:
       tags:
         - inventory
       summary: Post the result of the required operations from the server
-      operationId: PostNextStepsReply
+      operationId: PostStepReply
       parameters:
         - in: path
           name: node_id
           description: ID of node
           type: string
+          format: uuid
           required: true
-      responses:
-        200:
-          description: Steps reply
+        - name: reply
+          in: body
           schema:
-            $ref: '#/definitions/steps-reply'
+            $ref: '#/definitions/step-reply'
+      responses:
+        201:
+          description: Reply accepted
         404:
           description: Node not found
 
@@ -411,27 +415,40 @@ definitions:
     properties:
       step-type:
         $ref: '#/definitions/step-type'
-      return-code:
-        type: integer
-      data:
+      succcessful-completion:
+        type: boolean
+      output:
         type: string
+      error:
+        type: string
+
+  connectivity-check-nic:
+    type: object
+    properties:
+      name:
+        type: string
+      mac:
+        type: string
+      ip-addresses:
+        type: array
+        items:
+          type: string
+        
+  connectivity-check-node:
+    type: object
+    properties:
+      node-id:
+        type: string
+        format: uuid
+      nics:
+        type: array
+        items:
+          $ref: '#/definitions/connectivity-check-nic'
 
   connectivity-check-params:
     type: array
     items:
-      type: object
-      properties:
-        node-id:
-          type: string
-        nics:
-          type: array
-          items:
-            type: object
-            properties:
-              mac:
-                type: string
-              ip-address:
-                type: string
+      $ref: '#/definitions/connectivity-check-node'
 
   node-list:
     type: array
