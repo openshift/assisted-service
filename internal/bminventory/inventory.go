@@ -322,7 +322,7 @@ func (b *bareMetalInventory) RegisterNode(ctx context.Context, params inventory.
 			ID:   &id,
 			Kind: swag.String(ResourceKindNode),
 		},
-		Status: nil, // TODO: TBD
+		Status: swag.String("discovering"),
 	}
 
 	node.NodeCreateParams = *params.NewNodeParams

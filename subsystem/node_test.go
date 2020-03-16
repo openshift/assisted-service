@@ -26,8 +26,10 @@ var _ = Describe("Node tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = bmclient.Inventory.GetNode(ctx, &inventory.GetNodeParams{NodeID: node.GetPayload().ID.String()})
+		reply, err := bmclient.Inventory.GetNode(ctx, &inventory.GetNodeParams{NodeID: node.GetPayload().ID.String()})
 		Expect(err).NotTo(HaveOccurred())
+		replyNode := reply.GetPayload()
+		Expect(*replyNode.Status).Should(Equal("discovering"))
 
 		list, err := bmclient.Inventory.ListNodes(ctx, &inventory.ListNodesParams{})
 		Expect(err).NotTo(HaveOccurred())
