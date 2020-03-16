@@ -28,7 +28,7 @@ type Node struct {
 
 	// status
 	// Required: true
-	// Enum: [tbd]
+	// Enum: [discovering known disconnected installing insufficient installed]
 	Status *string `json:"status"`
 }
 
@@ -142,7 +142,7 @@ var nodeTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["tbd"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","installing","insufficient","installed"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

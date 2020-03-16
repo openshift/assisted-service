@@ -640,7 +640,12 @@ func init() {
             "status": {
               "type": "string",
               "enum": [
-                "tbd"
+                "discovering",
+                "known",
+                "disconnected",
+                "installing",
+                "insufficient",
+                "installed"
               ]
             }
           }
@@ -1360,7 +1365,12 @@ func init() {
             "status": {
               "type": "string",
               "enum": [
-                "tbd"
+                "discovering",
+                "known",
+                "disconnected",
+                "installing",
+                "insufficient",
+                "installed"
               ]
             }
           }
