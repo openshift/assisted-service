@@ -506,3 +506,153 @@ definitions:
     properties:
       command:
         type: string
+
+  cpu:
+    type: object
+    properties:
+      architecture:
+        type: string
+      model-name:
+        type: string
+      cpus:
+        type: integer
+      threads-per-core:
+        type: integer
+      sockets:
+        type: integer
+      cpu-mhz:
+        type: number
+
+  block-device:
+    type: object
+    properties:
+      name:
+        type: string
+      major-device-number:
+        type: integer
+      minor-device-number:
+        type: integer
+      removable-device:
+        type: integer
+      size:
+        type: integer
+      read-only:
+        type: boolean
+      device-type:
+        type: string
+      mountpoint:
+        type: string
+      fstype:
+        type: string
+
+  memory:
+    type: object
+    properties:
+      name:
+        type: string
+      total:
+        type: integer
+      used:
+        type: integer
+      free:
+        type: integer
+      shared:
+        type: integer
+      buff-cached:
+        type: integer
+      available:
+        type: integer
+
+  cidr:
+    type: object
+    properties:
+      ip-address:
+        type: string
+      mask:
+        type: integer
+
+  nic:
+    type: object
+    properties:
+      name:
+        type: string
+      state:
+        type: string
+      mtu:
+        type: integer
+      mac:
+        type: string
+      cidrs:
+        type: array
+        items:
+          $ref: '#/definitions/cidr'
+
+
+  # Return value of hardware info
+  introspection:
+    type: object
+    properties:
+      cpu:
+        $ref: '#/definitions/cpu'
+      block-devices:
+        type: array
+        items:
+          $ref: '#/definitions/block-device'
+      memory:
+        type: array
+        items:
+          $ref: '#/definitions/memory'
+      nics:
+        type: array
+        items:
+          $ref: '#/definitions/nic'
+
+  l2-connectivity:
+    type: object
+    properties:
+      outgoing-nic:
+        type: string
+      outgoing-ip-address:
+        type: string
+      remote-ip-address:
+        type: string
+      remote-mac:
+        type: string
+      successful:
+        type: boolean
+
+
+
+  l3-connectivity:
+    type: object
+    properties:
+      outgoing-nic:
+        type: string
+      remote-ip-address:
+        type: string
+      successful:
+        type: boolean
+
+  connectivity-remote-node:
+    type: object
+    properties:
+      node-id:
+        type: string
+        format: uuid
+      l2-connectivity:
+        type: array
+        items:
+          $ref: '#/definitions/l2-connectivity'
+      l3-connectivity:
+        type: array
+        items:
+          $ref: '#/definitions/l3-connectivity'
+
+  # Return value of connectivity check
+  connectivity-report:
+    type: object
+    properties:
+      remote-nodes:
+        type: array
+        items:
+          $ref: '#/definitions/connectivity-remote-node'
