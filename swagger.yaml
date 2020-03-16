@@ -369,7 +369,13 @@ definitions:
         properties:
           status:
             type: string
-            enum: ['tbd']
+            enum:
+              - discovering
+              - known
+              - disconnected
+              - installing
+              - insufficient
+              - installed
           cluster_id:
             type: string
             format: uuid
