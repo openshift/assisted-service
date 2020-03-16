@@ -206,7 +206,7 @@ paths:
           schema:
             $ref: '#/definitions/step-reply'
       responses:
-        201:
+        204:
           description: Reply accepted
         404:
           description: Node not found
@@ -415,8 +415,8 @@ definitions:
     properties:
       step-type:
         $ref: '#/definitions/step-type'
-      succcessful-completion:
-        type: boolean
+      exit-code:
+        type: integer
       output:
         type: string
       error:
@@ -620,8 +620,6 @@ definitions:
         type: string
       successful:
         type: boolean
-
-
 
   l3-connectivity:
     type: object
