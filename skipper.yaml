@@ -7,3 +7,5 @@ containers:
 volumes:
     - $HOME/.cache/go-build:/go/pkg/mod
     - $HOME/.docker/config.json:$HOME/.docker/config.json
+    - $HOME/.minikube:$HOME/.minikube
+    - $HOME/.kube/:$HOME/.kube
