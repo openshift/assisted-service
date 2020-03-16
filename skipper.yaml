@@ -9,3 +9,5 @@ volumes:
     - $HOME/.docker/config.json:$HOME/.docker/config.json
     - $HOME/.minikube:$HOME/.minikube
     - $HOME/.kube/:$HOME/.kube
+    - /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock
+    - /var/lib/libvirt/:/var/lib/libvirt/
