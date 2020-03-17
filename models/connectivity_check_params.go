@@ -16,7 +16,7 @@ import (
 // ConnectivityCheckParams connectivity check params
 //
 // swagger:model connectivity-check-params
-type ConnectivityCheckParams []*ConnectivityCheckParamsItems0
+type ConnectivityCheckParams []*ConnectivityCheckNode
 
 // Validate validates this connectivity check params
 func (m ConnectivityCheckParams) Validate(formats strfmt.Registry) error {
@@ -41,109 +41,5 @@ func (m ConnectivityCheckParams) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-// ConnectivityCheckParamsItems0 connectivity check params items0
-//
-// swagger:model ConnectivityCheckParamsItems0
-type ConnectivityCheckParamsItems0 struct {
-
-	// nics
-	Nics []*ConnectivityCheckParamsItems0NicsItems0 `json:"nics"`
-
-	// node id
-	NodeID string `json:"node-id,omitempty"`
-}
-
-// Validate validates this connectivity check params items0
-func (m *ConnectivityCheckParamsItems0) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateNics(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *ConnectivityCheckParamsItems0) validateNics(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Nics) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.Nics); i++ {
-		if swag.IsZero(m.Nics[i]) { // not required
-			continue
-		}
-
-		if m.Nics[i] != nil {
-			if err := m.Nics[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("nics" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
-	}
-
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (m *ConnectivityCheckParamsItems0) MarshalBinary() ([]byte, error) {
-	if m == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(m)
-}
-
-// UnmarshalBinary interface implementation
-func (m *ConnectivityCheckParamsItems0) UnmarshalBinary(b []byte) error {
-	var res ConnectivityCheckParamsItems0
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*m = res
-	return nil
-}
-
-// ConnectivityCheckParamsItems0NicsItems0 connectivity check params items0 nics items0
-//
-// swagger:model ConnectivityCheckParamsItems0NicsItems0
-type ConnectivityCheckParamsItems0NicsItems0 struct {
-
-	// ip address
-	IPAddress string `json:"ip-address,omitempty"`
-
-	// mac
-	Mac string `json:"mac,omitempty"`
-}
-
-// Validate validates this connectivity check params items0 nics items0
-func (m *ConnectivityCheckParamsItems0NicsItems0) Validate(formats strfmt.Registry) error {
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (m *ConnectivityCheckParamsItems0NicsItems0) MarshalBinary() ([]byte, error) {
-	if m == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(m)
-}
-
-// UnmarshalBinary interface implementation
-func (m *ConnectivityCheckParamsItems0NicsItems0) UnmarshalBinary(b []byte) error {
-	var res ConnectivityCheckParamsItems0NicsItems0
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*m = res
 	return nil
 }

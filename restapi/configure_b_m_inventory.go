@@ -35,7 +35,7 @@ type InventoryAPI interface {
 	ListClusters(ctx context.Context, params inventory.ListClustersParams) middleware.Responder
 	ListImages(ctx context.Context, params inventory.ListImagesParams) middleware.Responder
 	ListNodes(ctx context.Context, params inventory.ListNodesParams) middleware.Responder
-	PostNextStepsReply(ctx context.Context, params inventory.PostNextStepsReplyParams) middleware.Responder
+	PostStepReply(ctx context.Context, params inventory.PostStepReplyParams) middleware.Responder
 	RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder
 	RegisterNode(ctx context.Context, params inventory.RegisterNodeParams) middleware.Responder
 	SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder
@@ -115,9 +115,9 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.ListNodes(ctx, params)
 	})
-	api.InventoryPostNextStepsReplyHandler = inventory.PostNextStepsReplyHandlerFunc(func(params inventory.PostNextStepsReplyParams) middleware.Responder {
+	api.InventoryPostStepReplyHandler = inventory.PostStepReplyHandlerFunc(func(params inventory.PostStepReplyParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.PostNextStepsReply(ctx, params)
+		return c.InventoryAPI.PostStepReply(ctx, params)
 	})
 	api.InventoryRegisterClusterHandler = inventory.RegisterClusterHandlerFunc(func(params inventory.RegisterClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

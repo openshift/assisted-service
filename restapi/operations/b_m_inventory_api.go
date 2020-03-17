@@ -73,8 +73,8 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		InventoryListNodesHandler: inventory.ListNodesHandlerFunc(func(params inventory.ListNodesParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.ListNodes has not yet been implemented")
 		}),
-		InventoryPostNextStepsReplyHandler: inventory.PostNextStepsReplyHandlerFunc(func(params inventory.PostNextStepsReplyParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.PostNextStepsReply has not yet been implemented")
+		InventoryPostStepReplyHandler: inventory.PostStepReplyHandlerFunc(func(params inventory.PostStepReplyParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.PostStepReply has not yet been implemented")
 		}),
 		InventoryRegisterClusterHandler: inventory.RegisterClusterHandlerFunc(func(params inventory.RegisterClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.RegisterCluster has not yet been implemented")
@@ -138,8 +138,8 @@ type BMInventoryAPI struct {
 	InventoryListImagesHandler inventory.ListImagesHandler
 	// InventoryListNodesHandler sets the operation handler for the list nodes operation
 	InventoryListNodesHandler inventory.ListNodesHandler
-	// InventoryPostNextStepsReplyHandler sets the operation handler for the post next steps reply operation
-	InventoryPostNextStepsReplyHandler inventory.PostNextStepsReplyHandler
+	// InventoryPostStepReplyHandler sets the operation handler for the post step reply operation
+	InventoryPostStepReplyHandler inventory.PostStepReplyHandler
 	// InventoryRegisterClusterHandler sets the operation handler for the register cluster operation
 	InventoryRegisterClusterHandler inventory.RegisterClusterHandler
 	// InventoryRegisterNodeHandler sets the operation handler for the register node operation
@@ -242,8 +242,8 @@ func (o *BMInventoryAPI) Validate() error {
 	if o.InventoryListNodesHandler == nil {
 		unregistered = append(unregistered, "inventory.ListNodesHandler")
 	}
-	if o.InventoryPostNextStepsReplyHandler == nil {
-		unregistered = append(unregistered, "inventory.PostNextStepsReplyHandler")
+	if o.InventoryPostStepReplyHandler == nil {
+		unregistered = append(unregistered, "inventory.PostStepReplyHandler")
 	}
 	if o.InventoryRegisterClusterHandler == nil {
 		unregistered = append(unregistered, "inventory.RegisterClusterHandler")
@@ -385,7 +385,7 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/nodes/{node_id}/next-steps/reply"] = inventory.NewPostNextStepsReply(o.context, o.InventoryPostNextStepsReplyHandler)
+	o.handlers["POST"]["/nodes/{node_id}/next-steps/reply"] = inventory.NewPostStepReply(o.context, o.InventoryPostStepReplyHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

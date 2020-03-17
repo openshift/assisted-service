@@ -64,7 +64,7 @@ type GetNextStepsParams struct {
 	  ID of node
 
 	*/
-	NodeID string
+	NodeID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,13 +105,13 @@ func (o *GetNextStepsParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithNodeID adds the nodeID to the get next steps params
-func (o *GetNextStepsParams) WithNodeID(nodeID string) *GetNextStepsParams {
+func (o *GetNextStepsParams) WithNodeID(nodeID strfmt.UUID) *GetNextStepsParams {
 	o.SetNodeID(nodeID)
 	return o
 }
 
 // SetNodeID adds the nodeId to the get next steps params
-func (o *GetNextStepsParams) SetNodeID(nodeID string) {
+func (o *GetNextStepsParams) SetNodeID(nodeID strfmt.UUID) {
 	o.NodeID = nodeID
 }
 
@@ -124,7 +124,7 @@ func (o *GetNextStepsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 	var res []error
 
 	// path param node_id
-	if err := r.SetPathParam("node_id", o.NodeID); err != nil {
+	if err := r.SetPathParam("node_id", o.NodeID.String()); err != nil {
 		return err
 	}
 

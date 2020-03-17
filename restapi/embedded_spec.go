@@ -368,6 +368,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "ID of node",
             "name": "node_id",
             "in": "path",
@@ -393,22 +394,27 @@ func init() {
           "inventory"
         ],
         "summary": "Post the result of the required operations from the server",
-        "operationId": "PostNextStepsReply",
+        "operationId": "PostStepReply",
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "ID of node",
             "name": "node_id",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "reply",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/step-reply"
+            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "Steps reply",
-            "schema": {
-              "$ref": "#/definitions/steps-reply"
-            }
+          "204": {
+            "description": "Reply accepted"
           },
           "404": {
             "description": "Node not found"
@@ -442,6 +448,49 @@ func init() {
             "node",
             "cluster"
           ]
+        }
+      }
+    },
+    "block-device": {
+      "type": "object",
+      "properties": {
+        "device-type": {
+          "type": "string"
+        },
+        "fstype": {
+          "type": "string"
+        },
+        "major-device-number": {
+          "type": "integer"
+        },
+        "minor-device-number": {
+          "type": "integer"
+        },
+        "mountpoint": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "read-only": {
+          "type": "boolean"
+        },
+        "removable-device": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        }
+      }
+    },
+    "cidr": {
+      "type": "object",
+      "properties": {
+        "ip-address": {
+          "type": "string"
+        },
+        "mask": {
+          "type": "integer"
         }
       }
     },
@@ -517,28 +566,96 @@ func init() {
         "$ref": "#/definitions/cluster"
       }
     },
+    "connectivity-check-nic": {
+      "type": "object",
+      "properties": {
+        "ip-addresses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mac": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "connectivity-check-node": {
+      "type": "object",
+      "properties": {
+        "nics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/connectivity-check-nic"
+          }
+        },
+        "node-id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
     "connectivity-check-params": {
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "nics": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "ip-address": {
-                  "type": "string"
-                },
-                "mac": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "node-id": {
-            "type": "string"
+        "$ref": "#/definitions/connectivity-check-node"
+      }
+    },
+    "connectivity-remote-node": {
+      "type": "object",
+      "properties": {
+        "l2-connectivity": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/l2-connectivity"
           }
+        },
+        "l3-connectivity": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/l3-connectivity"
+          }
+        },
+        "node-id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "connectivity-report": {
+      "type": "object",
+      "properties": {
+        "remote-nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/connectivity-remote-node"
+          }
+        }
+      }
+    },
+    "cpu": {
+      "type": "object",
+      "properties": {
+        "architecture": {
+          "type": "string"
+        },
+        "cpu-mhz": {
+          "type": "number"
+        },
+        "cpus": {
+          "type": "integer"
+        },
+        "model-name": {
+          "type": "string"
+        },
+        "sockets": {
+          "type": "integer"
+        },
+        "threads-per-core": {
+          "type": "integer"
         }
       }
     },
@@ -614,6 +731,115 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/image"
+      }
+    },
+    "introspection": {
+      "type": "object",
+      "properties": {
+        "block-devices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/block-device"
+          }
+        },
+        "cpu": {
+          "$ref": "#/definitions/cpu"
+        },
+        "memory": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/memory"
+          }
+        },
+        "nics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/nic"
+          }
+        }
+      }
+    },
+    "l2-connectivity": {
+      "type": "object",
+      "properties": {
+        "outgoing-ip-address": {
+          "type": "string"
+        },
+        "outgoing-nic": {
+          "type": "string"
+        },
+        "remote-ip-address": {
+          "type": "string"
+        },
+        "remote-mac": {
+          "type": "string"
+        },
+        "successful": {
+          "type": "boolean"
+        }
+      }
+    },
+    "l3-connectivity": {
+      "type": "object",
+      "properties": {
+        "outgoing-nic": {
+          "type": "string"
+        },
+        "remote-ip-address": {
+          "type": "string"
+        },
+        "successful": {
+          "type": "boolean"
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "integer"
+        },
+        "buff-cached": {
+          "type": "integer"
+        },
+        "free": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "shared": {
+          "type": "integer"
+        },
+        "total": {
+          "type": "integer"
+        },
+        "used": {
+          "type": "integer"
+        }
+      }
+    },
+    "nic": {
+      "type": "object",
+      "properties": {
+        "cidrs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cidr"
+          }
+        },
+        "mac": {
+          "type": "string"
+        },
+        "mtu": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
       }
     },
     "node": {
@@ -693,11 +919,14 @@ func init() {
     "step-reply": {
       "type": "object",
       "properties": {
-        "data": {
+        "error": {
           "type": "string"
         },
-        "return-code": {
+        "exit-code": {
           "type": "integer"
+        },
+        "output": {
+          "type": "string"
         },
         "step-type": {
           "$ref": "#/definitions/step-type"
@@ -1083,6 +1312,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "ID of node",
             "name": "node_id",
             "in": "path",
@@ -1108,22 +1338,27 @@ func init() {
           "inventory"
         ],
         "summary": "Post the result of the required operations from the server",
-        "operationId": "PostNextStepsReply",
+        "operationId": "PostStepReply",
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "ID of node",
             "name": "node_id",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "reply",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/step-reply"
+            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "Steps reply",
-            "schema": {
-              "$ref": "#/definitions/steps-reply"
-            }
+          "204": {
+            "description": "Reply accepted"
           },
           "404": {
             "description": "Node not found"
@@ -1146,31 +1381,6 @@ func init() {
             "master",
             "worker"
           ]
-        }
-      }
-    },
-    "ConnectivityCheckParamsItems0": {
-      "type": "object",
-      "properties": {
-        "nics": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ConnectivityCheckParamsItems0NicsItems0"
-          }
-        },
-        "node-id": {
-          "type": "string"
-        }
-      }
-    },
-    "ConnectivityCheckParamsItems0NicsItems0": {
-      "type": "object",
-      "properties": {
-        "ip-address": {
-          "type": "string"
-        },
-        "mac": {
-          "type": "string"
         }
       }
     },
@@ -1198,6 +1408,49 @@ func init() {
             "node",
             "cluster"
           ]
+        }
+      }
+    },
+    "block-device": {
+      "type": "object",
+      "properties": {
+        "device-type": {
+          "type": "string"
+        },
+        "fstype": {
+          "type": "string"
+        },
+        "major-device-number": {
+          "type": "integer"
+        },
+        "minor-device-number": {
+          "type": "integer"
+        },
+        "mountpoint": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "read-only": {
+          "type": "boolean"
+        },
+        "removable-device": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        }
+      }
+    },
+    "cidr": {
+      "type": "object",
+      "properties": {
+        "ip-address": {
+          "type": "string"
+        },
+        "mask": {
+          "type": "integer"
         }
       }
     },
@@ -1260,10 +1513,97 @@ func init() {
         "$ref": "#/definitions/cluster"
       }
     },
+    "connectivity-check-nic": {
+      "type": "object",
+      "properties": {
+        "ip-addresses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mac": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "connectivity-check-node": {
+      "type": "object",
+      "properties": {
+        "nics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/connectivity-check-nic"
+          }
+        },
+        "node-id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
     "connectivity-check-params": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/ConnectivityCheckParamsItems0"
+        "$ref": "#/definitions/connectivity-check-node"
+      }
+    },
+    "connectivity-remote-node": {
+      "type": "object",
+      "properties": {
+        "l2-connectivity": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/l2-connectivity"
+          }
+        },
+        "l3-connectivity": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/l3-connectivity"
+          }
+        },
+        "node-id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "connectivity-report": {
+      "type": "object",
+      "properties": {
+        "remote-nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/connectivity-remote-node"
+          }
+        }
+      }
+    },
+    "cpu": {
+      "type": "object",
+      "properties": {
+        "architecture": {
+          "type": "string"
+        },
+        "cpu-mhz": {
+          "type": "number"
+        },
+        "cpus": {
+          "type": "integer"
+        },
+        "model-name": {
+          "type": "string"
+        },
+        "sockets": {
+          "type": "integer"
+        },
+        "threads-per-core": {
+          "type": "integer"
+        }
       }
     },
     "debug-step": {
@@ -1339,6 +1679,115 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/image"
+      }
+    },
+    "introspection": {
+      "type": "object",
+      "properties": {
+        "block-devices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/block-device"
+          }
+        },
+        "cpu": {
+          "$ref": "#/definitions/cpu"
+        },
+        "memory": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/memory"
+          }
+        },
+        "nics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/nic"
+          }
+        }
+      }
+    },
+    "l2-connectivity": {
+      "type": "object",
+      "properties": {
+        "outgoing-ip-address": {
+          "type": "string"
+        },
+        "outgoing-nic": {
+          "type": "string"
+        },
+        "remote-ip-address": {
+          "type": "string"
+        },
+        "remote-mac": {
+          "type": "string"
+        },
+        "successful": {
+          "type": "boolean"
+        }
+      }
+    },
+    "l3-connectivity": {
+      "type": "object",
+      "properties": {
+        "outgoing-nic": {
+          "type": "string"
+        },
+        "remote-ip-address": {
+          "type": "string"
+        },
+        "successful": {
+          "type": "boolean"
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "integer"
+        },
+        "buff-cached": {
+          "type": "integer"
+        },
+        "free": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "shared": {
+          "type": "integer"
+        },
+        "total": {
+          "type": "integer"
+        },
+        "used": {
+          "type": "integer"
+        }
+      }
+    },
+    "nic": {
+      "type": "object",
+      "properties": {
+        "cidrs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cidr"
+          }
+        },
+        "mac": {
+          "type": "string"
+        },
+        "mtu": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
       }
     },
     "node": {
@@ -1418,11 +1867,14 @@ func init() {
     "step-reply": {
       "type": "object",
       "properties": {
-        "data": {
+        "error": {
           "type": "string"
         },
-        "return-code": {
+        "exit-code": {
           "type": "integer"
+        },
+        "output": {
+          "type": "string"
         },
         "step-type": {
           "$ref": "#/definitions/step-type"

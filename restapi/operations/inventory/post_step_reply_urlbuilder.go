@@ -10,11 +10,13 @@ import (
 	"net/url"
 	golangswaggerpaths "path"
 	"strings"
+
+	"github.com/go-openapi/strfmt"
 )
 
-// PostNextStepsReplyURL generates an URL for the post next steps reply operation
-type PostNextStepsReplyURL struct {
-	NodeID string
+// PostStepReplyURL generates an URL for the post step reply operation
+type PostStepReplyURL struct {
+	NodeID strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -24,7 +26,7 @@ type PostNextStepsReplyURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *PostNextStepsReplyURL) WithBasePath(bp string) *PostNextStepsReplyURL {
+func (o *PostStepReplyURL) WithBasePath(bp string) *PostStepReplyURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -32,21 +34,21 @@ func (o *PostNextStepsReplyURL) WithBasePath(bp string) *PostNextStepsReplyURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *PostNextStepsReplyURL) SetBasePath(bp string) {
+func (o *PostStepReplyURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *PostNextStepsReplyURL) Build() (*url.URL, error) {
+func (o *PostStepReplyURL) Build() (*url.URL, error) {
 	var _result url.URL
 
 	var _path = "/nodes/{node_id}/next-steps/reply"
 
-	nodeID := o.NodeID
+	nodeID := o.NodeID.String()
 	if nodeID != "" {
 		_path = strings.Replace(_path, "{node_id}", nodeID, -1)
 	} else {
-		return nil, errors.New("nodeId is required on PostNextStepsReplyURL")
+		return nil, errors.New("nodeId is required on PostStepReplyURL")
 	}
 
 	_basePath := o._basePath
@@ -59,7 +61,7 @@ func (o *PostNextStepsReplyURL) Build() (*url.URL, error) {
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *PostNextStepsReplyURL) Must(u *url.URL, err error) *url.URL {
+func (o *PostStepReplyURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -70,17 +72,17 @@ func (o *PostNextStepsReplyURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *PostNextStepsReplyURL) String() string {
+func (o *PostStepReplyURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *PostNextStepsReplyURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *PostStepReplyURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on PostNextStepsReplyURL")
+		return nil, errors.New("scheme is required for a full url on PostStepReplyURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on PostNextStepsReplyURL")
+		return nil, errors.New("host is required for a full url on PostStepReplyURL")
 	}
 
 	base, err := o.Build()
@@ -94,6 +96,6 @@ func (o *PostNextStepsReplyURL) BuildFull(scheme, host string) (*url.URL, error)
 }
 
 // StringFull returns the string representation of a complete url
-func (o *PostNextStepsReplyURL) StringFull(scheme, host string) string {
+func (o *PostStepReplyURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

@@ -48,8 +48,8 @@ type API interface {
 	   ListNodes lists open shift bare metal nodes*/
 	ListNodes(ctx context.Context, params *ListNodesParams) (*ListNodesOK, error)
 	/*
-	   PostNextStepsReply posts the result of the required operations from the server*/
-	PostNextStepsReply(ctx context.Context, params *PostNextStepsReplyParams) (*PostNextStepsReplyOK, error)
+	   PostStepReply posts the result of the required operations from the server*/
+	PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error)
 	/*
 	   RegisterCluster registers a new open shift bare metal cluster*/
 	RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error)
@@ -320,26 +320,26 @@ func (a *Client) ListNodes(ctx context.Context, params *ListNodesParams) (*ListN
 }
 
 /*
-PostNextStepsReply posts the result of the required operations from the server
+PostStepReply posts the result of the required operations from the server
 */
-func (a *Client) PostNextStepsReply(ctx context.Context, params *PostNextStepsReplyParams) (*PostNextStepsReplyOK, error) {
+func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "PostNextStepsReply",
+		ID:                 "PostStepReply",
 		Method:             "POST",
 		PathPattern:        "/nodes/{node_id}/next-steps/reply",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &PostNextStepsReplyReader{formats: a.formats},
+		Reader:             &PostStepReplyReader{formats: a.formats},
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PostNextStepsReplyOK), nil
+	return result.(*PostStepReplyNoContent), nil
 
 }
 
