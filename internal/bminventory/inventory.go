@@ -315,11 +315,10 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params inventory.Ge
 }
 
 func (b *bareMetalInventory) RegisterNode(ctx context.Context, params inventory.RegisterNodeParams) middleware.Responder {
-	id := strfmt.UUID(uuid.New().String())
 	node := &models.Node{
 		Base: models.Base{
-			Href: buildHrefURI(ResourceKindNode, id.String()),
-			ID:   &id,
+			Href: buildHrefURI(ResourceKindNode, params.NewNodeParams.NodeID.String()),
+			ID:   params.NewNodeParams.NodeID,
 			Kind: swag.String(ResourceKindNode),
 		},
 		Status: swag.String("discovering"),
@@ -390,4 +389,12 @@ func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.
 	b.debugCmd = swag.StringValue(params.Step.Command)
 	b.isDebugCalled = false
 	return inventory.NewSetDebugStepOK()
+}
+
+func (b *bareMetalInventory) DisableNode(ctx context.Context, params inventory.DisableNodeParams) middleware.Responder {
+	return inventory.NewDisableNodeNoContent()
+}
+
+func (b *bareMetalInventory) EnableNode(ctx context.Context, params inventory.EnableNodeParams) middleware.Responder {
+	return inventory.NewEnableNodeNoContent()
 }
