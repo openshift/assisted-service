@@ -28,6 +28,8 @@ type InventoryAPI interface {
 	CreateImage(ctx context.Context, params inventory.CreateImageParams) middleware.Responder
 	DeregisterCluster(ctx context.Context, params inventory.DeregisterClusterParams) middleware.Responder
 	DeregisterNode(ctx context.Context, params inventory.DeregisterNodeParams) middleware.Responder
+	DisableNode(ctx context.Context, params inventory.DisableNodeParams) middleware.Responder
+	EnableNode(ctx context.Context, params inventory.EnableNodeParams) middleware.Responder
 	GetCluster(ctx context.Context, params inventory.GetClusterParams) middleware.Responder
 	GetImage(ctx context.Context, params inventory.GetImageParams) middleware.Responder
 	GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder
@@ -86,6 +88,14 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.InventoryDeregisterNodeHandler = inventory.DeregisterNodeHandlerFunc(func(params inventory.DeregisterNodeParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.DeregisterNode(ctx, params)
+	})
+	api.InventoryDisableNodeHandler = inventory.DisableNodeHandlerFunc(func(params inventory.DisableNodeParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.DisableNode(ctx, params)
+	})
+	api.InventoryEnableNodeHandler = inventory.EnableNodeHandlerFunc(func(params inventory.EnableNodeParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.EnableNode(ctx, params)
 	})
 	api.InventoryGetClusterHandler = inventory.GetClusterHandlerFunc(func(params inventory.GetClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

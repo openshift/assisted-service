@@ -35,6 +35,12 @@ func (o *GetClusterReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return nil, result
+	case 500:
+		result := NewGetClusterInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
@@ -91,6 +97,27 @@ func (o *GetClusterNotFound) Error() string {
 }
 
 func (o *GetClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewGetClusterInternalServerError creates a GetClusterInternalServerError with default headers values
+func NewGetClusterInternalServerError() *GetClusterInternalServerError {
+	return &GetClusterInternalServerError{}
+}
+
+/*GetClusterInternalServerError handles this case with default header values.
+
+Internal server error
+*/
+type GetClusterInternalServerError struct {
+}
+
+func (o *GetClusterInternalServerError) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterInternalServerError ", 500)
+}
+
+func (o *GetClusterInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

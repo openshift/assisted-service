@@ -82,3 +82,27 @@ func (o *DeregisterNodeNotFound) WriteResponse(rw http.ResponseWriter, producer 
 
 	rw.WriteHeader(404)
 }
+
+// DeregisterNodeInternalServerErrorCode is the HTTP code returned for type DeregisterNodeInternalServerError
+const DeregisterNodeInternalServerErrorCode int = 500
+
+/*DeregisterNodeInternalServerError Internal server error
+
+swagger:response deregisterNodeInternalServerError
+*/
+type DeregisterNodeInternalServerError struct {
+}
+
+// NewDeregisterNodeInternalServerError creates DeregisterNodeInternalServerError with default headers values
+func NewDeregisterNodeInternalServerError() *DeregisterNodeInternalServerError {
+
+	return &DeregisterNodeInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *DeregisterNodeInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}

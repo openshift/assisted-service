@@ -64,7 +64,7 @@ type GetNodeParams struct {
 	  The ID of the node to retrieve
 
 	*/
-	NodeID string
+	NodeID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,13 +105,13 @@ func (o *GetNodeParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithNodeID adds the nodeID to the get node params
-func (o *GetNodeParams) WithNodeID(nodeID string) *GetNodeParams {
+func (o *GetNodeParams) WithNodeID(nodeID strfmt.UUID) *GetNodeParams {
 	o.SetNodeID(nodeID)
 	return o
 }
 
 // SetNodeID adds the nodeId to the get node params
-func (o *GetNodeParams) SetNodeID(nodeID string) {
+func (o *GetNodeParams) SetNodeID(nodeID strfmt.UUID) {
 	o.NodeID = nodeID
 }
 
@@ -124,7 +124,7 @@ func (o *GetNodeParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regis
 	var res []error
 
 	// path param node_id
-	if err := r.SetPathParam("node_id", o.NodeID); err != nil {
+	if err := r.SetPathParam("node_id", o.NodeID.String()); err != nil {
 		return err
 	}
 

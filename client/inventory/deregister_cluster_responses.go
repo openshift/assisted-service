@@ -32,6 +32,12 @@ func (o *DeregisterClusterReader) ReadResponse(response runtime.ClientResponse, 
 			return nil, err
 		}
 		return nil, result
+	case 500:
+		result := NewDeregisterClusterInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
@@ -76,6 +82,27 @@ func (o *DeregisterClusterNotFound) Error() string {
 }
 
 func (o *DeregisterClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeregisterClusterInternalServerError creates a DeregisterClusterInternalServerError with default headers values
+func NewDeregisterClusterInternalServerError() *DeregisterClusterInternalServerError {
+	return &DeregisterClusterInternalServerError{}
+}
+
+/*DeregisterClusterInternalServerError handles this case with default header values.
+
+Internal server error
+*/
+type DeregisterClusterInternalServerError struct {
+}
+
+func (o *DeregisterClusterInternalServerError) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterInternalServerError ", 500)
+}
+
+func (o *DeregisterClusterInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

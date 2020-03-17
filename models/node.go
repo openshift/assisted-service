@@ -26,10 +26,26 @@ type Node struct {
 	// Format: uuid
 	ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
 
+	// connectivity
+	// Required: true
+	Connectivity *ConnectivityReport `json:"connectivity"`
+
+	// enabled
+	// Required: true
+	Enabled *bool `json:"enabled"`
+
+	// hardware info
+	// Required: true
+	HardwareInfo *Introspection `json:"hardware_info"`
+
 	// status
 	// Required: true
 	// Enum: [discovering known disconnected installing insufficient installed]
 	Status *string `json:"status"`
+
+	// status info
+	// Required: true
+	StatusInfo *string `json:"status_info"`
 }
 
 // UnmarshalJSON unmarshals this object from a JSON structure
@@ -52,7 +68,15 @@ func (m *Node) UnmarshalJSON(raw []byte) error {
 	var dataAO2 struct {
 		ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
 
+		Connectivity *ConnectivityReport `json:"connectivity"`
+
+		Enabled *bool `json:"enabled"`
+
+		HardwareInfo *Introspection `json:"hardware_info"`
+
 		Status *string `json:"status"`
+
+		StatusInfo *string `json:"status_info"`
 	}
 	if err := swag.ReadJSON(raw, &dataAO2); err != nil {
 		return err
@@ -60,7 +84,15 @@ func (m *Node) UnmarshalJSON(raw []byte) error {
 
 	m.ClusterID = dataAO2.ClusterID
 
+	m.Connectivity = dataAO2.Connectivity
+
+	m.Enabled = dataAO2.Enabled
+
+	m.HardwareInfo = dataAO2.HardwareInfo
+
 	m.Status = dataAO2.Status
+
+	m.StatusInfo = dataAO2.StatusInfo
 
 	return nil
 }
@@ -83,12 +115,28 @@ func (m Node) MarshalJSON() ([]byte, error) {
 	var dataAO2 struct {
 		ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
 
+		Connectivity *ConnectivityReport `json:"connectivity"`
+
+		Enabled *bool `json:"enabled"`
+
+		HardwareInfo *Introspection `json:"hardware_info"`
+
 		Status *string `json:"status"`
+
+		StatusInfo *string `json:"status_info"`
 	}
 
 	dataAO2.ClusterID = m.ClusterID
 
+	dataAO2.Connectivity = m.Connectivity
+
+	dataAO2.Enabled = m.Enabled
+
+	dataAO2.HardwareInfo = m.HardwareInfo
+
 	dataAO2.Status = m.Status
+
+	dataAO2.StatusInfo = m.StatusInfo
 
 	jsonDataAO2, errAO2 := swag.WriteJSON(dataAO2)
 	if errAO2 != nil {
@@ -115,7 +163,23 @@ func (m *Node) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateConnectivity(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateEnabled(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateHardwareInfo(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateStatus(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStatusInfo(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -133,6 +197,51 @@ func (m *Node) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Node) validateConnectivity(formats strfmt.Registry) error {
+
+	if err := validate.Required("connectivity", "body", m.Connectivity); err != nil {
+		return err
+	}
+
+	if m.Connectivity != nil {
+		if err := m.Connectivity.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("connectivity")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Node) validateEnabled(formats strfmt.Registry) error {
+
+	if err := validate.Required("enabled", "body", m.Enabled); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Node) validateHardwareInfo(formats strfmt.Registry) error {
+
+	if err := validate.Required("hardware_info", "body", m.HardwareInfo); err != nil {
+		return err
+	}
+
+	if m.HardwareInfo != nil {
+		if err := m.HardwareInfo.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("hardware_info")
+			}
+			return err
+		}
 	}
 
 	return nil
@@ -166,6 +275,15 @@ func (m *Node) validateStatus(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateStatusEnum("status", "body", *m.Status); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Node) validateStatusInfo(formats strfmt.Registry) error {
+
+	if err := validate.Required("status_info", "body", m.StatusInfo); err != nil {
 		return err
 	}
 

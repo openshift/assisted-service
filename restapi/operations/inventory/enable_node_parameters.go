@@ -14,23 +14,23 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// NewGetNodeParams creates a new GetNodeParams object
+// NewEnableNodeParams creates a new EnableNodeParams object
 // no default values defined in spec.
-func NewGetNodeParams() GetNodeParams {
+func NewEnableNodeParams() EnableNodeParams {
 
-	return GetNodeParams{}
+	return EnableNodeParams{}
 }
 
-// GetNodeParams contains all the bound params for the get node operation
+// EnableNodeParams contains all the bound params for the enable node operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters GetNode
-type GetNodeParams struct {
+// swagger:parameters EnableNode
+type EnableNodeParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The ID of the node to retrieve
+	/*The ID of the node to enable
 	  Required: true
 	  In: path
 	*/
@@ -40,8 +40,8 @@ type GetNodeParams struct {
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewGetNodeParams() beforehand.
-func (o *GetNodeParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewEnableNodeParams() beforehand.
+func (o *EnableNodeParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
@@ -58,7 +58,7 @@ func (o *GetNodeParams) BindRequest(r *http.Request, route *middleware.MatchedRo
 }
 
 // bindNodeID binds and validates parameter NodeID from path.
-func (o *GetNodeParams) bindNodeID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *EnableNodeParams) bindNodeID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -82,7 +82,7 @@ func (o *GetNodeParams) bindNodeID(rawData []string, hasKey bool, formats strfmt
 }
 
 // validateNodeID carries on validations for parameter NodeID
-func (o *GetNodeParams) validateNodeID(formats strfmt.Registry) error {
+func (o *EnableNodeParams) validateNodeID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("node_id", "path", "uuid", o.NodeID.String(), formats); err != nil {
 		return err

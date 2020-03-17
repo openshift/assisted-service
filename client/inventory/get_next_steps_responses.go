@@ -35,6 +35,12 @@ func (o *GetNextStepsReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
+	case 500:
+		result := NewGetNextStepsInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
@@ -89,6 +95,27 @@ func (o *GetNextStepsNotFound) Error() string {
 }
 
 func (o *GetNextStepsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewGetNextStepsInternalServerError creates a GetNextStepsInternalServerError with default headers values
+func NewGetNextStepsInternalServerError() *GetNextStepsInternalServerError {
+	return &GetNextStepsInternalServerError{}
+}
+
+/*GetNextStepsInternalServerError handles this case with default header values.
+
+Internal server error
+*/
+type GetNextStepsInternalServerError struct {
+}
+
+func (o *GetNextStepsInternalServerError) Error() string {
+	return fmt.Sprintf("[GET /nodes/{node_id}/next-steps][%d] getNextStepsInternalServerError ", 500)
+}
+
+func (o *GetNextStepsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

@@ -17,47 +17,31 @@ import (
 // swagger:model node-create-params
 type NodeCreateParams struct {
 
-	// hardware info
-	// Required: true
-	HardwareInfo *string `json:"hardware_info"`
-
 	// namespace
 	// Required: true
 	Namespace *string `json:"namespace"`
 
-	// serial
+	// node id
 	// Required: true
-	Serial *string `json:"serial"`
+	// Format: uuid
+	NodeID *strfmt.UUID `json:"node_id"`
 }
 
 // Validate validates this node create params
 func (m *NodeCreateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateHardwareInfo(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateNamespace(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateSerial(formats); err != nil {
+	if err := m.validateNodeID(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *NodeCreateParams) validateHardwareInfo(formats strfmt.Registry) error {
-
-	if err := validate.Required("hardware_info", "body", m.HardwareInfo); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -70,9 +54,13 @@ func (m *NodeCreateParams) validateNamespace(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *NodeCreateParams) validateSerial(formats strfmt.Registry) error {
+func (m *NodeCreateParams) validateNodeID(formats strfmt.Registry) error {
 
-	if err := validate.Required("serial", "body", m.Serial); err != nil {
+	if err := validate.Required("node_id", "body", m.NodeID); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("node_id", "body", "uuid", m.NodeID.String(), formats); err != nil {
 		return err
 	}
 

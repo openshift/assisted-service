@@ -27,6 +27,12 @@ type API interface {
 	   DeregisterNode deregisters open shift bare metal node*/
 	DeregisterNode(ctx context.Context, params *DeregisterNodeParams) (*DeregisterNodeNoContent, error)
 	/*
+	   DisableNode disables a node for use*/
+	DisableNode(ctx context.Context, params *DisableNodeParams) (*DisableNodeNoContent, error)
+	/*
+	   EnableNode enables a node for use*/
+	EnableNode(ctx context.Context, params *EnableNodeParams) (*EnableNodeNoContent, error)
+	/*
 	   GetCluster retrieves open shift bare metal cluster information*/
 	GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error)
 	/*
@@ -148,6 +154,54 @@ func (a *Client) DeregisterNode(ctx context.Context, params *DeregisterNodeParam
 		return nil, err
 	}
 	return result.(*DeregisterNodeNoContent), nil
+
+}
+
+/*
+DisableNode disables a node for use
+*/
+func (a *Client) DisableNode(ctx context.Context, params *DisableNodeParams) (*DisableNodeNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DisableNode",
+		Method:             "DELETE",
+		PathPattern:        "/nodes/{node_id}/actions/enable",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DisableNodeReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DisableNodeNoContent), nil
+
+}
+
+/*
+EnableNode enables a node for use
+*/
+func (a *Client) EnableNode(ctx context.Context, params *EnableNodeParams) (*EnableNodeNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "EnableNode",
+		Method:             "POST",
+		PathPattern:        "/nodes/{node_id}/actions/enable",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &EnableNodeReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*EnableNodeNoContent), nil
 
 }
 
@@ -399,7 +453,7 @@ func (a *Client) SetDebugStep(ctx context.Context, params *SetDebugStepParams) (
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "SetDebugStep",
 		Method:             "POST",
-		PathPattern:        "/debug",
+		PathPattern:        "/nodes/{node_id}/actions/debug",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},

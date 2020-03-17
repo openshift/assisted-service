@@ -35,6 +35,30 @@ func (o *PostStepReplyNoContent) WriteResponse(rw http.ResponseWriter, producer 
 	rw.WriteHeader(204)
 }
 
+// PostStepReplyBadRequestCode is the HTTP code returned for type PostStepReplyBadRequest
+const PostStepReplyBadRequestCode int = 400
+
+/*PostStepReplyBadRequest Invalid input
+
+swagger:response postStepReplyBadRequest
+*/
+type PostStepReplyBadRequest struct {
+}
+
+// NewPostStepReplyBadRequest creates PostStepReplyBadRequest with default headers values
+func NewPostStepReplyBadRequest() *PostStepReplyBadRequest {
+
+	return &PostStepReplyBadRequest{}
+}
+
+// WriteResponse to the client
+func (o *PostStepReplyBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(400)
+}
+
 // PostStepReplyNotFoundCode is the HTTP code returned for type PostStepReplyNotFound
 const PostStepReplyNotFoundCode int = 404
 
@@ -57,4 +81,28 @@ func (o *PostStepReplyNotFound) WriteResponse(rw http.ResponseWriter, producer r
 	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
 	rw.WriteHeader(404)
+}
+
+// PostStepReplyInternalServerErrorCode is the HTTP code returned for type PostStepReplyInternalServerError
+const PostStepReplyInternalServerErrorCode int = 500
+
+/*PostStepReplyInternalServerError Internal server error
+
+swagger:response postStepReplyInternalServerError
+*/
+type PostStepReplyInternalServerError struct {
+}
+
+// NewPostStepReplyInternalServerError creates PostStepReplyInternalServerError with default headers values
+func NewPostStepReplyInternalServerError() *PostStepReplyInternalServerError {
+
+	return &PostStepReplyInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *PostStepReplyInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
 }

@@ -52,6 +52,12 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		InventoryDeregisterNodeHandler: inventory.DeregisterNodeHandlerFunc(func(params inventory.DeregisterNodeParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.DeregisterNode has not yet been implemented")
 		}),
+		InventoryDisableNodeHandler: inventory.DisableNodeHandlerFunc(func(params inventory.DisableNodeParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.DisableNode has not yet been implemented")
+		}),
+		InventoryEnableNodeHandler: inventory.EnableNodeHandlerFunc(func(params inventory.EnableNodeParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.EnableNode has not yet been implemented")
+		}),
 		InventoryGetClusterHandler: inventory.GetClusterHandlerFunc(func(params inventory.GetClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.GetCluster has not yet been implemented")
 		}),
@@ -124,6 +130,10 @@ type BMInventoryAPI struct {
 	InventoryDeregisterClusterHandler inventory.DeregisterClusterHandler
 	// InventoryDeregisterNodeHandler sets the operation handler for the deregister node operation
 	InventoryDeregisterNodeHandler inventory.DeregisterNodeHandler
+	// InventoryDisableNodeHandler sets the operation handler for the disable node operation
+	InventoryDisableNodeHandler inventory.DisableNodeHandler
+	// InventoryEnableNodeHandler sets the operation handler for the enable node operation
+	InventoryEnableNodeHandler inventory.EnableNodeHandler
 	// InventoryGetClusterHandler sets the operation handler for the get cluster operation
 	InventoryGetClusterHandler inventory.GetClusterHandler
 	// InventoryGetImageHandler sets the operation handler for the get image operation
@@ -220,6 +230,12 @@ func (o *BMInventoryAPI) Validate() error {
 	}
 	if o.InventoryDeregisterNodeHandler == nil {
 		unregistered = append(unregistered, "inventory.DeregisterNodeHandler")
+	}
+	if o.InventoryDisableNodeHandler == nil {
+		unregistered = append(unregistered, "inventory.DisableNodeHandler")
+	}
+	if o.InventoryEnableNodeHandler == nil {
+		unregistered = append(unregistered, "inventory.EnableNodeHandler")
 	}
 	if o.InventoryGetClusterHandler == nil {
 		unregistered = append(unregistered, "inventory.GetClusterHandler")
@@ -354,6 +370,14 @@ func (o *BMInventoryAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/nodes/{node_id}"] = inventory.NewDeregisterNode(o.context, o.InventoryDeregisterNodeHandler)
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/nodes/{node_id}/actions/enable"] = inventory.NewDisableNode(o.context, o.InventoryDisableNodeHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/nodes/{node_id}/actions/enable"] = inventory.NewEnableNode(o.context, o.InventoryEnableNodeHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -397,7 +421,7 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/debug"] = inventory.NewSetDebugStep(o.context, o.InventorySetDebugStepHandler)
+	o.handlers["POST"]["/nodes/{node_id}/actions/debug"] = inventory.NewSetDebugStep(o.context, o.InventorySetDebugStepHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

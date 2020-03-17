@@ -83,3 +83,27 @@ func (o *GetNextStepsNotFound) WriteResponse(rw http.ResponseWriter, producer ru
 
 	rw.WriteHeader(404)
 }
+
+// GetNextStepsInternalServerErrorCode is the HTTP code returned for type GetNextStepsInternalServerError
+const GetNextStepsInternalServerErrorCode int = 500
+
+/*GetNextStepsInternalServerError Internal server error
+
+swagger:response getNextStepsInternalServerError
+*/
+type GetNextStepsInternalServerError struct {
+}
+
+// NewGetNextStepsInternalServerError creates GetNextStepsInternalServerError with default headers values
+func NewGetNextStepsInternalServerError() *GetNextStepsInternalServerError {
+
+	return &GetNextStepsInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *GetNextStepsInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}

@@ -35,6 +35,12 @@ func (o *GetNodeReader) ReadResponse(response runtime.ClientResponse, consumer r
 			return nil, err
 		}
 		return nil, result
+	case 500:
+		result := NewGetNodeInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
@@ -91,6 +97,27 @@ func (o *GetNodeNotFound) Error() string {
 }
 
 func (o *GetNodeNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewGetNodeInternalServerError creates a GetNodeInternalServerError with default headers values
+func NewGetNodeInternalServerError() *GetNodeInternalServerError {
+	return &GetNodeInternalServerError{}
+}
+
+/*GetNodeInternalServerError handles this case with default header values.
+
+Internal server error
+*/
+type GetNodeInternalServerError struct {
+}
+
+func (o *GetNodeInternalServerError) Error() string {
+	return fmt.Sprintf("[GET /nodes/{node_id}][%d] getNodeInternalServerError ", 500)
+}
+
+func (o *GetNodeInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

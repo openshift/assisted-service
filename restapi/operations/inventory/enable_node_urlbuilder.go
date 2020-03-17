@@ -14,8 +14,8 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// SetDebugStepURL generates an URL for the set debug step operation
-type SetDebugStepURL struct {
+// EnableNodeURL generates an URL for the enable node operation
+type EnableNodeURL struct {
 	NodeID strfmt.UUID
 
 	_basePath string
@@ -26,7 +26,7 @@ type SetDebugStepURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *SetDebugStepURL) WithBasePath(bp string) *SetDebugStepURL {
+func (o *EnableNodeURL) WithBasePath(bp string) *EnableNodeURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -34,21 +34,21 @@ func (o *SetDebugStepURL) WithBasePath(bp string) *SetDebugStepURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *SetDebugStepURL) SetBasePath(bp string) {
+func (o *EnableNodeURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *SetDebugStepURL) Build() (*url.URL, error) {
+func (o *EnableNodeURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/nodes/{node_id}/actions/debug"
+	var _path = "/nodes/{node_id}/actions/enable"
 
 	nodeID := o.NodeID.String()
 	if nodeID != "" {
 		_path = strings.Replace(_path, "{node_id}", nodeID, -1)
 	} else {
-		return nil, errors.New("nodeId is required on SetDebugStepURL")
+		return nil, errors.New("nodeId is required on EnableNodeURL")
 	}
 
 	_basePath := o._basePath
@@ -61,7 +61,7 @@ func (o *SetDebugStepURL) Build() (*url.URL, error) {
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *SetDebugStepURL) Must(u *url.URL, err error) *url.URL {
+func (o *EnableNodeURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -72,17 +72,17 @@ func (o *SetDebugStepURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *SetDebugStepURL) String() string {
+func (o *EnableNodeURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *SetDebugStepURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *EnableNodeURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on SetDebugStepURL")
+		return nil, errors.New("scheme is required for a full url on EnableNodeURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on SetDebugStepURL")
+		return nil, errors.New("host is required for a full url on EnableNodeURL")
 	}
 
 	base, err := o.Build()
@@ -96,6 +96,6 @@ func (o *SetDebugStepURL) BuildFull(scheme, host string) (*url.URL, error) {
 }
 
 // StringFull returns the string representation of a complete url
-func (o *SetDebugStepURL) StringFull(scheme, host string) string {
+func (o *EnableNodeURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

@@ -26,6 +26,12 @@ func (o *SetDebugStepReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return result, nil
+	case 404:
+		result := NewSetDebugStepNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewSetDebugStepInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -51,10 +57,31 @@ type SetDebugStepOK struct {
 }
 
 func (o *SetDebugStepOK) Error() string {
-	return fmt.Sprintf("[POST /debug][%d] setDebugStepOK ", 200)
+	return fmt.Sprintf("[POST /nodes/{node_id}/actions/debug][%d] setDebugStepOK ", 200)
 }
 
 func (o *SetDebugStepOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewSetDebugStepNotFound creates a SetDebugStepNotFound with default headers values
+func NewSetDebugStepNotFound() *SetDebugStepNotFound {
+	return &SetDebugStepNotFound{}
+}
+
+/*SetDebugStepNotFound handles this case with default header values.
+
+Node not found
+*/
+type SetDebugStepNotFound struct {
+}
+
+func (o *SetDebugStepNotFound) Error() string {
+	return fmt.Sprintf("[POST /nodes/{node_id}/actions/debug][%d] setDebugStepNotFound ", 404)
+}
+
+func (o *SetDebugStepNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }
@@ -72,7 +99,7 @@ type SetDebugStepInternalServerError struct {
 }
 
 func (o *SetDebugStepInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /debug][%d] setDebugStepInternalServerError ", 500)
+	return fmt.Sprintf("[POST /nodes/{node_id}/actions/debug][%d] setDebugStepInternalServerError ", 500)
 }
 
 func (o *SetDebugStepInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

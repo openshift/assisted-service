@@ -35,6 +35,30 @@ func (o *SetDebugStepOK) WriteResponse(rw http.ResponseWriter, producer runtime.
 	rw.WriteHeader(200)
 }
 
+// SetDebugStepNotFoundCode is the HTTP code returned for type SetDebugStepNotFound
+const SetDebugStepNotFoundCode int = 404
+
+/*SetDebugStepNotFound Node not found
+
+swagger:response setDebugStepNotFound
+*/
+type SetDebugStepNotFound struct {
+}
+
+// NewSetDebugStepNotFound creates SetDebugStepNotFound with default headers values
+func NewSetDebugStepNotFound() *SetDebugStepNotFound {
+
+	return &SetDebugStepNotFound{}
+}
+
+// WriteResponse to the client
+func (o *SetDebugStepNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(404)
+}
+
 // SetDebugStepInternalServerErrorCode is the HTTP code returned for type SetDebugStepInternalServerError
 const SetDebugStepInternalServerErrorCode int = 500
 

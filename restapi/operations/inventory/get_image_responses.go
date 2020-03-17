@@ -80,3 +80,27 @@ func (o *GetImageNotFound) WriteResponse(rw http.ResponseWriter, producer runtim
 
 	rw.WriteHeader(404)
 }
+
+// GetImageInternalServerErrorCode is the HTTP code returned for type GetImageInternalServerError
+const GetImageInternalServerErrorCode int = 500
+
+/*GetImageInternalServerError Internal server error
+
+swagger:response getImageInternalServerError
+*/
+type GetImageInternalServerError struct {
+}
+
+// NewGetImageInternalServerError creates GetImageInternalServerError with default headers values
+func NewGetImageInternalServerError() *GetImageInternalServerError {
+
+	return &GetImageInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *GetImageInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}

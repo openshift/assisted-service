@@ -58,3 +58,27 @@ func (o *DeregisterClusterNotFound) WriteResponse(rw http.ResponseWriter, produc
 
 	rw.WriteHeader(404)
 }
+
+// DeregisterClusterInternalServerErrorCode is the HTTP code returned for type DeregisterClusterInternalServerError
+const DeregisterClusterInternalServerErrorCode int = 500
+
+/*DeregisterClusterInternalServerError Internal server error
+
+swagger:response deregisterClusterInternalServerError
+*/
+type DeregisterClusterInternalServerError struct {
+}
+
+// NewDeregisterClusterInternalServerError creates DeregisterClusterInternalServerError with default headers values
+func NewDeregisterClusterInternalServerError() *DeregisterClusterInternalServerError {
+
+	return &DeregisterClusterInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *DeregisterClusterInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}

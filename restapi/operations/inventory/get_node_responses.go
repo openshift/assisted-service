@@ -80,3 +80,27 @@ func (o *GetNodeNotFound) WriteResponse(rw http.ResponseWriter, producer runtime
 
 	rw.WriteHeader(404)
 }
+
+// GetNodeInternalServerErrorCode is the HTTP code returned for type GetNodeInternalServerError
+const GetNodeInternalServerErrorCode int = 500
+
+/*GetNodeInternalServerError Internal server error
+
+swagger:response getNodeInternalServerError
+*/
+type GetNodeInternalServerError struct {
+}
+
+// NewGetNodeInternalServerError creates GetNodeInternalServerError with default headers values
+func NewGetNodeInternalServerError() *GetNodeInternalServerError {
+
+	return &GetNodeInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *GetNodeInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}

@@ -113,6 +113,9 @@ func init() {
           },
           "404": {
             "description": "Cluster not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       },
@@ -137,31 +140,6 @@ func init() {
           },
           "404": {
             "description": "Cluster not found"
-          }
-        }
-      }
-    },
-    "/debug": {
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
-        "operationId": "SetDebugStep",
-        "parameters": [
-          {
-            "description": "Next debug step",
-            "name": "step",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/debug-step"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Registered"
           },
           "500": {
             "description": "Internal server error"
@@ -246,6 +224,9 @@ func init() {
           },
           "404": {
             "description": "Image not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -312,6 +293,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the node to retrieve",
             "name": "node_id",
             "in": "path",
@@ -327,6 +309,9 @@ func init() {
           },
           "404": {
             "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       },
@@ -354,6 +339,106 @@ func init() {
           },
           "404": {
             "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}/actions/debug": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
+        "operationId": "SetDebugStep",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the node to debug",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Next debug step",
+            "name": "step",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/debug-step"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registered"
+          },
+          "404": {
+            "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}/actions/enable": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Enable a node for use",
+        "operationId": "EnableNode",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the node to enable",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Enabled"
+          },
+          "404": {
+            "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Disable a node for use",
+        "operationId": "DisableNode",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the node to disable",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Disabled"
+          },
+          "404": {
+            "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -384,6 +469,9 @@ func init() {
           },
           "404": {
             "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -416,8 +504,14 @@ func init() {
           "204": {
             "description": "Reply accepted"
           },
+          "400": {
+            "description": "Invalid input"
+          },
           "404": {
             "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -855,13 +949,25 @@ func init() {
           "type": "object",
           "required": [
             "kind",
+            "enabled",
             "status",
+            "status_info",
+            "connectivity",
             "hardware_info"
           ],
           "properties": {
             "cluster_id": {
               "type": "string",
               "format": "uuid"
+            },
+            "connectivity": {
+              "$ref": "#/definitions/connectivity-report"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "hardware_info": {
+              "$ref": "#/definitions/introspection"
             },
             "status": {
               "type": "string",
@@ -873,6 +979,9 @@ func init() {
                 "insufficient",
                 "installed"
               ]
+            },
+            "status_info": {
+              "type": "string"
             }
           }
         }
@@ -882,19 +991,15 @@ func init() {
       "type": "object",
       "required": [
         "namespace",
-        "hardware_info",
-        "serial"
+        "node_id"
       ],
       "properties": {
-        "hardware_info": {
-          "type": "string",
-          "format": "json"
-        },
         "namespace": {
           "type": "string"
         },
-        "serial": {
-          "type": "string"
+        "node_id": {
+          "type": "string",
+          "format": "uuid"
         }
       }
     },
@@ -1057,6 +1162,9 @@ func init() {
           },
           "404": {
             "description": "Cluster not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       },
@@ -1081,31 +1189,6 @@ func init() {
           },
           "404": {
             "description": "Cluster not found"
-          }
-        }
-      }
-    },
-    "/debug": {
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
-        "operationId": "SetDebugStep",
-        "parameters": [
-          {
-            "description": "Next debug step",
-            "name": "step",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/debug-step"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Registered"
           },
           "500": {
             "description": "Internal server error"
@@ -1190,6 +1273,9 @@ func init() {
           },
           "404": {
             "description": "Image not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -1256,6 +1342,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the node to retrieve",
             "name": "node_id",
             "in": "path",
@@ -1271,6 +1358,9 @@ func init() {
           },
           "404": {
             "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       },
@@ -1298,6 +1388,106 @@ func init() {
           },
           "404": {
             "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}/actions/debug": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
+        "operationId": "SetDebugStep",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the node to debug",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Next debug step",
+            "name": "step",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/debug-step"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registered"
+          },
+          "404": {
+            "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/nodes/{node_id}/actions/enable": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Enable a node for use",
+        "operationId": "EnableNode",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the node to enable",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Enabled"
+          },
+          "404": {
+            "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Disable a node for use",
+        "operationId": "DisableNode",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the node to disable",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Disabled"
+          },
+          "404": {
+            "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -1328,6 +1518,9 @@ func init() {
           },
           "404": {
             "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -1360,8 +1553,14 @@ func init() {
           "204": {
             "description": "Reply accepted"
           },
+          "400": {
+            "description": "Invalid input"
+          },
           "404": {
             "description": "Node not found"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         }
       }
@@ -1803,13 +2002,25 @@ func init() {
           "type": "object",
           "required": [
             "kind",
+            "enabled",
             "status",
+            "status_info",
+            "connectivity",
             "hardware_info"
           ],
           "properties": {
             "cluster_id": {
               "type": "string",
               "format": "uuid"
+            },
+            "connectivity": {
+              "$ref": "#/definitions/connectivity-report"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "hardware_info": {
+              "$ref": "#/definitions/introspection"
             },
             "status": {
               "type": "string",
@@ -1821,6 +2032,9 @@ func init() {
                 "insufficient",
                 "installed"
               ]
+            },
+            "status_info": {
+              "type": "string"
             }
           }
         }
@@ -1830,19 +2044,15 @@ func init() {
       "type": "object",
       "required": [
         "namespace",
-        "hardware_info",
-        "serial"
+        "node_id"
       ],
       "properties": {
-        "hardware_info": {
-          "type": "string",
-          "format": "json"
-        },
         "namespace": {
           "type": "string"
         },
-        "serial": {
-          "type": "string"
+        "node_id": {
+          "type": "string",
+          "format": "uuid"
         }
       }
     },

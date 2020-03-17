@@ -10,11 +10,13 @@ import (
 	"net/url"
 	golangswaggerpaths "path"
 	"strings"
+
+	"github.com/go-openapi/strfmt"
 )
 
 // GetNodeURL generates an URL for the get node operation
 type GetNodeURL struct {
-	NodeID string
+	NodeID strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,7 +44,7 @@ func (o *GetNodeURL) Build() (*url.URL, error) {
 
 	var _path = "/nodes/{node_id}"
 
-	nodeID := o.NodeID
+	nodeID := o.NodeID.String()
 	if nodeID != "" {
 		_path = strings.Replace(_path, "{node_id}", nodeID, -1)
 	} else {

@@ -62,6 +62,11 @@ for the set debug step operation typically these are written to a http.Request
 */
 type SetDebugStepParams struct {
 
+	/*NodeID
+	  The ID of the node to debug
+
+	*/
+	NodeID strfmt.UUID
 	/*Step
 	  Next debug step
 
@@ -106,6 +111,17 @@ func (o *SetDebugStepParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithNodeID adds the nodeID to the set debug step params
+func (o *SetDebugStepParams) WithNodeID(nodeID strfmt.UUID) *SetDebugStepParams {
+	o.SetNodeID(nodeID)
+	return o
+}
+
+// SetNodeID adds the nodeId to the set debug step params
+func (o *SetDebugStepParams) SetNodeID(nodeID strfmt.UUID) {
+	o.NodeID = nodeID
+}
+
 // WithStep adds the step to the set debug step params
 func (o *SetDebugStepParams) WithStep(step *models.DebugStep) *SetDebugStepParams {
 	o.SetStep(step)
@@ -124,6 +140,11 @@ func (o *SetDebugStepParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 	var res []error
+
+	// path param node_id
+	if err := r.SetPathParam("node_id", o.NodeID.String()); err != nil {
+		return err
+	}
 
 	if o.Step != nil {
 		if err := r.SetBodyParam(o.Step); err != nil {

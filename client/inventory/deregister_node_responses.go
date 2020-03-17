@@ -38,6 +38,12 @@ func (o *DeregisterNodeReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return nil, result
+	case 500:
+		result := NewDeregisterNodeInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
@@ -103,6 +109,27 @@ func (o *DeregisterNodeNotFound) Error() string {
 }
 
 func (o *DeregisterNodeNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeregisterNodeInternalServerError creates a DeregisterNodeInternalServerError with default headers values
+func NewDeregisterNodeInternalServerError() *DeregisterNodeInternalServerError {
+	return &DeregisterNodeInternalServerError{}
+}
+
+/*DeregisterNodeInternalServerError handles this case with default header values.
+
+Internal server error
+*/
+type DeregisterNodeInternalServerError struct {
+}
+
+func (o *DeregisterNodeInternalServerError) Error() string {
+	return fmt.Sprintf("[DELETE /nodes/{node_id}][%d] deregisterNodeInternalServerError ", 500)
+}
+
+func (o *DeregisterNodeInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

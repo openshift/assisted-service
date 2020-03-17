@@ -80,3 +80,27 @@ func (o *GetClusterNotFound) WriteResponse(rw http.ResponseWriter, producer runt
 
 	rw.WriteHeader(404)
 }
+
+// GetClusterInternalServerErrorCode is the HTTP code returned for type GetClusterInternalServerError
+const GetClusterInternalServerErrorCode int = 500
+
+/*GetClusterInternalServerError Internal server error
+
+swagger:response getClusterInternalServerError
+*/
+type GetClusterInternalServerError struct {
+}
+
+// NewGetClusterInternalServerError creates GetClusterInternalServerError with default headers values
+func NewGetClusterInternalServerError() *GetClusterInternalServerError {
+
+	return &GetClusterInternalServerError{}
+}
+
+// WriteResponse to the client
+func (o *GetClusterInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(500)
+}

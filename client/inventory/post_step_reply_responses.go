@@ -26,8 +26,20 @@ func (o *PostStepReplyReader) ReadResponse(response runtime.ClientResponse, cons
 			return nil, err
 		}
 		return result, nil
+	case 400:
+		result := NewPostStepReplyBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewPostStepReplyNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 500:
+		result := NewPostStepReplyInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -59,6 +71,27 @@ func (o *PostStepReplyNoContent) readResponse(response runtime.ClientResponse, c
 	return nil
 }
 
+// NewPostStepReplyBadRequest creates a PostStepReplyBadRequest with default headers values
+func NewPostStepReplyBadRequest() *PostStepReplyBadRequest {
+	return &PostStepReplyBadRequest{}
+}
+
+/*PostStepReplyBadRequest handles this case with default header values.
+
+Invalid input
+*/
+type PostStepReplyBadRequest struct {
+}
+
+func (o *PostStepReplyBadRequest) Error() string {
+	return fmt.Sprintf("[POST /nodes/{node_id}/next-steps/reply][%d] postStepReplyBadRequest ", 400)
+}
+
+func (o *PostStepReplyBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
 // NewPostStepReplyNotFound creates a PostStepReplyNotFound with default headers values
 func NewPostStepReplyNotFound() *PostStepReplyNotFound {
 	return &PostStepReplyNotFound{}
@@ -76,6 +109,27 @@ func (o *PostStepReplyNotFound) Error() string {
 }
 
 func (o *PostStepReplyNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewPostStepReplyInternalServerError creates a PostStepReplyInternalServerError with default headers values
+func NewPostStepReplyInternalServerError() *PostStepReplyInternalServerError {
+	return &PostStepReplyInternalServerError{}
+}
+
+/*PostStepReplyInternalServerError handles this case with default header values.
+
+Internal server error
+*/
+type PostStepReplyInternalServerError struct {
+}
+
+func (o *PostStepReplyInternalServerError) Error() string {
+	return fmt.Sprintf("[POST /nodes/{node_id}/next-steps/reply][%d] postStepReplyInternalServerError ", 500)
+}
+
+func (o *PostStepReplyInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }
