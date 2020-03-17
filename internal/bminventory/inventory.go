@@ -374,6 +374,11 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 		steps = append(steps, step)
 		defer func() { b.isDebugCalled = true }()
 	}
+
+	steps = append(steps, &models.Step{
+		StepType: models.StepTypeHardawareInfo,
+	})
+
 	return inventory.NewGetNextStepsOK().WithPayload(steps)
 }
 

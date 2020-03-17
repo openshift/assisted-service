@@ -43,4 +43,25 @@ var _ = Describe("Node tests", func() {
 		_, err = bmclient.Inventory.GetNode(ctx, &inventory.GetNodeParams{NodeID: node.GetPayload().ID.String()})
 		Expect(err).Should(HaveOccurred())
 	})
+
+	It("next step", func() {
+		node, err := bmclient.Inventory.RegisterNode(ctx, &inventory.RegisterNodeParams{
+			NewNodeParams: &models.NodeCreateParams{
+				HardwareInfo: swag.String("some HW info"),
+				Namespace:    swag.String("my namespace"),
+				Serial:       swag.String("BLABLA123"),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		reply, err := bmclient.Inventory.GetNextSteps(ctx, &inventory.GetNextStepsParams{NodeID: *node.GetPayload().ID})
+
+		var found bool
+		for _, step := range reply.GetPayload() {
+			if step.StepType == models.StepTypeHardawareInfo {
+				found = true
+				break
+			}
+		}
+		Expect(found).Should(Equal(true))
+	})
 })
