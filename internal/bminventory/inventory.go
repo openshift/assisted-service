@@ -377,8 +377,8 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 	return inventory.NewGetNextStepsOK().WithPayload(steps)
 }
 
-func (b *bareMetalInventory) PostNextStepsReply(ctx context.Context, params inventory.PostNextStepsReplyParams) middleware.Responder {
-	return inventory.NewPostNextStepsReplyOK()
+func (b *bareMetalInventory) PostStepReply(ctx context.Context, params inventory.PostStepReplyParams) middleware.Responder {
+	return inventory.NewPostStepReplyNoContent()
 }
 
 func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder {
