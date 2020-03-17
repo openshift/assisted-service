@@ -44,7 +44,7 @@ test:
 		go test ./subsystem/... -count=1
 
 .PHONY: subsystem
-subsystem: deploy-all subsystem-run subsystem-clean
+subsystem: deploy-all subsystem-run
 
 subsystem-clean:
 	kubectl get pod -o name | grep create-image | xargs kubectl delete
