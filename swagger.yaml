@@ -72,6 +72,8 @@ paths:
             $ref: '#/definitions/image'
         404:
           description: Image not found
+        500:
+          description: Internal server error
 
   /nodes:
     post:
@@ -120,6 +122,7 @@ paths:
           name: node_id
           description: The ID of the node to retrieve
           type: string
+          format: uuid
           required: true
       responses:
         200:
@@ -128,33 +131,22 @@ paths:
             $ref: '#/definitions/node'
         404:
           description: Node not found
+        500:
+          description: Internal server error
 
-    delete:
-      tags:
-        - inventory
-      summary: Deregister OpenShift bare metal node
-      operationId: DeregisterNode
-      parameters:
-        - in: path
-          name: node_id
-          description: The ID of the node to retrieve
-          type: string
-          required: true
-      responses:
-        204:
-          description: Node deregistered
-        400:
-          description: Node in use
-        404:
-          description: Node not found
-
-  /debug:
+  /nodes/{node_id}/actions/debug:
     post:
       tags:
         - inventory
       summary: Set a single shot debug step that will be sent next time the agent will ask for a command
       operationId: SetDebugStep
       parameters:
+        - in: path
+          name: node_id
+          description: The ID of the node to debug
+          type: string
+          format: uuid
+          required: true
         - in: body
           name: step
           description: Next debug step
@@ -164,6 +156,49 @@ paths:
       responses:
         200:
           description: Registered
+        404:
+          description: Node not found
+        500:
+          description: Internal server error
+
+  /nodes/{node_id}/actions/enable:
+    post:
+      tags:
+        - inventory
+      summary: Enable a node for use
+      operationId: EnableNode
+      parameters:
+        - in: path
+          name: node_id
+          description: The ID of the node to enable
+          type: string
+          format: uuid
+          required: true
+      responses:
+        204:
+          description: Enabled
+        404:
+          description: Node not found
+        500:
+          description: Internal server error
+
+    delete:
+      tags:
+        - inventory
+      summary: Disable a node for use
+      operationId: DisableNode
+      parameters:
+        - in: path
+          name: node_id
+          description: The ID of the node to disable
+          type: string
+          format: uuid
+          required: true
+      responses:
+        204:
+          description: Disabled
+        404:
+          description: Node not found
         500:
           description: Internal server error
 
@@ -187,6 +222,8 @@ paths:
             $ref: '#/definitions/steps'
         404:
           description: Node not found
+        500:
+          description: Internal server error
 
   /nodes/{node_id}/next-steps/reply:
     post:
@@ -208,8 +245,12 @@ paths:
       responses:
         204:
           description: Reply accepted
+        400:
+          description: Invalid input
         404:
           description: Node not found
+        500:
+          description: Internal server error
 
   /clusters:
     post:
@@ -266,6 +307,8 @@ paths:
             $ref: '#/definitions/cluster'
         404:
           description: Cluster not found
+        500:
+          description: Internal server error
 
     delete:
       tags:
@@ -283,6 +326,8 @@ paths:
           description: Cluster deregistered
         404:
           description: Cluster not found
+        500:
+          description: Internal server error
 
 
 definitions:
@@ -349,16 +394,13 @@ definitions:
     type: object
     required:
       - namespace
-      - hardware_info
-      - serial
+      - node_id
     properties:
       namespace:
         type: string
-      hardware_info:
+      node_id:
         type: string
-        format: json
-      serial:
-        type: string
+        format: uuid
 
   node:
     type: object
@@ -368,9 +410,14 @@ definitions:
       - type: object
         required:
           - kind
+          - enabled
           - status
+          - status_info
+          - connectivity
           - hardware_info
         properties:
+          enabled:
+            type: boolean
           status:
             type: string
             enum:
@@ -380,9 +427,15 @@ definitions:
               - installing
               - insufficient
               - installed
+          status_info:
+            type: string
           cluster_id:
             type: string
             format: uuid
+          connectivity:
+            $ref: '#/definitions/connectivity-report'
+          hardware_info:
+            $ref: '#/definitions/introspection'
 
   steps:
     type: array
