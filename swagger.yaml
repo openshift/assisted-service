@@ -134,6 +134,27 @@ paths:
         500:
           description: Internal server error
 
+    delete:
+      tags:
+        - inventory
+      summary: Deregister OpenShift bare metal node
+      operationId: DeregisterNode
+      parameters:
+        - in: path
+          name: node_id
+          description: The ID of the node to retrieve
+          type: string
+          required: true
+      responses:
+        204:
+          description: Node deregistered
+        400:
+          description: Node in use
+        404:
+          description: Node not found
+        500:
+          description: Internal server error
+
   /nodes/{node_id}/actions/debug:
     post:
       tags:
