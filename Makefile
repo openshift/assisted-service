@@ -35,7 +35,9 @@ deploy-postgres:
 	kubectl apply -f deploy/postgres/postgres-storage.yaml
 	kubectl apply -f deploy/postgres/postgres-deployment.yaml
 
-subsystem-run:
+subsystem-run: test subsystem-clean
+
+test:
 	INVENTORY=$(shell minikube service bm-inventory --url| sed 's/http:\/\///g') \
 		DB_HOST=$(shell minikube service postgres --url| sed 's/http:\/\///g' | cut -d ":" -f 1) \
 		DB_PORT=$(shell minikube service postgres --url| sed 's/http:\/\///g' | cut -d ":" -f 2) \
