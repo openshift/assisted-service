@@ -431,22 +431,20 @@ definitions:
       - type: object
         required:
           - kind
-          - enabled
           - status
           - status_info
           - connectivity
           - hardware_info
         properties:
-          enabled:
-            type: boolean
           status:
             type: string
             enum:
               - discovering
               - known
               - disconnected
-              - installing
               - insufficient
+              - disabled
+              - installing
               - installed
           status_info:
             type: string
