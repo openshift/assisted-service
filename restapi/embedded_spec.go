@@ -949,7 +949,6 @@ func init() {
           "type": "object",
           "required": [
             "kind",
-            "enabled",
             "status",
             "status_info",
             "connectivity",
@@ -963,9 +962,6 @@ func init() {
             "connectivity": {
               "$ref": "#/definitions/connectivity-report"
             },
-            "enabled": {
-              "type": "boolean"
-            },
             "hardware_info": {
               "$ref": "#/definitions/introspection"
             },
@@ -975,8 +971,9 @@ func init() {
                 "discovering",
                 "known",
                 "disconnected",
-                "installing",
                 "insufficient",
+                "disabled",
+                "installing",
                 "installed"
               ]
             },
@@ -2002,7 +1999,6 @@ func init() {
           "type": "object",
           "required": [
             "kind",
-            "enabled",
             "status",
             "status_info",
             "connectivity",
@@ -2016,9 +2012,6 @@ func init() {
             "connectivity": {
               "$ref": "#/definitions/connectivity-report"
             },
-            "enabled": {
-              "type": "boolean"
-            },
             "hardware_info": {
               "$ref": "#/definitions/introspection"
             },
@@ -2028,8 +2021,9 @@ func init() {
                 "discovering",
                 "known",
                 "disconnected",
-                "installing",
                 "insufficient",
+                "disabled",
+                "installing",
                 "installed"
               ]
             },

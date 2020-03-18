@@ -30,17 +30,13 @@ type Node struct {
 	// Required: true
 	Connectivity *ConnectivityReport `json:"connectivity"`
 
-	// enabled
-	// Required: true
-	Enabled *bool `json:"enabled"`
-
 	// hardware info
 	// Required: true
 	HardwareInfo *Introspection `json:"hardware_info"`
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected installing insufficient installed]
+	// Enum: [discovering known disconnected insufficient disabled installing installed]
 	Status *string `json:"status"`
 
 	// status info
@@ -70,8 +66,6 @@ func (m *Node) UnmarshalJSON(raw []byte) error {
 
 		Connectivity *ConnectivityReport `json:"connectivity"`
 
-		Enabled *bool `json:"enabled"`
-
 		HardwareInfo *Introspection `json:"hardware_info"`
 
 		Status *string `json:"status"`
@@ -85,8 +79,6 @@ func (m *Node) UnmarshalJSON(raw []byte) error {
 	m.ClusterID = dataAO2.ClusterID
 
 	m.Connectivity = dataAO2.Connectivity
-
-	m.Enabled = dataAO2.Enabled
 
 	m.HardwareInfo = dataAO2.HardwareInfo
 
@@ -117,8 +109,6 @@ func (m Node) MarshalJSON() ([]byte, error) {
 
 		Connectivity *ConnectivityReport `json:"connectivity"`
 
-		Enabled *bool `json:"enabled"`
-
 		HardwareInfo *Introspection `json:"hardware_info"`
 
 		Status *string `json:"status"`
@@ -129,8 +119,6 @@ func (m Node) MarshalJSON() ([]byte, error) {
 	dataAO2.ClusterID = m.ClusterID
 
 	dataAO2.Connectivity = m.Connectivity
-
-	dataAO2.Enabled = m.Enabled
 
 	dataAO2.HardwareInfo = m.HardwareInfo
 
@@ -164,10 +152,6 @@ func (m *Node) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateConnectivity(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateEnabled(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -220,15 +204,6 @@ func (m *Node) validateConnectivity(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Node) validateEnabled(formats strfmt.Registry) error {
-
-	if err := validate.Required("enabled", "body", m.Enabled); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (m *Node) validateHardwareInfo(formats strfmt.Registry) error {
 
 	if err := validate.Required("hardware_info", "body", m.HardwareInfo); err != nil {
@@ -251,7 +226,7 @@ var nodeTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","installing","insufficient","installed"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","installing","installed"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
