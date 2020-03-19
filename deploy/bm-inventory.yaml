@@ -18,6 +18,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8090
+          envFrom:
+            - configMapRef:
+                name: s3-config
 ---
 apiVersion: v1
 kind: Service

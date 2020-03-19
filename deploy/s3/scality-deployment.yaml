@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: scality
+  name: scality
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scality
+  template:
+    metadata:
+      labels:
+        app: scality
+    spec:
+      containers:
+        - image: scality/s3server
+          imagePullPolicy: Always
+          name: s3server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: scality
+  name: scality
+spec:
+  ports:
+    - port: 8000
+      protocol: TCP
+      targetPort: 8000
+  selector:
+    app: scality
+  type: LoadBalancer
+status:
+  loadBalancer: {}

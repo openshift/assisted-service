@@ -22,7 +22,10 @@ update: build
 	docker build -f Dockerfile.bm-inventory . -t $(SERVICE)
 	docker push $(SERVICE)
 
-deploy-all: deploy-postgres deploy-service
+deploy-all: deploy-postgres deploy-s3-configmap deploy-service
+
+deploy-s3-configmap:
+	./deploy/s3/deploy-configmap.sh
 
 deploy-service: deploy-role
 	kubectl apply -f deploy/bm-inventory.yaml
