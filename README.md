@@ -1,7 +1,7 @@
 # bm-inventory
 
 1. docker
-2. skipper https://github.com/filanov/skipper
+2. skipper https://github.com/stratoscale/skipper
 3. minikube (for tests)
 4. kubectl
 
