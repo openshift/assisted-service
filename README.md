@@ -27,7 +27,7 @@ After every change in the api (swagger.yaml) the code should be generated and th
 Pre-configuration
 1. Make sure to change the image in `deploy/bm-inventory.yaml` to your docker registry (the same one from the first setup instructions).
 2. Run minikube on your system.
-3. Deploy service, DB and other requirements `skipper make deploy-all`
+3. Deploy service, DB and other requirements `skipper make deploy-for-test`
 4. Wait for all the pods to be up.
 
 Running the tests:
@@ -41,3 +41,14 @@ if you are making changes and don't want to deploy everything once again you can
 `skipper make update && kubectl get pod -o name | grep bm-inventory | xargs kubectl delete`
 
 if will build and push a new image of the service to your docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.
+
+## Deployment
+
+There are two types of deployment in this service, one for subsystem test that deploy only the service and DB, those are the most basic components that the service need to run with out external services, APIs to external services like image creation are dummy.
+
+`skipper make deploy-for-test`
+
+The Other deployment is a system deployment it contain all the components the service need for all the operations to work (if implemented).
+This option will deploy S3 service (scality), DB and will use the image generator to create the images in the deployed S3 and create relevant bucket in S3.
+
+`skipper make deploy-all`

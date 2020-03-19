@@ -22,12 +22,52 @@ update: build
 	docker build -f Dockerfile.bm-inventory . -t $(SERVICE)
 	docker push $(SERVICE)
 
-deploy-all: deploy-postgres deploy-s3-configmap deploy-service
+deploy-for-test: deploy-postgres deploy-s3-configmap deploy-service-for-test
+
+deploy-all: deploy-postgres deploy-s3 deploy-service
 
 deploy-s3-configmap:
 	./deploy/s3/deploy-configmap.sh
 
-deploy-service: deploy-role
+# scalitiy default credentials
+define CREDENTIALS =
+[default]
+aws_access_key_id = accessKey1
+aws_secret_access_key = verySecretKey1
+endef
+export CREDENTIALS
+
+deploy-s3:
+	kubectl apply -f deploy/s3/scality-deployment.yaml
+	make deploy-s3-configmap
+	mkdir -p ~/.aws ; echo "$$CREDENTIALS" > ~/.aws/credentials
+	n=3 ; \
+	aws --endpoint-url=`minikube service scality --url` s3api create-bucket --bucket test ; \
+	REPLY=$$? ; \
+	echo $(REPLY) ; \
+	while [ $${n} -gt 0 ] && [ $${REPLY} -ne 0 ] ; do \
+		sleep 5 ; \
+		echo $$n ; \
+		n=`expr $$n - 1`; \
+		aws --endpoint-url=`minikube service scality --url` s3api create-bucket --bucket test ; \
+		REPLY=$$? ; \
+	done; \
+	if [ $${n} -eq 0 ]; \
+	then \
+		echo "mycommand failed"; \
+		false; \
+	fi
+
+deploy-service-requirements: deploy-role
+	kubectl apply -f deploy/bm-inventory-service.yaml
+	./deploy/deploy-configmap.sh
+
+deploy-service-for-test: deploy-service-requirements
+	sed '/IMAGE_BUILDER_CMD$$/{$$!{N;s/IMAGE_BUILDER_CMD\n              value: \"\"$$/IMAGE_BUILDER_CMD\n              value: \"echo hello\"/;ty;P;D;:y}}' deploy/bm-inventory.yaml > deploy/bm-inventory-tmp.yaml
+	kubectl apply -f deploy/bm-inventory-tmp.yaml
+	rm deploy/bm-inventory-tmp.yaml
+
+deploy-service: deploy-service-requirements
 	kubectl apply -f deploy/bm-inventory.yaml
 
 deploy-role:
@@ -52,6 +92,15 @@ subsystem: deploy-all subsystem-run
 subsystem-clean:
 	kubectl get pod -o name | grep create-image | xargs kubectl delete
 
-agent:
-	export DBHOST=$(shell minikube service postgres --url| sed 's/http:\/\///g')
-	echo $(DBHOST)
+clear-deployment:
+	kubectl delete deployments.apps bm-inventory 1> /dev/null ; true
+	kubectl delete deployments.apps postgres 1> /dev/null ; true
+	kubectl delete deployments.apps scality 1> /dev/null ; true
+	kubectl get job -o name | grep create-image | xargs kubectl delete 1> /dev/null ; true
+	kubectl delete service bm-inventory 1> /dev/null ; true
+	kubectl delete service postgres 1> /dev/null ; true
+	kubectl delete service scality 1> /dev/null ; true
+	kubectl delete configmap bm-inventory-config 1> /dev/null ; true
+	kubectl delete configmap postgres-config 1> /dev/null ; true
+	kubectl delete configmap s3-config 1> /dev/null ; true
+	kubectl delete configmap scality-config 1> /dev/null ; true

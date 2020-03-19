@@ -21,20 +21,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: s3-config
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: bm-inventory
-  name: bm-inventory
-spec:
-  ports:
-    - port: 8090
-      protocol: TCP
-      targetPort: 8090
-  selector:
-    app: bm-inventory
-  type: LoadBalancer
-status:
-  loadBalancer: {}
+            - configMapRef:
+                name: bm-inventory-config
+          env:
+            - name: IMAGE_BUILDER_CMD
+              value: ""
