@@ -43,7 +43,7 @@ deploy-s3:
 	kubectl apply -f deploy/s3/scality-deployment.yaml
 	make deploy-s3-configmap
 	mkdir -p "${AWS_DIR}" ; echo "$$CREDENTIALS" > ${AWS_SHARED_CREDENTIALS_FILE}
-	n=3 ; \
+	n=10 ; \
 	aws --endpoint-url=`minikube service scality --url` s3api create-bucket --bucket test ; \
 	REPLY=$$? ; \
 	echo $(REPLY) ; \
