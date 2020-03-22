@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/restapi/operations/inventory"
@@ -76,12 +77,11 @@ type bareMetalInventory struct {
 	imageBuildCmd []string
 	db            *gorm.DB
 	kube          client.Client
-	debugCmd      string
-	isDebugCalled bool
+	debugCmdMap   sync.Map
 }
 
 func NewBareMetalInventory(db *gorm.DB, kclient client.Client, cfg Config) *bareMetalInventory {
-	b := &bareMetalInventory{db: db, kube: kclient, Config: cfg, isDebugCalled: true}
+	b := &bareMetalInventory{db: db, kube: kclient, Config: cfg}
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
 	}
@@ -366,12 +366,12 @@ func (b *bareMetalInventory) ListNodes(ctx context.Context, params inventory.Lis
 
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder {
 	steps := models.Steps{}
-	if !b.isDebugCalled {
+	if cmd, ok := b.debugCmdMap.Load(params.NodeID); ok {
 		step := &models.Step{}
 		step.StepType = models.StepTypeDebug
-		step.Data = b.debugCmd
+		step.Data = cmd.(string)
 		steps = append(steps, step)
-		defer func() { b.isDebugCalled = true }()
+		defer func() { b.debugCmdMap.Delete(params.NodeID) }()
 	}
 
 	steps = append(steps, &models.Step{
@@ -386,8 +386,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params inventory
 }
 
 func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder {
-	b.debugCmd = swag.StringValue(params.Step.Command)
-	b.isDebugCalled = false
+	b.debugCmdMap.Store(params.NodeID, swag.StringValue(params.Step.Command))
 	return inventory.NewSetDebugStepOK()
 }
 

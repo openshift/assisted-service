@@ -54,14 +54,58 @@ var _ = Describe("Node tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		reply, err := bmclient.Inventory.GetNextSteps(ctx, &inventory.GetNextStepsParams{NodeID: *node.GetPayload().ID})
+		_, ok := getStepInList(reply.GetPayload(), models.StepTypeHardawareInfo)
+		Expect(ok).Should(Equal(true))
+	})
 
-		var found bool
-		for _, step := range reply.GetPayload() {
-			if step.StepType == models.StepTypeHardawareInfo {
-				found = true
-				break
-			}
-		}
-		Expect(found).Should(Equal(true))
+	It("debug", func() {
+		node1, err := bmclient.Inventory.RegisterNode(ctx, &inventory.RegisterNodeParams{
+			NewNodeParams: &models.NodeCreateParams{
+				NodeID:    strToUUID(uuid.New().String()),
+				Namespace: swag.String("my namespace"),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		node2, err := bmclient.Inventory.RegisterNode(ctx, &inventory.RegisterNodeParams{
+			NewNodeParams: &models.NodeCreateParams{
+				NodeID:    strToUUID(uuid.New().String()),
+				Namespace: swag.String("my namespace"),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		// set debug to node1
+		_, err = bmclient.Inventory.SetDebugStep(ctx, &inventory.SetDebugStepParams{
+			NodeID: *node1.GetPayload().NodeID,
+			Step:   &models.DebugStep{Command: swag.String("echo hello")},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		var step *models.Step
+		var ok bool
+		// debug should be only for node1
+		reply, err := bmclient.Inventory.GetNextSteps(ctx, &inventory.GetNextStepsParams{NodeID: *node2.GetPayload().ID})
+		_, ok = getStepInList(reply.GetPayload(), models.StepTypeDebug)
+		Expect(ok).Should(Equal(false))
+
+		reply, err = bmclient.Inventory.GetNextSteps(ctx, &inventory.GetNextStepsParams{NodeID: *node1.GetPayload().ID})
+		step, ok = getStepInList(reply.GetPayload(), models.StepTypeDebug)
+		Expect(ok).Should(Equal(true))
+		Expect(step.Data).Should(Equal("echo hello"))
+
+		// debug executed only once
+		reply, err = bmclient.Inventory.GetNextSteps(ctx, &inventory.GetNextStepsParams{NodeID: *node1.GetPayload().ID})
+		_, ok = getStepInList(reply.GetPayload(), models.StepTypeDebug)
+		Expect(ok).Should(Equal(false))
 	})
 })
+
+func getStepInList(steps models.Steps, sType models.StepType) (*models.Step, bool) {
+	for _, step := range steps {
+		if step.StepType == sType {
+			return step, true
+		}
+	}
+	return nil, false
+}
