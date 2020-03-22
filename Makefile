@@ -36,11 +36,13 @@ aws_access_key_id = accessKey1
 aws_secret_access_key = verySecretKey1
 endef
 export CREDENTIALS
+export AWS_DIR = ${PWD}/build/.aws
+export AWS_SHARED_CREDENTIALS_FILE = ${AWS_DIR}/credentials
 
 deploy-s3:
 	kubectl apply -f deploy/s3/scality-deployment.yaml
 	make deploy-s3-configmap
-	mkdir -p ~/.aws ; echo "$$CREDENTIALS" > ~/.aws/credentials
+	mkdir -p "${AWS_DIR}" ; echo "$$CREDENTIALS" > ${AWS_SHARED_CREDENTIALS_FILE}
 	n=3 ; \
 	aws --endpoint-url=`minikube service scality --url` s3api create-bucket --bucket test ; \
 	REPLY=$$? ; \
