@@ -77,11 +77,12 @@ type bareMetalInventory struct {
 	imageBuildCmd []string
 	db            *gorm.DB
 	kube          client.Client
-	debugCmdMap   sync.Map
+	debugCmdMap   map[strfmt.UUID]string
+	debugCmdMux   sync.Mutex
 }
 
 func NewBareMetalInventory(db *gorm.DB, kclient client.Client, cfg Config) *bareMetalInventory {
-	b := &bareMetalInventory{db: db, kube: kclient, Config: cfg}
+	b := &bareMetalInventory{db: db, kube: kclient, Config: cfg, debugCmdMap: make(map[strfmt.UUID]string)}
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
 	}
@@ -366,13 +367,15 @@ func (b *bareMetalInventory) ListNodes(ctx context.Context, params inventory.Lis
 
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder {
 	steps := models.Steps{}
-	if cmd, ok := b.debugCmdMap.Load(params.NodeID); ok {
+	b.debugCmdMux.Lock()
+	if cmd, ok := b.debugCmdMap[params.NodeID]; ok {
 		step := &models.Step{}
 		step.StepType = models.StepTypeDebug
-		step.Data = cmd.(string)
+		step.Data = cmd
 		steps = append(steps, step)
-		defer func() { b.debugCmdMap.Delete(params.NodeID) }()
+		delete(b.debugCmdMap, params.NodeID)
 	}
+	b.debugCmdMux.Unlock()
 
 	steps = append(steps, &models.Step{
 		StepType: models.StepTypeHardawareInfo,
@@ -386,7 +389,9 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params inventory
 }
 
 func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder {
-	b.debugCmdMap.Store(params.NodeID, swag.StringValue(params.Step.Command))
+	b.debugCmdMux.Lock()
+	b.debugCmdMap[params.NodeID] = swag.StringValue(params.Step.Command)
+	b.debugCmdMux.Unlock()
 	return inventory.NewSetDebugStepOK()
 }
 
