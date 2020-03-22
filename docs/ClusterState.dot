@@ -1,0 +1,12 @@
+digraph ClusterStateMachine {
+    graph [pad="0.5", nodesep="1", ranksep="1"];
+
+    start [shape=house];
+    start -> installing [label = "installation\nstarted"];
+
+    installing -> installed [label = "installation\ncompleted"];
+    installing -> error [label = "installation\nerror"]
+
+    installed [shape=doublecircle];
+    error [shape=doublecircle];
+}

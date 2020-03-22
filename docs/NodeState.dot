@@ -1,0 +1,29 @@
+digraph NodeStateMachine {
+    graph [pad="0.5", nodesep="1", ranksep="1"];
+
+    start [shape=house]
+    start -> discovering [label = "node\nregistered"];
+
+    discovering -> disconnected [label = "no ping\n3 minutes"];
+    discovering -> known [label = "received\nall info"];
+    discovering -> insufficient [label = "minimum\nrequirements\nnot satisfied"];
+    discovering -> disabled [label = "user\ndisables"];
+
+    known -> discovering [label = "info\nstale"];
+    known -> disconnected [label = "no ping\n3 minutes"];
+    known -> installing [label = "installation\nstarted"];
+    known -> disabled [label = "user\ndisables"];
+
+    disconnected -> discovering [label = "received\nping"];
+    disconnected -> disabled [label = "user\ndisables"];
+
+    disabled -> discovering [label = "user\nenables"];
+
+    insufficient -> discovering [label = "info\nstale"];
+    insufficient -> disabled [label = "user\ndisables"];
+
+    installing -> installed [label = "installation\ncompleted"];
+    installing -> discovering [label = "installation\nerror"]
+
+    installed [shape=doublecircle];
+}
