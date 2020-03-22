@@ -1,7 +1,7 @@
 PWD = $(shell pwd)
 UID = $(shell id -u)
 
-SERVICE = quay.io/mfilanov/bm-inventory:latest
+SERVICE ?= quay.io/mfilanov/bm-inventory:latest
 
 all: build
 
@@ -66,11 +66,14 @@ deploy-service-requirements: deploy-role
 
 deploy-service-for-test: deploy-service-requirements
 	sed '/IMAGE_BUILDER_CMD$$/{$$!{N;s/IMAGE_BUILDER_CMD\n              value: \"\"$$/IMAGE_BUILDER_CMD\n              value: \"echo hello\"/;ty;P;D;:y}}' deploy/bm-inventory.yaml > deploy/bm-inventory-tmp.yaml
+	sed -i "s#REPLACE_IMAGE#${SERVICE}#g" deploy/bm-inventory-tmp.yaml
 	kubectl apply -f deploy/bm-inventory-tmp.yaml
 	rm deploy/bm-inventory-tmp.yaml
 
 deploy-service: deploy-service-requirements
-	kubectl apply -f deploy/bm-inventory.yaml
+	sed "s#REPLACE_IMAGE#${SERVICE}#g" deploy/bm-inventory.yaml > deploy/bm-inventory-tmp.yaml
+	kubectl apply -f deploy/bm-inventory-tmp.yaml
+	rm deploy/bm-inventory-tmp.yaml
 
 deploy-role:
 	kubectl apply -f deploy/roles/role_binding.yaml

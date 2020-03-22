@@ -11,3 +11,5 @@ volumes:
     - $HOME/.kube/:$HOME/.kube
     - /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock
     - /var/lib/libvirt/:/var/lib/libvirt/
+env:
+    SERVICE: $SERVICE

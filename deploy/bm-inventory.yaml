@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: bm-inventory
-          image: quay.io/mfilanov/bm-inventory
+          image: REPLACE_IMAGE
           imagePullPolicy: Always
           ports:
             - containerPort: 8090
