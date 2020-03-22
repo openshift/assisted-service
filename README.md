@@ -8,7 +8,11 @@
 
 ## First Setup
 
-To push your build target to a docker registry you first need to change the default target, replace `SERVICE` variable in the makefile to your docker registry
+To push your build target to a docker registry you first need to change the default target, export `SERVICE` environment variable to your docker registry
+
+```shell script
+export SERVICE=<registry>/<image-name>:<tag>
+```
 
 For the first build of the build container run:
 `skipper build bm-inventory-build`
