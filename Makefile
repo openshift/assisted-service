@@ -56,7 +56,7 @@ deploy-s3:
 	done; \
 	if [ $${n} -eq 0 ]; \
 	then \
-		echo "mycommand failed"; \
+		echo "bucket creation failed"; \
 		false; \
 	fi
 
