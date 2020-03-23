@@ -34,11 +34,11 @@ type SetDebugStepParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The ID of the node to debug
+	/*The ID of the host to debug
 	  Required: true
 	  In: path
 	*/
-	NodeID strfmt.UUID
+	HostID strfmt.UUID
 	/*Next debug step
 	  Required: true
 	  In: body
@@ -55,8 +55,8 @@ func (o *SetDebugStepParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	o.HTTPRequest = r
 
-	rNodeID, rhkNodeID, _ := route.Params.GetOK("node_id")
-	if err := o.bindNodeID(rNodeID, rhkNodeID, route.Formats); err != nil {
+	rHostID, rhkHostID, _ := route.Params.GetOK("host_id")
+	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -88,8 +88,8 @@ func (o *SetDebugStepParams) BindRequest(r *http.Request, route *middleware.Matc
 	return nil
 }
 
-// bindNodeID binds and validates parameter NodeID from path.
-func (o *SetDebugStepParams) bindNodeID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindHostID binds and validates parameter HostID from path.
+func (o *SetDebugStepParams) bindHostID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -101,21 +101,21 @@ func (o *SetDebugStepParams) bindNodeID(rawData []string, hasKey bool, formats s
 	// Format: uuid
 	value, err := formats.Parse("uuid", raw)
 	if err != nil {
-		return errors.InvalidType("node_id", "path", "strfmt.UUID", raw)
+		return errors.InvalidType("host_id", "path", "strfmt.UUID", raw)
 	}
-	o.NodeID = *(value.(*strfmt.UUID))
+	o.HostID = *(value.(*strfmt.UUID))
 
-	if err := o.validateNodeID(formats); err != nil {
+	if err := o.validateHostID(formats); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// validateNodeID carries on validations for parameter NodeID
-func (o *SetDebugStepParams) validateNodeID(formats strfmt.Registry) error {
+// validateHostID carries on validations for parameter HostID
+func (o *SetDebugStepParams) validateHostID(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("node_id", "path", "uuid", o.NodeID.String(), formats); err != nil {
+	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
 		return err
 	}
 	return nil

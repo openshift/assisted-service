@@ -62,7 +62,7 @@ func (o *PostStepReplyBadRequest) WriteResponse(rw http.ResponseWriter, producer
 // PostStepReplyNotFoundCode is the HTTP code returned for type PostStepReplyNotFound
 const PostStepReplyNotFoundCode int = 404
 
-/*PostStepReplyNotFound Node not found
+/*PostStepReplyNotFound Host not found
 
 swagger:response postStepReplyNotFound
 */

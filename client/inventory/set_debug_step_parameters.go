@@ -62,11 +62,11 @@ for the set debug step operation typically these are written to a http.Request
 */
 type SetDebugStepParams struct {
 
-	/*NodeID
-	  The ID of the node to debug
+	/*HostID
+	  The ID of the host to debug
 
 	*/
-	NodeID strfmt.UUID
+	HostID strfmt.UUID
 	/*Step
 	  Next debug step
 
@@ -111,15 +111,15 @@ func (o *SetDebugStepParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithNodeID adds the nodeID to the set debug step params
-func (o *SetDebugStepParams) WithNodeID(nodeID strfmt.UUID) *SetDebugStepParams {
-	o.SetNodeID(nodeID)
+// WithHostID adds the hostID to the set debug step params
+func (o *SetDebugStepParams) WithHostID(hostID strfmt.UUID) *SetDebugStepParams {
+	o.SetHostID(hostID)
 	return o
 }
 
-// SetNodeID adds the nodeId to the set debug step params
-func (o *SetDebugStepParams) SetNodeID(nodeID strfmt.UUID) {
-	o.NodeID = nodeID
+// SetHostID adds the hostId to the set debug step params
+func (o *SetDebugStepParams) SetHostID(hostID strfmt.UUID) {
+	o.HostID = hostID
 }
 
 // WithStep adds the step to the set debug step params
@@ -141,8 +141,8 @@ func (o *SetDebugStepParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 	}
 	var res []error
 
-	// path param node_id
-	if err := r.SetPathParam("node_id", o.NodeID.String()); err != nil {
+	// path param host_id
+	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {
 		return err
 	}
 

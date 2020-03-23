@@ -23,24 +23,24 @@ type ClusterCreateParams struct {
 	// description
 	Description string `json:"description,omitempty"`
 
+	// hosts
+	// Required: true
+	Hosts []*ClusterCreateParamsHostsItems0 `json:"hosts" gorm:"type:varchar(64)[]"`
+
 	// name
 	// Required: true
 	Name *string `json:"name"`
-
-	// nodes
-	// Required: true
-	Nodes []*ClusterCreateParamsNodesItems0 `json:"nodes" gorm:"type:varchar(64)[]"`
 }
 
 // Validate validates this cluster create params
 func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateName(formats); err != nil {
+	if err := m.validateHosts(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateNodes(formats); err != nil {
+	if err := m.validateName(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -50,35 +50,35 @@ func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ClusterCreateParams) validateName(formats strfmt.Registry) error {
+func (m *ClusterCreateParams) validateHosts(formats strfmt.Registry) error {
 
-	if err := validate.Required("name", "body", m.Name); err != nil {
+	if err := validate.Required("hosts", "body", m.Hosts); err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (m *ClusterCreateParams) validateNodes(formats strfmt.Registry) error {
-
-	if err := validate.Required("nodes", "body", m.Nodes); err != nil {
-		return err
-	}
-
-	for i := 0; i < len(m.Nodes); i++ {
-		if swag.IsZero(m.Nodes[i]) { // not required
+	for i := 0; i < len(m.Hosts); i++ {
+		if swag.IsZero(m.Hosts[i]) { // not required
 			continue
 		}
 
-		if m.Nodes[i] != nil {
-			if err := m.Nodes[i].Validate(formats); err != nil {
+		if m.Hosts[i] != nil {
+			if err := m.Hosts[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("nodes" + "." + strconv.Itoa(i))
+					return ve.ValidateName("hosts" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *ClusterCreateParams) validateName(formats strfmt.Registry) error {
+
+	if err := validate.Required("name", "body", m.Name); err != nil {
+		return err
 	}
 
 	return nil
@@ -102,10 +102,10 @@ func (m *ClusterCreateParams) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// ClusterCreateParamsNodesItems0 cluster create params nodes items0
+// ClusterCreateParamsHostsItems0 cluster create params hosts items0
 //
-// swagger:model ClusterCreateParamsNodesItems0
-type ClusterCreateParamsNodesItems0 struct {
+// swagger:model ClusterCreateParamsHostsItems0
+type ClusterCreateParamsHostsItems0 struct {
 
 	// id
 	// Format: uuid
@@ -116,8 +116,8 @@ type ClusterCreateParamsNodesItems0 struct {
 	Role string `json:"role,omitempty"`
 }
 
-// Validate validates this cluster create params nodes items0
-func (m *ClusterCreateParamsNodesItems0) Validate(formats strfmt.Registry) error {
+// Validate validates this cluster create params hosts items0
+func (m *ClusterCreateParamsHostsItems0) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateID(formats); err != nil {
@@ -134,7 +134,7 @@ func (m *ClusterCreateParamsNodesItems0) Validate(formats strfmt.Registry) error
 	return nil
 }
 
-func (m *ClusterCreateParamsNodesItems0) validateID(formats strfmt.Registry) error {
+func (m *ClusterCreateParamsHostsItems0) validateID(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.ID) { // not required
 		return nil
@@ -147,7 +147,7 @@ func (m *ClusterCreateParamsNodesItems0) validateID(formats strfmt.Registry) err
 	return nil
 }
 
-var clusterCreateParamsNodesItems0TypeRolePropEnum []interface{}
+var clusterCreateParamsHostsItems0TypeRolePropEnum []interface{}
 
 func init() {
 	var res []string
@@ -155,28 +155,28 @@ func init() {
 		panic(err)
 	}
 	for _, v := range res {
-		clusterCreateParamsNodesItems0TypeRolePropEnum = append(clusterCreateParamsNodesItems0TypeRolePropEnum, v)
+		clusterCreateParamsHostsItems0TypeRolePropEnum = append(clusterCreateParamsHostsItems0TypeRolePropEnum, v)
 	}
 }
 
 const (
 
-	// ClusterCreateParamsNodesItems0RoleMaster captures enum value "master"
-	ClusterCreateParamsNodesItems0RoleMaster string = "master"
+	// ClusterCreateParamsHostsItems0RoleMaster captures enum value "master"
+	ClusterCreateParamsHostsItems0RoleMaster string = "master"
 
-	// ClusterCreateParamsNodesItems0RoleWorker captures enum value "worker"
-	ClusterCreateParamsNodesItems0RoleWorker string = "worker"
+	// ClusterCreateParamsHostsItems0RoleWorker captures enum value "worker"
+	ClusterCreateParamsHostsItems0RoleWorker string = "worker"
 )
 
 // prop value enum
-func (m *ClusterCreateParamsNodesItems0) validateRoleEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, clusterCreateParamsNodesItems0TypeRolePropEnum); err != nil {
+func (m *ClusterCreateParamsHostsItems0) validateRoleEnum(path, location string, value string) error {
+	if err := validate.Enum(path, location, value, clusterCreateParamsHostsItems0TypeRolePropEnum); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *ClusterCreateParamsNodesItems0) validateRole(formats strfmt.Registry) error {
+func (m *ClusterCreateParamsHostsItems0) validateRole(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Role) { // not required
 		return nil
@@ -191,7 +191,7 @@ func (m *ClusterCreateParamsNodesItems0) validateRole(formats strfmt.Registry) e
 }
 
 // MarshalBinary interface implementation
-func (m *ClusterCreateParamsNodesItems0) MarshalBinary() ([]byte, error) {
+func (m *ClusterCreateParamsHostsItems0) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -199,8 +199,8 @@ func (m *ClusterCreateParamsNodesItems0) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *ClusterCreateParamsNodesItems0) UnmarshalBinary(b []byte) error {
-	var res ClusterCreateParamsNodesItems0
+func (m *ClusterCreateParamsHostsItems0) UnmarshalBinary(b []byte) error {
+	var res ClusterCreateParamsHostsItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

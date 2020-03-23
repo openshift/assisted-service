@@ -63,7 +63,7 @@ func (o *GetNextStepsOK) WriteResponse(rw http.ResponseWriter, producer runtime.
 // GetNextStepsNotFoundCode is the HTTP code returned for type GetNextStepsNotFound
 const GetNextStepsNotFoundCode int = 404
 
-/*GetNextStepsNotFound Node not found
+/*GetNextStepsNotFound Host not found
 
 swagger:response getNextStepsNotFound
 */

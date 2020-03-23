@@ -49,17 +49,20 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		InventoryDeregisterClusterHandler: inventory.DeregisterClusterHandlerFunc(func(params inventory.DeregisterClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.DeregisterCluster has not yet been implemented")
 		}),
-		InventoryDeregisterNodeHandler: inventory.DeregisterNodeHandlerFunc(func(params inventory.DeregisterNodeParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.DeregisterNode has not yet been implemented")
+		InventoryDeregisterHostHandler: inventory.DeregisterHostHandlerFunc(func(params inventory.DeregisterHostParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.DeregisterHost has not yet been implemented")
 		}),
-		InventoryDisableNodeHandler: inventory.DisableNodeHandlerFunc(func(params inventory.DisableNodeParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.DisableNode has not yet been implemented")
+		InventoryDisableHostHandler: inventory.DisableHostHandlerFunc(func(params inventory.DisableHostParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.DisableHost has not yet been implemented")
 		}),
-		InventoryEnableNodeHandler: inventory.EnableNodeHandlerFunc(func(params inventory.EnableNodeParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.EnableNode has not yet been implemented")
+		InventoryEnableHostHandler: inventory.EnableHostHandlerFunc(func(params inventory.EnableHostParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.EnableHost has not yet been implemented")
 		}),
 		InventoryGetClusterHandler: inventory.GetClusterHandlerFunc(func(params inventory.GetClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.GetCluster has not yet been implemented")
+		}),
+		InventoryGetHostHandler: inventory.GetHostHandlerFunc(func(params inventory.GetHostParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.GetHost has not yet been implemented")
 		}),
 		InventoryGetImageHandler: inventory.GetImageHandlerFunc(func(params inventory.GetImageParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.GetImage has not yet been implemented")
@@ -67,17 +70,14 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		InventoryGetNextStepsHandler: inventory.GetNextStepsHandlerFunc(func(params inventory.GetNextStepsParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.GetNextSteps has not yet been implemented")
 		}),
-		InventoryGetNodeHandler: inventory.GetNodeHandlerFunc(func(params inventory.GetNodeParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.GetNode has not yet been implemented")
-		}),
 		InventoryListClustersHandler: inventory.ListClustersHandlerFunc(func(params inventory.ListClustersParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.ListClusters has not yet been implemented")
 		}),
+		InventoryListHostsHandler: inventory.ListHostsHandlerFunc(func(params inventory.ListHostsParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.ListHosts has not yet been implemented")
+		}),
 		InventoryListImagesHandler: inventory.ListImagesHandlerFunc(func(params inventory.ListImagesParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.ListImages has not yet been implemented")
-		}),
-		InventoryListNodesHandler: inventory.ListNodesHandlerFunc(func(params inventory.ListNodesParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.ListNodes has not yet been implemented")
 		}),
 		InventoryPostStepReplyHandler: inventory.PostStepReplyHandlerFunc(func(params inventory.PostStepReplyParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.PostStepReply has not yet been implemented")
@@ -85,8 +85,8 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		InventoryRegisterClusterHandler: inventory.RegisterClusterHandlerFunc(func(params inventory.RegisterClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.RegisterCluster has not yet been implemented")
 		}),
-		InventoryRegisterNodeHandler: inventory.RegisterNodeHandlerFunc(func(params inventory.RegisterNodeParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.RegisterNode has not yet been implemented")
+		InventoryRegisterHostHandler: inventory.RegisterHostHandlerFunc(func(params inventory.RegisterHostParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.RegisterHost has not yet been implemented")
 		}),
 		InventorySetDebugStepHandler: inventory.SetDebugStepHandlerFunc(func(params inventory.SetDebugStepParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.SetDebugStep has not yet been implemented")
@@ -128,32 +128,32 @@ type BMInventoryAPI struct {
 	InventoryCreateImageHandler inventory.CreateImageHandler
 	// InventoryDeregisterClusterHandler sets the operation handler for the deregister cluster operation
 	InventoryDeregisterClusterHandler inventory.DeregisterClusterHandler
-	// InventoryDeregisterNodeHandler sets the operation handler for the deregister node operation
-	InventoryDeregisterNodeHandler inventory.DeregisterNodeHandler
-	// InventoryDisableNodeHandler sets the operation handler for the disable node operation
-	InventoryDisableNodeHandler inventory.DisableNodeHandler
-	// InventoryEnableNodeHandler sets the operation handler for the enable node operation
-	InventoryEnableNodeHandler inventory.EnableNodeHandler
+	// InventoryDeregisterHostHandler sets the operation handler for the deregister host operation
+	InventoryDeregisterHostHandler inventory.DeregisterHostHandler
+	// InventoryDisableHostHandler sets the operation handler for the disable host operation
+	InventoryDisableHostHandler inventory.DisableHostHandler
+	// InventoryEnableHostHandler sets the operation handler for the enable host operation
+	InventoryEnableHostHandler inventory.EnableHostHandler
 	// InventoryGetClusterHandler sets the operation handler for the get cluster operation
 	InventoryGetClusterHandler inventory.GetClusterHandler
+	// InventoryGetHostHandler sets the operation handler for the get host operation
+	InventoryGetHostHandler inventory.GetHostHandler
 	// InventoryGetImageHandler sets the operation handler for the get image operation
 	InventoryGetImageHandler inventory.GetImageHandler
 	// InventoryGetNextStepsHandler sets the operation handler for the get next steps operation
 	InventoryGetNextStepsHandler inventory.GetNextStepsHandler
-	// InventoryGetNodeHandler sets the operation handler for the get node operation
-	InventoryGetNodeHandler inventory.GetNodeHandler
 	// InventoryListClustersHandler sets the operation handler for the list clusters operation
 	InventoryListClustersHandler inventory.ListClustersHandler
+	// InventoryListHostsHandler sets the operation handler for the list hosts operation
+	InventoryListHostsHandler inventory.ListHostsHandler
 	// InventoryListImagesHandler sets the operation handler for the list images operation
 	InventoryListImagesHandler inventory.ListImagesHandler
-	// InventoryListNodesHandler sets the operation handler for the list nodes operation
-	InventoryListNodesHandler inventory.ListNodesHandler
 	// InventoryPostStepReplyHandler sets the operation handler for the post step reply operation
 	InventoryPostStepReplyHandler inventory.PostStepReplyHandler
 	// InventoryRegisterClusterHandler sets the operation handler for the register cluster operation
 	InventoryRegisterClusterHandler inventory.RegisterClusterHandler
-	// InventoryRegisterNodeHandler sets the operation handler for the register node operation
-	InventoryRegisterNodeHandler inventory.RegisterNodeHandler
+	// InventoryRegisterHostHandler sets the operation handler for the register host operation
+	InventoryRegisterHostHandler inventory.RegisterHostHandler
 	// InventorySetDebugStepHandler sets the operation handler for the set debug step operation
 	InventorySetDebugStepHandler inventory.SetDebugStepHandler
 	// ServeError is called when an error is received, there is a default handler
@@ -228,17 +228,20 @@ func (o *BMInventoryAPI) Validate() error {
 	if o.InventoryDeregisterClusterHandler == nil {
 		unregistered = append(unregistered, "inventory.DeregisterClusterHandler")
 	}
-	if o.InventoryDeregisterNodeHandler == nil {
-		unregistered = append(unregistered, "inventory.DeregisterNodeHandler")
+	if o.InventoryDeregisterHostHandler == nil {
+		unregistered = append(unregistered, "inventory.DeregisterHostHandler")
 	}
-	if o.InventoryDisableNodeHandler == nil {
-		unregistered = append(unregistered, "inventory.DisableNodeHandler")
+	if o.InventoryDisableHostHandler == nil {
+		unregistered = append(unregistered, "inventory.DisableHostHandler")
 	}
-	if o.InventoryEnableNodeHandler == nil {
-		unregistered = append(unregistered, "inventory.EnableNodeHandler")
+	if o.InventoryEnableHostHandler == nil {
+		unregistered = append(unregistered, "inventory.EnableHostHandler")
 	}
 	if o.InventoryGetClusterHandler == nil {
 		unregistered = append(unregistered, "inventory.GetClusterHandler")
+	}
+	if o.InventoryGetHostHandler == nil {
+		unregistered = append(unregistered, "inventory.GetHostHandler")
 	}
 	if o.InventoryGetImageHandler == nil {
 		unregistered = append(unregistered, "inventory.GetImageHandler")
@@ -246,17 +249,14 @@ func (o *BMInventoryAPI) Validate() error {
 	if o.InventoryGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "inventory.GetNextStepsHandler")
 	}
-	if o.InventoryGetNodeHandler == nil {
-		unregistered = append(unregistered, "inventory.GetNodeHandler")
-	}
 	if o.InventoryListClustersHandler == nil {
 		unregistered = append(unregistered, "inventory.ListClustersHandler")
 	}
+	if o.InventoryListHostsHandler == nil {
+		unregistered = append(unregistered, "inventory.ListHostsHandler")
+	}
 	if o.InventoryListImagesHandler == nil {
 		unregistered = append(unregistered, "inventory.ListImagesHandler")
-	}
-	if o.InventoryListNodesHandler == nil {
-		unregistered = append(unregistered, "inventory.ListNodesHandler")
 	}
 	if o.InventoryPostStepReplyHandler == nil {
 		unregistered = append(unregistered, "inventory.PostStepReplyHandler")
@@ -264,8 +264,8 @@ func (o *BMInventoryAPI) Validate() error {
 	if o.InventoryRegisterClusterHandler == nil {
 		unregistered = append(unregistered, "inventory.RegisterClusterHandler")
 	}
-	if o.InventoryRegisterNodeHandler == nil {
-		unregistered = append(unregistered, "inventory.RegisterNodeHandler")
+	if o.InventoryRegisterHostHandler == nil {
+		unregistered = append(unregistered, "inventory.RegisterHostHandler")
 	}
 	if o.InventorySetDebugStepHandler == nil {
 		unregistered = append(unregistered, "inventory.SetDebugStepHandler")
@@ -369,15 +369,15 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/nodes/{node_id}"] = inventory.NewDeregisterNode(o.context, o.InventoryDeregisterNodeHandler)
+	o.handlers["DELETE"]["/hosts/{host_id}"] = inventory.NewDeregisterHost(o.context, o.InventoryDeregisterHostHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/nodes/{node_id}/actions/enable"] = inventory.NewDisableNode(o.context, o.InventoryDisableNodeHandler)
+	o.handlers["DELETE"]["/hosts/{host_id}/actions/enable"] = inventory.NewDisableHost(o.context, o.InventoryDisableHostHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/nodes/{node_id}/actions/enable"] = inventory.NewEnableNode(o.context, o.InventoryEnableNodeHandler)
+	o.handlers["POST"]["/hosts/{host_id}/actions/enable"] = inventory.NewEnableHost(o.context, o.InventoryEnableHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -385,15 +385,15 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/hosts/{host_id}"] = inventory.NewGetHost(o.context, o.InventoryGetHostHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/images/{image_id}"] = inventory.NewGetImage(o.context, o.InventoryGetImageHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/nodes/{node_id}/next-steps"] = inventory.NewGetNextSteps(o.context, o.InventoryGetNextStepsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/nodes/{node_id}"] = inventory.NewGetNode(o.context, o.InventoryGetNodeHandler)
+	o.handlers["GET"]["/hosts/{host_id}/next-steps"] = inventory.NewGetNextSteps(o.context, o.InventoryGetNextStepsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -401,15 +401,15 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/images"] = inventory.NewListImages(o.context, o.InventoryListImagesHandler)
+	o.handlers["GET"]["/hosts"] = inventory.NewListHosts(o.context, o.InventoryListHostsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/nodes"] = inventory.NewListNodes(o.context, o.InventoryListNodesHandler)
+	o.handlers["GET"]["/images"] = inventory.NewListImages(o.context, o.InventoryListImagesHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/nodes/{node_id}/next-steps/reply"] = inventory.NewPostStepReply(o.context, o.InventoryPostStepReplyHandler)
+	o.handlers["POST"]["/hosts/{host_id}/next-steps/reply"] = inventory.NewPostStepReply(o.context, o.InventoryPostStepReplyHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -417,11 +417,11 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/nodes"] = inventory.NewRegisterNode(o.context, o.InventoryRegisterNodeHandler)
+	o.handlers["POST"]["/hosts"] = inventory.NewRegisterHost(o.context, o.InventoryRegisterHostHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/nodes/{node_id}/actions/debug"] = inventory.NewSetDebugStep(o.context, o.InventorySetDebugStepHandler)
+	o.handlers["POST"]["/hosts/{host_id}/actions/debug"] = inventory.NewSetDebugStep(o.context, o.InventorySetDebugStepHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

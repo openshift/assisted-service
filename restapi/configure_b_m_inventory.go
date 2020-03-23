@@ -27,19 +27,19 @@ const AuthKey contextKey = "Auth"
 type InventoryAPI interface {
 	CreateImage(ctx context.Context, params inventory.CreateImageParams) middleware.Responder
 	DeregisterCluster(ctx context.Context, params inventory.DeregisterClusterParams) middleware.Responder
-	DeregisterNode(ctx context.Context, params inventory.DeregisterNodeParams) middleware.Responder
-	DisableNode(ctx context.Context, params inventory.DisableNodeParams) middleware.Responder
-	EnableNode(ctx context.Context, params inventory.EnableNodeParams) middleware.Responder
+	DeregisterHost(ctx context.Context, params inventory.DeregisterHostParams) middleware.Responder
+	DisableHost(ctx context.Context, params inventory.DisableHostParams) middleware.Responder
+	EnableHost(ctx context.Context, params inventory.EnableHostParams) middleware.Responder
 	GetCluster(ctx context.Context, params inventory.GetClusterParams) middleware.Responder
+	GetHost(ctx context.Context, params inventory.GetHostParams) middleware.Responder
 	GetImage(ctx context.Context, params inventory.GetImageParams) middleware.Responder
 	GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder
-	GetNode(ctx context.Context, params inventory.GetNodeParams) middleware.Responder
 	ListClusters(ctx context.Context, params inventory.ListClustersParams) middleware.Responder
+	ListHosts(ctx context.Context, params inventory.ListHostsParams) middleware.Responder
 	ListImages(ctx context.Context, params inventory.ListImagesParams) middleware.Responder
-	ListNodes(ctx context.Context, params inventory.ListNodesParams) middleware.Responder
 	PostStepReply(ctx context.Context, params inventory.PostStepReplyParams) middleware.Responder
 	RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder
-	RegisterNode(ctx context.Context, params inventory.RegisterNodeParams) middleware.Responder
+	RegisterHost(ctx context.Context, params inventory.RegisterHostParams) middleware.Responder
 	SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder
 }
 
@@ -85,21 +85,25 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.DeregisterCluster(ctx, params)
 	})
-	api.InventoryDeregisterNodeHandler = inventory.DeregisterNodeHandlerFunc(func(params inventory.DeregisterNodeParams) middleware.Responder {
+	api.InventoryDeregisterHostHandler = inventory.DeregisterHostHandlerFunc(func(params inventory.DeregisterHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.DeregisterNode(ctx, params)
+		return c.InventoryAPI.DeregisterHost(ctx, params)
 	})
-	api.InventoryDisableNodeHandler = inventory.DisableNodeHandlerFunc(func(params inventory.DisableNodeParams) middleware.Responder {
+	api.InventoryDisableHostHandler = inventory.DisableHostHandlerFunc(func(params inventory.DisableHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.DisableNode(ctx, params)
+		return c.InventoryAPI.DisableHost(ctx, params)
 	})
-	api.InventoryEnableNodeHandler = inventory.EnableNodeHandlerFunc(func(params inventory.EnableNodeParams) middleware.Responder {
+	api.InventoryEnableHostHandler = inventory.EnableHostHandlerFunc(func(params inventory.EnableHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.EnableNode(ctx, params)
+		return c.InventoryAPI.EnableHost(ctx, params)
 	})
 	api.InventoryGetClusterHandler = inventory.GetClusterHandlerFunc(func(params inventory.GetClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.GetCluster(ctx, params)
+	})
+	api.InventoryGetHostHandler = inventory.GetHostHandlerFunc(func(params inventory.GetHostParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.GetHost(ctx, params)
 	})
 	api.InventoryGetImageHandler = inventory.GetImageHandlerFunc(func(params inventory.GetImageParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -109,21 +113,17 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.GetNextSteps(ctx, params)
 	})
-	api.InventoryGetNodeHandler = inventory.GetNodeHandlerFunc(func(params inventory.GetNodeParams) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.GetNode(ctx, params)
-	})
 	api.InventoryListClustersHandler = inventory.ListClustersHandlerFunc(func(params inventory.ListClustersParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.ListClusters(ctx, params)
 	})
+	api.InventoryListHostsHandler = inventory.ListHostsHandlerFunc(func(params inventory.ListHostsParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.ListHosts(ctx, params)
+	})
 	api.InventoryListImagesHandler = inventory.ListImagesHandlerFunc(func(params inventory.ListImagesParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.ListImages(ctx, params)
-	})
-	api.InventoryListNodesHandler = inventory.ListNodesHandlerFunc(func(params inventory.ListNodesParams) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.ListNodes(ctx, params)
 	})
 	api.InventoryPostStepReplyHandler = inventory.PostStepReplyHandlerFunc(func(params inventory.PostStepReplyParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -133,9 +133,9 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.RegisterCluster(ctx, params)
 	})
-	api.InventoryRegisterNodeHandler = inventory.RegisterNodeHandlerFunc(func(params inventory.RegisterNodeParams) middleware.Responder {
+	api.InventoryRegisterHostHandler = inventory.RegisterHostHandlerFunc(func(params inventory.RegisterHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.RegisterNode(ctx, params)
+		return c.InventoryAPI.RegisterHost(ctx, params)
 	})
 	api.InventorySetDebugStepHandler = inventory.SetDebugStepHandlerFunc(func(params inventory.SetDebugStepParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

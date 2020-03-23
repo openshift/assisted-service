@@ -60,11 +60,11 @@ for the get next steps operation typically these are written to a http.Request
 */
 type GetNextStepsParams struct {
 
-	/*NodeID
-	  ID of node
+	/*HostID
+	  ID of host
 
 	*/
-	NodeID strfmt.UUID
+	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -104,15 +104,15 @@ func (o *GetNextStepsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithNodeID adds the nodeID to the get next steps params
-func (o *GetNextStepsParams) WithNodeID(nodeID strfmt.UUID) *GetNextStepsParams {
-	o.SetNodeID(nodeID)
+// WithHostID adds the hostID to the get next steps params
+func (o *GetNextStepsParams) WithHostID(hostID strfmt.UUID) *GetNextStepsParams {
+	o.SetHostID(hostID)
 	return o
 }
 
-// SetNodeID adds the nodeId to the get next steps params
-func (o *GetNextStepsParams) SetNodeID(nodeID strfmt.UUID) {
-	o.NodeID = nodeID
+// SetHostID adds the hostId to the get next steps params
+func (o *GetNextStepsParams) SetHostID(hostID strfmt.UUID) {
+	o.HostID = hostID
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -123,8 +123,8 @@ func (o *GetNextStepsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 	}
 	var res []error
 
-	// path param node_id
-	if err := r.SetPathParam("node_id", o.NodeID.String()); err != nil {
+	// path param host_id
+	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {
 		return err
 	}
 

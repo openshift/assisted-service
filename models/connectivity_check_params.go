@@ -16,7 +16,7 @@ import (
 // ConnectivityCheckParams connectivity check params
 //
 // swagger:model connectivity-check-params
-type ConnectivityCheckParams []*ConnectivityCheckNode
+type ConnectivityCheckParams []*ConnectivityCheckHost
 
 // Validate validates this connectivity check params
 func (m ConnectivityCheckParams) Validate(formats strfmt.Registry) error {

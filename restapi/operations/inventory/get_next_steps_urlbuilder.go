@@ -16,7 +16,7 @@ import (
 
 // GetNextStepsURL generates an URL for the get next steps operation
 type GetNextStepsURL struct {
-	NodeID strfmt.UUID
+	HostID strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,13 +42,13 @@ func (o *GetNextStepsURL) SetBasePath(bp string) {
 func (o *GetNextStepsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/nodes/{node_id}/next-steps"
+	var _path = "/hosts/{host_id}/next-steps"
 
-	nodeID := o.NodeID.String()
-	if nodeID != "" {
-		_path = strings.Replace(_path, "{node_id}", nodeID, -1)
+	hostID := o.HostID.String()
+	if hostID != "" {
+		_path = strings.Replace(_path, "{host_id}", hostID, -1)
 	} else {
-		return nil, errors.New("nodeId is required on GetNextStepsURL")
+		return nil, errors.New("hostId is required on GetNextStepsURL")
 	}
 
 	_basePath := o._basePath

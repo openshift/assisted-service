@@ -147,6 +147,291 @@ func init() {
         }
       }
     },
+    "/hosts": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "List OpenShift bare metal hosts",
+        "operationId": "ListHosts",
+        "responses": {
+          "200": {
+            "description": "Host list",
+            "schema": {
+              "$ref": "#/definitions/host-list"
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Register a new OpenShift bare metal host",
+        "operationId": "RegisterHost",
+        "parameters": [
+          {
+            "description": "New host parameters",
+            "name": "new-host-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Registered host",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/hosts/{host_id}": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve OpenShift bare metal host information",
+        "operationId": "GetHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to retrieve",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Host information",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Deregister OpenShift bare metal host",
+        "operationId": "DeregisterHost",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the host to retrieve",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Host deregistered"
+          },
+          "400": {
+            "description": "Host in use"
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/hosts/{host_id}/actions/debug": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
+        "operationId": "SetDebugStep",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to debug",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Next debug step",
+            "name": "step",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/debug-step"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registered"
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/hosts/{host_id}/actions/enable": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Enable a host for use",
+        "operationId": "EnableHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to enable",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Enabled"
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Disable a host for use",
+        "operationId": "DisableHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to disable",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Disabled"
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/hosts/{host_id}/next-steps": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve the next operations that the agent need to perform",
+        "operationId": "GetNextSteps",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of host",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Steps information",
+            "schema": {
+              "$ref": "#/definitions/steps"
+            }
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/hosts/{host_id}/next-steps/reply": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Post the result of the required operations from the server",
+        "operationId": "PostStepReply",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of host",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "reply",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/step-reply"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Reply accepted"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/images": {
       "get": {
         "tags": [
@@ -230,291 +515,6 @@ func init() {
           }
         }
       }
-    },
-    "/nodes": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "List OpenShift bare metal nodes",
-        "operationId": "ListNodes",
-        "responses": {
-          "200": {
-            "description": "Node list",
-            "schema": {
-              "$ref": "#/definitions/node-list"
-            }
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Register a new OpenShift bare metal node",
-        "operationId": "RegisterNode",
-        "parameters": [
-          {
-            "description": "New node parameters",
-            "name": "new-node-params",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/node-create-params"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Registered node",
-            "schema": {
-              "$ref": "#/definitions/node"
-            }
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/nodes/{node_id}": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Retrieve OpenShift bare metal node information",
-        "operationId": "GetNode",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The ID of the node to retrieve",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Node information",
-            "schema": {
-              "$ref": "#/definitions/node"
-            }
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Deregister OpenShift bare metal node",
-        "operationId": "DeregisterNode",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "The ID of the node to retrieve",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Node deregistered"
-          },
-          "400": {
-            "description": "Node in use"
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/nodes/{node_id}/actions/debug": {
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
-        "operationId": "SetDebugStep",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The ID of the node to debug",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "description": "Next debug step",
-            "name": "step",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/debug-step"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Registered"
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/nodes/{node_id}/actions/enable": {
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Enable a node for use",
-        "operationId": "EnableNode",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The ID of the node to enable",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Enabled"
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Disable a node for use",
-        "operationId": "DisableNode",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The ID of the node to disable",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Disabled"
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/nodes/{node_id}/next-steps": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Retrieve the next operations that the agent need to perform",
-        "operationId": "GetNextSteps",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "ID of node",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Steps information",
-            "schema": {
-              "$ref": "#/definitions/steps"
-            }
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/nodes/{node_id}/next-steps/reply": {
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Post the result of the required operations from the server",
-        "operationId": "PostStepReply",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "ID of node",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "reply",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/step-reply"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Reply accepted"
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
     }
   },
   "definitions": {
@@ -539,7 +539,7 @@ func init() {
           "type": "string",
           "enum": [
             "image",
-            "node",
+            "host",
             "cluster"
           ]
         }
@@ -623,16 +623,13 @@ func init() {
       "type": "object",
       "required": [
         "name",
-        "nodes"
+        "hosts"
       ],
       "properties": {
         "description": {
           "type": "string"
         },
-        "name": {
-          "type": "string"
-        },
-        "nodes": {
+        "hosts": {
           "type": "array",
           "items": {
             "type": "object",
@@ -651,6 +648,9 @@ func init() {
             }
           },
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
+        },
+        "name": {
+          "type": "string"
         }
       }
     },
@@ -658,6 +658,21 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
+      }
+    },
+    "connectivity-check-host": {
+      "type": "object",
+      "properties": {
+        "host-id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "nics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/connectivity-check-nic"
+          }
+        }
       }
     },
     "connectivity-check-nic": {
@@ -677,30 +692,19 @@ func init() {
         }
       }
     },
-    "connectivity-check-node": {
-      "type": "object",
-      "properties": {
-        "nics": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/connectivity-check-nic"
-          }
-        },
-        "node-id": {
-          "type": "string",
-          "format": "uuid"
-        }
-      }
-    },
     "connectivity-check-params": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/connectivity-check-node"
+        "$ref": "#/definitions/connectivity-check-host"
       }
     },
-    "connectivity-remote-node": {
+    "connectivity-remote-host": {
       "type": "object",
       "properties": {
+        "host-id": {
+          "type": "string",
+          "format": "uuid"
+        },
         "l2-connectivity": {
           "type": "array",
           "items": {
@@ -712,20 +716,16 @@ func init() {
           "items": {
             "$ref": "#/definitions/l3-connectivity"
           }
-        },
-        "node-id": {
-          "type": "string",
-          "format": "uuid"
         }
       }
     },
     "connectivity-report": {
       "type": "object",
       "properties": {
-        "remote-nodes": {
+        "remote-hosts": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/connectivity-remote-node"
+            "$ref": "#/definitions/connectivity-remote-host"
           }
         }
       }
@@ -762,6 +762,76 @@ func init() {
         "command": {
           "type": "string"
         }
+      }
+    },
+    "host": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/base"
+        },
+        {
+          "$ref": "#/definitions/host-create-params"
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "status",
+            "status_info",
+            "connectivity",
+            "hardware_info"
+          ],
+          "properties": {
+            "cluster_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "connectivity": {
+              "$ref": "#/definitions/connectivity-report"
+            },
+            "hardware_info": {
+              "$ref": "#/definitions/introspection"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "discovering",
+                "known",
+                "disconnected",
+                "insufficient",
+                "disabled",
+                "installing",
+                "installed"
+              ]
+            },
+            "status_info": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "host-create-params": {
+      "type": "object",
+      "required": [
+        "namespace",
+        "host_id"
+      ],
+      "properties": {
+        "host_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      }
+    },
+    "host-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/host"
       }
     },
     "image": {
@@ -934,76 +1004,6 @@ func init() {
         "state": {
           "type": "string"
         }
-      }
-    },
-    "node": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/definitions/base"
-        },
-        {
-          "$ref": "#/definitions/node-create-params"
-        },
-        {
-          "type": "object",
-          "required": [
-            "kind",
-            "status",
-            "status_info",
-            "connectivity",
-            "hardware_info"
-          ],
-          "properties": {
-            "cluster_id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "connectivity": {
-              "$ref": "#/definitions/connectivity-report"
-            },
-            "hardware_info": {
-              "$ref": "#/definitions/introspection"
-            },
-            "status": {
-              "type": "string",
-              "enum": [
-                "discovering",
-                "known",
-                "disconnected",
-                "insufficient",
-                "disabled",
-                "installing",
-                "installed"
-              ]
-            },
-            "status_info": {
-              "type": "string"
-            }
-          }
-        }
-      ]
-    },
-    "node-create-params": {
-      "type": "object",
-      "required": [
-        "namespace",
-        "node_id"
-      ],
-      "properties": {
-        "namespace": {
-          "type": "string"
-        },
-        "node_id": {
-          "type": "string",
-          "format": "uuid"
-        }
-      }
-    },
-    "node-list": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/node"
       }
     },
     "step": {
@@ -1193,6 +1193,291 @@ func init() {
         }
       }
     },
+    "/hosts": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "List OpenShift bare metal hosts",
+        "operationId": "ListHosts",
+        "responses": {
+          "200": {
+            "description": "Host list",
+            "schema": {
+              "$ref": "#/definitions/host-list"
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Register a new OpenShift bare metal host",
+        "operationId": "RegisterHost",
+        "parameters": [
+          {
+            "description": "New host parameters",
+            "name": "new-host-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Registered host",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/hosts/{host_id}": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve OpenShift bare metal host information",
+        "operationId": "GetHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to retrieve",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Host information",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Deregister OpenShift bare metal host",
+        "operationId": "DeregisterHost",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the host to retrieve",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Host deregistered"
+          },
+          "400": {
+            "description": "Host in use"
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/hosts/{host_id}/actions/debug": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
+        "operationId": "SetDebugStep",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to debug",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Next debug step",
+            "name": "step",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/debug-step"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registered"
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/hosts/{host_id}/actions/enable": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Enable a host for use",
+        "operationId": "EnableHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to enable",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Enabled"
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Disable a host for use",
+        "operationId": "DisableHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to disable",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Disabled"
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/hosts/{host_id}/next-steps": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Retrieve the next operations that the agent need to perform",
+        "operationId": "GetNextSteps",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of host",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Steps information",
+            "schema": {
+              "$ref": "#/definitions/steps"
+            }
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/hosts/{host_id}/next-steps/reply": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Post the result of the required operations from the server",
+        "operationId": "PostStepReply",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of host",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "reply",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/step-reply"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Reply accepted"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Host not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/images": {
       "get": {
         "tags": [
@@ -1276,295 +1561,10 @@ func init() {
           }
         }
       }
-    },
-    "/nodes": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "List OpenShift bare metal nodes",
-        "operationId": "ListNodes",
-        "responses": {
-          "200": {
-            "description": "Node list",
-            "schema": {
-              "$ref": "#/definitions/node-list"
-            }
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Register a new OpenShift bare metal node",
-        "operationId": "RegisterNode",
-        "parameters": [
-          {
-            "description": "New node parameters",
-            "name": "new-node-params",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/node-create-params"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Registered node",
-            "schema": {
-              "$ref": "#/definitions/node"
-            }
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/nodes/{node_id}": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Retrieve OpenShift bare metal node information",
-        "operationId": "GetNode",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The ID of the node to retrieve",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Node information",
-            "schema": {
-              "$ref": "#/definitions/node"
-            }
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Deregister OpenShift bare metal node",
-        "operationId": "DeregisterNode",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "The ID of the node to retrieve",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Node deregistered"
-          },
-          "400": {
-            "description": "Node in use"
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/nodes/{node_id}/actions/debug": {
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
-        "operationId": "SetDebugStep",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The ID of the node to debug",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "description": "Next debug step",
-            "name": "step",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/debug-step"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Registered"
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/nodes/{node_id}/actions/enable": {
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Enable a node for use",
-        "operationId": "EnableNode",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The ID of the node to enable",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Enabled"
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Disable a node for use",
-        "operationId": "DisableNode",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The ID of the node to disable",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Disabled"
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/nodes/{node_id}/next-steps": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Retrieve the next operations that the agent need to perform",
-        "operationId": "GetNextSteps",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "ID of node",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Steps information",
-            "schema": {
-              "$ref": "#/definitions/steps"
-            }
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/nodes/{node_id}/next-steps/reply": {
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Post the result of the required operations from the server",
-        "operationId": "PostStepReply",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "ID of node",
-            "name": "node_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "reply",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/step-reply"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Reply accepted"
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "404": {
-            "description": "Node not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
     }
   },
   "definitions": {
-    "ClusterCreateParamsNodesItems0": {
+    "ClusterCreateParamsHostsItems0": {
       "type": "object",
       "properties": {
         "id": {
@@ -1601,7 +1601,7 @@ func init() {
           "type": "string",
           "enum": [
             "image",
-            "node",
+            "host",
             "cluster"
           ]
         }
@@ -1685,21 +1685,21 @@ func init() {
       "type": "object",
       "required": [
         "name",
-        "nodes"
+        "hosts"
       ],
       "properties": {
         "description": {
           "type": "string"
         },
-        "name": {
-          "type": "string"
-        },
-        "nodes": {
+        "hosts": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/ClusterCreateParamsNodesItems0"
+            "$ref": "#/definitions/ClusterCreateParamsHostsItems0"
           },
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
+        },
+        "name": {
+          "type": "string"
         }
       }
     },
@@ -1707,6 +1707,21 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
+      }
+    },
+    "connectivity-check-host": {
+      "type": "object",
+      "properties": {
+        "host-id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "nics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/connectivity-check-nic"
+          }
+        }
       }
     },
     "connectivity-check-nic": {
@@ -1726,30 +1741,19 @@ func init() {
         }
       }
     },
-    "connectivity-check-node": {
-      "type": "object",
-      "properties": {
-        "nics": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/connectivity-check-nic"
-          }
-        },
-        "node-id": {
-          "type": "string",
-          "format": "uuid"
-        }
-      }
-    },
     "connectivity-check-params": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/connectivity-check-node"
+        "$ref": "#/definitions/connectivity-check-host"
       }
     },
-    "connectivity-remote-node": {
+    "connectivity-remote-host": {
       "type": "object",
       "properties": {
+        "host-id": {
+          "type": "string",
+          "format": "uuid"
+        },
         "l2-connectivity": {
           "type": "array",
           "items": {
@@ -1761,20 +1765,16 @@ func init() {
           "items": {
             "$ref": "#/definitions/l3-connectivity"
           }
-        },
-        "node-id": {
-          "type": "string",
-          "format": "uuid"
         }
       }
     },
     "connectivity-report": {
       "type": "object",
       "properties": {
-        "remote-nodes": {
+        "remote-hosts": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/connectivity-remote-node"
+            "$ref": "#/definitions/connectivity-remote-host"
           }
         }
       }
@@ -1811,6 +1811,76 @@ func init() {
         "command": {
           "type": "string"
         }
+      }
+    },
+    "host": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/base"
+        },
+        {
+          "$ref": "#/definitions/host-create-params"
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "status",
+            "status_info",
+            "connectivity",
+            "hardware_info"
+          ],
+          "properties": {
+            "cluster_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "connectivity": {
+              "$ref": "#/definitions/connectivity-report"
+            },
+            "hardware_info": {
+              "$ref": "#/definitions/introspection"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "discovering",
+                "known",
+                "disconnected",
+                "insufficient",
+                "disabled",
+                "installing",
+                "installed"
+              ]
+            },
+            "status_info": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "host-create-params": {
+      "type": "object",
+      "required": [
+        "namespace",
+        "host_id"
+      ],
+      "properties": {
+        "host_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      }
+    },
+    "host-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/host"
       }
     },
     "image": {
@@ -1984,76 +2054,6 @@ func init() {
         "state": {
           "type": "string"
         }
-      }
-    },
-    "node": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/definitions/base"
-        },
-        {
-          "$ref": "#/definitions/node-create-params"
-        },
-        {
-          "type": "object",
-          "required": [
-            "kind",
-            "status",
-            "status_info",
-            "connectivity",
-            "hardware_info"
-          ],
-          "properties": {
-            "cluster_id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "connectivity": {
-              "$ref": "#/definitions/connectivity-report"
-            },
-            "hardware_info": {
-              "$ref": "#/definitions/introspection"
-            },
-            "status": {
-              "type": "string",
-              "enum": [
-                "discovering",
-                "known",
-                "disconnected",
-                "insufficient",
-                "disabled",
-                "installing",
-                "installed"
-              ]
-            },
-            "status_info": {
-              "type": "string"
-            }
-          }
-        }
-      ]
-    },
-    "node-create-params": {
-      "type": "object",
-      "required": [
-        "namespace",
-        "node_id"
-      ],
-      "properties": {
-        "namespace": {
-          "type": "string"
-        },
-        "node_id": {
-          "type": "string",
-          "format": "uuid"
-        }
-      }
-    },
-    "node-list": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/node"
       }
     },
     "step": {

@@ -31,7 +31,7 @@ type Base struct {
 
 	// kind
 	// Required: true
-	// Enum: [image node cluster]
+	// Enum: [image host cluster]
 	Kind *string `json:"kind"`
 }
 
@@ -87,7 +87,7 @@ var baseTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["image","node","cluster"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["image","host","cluster"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -100,8 +100,8 @@ const (
 	// BaseKindImage captures enum value "image"
 	BaseKindImage string = "image"
 
-	// BaseKindNode captures enum value "node"
-	BaseKindNode string = "node"
+	// BaseKindHost captures enum value "host"
+	BaseKindHost string = "host"
 
 	// BaseKindCluster captures enum value "cluster"
 	BaseKindCluster string = "cluster"

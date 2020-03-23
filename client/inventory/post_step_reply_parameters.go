@@ -62,11 +62,11 @@ for the post step reply operation typically these are written to a http.Request
 */
 type PostStepReplyParams struct {
 
-	/*NodeID
-	  ID of node
+	/*HostID
+	  ID of host
 
 	*/
-	NodeID strfmt.UUID
+	HostID strfmt.UUID
 	/*Reply*/
 	Reply *models.StepReply
 
@@ -108,15 +108,15 @@ func (o *PostStepReplyParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithNodeID adds the nodeID to the post step reply params
-func (o *PostStepReplyParams) WithNodeID(nodeID strfmt.UUID) *PostStepReplyParams {
-	o.SetNodeID(nodeID)
+// WithHostID adds the hostID to the post step reply params
+func (o *PostStepReplyParams) WithHostID(hostID strfmt.UUID) *PostStepReplyParams {
+	o.SetHostID(hostID)
 	return o
 }
 
-// SetNodeID adds the nodeId to the post step reply params
-func (o *PostStepReplyParams) SetNodeID(nodeID strfmt.UUID) {
-	o.NodeID = nodeID
+// SetHostID adds the hostId to the post step reply params
+func (o *PostStepReplyParams) SetHostID(hostID strfmt.UUID) {
+	o.HostID = hostID
 }
 
 // WithReply adds the reply to the post step reply params
@@ -138,8 +138,8 @@ func (o *PostStepReplyParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 	}
 	var res []error
 
-	// path param node_id
-	if err := r.SetPathParam("node_id", o.NodeID.String()); err != nil {
+	// path param host_id
+	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {
 		return err
 	}
 

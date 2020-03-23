@@ -24,17 +24,20 @@ type API interface {
 	   DeregisterCluster deregisters open shift bare metal cluster*/
 	DeregisterCluster(ctx context.Context, params *DeregisterClusterParams) (*DeregisterClusterNoContent, error)
 	/*
-	   DeregisterNode deregisters open shift bare metal node*/
-	DeregisterNode(ctx context.Context, params *DeregisterNodeParams) (*DeregisterNodeNoContent, error)
+	   DeregisterHost deregisters open shift bare metal host*/
+	DeregisterHost(ctx context.Context, params *DeregisterHostParams) (*DeregisterHostNoContent, error)
 	/*
-	   DisableNode disables a node for use*/
-	DisableNode(ctx context.Context, params *DisableNodeParams) (*DisableNodeNoContent, error)
+	   DisableHost disables a host for use*/
+	DisableHost(ctx context.Context, params *DisableHostParams) (*DisableHostNoContent, error)
 	/*
-	   EnableNode enables a node for use*/
-	EnableNode(ctx context.Context, params *EnableNodeParams) (*EnableNodeNoContent, error)
+	   EnableHost enables a host for use*/
+	EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostNoContent, error)
 	/*
 	   GetCluster retrieves open shift bare metal cluster information*/
 	GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error)
+	/*
+	   GetHost retrieves open shift bare metal host information*/
+	GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error)
 	/*
 	   GetImage retrieves installation image information*/
 	GetImage(ctx context.Context, params *GetImageParams) (*GetImageOK, error)
@@ -42,17 +45,14 @@ type API interface {
 	   GetNextSteps retrieves the next operations that the agent need to perform*/
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
 	/*
-	   GetNode retrieves open shift bare metal node information*/
-	GetNode(ctx context.Context, params *GetNodeParams) (*GetNodeOK, error)
-	/*
 	   ListClusters lists open shift bare metal clusters*/
 	ListClusters(ctx context.Context, params *ListClustersParams) (*ListClustersOK, error)
 	/*
+	   ListHosts lists open shift bare metal hosts*/
+	ListHosts(ctx context.Context, params *ListHostsParams) (*ListHostsOK, error)
+	/*
 	   ListImages lists installation images*/
 	ListImages(ctx context.Context, params *ListImagesParams) (*ListImagesOK, error)
-	/*
-	   ListNodes lists open shift bare metal nodes*/
-	ListNodes(ctx context.Context, params *ListNodesParams) (*ListNodesOK, error)
 	/*
 	   PostStepReply posts the result of the required operations from the server*/
 	PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error)
@@ -60,8 +60,8 @@ type API interface {
 	   RegisterCluster registers a new open shift bare metal cluster*/
 	RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error)
 	/*
-	   RegisterNode registers a new open shift bare metal node*/
-	RegisterNode(ctx context.Context, params *RegisterNodeParams) (*RegisterNodeCreated, error)
+	   RegisterHost registers a new open shift bare metal host*/
+	RegisterHost(ctx context.Context, params *RegisterHostParams) (*RegisterHostCreated, error)
 	/*
 	   SetDebugStep sets a single shot debug step that will be sent next time the agent will ask for a command*/
 	SetDebugStep(ctx context.Context, params *SetDebugStepParams) (*SetDebugStepOK, error)
@@ -134,74 +134,74 @@ func (a *Client) DeregisterCluster(ctx context.Context, params *DeregisterCluste
 }
 
 /*
-DeregisterNode deregisters open shift bare metal node
+DeregisterHost deregisters open shift bare metal host
 */
-func (a *Client) DeregisterNode(ctx context.Context, params *DeregisterNodeParams) (*DeregisterNodeNoContent, error) {
+func (a *Client) DeregisterHost(ctx context.Context, params *DeregisterHostParams) (*DeregisterHostNoContent, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DeregisterNode",
+		ID:                 "DeregisterHost",
 		Method:             "DELETE",
-		PathPattern:        "/nodes/{node_id}",
+		PathPattern:        "/hosts/{host_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &DeregisterNodeReader{formats: a.formats},
+		Reader:             &DeregisterHostReader{formats: a.formats},
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeregisterNodeNoContent), nil
+	return result.(*DeregisterHostNoContent), nil
 
 }
 
 /*
-DisableNode disables a node for use
+DisableHost disables a host for use
 */
-func (a *Client) DisableNode(ctx context.Context, params *DisableNodeParams) (*DisableNodeNoContent, error) {
+func (a *Client) DisableHost(ctx context.Context, params *DisableHostParams) (*DisableHostNoContent, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DisableNode",
+		ID:                 "DisableHost",
 		Method:             "DELETE",
-		PathPattern:        "/nodes/{node_id}/actions/enable",
+		PathPattern:        "/hosts/{host_id}/actions/enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &DisableNodeReader{formats: a.formats},
+		Reader:             &DisableHostReader{formats: a.formats},
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DisableNodeNoContent), nil
+	return result.(*DisableHostNoContent), nil
 
 }
 
 /*
-EnableNode enables a node for use
+EnableHost enables a host for use
 */
-func (a *Client) EnableNode(ctx context.Context, params *EnableNodeParams) (*EnableNodeNoContent, error) {
+func (a *Client) EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostNoContent, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "EnableNode",
+		ID:                 "EnableHost",
 		Method:             "POST",
-		PathPattern:        "/nodes/{node_id}/actions/enable",
+		PathPattern:        "/hosts/{host_id}/actions/enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &EnableNodeReader{formats: a.formats},
+		Reader:             &EnableHostReader{formats: a.formats},
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*EnableNodeNoContent), nil
+	return result.(*EnableHostNoContent), nil
 
 }
 
@@ -226,6 +226,30 @@ func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*Get
 		return nil, err
 	}
 	return result.(*GetClusterOK), nil
+
+}
+
+/*
+GetHost retrieves open shift bare metal host information
+*/
+func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetHost",
+		Method:             "GET",
+		PathPattern:        "/hosts/{host_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetHostReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetHostOK), nil
 
 }
 
@@ -261,7 +285,7 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetNextSteps",
 		Method:             "GET",
-		PathPattern:        "/nodes/{node_id}/next-steps",
+		PathPattern:        "/hosts/{host_id}/next-steps",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -274,30 +298,6 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 		return nil, err
 	}
 	return result.(*GetNextStepsOK), nil
-
-}
-
-/*
-GetNode retrieves open shift bare metal node information
-*/
-func (a *Client) GetNode(ctx context.Context, params *GetNodeParams) (*GetNodeOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetNode",
-		Method:             "GET",
-		PathPattern:        "/nodes/{node_id}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetNodeReader{formats: a.formats},
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetNodeOK), nil
 
 }
 
@@ -326,6 +326,30 @@ func (a *Client) ListClusters(ctx context.Context, params *ListClustersParams) (
 }
 
 /*
+ListHosts lists open shift bare metal hosts
+*/
+func (a *Client) ListHosts(ctx context.Context, params *ListHostsParams) (*ListHostsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ListHosts",
+		Method:             "GET",
+		PathPattern:        "/hosts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ListHostsReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListHostsOK), nil
+
+}
+
+/*
 ListImages lists installation images
 */
 func (a *Client) ListImages(ctx context.Context, params *ListImagesParams) (*ListImagesOK, error) {
@@ -350,30 +374,6 @@ func (a *Client) ListImages(ctx context.Context, params *ListImagesParams) (*Lis
 }
 
 /*
-ListNodes lists open shift bare metal nodes
-*/
-func (a *Client) ListNodes(ctx context.Context, params *ListNodesParams) (*ListNodesOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListNodes",
-		Method:             "GET",
-		PathPattern:        "/nodes",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ListNodesReader{formats: a.formats},
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ListNodesOK), nil
-
-}
-
-/*
 PostStepReply posts the result of the required operations from the server
 */
 func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error) {
@@ -381,7 +381,7 @@ func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams)
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "PostStepReply",
 		Method:             "POST",
-		PathPattern:        "/nodes/{node_id}/next-steps/reply",
+		PathPattern:        "/hosts/{host_id}/next-steps/reply",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -422,26 +422,26 @@ func (a *Client) RegisterCluster(ctx context.Context, params *RegisterClusterPar
 }
 
 /*
-RegisterNode registers a new open shift bare metal node
+RegisterHost registers a new open shift bare metal host
 */
-func (a *Client) RegisterNode(ctx context.Context, params *RegisterNodeParams) (*RegisterNodeCreated, error) {
+func (a *Client) RegisterHost(ctx context.Context, params *RegisterHostParams) (*RegisterHostCreated, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "RegisterNode",
+		ID:                 "RegisterHost",
 		Method:             "POST",
-		PathPattern:        "/nodes",
+		PathPattern:        "/hosts",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &RegisterNodeReader{formats: a.formats},
+		Reader:             &RegisterHostReader{formats: a.formats},
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RegisterNodeCreated), nil
+	return result.(*RegisterHostCreated), nil
 
 }
 
@@ -453,7 +453,7 @@ func (a *Client) SetDebugStep(ctx context.Context, params *SetDebugStepParams) (
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "SetDebugStep",
 		Method:             "POST",
-		PathPattern:        "/nodes/{node_id}/actions/debug",
+		PathPattern:        "/hosts/{host_id}/actions/debug",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},

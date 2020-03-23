@@ -38,7 +38,7 @@ func (o *SetDebugStepOK) WriteResponse(rw http.ResponseWriter, producer runtime.
 // SetDebugStepNotFoundCode is the HTTP code returned for type SetDebugStepNotFound
 const SetDebugStepNotFoundCode int = 404
 
-/*SetDebugStepNotFound Node not found
+/*SetDebugStepNotFound Host not found
 
 swagger:response setDebugStepNotFound
 */

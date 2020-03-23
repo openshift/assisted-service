@@ -18,15 +18,15 @@ import (
 // swagger:model connectivity-report
 type ConnectivityReport struct {
 
-	// remote nodes
-	RemoteNodes []*ConnectivityRemoteNode `json:"remote-nodes"`
+	// remote hosts
+	RemoteHosts []*ConnectivityRemoteHost `json:"remote-hosts"`
 }
 
 // Validate validates this connectivity report
 func (m *ConnectivityReport) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateRemoteNodes(formats); err != nil {
+	if err := m.validateRemoteHosts(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -36,21 +36,21 @@ func (m *ConnectivityReport) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ConnectivityReport) validateRemoteNodes(formats strfmt.Registry) error {
+func (m *ConnectivityReport) validateRemoteHosts(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.RemoteNodes) { // not required
+	if swag.IsZero(m.RemoteHosts) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.RemoteNodes); i++ {
-		if swag.IsZero(m.RemoteNodes[i]) { // not required
+	for i := 0; i < len(m.RemoteHosts); i++ {
+		if swag.IsZero(m.RemoteHosts[i]) { // not required
 			continue
 		}
 
-		if m.RemoteNodes[i] != nil {
-			if err := m.RemoteNodes[i].Validate(formats); err != nil {
+		if m.RemoteHosts[i] != nil {
+			if err := m.RemoteHosts[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("remote-nodes" + "." + strconv.Itoa(i))
+					return ve.ValidateName("remote-hosts" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
