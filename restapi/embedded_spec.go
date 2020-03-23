@@ -325,6 +325,9 @@ func init() {
           "404": {
             "description": "Host not found"
           },
+          "409": {
+            "description": "Conflict"
+          },
           "500": {
             "description": "Internal server error"
           }
@@ -352,6 +355,9 @@ func init() {
           },
           "404": {
             "description": "Host not found"
+          },
+          "409": {
+            "description": "Conflict"
           },
           "500": {
             "description": "Internal server error"
@@ -1360,6 +1366,9 @@ func init() {
           "404": {
             "description": "Host not found"
           },
+          "409": {
+            "description": "Conflict"
+          },
           "500": {
             "description": "Internal server error"
           }
@@ -1389,6 +1398,9 @@ func init() {
           },
           "404": {
             "description": "Host not found"
+          },
+          "409": {
+            "description": "Conflict"
           },
           "500": {
             "description": "Internal server error"

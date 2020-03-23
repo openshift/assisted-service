@@ -32,6 +32,12 @@ func (o *EnableHostReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return nil, result
+	case 409:
+		result := NewEnableHostConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewEnableHostInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -82,6 +88,27 @@ func (o *EnableHostNotFound) Error() string {
 }
 
 func (o *EnableHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewEnableHostConflict creates a EnableHostConflict with default headers values
+func NewEnableHostConflict() *EnableHostConflict {
+	return &EnableHostConflict{}
+}
+
+/*EnableHostConflict handles this case with default header values.
+
+Conflict
+*/
+type EnableHostConflict struct {
+}
+
+func (o *EnableHostConflict) Error() string {
+	return fmt.Sprintf("[POST /hosts/{host_id}/actions/enable][%d] enableHostConflict ", 409)
+}
+
+func (o *EnableHostConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

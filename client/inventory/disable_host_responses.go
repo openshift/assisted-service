@@ -32,6 +32,12 @@ func (o *DisableHostReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return nil, result
+	case 409:
+		result := NewDisableHostConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewDisableHostInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -82,6 +88,27 @@ func (o *DisableHostNotFound) Error() string {
 }
 
 func (o *DisableHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDisableHostConflict creates a DisableHostConflict with default headers values
+func NewDisableHostConflict() *DisableHostConflict {
+	return &DisableHostConflict{}
+}
+
+/*DisableHostConflict handles this case with default header values.
+
+Conflict
+*/
+type DisableHostConflict struct {
+}
+
+func (o *DisableHostConflict) Error() string {
+	return fmt.Sprintf("[DELETE /hosts/{host_id}/actions/enable][%d] disableHostConflict ", 409)
+}
+
+func (o *DisableHostConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

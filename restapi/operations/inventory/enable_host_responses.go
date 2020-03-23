@@ -59,6 +59,30 @@ func (o *EnableHostNotFound) WriteResponse(rw http.ResponseWriter, producer runt
 	rw.WriteHeader(404)
 }
 
+// EnableHostConflictCode is the HTTP code returned for type EnableHostConflict
+const EnableHostConflictCode int = 409
+
+/*EnableHostConflict Conflict
+
+swagger:response enableHostConflict
+*/
+type EnableHostConflict struct {
+}
+
+// NewEnableHostConflict creates EnableHostConflict with default headers values
+func NewEnableHostConflict() *EnableHostConflict {
+
+	return &EnableHostConflict{}
+}
+
+// WriteResponse to the client
+func (o *EnableHostConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(409)
+}
+
 // EnableHostInternalServerErrorCode is the HTTP code returned for type EnableHostInternalServerError
 const EnableHostInternalServerErrorCode int = 500
 

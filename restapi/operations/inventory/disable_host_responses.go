@@ -59,6 +59,30 @@ func (o *DisableHostNotFound) WriteResponse(rw http.ResponseWriter, producer run
 	rw.WriteHeader(404)
 }
 
+// DisableHostConflictCode is the HTTP code returned for type DisableHostConflict
+const DisableHostConflictCode int = 409
+
+/*DisableHostConflict Conflict
+
+swagger:response disableHostConflict
+*/
+type DisableHostConflict struct {
+}
+
+// NewDisableHostConflict creates DisableHostConflict with default headers values
+func NewDisableHostConflict() *DisableHostConflict {
+
+	return &DisableHostConflict{}
+}
+
+// WriteResponse to the client
+func (o *DisableHostConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(409)
+}
+
 // DisableHostInternalServerErrorCode is the HTTP code returned for type DisableHostInternalServerError
 const DisableHostInternalServerErrorCode int = 500
 

@@ -35,6 +35,13 @@ const (
 )
 
 const (
+	HostStatusDisabled     = "disabled"
+	HostStatusInstalling   = "installing"
+	HostStatusInstalled    = "installed"
+	HostStatusDiscovering  = "discovering"
+)
+
+const (
 	ResourceKindImage   = "image"
 	ResourceKindHost    = "host"
 	ResourceKindCluster = "cluster"
@@ -356,7 +363,6 @@ func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params inventor
 
 func (b *bareMetalInventory) GetHost(ctx context.Context, params inventory.GetHostParams) middleware.Responder {
 	var host models.Host
-
 	// TODO: validate what is the error
 	if err := b.db.First(&host, "id = ?", params.HostID).Error; err != nil {
 		return inventory.NewGetHostNotFound()
@@ -375,6 +381,18 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params inventory.Lis
 
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder {
 	steps := models.Steps{}
+	var host models.Host
+
+	//TODO check the error type
+	if err := b.db.First(&host, "id = ?", params.HostID).Error; err != nil {
+		logrus.WithError(err).Error("failed to find host")
+		return inventory.NewGetNextStepsNotFound()
+	}
+
+	if swag.StringValue(host.Status) == HostStatusDisabled {
+		return inventory.NewGetNextStepsOK().WithPayload(steps)
+	}
+
 	b.debugCmdMux.Lock()
 	if cmd, ok := b.debugCmdMap[params.HostID]; ok {
 		step := &models.Step{}
@@ -404,9 +422,37 @@ func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.
 }
 
 func (b *bareMetalInventory) DisableHost(ctx context.Context, params inventory.DisableHostParams) middleware.Responder {
+	var host models.Host
+	logrus.Info("disabling host: ", params.HostID)
+
+	if err := b.db.First(&host, "id = ?", params.HostID).Error; err != nil {
+		return inventory.NewDisableHostNotFound()
+	}
+
+	if swag.StringValue(host.Status) == HostStatusInstalling || swag.StringValue(host.Status) == HostStatusInstalled {
+		return inventory.NewDisableHostConflict()
+	}
+	if err := b.db.Model(&host).Where("host_id = ?", params.HostID.String()).Update("status", *swag.String(HostStatusDisabled)).Error; err != nil {
+		return inventory.NewDisableHostInternalServerError()
+	}
 	return inventory.NewDisableHostNoContent()
 }
 
 func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.EnableHostParams) middleware.Responder {
+	var host models.Host
+	logrus.Info("enable host: ", params.HostID)
+
+	if err := b.db.First(&host, "id = ?", params.HostID).Error; err != nil {
+		return inventory.NewEnableHostNotFound()
+	}
+
+	if swag.StringValue(host.Status) != HostStatusDisabled {
+		return inventory.NewEnableHostConflict()
+	}
+
+	//TODO clear HW info
+	if err := b.db.Model(&host).Where("host_id = ?", params.HostID.String()).Update("status", *swag.String(HostStatusDiscovering)).Error; err != nil {
+		return inventory.NewEnableHostInternalServerError()
+	}
 	return inventory.NewEnableHostNoContent()
 }
