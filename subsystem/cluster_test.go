@@ -24,7 +24,7 @@ var _ = Describe("Cluster tests", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Description: "my cluster",
 				Name:        swag.String("test cluster"),
-				Nodes: []*models.ClusterCreateParamsNodesItems0{
+				Hosts: []*models.ClusterCreateParamsHostsItems0{
 					{
 						ID:   strfmt.UUID(uuid.New().String()),
 						Role: "master",
