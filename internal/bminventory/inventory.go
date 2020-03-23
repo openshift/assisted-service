@@ -36,7 +36,7 @@ const (
 
 const (
 	ResourceKindImage   = "image"
-	ResourceKindNode    = "node"
+	ResourceKindHost    = "host"
 	ResourceKindCluster = "cluster"
 )
 
@@ -245,10 +245,10 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params invento
 			ID:   &id,
 			Kind: swag.String(ResourceKindCluster),
 		},
-		Namespace: nil, // TODO: get namespace from the nodes
+		Namespace: nil, // TODO: get namespace from the host
 		Status:    swag.String(ClusterStatusReady),
 	}
-	// TODO: validate that we 3 master nodes and that they are from the same namespace
+	// TODO: validate that we 3 master hosts and that they are from the same namespace
 	if params.NewClusterParams != nil {
 		cluster.ClusterCreateParams = *params.NewClusterParams
 	}
@@ -274,9 +274,9 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inven
 		return inventory.NewDeregisterClusterNotFound()
 	}
 
-	for i := range cluster.Nodes {
-		if txErr = tx.Delete(&models.Node{}, "id = ?", cluster.Nodes[i].ID).Error; txErr != nil {
-			logrus.WithError(txErr).Errorf("failed to delete node %s", cluster.Nodes[i].ID)
+	for i := range cluster.Hosts {
+		if txErr = tx.Delete(&models.Host{}, "id = ?", cluster.Hosts[i].ID).Error; txErr != nil {
+			logrus.WithError(txErr).Errorf("failed to delete host: %s", cluster.Hosts[i].ID)
 			// TODO: fix error code
 			return inventory.NewDeregisterClusterNotFound()
 		}
@@ -315,65 +315,65 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params inventory.Ge
 	return inventory.NewGetClusterOK().WithPayload(&cluster)
 }
 
-func (b *bareMetalInventory) RegisterNode(ctx context.Context, params inventory.RegisterNodeParams) middleware.Responder {
-	node := &models.Node{
+func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.RegisterHostParams) middleware.Responder {
+	host := &models.Host{
 		Base: models.Base{
-			Href: buildHrefURI(ResourceKindNode, params.NewNodeParams.NodeID.String()),
-			ID:   params.NewNodeParams.NodeID,
-			Kind: swag.String(ResourceKindNode),
+			Href: buildHrefURI(ResourceKindHost, params.NewHostParams.HostID.String()),
+			ID:   params.NewHostParams.HostID,
+			Kind: swag.String(ResourceKindHost),
 		},
 		Status: swag.String("discovering"),
 	}
 
-	node.NodeCreateParams = *params.NewNodeParams
-	logrus.Infof(" register node: %+v", node)
+	host.HostCreateParams = *params.NewHostParams
+	logrus.Infof(" register host: %+v", host)
 
-	if err := b.db.Create(node).Error; err != nil {
+	if err := b.db.Create(host).Error; err != nil {
 		return inventory.NewRegisterClusterInternalServerError()
 	}
 
-	return inventory.NewRegisterNodeCreated().WithPayload(node)
+	return inventory.NewRegisterHostCreated().WithPayload(host)
 }
 
-func (b *bareMetalInventory) DeregisterNode(ctx context.Context, params inventory.DeregisterNodeParams) middleware.Responder {
-	var node models.Node
-	if err := b.db.Delete(&node, "id = ?", params.NodeID).Error; err != nil {
+func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params inventory.DeregisterHostParams) middleware.Responder {
+	var host models.Host
+	if err := b.db.Delete(&host, "id = ?", params.HostID).Error; err != nil {
 		// TODO: check error type
-		return inventory.NewDeregisterNodeBadRequest()
+		return inventory.NewDeregisterHostBadRequest()
 	}
 
-	// TODO: need to check that node can be deleted from the cluster
-	return inventory.NewDeregisterNodeNoContent()
+	// TODO: need to check that host can be deleted from the cluster
+	return inventory.NewDeregisterHostNoContent()
 }
 
-func (b *bareMetalInventory) GetNode(ctx context.Context, params inventory.GetNodeParams) middleware.Responder {
-	var node models.Node
+func (b *bareMetalInventory) GetHost(ctx context.Context, params inventory.GetHostParams) middleware.Responder {
+	var host models.Host
 
 	// TODO: validate what is the error
-	if err := b.db.First(&node, "id = ?", params.NodeID).Error; err != nil {
-		return inventory.NewGetNodeNotFound()
+	if err := b.db.First(&host, "id = ?", params.HostID).Error; err != nil {
+		return inventory.NewGetHostNotFound()
 	}
 
-	return inventory.NewGetNodeOK().WithPayload(&node)
+	return inventory.NewGetHostOK().WithPayload(&host)
 }
 
-func (b *bareMetalInventory) ListNodes(ctx context.Context, params inventory.ListNodesParams) middleware.Responder {
-	var nodes []*models.Node
-	if err := b.db.Find(&nodes).Error; err != nil {
-		return inventory.NewListNodesInternalServerError()
+func (b *bareMetalInventory) ListHosts(ctx context.Context, params inventory.ListHostsParams) middleware.Responder {
+	var hosts []*models.Host
+	if err := b.db.Find(&hosts).Error; err != nil {
+		return inventory.NewListHostsInternalServerError()
 	}
-	return inventory.NewListNodesOK().WithPayload(nodes)
+	return inventory.NewListHostsOK().WithPayload(hosts)
 }
 
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder {
 	steps := models.Steps{}
 	b.debugCmdMux.Lock()
-	if cmd, ok := b.debugCmdMap[params.NodeID]; ok {
+	if cmd, ok := b.debugCmdMap[params.HostID]; ok {
 		step := &models.Step{}
 		step.StepType = models.StepTypeDebug
 		step.Data = cmd
 		steps = append(steps, step)
-		delete(b.debugCmdMap, params.NodeID)
+		delete(b.debugCmdMap, params.HostID)
 	}
 	b.debugCmdMux.Unlock()
 
@@ -390,15 +390,15 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params inventory
 
 func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder {
 	b.debugCmdMux.Lock()
-	b.debugCmdMap[params.NodeID] = swag.StringValue(params.Step.Command)
+	b.debugCmdMap[params.HostID] = swag.StringValue(params.Step.Command)
 	b.debugCmdMux.Unlock()
 	return inventory.NewSetDebugStepOK()
 }
 
-func (b *bareMetalInventory) DisableNode(ctx context.Context, params inventory.DisableNodeParams) middleware.Responder {
-	return inventory.NewDisableNodeNoContent()
+func (b *bareMetalInventory) DisableHost(ctx context.Context, params inventory.DisableHostParams) middleware.Responder {
+	return inventory.NewDisableHostNoContent()
 }
 
-func (b *bareMetalInventory) EnableNode(ctx context.Context, params inventory.EnableNodeParams) middleware.Responder {
-	return inventory.NewEnableNodeNoContent()
+func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.EnableHostParams) middleware.Responder {
+	return inventory.NewEnableHostNoContent()
 }

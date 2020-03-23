@@ -54,7 +54,7 @@ func main() {
 		log.Fatal("failed to create client:", err)
 	}
 
-	if err := db.AutoMigrate(&models.Image{}, &models.Node{}, &models.Cluster{}).Error; err != nil {
+	if err := db.AutoMigrate(&models.Image{}, &models.Host{}, &models.Cluster{}).Error; err != nil {
 		logrus.Fatal("failed to auto migrate, ", err)
 	}
 
