@@ -102,6 +102,7 @@ clear-deployment:
 	kubectl delete deployments.apps postgres 1> /dev/null ; true
 	kubectl delete deployments.apps scality 1> /dev/null ; true
 	kubectl get job -o name | grep create-image | xargs kubectl delete 1> /dev/null ; true
+	kubectl get pod -o name | grep create-image | xargs kubectl delete 1> /dev/null ; true
 	kubectl delete service bm-inventory 1> /dev/null ; true
 	kubectl delete service postgres 1> /dev/null ; true
 	kubectl delete service scality 1> /dev/null ; true
