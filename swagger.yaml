@@ -75,24 +75,24 @@ paths:
         500:
           description: Internal server error
 
-  /nodes:
+  /hosts:
     post:
       tags:
         - inventory
-      summary: Register a new OpenShift bare metal node
-      operationId: RegisterNode
+      summary: Register a new OpenShift bare metal host
+      operationId: RegisterHost
       parameters:
         - in: body
-          name: new-node-params
-          description: New node parameters
+          name: new-host-params
+          description: New host parameters
           required: true
           schema:
-            $ref: '#/definitions/node-create-params'
+            $ref: '#/definitions/host-create-params'
       responses:
         201:
-          description: Registered node
+          description: Registered host
           schema:
-            $ref: '#/definitions/node'
+            $ref: '#/definitions/host'
         400:
           description: Invalid input
         500:
@@ -101,61 +101,61 @@ paths:
     get:
       tags:
         - inventory
-      summary: List OpenShift bare metal nodes
-      operationId: ListNodes
+      summary: List OpenShift bare metal hosts
+      operationId: ListHosts
       responses:
         200:
-          description: Node list
+          description: Host list
           schema:
-            $ref: '#/definitions/node-list'
+            $ref: '#/definitions/host-list'
         500:
           description: Internal server error
 
-  /nodes/{node_id}:
+  /hosts/{host_id}:
     get:
       tags:
         - inventory
-      summary: Retrieve OpenShift bare metal node information
-      operationId: GetNode
+      summary: Retrieve OpenShift bare metal host information
+      operationId: GetHost
       parameters:
         - in: path
-          name: node_id
-          description: The ID of the node to retrieve
+          name: host_id
+          description: The ID of the host to retrieve
           type: string
           format: uuid
           required: true
       responses:
         200:
-          description: Node information
+          description: Host information
           schema:
-            $ref: '#/definitions/node'
+            $ref: '#/definitions/host'
         404:
-          description: Node not found
+          description: Host not found
         500:
           description: Internal server error
 
     delete:
       tags:
         - inventory
-      summary: Deregister OpenShift bare metal node
-      operationId: DeregisterNode
+      summary: Deregister OpenShift bare metal host
+      operationId: DeregisterHost
       parameters:
         - in: path
-          name: node_id
-          description: The ID of the node to retrieve
+          name: host_id
+          description: The ID of the host to retrieve
           type: string
           required: true
       responses:
         204:
-          description: Node deregistered
+          description: Host deregistered
         400:
-          description: Node in use
+          description: Host in use
         404:
-          description: Node not found
+          description: Host not found
         500:
           description: Internal server error
 
-  /nodes/{node_id}/actions/debug:
+  /hosts/{host_id}/actions/debug:
     post:
       tags:
         - inventory
@@ -163,8 +163,8 @@ paths:
       operationId: SetDebugStep
       parameters:
         - in: path
-          name: node_id
-          description: The ID of the node to debug
+          name: host_id
+          description: The ID of the host to debug
           type: string
           format: uuid
           required: true
@@ -178,20 +178,20 @@ paths:
         200:
           description: Registered
         404:
-          description: Node not found
+          description: Host not found
         500:
           description: Internal server error
 
-  /nodes/{node_id}/actions/enable:
+  /hosts/{host_id}/actions/enable:
     post:
       tags:
         - inventory
-      summary: Enable a node for use
-      operationId: EnableNode
+      summary: Enable a host for use
+      operationId: EnableHost
       parameters:
         - in: path
-          name: node_id
-          description: The ID of the node to enable
+          name: host_id
+          description: The ID of the host to enable
           type: string
           format: uuid
           required: true
@@ -199,19 +199,19 @@ paths:
         204:
           description: Enabled
         404:
-          description: Node not found
+          description: Host not found
         500:
           description: Internal server error
 
     delete:
       tags:
         - inventory
-      summary: Disable a node for use
-      operationId: DisableNode
+      summary: Disable a host for use
+      operationId: DisableHost
       parameters:
         - in: path
-          name: node_id
-          description: The ID of the node to disable
+          name: host_id
+          description: The ID of the host to disable
           type: string
           format: uuid
           required: true
@@ -219,11 +219,11 @@ paths:
         204:
           description: Disabled
         404:
-          description: Node not found
+          description: Host not found
         500:
           description: Internal server error
 
-  /nodes/{node_id}/next-steps:
+  /hosts/{host_id}/next-steps:
     get:
       tags:
         - inventory
@@ -231,8 +231,8 @@ paths:
       operationId: GetNextSteps
       parameters:
         - in: path
-          name: node_id
-          description: ID of node
+          name: host_id
+          description: ID of host
           type: string
           format: uuid
           required: true
@@ -242,11 +242,11 @@ paths:
           schema:
             $ref: '#/definitions/steps'
         404:
-          description: Node not found
+          description: Host not found
         500:
           description: Internal server error
 
-  /nodes/{node_id}/next-steps/reply:
+  /hosts/{host_id}/next-steps/reply:
     post:
       tags:
         - inventory
@@ -254,8 +254,8 @@ paths:
       operationId: PostStepReply
       parameters:
         - in: path
-          name: node_id
-          description: ID of node
+          name: host_id
+          description: ID of host
           type: string
           format: uuid
           required: true
@@ -269,7 +269,7 @@ paths:
         400:
           description: Invalid input
         404:
-          description: Node not found
+          description: Host not found
         500:
           description: Internal server error
 
@@ -361,7 +361,7 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['image', 'node', 'cluster']
+        enum: ['image', 'host', 'cluster']
       id:
         type: string
         format: uuid
@@ -411,23 +411,23 @@ definitions:
     items:
       $ref: '#/definitions/image'
 
-  node-create-params:
+  host-create-params:
     type: object
     required:
       - namespace
-      - node_id
+      - host_id
     properties:
       namespace:
         type: string
-      node_id:
+      host_id:
         type: string
         format: uuid
 
-  node:
+  host:
     type: object
     allOf:
       - $ref: '#/definitions/base'
-      - $ref: '#/definitions/node-create-params'
+      - $ref: '#/definitions/host-create-params'
       - type: object
         required:
           - kind
@@ -506,10 +506,10 @@ definitions:
         items:
           type: string
         
-  connectivity-check-node:
+  connectivity-check-host:
     type: object
     properties:
-      node-id:
+      host-id:
         type: string
         format: uuid
       nics:
@@ -520,24 +520,24 @@ definitions:
   connectivity-check-params:
     type: array
     items:
-      $ref: '#/definitions/connectivity-check-node'
+      $ref: '#/definitions/connectivity-check-host'
 
-  node-list:
+  host-list:
     type: array
     items:
-      $ref: '#/definitions/node'
+      $ref: '#/definitions/host'
 
   cluster-create-params:
     type: object
     required:
       - name
-      - nodes
+      - hosts
     properties:
       name:
         type: string
       description:
         type: string
-      nodes:
+      hosts:
         type: array
         x-go-custom-tag: gorm:"type:varchar(64)[]"
         items:
@@ -703,10 +703,10 @@ definitions:
       successful:
         type: boolean
 
-  connectivity-remote-node:
+  connectivity-remote-host:
     type: object
     properties:
-      node-id:
+      host-id:
         type: string
         format: uuid
       l2-connectivity:
@@ -722,7 +722,7 @@ definitions:
   connectivity-report:
     type: object
     properties:
-      remote-nodes:
+      remote-hosts:
         type: array
         items:
-          $ref: '#/definitions/connectivity-remote-node'
+          $ref: '#/definitions/connectivity-remote-host'
