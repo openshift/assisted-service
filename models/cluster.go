@@ -7,6 +7,7 @@ package models
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -20,7 +21,14 @@ import (
 type Cluster struct {
 	Base
 
-	ClusterCreateParams
+	// description
+	Description string `json:"description,omitempty"`
+
+	// hosts
+	Hosts []*Host `json:"hosts" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
+
+	// name
+	Name string `json:"name,omitempty"`
 
 	// namespace
 	// Required: true
@@ -42,59 +50,70 @@ func (m *Cluster) UnmarshalJSON(raw []byte) error {
 	m.Base = aO0
 
 	// AO1
-	var aO1 ClusterCreateParams
-	if err := swag.ReadJSON(raw, &aO1); err != nil {
-		return err
-	}
-	m.ClusterCreateParams = aO1
+	var dataAO1 struct {
+		Description string `json:"description,omitempty"`
 
-	// AO2
-	var dataAO2 struct {
+		Hosts []*Host `json:"hosts"`
+
+		Name string `json:"name,omitempty"`
+
 		Namespace *string `json:"namespace"`
 
 		Status *string `json:"status"`
 	}
-	if err := swag.ReadJSON(raw, &dataAO2); err != nil {
+	if err := swag.ReadJSON(raw, &dataAO1); err != nil {
 		return err
 	}
 
-	m.Namespace = dataAO2.Namespace
+	m.Description = dataAO1.Description
 
-	m.Status = dataAO2.Status
+	m.Hosts = dataAO1.Hosts
+
+	m.Name = dataAO1.Name
+
+	m.Namespace = dataAO1.Namespace
+
+	m.Status = dataAO1.Status
 
 	return nil
 }
 
 // MarshalJSON marshals this object to a JSON structure
 func (m Cluster) MarshalJSON() ([]byte, error) {
-	_parts := make([][]byte, 0, 3)
+	_parts := make([][]byte, 0, 2)
 
 	aO0, err := swag.WriteJSON(m.Base)
 	if err != nil {
 		return nil, err
 	}
 	_parts = append(_parts, aO0)
+	var dataAO1 struct {
+		Description string `json:"description,omitempty"`
 
-	aO1, err := swag.WriteJSON(m.ClusterCreateParams)
-	if err != nil {
-		return nil, err
-	}
-	_parts = append(_parts, aO1)
-	var dataAO2 struct {
+		Hosts []*Host `json:"hosts"`
+
+		Name string `json:"name,omitempty"`
+
 		Namespace *string `json:"namespace"`
 
 		Status *string `json:"status"`
 	}
 
-	dataAO2.Namespace = m.Namespace
+	dataAO1.Description = m.Description
 
-	dataAO2.Status = m.Status
+	dataAO1.Hosts = m.Hosts
 
-	jsonDataAO2, errAO2 := swag.WriteJSON(dataAO2)
-	if errAO2 != nil {
-		return nil, errAO2
+	dataAO1.Name = m.Name
+
+	dataAO1.Namespace = m.Namespace
+
+	dataAO1.Status = m.Status
+
+	jsonDataAO1, errAO1 := swag.WriteJSON(dataAO1)
+	if errAO1 != nil {
+		return nil, errAO1
 	}
-	_parts = append(_parts, jsonDataAO2)
+	_parts = append(_parts, jsonDataAO1)
 	return swag.ConcatJSON(_parts...), nil
 }
 
@@ -106,8 +125,8 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	if err := m.Base.Validate(formats); err != nil {
 		res = append(res, err)
 	}
-	// validation for a type composition with ClusterCreateParams
-	if err := m.ClusterCreateParams.Validate(formats); err != nil {
+
+	if err := m.validateHosts(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -122,6 +141,31 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Cluster) validateHosts(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Hosts) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Hosts); i++ {
+		if swag.IsZero(m.Hosts[i]) { // not required
+			continue
+		}
+
+		if m.Hosts[i] != nil {
+			if err := m.Hosts[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("hosts" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

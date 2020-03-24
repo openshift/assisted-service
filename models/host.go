@@ -34,6 +34,10 @@ type Host struct {
 	// Required: true
 	HardwareInfo *Introspection `json:"hardware_info"`
 
+	// role
+	// Enum: [undefined master worker]
+	Role string `json:"role,omitempty"`
+
 	// status
 	// Required: true
 	// Enum: [discovering known disconnected insufficient disabled installing installed]
@@ -68,6 +72,8 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 
 		HardwareInfo *Introspection `json:"hardware_info"`
 
+		Role string `json:"role,omitempty"`
+
 		Status *string `json:"status"`
 
 		StatusInfo *string `json:"status_info"`
@@ -81,6 +87,8 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 	m.Connectivity = dataAO2.Connectivity
 
 	m.HardwareInfo = dataAO2.HardwareInfo
+
+	m.Role = dataAO2.Role
 
 	m.Status = dataAO2.Status
 
@@ -111,6 +119,8 @@ func (m Host) MarshalJSON() ([]byte, error) {
 
 		HardwareInfo *Introspection `json:"hardware_info"`
 
+		Role string `json:"role,omitempty"`
+
 		Status *string `json:"status"`
 
 		StatusInfo *string `json:"status_info"`
@@ -121,6 +131,8 @@ func (m Host) MarshalJSON() ([]byte, error) {
 	dataAO2.Connectivity = m.Connectivity
 
 	dataAO2.HardwareInfo = m.HardwareInfo
+
+	dataAO2.Role = m.Role
 
 	dataAO2.Status = m.Status
 
@@ -156,6 +168,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateHardwareInfo(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRole(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -217,6 +233,40 @@ func (m *Host) validateHardwareInfo(formats strfmt.Registry) error {
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+var hostTypeRolePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["undefined","master","worker"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		hostTypeRolePropEnum = append(hostTypeRolePropEnum, v)
+	}
+}
+
+// property enum
+func (m *Host) validateRoleEnum(path, location string, value string) error {
+	if err := validate.Enum(path, location, value, hostTypeRolePropEnum); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Host) validateRole(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Role) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateRoleEnum("role", "body", m.Role); err != nil {
+		return err
 	}
 
 	return nil

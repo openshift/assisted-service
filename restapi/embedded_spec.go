@@ -595,15 +595,26 @@ func init() {
           "$ref": "#/definitions/base"
         },
         {
-          "$ref": "#/definitions/cluster-create-params"
-        },
-        {
           "type": "object",
           "required": [
             "status",
             "namespace"
           ],
           "properties": {
+            "description": {
+              "type": "string"
+            },
+            "hosts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "$ref": "#/definitions/host"
+              },
+              "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+            },
+            "name": {
+              "type": "string"
+            },
             "namespace": {
               "type": "string"
             },
@@ -792,6 +803,14 @@ func init() {
             },
             "hardware_info": {
               "$ref": "#/definitions/introspection"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "undefined",
+                "master",
+                "worker"
+              ]
             },
             "status": {
               "type": "string",
@@ -1657,15 +1676,26 @@ func init() {
           "$ref": "#/definitions/base"
         },
         {
-          "$ref": "#/definitions/cluster-create-params"
-        },
-        {
           "type": "object",
           "required": [
             "status",
             "namespace"
           ],
           "properties": {
+            "description": {
+              "type": "string"
+            },
+            "hosts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "$ref": "#/definitions/host"
+              },
+              "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+            },
+            "name": {
+              "type": "string"
+            },
             "namespace": {
               "type": "string"
             },
@@ -1841,6 +1871,14 @@ func init() {
             },
             "hardware_info": {
               "$ref": "#/definitions/introspection"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "undefined",
+                "master",
+                "worker"
+              ]
             },
             "status": {
               "type": "string",
