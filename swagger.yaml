@@ -455,6 +455,9 @@ definitions:
             $ref: '#/definitions/connectivity-report'
           hardware_info:
             $ref: '#/definitions/introspection'
+          role:
+            type: string
+            enum: ['undefined', 'master', 'worker']
 
   steps:
     type: array
@@ -554,17 +557,26 @@ definitions:
     type: object
     allOf:
       - $ref: '#/definitions/base'
-      - $ref: '#/definitions/cluster-create-params'
       - type: object
         required:
           - status
           - namespace
         properties:
+          name:
+            type: string
+          description:
+            type: string
           namespace:
             type: string
           status:
             type: string
             enum: ['creating', 'ready', 'error']
+          hosts:
+            x-go-custom-tag: gorm:"foreignkey:ClusterID;association_foreignkey:ID"
+            type: array
+            items:
+              type: object
+              $ref: '#/definitions/host'
 
   cluster-list:
     type: array
