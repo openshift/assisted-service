@@ -3,8 +3,6 @@ package subsystem
 import (
 	"context"
 
-	"github.com/go-openapi/strfmt"
-
 	"github.com/filanov/bm-inventory/client/inventory"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/swag"
@@ -20,13 +18,21 @@ var _ = Describe("Cluster tests", func() {
 	})
 
 	It("cluster CRUD", func() {
+		host, err := bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
+			NewHostParams: &models.HostCreateParams{
+				HostID:    strToUUID(uuid.New().String()),
+				Namespace: swag.String("my namespace"),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
 		cluster, err := bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Description: "my cluster",
 				Name:        swag.String("test cluster"),
 				Hosts: []*models.ClusterCreateParamsHostsItems0{
 					{
-						ID:   strfmt.UUID(uuid.New().String()),
+						ID:   *host.GetPayload().ID,
 						Role: "master",
 					},
 				},
@@ -34,8 +40,11 @@ var _ = Describe("Cluster tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = bmclient.Inventory.GetCluster(ctx, &inventory.GetClusterParams{ClusterID: cluster.GetPayload().ID.String()})
+		getReply, err := bmclient.Inventory.GetCluster(ctx, &inventory.GetClusterParams{ClusterID: cluster.GetPayload().ID.String()})
 		Expect(err).NotTo(HaveOccurred())
+
+		Expect(getReply.GetPayload().Hosts[0].ClusterID).Should(Equal(*cluster.GetPayload().ID))
+		Expect(getReply.GetPayload().Hosts[0].Role).Should(Equal("master"))
 
 		list, err := bmclient.Inventory.ListClusters(ctx, &inventory.ListClustersParams{})
 		Expect(err).NotTo(HaveOccurred())

@@ -250,7 +250,15 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params invento
 	}
 	// TODO: validate that we 3 master hosts and that they are from the same namespace
 	if params.NewClusterParams != nil {
-		cluster.ClusterCreateParams = *params.NewClusterParams
+		cluster.Name = swag.StringValue(params.NewClusterParams.Name)
+		cluster.Description = params.NewClusterParams.Description
+	}
+
+	for _, host := range params.NewClusterParams.Hosts {
+		if err := b.db.Model(&models.Host{}).Where("id = ?", host.ID).Updates(&models.Host{ClusterID: id, Role: host.Role}).Error; err != nil {
+			logrus.WithError(err).Error("failed to set node %s role", host.ID)
+			return inventory.NewRegisterClusterInternalServerError()
+		}
 	}
 
 	if err := b.db.Create(&cluster).Error; err != nil {
@@ -298,7 +306,7 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inven
 
 func (b *bareMetalInventory) ListClusters(ctx context.Context, params inventory.ListClustersParams) middleware.Responder {
 	var clusters []*models.Cluster
-	if err := b.db.Find(&clusters).Error; err != nil {
+	if err := b.db.Preload("Hosts").Find(&clusters).Error; err != nil {
 		logrus.WithError(err).Error("failed to list clusters")
 		return inventory.NewListClustersInternalServerError()
 	}
@@ -308,7 +316,7 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params inventory.
 
 func (b *bareMetalInventory) GetCluster(ctx context.Context, params inventory.GetClusterParams) middleware.Responder {
 	var cluster models.Cluster
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		// TODO: check for the right error
 		return inventory.NewGetClusterNotFound()
 	}
