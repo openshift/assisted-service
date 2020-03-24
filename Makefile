@@ -89,13 +89,13 @@ test:
 	INVENTORY=$(shell minikube service bm-inventory --url| sed 's/http:\/\///g') \
 		DB_HOST=$(shell minikube service postgres --url| sed 's/http:\/\///g' | cut -d ":" -f 1) \
 		DB_PORT=$(shell minikube service postgres --url| sed 's/http:\/\///g' | cut -d ":" -f 2) \
-		go test ./subsystem/... -count=1
+		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS}
 
 .PHONY: subsystem
 subsystem: deploy-all subsystem-run
 
 subsystem-clean:
-	kubectl get pod -o name | grep create-image | xargs kubectl delete
+	kubectl get pod -o name | grep create-image | xargs kubectl delete 1> /dev/null ; true
 
 clear-deployment:
 	kubectl delete deployments.apps bm-inventory 1> /dev/null ; true
