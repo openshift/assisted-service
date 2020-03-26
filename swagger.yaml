@@ -604,9 +604,6 @@ definitions:
           - status
           - namespace
         properties:
-          id:
-            type: string
-            format: uuid
           name:
             type: string
           openshift_version:
