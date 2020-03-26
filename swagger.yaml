@@ -294,7 +294,7 @@ paths:
           description: New cluster parameters
           required: true
           schema:
-            $ref: '#/definitions/cluster-create-params'
+            $ref: '#/definitions/cluster-update-params'
       responses:
         201:
           description: Registered cluster
@@ -302,6 +302,8 @@ paths:
             $ref: '#/definitions/cluster'
         400:
           description: Invalid input
+        404:
+          description: Cluster not found
         409:
           description: Invalid state
         500:
@@ -335,7 +337,8 @@ paths:
       summary: Download OpenShift per-cluster discovery ISO
       operationId: DownloadClusterISO
       produces:
-        - application/vnd.efi.iso
+        # application/vnd.efi.iso is not supported
+        - application/octet-stream
       parameters:
         - in: path
           name: cluster_id
@@ -388,6 +391,8 @@ paths:
             $ref: '#/definitions/cluster'
         400:
           description: Invalid input
+        404:
+          description: Cluster not found
         409:
           description: Invalid state
         500:
@@ -415,12 +420,13 @@ definitions:
   host-create-params:
     type: object
     required:
-      - namespace
       - host_id
+      - cluster_id
     properties:
-      namespace:
-        type: string
       host_id:
+        type: string
+        format: uuid
+      cluster_id:
         type: string
         format: uuid
 
@@ -436,7 +442,6 @@ definitions:
           - status_info
           - connectivity
           - hardware_info
-          - updated_at
         properties:
           status:
             type: string
@@ -450,9 +455,6 @@ definitions:
               - installed
           status_info:
             type: string
-          cluster_id:
-            type: string
-            format: uuid
           connectivity:
             $ref: '#/definitions/connectivity-report'
           hardware_info:
@@ -463,6 +465,7 @@ definitions:
           updated_at:
             type: string
             format: date-time
+            x-go-custom-tag: gorm:"type:datetime"
 
   steps:
     type: array
@@ -602,7 +605,6 @@ definitions:
       - type: object
         required:
           - status
-          - namespace
         properties:
           name:
             type: string
@@ -635,11 +637,15 @@ definitions:
           updated_at:
             type: string
             format: date-time
+            x-go-custom-tag: gorm:"type:datetime"
           install_started_at:
             type: string
             format: date-time
+            x-go-custom-tag: gorm:"type:datetime;default:0"
           install_completed_at:
             type: string
+            format: date-time
+            x-go-custom-tag: gorm:"type:datetime;default:0"
 
   cluster-list:
     type: array
