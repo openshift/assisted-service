@@ -14,15 +14,27 @@ import (
 
 var _ = Describe("Host tests", func() {
 	ctx := context.Background()
+	var cluster *inventory.RegisterClusterCreated
+
 	AfterEach(func() {
 		clearDB()
+	})
+
+	BeforeEach(func() {
+		var err error
+		cluster, err = bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name: swag.String("test cluster"),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("host CRUD", func() {
 		host, err := bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
 			NewHostParams: &models.HostCreateParams{
 				HostID:    strToUUID(uuid.New().String()),
-				Namespace: swag.String("my namespace"),
+				ClusterID: cluster.GetPayload().ID,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -49,7 +61,7 @@ var _ = Describe("Host tests", func() {
 		host, err := bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
 			NewHostParams: &models.HostCreateParams{
 				HostID:    strToUUID(uuid.New().String()),
-				Namespace: swag.String("my namespace"),
+				ClusterID: cluster.GetPayload().ID,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -62,7 +74,7 @@ var _ = Describe("Host tests", func() {
 		host, err := bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
 			NewHostParams: &models.HostCreateParams{
 				HostID:    strToUUID(uuid.New().String()),
-				Namespace: swag.String("my namespace"),
+				ClusterID: cluster.GetPayload().ID,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -89,7 +101,7 @@ var _ = Describe("Host tests", func() {
 		host1, err := bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
 			NewHostParams: &models.HostCreateParams{
 				HostID:    strToUUID(uuid.New().String()),
-				Namespace: swag.String("my namespace"),
+				ClusterID: cluster.GetPayload().ID,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -97,7 +109,7 @@ var _ = Describe("Host tests", func() {
 		host2, err := bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
 			NewHostParams: &models.HostCreateParams{
 				HostID:    strToUUID(uuid.New().String()),
-				Namespace: swag.String("my namespace"),
+				ClusterID: cluster.GetPayload().ID,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

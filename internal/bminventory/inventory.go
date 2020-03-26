@@ -3,6 +3,7 @@ package bminventory
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -35,14 +36,13 @@ const (
 )
 
 const (
-	HostStatusDisabled     = "disabled"
-	HostStatusInstalling   = "installing"
-	HostStatusInstalled    = "installed"
-	HostStatusDiscovering  = "discovering"
+	HostStatusDisabled    = "disabled"
+	HostStatusInstalling  = "installing"
+	HostStatusInstalled   = "installed"
+	HostStatusDiscovering = "discovering"
 )
 
 const (
-	ResourceKindImage   = "image"
 	ResourceKindHost    = "host"
 	ResourceKindCluster = "cluster"
 )
@@ -105,50 +105,17 @@ func buildHrefURI(base, id string) *strfmt.URI {
 	return strToURI(fmt.Sprintf("%s/%ss/%s", baseHref, base, id))
 }
 
-func (b *bareMetalInventory) CreateImage(ctx context.Context, params inventory.CreateImageParams) middleware.Responder {
-	id := strfmt.UUID(uuid.New().String())
-	image := &models.Image{
-		Base: models.Base{
-			Href: buildHrefURI(ResourceKindImage, id.String()),
-			ID:   &id,
-			Kind: swag.String(ResourceKindImage),
-		},
-		Status: swag.String(ImageStatusCreating),
-	}
-
-	if params.NewImageParams != nil {
-		image.ImageCreateParams = *params.NewImageParams
-	}
-
-	logrus.Info("new image create request", image)
-	if err := b.createImageJob(ctx, id.String()); err != nil {
-		logrus.WithError(err).Error("failed to run job")
-		return inventory.NewCreateImageInternalServerError()
-	}
-
-	if err := b.db.Create(image).Error; err != nil {
-		logrus.WithError(err).Error("failed to create image")
-		return inventory.NewCreateImageInternalServerError()
-	}
-
-	// TODO: should be async
-	if err := b.monitorImageBuild(ctx, image); err != nil {
-		return inventory.NewCreateImageInternalServerError()
-	}
-	return inventory.NewCreateImageCreated().WithPayload(image)
-}
-
-func (b *bareMetalInventory) monitorImageBuild(ctx context.Context, image *models.Image) error {
+func (b *bareMetalInventory) monitorImageBuild(ctx context.Context, id string) error {
 	var job batch.Job
 	b.kube.Get(ctx, client.ObjectKey{
 		Namespace: "default",
-		Name:      fmt.Sprintf("create-image-%s", image.ID.String()),
+		Name:      fmt.Sprintf("create-image-%s", id),
 	}, &job)
 
 	for job.Status.Succeeded == 0 && job.Status.Failed == 0 {
 		b.kube.Get(ctx, client.ObjectKey{
 			Namespace: "default",
-			Name:      fmt.Sprintf("create-image-%s", image.ID.String()),
+			Name:      fmt.Sprintf("create-image-%s", id),
 		}, &job)
 	}
 
@@ -161,14 +128,6 @@ func (b *bareMetalInventory) monitorImageBuild(ctx context.Context, image *model
 		logrus.WithError(err).Error("failed to delete job")
 	}
 
-	// TODO: reuse target name
-	// TODO: use standard path or net/url package
-	image.DownloadURL = strfmt.URI(fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket, fmt.Sprintf("installer-image-%s", image.ID)))
-	image.Status = swag.String(ImageStatusReady)
-
-	if err := b.db.Model(image).Updates(image).Where("id = ?", image.ID.String()).Error; err != nil {
-		logrus.WithError(err).Error("failed to update image")
-	}
 	return nil
 }
 
@@ -226,25 +185,8 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, id string) erro
 	return nil
 }
 
-func (b *bareMetalInventory) GetImage(ctx context.Context, params inventory.GetImageParams) middleware.Responder {
-	var image models.Image
-	if err := b.db.First(&image, "id = (?)", params.ImageID).Error; err != nil {
-		logrus.WithError(err).Errorf("failed to find image %s", params.ImageID)
-		return inventory.NewGetImageNotFound()
-	}
-	return inventory.NewGetImageOK().WithPayload(&image)
-}
-
-func (b *bareMetalInventory) ListImages(ctx context.Context, params inventory.ListImagesParams) middleware.Responder {
-	var images []*models.Image
-	if err := b.db.Find(&images).Error; err != nil {
-		return inventory.NewListImagesInternalServerError()
-	}
-	return inventory.NewListImagesOK().WithPayload(images)
-}
-
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {
-	logrus.Info("Register cluster:", params.NewClusterParams)
+	logrus.Infof("Register cluster: ", swag.StringValue(params.NewClusterParams.Name))
 	id := strfmt.UUID(uuid.New().String())
 	cluster := models.Cluster{
 		Base: models.Base{
@@ -252,25 +194,20 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params invento
 			ID:   &id,
 			Kind: swag.String(ResourceKindCluster),
 		},
-		Namespace: nil, // TODO: get namespace from the host
-		Status:    swag.String(ClusterStatusReady),
-	}
-	// TODO: validate that we 3 master hosts and that they are from the same namespace
-	if params.NewClusterParams != nil {
-		cluster.Name = swag.StringValue(params.NewClusterParams.Name)
-		cluster.Description = params.NewClusterParams.Description
-	}
-
-	for _, host := range params.NewClusterParams.Hosts {
-		if err := b.db.Model(&models.Host{}).Where("id = ?", host.ID).Updates(&models.Host{ClusterID: id, Role: host.Role}).Error; err != nil {
-			logrus.WithError(err).Error("failed to set node %s role", host.ID)
-			return inventory.NewRegisterClusterInternalServerError()
-		}
+		APIVip:           params.NewClusterParams.APIVip,
+		BaseDNSDomain:    params.NewClusterParams.BaseDNSDomain,
+		DNSVip:           params.NewClusterParams.DNSVip,
+		IngressVip:       params.NewClusterParams.IngressVip,
+		Name:             swag.StringValue(params.NewClusterParams.Name),
+		OpenshiftVersion: params.NewClusterParams.OpenshiftVersion,
+		SSHPublicKey:     params.NewClusterParams.SSHPublicKey,
+		Status:           swag.String(ClusterStatusReady),
 	}
 
-	if err := b.db.Create(&cluster).Error; err != nil {
+	if err := b.db.Preload("Hosts").Create(&cluster).Error; err != nil {
 		return inventory.NewRegisterClusterInternalServerError()
 	}
+
 	return inventory.NewRegisterClusterCreated().WithPayload(&cluster)
 }
 
@@ -311,6 +248,99 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inven
 	return inventory.NewDeregisterClusterNoContent()
 }
 
+func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inventory.DownloadClusterISOParams) middleware.Responder {
+	if err := b.createImageJob(ctx, params.ClusterID); err != nil {
+		logrus.WithError(err).Error("failed to create image job")
+		return inventory.NewDownloadClusterISOInternalServerError()
+	}
+
+	if err := b.monitorImageBuild(ctx, params.ClusterID); err != nil {
+		logrus.WithError(err).Error("image creation failed")
+		return inventory.NewDownloadClusterISOInternalServerError()
+	}
+
+	imageURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
+		fmt.Sprintf("installer-image-%s", params.ClusterID))
+	logrus.Info("Image URL: ", imageURL)
+	resp, err := http.Get(imageURL)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get image")
+		return inventory.NewDownloadClusterISOInternalServerError()
+	}
+
+	return inventory.NewDownloadClusterISOOK().WithPayload(resp.Body)
+}
+
+func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventory.InstallClusterParams) middleware.Responder {
+	var cluster models.Cluster
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		return inventory.NewInstallClusterNotFound()
+	}
+	return inventory.NewInstallClusterOK().WithPayload(&cluster)
+}
+
+func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory.UpdateClusterParams) middleware.Responder {
+	var cluster models.Cluster
+	logrus.Info("update cluster ", params.ClusterID)
+
+	tx := b.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Error("update cluster failed")
+			tx.Rollback()
+		}
+	}()
+
+	if tx.Error != nil {
+		logrus.WithError(tx.Error).Error("failed to start transaction")
+	}
+
+	if err := tx.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		logrus.WithError(err).Error("failed to get cluster: %s", params.ClusterID)
+		tx.Rollback()
+		return inventory.NewUpdateClusterNotFound()
+	}
+
+	cluster.Name = params.ClusterUpdateParams.Name
+	cluster.APIVip = params.ClusterUpdateParams.APIVip
+	cluster.BaseDNSDomain = params.ClusterUpdateParams.BaseDNSDomain
+	cluster.DNSVip = params.ClusterUpdateParams.DNSVip
+	cluster.IngressVip = params.ClusterUpdateParams.IngressVip
+	cluster.OpenshiftVersion = params.ClusterUpdateParams.OpenshiftVersion
+	cluster.SSHPublicKey = params.ClusterUpdateParams.SSHPublicKey
+
+	if err := tx.Model(&cluster).Update(cluster).Error; err != nil {
+		tx.Rollback()
+		logrus.WithError(err).Error("failed to update cluster: %s", params.ClusterID)
+		return inventory.NewUpdateClusterInternalServerError()
+	}
+
+	for i := range params.ClusterUpdateParams.HostsRoles {
+		logrus.Infof("Update host %s to role: %s", params.ClusterUpdateParams.HostsRoles[i].ID,
+			params.ClusterUpdateParams.HostsRoles[i].Role)
+		reply := tx.Model(&models.Host{}).Where("id = ?", params.ClusterUpdateParams.HostsRoles[i].ID).
+			Update("role", params.ClusterUpdateParams.HostsRoles[i].Role)
+		if reply.Error != nil || reply.RowsAffected == 0 {
+			tx.Rollback()
+			logrus.WithError(reply.Error).Error("failed to update host: ",
+				params.ClusterUpdateParams.HostsRoles[i].ID)
+			return inventory.NewUpdateClusterNotFound()
+		}
+	}
+
+	if tx.Commit().Error != nil {
+		tx.Rollback()
+		return inventory.NewUpdateClusterInternalServerError()
+	}
+
+	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		logrus.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
+		return inventory.NewUpdateClusterInternalServerError()
+	}
+
+	return inventory.NewUpdateClusterCreated().WithPayload(&cluster)
+}
+
 func (b *bareMetalInventory) ListClusters(ctx context.Context, params inventory.ListClustersParams) middleware.Responder {
 	var clusters []*models.Cluster
 	if err := b.db.Preload("Hosts").Find(&clusters).Error; err != nil {
@@ -340,6 +370,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.
 		Status: swag.String("discovering"),
 	}
 
+	// TODO: validate that the cluster exists
 	host.HostCreateParams = *params.NewHostParams
 	logrus.Infof(" register host: %+v", host)
 

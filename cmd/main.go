@@ -9,6 +9,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/bminventory"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/restapi"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -19,6 +20,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
+
+func init() {
+	strfmt.MarshalFormat = strfmt.ISO8601LocalTime
+}
 
 var Options struct {
 	BMConfig bminventory.Config
@@ -38,7 +43,7 @@ func main() {
 	logrus.Println("Starting bm service")
 
 	db, err := gorm.Open("mysql",
-		fmt.Sprintf("admin:admin@tcp(%s:%s)/installer?charset=utf8&parseTime=True",
+		fmt.Sprintf("admin:admin@tcp(%s:%s)/installer?charset=utf8&parseTime=True&loc=Local",
 			Options.DBHost, Options.DBPort))
 
 	if err != nil {
@@ -54,7 +59,7 @@ func main() {
 		log.Fatal("failed to create client:", err)
 	}
 
-	if err := db.AutoMigrate(&models.Image{}, &models.Host{}, &models.Cluster{}).Error; err != nil {
+	if err := db.AutoMigrate(&models.Host{}, &models.Cluster{}).Error; err != nil {
 		logrus.Fatal("failed to auto migrate, ", err)
 	}
 

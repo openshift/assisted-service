@@ -6,7 +6,6 @@ import (
 )
 
 func clearDB() {
-	db.Delete(&models.Image{})
 	db.Delete(&models.Host{})
 	db.Delete(&models.Cluster{})
 }

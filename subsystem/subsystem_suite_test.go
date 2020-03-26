@@ -40,7 +40,7 @@ func init() {
 	})
 
 	db, err = gorm.Open("mysql",
-		fmt.Sprintf("admin:admin@tcp(%s:%s)/installer?charset=utf8&parseTime=True",
+		fmt.Sprintf("admin:admin@tcp(%s:%s)/installer?charset=utf8&parseTime=True&loc=Local",
 			Options.DBHost, Options.DBPort))
 	if err != nil {
 		logrus.Fatal("Fail to connect to DB, ", err)
