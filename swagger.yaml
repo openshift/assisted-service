@@ -18,63 +18,6 @@ produces:
 
 
 paths:
-  /images:
-    post:
-      tags:
-        - inventory
-      summary: Create an OpenShift bare metal cluster-assist installation image
-      operationId: CreateImage
-      parameters:
-        - in: body
-          name: new-image-params
-          description: New image parameters
-          required: true
-          schema:
-            $ref: '#/definitions/image-create-params'
-      responses:
-        201:
-          description: Created image
-          schema:
-            $ref: '#/definitions/image'
-        400:
-          description: Invalid input
-        500:
-          description: Internal server error
-    get:
-      tags:
-        - inventory
-      summary: List installation images
-      operationId: ListImages
-      responses:
-        200:
-          description: Image list
-          schema:
-            $ref: '#/definitions/image-list'
-        500:
-          description: Internal server error
-
-  /images/{image_id}:
-    get:
-      tags:
-        - inventory
-      summary: Retrieve installation image information
-      operationId: GetImage
-      parameters:
-        - in: path
-          name: image_id
-          description: The ID of the image to retrieve
-          type: string
-          required: true
-      responses:
-        200:
-          description: Image information
-          schema:
-            $ref: '#/definitions/image'
-        404:
-          description: Image not found
-        500:
-          description: Internal server error
-
   /hosts:
     post:
       tags:
@@ -281,7 +224,7 @@ paths:
     post:
       tags:
         - inventory
-      summary: Register a new OpenShift bare metal cluster
+      summary: Create a new OpenShift bare metal cluster definition
       operationId: RegisterCluster
       parameters:
         - in: body
@@ -335,10 +278,39 @@ paths:
         500:
           description: Internal server error
 
+    patch:
+      tags:
+        - inventory
+      summary: Update an OpenShift bare metal cluster definition
+      operationId: UpdateCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to retrieve
+          type: string
+          required: true
+        - in: body
+          name: cluster-update-params
+          description: New cluster parameters
+          required: true
+          schema:
+            $ref: '#/definitions/cluster-create-params'
+      responses:
+        201:
+          description: Registered cluster
+          schema:
+            $ref: '#/definitions/cluster'
+        400:
+          description: Invalid input
+        409:
+          description: Invalid state
+        500:
+          description: Internal server error
+
     delete:
       tags:
         - inventory
-      summary: Deregister OpenShift bare metal cluster
+      summary: Delete an OpenShift bare metal cluster definition
       operationId: DeregisterCluster
       parameters:
         - in: path
@@ -351,9 +323,75 @@ paths:
           description: Cluster deregistered
         404:
           description: Cluster not found
+        409:
+          description: Invalid state
         500:
           description: Internal server error
 
+  /clusters/{cluster_id}/actions/download:
+    get:
+      tags:
+        - inventory
+      summary: Download OpenShift per-cluster discovery ISO
+      operationId: DownloadClusterISO
+      produces:
+        - application/vnd.efi.iso
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster whose ISO to download
+          type: string
+          required: true
+        - in: query
+          name: proxy_ip
+          description: The IP address of the HTTP proxy that agents should use to access the discovery service
+          type: string
+          format: hostname
+        - in: query
+          name: proxy_port
+          description: The port of the HTTP proxy
+          type: integer
+          minimum: 0
+          maximum: 65535
+        - in: query
+          name: ssh_public_key
+          description: SSH public key for debugging the installation
+          type: string
+      responses:
+        200:
+          description: The ISO file
+          schema:
+            type: file
+        400:
+          description: Invalid parameters
+        404:
+          description: Cluster not found
+        500:
+          description: Internal server error
+
+  /clusters/{cluster_id}/actions/install:
+    post:
+      tags:
+        - inventory
+      summary: Install a new OpenShift bare metal cluster
+      operationId: InstallCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to begin installing
+          type: string
+          required: true
+      responses:
+        200:
+          description: Installing cluster
+          schema:
+            $ref: '#/definitions/cluster'
+        400:
+          description: Invalid input
+        409:
+          description: Invalid state
+        500:
+          description: Internal server error
 
 definitions:
   base:
@@ -373,47 +411,6 @@ definitions:
       href:
         type: string
         format: uri
-
-  image-create-params:
-    type: object
-    required:
-      - name
-      - namespace
-    properties:
-      name:
-        type: string
-      description:
-        type: string
-      namespace:
-        type: string
-      proxy_ip:
-        type: string
-        format: hostname
-      proxy_port:
-        type: integer
-        minimum: 0
-        maximum: 65535
-
-  image:
-    type: object
-    allOf:
-      - $ref: '#/definitions/base'
-      - $ref: '#/definitions/image-create-params'
-      - type: object
-        required:
-          - status
-        properties:
-          status:
-            type: string
-            enum: ['creating', 'ready', 'error']
-          download_url:
-            type: string
-            format: uri
-
-  image-list:
-    type: array
-    items:
-      $ref: '#/definitions/image'
 
   host-create-params:
     type: object
@@ -439,6 +436,7 @@ definitions:
           - status_info
           - connectivity
           - hardware_info
+          - updated_at
         properties:
           status:
             type: string
@@ -462,6 +460,9 @@ definitions:
           role:
             type: string
             enum: ['undefined', 'master', 'worker']
+          updated_at:
+            type: string
+            format: date-time
 
   steps:
     type: array
@@ -512,7 +513,7 @@ definitions:
         type: array
         items:
           type: string
-        
+
   connectivity-check-host:
     type: object
     properties:
@@ -538,13 +539,50 @@ definitions:
     type: object
     required:
       - name
-      - hosts
     properties:
       name:
         type: string
-      description:
+      openshift_version:
         type: string
-      hosts:
+        pattern: '^4\.\d$'
+      base_dns_domain:
+        type: string
+      api_vip:
+        type: string
+        format: hostname
+      dns_vip:
+        type: string
+        format: hostname
+      ingress_vip:
+        type: string
+        format: hostname
+      ssh_public_key:
+        type: string
+        description: SSH public key for debugging OpenShift nodes
+
+  cluster-update-params:
+    type: object
+    properties:
+      name:
+        type: string
+      openshift_version:
+        type: string
+        pattern: '^4\.\d$'
+      base_dns_domain:
+        type: string
+      api_vip:
+        type: string
+        format: hostname
+      dns_vip:
+        type: string
+        format: hostname
+      ingress_vip:
+        type: string
+        format: hostname
+      ssh_public_key:
+        type: string
+        description: SSH public key for debugging OpenShift nodes
+      hosts_roles:
         type: array
         x-go-custom-tag: gorm:"type:varchar(64)[]"
         items:
@@ -566,12 +604,28 @@ definitions:
           - status
           - namespace
         properties:
+          id:
+            type: string
+            format: uuid
           name:
             type: string
-          description:
+          openshift_version:
             type: string
-          namespace:
+            pattern: '^4\.\d$'
+          base_dns_domain:
             type: string
+          api_vip:
+            type: string
+            format: hostname
+          dns_vip:
+            type: string
+            format: hostname
+          ingress_vip:
+            type: string
+            format: hostname
+          ssh_public_key:
+            type: string
+            description: SSH public key for debugging OpenShift nodes
           status:
             type: string
             enum: ['creating', 'ready', 'error']
@@ -581,6 +635,14 @@ definitions:
             items:
               type: object
               $ref: '#/definitions/host'
+          updated_at:
+            type: string
+            format: date-time
+          install_started_at:
+            type: string
+            format: date-time
+          install_completed_at:
+            type: string
 
   cluster-list:
     type: array
