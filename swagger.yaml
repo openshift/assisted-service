@@ -538,16 +538,21 @@ definitions:
     enum:
       - hardaware-info
       - connectivity-check
-      - debug
+      - execute
 
   step:
     type: object
     properties:
       step-type:
         $ref: '#/definitions/step-type'
-      data:
+      step-id:
         type: string
-        format: json
+      command:
+        type: string
+      args:
+        type: array
+        items:
+          type: string
 
   steps-reply:
     type: array
@@ -557,8 +562,8 @@ definitions:
   step-reply:
     type: object
     properties:
-      step-type:
-        $ref: '#/definitions/step-type'
+      step-id:
+        type: string
       exit-code:
         type: integer
       output:
