@@ -21,23 +21,50 @@ import (
 type Cluster struct {
 	Base
 
-	// description
-	Description string `json:"description,omitempty"`
+	// api vip
+	// Format: hostname
+	APIVip strfmt.Hostname `json:"api_vip,omitempty"`
+
+	// base dns domain
+	BaseDNSDomain string `json:"base_dns_domain,omitempty"`
+
+	// dns vip
+	// Format: hostname
+	DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
 
 	// hosts
 	Hosts []*Host `json:"hosts" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
 
+	// ingress vip
+	// Format: hostname
+	IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
+
+	// install completed at
+	// Format: date-time
+	InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty" gorm:"type:datetime;default:0"`
+
+	// install started at
+	// Format: date-time
+	InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty" gorm:"type:datetime;default:0"`
+
 	// name
 	Name string `json:"name,omitempty"`
 
-	// namespace
-	// Required: true
-	Namespace *string `json:"namespace"`
+	// openshift version
+	// Pattern: ^4\.\d$
+	OpenshiftVersion string `json:"openshift_version,omitempty"`
+
+	// SSH public key for debugging OpenShift nodes
+	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 
 	// status
 	// Required: true
 	// Enum: [creating ready error]
 	Status *string `json:"status"`
+
+	// updated at
+	// Format: date-time
+	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:datetime"`
 }
 
 // UnmarshalJSON unmarshals this object from a JSON structure
@@ -51,29 +78,57 @@ func (m *Cluster) UnmarshalJSON(raw []byte) error {
 
 	// AO1
 	var dataAO1 struct {
-		Description string `json:"description,omitempty"`
+		APIVip strfmt.Hostname `json:"api_vip,omitempty"`
+
+		BaseDNSDomain string `json:"base_dns_domain,omitempty"`
+
+		DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
 
 		Hosts []*Host `json:"hosts"`
 
+		IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
+
+		InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty"`
+
+		InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty"`
+
 		Name string `json:"name,omitempty"`
 
-		Namespace *string `json:"namespace"`
+		OpenshiftVersion string `json:"openshift_version,omitempty"`
+
+		SSHPublicKey string `json:"ssh_public_key,omitempty"`
 
 		Status *string `json:"status"`
+
+		UpdatedAt strfmt.DateTime `json:"updated_at,omitempty"`
 	}
 	if err := swag.ReadJSON(raw, &dataAO1); err != nil {
 		return err
 	}
 
-	m.Description = dataAO1.Description
+	m.APIVip = dataAO1.APIVip
+
+	m.BaseDNSDomain = dataAO1.BaseDNSDomain
+
+	m.DNSVip = dataAO1.DNSVip
 
 	m.Hosts = dataAO1.Hosts
 
+	m.IngressVip = dataAO1.IngressVip
+
+	m.InstallCompletedAt = dataAO1.InstallCompletedAt
+
+	m.InstallStartedAt = dataAO1.InstallStartedAt
+
 	m.Name = dataAO1.Name
 
-	m.Namespace = dataAO1.Namespace
+	m.OpenshiftVersion = dataAO1.OpenshiftVersion
+
+	m.SSHPublicKey = dataAO1.SSHPublicKey
 
 	m.Status = dataAO1.Status
+
+	m.UpdatedAt = dataAO1.UpdatedAt
 
 	return nil
 }
@@ -88,26 +143,54 @@ func (m Cluster) MarshalJSON() ([]byte, error) {
 	}
 	_parts = append(_parts, aO0)
 	var dataAO1 struct {
-		Description string `json:"description,omitempty"`
+		APIVip strfmt.Hostname `json:"api_vip,omitempty"`
+
+		BaseDNSDomain string `json:"base_dns_domain,omitempty"`
+
+		DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
 
 		Hosts []*Host `json:"hosts"`
 
+		IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
+
+		InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty"`
+
+		InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty"`
+
 		Name string `json:"name,omitempty"`
 
-		Namespace *string `json:"namespace"`
+		OpenshiftVersion string `json:"openshift_version,omitempty"`
+
+		SSHPublicKey string `json:"ssh_public_key,omitempty"`
 
 		Status *string `json:"status"`
+
+		UpdatedAt strfmt.DateTime `json:"updated_at,omitempty"`
 	}
 
-	dataAO1.Description = m.Description
+	dataAO1.APIVip = m.APIVip
+
+	dataAO1.BaseDNSDomain = m.BaseDNSDomain
+
+	dataAO1.DNSVip = m.DNSVip
 
 	dataAO1.Hosts = m.Hosts
 
+	dataAO1.IngressVip = m.IngressVip
+
+	dataAO1.InstallCompletedAt = m.InstallCompletedAt
+
+	dataAO1.InstallStartedAt = m.InstallStartedAt
+
 	dataAO1.Name = m.Name
 
-	dataAO1.Namespace = m.Namespace
+	dataAO1.OpenshiftVersion = m.OpenshiftVersion
+
+	dataAO1.SSHPublicKey = m.SSHPublicKey
 
 	dataAO1.Status = m.Status
+
+	dataAO1.UpdatedAt = m.UpdatedAt
 
 	jsonDataAO1, errAO1 := swag.WriteJSON(dataAO1)
 	if errAO1 != nil {
@@ -126,11 +209,31 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateAPIVip(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateDNSVip(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateHosts(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateNamespace(formats); err != nil {
+	if err := m.validateIngressVip(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateInstallCompletedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateInstallStartedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateOpenshiftVersion(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -138,9 +241,39 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateUpdatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Cluster) validateAPIVip(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.APIVip) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("api_vip", "body", "hostname", m.APIVip.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateDNSVip(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.DNSVip) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("dns_vip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -169,9 +302,52 @@ func (m *Cluster) validateHosts(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Cluster) validateNamespace(formats strfmt.Registry) error {
+func (m *Cluster) validateIngressVip(formats strfmt.Registry) error {
 
-	if err := validate.Required("namespace", "body", m.Namespace); err != nil {
+	if swag.IsZero(m.IngressVip) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("ingress_vip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateInstallCompletedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.InstallCompletedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("install_completed_at", "body", "date-time", m.InstallCompletedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateInstallStartedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.InstallStartedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("install_started_at", "body", "date-time", m.InstallStartedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateOpenshiftVersion(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.OpenshiftVersion) { // not required
+		return nil
+	}
+
+	if err := validate.Pattern("openshift_version", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
 		return err
 	}
 
@@ -206,6 +382,19 @@ func (m *Cluster) validateStatus(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateStatusEnum("status", "body", *m.Status); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateUpdatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.UpdatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
 		return err
 	}
 

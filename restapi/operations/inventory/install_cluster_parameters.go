@@ -13,40 +13,40 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetImageParams creates a new GetImageParams object
+// NewInstallClusterParams creates a new InstallClusterParams object
 // no default values defined in spec.
-func NewGetImageParams() GetImageParams {
+func NewInstallClusterParams() InstallClusterParams {
 
-	return GetImageParams{}
+	return InstallClusterParams{}
 }
 
-// GetImageParams contains all the bound params for the get image operation
+// InstallClusterParams contains all the bound params for the install cluster operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters GetImage
-type GetImageParams struct {
+// swagger:parameters InstallCluster
+type InstallClusterParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The ID of the image to retrieve
+	/*The ID of the cluster to begin installing
 	  Required: true
 	  In: path
 	*/
-	ImageID string
+	ClusterID string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewGetImageParams() beforehand.
-func (o *GetImageParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewInstallClusterParams() beforehand.
+func (o *InstallClusterParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
 
-	rImageID, rhkImageID, _ := route.Params.GetOK("image_id")
-	if err := o.bindImageID(rImageID, rhkImageID, route.Formats); err != nil {
+	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
+	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -56,8 +56,8 @@ func (o *GetImageParams) BindRequest(r *http.Request, route *middleware.MatchedR
 	return nil
 }
 
-// bindImageID binds and validates parameter ImageID from path.
-func (o *GetImageParams) bindImageID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindClusterID binds and validates parameter ClusterID from path.
+func (o *InstallClusterParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -66,7 +66,7 @@ func (o *GetImageParams) bindImageID(rawData []string, hasKey bool, formats strf
 	// Required: true
 	// Parameter is provided by construction from the route
 
-	o.ImageID = raw
+	o.ClusterID = raw
 
 	return nil
 }

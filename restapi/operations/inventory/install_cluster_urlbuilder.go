@@ -9,17 +9,22 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
+	"strings"
 )
 
-// ListImagesURL generates an URL for the list images operation
-type ListImagesURL struct {
+// InstallClusterURL generates an URL for the install cluster operation
+type InstallClusterURL struct {
+	ClusterID string
+
 	_basePath string
+	// avoid unkeyed usage
+	_ struct{}
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *ListImagesURL) WithBasePath(bp string) *ListImagesURL {
+func (o *InstallClusterURL) WithBasePath(bp string) *InstallClusterURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -27,15 +32,22 @@ func (o *ListImagesURL) WithBasePath(bp string) *ListImagesURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *ListImagesURL) SetBasePath(bp string) {
+func (o *InstallClusterURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *ListImagesURL) Build() (*url.URL, error) {
+func (o *InstallClusterURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/images"
+	var _path = "/clusters/{cluster_id}/actions/install"
+
+	clusterID := o.ClusterID
+	if clusterID != "" {
+		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+	} else {
+		return nil, errors.New("clusterId is required on InstallClusterURL")
+	}
 
 	_basePath := o._basePath
 	if _basePath == "" {
@@ -47,7 +59,7 @@ func (o *ListImagesURL) Build() (*url.URL, error) {
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *ListImagesURL) Must(u *url.URL, err error) *url.URL {
+func (o *InstallClusterURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -58,17 +70,17 @@ func (o *ListImagesURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *ListImagesURL) String() string {
+func (o *InstallClusterURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *ListImagesURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *InstallClusterURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on ListImagesURL")
+		return nil, errors.New("scheme is required for a full url on InstallClusterURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on ListImagesURL")
+		return nil, errors.New("host is required for a full url on InstallClusterURL")
 	}
 
 	base, err := o.Build()
@@ -82,6 +94,6 @@ func (o *ListImagesURL) BuildFull(scheme, host string) (*url.URL, error) {
 }
 
 // StringFull returns the string representation of a complete url
-func (o *ListImagesURL) StringFull(scheme, host string) string {
+func (o *InstallClusterURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

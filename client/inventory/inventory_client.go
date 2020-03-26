@@ -7,6 +7,7 @@ package inventory
 
 import (
 	"context"
+	"io"
 
 	"github.com/go-openapi/runtime"
 
@@ -18,10 +19,7 @@ import (
 // API is the interface of the inventory client
 type API interface {
 	/*
-	   CreateImage creates an open shift bare metal cluster assist installation image*/
-	CreateImage(ctx context.Context, params *CreateImageParams) (*CreateImageCreated, error)
-	/*
-	   DeregisterCluster deregisters open shift bare metal cluster*/
+	   DeregisterCluster deletes an open shift bare metal cluster definition*/
 	DeregisterCluster(ctx context.Context, params *DeregisterClusterParams) (*DeregisterClusterNoContent, error)
 	/*
 	   DeregisterHost deregisters open shift bare metal host*/
@@ -29,6 +27,9 @@ type API interface {
 	/*
 	   DisableHost disables a host for use*/
 	DisableHost(ctx context.Context, params *DisableHostParams) (*DisableHostNoContent, error)
+	/*
+	   DownloadClusterISO downloads open shift per cluster discovery i s o*/
+	DownloadClusterISO(ctx context.Context, params *DownloadClusterISOParams, writer io.Writer) (*DownloadClusterISOOK, error)
 	/*
 	   EnableHost enables a host for use*/
 	EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostNoContent, error)
@@ -39,11 +40,11 @@ type API interface {
 	   GetHost retrieves open shift bare metal host information*/
 	GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error)
 	/*
-	   GetImage retrieves installation image information*/
-	GetImage(ctx context.Context, params *GetImageParams) (*GetImageOK, error)
-	/*
 	   GetNextSteps retrieves the next operations that the agent need to perform*/
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
+	/*
+	   InstallCluster installs a new open shift bare metal cluster*/
+	InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterOK, error)
 	/*
 	   ListClusters lists open shift bare metal clusters*/
 	ListClusters(ctx context.Context, params *ListClustersParams) (*ListClustersOK, error)
@@ -51,13 +52,10 @@ type API interface {
 	   ListHosts lists open shift bare metal hosts*/
 	ListHosts(ctx context.Context, params *ListHostsParams) (*ListHostsOK, error)
 	/*
-	   ListImages lists installation images*/
-	ListImages(ctx context.Context, params *ListImagesParams) (*ListImagesOK, error)
-	/*
 	   PostStepReply posts the result of the required operations from the server*/
 	PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error)
 	/*
-	   RegisterCluster registers a new open shift bare metal cluster*/
+	   RegisterCluster creates a new open shift bare metal cluster definition*/
 	RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error)
 	/*
 	   RegisterHost registers a new open shift bare metal host*/
@@ -65,6 +63,9 @@ type API interface {
 	/*
 	   SetDebugStep sets a single shot debug step that will be sent next time the agent will ask for a command*/
 	SetDebugStep(ctx context.Context, params *SetDebugStepParams) (*SetDebugStepOK, error)
+	/*
+	   UpdateCluster updates an open shift bare metal cluster definition*/
+	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
 }
 
 // New creates a new inventory API client.
@@ -86,31 +87,7 @@ type Client struct {
 }
 
 /*
-CreateImage creates an open shift bare metal cluster assist installation image
-*/
-func (a *Client) CreateImage(ctx context.Context, params *CreateImageParams) (*CreateImageCreated, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateImage",
-		Method:             "POST",
-		PathPattern:        "/images",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &CreateImageReader{formats: a.formats},
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*CreateImageCreated), nil
-
-}
-
-/*
-DeregisterCluster deregisters open shift bare metal cluster
+DeregisterCluster deletes an open shift bare metal cluster definition
 */
 func (a *Client) DeregisterCluster(ctx context.Context, params *DeregisterClusterParams) (*DeregisterClusterNoContent, error) {
 
@@ -178,6 +155,30 @@ func (a *Client) DisableHost(ctx context.Context, params *DisableHostParams) (*D
 		return nil, err
 	}
 	return result.(*DisableHostNoContent), nil
+
+}
+
+/*
+DownloadClusterISO downloads open shift per cluster discovery i s o
+*/
+func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadClusterISOParams, writer io.Writer) (*DownloadClusterISOOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadClusterISO",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/actions/download",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DownloadClusterISOReader{formats: a.formats, writer: writer},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadClusterISOOK), nil
 
 }
 
@@ -254,30 +255,6 @@ func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK
 }
 
 /*
-GetImage retrieves installation image information
-*/
-func (a *Client) GetImage(ctx context.Context, params *GetImageParams) (*GetImageOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetImage",
-		Method:             "GET",
-		PathPattern:        "/images/{image_id}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetImageReader{formats: a.formats},
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetImageOK), nil
-
-}
-
-/*
 GetNextSteps retrieves the next operations that the agent need to perform
 */
 func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error) {
@@ -298,6 +275,30 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 		return nil, err
 	}
 	return result.(*GetNextStepsOK), nil
+
+}
+
+/*
+InstallCluster installs a new open shift bare metal cluster
+*/
+func (a *Client) InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "InstallCluster",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/actions/install",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &InstallClusterReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*InstallClusterOK), nil
 
 }
 
@@ -350,30 +351,6 @@ func (a *Client) ListHosts(ctx context.Context, params *ListHostsParams) (*ListH
 }
 
 /*
-ListImages lists installation images
-*/
-func (a *Client) ListImages(ctx context.Context, params *ListImagesParams) (*ListImagesOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListImages",
-		Method:             "GET",
-		PathPattern:        "/images",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &ListImagesReader{formats: a.formats},
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ListImagesOK), nil
-
-}
-
-/*
 PostStepReply posts the result of the required operations from the server
 */
 func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error) {
@@ -398,7 +375,7 @@ func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams)
 }
 
 /*
-RegisterCluster registers a new open shift bare metal cluster
+RegisterCluster creates a new open shift bare metal cluster definition
 */
 func (a *Client) RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error) {
 
@@ -466,5 +443,29 @@ func (a *Client) SetDebugStep(ctx context.Context, params *SetDebugStepParams) (
 		return nil, err
 	}
 	return result.(*SetDebugStepOK), nil
+
+}
+
+/*
+UpdateCluster updates an open shift bare metal cluster definition
+*/
+func (a *Client) UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateCluster",
+		Method:             "PATCH",
+		PathPattern:        "/clusters/{cluster_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &UpdateClusterReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateClusterCreated), nil
 
 }

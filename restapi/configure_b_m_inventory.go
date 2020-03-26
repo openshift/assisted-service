@@ -25,22 +25,22 @@ const AuthKey contextKey = "Auth"
 
 // InventoryAPI
 type InventoryAPI interface {
-	CreateImage(ctx context.Context, params inventory.CreateImageParams) middleware.Responder
 	DeregisterCluster(ctx context.Context, params inventory.DeregisterClusterParams) middleware.Responder
 	DeregisterHost(ctx context.Context, params inventory.DeregisterHostParams) middleware.Responder
 	DisableHost(ctx context.Context, params inventory.DisableHostParams) middleware.Responder
+	DownloadClusterISO(ctx context.Context, params inventory.DownloadClusterISOParams) middleware.Responder
 	EnableHost(ctx context.Context, params inventory.EnableHostParams) middleware.Responder
 	GetCluster(ctx context.Context, params inventory.GetClusterParams) middleware.Responder
 	GetHost(ctx context.Context, params inventory.GetHostParams) middleware.Responder
-	GetImage(ctx context.Context, params inventory.GetImageParams) middleware.Responder
 	GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder
+	InstallCluster(ctx context.Context, params inventory.InstallClusterParams) middleware.Responder
 	ListClusters(ctx context.Context, params inventory.ListClustersParams) middleware.Responder
 	ListHosts(ctx context.Context, params inventory.ListHostsParams) middleware.Responder
-	ListImages(ctx context.Context, params inventory.ListImagesParams) middleware.Responder
 	PostStepReply(ctx context.Context, params inventory.PostStepReplyParams) middleware.Responder
 	RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder
 	RegisterHost(ctx context.Context, params inventory.RegisterHostParams) middleware.Responder
 	SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder
+	UpdateCluster(ctx context.Context, params inventory.UpdateClusterParams) middleware.Responder
 }
 
 // Config is configuration for Handler
@@ -76,11 +76,8 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.Logger = c.Logger
 
 	api.JSONConsumer = runtime.JSONConsumer()
+	api.BinProducer = runtime.ByteStreamProducer()
 	api.JSONProducer = runtime.JSONProducer()
-	api.InventoryCreateImageHandler = inventory.CreateImageHandlerFunc(func(params inventory.CreateImageParams) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.CreateImage(ctx, params)
-	})
 	api.InventoryDeregisterClusterHandler = inventory.DeregisterClusterHandlerFunc(func(params inventory.DeregisterClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.DeregisterCluster(ctx, params)
@@ -92,6 +89,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.InventoryDisableHostHandler = inventory.DisableHostHandlerFunc(func(params inventory.DisableHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.DisableHost(ctx, params)
+	})
+	api.InventoryDownloadClusterISOHandler = inventory.DownloadClusterISOHandlerFunc(func(params inventory.DownloadClusterISOParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.DownloadClusterISO(ctx, params)
 	})
 	api.InventoryEnableHostHandler = inventory.EnableHostHandlerFunc(func(params inventory.EnableHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -105,13 +106,13 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.GetHost(ctx, params)
 	})
-	api.InventoryGetImageHandler = inventory.GetImageHandlerFunc(func(params inventory.GetImageParams) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.GetImage(ctx, params)
-	})
 	api.InventoryGetNextStepsHandler = inventory.GetNextStepsHandlerFunc(func(params inventory.GetNextStepsParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.GetNextSteps(ctx, params)
+	})
+	api.InventoryInstallClusterHandler = inventory.InstallClusterHandlerFunc(func(params inventory.InstallClusterParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.InstallCluster(ctx, params)
 	})
 	api.InventoryListClustersHandler = inventory.ListClustersHandlerFunc(func(params inventory.ListClustersParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -120,10 +121,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.InventoryListHostsHandler = inventory.ListHostsHandlerFunc(func(params inventory.ListHostsParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.ListHosts(ctx, params)
-	})
-	api.InventoryListImagesHandler = inventory.ListImagesHandlerFunc(func(params inventory.ListImagesParams) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.ListImages(ctx, params)
 	})
 	api.InventoryPostStepReplyHandler = inventory.PostStepReplyHandlerFunc(func(params inventory.PostStepReplyParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -140,6 +137,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.InventorySetDebugStepHandler = inventory.SetDebugStepHandlerFunc(func(params inventory.SetDebugStepParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.SetDebugStep(ctx, params)
+	})
+	api.InventoryUpdateClusterHandler = inventory.UpdateClusterHandlerFunc(func(params inventory.UpdateClusterParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.UpdateCluster(ctx, params)
 	})
 	api.ServerShutdown = func() {}
 	return api.Serve(c.InnerMiddleware), api, nil

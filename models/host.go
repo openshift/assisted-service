@@ -22,10 +22,6 @@ type Host struct {
 
 	HostCreateParams
 
-	// cluster id
-	// Format: uuid
-	ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
-
 	// connectivity
 	// Required: true
 	Connectivity *ConnectivityReport `json:"connectivity"`
@@ -46,6 +42,10 @@ type Host struct {
 	// status info
 	// Required: true
 	StatusInfo *string `json:"status_info"`
+
+	// updated at
+	// Format: date-time
+	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:datetime"`
 }
 
 // UnmarshalJSON unmarshals this object from a JSON structure
@@ -66,8 +66,6 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 
 	// AO2
 	var dataAO2 struct {
-		ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
-
 		Connectivity *ConnectivityReport `json:"connectivity"`
 
 		HardwareInfo *Introspection `json:"hardware_info"`
@@ -77,12 +75,12 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 		Status *string `json:"status"`
 
 		StatusInfo *string `json:"status_info"`
+
+		UpdatedAt strfmt.DateTime `json:"updated_at,omitempty"`
 	}
 	if err := swag.ReadJSON(raw, &dataAO2); err != nil {
 		return err
 	}
-
-	m.ClusterID = dataAO2.ClusterID
 
 	m.Connectivity = dataAO2.Connectivity
 
@@ -93,6 +91,8 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 	m.Status = dataAO2.Status
 
 	m.StatusInfo = dataAO2.StatusInfo
+
+	m.UpdatedAt = dataAO2.UpdatedAt
 
 	return nil
 }
@@ -113,8 +113,6 @@ func (m Host) MarshalJSON() ([]byte, error) {
 	}
 	_parts = append(_parts, aO1)
 	var dataAO2 struct {
-		ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
-
 		Connectivity *ConnectivityReport `json:"connectivity"`
 
 		HardwareInfo *Introspection `json:"hardware_info"`
@@ -124,9 +122,9 @@ func (m Host) MarshalJSON() ([]byte, error) {
 		Status *string `json:"status"`
 
 		StatusInfo *string `json:"status_info"`
-	}
 
-	dataAO2.ClusterID = m.ClusterID
+		UpdatedAt strfmt.DateTime `json:"updated_at,omitempty"`
+	}
 
 	dataAO2.Connectivity = m.Connectivity
 
@@ -137,6 +135,8 @@ func (m Host) MarshalJSON() ([]byte, error) {
 	dataAO2.Status = m.Status
 
 	dataAO2.StatusInfo = m.StatusInfo
+
+	dataAO2.UpdatedAt = m.UpdatedAt
 
 	jsonDataAO2, errAO2 := swag.WriteJSON(dataAO2)
 	if errAO2 != nil {
@@ -156,10 +156,6 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 	// validation for a type composition with HostCreateParams
 	if err := m.HostCreateParams.Validate(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateClusterID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -183,22 +179,13 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateUpdatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *Host) validateClusterID(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.ClusterID) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -309,6 +296,19 @@ func (m *Host) validateStatus(formats strfmt.Registry) error {
 func (m *Host) validateStatusInfo(formats strfmt.Registry) error {
 
 	if err := validate.Required("status_info", "body", m.StatusInfo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateUpdatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.UpdatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
 		return err
 	}
 

@@ -41,11 +41,9 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 
 		JSONConsumer: runtime.JSONConsumer(),
 
+		BinProducer:  runtime.ByteStreamProducer(),
 		JSONProducer: runtime.JSONProducer(),
 
-		InventoryCreateImageHandler: inventory.CreateImageHandlerFunc(func(params inventory.CreateImageParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.CreateImage has not yet been implemented")
-		}),
 		InventoryDeregisterClusterHandler: inventory.DeregisterClusterHandlerFunc(func(params inventory.DeregisterClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.DeregisterCluster has not yet been implemented")
 		}),
@@ -54,6 +52,9 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		}),
 		InventoryDisableHostHandler: inventory.DisableHostHandlerFunc(func(params inventory.DisableHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.DisableHost has not yet been implemented")
+		}),
+		InventoryDownloadClusterISOHandler: inventory.DownloadClusterISOHandlerFunc(func(params inventory.DownloadClusterISOParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.DownloadClusterISO has not yet been implemented")
 		}),
 		InventoryEnableHostHandler: inventory.EnableHostHandlerFunc(func(params inventory.EnableHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.EnableHost has not yet been implemented")
@@ -64,20 +65,17 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		InventoryGetHostHandler: inventory.GetHostHandlerFunc(func(params inventory.GetHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.GetHost has not yet been implemented")
 		}),
-		InventoryGetImageHandler: inventory.GetImageHandlerFunc(func(params inventory.GetImageParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.GetImage has not yet been implemented")
-		}),
 		InventoryGetNextStepsHandler: inventory.GetNextStepsHandlerFunc(func(params inventory.GetNextStepsParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.GetNextSteps has not yet been implemented")
+		}),
+		InventoryInstallClusterHandler: inventory.InstallClusterHandlerFunc(func(params inventory.InstallClusterParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.InstallCluster has not yet been implemented")
 		}),
 		InventoryListClustersHandler: inventory.ListClustersHandlerFunc(func(params inventory.ListClustersParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.ListClusters has not yet been implemented")
 		}),
 		InventoryListHostsHandler: inventory.ListHostsHandlerFunc(func(params inventory.ListHostsParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.ListHosts has not yet been implemented")
-		}),
-		InventoryListImagesHandler: inventory.ListImagesHandlerFunc(func(params inventory.ListImagesParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.ListImages has not yet been implemented")
 		}),
 		InventoryPostStepReplyHandler: inventory.PostStepReplyHandlerFunc(func(params inventory.PostStepReplyParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.PostStepReply has not yet been implemented")
@@ -90,6 +88,9 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		}),
 		InventorySetDebugStepHandler: inventory.SetDebugStepHandlerFunc(func(params inventory.SetDebugStepParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.SetDebugStep has not yet been implemented")
+		}),
+		InventoryUpdateClusterHandler: inventory.UpdateClusterHandlerFunc(func(params inventory.UpdateClusterParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.UpdateCluster has not yet been implemented")
 		}),
 	}
 }
@@ -120,34 +121,35 @@ type BMInventoryAPI struct {
 	//   - application/json
 	JSONConsumer runtime.Consumer
 
+	// BinProducer registers a producer for the following mime types:
+	//   - application/octet-stream
+	BinProducer runtime.Producer
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
 
-	// InventoryCreateImageHandler sets the operation handler for the create image operation
-	InventoryCreateImageHandler inventory.CreateImageHandler
 	// InventoryDeregisterClusterHandler sets the operation handler for the deregister cluster operation
 	InventoryDeregisterClusterHandler inventory.DeregisterClusterHandler
 	// InventoryDeregisterHostHandler sets the operation handler for the deregister host operation
 	InventoryDeregisterHostHandler inventory.DeregisterHostHandler
 	// InventoryDisableHostHandler sets the operation handler for the disable host operation
 	InventoryDisableHostHandler inventory.DisableHostHandler
+	// InventoryDownloadClusterISOHandler sets the operation handler for the download cluster i s o operation
+	InventoryDownloadClusterISOHandler inventory.DownloadClusterISOHandler
 	// InventoryEnableHostHandler sets the operation handler for the enable host operation
 	InventoryEnableHostHandler inventory.EnableHostHandler
 	// InventoryGetClusterHandler sets the operation handler for the get cluster operation
 	InventoryGetClusterHandler inventory.GetClusterHandler
 	// InventoryGetHostHandler sets the operation handler for the get host operation
 	InventoryGetHostHandler inventory.GetHostHandler
-	// InventoryGetImageHandler sets the operation handler for the get image operation
-	InventoryGetImageHandler inventory.GetImageHandler
 	// InventoryGetNextStepsHandler sets the operation handler for the get next steps operation
 	InventoryGetNextStepsHandler inventory.GetNextStepsHandler
+	// InventoryInstallClusterHandler sets the operation handler for the install cluster operation
+	InventoryInstallClusterHandler inventory.InstallClusterHandler
 	// InventoryListClustersHandler sets the operation handler for the list clusters operation
 	InventoryListClustersHandler inventory.ListClustersHandler
 	// InventoryListHostsHandler sets the operation handler for the list hosts operation
 	InventoryListHostsHandler inventory.ListHostsHandler
-	// InventoryListImagesHandler sets the operation handler for the list images operation
-	InventoryListImagesHandler inventory.ListImagesHandler
 	// InventoryPostStepReplyHandler sets the operation handler for the post step reply operation
 	InventoryPostStepReplyHandler inventory.PostStepReplyHandler
 	// InventoryRegisterClusterHandler sets the operation handler for the register cluster operation
@@ -156,6 +158,8 @@ type BMInventoryAPI struct {
 	InventoryRegisterHostHandler inventory.RegisterHostHandler
 	// InventorySetDebugStepHandler sets the operation handler for the set debug step operation
 	InventorySetDebugStepHandler inventory.SetDebugStepHandler
+	// InventoryUpdateClusterHandler sets the operation handler for the update cluster operation
+	InventoryUpdateClusterHandler inventory.UpdateClusterHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -218,13 +222,13 @@ func (o *BMInventoryAPI) Validate() error {
 		unregistered = append(unregistered, "JSONConsumer")
 	}
 
+	if o.BinProducer == nil {
+		unregistered = append(unregistered, "BinProducer")
+	}
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
-	if o.InventoryCreateImageHandler == nil {
-		unregistered = append(unregistered, "inventory.CreateImageHandler")
-	}
 	if o.InventoryDeregisterClusterHandler == nil {
 		unregistered = append(unregistered, "inventory.DeregisterClusterHandler")
 	}
@@ -233,6 +237,9 @@ func (o *BMInventoryAPI) Validate() error {
 	}
 	if o.InventoryDisableHostHandler == nil {
 		unregistered = append(unregistered, "inventory.DisableHostHandler")
+	}
+	if o.InventoryDownloadClusterISOHandler == nil {
+		unregistered = append(unregistered, "inventory.DownloadClusterISOHandler")
 	}
 	if o.InventoryEnableHostHandler == nil {
 		unregistered = append(unregistered, "inventory.EnableHostHandler")
@@ -243,20 +250,17 @@ func (o *BMInventoryAPI) Validate() error {
 	if o.InventoryGetHostHandler == nil {
 		unregistered = append(unregistered, "inventory.GetHostHandler")
 	}
-	if o.InventoryGetImageHandler == nil {
-		unregistered = append(unregistered, "inventory.GetImageHandler")
-	}
 	if o.InventoryGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "inventory.GetNextStepsHandler")
+	}
+	if o.InventoryInstallClusterHandler == nil {
+		unregistered = append(unregistered, "inventory.InstallClusterHandler")
 	}
 	if o.InventoryListClustersHandler == nil {
 		unregistered = append(unregistered, "inventory.ListClustersHandler")
 	}
 	if o.InventoryListHostsHandler == nil {
 		unregistered = append(unregistered, "inventory.ListHostsHandler")
-	}
-	if o.InventoryListImagesHandler == nil {
-		unregistered = append(unregistered, "inventory.ListImagesHandler")
 	}
 	if o.InventoryPostStepReplyHandler == nil {
 		unregistered = append(unregistered, "inventory.PostStepReplyHandler")
@@ -269,6 +273,9 @@ func (o *BMInventoryAPI) Validate() error {
 	}
 	if o.InventorySetDebugStepHandler == nil {
 		unregistered = append(unregistered, "inventory.SetDebugStepHandler")
+	}
+	if o.InventoryUpdateClusterHandler == nil {
+		unregistered = append(unregistered, "inventory.UpdateClusterHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -316,6 +323,8 @@ func (o *BMInventoryAPI) ProducersFor(mediaTypes []string) map[string]runtime.Pr
 	result := make(map[string]runtime.Producer, len(mediaTypes))
 	for _, mt := range mediaTypes {
 		switch mt {
+		case "application/octet-stream":
+			result["application/octet-stream"] = o.BinProducer
 		case "application/json":
 			result["application/json"] = o.JSONProducer
 		}
@@ -358,10 +367,6 @@ func (o *BMInventoryAPI) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/images"] = inventory.NewCreateImage(o.context, o.InventoryCreateImageHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
@@ -374,6 +379,10 @@ func (o *BMInventoryAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/hosts/{host_id}/actions/enable"] = inventory.NewDisableHost(o.context, o.InventoryDisableHostHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{cluster_id}/actions/download"] = inventory.NewDownloadClusterISO(o.context, o.InventoryDownloadClusterISOHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -389,11 +398,11 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/images/{image_id}"] = inventory.NewGetImage(o.context, o.InventoryGetImageHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
 	o.handlers["GET"]["/hosts/{host_id}/next-steps"] = inventory.NewGetNextSteps(o.context, o.InventoryGetNextStepsHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/actions/install"] = inventory.NewInstallCluster(o.context, o.InventoryInstallClusterHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -402,10 +411,6 @@ func (o *BMInventoryAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/hosts"] = inventory.NewListHosts(o.context, o.InventoryListHostsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/images"] = inventory.NewListImages(o.context, o.InventoryListImagesHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -422,6 +427,10 @@ func (o *BMInventoryAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/hosts/{host_id}/actions/debug"] = inventory.NewSetDebugStep(o.context, o.InventorySetDebugStepHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/clusters/{cluster_id}"] = inventory.NewUpdateCluster(o.context, o.InventoryUpdateClusterHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

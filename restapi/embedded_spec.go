@@ -59,7 +59,7 @@ func init() {
         "tags": [
           "inventory"
         ],
-        "summary": "Register a new OpenShift bare metal cluster",
+        "summary": "Create a new OpenShift bare metal cluster definition",
         "operationId": "RegisterCluster",
         "parameters": [
           {
@@ -123,7 +123,7 @@ func init() {
         "tags": [
           "inventory"
         ],
-        "summary": "Deregister OpenShift bare metal cluster",
+        "summary": "Delete an OpenShift bare metal cluster definition",
         "operationId": "DeregisterCluster",
         "parameters": [
           {
@@ -140,6 +140,150 @@ func init() {
           },
           "404": {
             "description": "Cluster not found"
+          },
+          "409": {
+            "description": "Invalid state"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Update an OpenShift bare metal cluster definition",
+        "operationId": "UpdateCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the cluster to retrieve",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "New cluster parameters",
+            "name": "cluster-update-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/cluster-update-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Registered cluster",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Cluster not found"
+          },
+          "409": {
+            "description": "Invalid state"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/actions/download": {
+      "get": {
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Download OpenShift per-cluster discovery ISO",
+        "operationId": "DownloadClusterISO",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the cluster whose ISO to download",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "hostname",
+            "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
+            "name": "proxy_ip",
+            "in": "query"
+          },
+          {
+            "maximum": 65535,
+            "type": "integer",
+            "description": "The port of the HTTP proxy",
+            "name": "proxy_port",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "SSH public key for debugging the installation",
+            "name": "ssh_public_key",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The ISO file",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "400": {
+            "description": "Invalid parameters"
+          },
+          "404": {
+            "description": "Cluster not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/actions/install": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Install a new OpenShift bare metal cluster",
+        "operationId": "InstallCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the cluster to begin installing",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Installing cluster",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Cluster not found"
+          },
+          "409": {
+            "description": "Invalid state"
           },
           "500": {
             "description": "Internal server error"
@@ -437,90 +581,6 @@ func init() {
           }
         }
       }
-    },
-    "/images": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "List installation images",
-        "operationId": "ListImages",
-        "responses": {
-          "200": {
-            "description": "Image list",
-            "schema": {
-              "$ref": "#/definitions/image-list"
-            }
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Create an OpenShift bare metal cluster-assist installation image",
-        "operationId": "CreateImage",
-        "parameters": [
-          {
-            "description": "New image parameters",
-            "name": "new-image-params",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/image-create-params"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created image",
-            "schema": {
-              "$ref": "#/definitions/image"
-            }
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/images/{image_id}": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Retrieve installation image information",
-        "operationId": "GetImage",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "The ID of the image to retrieve",
-            "name": "image_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Image information",
-            "schema": {
-              "$ref": "#/definitions/image"
-            }
-          },
-          "404": {
-            "description": "Image not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
     }
   },
   "definitions": {
@@ -603,12 +663,19 @@ func init() {
         {
           "type": "object",
           "required": [
-            "status",
-            "namespace"
+            "status"
           ],
           "properties": {
-            "description": {
+            "api_vip": {
+              "type": "string",
+              "format": "hostname"
+            },
+            "base_dns_domain": {
               "type": "string"
+            },
+            "dns_vip": {
+              "type": "string",
+              "format": "hostname"
             },
             "hosts": {
               "type": "array",
@@ -618,10 +685,29 @@ func init() {
               },
               "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
             },
+            "ingress_vip": {
+              "type": "string",
+              "format": "hostname"
+            },
+            "install_completed_at": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime;default:0\""
+            },
+            "install_started_at": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime;default:0\""
+            },
             "name": {
               "type": "string"
             },
-            "namespace": {
+            "openshift_version": {
+              "type": "string",
+              "pattern": "^4\\.\\d$"
+            },
+            "ssh_public_key": {
+              "description": "SSH public key for debugging OpenShift nodes",
               "type": "string"
             },
             "status": {
@@ -631,6 +717,11 @@ func init() {
                 "ready",
                 "error"
               ]
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime\""
             }
           }
         }
@@ -639,14 +730,58 @@ func init() {
     "cluster-create-params": {
       "type": "object",
       "required": [
-        "name",
-        "hosts"
+        "name"
       ],
       "properties": {
-        "description": {
+        "api_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "base_dns_domain": {
           "type": "string"
         },
-        "hosts": {
+        "dns_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "ingress_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "name": {
+          "type": "string"
+        },
+        "openshift_version": {
+          "type": "string",
+          "pattern": "^4\\.\\d$"
+        },
+        "ssh_public_key": {
+          "description": "SSH public key for debugging OpenShift nodes",
+          "type": "string"
+        }
+      }
+    },
+    "cluster-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/cluster"
+      }
+    },
+    "cluster-update-params": {
+      "type": "object",
+      "properties": {
+        "api_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "base_dns_domain": {
+          "type": "string"
+        },
+        "dns_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "hosts_roles": {
           "type": "array",
           "items": {
             "type": "object",
@@ -666,15 +801,21 @@ func init() {
           },
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
         },
+        "ingress_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
         "name": {
           "type": "string"
+        },
+        "openshift_version": {
+          "type": "string",
+          "pattern": "^4\\.\\d$"
+        },
+        "ssh_public_key": {
+          "description": "SSH public key for debugging OpenShift nodes",
+          "type": "string"
         }
-      }
-    },
-    "cluster-list": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/cluster"
       }
     },
     "connectivity-check-host": {
@@ -800,10 +941,6 @@ func init() {
             "hardware_info"
           ],
           "properties": {
-            "cluster_id": {
-              "type": "string",
-              "format": "uuid"
-            },
             "connectivity": {
               "$ref": "#/definitions/connectivity-report"
             },
@@ -832,6 +969,11 @@ func init() {
             },
             "status_info": {
               "type": "string"
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime\""
             }
           }
         }
@@ -840,16 +982,17 @@ func init() {
     "host-create-params": {
       "type": "object",
       "required": [
-        "namespace",
-        "host_id"
+        "host_id",
+        "cluster_id"
       ],
       "properties": {
-        "host_id": {
+        "cluster_id": {
           "type": "string",
           "format": "uuid"
         },
-        "namespace": {
-          "type": "string"
+        "host_id": {
+          "type": "string",
+          "format": "uuid"
         }
       }
     },
@@ -857,69 +1000,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/host"
-      }
-    },
-    "image": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/definitions/base"
-        },
-        {
-          "$ref": "#/definitions/image-create-params"
-        },
-        {
-          "type": "object",
-          "required": [
-            "status"
-          ],
-          "properties": {
-            "download_url": {
-              "type": "string",
-              "format": "uri"
-            },
-            "status": {
-              "type": "string",
-              "enum": [
-                "creating",
-                "ready",
-                "error"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    "image-create-params": {
-      "type": "object",
-      "required": [
-        "name",
-        "namespace"
-      ],
-      "properties": {
-        "description": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "namespace": {
-          "type": "string"
-        },
-        "proxy_ip": {
-          "type": "string",
-          "format": "hostname"
-        },
-        "proxy_port": {
-          "type": "integer",
-          "maximum": 65535
-        }
-      }
-    },
-    "image-list": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/image"
       }
     },
     "introspection": {
@@ -1130,7 +1210,7 @@ func init() {
         "tags": [
           "inventory"
         ],
-        "summary": "Register a new OpenShift bare metal cluster",
+        "summary": "Create a new OpenShift bare metal cluster definition",
         "operationId": "RegisterCluster",
         "parameters": [
           {
@@ -1194,7 +1274,7 @@ func init() {
         "tags": [
           "inventory"
         ],
-        "summary": "Deregister OpenShift bare metal cluster",
+        "summary": "Delete an OpenShift bare metal cluster definition",
         "operationId": "DeregisterCluster",
         "parameters": [
           {
@@ -1211,6 +1291,151 @@ func init() {
           },
           "404": {
             "description": "Cluster not found"
+          },
+          "409": {
+            "description": "Invalid state"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Update an OpenShift bare metal cluster definition",
+        "operationId": "UpdateCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the cluster to retrieve",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "New cluster parameters",
+            "name": "cluster-update-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/cluster-update-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Registered cluster",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Cluster not found"
+          },
+          "409": {
+            "description": "Invalid state"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/actions/download": {
+      "get": {
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Download OpenShift per-cluster discovery ISO",
+        "operationId": "DownloadClusterISO",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the cluster whose ISO to download",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "hostname",
+            "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
+            "name": "proxy_ip",
+            "in": "query"
+          },
+          {
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer",
+            "description": "The port of the HTTP proxy",
+            "name": "proxy_port",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "SSH public key for debugging the installation",
+            "name": "ssh_public_key",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The ISO file",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "400": {
+            "description": "Invalid parameters"
+          },
+          "404": {
+            "description": "Cluster not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/actions/install": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Install a new OpenShift bare metal cluster",
+        "operationId": "InstallCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The ID of the cluster to begin installing",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Installing cluster",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Cluster not found"
+          },
+          "409": {
+            "description": "Invalid state"
           },
           "500": {
             "description": "Internal server error"
@@ -1366,9 +1591,6 @@ func init() {
           "404": {
             "description": "Host not found"
           },
-          "409": {
-            "description": "Conflict"
-          },
           "500": {
             "description": "Internal server error"
           }
@@ -1429,6 +1651,9 @@ func init() {
           },
           "404": {
             "description": "Host not found"
+          },
+          "409": {
+            "description": "Conflict"
           },
           "500": {
             "description": "Internal server error"
@@ -1508,94 +1733,10 @@ func init() {
           }
         }
       }
-    },
-    "/images": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "List installation images",
-        "operationId": "ListImages",
-        "responses": {
-          "200": {
-            "description": "Image list",
-            "schema": {
-              "$ref": "#/definitions/image-list"
-            }
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Create an OpenShift bare metal cluster-assist installation image",
-        "operationId": "CreateImage",
-        "parameters": [
-          {
-            "description": "New image parameters",
-            "name": "new-image-params",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/image-create-params"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created image",
-            "schema": {
-              "$ref": "#/definitions/image"
-            }
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/images/{image_id}": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Retrieve installation image information",
-        "operationId": "GetImage",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "The ID of the image to retrieve",
-            "name": "image_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Image information",
-            "schema": {
-              "$ref": "#/definitions/image"
-            }
-          },
-          "404": {
-            "description": "Image not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
     }
   },
   "definitions": {
-    "ClusterCreateParamsHostsItems0": {
+    "ClusterUpdateParamsHostsRolesItems0": {
       "type": "object",
       "properties": {
         "id": {
@@ -1690,12 +1831,19 @@ func init() {
         {
           "type": "object",
           "required": [
-            "status",
-            "namespace"
+            "status"
           ],
           "properties": {
-            "description": {
+            "api_vip": {
+              "type": "string",
+              "format": "hostname"
+            },
+            "base_dns_domain": {
               "type": "string"
+            },
+            "dns_vip": {
+              "type": "string",
+              "format": "hostname"
             },
             "hosts": {
               "type": "array",
@@ -1705,10 +1853,29 @@ func init() {
               },
               "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
             },
+            "ingress_vip": {
+              "type": "string",
+              "format": "hostname"
+            },
+            "install_completed_at": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime;default:0\""
+            },
+            "install_started_at": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime;default:0\""
+            },
             "name": {
               "type": "string"
             },
-            "namespace": {
+            "openshift_version": {
+              "type": "string",
+              "pattern": "^4\\.\\d$"
+            },
+            "ssh_public_key": {
+              "description": "SSH public key for debugging OpenShift nodes",
               "type": "string"
             },
             "status": {
@@ -1718,6 +1885,11 @@ func init() {
                 "ready",
                 "error"
               ]
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime\""
             }
           }
         }
@@ -1726,21 +1898,33 @@ func init() {
     "cluster-create-params": {
       "type": "object",
       "required": [
-        "name",
-        "hosts"
+        "name"
       ],
       "properties": {
-        "description": {
+        "api_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "base_dns_domain": {
           "type": "string"
         },
-        "hosts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ClusterCreateParamsHostsItems0"
-          },
-          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
+        "dns_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "ingress_vip": {
+          "type": "string",
+          "format": "hostname"
         },
         "name": {
+          "type": "string"
+        },
+        "openshift_version": {
+          "type": "string",
+          "pattern": "^4\\.\\d$"
+        },
+        "ssh_public_key": {
+          "description": "SSH public key for debugging OpenShift nodes",
           "type": "string"
         }
       }
@@ -1749,6 +1933,44 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
+      }
+    },
+    "cluster-update-params": {
+      "type": "object",
+      "properties": {
+        "api_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "base_dns_domain": {
+          "type": "string"
+        },
+        "dns_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "hosts_roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClusterUpdateParamsHostsRolesItems0"
+          },
+          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
+        },
+        "ingress_vip": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "name": {
+          "type": "string"
+        },
+        "openshift_version": {
+          "type": "string",
+          "pattern": "^4\\.\\d$"
+        },
+        "ssh_public_key": {
+          "description": "SSH public key for debugging OpenShift nodes",
+          "type": "string"
+        }
       }
     },
     "connectivity-check-host": {
@@ -1874,10 +2096,6 @@ func init() {
             "hardware_info"
           ],
           "properties": {
-            "cluster_id": {
-              "type": "string",
-              "format": "uuid"
-            },
             "connectivity": {
               "$ref": "#/definitions/connectivity-report"
             },
@@ -1906,6 +2124,11 @@ func init() {
             },
             "status_info": {
               "type": "string"
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime\""
             }
           }
         }
@@ -1914,16 +2137,17 @@ func init() {
     "host-create-params": {
       "type": "object",
       "required": [
-        "namespace",
-        "host_id"
+        "host_id",
+        "cluster_id"
       ],
       "properties": {
-        "host_id": {
+        "cluster_id": {
           "type": "string",
           "format": "uuid"
         },
-        "namespace": {
-          "type": "string"
+        "host_id": {
+          "type": "string",
+          "format": "uuid"
         }
       }
     },
@@ -1931,70 +2155,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/host"
-      }
-    },
-    "image": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/definitions/base"
-        },
-        {
-          "$ref": "#/definitions/image-create-params"
-        },
-        {
-          "type": "object",
-          "required": [
-            "status"
-          ],
-          "properties": {
-            "download_url": {
-              "type": "string",
-              "format": "uri"
-            },
-            "status": {
-              "type": "string",
-              "enum": [
-                "creating",
-                "ready",
-                "error"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    "image-create-params": {
-      "type": "object",
-      "required": [
-        "name",
-        "namespace"
-      ],
-      "properties": {
-        "description": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "namespace": {
-          "type": "string"
-        },
-        "proxy_ip": {
-          "type": "string",
-          "format": "hostname"
-        },
-        "proxy_port": {
-          "type": "integer",
-          "maximum": 65535,
-          "minimum": 0
-        }
-      }
-    },
-    "image-list": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/image"
       }
     },
     "introspection": {

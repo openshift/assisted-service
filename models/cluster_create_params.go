@@ -6,9 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	"strconv"
-
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -20,27 +17,54 @@ import (
 // swagger:model cluster-create-params
 type ClusterCreateParams struct {
 
-	// description
-	Description string `json:"description,omitempty"`
+	// api vip
+	// Format: hostname
+	APIVip strfmt.Hostname `json:"api_vip,omitempty"`
 
-	// hosts
-	// Required: true
-	Hosts []*ClusterCreateParamsHostsItems0 `json:"hosts" gorm:"type:varchar(64)[]"`
+	// base dns domain
+	BaseDNSDomain string `json:"base_dns_domain,omitempty"`
+
+	// dns vip
+	// Format: hostname
+	DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
+
+	// ingress vip
+	// Format: hostname
+	IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
 
 	// name
 	// Required: true
 	Name *string `json:"name"`
+
+	// openshift version
+	// Pattern: ^4\.\d$
+	OpenshiftVersion string `json:"openshift_version,omitempty"`
+
+	// SSH public key for debugging OpenShift nodes
+	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 }
 
 // Validate validates this cluster create params
 func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateHosts(formats); err != nil {
+	if err := m.validateAPIVip(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateDNSVip(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateIngressVip(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateName(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateOpenshiftVersion(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -50,26 +74,40 @@ func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ClusterCreateParams) validateHosts(formats strfmt.Registry) error {
+func (m *ClusterCreateParams) validateAPIVip(formats strfmt.Registry) error {
 
-	if err := validate.Required("hosts", "body", m.Hosts); err != nil {
+	if swag.IsZero(m.APIVip) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("api_vip", "body", "hostname", m.APIVip.String(), formats); err != nil {
 		return err
 	}
 
-	for i := 0; i < len(m.Hosts); i++ {
-		if swag.IsZero(m.Hosts[i]) { // not required
-			continue
-		}
+	return nil
+}
 
-		if m.Hosts[i] != nil {
-			if err := m.Hosts[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("hosts" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
+func (m *ClusterCreateParams) validateDNSVip(formats strfmt.Registry) error {
 
+	if swag.IsZero(m.DNSVip) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("dns_vip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterCreateParams) validateIngressVip(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.IngressVip) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("ingress_vip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
+		return err
 	}
 
 	return nil
@@ -78,6 +116,19 @@ func (m *ClusterCreateParams) validateHosts(formats strfmt.Registry) error {
 func (m *ClusterCreateParams) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.OpenshiftVersion) { // not required
+		return nil
+	}
+
+	if err := validate.Pattern("openshift_version", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
 		return err
 	}
 
@@ -95,112 +146,6 @@ func (m *ClusterCreateParams) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *ClusterCreateParams) UnmarshalBinary(b []byte) error {
 	var res ClusterCreateParams
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*m = res
-	return nil
-}
-
-// ClusterCreateParamsHostsItems0 cluster create params hosts items0
-//
-// swagger:model ClusterCreateParamsHostsItems0
-type ClusterCreateParamsHostsItems0 struct {
-
-	// id
-	// Format: uuid
-	ID strfmt.UUID `json:"id,omitempty"`
-
-	// role
-	// Enum: [master worker]
-	Role string `json:"role,omitempty"`
-}
-
-// Validate validates this cluster create params hosts items0
-func (m *ClusterCreateParamsHostsItems0) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateID(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateRole(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *ClusterCreateParamsHostsItems0) validateID(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.ID) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-var clusterCreateParamsHostsItems0TypeRolePropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["master","worker"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		clusterCreateParamsHostsItems0TypeRolePropEnum = append(clusterCreateParamsHostsItems0TypeRolePropEnum, v)
-	}
-}
-
-const (
-
-	// ClusterCreateParamsHostsItems0RoleMaster captures enum value "master"
-	ClusterCreateParamsHostsItems0RoleMaster string = "master"
-
-	// ClusterCreateParamsHostsItems0RoleWorker captures enum value "worker"
-	ClusterCreateParamsHostsItems0RoleWorker string = "worker"
-)
-
-// prop value enum
-func (m *ClusterCreateParamsHostsItems0) validateRoleEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, clusterCreateParamsHostsItems0TypeRolePropEnum); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *ClusterCreateParamsHostsItems0) validateRole(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Role) { // not required
-		return nil
-	}
-
-	// value enum
-	if err := m.validateRoleEnum("role", "body", m.Role); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (m *ClusterCreateParamsHostsItems0) MarshalBinary() ([]byte, error) {
-	if m == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(m)
-}
-
-// UnmarshalBinary interface implementation
-func (m *ClusterCreateParamsHostsItems0) UnmarshalBinary(b []byte) error {
-	var res ClusterCreateParamsHostsItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

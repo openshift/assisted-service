@@ -31,7 +31,7 @@ func NewDeregisterCluster(ctx *middleware.Context, handler DeregisterClusterHand
 
 /*DeregisterCluster swagger:route DELETE /clusters/{cluster_id} inventory deregisterCluster
 
-Deregister OpenShift bare metal cluster
+Delete an OpenShift bare metal cluster definition
 
 */
 type DeregisterCluster struct {

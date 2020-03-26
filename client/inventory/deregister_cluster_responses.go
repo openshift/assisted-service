@@ -32,6 +32,12 @@ func (o *DeregisterClusterReader) ReadResponse(response runtime.ClientResponse, 
 			return nil, err
 		}
 		return nil, result
+	case 409:
+		result := NewDeregisterClusterConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewDeregisterClusterInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -82,6 +88,27 @@ func (o *DeregisterClusterNotFound) Error() string {
 }
 
 func (o *DeregisterClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeregisterClusterConflict creates a DeregisterClusterConflict with default headers values
+func NewDeregisterClusterConflict() *DeregisterClusterConflict {
+	return &DeregisterClusterConflict{}
+}
+
+/*DeregisterClusterConflict handles this case with default header values.
+
+Invalid state
+*/
+type DeregisterClusterConflict struct {
+}
+
+func (o *DeregisterClusterConflict) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterConflict ", 409)
+}
+
+func (o *DeregisterClusterConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

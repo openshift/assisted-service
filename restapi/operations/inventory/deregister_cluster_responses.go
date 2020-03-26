@@ -59,6 +59,30 @@ func (o *DeregisterClusterNotFound) WriteResponse(rw http.ResponseWriter, produc
 	rw.WriteHeader(404)
 }
 
+// DeregisterClusterConflictCode is the HTTP code returned for type DeregisterClusterConflict
+const DeregisterClusterConflictCode int = 409
+
+/*DeregisterClusterConflict Invalid state
+
+swagger:response deregisterClusterConflict
+*/
+type DeregisterClusterConflict struct {
+}
+
+// NewDeregisterClusterConflict creates DeregisterClusterConflict with default headers values
+func NewDeregisterClusterConflict() *DeregisterClusterConflict {
+
+	return &DeregisterClusterConflict{}
+}
+
+// WriteResponse to the client
+func (o *DeregisterClusterConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(409)
+}
+
 // DeregisterClusterInternalServerErrorCode is the HTTP code returned for type DeregisterClusterInternalServerError
 const DeregisterClusterInternalServerErrorCode int = 500
 
