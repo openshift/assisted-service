@@ -11,7 +11,7 @@ import (
 	"github.com/filanov/bm-inventory/restapi"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -22,8 +22,8 @@ import (
 
 var Options struct {
 	BMConfig bminventory.Config
-	DBHost   string `envconfig:"DB_HOST" default:"postgres"`
-	DBPort   string `envconfig:"DB_PORT" default:"5432"`
+	DBHost   string `envconfig:"DB_HOST" default:"mariadb"`
+	DBPort   string `envconfig:"DB_PORT" default:"3306"`
 }
 
 func main() {
@@ -37,8 +37,8 @@ func main() {
 
 	logrus.Println("Starting bm service")
 
-	db, err := gorm.Open("postgres",
-		fmt.Sprintf("host=%s port=%s user=postgresadmin dbname=postgresdb password=admin123 sslmode=disable",
+	db, err := gorm.Open("mysql",
+		fmt.Sprintf("admin:admin@tcp(%s:%s)/installer?charset=utf8&parseTime=True",
 			Options.DBHost, Options.DBPort))
 
 	if err != nil {

@@ -22,9 +22,9 @@ update: build
 	docker build -f Dockerfile.bm-inventory . -t $(SERVICE)
 	docker push $(SERVICE)
 
-deploy-for-test: deploy-postgres deploy-s3-configmap deploy-service-for-test
+deploy-for-test: deploy-mariadb deploy-s3-configmap deploy-service-for-test
 
-deploy-all: deploy-postgres deploy-s3 deploy-service
+deploy-all: deploy-mariadb deploy-s3 deploy-service
 
 deploy-s3-configmap:
 	./deploy/s3/deploy-configmap.sh
@@ -78,17 +78,16 @@ deploy-service: deploy-service-requirements
 deploy-role:
 	kubectl apply -f deploy/roles/role_binding.yaml
 
-deploy-postgres:
-	kubectl apply -f deploy/postgres/postgres-configmap.yaml
-	kubectl apply -f deploy/postgres/postgres-storage.yaml
-	kubectl apply -f deploy/postgres/postgres-deployment.yaml
+deploy-mariadb:
+	kubectl apply -f deploy/mariadb/mariadb-configmap.yaml
+	kubectl apply -f deploy/mariadb/mariadb-deployment.yaml
 
 subsystem-run: test subsystem-clean
 
 test:
 	INVENTORY=$(shell minikube service bm-inventory --url| sed 's/http:\/\///g') \
-		DB_HOST=$(shell minikube service postgres --url| sed 's/http:\/\///g' | cut -d ":" -f 1) \
-		DB_PORT=$(shell minikube service postgres --url| sed 's/http:\/\///g' | cut -d ":" -f 2) \
+		DB_HOST=$(shell minikube service mariadb --url| sed 's/http:\/\///g' | cut -d ":" -f 1) \
+		DB_PORT=$(shell minikube service mariadb --url| sed 's/http:\/\///g' | cut -d ":" -f 2) \
 		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS}
 
 .PHONY: subsystem
@@ -99,14 +98,14 @@ subsystem-clean:
 
 clear-deployment:
 	kubectl delete deployments.apps bm-inventory 1> /dev/null ; true
-	kubectl delete deployments.apps postgres 1> /dev/null ; true
+	kubectl delete deployments.apps mariadb 1> /dev/null ; true
 	kubectl delete deployments.apps scality 1> /dev/null ; true
 	kubectl get job -o name | grep create-image | xargs kubectl delete 1> /dev/null ; true
 	kubectl get pod -o name | grep create-image | xargs kubectl delete 1> /dev/null ; true
 	kubectl delete service bm-inventory 1> /dev/null ; true
-	kubectl delete service postgres 1> /dev/null ; true
+	kubectl delete service mariadb 1> /dev/null ; true
 	kubectl delete service scality 1> /dev/null ; true
 	kubectl delete configmap bm-inventory-config 1> /dev/null ; true
-	kubectl delete configmap postgres-config 1> /dev/null ; true
+	kubectl delete configmap mariadb-config 1> /dev/null ; true
 	kubectl delete configmap s3-config 1> /dev/null ; true
 	kubectl delete configmap scality-config 1> /dev/null ; true
