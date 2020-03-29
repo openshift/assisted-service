@@ -118,7 +118,7 @@ func (a *Client) DeregisterHost(ctx context.Context, params *DeregisterHostParam
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DeregisterHost",
 		Method:             "DELETE",
-		PathPattern:        "/hosts/{host_id}",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -142,7 +142,7 @@ func (a *Client) DisableHost(ctx context.Context, params *DisableHostParams) (*D
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DisableHost",
 		Method:             "DELETE",
-		PathPattern:        "/hosts/{host_id}/actions/enable",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -190,7 +190,7 @@ func (a *Client) EnableHost(ctx context.Context, params *EnableHostParams) (*Ena
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "EnableHost",
 		Method:             "POST",
-		PathPattern:        "/hosts/{host_id}/actions/enable",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -238,7 +238,7 @@ func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetHost",
 		Method:             "GET",
-		PathPattern:        "/hosts/{host_id}",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -262,7 +262,7 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetNextSteps",
 		Method:             "GET",
-		PathPattern:        "/hosts/{host_id}/next-steps",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/next-steps",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -334,7 +334,7 @@ func (a *Client) ListHosts(ctx context.Context, params *ListHostsParams) (*ListH
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListHosts",
 		Method:             "GET",
-		PathPattern:        "/hosts",
+		PathPattern:        "/clusters/{cluster_id}/hosts",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -358,7 +358,7 @@ func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams)
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "PostStepReply",
 		Method:             "POST",
-		PathPattern:        "/hosts/{host_id}/next-steps/reply",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/next-steps/reply",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -406,7 +406,7 @@ func (a *Client) RegisterHost(ctx context.Context, params *RegisterHostParams) (
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "RegisterHost",
 		Method:             "POST",
-		PathPattern:        "/hosts",
+		PathPattern:        "/clusters/{cluster_id}/hosts",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -430,7 +430,7 @@ func (a *Client) SetDebugStep(ctx context.Context, params *SetDebugStepParams) (
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "SetDebugStep",
 		Method:             "POST",
-		PathPattern:        "/hosts/{host_id}/actions/debug",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/debug",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},

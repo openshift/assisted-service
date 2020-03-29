@@ -60,6 +60,11 @@ for the get host operation typically these are written to a http.Request
 */
 type GetHostParams struct {
 
+	/*ClusterID
+	  The ID of the cluster to get hosts from
+
+	*/
+	ClusterID strfmt.UUID
 	/*HostID
 	  The ID of the host to retrieve
 
@@ -104,6 +109,17 @@ func (o *GetHostParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithClusterID adds the clusterID to the get host params
+func (o *GetHostParams) WithClusterID(clusterID strfmt.UUID) *GetHostParams {
+	o.SetClusterID(clusterID)
+	return o
+}
+
+// SetClusterID adds the clusterId to the get host params
+func (o *GetHostParams) SetClusterID(clusterID strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
 // WithHostID adds the hostID to the get host params
 func (o *GetHostParams) WithHostID(hostID strfmt.UUID) *GetHostParams {
 	o.SetHostID(hostID)
@@ -122,6 +138,11 @@ func (o *GetHostParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regis
 		return err
 	}
 	var res []error
+
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+		return err
+	}
 
 	// path param host_id
 	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {

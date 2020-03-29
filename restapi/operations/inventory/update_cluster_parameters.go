@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
 
 	"github.com/filanov/bm-inventory/models"
 )
@@ -42,7 +43,7 @@ type UpdateClusterParams struct {
 	  Required: true
 	  In: path
 	*/
-	ClusterID string
+	ClusterID strfmt.UUID
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -97,7 +98,25 @@ func (o *UpdateClusterParams) bindClusterID(rawData []string, hasKey bool, forma
 	// Required: true
 	// Parameter is provided by construction from the route
 
-	o.ClusterID = raw
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("cluster_id", "path", "strfmt.UUID", raw)
+	}
+	o.ClusterID = *(value.(*strfmt.UUID))
 
+	if err := o.validateClusterID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateClusterID carries on validations for parameter ClusterID
+func (o *UpdateClusterParams) validateClusterID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
+		return err
+	}
 	return nil
 }

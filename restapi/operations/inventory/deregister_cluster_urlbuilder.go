@@ -10,11 +10,13 @@ import (
 	"net/url"
 	golangswaggerpaths "path"
 	"strings"
+
+	"github.com/go-openapi/strfmt"
 )
 
 // DeregisterClusterURL generates an URL for the deregister cluster operation
 type DeregisterClusterURL struct {
-	ClusterID string
+	ClusterID strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,7 +44,7 @@ func (o *DeregisterClusterURL) Build() (*url.URL, error) {
 
 	var _path = "/clusters/{cluster_id}"
 
-	clusterID := o.ClusterID
+	clusterID := o.ClusterID.String()
 	if clusterID != "" {
 		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
 	} else {

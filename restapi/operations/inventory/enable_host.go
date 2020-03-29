@@ -29,7 +29,7 @@ func NewEnableHost(ctx *middleware.Context, handler EnableHostHandler) *EnableHo
 	return &EnableHost{Context: ctx, Handler: handler}
 }
 
-/*EnableHost swagger:route POST /hosts/{host_id}/actions/enable inventory enableHost
+/*EnableHost swagger:route POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable inventory enableHost
 
 Enable a host for use
 

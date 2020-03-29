@@ -17,11 +17,6 @@ import (
 // swagger:model host-create-params
 type HostCreateParams struct {
 
-	// cluster id
-	// Required: true
-	// Format: uuid
-	ClusterID *strfmt.UUID `json:"cluster_id"`
-
 	// host id
 	// Required: true
 	// Format: uuid
@@ -32,10 +27,6 @@ type HostCreateParams struct {
 func (m *HostCreateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateClusterID(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateHostID(formats); err != nil {
 		res = append(res, err)
 	}
@@ -43,19 +34,6 @@ func (m *HostCreateParams) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *HostCreateParams) validateClusterID(formats strfmt.Registry) error {
-
-	if err := validate.Required("cluster_id", "body", m.ClusterID); err != nil {
-		return err
-	}
-
-	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
-		return err
-	}
-
 	return nil
 }
 

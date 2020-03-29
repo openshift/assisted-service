@@ -63,7 +63,7 @@ type DisableHostNoContent struct {
 }
 
 func (o *DisableHostNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /hosts/{host_id}/actions/enable][%d] disableHostNoContent ", 204)
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostNoContent ", 204)
 }
 
 func (o *DisableHostNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -84,7 +84,7 @@ type DisableHostNotFound struct {
 }
 
 func (o *DisableHostNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /hosts/{host_id}/actions/enable][%d] disableHostNotFound ", 404)
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostNotFound ", 404)
 }
 
 func (o *DisableHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -105,7 +105,7 @@ type DisableHostConflict struct {
 }
 
 func (o *DisableHostConflict) Error() string {
-	return fmt.Sprintf("[DELETE /hosts/{host_id}/actions/enable][%d] disableHostConflict ", 409)
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostConflict ", 409)
 }
 
 func (o *DisableHostConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -126,7 +126,7 @@ type DisableHostInternalServerError struct {
 }
 
 func (o *DisableHostInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /hosts/{host_id}/actions/enable][%d] disableHostInternalServerError ", 500)
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostInternalServerError ", 500)
 }
 
 func (o *DisableHostInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

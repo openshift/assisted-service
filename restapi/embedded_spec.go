@@ -98,6 +98,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the cluster to retrieve",
             "name": "cluster_id",
             "in": "path",
@@ -128,6 +129,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the cluster to retrieve",
             "name": "cluster_id",
             "in": "path",
@@ -158,6 +160,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the cluster to retrieve",
             "name": "cluster_id",
             "in": "path",
@@ -208,6 +211,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the cluster whose ISO to download",
             "name": "cluster_id",
             "in": "path",
@@ -263,6 +267,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the cluster to begin installing",
             "name": "cluster_id",
             "in": "path",
@@ -291,13 +296,23 @@ func init() {
         }
       }
     },
-    "/hosts": {
+    "/clusters/{cluster_id}/hosts": {
       "get": {
         "tags": [
           "inventory"
         ],
         "summary": "List OpenShift bare metal hosts",
         "operationId": "ListHosts",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to get hosts from",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "description": "Host list",
@@ -317,6 +332,14 @@ func init() {
         "summary": "Register a new OpenShift bare metal host",
         "operationId": "RegisterHost",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to register host to",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "description": "New host parameters",
             "name": "new-host-params",
@@ -343,7 +366,7 @@ func init() {
         }
       }
     },
-    "/hosts/{host_id}": {
+    "/clusters/{cluster_id}/hosts/{host_id}": {
       "get": {
         "tags": [
           "inventory"
@@ -351,6 +374,14 @@ func init() {
         "summary": "Retrieve OpenShift bare metal host information",
         "operationId": "GetHost",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to get hosts from",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -384,6 +415,15 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to deregister host from",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
             "description": "The ID of the host to retrieve",
             "name": "host_id",
             "in": "path",
@@ -406,7 +446,7 @@ func init() {
         }
       }
     },
-    "/hosts/{host_id}/actions/debug": {
+    "/clusters/{cluster_id}/hosts/{host_id}/actions/debug": {
       "post": {
         "tags": [
           "inventory"
@@ -414,6 +454,14 @@ func init() {
         "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
         "operationId": "SetDebugStep",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster of the host",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -445,7 +493,7 @@ func init() {
         }
       }
     },
-    "/hosts/{host_id}/actions/enable": {
+    "/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
       "post": {
         "tags": [
           "inventory"
@@ -453,6 +501,14 @@ func init() {
         "summary": "Enable a host for use",
         "operationId": "EnableHost",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster of the host",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -487,6 +543,14 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The ID of the cluster of the host",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
             "description": "The ID of the host to disable",
             "name": "host_id",
             "in": "path",
@@ -509,7 +573,7 @@ func init() {
         }
       }
     },
-    "/hosts/{host_id}/next-steps": {
+    "/clusters/{cluster_id}/hosts/{host_id}/next-steps": {
       "get": {
         "tags": [
           "inventory"
@@ -517,6 +581,14 @@ func init() {
         "summary": "Retrieve the next operations that the agent need to perform",
         "operationId": "GetNextSteps",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster of the host",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -542,7 +614,7 @@ func init() {
         }
       }
     },
-    "/hosts/{host_id}/next-steps/reply": {
+    "/clusters/{cluster_id}/hosts/{host_id}/next-steps/reply": {
       "post": {
         "tags": [
           "inventory"
@@ -550,6 +622,14 @@ func init() {
         "summary": "Post the result of the required operations from the server",
         "operationId": "PostStepReply",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster of the host",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -599,7 +679,7 @@ func init() {
         "id": {
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key\" query:\"filter,sort\""
+          "x-go-custom-tag": "gorm:\"primary_key\""
         },
         "kind": {
           "type": "string",
@@ -941,6 +1021,11 @@ func init() {
             "hardware_info"
           ],
           "properties": {
+            "cluster_id": {
+              "type": "string",
+              "format": "uuid",
+              "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+            },
             "connectivity": {
               "$ref": "#/definitions/connectivity-report"
             },
@@ -982,14 +1067,9 @@ func init() {
     "host-create-params": {
       "type": "object",
       "required": [
-        "host_id",
-        "cluster_id"
+        "host_id"
       ],
       "properties": {
-        "cluster_id": {
-          "type": "string",
-          "format": "uuid"
-        },
         "host_id": {
           "type": "string",
           "format": "uuid"
@@ -1249,6 +1329,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the cluster to retrieve",
             "name": "cluster_id",
             "in": "path",
@@ -1279,6 +1360,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the cluster to retrieve",
             "name": "cluster_id",
             "in": "path",
@@ -1309,6 +1391,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the cluster to retrieve",
             "name": "cluster_id",
             "in": "path",
@@ -1359,6 +1442,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the cluster whose ISO to download",
             "name": "cluster_id",
             "in": "path",
@@ -1415,6 +1499,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
             "description": "The ID of the cluster to begin installing",
             "name": "cluster_id",
             "in": "path",
@@ -1443,13 +1528,23 @@ func init() {
         }
       }
     },
-    "/hosts": {
+    "/clusters/{cluster_id}/hosts": {
       "get": {
         "tags": [
           "inventory"
         ],
         "summary": "List OpenShift bare metal hosts",
         "operationId": "ListHosts",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to get hosts from",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "description": "Host list",
@@ -1469,6 +1564,14 @@ func init() {
         "summary": "Register a new OpenShift bare metal host",
         "operationId": "RegisterHost",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to register host to",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "description": "New host parameters",
             "name": "new-host-params",
@@ -1495,7 +1598,7 @@ func init() {
         }
       }
     },
-    "/hosts/{host_id}": {
+    "/clusters/{cluster_id}/hosts/{host_id}": {
       "get": {
         "tags": [
           "inventory"
@@ -1503,6 +1606,14 @@ func init() {
         "summary": "Retrieve OpenShift bare metal host information",
         "operationId": "GetHost",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to get hosts from",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -1536,6 +1647,15 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to deregister host from",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
             "description": "The ID of the host to retrieve",
             "name": "host_id",
             "in": "path",
@@ -1558,7 +1678,7 @@ func init() {
         }
       }
     },
-    "/hosts/{host_id}/actions/debug": {
+    "/clusters/{cluster_id}/hosts/{host_id}/actions/debug": {
       "post": {
         "tags": [
           "inventory"
@@ -1566,6 +1686,14 @@ func init() {
         "summary": "Set a single shot debug step that will be sent next time the agent will ask for a command",
         "operationId": "SetDebugStep",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster of the host",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -1597,7 +1725,7 @@ func init() {
         }
       }
     },
-    "/hosts/{host_id}/actions/enable": {
+    "/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
       "post": {
         "tags": [
           "inventory"
@@ -1605,6 +1733,14 @@ func init() {
         "summary": "Enable a host for use",
         "operationId": "EnableHost",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster of the host",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -1639,6 +1775,14 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The ID of the cluster of the host",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
             "description": "The ID of the host to disable",
             "name": "host_id",
             "in": "path",
@@ -1661,7 +1805,7 @@ func init() {
         }
       }
     },
-    "/hosts/{host_id}/next-steps": {
+    "/clusters/{cluster_id}/hosts/{host_id}/next-steps": {
       "get": {
         "tags": [
           "inventory"
@@ -1669,6 +1813,14 @@ func init() {
         "summary": "Retrieve the next operations that the agent need to perform",
         "operationId": "GetNextSteps",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster of the host",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -1694,7 +1846,7 @@ func init() {
         }
       }
     },
-    "/hosts/{host_id}/next-steps/reply": {
+    "/clusters/{cluster_id}/hosts/{host_id}/next-steps/reply": {
       "post": {
         "tags": [
           "inventory"
@@ -1702,6 +1854,14 @@ func init() {
         "summary": "Post the result of the required operations from the server",
         "operationId": "PostStepReply",
         "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster of the host",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -1767,7 +1927,7 @@ func init() {
         "id": {
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key\" query:\"filter,sort\""
+          "x-go-custom-tag": "gorm:\"primary_key\""
         },
         "kind": {
           "type": "string",
@@ -2096,6 +2256,11 @@ func init() {
             "hardware_info"
           ],
           "properties": {
+            "cluster_id": {
+              "type": "string",
+              "format": "uuid",
+              "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+            },
             "connectivity": {
               "$ref": "#/definitions/connectivity-report"
             },
@@ -2137,14 +2302,9 @@ func init() {
     "host-create-params": {
       "type": "object",
       "required": [
-        "host_id",
-        "cluster_id"
+        "host_id"
       ],
       "properties": {
-        "cluster_id": {
-          "type": "string",
-          "format": "uuid"
-        },
         "host_id": {
           "type": "string",
           "format": "uuid"

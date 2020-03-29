@@ -16,7 +16,8 @@ import (
 
 // DisableHostURL generates an URL for the disable host operation
 type DisableHostURL struct {
-	HostID strfmt.UUID
+	ClusterID strfmt.UUID
+	HostID    strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,7 +43,14 @@ func (o *DisableHostURL) SetBasePath(bp string) {
 func (o *DisableHostURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/hosts/{host_id}/actions/enable"
+	var _path = "/clusters/{cluster_id}/hosts/{host_id}/actions/enable"
+
+	clusterID := o.ClusterID.String()
+	if clusterID != "" {
+		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+	} else {
+		return nil, errors.New("clusterId is required on DisableHostURL")
+	}
 
 	hostID := o.HostID.String()
 	if hostID != "" {

@@ -9,11 +9,18 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
+	"strings"
+
+	"github.com/go-openapi/strfmt"
 )
 
 // ListHostsURL generates an URL for the list hosts operation
 type ListHostsURL struct {
+	ClusterID strfmt.UUID
+
 	_basePath string
+	// avoid unkeyed usage
+	_ struct{}
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
@@ -35,7 +42,14 @@ func (o *ListHostsURL) SetBasePath(bp string) {
 func (o *ListHostsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/hosts"
+	var _path = "/clusters/{cluster_id}/hosts"
+
+	clusterID := o.ClusterID.String()
+	if clusterID != "" {
+		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+	} else {
+		return nil, errors.New("clusterId is required on ListHostsURL")
+	}
 
 	_basePath := o._basePath
 	if _basePath == "" {

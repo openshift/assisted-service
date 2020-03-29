@@ -19,7 +19,7 @@ import (
 // NewListHostsParams creates a new ListHostsParams object
 // with the default values initialized.
 func NewListHostsParams() *ListHostsParams {
-
+	var ()
 	return &ListHostsParams{
 
 		timeout: cr.DefaultTimeout,
@@ -29,7 +29,7 @@ func NewListHostsParams() *ListHostsParams {
 // NewListHostsParamsWithTimeout creates a new ListHostsParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewListHostsParamsWithTimeout(timeout time.Duration) *ListHostsParams {
-
+	var ()
 	return &ListHostsParams{
 
 		timeout: timeout,
@@ -39,7 +39,7 @@ func NewListHostsParamsWithTimeout(timeout time.Duration) *ListHostsParams {
 // NewListHostsParamsWithContext creates a new ListHostsParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewListHostsParamsWithContext(ctx context.Context) *ListHostsParams {
-
+	var ()
 	return &ListHostsParams{
 
 		Context: ctx,
@@ -49,7 +49,7 @@ func NewListHostsParamsWithContext(ctx context.Context) *ListHostsParams {
 // NewListHostsParamsWithHTTPClient creates a new ListHostsParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewListHostsParamsWithHTTPClient(client *http.Client) *ListHostsParams {
-
+	var ()
 	return &ListHostsParams{
 		HTTPClient: client,
 	}
@@ -59,6 +59,13 @@ func NewListHostsParamsWithHTTPClient(client *http.Client) *ListHostsParams {
 for the list hosts operation typically these are written to a http.Request
 */
 type ListHostsParams struct {
+
+	/*ClusterID
+	  The ID of the cluster to get hosts from
+
+	*/
+	ClusterID strfmt.UUID
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -97,6 +104,17 @@ func (o *ListHostsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithClusterID adds the clusterID to the list hosts params
+func (o *ListHostsParams) WithClusterID(clusterID strfmt.UUID) *ListHostsParams {
+	o.SetClusterID(clusterID)
+	return o
+}
+
+// SetClusterID adds the clusterId to the list hosts params
+func (o *ListHostsParams) SetClusterID(clusterID strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *ListHostsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -104,6 +122,11 @@ func (o *ListHostsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Reg
 		return err
 	}
 	var res []error
+
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+		return err
+	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

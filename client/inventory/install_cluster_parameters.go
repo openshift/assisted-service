@@ -64,7 +64,7 @@ type InstallClusterParams struct {
 	  The ID of the cluster to begin installing
 
 	*/
-	ClusterID string
+	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,13 +105,13 @@ func (o *InstallClusterParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithClusterID adds the clusterID to the install cluster params
-func (o *InstallClusterParams) WithClusterID(clusterID string) *InstallClusterParams {
+func (o *InstallClusterParams) WithClusterID(clusterID strfmt.UUID) *InstallClusterParams {
 	o.SetClusterID(clusterID)
 	return o
 }
 
 // SetClusterID adds the clusterId to the install cluster params
-func (o *InstallClusterParams) SetClusterID(clusterID string) {
+func (o *InstallClusterParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
@@ -124,7 +124,7 @@ func (o *InstallClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 	var res []error
 
 	// path param cluster_id
-	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
 

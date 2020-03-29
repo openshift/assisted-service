@@ -60,11 +60,16 @@ for the deregister host operation typically these are written to a http.Request
 */
 type DeregisterHostParams struct {
 
+	/*ClusterID
+	  The ID of the cluster to deregister host from
+
+	*/
+	ClusterID strfmt.UUID
 	/*HostID
 	  The ID of the host to retrieve
 
 	*/
-	HostID string
+	HostID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -104,14 +109,25 @@ func (o *DeregisterHostParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithClusterID adds the clusterID to the deregister host params
+func (o *DeregisterHostParams) WithClusterID(clusterID strfmt.UUID) *DeregisterHostParams {
+	o.SetClusterID(clusterID)
+	return o
+}
+
+// SetClusterID adds the clusterId to the deregister host params
+func (o *DeregisterHostParams) SetClusterID(clusterID strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
 // WithHostID adds the hostID to the deregister host params
-func (o *DeregisterHostParams) WithHostID(hostID string) *DeregisterHostParams {
+func (o *DeregisterHostParams) WithHostID(hostID strfmt.UUID) *DeregisterHostParams {
 	o.SetHostID(hostID)
 	return o
 }
 
 // SetHostID adds the hostId to the deregister host params
-func (o *DeregisterHostParams) SetHostID(hostID string) {
+func (o *DeregisterHostParams) SetHostID(hostID strfmt.UUID) {
 	o.HostID = hostID
 }
 
@@ -123,8 +139,13 @@ func (o *DeregisterHostParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 	}
 	var res []error
 
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+		return err
+	}
+
 	// path param host_id
-	if err := r.SetPathParam("host_id", o.HostID); err != nil {
+	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {
 		return err
 	}
 

@@ -10,11 +10,13 @@ import (
 	"net/url"
 	golangswaggerpaths "path"
 	"strings"
+
+	"github.com/go-openapi/strfmt"
 )
 
 // UpdateClusterURL generates an URL for the update cluster operation
 type UpdateClusterURL struct {
-	ClusterID string
+	ClusterID strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,7 +44,7 @@ func (o *UpdateClusterURL) Build() (*url.URL, error) {
 
 	var _path = "/clusters/{cluster_id}"
 
-	clusterID := o.ClusterID
+	clusterID := o.ClusterID.String()
 	if clusterID != "" {
 		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
 	} else {

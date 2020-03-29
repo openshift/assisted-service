@@ -64,7 +64,7 @@ type GetClusterParams struct {
 	  The ID of the cluster to retrieve
 
 	*/
-	ClusterID string
+	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,13 +105,13 @@ func (o *GetClusterParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithClusterID adds the clusterID to the get cluster params
-func (o *GetClusterParams) WithClusterID(clusterID string) *GetClusterParams {
+func (o *GetClusterParams) WithClusterID(clusterID strfmt.UUID) *GetClusterParams {
 	o.SetClusterID(clusterID)
 	return o
 }
 
 // SetClusterID adds the clusterId to the get cluster params
-func (o *GetClusterParams) SetClusterID(clusterID string) {
+func (o *GetClusterParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
@@ -124,7 +124,7 @@ func (o *GetClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 	var res []error
 
 	// path param cluster_id
-	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
 

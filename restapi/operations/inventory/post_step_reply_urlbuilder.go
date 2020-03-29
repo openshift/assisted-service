@@ -16,7 +16,8 @@ import (
 
 // PostStepReplyURL generates an URL for the post step reply operation
 type PostStepReplyURL struct {
-	HostID strfmt.UUID
+	ClusterID strfmt.UUID
+	HostID    strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,7 +43,14 @@ func (o *PostStepReplyURL) SetBasePath(bp string) {
 func (o *PostStepReplyURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/hosts/{host_id}/next-steps/reply"
+	var _path = "/clusters/{cluster_id}/hosts/{host_id}/next-steps/reply"
+
+	clusterID := o.ClusterID.String()
+	if clusterID != "" {
+		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+	} else {
+		return nil, errors.New("clusterId is required on PostStepReplyURL")
+	}
 
 	hostID := o.HostID.String()
 	if hostID != "" {

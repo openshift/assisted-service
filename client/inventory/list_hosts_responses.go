@@ -55,7 +55,7 @@ type ListHostsOK struct {
 }
 
 func (o *ListHostsOK) Error() string {
-	return fmt.Sprintf("[GET /hosts][%d] listHostsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListHostsOK) GetPayload() models.HostList {
@@ -85,7 +85,7 @@ type ListHostsInternalServerError struct {
 }
 
 func (o *ListHostsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /hosts][%d] listHostsInternalServerError ", 500)
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsInternalServerError ", 500)
 }
 
 func (o *ListHostsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
 )
 
 // NewDeregisterHostParams creates a new DeregisterHostParams object
@@ -29,11 +30,16 @@ type DeregisterHostParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*The ID of the cluster to deregister host from
+	  Required: true
+	  In: path
+	*/
+	ClusterID strfmt.UUID
 	/*The ID of the host to retrieve
 	  Required: true
 	  In: path
 	*/
-	HostID string
+	HostID strfmt.UUID
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -45,6 +51,11 @@ func (o *DeregisterHostParams) BindRequest(r *http.Request, route *middleware.Ma
 
 	o.HTTPRequest = r
 
+	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
+	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	rHostID, rhkHostID, _ := route.Params.GetOK("host_id")
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
 		res = append(res, err)
@@ -52,6 +63,39 @@ func (o *DeregisterHostParams) BindRequest(r *http.Request, route *middleware.Ma
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+// bindClusterID binds and validates parameter ClusterID from path.
+func (o *DeregisterHostParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: true
+	// Parameter is provided by construction from the route
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("cluster_id", "path", "strfmt.UUID", raw)
+	}
+	o.ClusterID = *(value.(*strfmt.UUID))
+
+	if err := o.validateClusterID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateClusterID carries on validations for parameter ClusterID
+func (o *DeregisterHostParams) validateClusterID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
+		return err
 	}
 	return nil
 }
@@ -66,7 +110,25 @@ func (o *DeregisterHostParams) bindHostID(rawData []string, hasKey bool, formats
 	// Required: true
 	// Parameter is provided by construction from the route
 
-	o.HostID = raw
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("host_id", "path", "strfmt.UUID", raw)
+	}
+	o.HostID = *(value.(*strfmt.UUID))
 
+	if err := o.validateHostID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateHostID carries on validations for parameter HostID
+func (o *DeregisterHostParams) validateHostID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
+		return err
+	}
 	return nil
 }

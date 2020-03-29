@@ -10,6 +10,8 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
 )
 
 // NewListHostsParams creates a new ListHostsParams object
@@ -27,6 +29,12 @@ type ListHostsParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
+
+	/*The ID of the cluster to get hosts from
+	  Required: true
+	  In: path
+	*/
+	ClusterID strfmt.UUID
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -38,8 +46,46 @@ func (o *ListHostsParams) BindRequest(r *http.Request, route *middleware.Matched
 
 	o.HTTPRequest = r
 
+	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
+	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+// bindClusterID binds and validates parameter ClusterID from path.
+func (o *ListHostsParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: true
+	// Parameter is provided by construction from the route
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("cluster_id", "path", "strfmt.UUID", raw)
+	}
+	o.ClusterID = *(value.(*strfmt.UUID))
+
+	if err := o.validateClusterID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateClusterID carries on validations for parameter ClusterID
+func (o *ListHostsParams) validateClusterID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
+		return err
 	}
 	return nil
 }

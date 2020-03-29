@@ -57,7 +57,7 @@ type SetDebugStepOK struct {
 }
 
 func (o *SetDebugStepOK) Error() string {
-	return fmt.Sprintf("[POST /hosts/{host_id}/actions/debug][%d] setDebugStepOK ", 200)
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/debug][%d] setDebugStepOK ", 200)
 }
 
 func (o *SetDebugStepOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -78,7 +78,7 @@ type SetDebugStepNotFound struct {
 }
 
 func (o *SetDebugStepNotFound) Error() string {
-	return fmt.Sprintf("[POST /hosts/{host_id}/actions/debug][%d] setDebugStepNotFound ", 404)
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/debug][%d] setDebugStepNotFound ", 404)
 }
 
 func (o *SetDebugStepNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -99,7 +99,7 @@ type SetDebugStepInternalServerError struct {
 }
 
 func (o *SetDebugStepInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /hosts/{host_id}/actions/debug][%d] setDebugStepInternalServerError ", 500)
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/debug][%d] setDebugStepInternalServerError ", 500)
 }
 
 func (o *SetDebugStepInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

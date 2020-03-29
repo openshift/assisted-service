@@ -10,11 +10,14 @@ import (
 	"net/url"
 	golangswaggerpaths "path"
 	"strings"
+
+	"github.com/go-openapi/strfmt"
 )
 
 // DeregisterHostURL generates an URL for the deregister host operation
 type DeregisterHostURL struct {
-	HostID string
+	ClusterID strfmt.UUID
+	HostID    strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -40,9 +43,16 @@ func (o *DeregisterHostURL) SetBasePath(bp string) {
 func (o *DeregisterHostURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/hosts/{host_id}"
+	var _path = "/clusters/{cluster_id}/hosts/{host_id}"
 
-	hostID := o.HostID
+	clusterID := o.ClusterID.String()
+	if clusterID != "" {
+		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+	} else {
+		return nil, errors.New("clusterId is required on DeregisterHostURL")
+	}
+
+	hostID := o.HostID.String()
 	if hostID != "" {
 		_path = strings.Replace(_path, "{host_id}", hostID, -1)
 	} else {

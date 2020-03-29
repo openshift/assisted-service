@@ -34,6 +34,11 @@ type SetDebugStepParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*The ID of the cluster of the host
+	  Required: true
+	  In: path
+	*/
+	ClusterID strfmt.UUID
 	/*The ID of the host to debug
 	  Required: true
 	  In: path
@@ -54,6 +59,11 @@ func (o *SetDebugStepParams) BindRequest(r *http.Request, route *middleware.Matc
 	var res []error
 
 	o.HTTPRequest = r
+
+	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
+	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
+		res = append(res, err)
+	}
 
 	rHostID, rhkHostID, _ := route.Params.GetOK("host_id")
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
@@ -84,6 +94,39 @@ func (o *SetDebugStepParams) BindRequest(r *http.Request, route *middleware.Matc
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+// bindClusterID binds and validates parameter ClusterID from path.
+func (o *SetDebugStepParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: true
+	// Parameter is provided by construction from the route
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("cluster_id", "path", "strfmt.UUID", raw)
+	}
+	o.ClusterID = *(value.(*strfmt.UUID))
+
+	if err := o.validateClusterID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateClusterID carries on validations for parameter ClusterID
+func (o *SetDebugStepParams) validateClusterID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
+		return err
 	}
 	return nil
 }

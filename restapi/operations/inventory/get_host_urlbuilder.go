@@ -16,7 +16,8 @@ import (
 
 // GetHostURL generates an URL for the get host operation
 type GetHostURL struct {
-	HostID strfmt.UUID
+	ClusterID strfmt.UUID
+	HostID    strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,7 +43,14 @@ func (o *GetHostURL) SetBasePath(bp string) {
 func (o *GetHostURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/hosts/{host_id}"
+	var _path = "/clusters/{cluster_id}/hosts/{host_id}"
+
+	clusterID := o.ClusterID.String()
+	if clusterID != "" {
+		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+	} else {
+		return nil, errors.New("clusterId is required on GetHostURL")
+	}
 
 	hostID := o.HostID.String()
 	if hostID != "" {

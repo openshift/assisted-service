@@ -62,6 +62,11 @@ for the post step reply operation typically these are written to a http.Request
 */
 type PostStepReplyParams struct {
 
+	/*ClusterID
+	  The ID of the cluster of the host
+
+	*/
+	ClusterID strfmt.UUID
 	/*HostID
 	  ID of host
 
@@ -108,6 +113,17 @@ func (o *PostStepReplyParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithClusterID adds the clusterID to the post step reply params
+func (o *PostStepReplyParams) WithClusterID(clusterID strfmt.UUID) *PostStepReplyParams {
+	o.SetClusterID(clusterID)
+	return o
+}
+
+// SetClusterID adds the clusterId to the post step reply params
+func (o *PostStepReplyParams) SetClusterID(clusterID strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
 // WithHostID adds the hostID to the post step reply params
 func (o *PostStepReplyParams) WithHostID(hostID strfmt.UUID) *PostStepReplyParams {
 	o.SetHostID(hostID)
@@ -137,6 +153,11 @@ func (o *PostStepReplyParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 		return err
 	}
 	var res []error
+
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+		return err
+	}
 
 	// path param host_id
 	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {

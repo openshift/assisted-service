@@ -64,7 +64,7 @@ type DeregisterClusterParams struct {
 	  The ID of the cluster to retrieve
 
 	*/
-	ClusterID string
+	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,13 +105,13 @@ func (o *DeregisterClusterParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithClusterID adds the clusterID to the deregister cluster params
-func (o *DeregisterClusterParams) WithClusterID(clusterID string) *DeregisterClusterParams {
+func (o *DeregisterClusterParams) WithClusterID(clusterID strfmt.UUID) *DeregisterClusterParams {
 	o.SetClusterID(clusterID)
 	return o
 }
 
 // SetClusterID adds the clusterId to the deregister cluster params
-func (o *DeregisterClusterParams) SetClusterID(clusterID string) {
+func (o *DeregisterClusterParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
@@ -124,7 +124,7 @@ func (o *DeregisterClusterParams) WriteToRequest(r runtime.ClientRequest, reg st
 	var res []error
 
 	// path param cluster_id
-	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
 

@@ -65,7 +65,7 @@ type DownloadClusterISOParams struct {
 	  The ID of the cluster whose ISO to download
 
 	*/
-	ClusterID string
+	ClusterID strfmt.UUID
 	/*ProxyIP
 	  The IP address of the HTTP proxy that agents should use to access the discovery service
 
@@ -121,13 +121,13 @@ func (o *DownloadClusterISOParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithClusterID adds the clusterID to the download cluster i s o params
-func (o *DownloadClusterISOParams) WithClusterID(clusterID string) *DownloadClusterISOParams {
+func (o *DownloadClusterISOParams) WithClusterID(clusterID strfmt.UUID) *DownloadClusterISOParams {
 	o.SetClusterID(clusterID)
 	return o
 }
 
 // SetClusterID adds the clusterId to the download cluster i s o params
-func (o *DownloadClusterISOParams) SetClusterID(clusterID string) {
+func (o *DownloadClusterISOParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
@@ -173,7 +173,7 @@ func (o *DownloadClusterISOParams) WriteToRequest(r runtime.ClientRequest, reg s
 	var res []error
 
 	// path param cluster_id
-	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
 

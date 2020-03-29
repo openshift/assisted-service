@@ -10,11 +10,13 @@ import (
 	"net/url"
 	golangswaggerpaths "path"
 	"strings"
+
+	"github.com/go-openapi/strfmt"
 )
 
 // GetClusterURL generates an URL for the get cluster operation
 type GetClusterURL struct {
-	ClusterID string
+	ClusterID strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,7 +44,7 @@ func (o *GetClusterURL) Build() (*url.URL, error) {
 
 	var _path = "/clusters/{cluster_id}"
 
-	clusterID := o.ClusterID
+	clusterID := o.ClusterID.String()
 	if clusterID != "" {
 		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
 	} else {

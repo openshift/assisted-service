@@ -62,6 +62,11 @@ for the register host operation typically these are written to a http.Request
 */
 type RegisterHostParams struct {
 
+	/*ClusterID
+	  The ID of the cluster to register host to
+
+	*/
+	ClusterID strfmt.UUID
 	/*NewHostParams
 	  New host parameters
 
@@ -106,6 +111,17 @@ func (o *RegisterHostParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithClusterID adds the clusterID to the register host params
+func (o *RegisterHostParams) WithClusterID(clusterID strfmt.UUID) *RegisterHostParams {
+	o.SetClusterID(clusterID)
+	return o
+}
+
+// SetClusterID adds the clusterId to the register host params
+func (o *RegisterHostParams) SetClusterID(clusterID strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
 // WithNewHostParams adds the newHostParams to the register host params
 func (o *RegisterHostParams) WithNewHostParams(newHostParams *models.HostCreateParams) *RegisterHostParams {
 	o.SetNewHostParams(newHostParams)
@@ -124,6 +140,11 @@ func (o *RegisterHostParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 	var res []error
+
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+		return err
+	}
 
 	if o.NewHostParams != nil {
 		if err := r.SetBodyParam(o.NewHostParams); err != nil {

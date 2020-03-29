@@ -71,7 +71,7 @@ type UpdateClusterParams struct {
 	  The ID of the cluster to retrieve
 
 	*/
-	ClusterID string
+	ClusterID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -123,13 +123,13 @@ func (o *UpdateClusterParams) SetClusterUpdateParams(clusterUpdateParams *models
 }
 
 // WithClusterID adds the clusterID to the update cluster params
-func (o *UpdateClusterParams) WithClusterID(clusterID string) *UpdateClusterParams {
+func (o *UpdateClusterParams) WithClusterID(clusterID strfmt.UUID) *UpdateClusterParams {
 	o.SetClusterID(clusterID)
 	return o
 }
 
 // SetClusterID adds the clusterId to the update cluster params
-func (o *UpdateClusterParams) SetClusterID(clusterID string) {
+func (o *UpdateClusterParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
@@ -148,7 +148,7 @@ func (o *UpdateClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 	}
 
 	// path param cluster_id
-	if err := r.SetPathParam("cluster_id", o.ClusterID); err != nil {
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
 

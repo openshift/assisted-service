@@ -22,6 +22,10 @@ type Host struct {
 
 	HostCreateParams
 
+	// cluster id
+	// Format: uuid
+	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`
+
 	// connectivity
 	// Required: true
 	Connectivity *ConnectivityReport `json:"connectivity"`
@@ -66,6 +70,8 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 
 	// AO2
 	var dataAO2 struct {
+		ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
+
 		Connectivity *ConnectivityReport `json:"connectivity"`
 
 		HardwareInfo *Introspection `json:"hardware_info"`
@@ -81,6 +87,8 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 	if err := swag.ReadJSON(raw, &dataAO2); err != nil {
 		return err
 	}
+
+	m.ClusterID = dataAO2.ClusterID
 
 	m.Connectivity = dataAO2.Connectivity
 
@@ -113,6 +121,8 @@ func (m Host) MarshalJSON() ([]byte, error) {
 	}
 	_parts = append(_parts, aO1)
 	var dataAO2 struct {
+		ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
+
 		Connectivity *ConnectivityReport `json:"connectivity"`
 
 		HardwareInfo *Introspection `json:"hardware_info"`
@@ -125,6 +135,8 @@ func (m Host) MarshalJSON() ([]byte, error) {
 
 		UpdatedAt strfmt.DateTime `json:"updated_at,omitempty"`
 	}
+
+	dataAO2.ClusterID = m.ClusterID
 
 	dataAO2.Connectivity = m.Connectivity
 
@@ -159,6 +171,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateClusterID(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateConnectivity(formats); err != nil {
 		res = append(res, err)
 	}
@@ -186,6 +202,19 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Host) validateClusterID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ClusterID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 

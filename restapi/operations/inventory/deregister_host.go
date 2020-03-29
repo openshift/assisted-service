@@ -29,7 +29,7 @@ func NewDeregisterHost(ctx *middleware.Context, handler DeregisterHostHandler) *
 	return &DeregisterHost{Context: ctx, Handler: handler}
 }
 
-/*DeregisterHost swagger:route DELETE /hosts/{host_id} inventory deregisterHost
+/*DeregisterHost swagger:route DELETE /clusters/{cluster_id}/hosts/{host_id} inventory deregisterHost
 
 Deregister OpenShift bare metal host
 

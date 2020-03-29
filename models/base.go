@@ -27,7 +27,7 @@ type Base struct {
 	// id
 	// Required: true
 	// Format: uuid
-	ID *strfmt.UUID `json:"id" gorm:"primary_key" query:"filter,sort"`
+	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
 
 	// kind
 	// Required: true

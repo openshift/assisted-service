@@ -29,7 +29,7 @@ func NewPostStepReply(ctx *middleware.Context, handler PostStepReplyHandler) *Po
 	return &PostStepReply{Context: ctx, Handler: handler}
 }
 
-/*PostStepReply swagger:route POST /hosts/{host_id}/next-steps/reply inventory postStepReply
+/*PostStepReply swagger:route POST /clusters/{cluster_id}/hosts/{host_id}/next-steps/reply inventory postStepReply
 
 Post the result of the required operations from the server
 

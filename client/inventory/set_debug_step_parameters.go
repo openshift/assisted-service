@@ -62,6 +62,11 @@ for the set debug step operation typically these are written to a http.Request
 */
 type SetDebugStepParams struct {
 
+	/*ClusterID
+	  The ID of the cluster of the host
+
+	*/
+	ClusterID strfmt.UUID
 	/*HostID
 	  The ID of the host to debug
 
@@ -111,6 +116,17 @@ func (o *SetDebugStepParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithClusterID adds the clusterID to the set debug step params
+func (o *SetDebugStepParams) WithClusterID(clusterID strfmt.UUID) *SetDebugStepParams {
+	o.SetClusterID(clusterID)
+	return o
+}
+
+// SetClusterID adds the clusterId to the set debug step params
+func (o *SetDebugStepParams) SetClusterID(clusterID strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
 // WithHostID adds the hostID to the set debug step params
 func (o *SetDebugStepParams) WithHostID(hostID strfmt.UUID) *SetDebugStepParams {
 	o.SetHostID(hostID)
@@ -140,6 +156,11 @@ func (o *SetDebugStepParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 	var res []error
+
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+		return err
+	}
 
 	// path param host_id
 	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {

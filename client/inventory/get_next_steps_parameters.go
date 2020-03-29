@@ -60,6 +60,11 @@ for the get next steps operation typically these are written to a http.Request
 */
 type GetNextStepsParams struct {
 
+	/*ClusterID
+	  The ID of the cluster of the host
+
+	*/
+	ClusterID strfmt.UUID
 	/*HostID
 	  ID of host
 
@@ -104,6 +109,17 @@ func (o *GetNextStepsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithClusterID adds the clusterID to the get next steps params
+func (o *GetNextStepsParams) WithClusterID(clusterID strfmt.UUID) *GetNextStepsParams {
+	o.SetClusterID(clusterID)
+	return o
+}
+
+// SetClusterID adds the clusterId to the get next steps params
+func (o *GetNextStepsParams) SetClusterID(clusterID strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
 // WithHostID adds the hostID to the get next steps params
 func (o *GetNextStepsParams) WithHostID(hostID strfmt.UUID) *GetNextStepsParams {
 	o.SetHostID(hostID)
@@ -122,6 +138,11 @@ func (o *GetNextStepsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 	var res []error
+
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+		return err
+	}
 
 	// path param host_id
 	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {

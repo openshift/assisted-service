@@ -60,6 +60,11 @@ for the enable host operation typically these are written to a http.Request
 */
 type EnableHostParams struct {
 
+	/*ClusterID
+	  The ID of the cluster of the host
+
+	*/
+	ClusterID strfmt.UUID
 	/*HostID
 	  The ID of the host to enable
 
@@ -104,6 +109,17 @@ func (o *EnableHostParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithClusterID adds the clusterID to the enable host params
+func (o *EnableHostParams) WithClusterID(clusterID strfmt.UUID) *EnableHostParams {
+	o.SetClusterID(clusterID)
+	return o
+}
+
+// SetClusterID adds the clusterId to the enable host params
+func (o *EnableHostParams) SetClusterID(clusterID strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
 // WithHostID adds the hostID to the enable host params
 func (o *EnableHostParams) WithHostID(hostID strfmt.UUID) *EnableHostParams {
 	o.SetHostID(hostID)
@@ -122,6 +138,11 @@ func (o *EnableHostParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		return err
 	}
 	var res []error
+
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+		return err
+	}
 
 	// path param host_id
 	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {

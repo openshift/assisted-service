@@ -63,7 +63,7 @@ type EnableHostNoContent struct {
 }
 
 func (o *EnableHostNoContent) Error() string {
-	return fmt.Sprintf("[POST /hosts/{host_id}/actions/enable][%d] enableHostNoContent ", 204)
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostNoContent ", 204)
 }
 
 func (o *EnableHostNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -84,7 +84,7 @@ type EnableHostNotFound struct {
 }
 
 func (o *EnableHostNotFound) Error() string {
-	return fmt.Sprintf("[POST /hosts/{host_id}/actions/enable][%d] enableHostNotFound ", 404)
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostNotFound ", 404)
 }
 
 func (o *EnableHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -105,7 +105,7 @@ type EnableHostConflict struct {
 }
 
 func (o *EnableHostConflict) Error() string {
-	return fmt.Sprintf("[POST /hosts/{host_id}/actions/enable][%d] enableHostConflict ", 409)
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostConflict ", 409)
 }
 
 func (o *EnableHostConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -126,7 +126,7 @@ type EnableHostInternalServerError struct {
 }
 
 func (o *EnableHostInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /hosts/{host_id}/actions/enable][%d] enableHostInternalServerError ", 500)
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostInternalServerError ", 500)
 }
 
 func (o *EnableHostInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

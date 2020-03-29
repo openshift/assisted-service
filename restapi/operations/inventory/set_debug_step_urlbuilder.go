@@ -16,7 +16,8 @@ import (
 
 // SetDebugStepURL generates an URL for the set debug step operation
 type SetDebugStepURL struct {
-	HostID strfmt.UUID
+	ClusterID strfmt.UUID
+	HostID    strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,7 +43,14 @@ func (o *SetDebugStepURL) SetBasePath(bp string) {
 func (o *SetDebugStepURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/hosts/{host_id}/actions/debug"
+	var _path = "/clusters/{cluster_id}/hosts/{host_id}/actions/debug"
+
+	clusterID := o.ClusterID.String()
+	if clusterID != "" {
+		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+	} else {
+		return nil, errors.New("clusterId is required on SetDebugStepURL")
+	}
 
 	hostID := o.HostID.String()
 	if hostID != "" {

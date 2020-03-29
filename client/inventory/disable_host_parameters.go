@@ -60,6 +60,11 @@ for the disable host operation typically these are written to a http.Request
 */
 type DisableHostParams struct {
 
+	/*ClusterID
+	  The ID of the cluster of the host
+
+	*/
+	ClusterID strfmt.UUID
 	/*HostID
 	  The ID of the host to disable
 
@@ -104,6 +109,17 @@ func (o *DisableHostParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithClusterID adds the clusterID to the disable host params
+func (o *DisableHostParams) WithClusterID(clusterID strfmt.UUID) *DisableHostParams {
+	o.SetClusterID(clusterID)
+	return o
+}
+
+// SetClusterID adds the clusterId to the disable host params
+func (o *DisableHostParams) SetClusterID(clusterID strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
 // WithHostID adds the hostID to the disable host params
 func (o *DisableHostParams) WithHostID(hostID strfmt.UUID) *DisableHostParams {
 	o.SetHostID(hostID)
@@ -122,6 +138,11 @@ func (o *DisableHostParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 		return err
 	}
 	var res []error
+
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+		return err
+	}
 
 	// path param host_id
 	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {

@@ -29,7 +29,7 @@ func NewDisableHost(ctx *middleware.Context, handler DisableHostHandler) *Disabl
 	return &DisableHost{Context: ctx, Handler: handler}
 }
 
-/*DisableHost swagger:route DELETE /hosts/{host_id}/actions/enable inventory disableHost
+/*DisableHost swagger:route DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable inventory disableHost
 
 Disable a host for use
 

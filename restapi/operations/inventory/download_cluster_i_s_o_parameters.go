@@ -36,7 +36,7 @@ type DownloadClusterISOParams struct {
 	  Required: true
 	  In: path
 	*/
-	ClusterID string
+	ClusterID strfmt.UUID
 	/*The IP address of the HTTP proxy that agents should use to access the discovery service
 	  In: query
 	*/
@@ -100,8 +100,26 @@ func (o *DownloadClusterISOParams) bindClusterID(rawData []string, hasKey bool, 
 	// Required: true
 	// Parameter is provided by construction from the route
 
-	o.ClusterID = raw
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("cluster_id", "path", "strfmt.UUID", raw)
+	}
+	o.ClusterID = *(value.(*strfmt.UUID))
 
+	if err := o.validateClusterID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateClusterID carries on validations for parameter ClusterID
+func (o *DownloadClusterISOParams) validateClusterID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -17,7 +17,7 @@ import (
 
 // DownloadClusterISOURL generates an URL for the download cluster i s o operation
 type DownloadClusterISOURL struct {
-	ClusterID string
+	ClusterID strfmt.UUID
 
 	ProxyIP      *strfmt.Hostname
 	ProxyPort    *int64
@@ -49,7 +49,7 @@ func (o *DownloadClusterISOURL) Build() (*url.URL, error) {
 
 	var _path = "/clusters/{cluster_id}/actions/download"
 
-	clusterID := o.ClusterID
+	clusterID := o.ClusterID.String()
 	if clusterID != "" {
 		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
 	} else {
