@@ -6,7 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
@@ -25,37 +24,12 @@ type StepReply struct {
 	// output
 	Output string `json:"output,omitempty"`
 
-	// step type
-	StepType StepType `json:"step-type,omitempty"`
+	// step id
+	StepID string `json:"step-id,omitempty"`
 }
 
 // Validate validates this step reply
 func (m *StepReply) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateStepType(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *StepReply) validateStepType(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.StepType) { // not required
-		return nil
-	}
-
-	if err := m.StepType.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("step-type")
-		}
-		return err
-	}
-
 	return nil
 }
 

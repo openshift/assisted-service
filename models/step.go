@@ -16,8 +16,14 @@ import (
 // swagger:model step
 type Step struct {
 
-	// data
-	Data string `json:"data,omitempty"`
+	// args
+	Args []string `json:"args"`
+
+	// command
+	Command string `json:"command,omitempty"`
+
+	// step id
+	StepID string `json:"step-id,omitempty"`
 
 	// step type
 	StepType StepType `json:"step-type,omitempty"`
