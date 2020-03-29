@@ -68,6 +68,7 @@ const ignitionConfigFormat = `{
         "name": "core",
         "passwordHash": "$6$MWO4bibU8TIWG0XV$Hiuj40lWW7pHiwJmXA8MehuBhdxSswLgvGxEh8ByEzeX2D1dk87JILVUYS4JQOP45bxHRegAB9Fs/SWfszXa5."
       }
+	 %s
     ]
   },
 "systemd": {
@@ -131,7 +132,8 @@ func (b *bareMetalInventory) monitorImageBuild(ctx context.Context, id string) e
 	return nil
 }
 
-func (b *bareMetalInventory) createImageJob(ctx context.Context, id string) error {
+func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models.Cluster) error {
+	id := cluster.ID
 	if err := b.kube.Create(ctx, &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
@@ -162,7 +164,7 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, id string) erro
 								},
 								{
 									Name:  "IGNITION_CONFIG",
-									Value: fmt.Sprintf(ignitionConfigFormat, b.InventoryURL, b.InventoryPort),
+									Value: b.formatIgnitionFile(cluster),
 								},
 								{
 									Name:  "IMAGE_NAME",
@@ -183,6 +185,21 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, id string) erro
 		return err
 	}
 	return nil
+}
+
+func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster) string {
+	return fmt.Sprintf(ignitionConfigFormat, b.getUserSshKey(cluster), b.InventoryURL, b.InventoryPort)
+}
+
+func (b *bareMetalInventory) getUserSshKey(cluster *models.Cluster) string {
+	if cluster.SSHPublicKey == "" {
+		return ""
+	}
+	return fmt.Sprintf(`,{
+		"name": "systemUser",
+		"passwordHash": "$PasswordHash.",
+		"sshAuthorizedKeys": [
+		"%s"]}`, cluster.SSHPublicKey)
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {
@@ -249,7 +266,12 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inven
 }
 
 func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inventory.DownloadClusterISOParams) middleware.Responder {
-	if err := b.createImageJob(ctx, params.ClusterID); err != nil {
+	var cluster *models.Cluster
+	if err := b.db.First(cluster, "id = ?", params.ClusterID); err != nil {
+		return inventory.NewDownloadClusterISONotFound()
+	}
+
+	if err := b.createImageJob(ctx, cluster); err != nil {
 		logrus.WithError(err).Error("failed to create image job")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
