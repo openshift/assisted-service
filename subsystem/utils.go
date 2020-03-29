@@ -1,8 +1,13 @@
 package subsystem
 
 import (
+	"context"
+
+	"github.com/filanov/bm-inventory/client/inventory"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
+	"github.com/google/uuid"
+	. "github.com/onsi/gomega"
 )
 
 func clearDB() {
@@ -13,4 +18,24 @@ func clearDB() {
 func strToUUID(s string) *strfmt.UUID {
 	u := strfmt.UUID(s)
 	return &u
+}
+
+func registerHost(clusterID strfmt.UUID) *models.Host {
+	host, err := bmclient.Inventory.RegisterHost(context.Background(), &inventory.RegisterHostParams{
+		ClusterID: clusterID,
+		NewHostParams: &models.HostCreateParams{
+			HostID: strToUUID(uuid.New().String()),
+		},
+	})
+	Expect(err).NotTo(HaveOccurred())
+	return host.GetPayload()
+}
+
+func getHost(clusterID, hostID strfmt.UUID) *models.Host {
+	host, err := bmclient.Inventory.GetHost(context.Background(), &inventory.GetHostParams{
+		ClusterID: clusterID,
+		HostID:    hostID,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	return host.GetPayload()
 }

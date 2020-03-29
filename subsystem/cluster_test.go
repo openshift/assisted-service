@@ -8,7 +8,6 @@ import (
 	"github.com/filanov/bm-inventory/client/inventory"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/swag"
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -16,7 +15,7 @@ import (
 var _ = Describe("Cluster tests", func() {
 	ctx := context.Background()
 	var cluster *inventory.RegisterClusterCreated
-	var clusterID *strfmt.UUID
+	var clusterID strfmt.UUID
 	var err error
 	AfterEach(func() {
 		clearDB()
@@ -32,19 +31,14 @@ var _ = Describe("Cluster tests", func() {
 	})
 
 	JustBeforeEach(func() {
-		clusterID = cluster.GetPayload().ID
+		clusterID = *cluster.GetPayload().ID
 	})
 
 	It("cluster CRUD", func() {
-		_, err = bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
-			NewHostParams: &models.HostCreateParams{
-				HostID:    strToUUID(uuid.New().String()),
-				ClusterID: clusterID,
-			},
-		})
+		_ = registerHost(clusterID)
 		Expect(err).NotTo(HaveOccurred())
 
-		getReply, err := bmclient.Inventory.GetCluster(ctx, &inventory.GetClusterParams{ClusterID: clusterID.String()})
+		getReply, err := bmclient.Inventory.GetCluster(ctx, &inventory.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(getReply.GetPayload().Hosts[0].ClusterID.String()).Should(Equal(clusterID.String()))
@@ -53,33 +47,20 @@ var _ = Describe("Cluster tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
-		_, err = bmclient.Inventory.DeregisterCluster(ctx, &inventory.DeregisterClusterParams{ClusterID: clusterID.String()})
+		_, err = bmclient.Inventory.DeregisterCluster(ctx, &inventory.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 
 		list, err = bmclient.Inventory.ListClusters(ctx, &inventory.ListClustersParams{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(0))
 
-		_, err = bmclient.Inventory.GetCluster(ctx, &inventory.GetClusterParams{ClusterID: clusterID.String()})
+		_, err = bmclient.Inventory.GetCluster(ctx, &inventory.GetClusterParams{ClusterID: clusterID})
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("cluster update", func() {
-		host1, err := bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
-			NewHostParams: &models.HostCreateParams{
-				HostID:    strToUUID(uuid.New().String()),
-				ClusterID: clusterID,
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		host2, err := bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
-			NewHostParams: &models.HostCreateParams{
-				HostID:    strToUUID(uuid.New().String()),
-				ClusterID: clusterID,
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
+		host1 := registerHost(clusterID)
+		host2 := registerHost(clusterID)
 
 		publicKey := "my-public-key"
 
@@ -88,26 +69,24 @@ var _ = Describe("Cluster tests", func() {
 				SSHPublicKey: publicKey,
 				HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 					{
-						ID:   *host1.GetPayload().ID,
+						ID:   *host1.ID,
 						Role: "master",
 					},
 					{
-						ID:   *host2.GetPayload().ID,
+						ID:   *host2.ID,
 						Role: "worker",
 					},
 				},
 			},
-			ClusterID: clusterID.String(),
+			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(c.GetPayload().SSHPublicKey).Should(Equal(publicKey))
 
-		h, err := bmclient.Inventory.GetHost(ctx, &inventory.GetHostParams{HostID: *host1.GetPayload().ID})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(h.GetPayload().Role).Should(Equal("master"))
+		h := getHost(clusterID, *host1.ID)
+		Expect(h.Role).Should(Equal("master"))
 
-		h, err = bmclient.Inventory.GetHost(ctx, &inventory.GetHostParams{HostID: *host2.GetPayload().ID})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(h.GetPayload().Role).Should(Equal("worker"))
+		h = getHost(clusterID, *host2.ID)
+		Expect(h.Role).Should(Equal("worker"))
 	})
 })

@@ -203,7 +203,7 @@ func (b *bareMetalInventory) getUserSshKey(cluster *models.Cluster) string {
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {
-	logrus.Infof("Register cluster: ", swag.StringValue(params.NewClusterParams.Name))
+	logrus.Infof("Register cluster: %s", swag.StringValue(params.NewClusterParams.Name))
 	id := strfmt.UUID(uuid.New().String())
 	cluster := models.Cluster{
 		Base: models.Base{
@@ -244,7 +244,7 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inven
 	}
 
 	for i := range cluster.Hosts {
-		if txErr = tx.Delete(&models.Host{}, "id = ?", cluster.Hosts[i].ID).Error; txErr != nil {
+		if txErr = tx.Where("id = ? and cluster_id = ?", cluster.Hosts[i], params.ClusterID).Delete(&models.Host{}).Error; txErr != nil {
 			logrus.WithError(txErr).Errorf("failed to delete host: %s", cluster.Hosts[i].ID)
 			// TODO: fix error code
 			return inventory.NewDeregisterClusterNotFound()
@@ -276,7 +276,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
-	if err := b.monitorImageBuild(ctx, params.ClusterID); err != nil {
+	if err := b.monitorImageBuild(ctx, params.ClusterID.String()); err != nil {
 		logrus.WithError(err).Error("image creation failed")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
@@ -340,7 +340,8 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory
 	for i := range params.ClusterUpdateParams.HostsRoles {
 		logrus.Infof("Update host %s to role: %s", params.ClusterUpdateParams.HostsRoles[i].ID,
 			params.ClusterUpdateParams.HostsRoles[i].Role)
-		reply := tx.Model(&models.Host{}).Where("id = ?", params.ClusterUpdateParams.HostsRoles[i].ID).
+		reply := tx.Model(&models.Host{}).
+			Where("id = ? and cluster_id = ?", params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID).
 			Update("role", params.ClusterUpdateParams.HostsRoles[i].Role)
 		if reply.Error != nil || reply.RowsAffected == 0 {
 			tx.Rollback()
@@ -389,14 +390,20 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.
 			ID:   params.NewHostParams.HostID,
 			Kind: swag.String(ResourceKindHost),
 		},
-		Status: swag.String("discovering"),
+		Status:           swag.String("discovering"),
+		ClusterID:        params.ClusterID,
+		HostCreateParams: *params.NewHostParams,
 	}
 
-	// TODO: validate that the cluster exists
-	host.HostCreateParams = *params.NewHostParams
-	logrus.Infof(" register host: %+v", host)
+	logrus.Infof("Register host: %+v", host)
+
+	if err := b.db.First(&models.Cluster{}, "id = ?", params.ClusterID.String()).Error; err != nil {
+		logrus.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID.String())
+		return inventory.NewRegisterClusterBadRequest()
+	}
 
 	if err := b.db.Create(host).Error; err != nil {
+		logrus.WithError(err).Error("failed to create host")
 		return inventory.NewRegisterClusterInternalServerError()
 	}
 
@@ -404,8 +411,8 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.
 }
 
 func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params inventory.DeregisterHostParams) middleware.Responder {
-	var host models.Host
-	if err := b.db.Delete(&host, "id = ?", params.HostID).Error; err != nil {
+	if err := b.db.Where("id = ? and cluster_id = ?", params.HostID, params.ClusterID).
+		Delete(&models.Host{}).Error; err != nil {
 		// TODO: check error type
 		return inventory.NewDeregisterHostBadRequest()
 	}
@@ -417,7 +424,8 @@ func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params inventor
 func (b *bareMetalInventory) GetHost(ctx context.Context, params inventory.GetHostParams) middleware.Responder {
 	var host models.Host
 	// TODO: validate what is the error
-	if err := b.db.First(&host, "id = ?", params.HostID).Error; err != nil {
+	if err := b.db.Where("id = ? and cluster_id = ?", params.HostID, params.ClusterID).
+		First(&host).Error; err != nil {
 		return inventory.NewGetHostNotFound()
 	}
 
@@ -426,7 +434,8 @@ func (b *bareMetalInventory) GetHost(ctx context.Context, params inventory.GetHo
 
 func (b *bareMetalInventory) ListHosts(ctx context.Context, params inventory.ListHostsParams) middleware.Responder {
 	var hosts []*models.Host
-	if err := b.db.Find(&hosts).Error; err != nil {
+	if err := b.db.Find(&hosts, "cluster_id = ?", params.ClusterID).Error; err != nil {
+		logrus.WithError(err).Errorf("failed to get list of hosts for cluster %s", params.ClusterID)
 		return inventory.NewListHostsInternalServerError()
 	}
 	return inventory.NewListHostsOK().WithPayload(hosts)
@@ -437,7 +446,7 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 	var host models.Host
 
 	//TODO check the error type
-	if err := b.db.First(&host, "id = ?", params.HostID).Error; err != nil {
+	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		logrus.WithError(err).Error("failed to find host")
 		return inventory.NewGetNextStepsNotFound()
 	}
@@ -478,14 +487,16 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params inventory.D
 	var host models.Host
 	logrus.Info("disabling host: ", params.HostID)
 
-	if err := b.db.First(&host, "id = ?", params.HostID).Error; err != nil {
+	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		return inventory.NewDisableHostNotFound()
 	}
 
 	if swag.StringValue(host.Status) == HostStatusInstalling || swag.StringValue(host.Status) == HostStatusInstalled {
 		return inventory.NewDisableHostConflict()
 	}
-	if err := b.db.Model(&host).Where("host_id = ?", params.HostID.String()).Update("status", *swag.String(HostStatusDisabled)).Error; err != nil {
+	if err := b.db.Model(&host).
+		Where("host_id = ? and cluster_id = ?", params.HostID.String(), params.ClusterID.String()).
+		Update("status", *swag.String(HostStatusDisabled)).Error; err != nil {
 		return inventory.NewDisableHostInternalServerError()
 	}
 	return inventory.NewDisableHostNoContent()
@@ -495,7 +506,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.En
 	var host models.Host
 	logrus.Info("enable host: ", params.HostID)
 
-	if err := b.db.First(&host, "id = ?", params.HostID).Error; err != nil {
+	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		return inventory.NewEnableHostNotFound()
 	}
 
@@ -504,7 +515,8 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.En
 	}
 
 	//TODO clear HW info
-	if err := b.db.Model(&host).Where("host_id = ?", params.HostID.String()).Update("status", *swag.String(HostStatusDiscovering)).Error; err != nil {
+	if err := b.db.Model(&host).Where("id = ? and cluster_id = ?", params.HostID.String(), params.ClusterID).
+		Update("status", HostStatusDiscovering).Error; err != nil {
 		return inventory.NewEnableHostInternalServerError()
 	}
 	return inventory.NewEnableHostNoContent()
