@@ -75,7 +75,7 @@ const ignitionConfigFormat = `{
 "units": [{
 "name": "introspector.service",
 "enabled": true,
-"contents": "[Service]\nType=oneshot\nExecStart=docker run --rm --privileged --net=host quay.io/oamizur/introspector:latest /usr/bin/introspector --host %s --port %s\n\n[Install]\nWantedBy=multi-user.target"
+"contents": "[Service]\nType=oneshot\nExecStart=docker run --rm --privileged --net=host quay.io/oamizur/introspector:latest /usr/bin/introspector --host %s --port %s --cluster %s\n\n[Install]\nWantedBy=multi-user.target"
 }]
 }
 }`
@@ -188,7 +188,8 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models
 }
 
 func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster) string {
-	return fmt.Sprintf(ignitionConfigFormat, b.getUserSshKey(cluster), b.InventoryURL, b.InventoryPort)
+	return fmt.Sprintf(ignitionConfigFormat, b.getUserSshKey(cluster), b.InventoryURL, b.InventoryPort,
+		cluster.ID.String())
 }
 
 func (b *bareMetalInventory) getUserSshKey(cluster *models.Cluster) string {
