@@ -75,7 +75,7 @@ const ignitionConfigFormat = `{
 "units": [{
 "name": "introspector.service",
 "enabled": true,
-"contents": "[Service]\nType=oneshot\nExecStart=docker run --rm --privileged --net=host quay.io/oamizur/introspector:latest /usr/bin/introspector --host %s --port %s --cluster %s\n\n[Install]\nWantedBy=multi-user.target"
+"contents": "[Service]\nType=oneshot\nExecStart=docker run --rm --privileged --net=host quay.io/oamizur/introspector:latest /usr/bin/introspector --host %s --port %s --cluster-id %s\n\n[Install]\nWantedBy=multi-user.target"
 }]
 }
 }`
