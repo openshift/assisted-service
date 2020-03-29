@@ -18,13 +18,19 @@ produces:
 
 
 paths:
-  /hosts:
+  /clusters/{cluster_id}/hosts:
     post:
       tags:
         - inventory
       summary: Register a new OpenShift bare metal host
       operationId: RegisterHost
       parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to register host to
+          type: string
+          format: uuid
+          required: true
         - in: body
           name: new-host-params
           description: New host parameters
@@ -46,6 +52,13 @@ paths:
         - inventory
       summary: List OpenShift bare metal hosts
       operationId: ListHosts
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to get hosts from
+          type: string
+          format: uuid
+          required: true
       responses:
         200:
           description: Host list
@@ -54,13 +67,19 @@ paths:
         500:
           description: Internal server error
 
-  /hosts/{host_id}:
+  /clusters/{cluster_id}/hosts/{host_id}:
     get:
       tags:
         - inventory
       summary: Retrieve OpenShift bare metal host information
       operationId: GetHost
       parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to get hosts from
+          type: string
+          format: uuid
+          required: true
         - in: path
           name: host_id
           description: The ID of the host to retrieve
@@ -84,9 +103,16 @@ paths:
       operationId: DeregisterHost
       parameters:
         - in: path
+          name: cluster_id
+          description: The ID of the cluster to deregister host from
+          type: string
+          format: uuid
+          required: true
+        - in: path
           name: host_id
           description: The ID of the host to retrieve
           type: string
+          format: uuid
           required: true
       responses:
         204:
@@ -98,13 +124,19 @@ paths:
         500:
           description: Internal server error
 
-  /hosts/{host_id}/actions/debug:
+  /clusters/{cluster_id}/hosts/{host_id}/actions/debug:
     post:
       tags:
         - inventory
       summary: Set a single shot debug step that will be sent next time the agent will ask for a command
       operationId: SetDebugStep
       parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster of the host
+          type: string
+          format: uuid
+          required: true
         - in: path
           name: host_id
           description: The ID of the host to debug
@@ -125,13 +157,19 @@ paths:
         500:
           description: Internal server error
 
-  /hosts/{host_id}/actions/enable:
+  /clusters/{cluster_id}/hosts/{host_id}/actions/enable:
     post:
       tags:
         - inventory
       summary: Enable a host for use
       operationId: EnableHost
       parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster of the host
+          type: string
+          format: uuid
+          required: true
         - in: path
           name: host_id
           description: The ID of the host to enable
@@ -155,6 +193,12 @@ paths:
       operationId: DisableHost
       parameters:
         - in: path
+          name: cluster_id
+          description: The ID of the cluster of the host
+          type: string
+          format: uuid
+          required: true
+        - in: path
           name: host_id
           description: The ID of the host to disable
           type: string
@@ -170,13 +214,19 @@ paths:
         500:
           description: Internal server error
 
-  /hosts/{host_id}/next-steps:
+  /clusters/{cluster_id}/hosts/{host_id}/next-steps:
     get:
       tags:
         - inventory
       summary: Retrieve the next operations that the agent need to perform
       operationId: GetNextSteps
       parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster of the host
+          type: string
+          format: uuid
+          required: true
         - in: path
           name: host_id
           description: ID of host
@@ -193,13 +243,19 @@ paths:
         500:
           description: Internal server error
 
-  /hosts/{host_id}/next-steps/reply:
+  /clusters/{cluster_id}/hosts/{host_id}/next-steps/reply:
     post:
       tags:
         - inventory
       summary: Post the result of the required operations from the server
       operationId: PostStepReply
       parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster of the host
+          type: string
+          format: uuid
+          required: true
         - in: path
           name: host_id
           description: ID of host
@@ -267,6 +323,7 @@ paths:
           name: cluster_id
           description: The ID of the cluster to retrieve
           type: string
+          format: uuid
           required: true
       responses:
         200:
@@ -288,6 +345,7 @@ paths:
           name: cluster_id
           description: The ID of the cluster to retrieve
           type: string
+          format: uuid
           required: true
         - in: body
           name: cluster-update-params
@@ -318,6 +376,7 @@ paths:
         - in: path
           name: cluster_id
           description: The ID of the cluster to retrieve
+          format: uuid
           type: string
           required: true
       responses:
@@ -344,6 +403,7 @@ paths:
           name: cluster_id
           description: The ID of the cluster whose ISO to download
           type: string
+          format: uuid
           required: true
         - in: query
           name: proxy_ip
@@ -383,6 +443,7 @@ paths:
           name: cluster_id
           description: The ID of the cluster to begin installing
           type: string
+          format: uuid
           required: true
       responses:
         200:
@@ -412,7 +473,7 @@ definitions:
       id:
         type: string
         format: uuid
-        x-go-custom-tag: gorm:"primary_key" query:"filter,sort"
+        x-go-custom-tag: gorm:"primary_key"
       href:
         type: string
         format: uri
@@ -421,12 +482,8 @@ definitions:
     type: object
     required:
       - host_id
-      - cluster_id
     properties:
       host_id:
-        type: string
-        format: uuid
-      cluster_id:
         type: string
         format: uuid
 
@@ -443,6 +500,10 @@ definitions:
           - connectivity
           - hardware_info
         properties:
+          cluster_id:
+            type: string
+            format: uuid
+            x-go-custom-tag: gorm:"primary_key;foreignkey:Cluster"
           status:
             type: string
             enum:
