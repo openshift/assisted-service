@@ -101,15 +101,16 @@ var _ = Describe("Host tests", func() {
 		var step *models.Step
 		var ok bool
 		// debug should be only for host1
-		_, ok = getStepInList(getNextSteps(clusterID, *host2.ID), models.StepTypeDebug)
+		_, ok = getStepInList(getNextSteps(clusterID, *host2.ID), models.StepTypeExecute)
 		Expect(ok).Should(Equal(false))
 
-		step, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeDebug)
+		step, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeExecute)
 		Expect(ok).Should(Equal(true))
-		Expect(step.Data).Should(Equal("echo hello"))
+		Expect(step.Command).Should(Equal("bash"))
+		Expect(step.Args).Should(Equal([]string{"-c", "echo hello"}))
 
 		// debug executed only once
-		_, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeDebug)
+		_, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeExecute)
 		Expect(ok).Should(Equal(false))
 	})
 
