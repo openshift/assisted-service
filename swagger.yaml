@@ -54,7 +54,7 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{cluster_id}:
+  /clusters/{clusterId}:
     get:
       tags:
         - inventory
@@ -62,7 +62,7 @@ paths:
       operationId: GetCluster
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster to retrieve
           type: string
           format: uuid
@@ -84,7 +84,7 @@ paths:
       operationId: UpdateCluster
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster to retrieve
           type: string
           format: uuid
@@ -116,7 +116,7 @@ paths:
       operationId: DeregisterCluster
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster to retrieve
           format: uuid
           type: string
@@ -131,7 +131,7 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{cluster_id}/actions/download:
+  /clusters/{clusterId}/actions/download:
     get:
       tags:
         - inventory
@@ -142,24 +142,24 @@ paths:
         - application/octet-stream
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster whose ISO to download
           type: string
           format: uuid
           required: true
         - in: query
-          name: proxy_ip
+          name: proxyIp
           description: The IP address of the HTTP proxy that agents should use to access the discovery service
           type: string
           format: hostname
         - in: query
-          name: proxy_port
+          name: proxyPort
           description: The port of the HTTP proxy
           type: integer
           minimum: 0
           maximum: 65535
         - in: query
-          name: ssh_public_key
+          name: sshPublicKey
           description: SSH public key for debugging the installation
           type: string
       responses:
@@ -174,7 +174,7 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{cluster_id}/actions/install:
+  /clusters/{clusterId}/actions/install:
     post:
       tags:
         - inventory
@@ -182,7 +182,7 @@ paths:
       operationId: InstallCluster
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster to begin installing
           type: string
           format: uuid
@@ -201,7 +201,7 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{cluster_id}/hosts:
+  /clusters/{clusterId}/hosts:
     post:
       tags:
         - inventory
@@ -209,7 +209,7 @@ paths:
       operationId: RegisterHost
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster to register host to
           type: string
           format: uuid
@@ -237,7 +237,7 @@ paths:
       operationId: ListHosts
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster to get hosts from
           type: string
           format: uuid
@@ -250,7 +250,7 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{cluster_id}/hosts/{host_id}:
+  /clusters/{clusterId}/hosts/{hostId}:
     get:
       tags:
         - inventory
@@ -258,13 +258,13 @@ paths:
       operationId: GetHost
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster to get hosts from
           type: string
           format: uuid
           required: true
         - in: path
-          name: host_id
+          name: hostId
           description: The ID of the host to retrieve
           type: string
           format: uuid
@@ -286,13 +286,13 @@ paths:
       operationId: DeregisterHost
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster to deregister host from
           type: string
           format: uuid
           required: true
         - in: path
-          name: host_id
+          name: hostId
           description: The ID of the host to retrieve
           type: string
           format: uuid
@@ -307,7 +307,7 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{cluster_id}/hosts/{host_id}/actions/debug:
+  /clusters/{clusterId}/hosts/{hostId}/actions/debug:
     post:
       tags:
         - inventory
@@ -315,13 +315,13 @@ paths:
       operationId: SetDebugStep
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster of the host
           type: string
           format: uuid
           required: true
         - in: path
-          name: host_id
+          name: hostId
           description: The ID of the host to debug
           type: string
           format: uuid
@@ -340,7 +340,7 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{cluster_id}/hosts/{host_id}/actions/enable:
+  /clusters/{clusterId}/hosts/{hostId}/actions/enable:
     post:
       tags:
         - inventory
@@ -348,13 +348,13 @@ paths:
       operationId: EnableHost
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster of the host
           type: string
           format: uuid
           required: true
         - in: path
-          name: host_id
+          name: hostId
           description: The ID of the host to enable
           type: string
           format: uuid
@@ -376,13 +376,13 @@ paths:
       operationId: DisableHost
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster of the host
           type: string
           format: uuid
           required: true
         - in: path
-          name: host_id
+          name: hostId
           description: The ID of the host to disable
           type: string
           format: uuid
@@ -397,7 +397,7 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{cluster_id}/hosts/{host_id}/next-steps:
+  /clusters/{clusterId}/hosts/{hostId}/next-steps:
     get:
       tags:
         - inventory
@@ -405,13 +405,13 @@ paths:
       operationId: GetNextSteps
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster of the host
           type: string
           format: uuid
           required: true
         - in: path
-          name: host_id
+          name: hostId
           description: ID of host
           type: string
           format: uuid
@@ -426,7 +426,7 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{cluster_id}/hosts/{host_id}/next-steps/reply:
+  /clusters/{clusterId}/hosts/{hostId}/next-steps/reply:
     post:
       tags:
         - inventory
@@ -434,13 +434,13 @@ paths:
       operationId: PostStepReply
       parameters:
         - in: path
-          name: cluster_id
+          name: clusterId
           description: The ID of the cluster of the host
           type: string
           format: uuid
           required: true
         - in: path
-          name: host_id
+          name: hostId
           description: ID of host
           type: string
           format: uuid
@@ -482,9 +482,9 @@ definitions:
   host-create-params:
     type: object
     required:
-      - host_id
+      - hostId
     properties:
-      host_id:
+      hostId:
         type: string
         format: uuid
 
@@ -497,11 +497,11 @@ definitions:
         required:
           - kind
           - status
-          - status_info
+          - statusInfo
           - connectivity
-          - hardware_info
+          - hardwareInfo
         properties:
-          cluster_id:
+          clusterId:
             type: string
             format: uuid
             x-go-custom-tag: gorm:"primary_key;foreignkey:Cluster"
@@ -515,7 +515,7 @@ definitions:
               - disabled
               - installing
               - installed
-          status_info:
+          statusInfo:
             type: string
           connectivity:
             $ref: '#/definitions/connectivity-report'
@@ -524,7 +524,7 @@ definitions:
           role:
             type: string
             enum: ['undefined', 'master', 'worker']
-          updated_at:
+          updatedAt:
             type: string
             format: date-time
             x-go-custom-tag: gorm:"type:datetime"
@@ -612,21 +612,21 @@ definitions:
     properties:
       name:
         type: string
-      openshift_version:
+      openshiftVersion:
         type: string
         pattern: '^4\.\d$'
-      base_dns_domain:
+      baseDnsDomain:
         type: string
-      api_vip:
-        type: string
-        format: hostname
-      dns_vip:
+      apiVip:
         type: string
         format: hostname
-      ingress_vip:
+      dnsVip:
         type: string
         format: hostname
-      ssh_public_key:
+      ingressVip:
+        type: string
+        format: hostname
+      sshPublicKey:
         type: string
         description: SSH public key for debugging OpenShift nodes
 
@@ -635,24 +635,24 @@ definitions:
     properties:
       name:
         type: string
-      openshift_version:
+      openshiftVersion:
         type: string
         pattern: '^4\.\d$'
-      base_dns_domain:
+      baseDnsDomain:
         type: string
-      api_vip:
-        type: string
-        format: hostname
-      dns_vip:
+      apiVip:
         type: string
         format: hostname
-      ingress_vip:
+      dnsVip:
         type: string
         format: hostname
-      ssh_public_key:
+      ingressVip:
+        type: string
+        format: hostname
+      sshPublicKey:
         type: string
         description: SSH public key for debugging OpenShift nodes
-      hosts_roles:
+      hostsRoles:
         type: array
         x-go-custom-tag: gorm:"type:varchar(64)[]"
         items:
@@ -675,21 +675,21 @@ definitions:
         properties:
           name:
             type: string
-          openshift_version:
+          openshiftVersion:
             type: string
             pattern: '^4\.\d$'
-          base_dns_domain:
+          baseDnsDomain:
             type: string
-          api_vip:
-            type: string
-            format: hostname
-          dns_vip:
+          apiVip:
             type: string
             format: hostname
-          ingress_vip:
+          dnsVip:
             type: string
             format: hostname
-          ssh_public_key:
+          ingressVip:
+            type: string
+            format: hostname
+          sshPublicKey:
             type: string
             x-go-custom-tag: gorm:"type:varchar(1024)"
             description: SSH public key for debugging OpenShift nodes
@@ -702,15 +702,15 @@ definitions:
             items:
               type: object
               $ref: '#/definitions/host'
-          updated_at:
+          updatedAt:
             type: string
             format: date-time
             x-go-custom-tag: gorm:"type:datetime"
-          install_started_at:
+          installStartedAt:
             type: string
             format: date-time
             x-go-custom-tag: gorm:"type:datetime;default:0"
-          install_completed_at:
+          installCompletedAt:
             type: string
             format: date-time
             x-go-custom-tag: gorm:"type:datetime;default:0"
