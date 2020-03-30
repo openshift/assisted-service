@@ -55,7 +55,7 @@ type Cluster struct {
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
 	// SSH public key for debugging OpenShift nodes
-	SSHPublicKey string `json:"ssh_public_key,omitempty"`
+	SSHPublicKey string `json:"ssh_public_key,omitempty" gorm:"type:varchar(1024)"`
 
 	// status
 	// Required: true

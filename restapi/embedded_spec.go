@@ -788,7 +788,8 @@ func init() {
             },
             "ssh_public_key": {
               "description": "SSH public key for debugging OpenShift nodes",
-              "type": "string"
+              "type": "string",
+              "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
             },
             "status": {
               "type": "string",
@@ -2044,7 +2045,8 @@ func init() {
             },
             "ssh_public_key": {
               "description": "SSH public key for debugging OpenShift nodes",
-              "type": "string"
+              "type": "string",
+              "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
             },
             "status": {
               "type": "string",
