@@ -18,6 +18,189 @@ produces:
 
 
 paths:
+  /clusters:
+    post:
+      tags:
+        - inventory
+      summary: Create a new OpenShift bare metal cluster definition
+      operationId: RegisterCluster
+      parameters:
+        - in: body
+          name: new-cluster-params
+          description: New cluster parameters
+          required: true
+          schema:
+            $ref: '#/definitions/cluster-create-params'
+      responses:
+        201:
+          description: Registered cluster
+          schema:
+            $ref: '#/definitions/cluster'
+        400:
+          description: Invalid input
+        500:
+          description: Internal server error
+
+    get:
+      tags:
+        - inventory
+      summary: List OpenShift bare metal clusters
+      operationId: ListClusters
+      responses:
+        200:
+          description: Cluster list
+          schema:
+            $ref: '#/definitions/cluster-list'
+        500:
+          description: Internal server error
+
+  /clusters/{cluster_id}:
+    get:
+      tags:
+        - inventory
+      summary: Retrieve OpenShift bare metal cluster information
+      operationId: GetCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to retrieve
+          type: string
+          format: uuid
+          required: true
+      responses:
+        200:
+          description: Cluster information
+          schema:
+            $ref: '#/definitions/cluster'
+        404:
+          description: Cluster not found
+        500:
+          description: Internal server error
+
+    patch:
+      tags:
+        - inventory
+      summary: Update an OpenShift bare metal cluster definition
+      operationId: UpdateCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to retrieve
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: cluster-update-params
+          description: New cluster parameters
+          required: true
+          schema:
+            $ref: '#/definitions/cluster-update-params'
+      responses:
+        201:
+          description: Registered cluster
+          schema:
+            $ref: '#/definitions/cluster'
+        400:
+          description: Invalid input
+        404:
+          description: Cluster not found
+        409:
+          description: Invalid state
+        500:
+          description: Internal server error
+
+    delete:
+      tags:
+        - inventory
+      summary: Delete an OpenShift bare metal cluster definition
+      operationId: DeregisterCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to retrieve
+          format: uuid
+          type: string
+          required: true
+      responses:
+        204:
+          description: Cluster deregistered
+        404:
+          description: Cluster not found
+        409:
+          description: Invalid state
+        500:
+          description: Internal server error
+
+  /clusters/{cluster_id}/actions/download:
+    get:
+      tags:
+        - inventory
+      summary: Download OpenShift per-cluster discovery ISO
+      operationId: DownloadClusterISO
+      produces:
+        # application/vnd.efi.iso is not supported
+        - application/octet-stream
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster whose ISO to download
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: proxy_ip
+          description: The IP address of the HTTP proxy that agents should use to access the discovery service
+          type: string
+          format: hostname
+        - in: query
+          name: proxy_port
+          description: The port of the HTTP proxy
+          type: integer
+          minimum: 0
+          maximum: 65535
+        - in: query
+          name: ssh_public_key
+          description: SSH public key for debugging the installation
+          type: string
+      responses:
+        200:
+          description: The ISO file
+          schema:
+            type: file
+        400:
+          description: Invalid parameters
+        404:
+          description: Cluster not found
+        500:
+          description: Internal server error
+
+  /clusters/{cluster_id}/actions/install:
+    post:
+      tags:
+        - inventory
+      summary: Install a new OpenShift bare metal cluster
+      operationId: InstallCluster
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The ID of the cluster to begin installing
+          type: string
+          format: uuid
+          required: true
+      responses:
+        200:
+          description: Installing cluster
+          schema:
+            $ref: '#/definitions/cluster'
+        400:
+          description: Invalid input
+        404:
+          description: Cluster not found
+        409:
+          description: Invalid state
+        500:
+          description: Internal server error
+
   /clusters/{cluster_id}/hosts:
     post:
       tags:
@@ -276,188 +459,6 @@ paths:
         500:
           description: Internal server error
 
-  /clusters:
-    post:
-      tags:
-        - inventory
-      summary: Create a new OpenShift bare metal cluster definition
-      operationId: RegisterCluster
-      parameters:
-        - in: body
-          name: new-cluster-params
-          description: New cluster parameters
-          required: true
-          schema:
-            $ref: '#/definitions/cluster-create-params'
-      responses:
-        201:
-          description: Registered cluster
-          schema:
-            $ref: '#/definitions/cluster'
-        400:
-          description: Invalid input
-        500:
-          description: Internal server error
-
-    get:
-      tags:
-        - inventory
-      summary: List OpenShift bare metal clusters
-      operationId: ListClusters
-      responses:
-        200:
-          description: Cluster list
-          schema:
-            $ref: '#/definitions/cluster-list'
-        500:
-          description: Internal server error
-
-  /clusters/{cluster_id}:
-    get:
-      tags:
-        - inventory
-      summary: Retrieve OpenShift bare metal cluster information
-      operationId: GetCluster
-      parameters:
-        - in: path
-          name: cluster_id
-          description: The ID of the cluster to retrieve
-          type: string
-          format: uuid
-          required: true
-      responses:
-        200:
-          description: Cluster information
-          schema:
-            $ref: '#/definitions/cluster'
-        404:
-          description: Cluster not found
-        500:
-          description: Internal server error
-
-    patch:
-      tags:
-        - inventory
-      summary: Update an OpenShift bare metal cluster definition
-      operationId: UpdateCluster
-      parameters:
-        - in: path
-          name: cluster_id
-          description: The ID of the cluster to retrieve
-          type: string
-          format: uuid
-          required: true
-        - in: body
-          name: cluster-update-params
-          description: New cluster parameters
-          required: true
-          schema:
-            $ref: '#/definitions/cluster-update-params'
-      responses:
-        201:
-          description: Registered cluster
-          schema:
-            $ref: '#/definitions/cluster'
-        400:
-          description: Invalid input
-        404:
-          description: Cluster not found
-        409:
-          description: Invalid state
-        500:
-          description: Internal server error
-
-    delete:
-      tags:
-        - inventory
-      summary: Delete an OpenShift bare metal cluster definition
-      operationId: DeregisterCluster
-      parameters:
-        - in: path
-          name: cluster_id
-          description: The ID of the cluster to retrieve
-          format: uuid
-          type: string
-          required: true
-      responses:
-        204:
-          description: Cluster deregistered
-        404:
-          description: Cluster not found
-        409:
-          description: Invalid state
-        500:
-          description: Internal server error
-
-  /clusters/{cluster_id}/actions/download:
-    get:
-      tags:
-        - inventory
-      summary: Download OpenShift per-cluster discovery ISO
-      operationId: DownloadClusterISO
-      produces:
-        # application/vnd.efi.iso is not supported
-        - application/octet-stream
-      parameters:
-        - in: path
-          name: cluster_id
-          description: The ID of the cluster whose ISO to download
-          type: string
-          format: uuid
-          required: true
-        - in: query
-          name: proxy_ip
-          description: The IP address of the HTTP proxy that agents should use to access the discovery service
-          type: string
-          format: hostname
-        - in: query
-          name: proxy_port
-          description: The port of the HTTP proxy
-          type: integer
-          minimum: 0
-          maximum: 65535
-        - in: query
-          name: ssh_public_key
-          description: SSH public key for debugging the installation
-          type: string
-      responses:
-        200:
-          description: The ISO file
-          schema:
-            type: file
-        400:
-          description: Invalid parameters
-        404:
-          description: Cluster not found
-        500:
-          description: Internal server error
-
-  /clusters/{cluster_id}/actions/install:
-    post:
-      tags:
-        - inventory
-      summary: Install a new OpenShift bare metal cluster
-      operationId: InstallCluster
-      parameters:
-        - in: path
-          name: cluster_id
-          description: The ID of the cluster to begin installing
-          type: string
-          format: uuid
-          required: true
-      responses:
-        200:
-          description: Installing cluster
-          schema:
-            $ref: '#/definitions/cluster'
-        400:
-          description: Invalid input
-        404:
-          description: Cluster not found
-        409:
-          description: Invalid state
-        500:
-          description: Internal server error
 
 definitions:
   base:
