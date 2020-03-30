@@ -112,6 +112,17 @@ var _ = Describe("Host tests", func() {
 		// debug executed only once
 		_, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeExecute)
 		Expect(ok).Should(Equal(false))
+
+		_, err = bmclient.Inventory.PostStepReply(ctx, &inventory.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host1.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   "hello",
+				StepID:   step.StepID,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("register same host id", func() {
