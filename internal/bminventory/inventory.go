@@ -267,12 +267,14 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inven
 }
 
 func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inventory.DownloadClusterISOParams) middleware.Responder {
-	var cluster *models.Cluster
-	if err := b.db.First(cluster, "id = ?", params.ClusterID); err != nil {
+	logrus.Infof("prepare and download image for cluster %s", params.ClusterID)
+	var cluster models.Cluster
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		logrus.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
 		return inventory.NewDownloadClusterISONotFound()
 	}
 
-	if err := b.createImageJob(ctx, cluster); err != nil {
+	if err := b.createImageJob(ctx, &cluster); err != nil {
 		logrus.WithError(err).Error("failed to create image job")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
@@ -443,7 +445,7 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params inventory.Lis
 }
 
 func createStepID(stepType models.StepType) string {
-	return fmt.Sprintf("%s-%s",stepType,uuid.New().String()[:8])
+	return fmt.Sprintf("%s-%s", stepType, uuid.New().String()[:8])
 }
 
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder {
@@ -474,7 +476,7 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 
 	steps = append(steps, &models.Step{
 		StepType: models.StepTypeHardawareInfo,
-		StepID: createStepID(models.StepTypeHardawareInfo),
+		StepID:   createStepID(models.StepTypeHardawareInfo),
 	})
 
 	return inventory.NewGetNextStepsOK().WithPayload(steps)
