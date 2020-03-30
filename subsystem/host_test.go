@@ -161,7 +161,21 @@ var _ = Describe("Host tests", func() {
 			HostID:    *hostID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		_ = getHost(*cluster2.GetPayload().ID, *hostID)
+		h := getHost(*cluster2.GetPayload().ID, *hostID)
+
+		// register again to cluster 2 and expect it to be in discovery status
+		Expect(db.Model(h).Update("status", "known").Error).NotTo(HaveOccurred())
+		h = getHost(*cluster2.GetPayload().ID, *hostID)
+		Expect(swag.StringValue(h.Status)).Should(Equal("known"))
+		_, err = bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
+			ClusterID: *cluster2.GetPayload().ID,
+			NewHostParams: &models.HostCreateParams{
+				HostID: hostID,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		h = getHost(*cluster2.GetPayload().ID, *hostID)
+		Expect(swag.StringValue(h.Status)).Should(Equal("discovering"))
 	})
 })
 

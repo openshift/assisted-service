@@ -406,6 +406,21 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.
 	}
 
 	if err := b.db.Create(host).Error; err != nil {
+		// check if host already exists - if it does updated the status to discovering
+		if getErr := b.db.First(&models.Host{}, "id = ? and cluster_id = ?",
+			params.NewHostParams.HostID, params.ClusterID).Error; getErr == nil {
+			host.Status = swag.String(HostStatusDiscovering)
+			if err := b.db.Model(&host).
+				Where("host_id = ? and cluster_id = ?", *params.NewHostParams.HostID, params.ClusterID).
+				Update("status", host.Status).Error; err != nil {
+				logrus.WithError(err).Error("failed to create host")
+				return inventory.NewDisableHostInternalServerError()
+			} else {
+				logrus.Infof("Host %s from cluster %s registered again, will go to %s state",
+					*host.ID, host.ClusterID, *host.Status)
+				return inventory.NewRegisterHostCreated().WithPayload(host)
+			}
+		}
 		logrus.WithError(err).Error("failed to create host")
 		return inventory.NewRegisterClusterInternalServerError()
 	}
@@ -512,7 +527,7 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params inventory.D
 	}
 	if err := b.db.Model(&host).
 		Where("host_id = ? and cluster_id = ?", params.HostID.String(), params.ClusterID.String()).
-		Update("status", *swag.String(HostStatusDisabled)).Error; err != nil {
+		Update("status", HostStatusDisabled).Error; err != nil {
 		return inventory.NewDisableHostInternalServerError()
 	}
 	return inventory.NewDisableHostNoContent()
