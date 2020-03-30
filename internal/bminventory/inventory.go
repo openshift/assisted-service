@@ -478,11 +478,16 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 		StepType: models.StepTypeHardawareInfo,
 		StepID:   createStepID(models.StepTypeHardawareInfo),
 	})
-
+	for _, step := range steps {
+		logrus.Infof("Submitting step <%s> to cluster <%s> host <%s> Command: <%s> Arguments: <%+v>", step.StepID, params.ClusterID, params.HostID,
+			step.Command, step.Args)
+	}
 	return inventory.NewGetNextStepsOK().WithPayload(steps)
 }
 
 func (b *bareMetalInventory) PostStepReply(ctx context.Context, params inventory.PostStepReplyParams) middleware.Responder {
+	logrus.Infof("Received step reply <%s> from cluster <%s> host <%s>  exit-code <%d> stdout <%s> stderr <%s>", params.Reply.StepID, params.ClusterID,
+		params.HostID, params.Reply.ExitCode, params.Reply.Output, params.Reply.Error)
 	return inventory.NewPostStepReplyNoContent()
 }
 
@@ -490,6 +495,7 @@ func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.
 	b.debugCmdMux.Lock()
 	b.debugCmdMap[params.HostID] = swag.StringValue(params.Step.Command)
 	b.debugCmdMux.Unlock()
+	logrus.Infof("Added new debug command for cluster <%s> host <%s>: <%s>", params.ClusterID, params.HostID, swag.StringValue(params.Step.Command))
 	return inventory.NewSetDebugStepOK()
 }
 
