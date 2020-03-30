@@ -51,12 +51,12 @@ func (o *GetNextStepsParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	o.HTTPRequest = r
 
-	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
+	rClusterID, rhkClusterID, _ := route.Params.GetOK("clusterId")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
-	rHostID, rhkHostID, _ := route.Params.GetOK("host_id")
+	rHostID, rhkHostID, _ := route.Params.GetOK("hostId")
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
 		res = append(res, err)
 	}
@@ -80,7 +80,7 @@ func (o *GetNextStepsParams) bindClusterID(rawData []string, hasKey bool, format
 	// Format: uuid
 	value, err := formats.Parse("uuid", raw)
 	if err != nil {
-		return errors.InvalidType("cluster_id", "path", "strfmt.UUID", raw)
+		return errors.InvalidType("clusterId", "path", "strfmt.UUID", raw)
 	}
 	o.ClusterID = *(value.(*strfmt.UUID))
 
@@ -94,7 +94,7 @@ func (o *GetNextStepsParams) bindClusterID(rawData []string, hasKey bool, format
 // validateClusterID carries on validations for parameter ClusterID
 func (o *GetNextStepsParams) validateClusterID(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
+	if err := validate.FormatOf("clusterId", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err
 	}
 	return nil
@@ -113,7 +113,7 @@ func (o *GetNextStepsParams) bindHostID(rawData []string, hasKey bool, formats s
 	// Format: uuid
 	value, err := formats.Parse("uuid", raw)
 	if err != nil {
-		return errors.InvalidType("host_id", "path", "strfmt.UUID", raw)
+		return errors.InvalidType("hostId", "path", "strfmt.UUID", raw)
 	}
 	o.HostID = *(value.(*strfmt.UUID))
 
@@ -127,7 +127,7 @@ func (o *GetNextStepsParams) bindHostID(rawData []string, hasKey bool, formats s
 // validateHostID carries on validations for parameter HostID
 func (o *GetNextStepsParams) validateHostID(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
+	if err := validate.FormatOf("hostId", "path", "uuid", o.HostID.String(), formats); err != nil {
 		return err
 	}
 	return nil

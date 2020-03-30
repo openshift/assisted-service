@@ -64,22 +64,22 @@ func (o *DownloadClusterISOParams) BindRequest(r *http.Request, route *middlewar
 
 	qs := runtime.Values(r.URL.Query())
 
-	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
+	rClusterID, rhkClusterID, _ := route.Params.GetOK("clusterId")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
-	qProxyIP, qhkProxyIP, _ := qs.GetOK("proxy_ip")
+	qProxyIP, qhkProxyIP, _ := qs.GetOK("proxyIp")
 	if err := o.bindProxyIP(qProxyIP, qhkProxyIP, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
-	qProxyPort, qhkProxyPort, _ := qs.GetOK("proxy_port")
+	qProxyPort, qhkProxyPort, _ := qs.GetOK("proxyPort")
 	if err := o.bindProxyPort(qProxyPort, qhkProxyPort, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
-	qSSHPublicKey, qhkSSHPublicKey, _ := qs.GetOK("ssh_public_key")
+	qSSHPublicKey, qhkSSHPublicKey, _ := qs.GetOK("sshPublicKey")
 	if err := o.bindSSHPublicKey(qSSHPublicKey, qhkSSHPublicKey, route.Formats); err != nil {
 		res = append(res, err)
 	}
@@ -103,7 +103,7 @@ func (o *DownloadClusterISOParams) bindClusterID(rawData []string, hasKey bool, 
 	// Format: uuid
 	value, err := formats.Parse("uuid", raw)
 	if err != nil {
-		return errors.InvalidType("cluster_id", "path", "strfmt.UUID", raw)
+		return errors.InvalidType("clusterId", "path", "strfmt.UUID", raw)
 	}
 	o.ClusterID = *(value.(*strfmt.UUID))
 
@@ -117,7 +117,7 @@ func (o *DownloadClusterISOParams) bindClusterID(rawData []string, hasKey bool, 
 // validateClusterID carries on validations for parameter ClusterID
 func (o *DownloadClusterISOParams) validateClusterID(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
+	if err := validate.FormatOf("clusterId", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err
 	}
 	return nil
@@ -139,7 +139,7 @@ func (o *DownloadClusterISOParams) bindProxyIP(rawData []string, hasKey bool, fo
 	// Format: hostname
 	value, err := formats.Parse("hostname", raw)
 	if err != nil {
-		return errors.InvalidType("proxy_ip", "query", "strfmt.Hostname", raw)
+		return errors.InvalidType("proxyIp", "query", "strfmt.Hostname", raw)
 	}
 	o.ProxyIP = (value.(*strfmt.Hostname))
 
@@ -153,7 +153,7 @@ func (o *DownloadClusterISOParams) bindProxyIP(rawData []string, hasKey bool, fo
 // validateProxyIP carries on validations for parameter ProxyIP
 func (o *DownloadClusterISOParams) validateProxyIP(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("proxy_ip", "query", "hostname", o.ProxyIP.String(), formats); err != nil {
+	if err := validate.FormatOf("proxyIp", "query", "hostname", o.ProxyIP.String(), formats); err != nil {
 		return err
 	}
 	return nil
@@ -174,7 +174,7 @@ func (o *DownloadClusterISOParams) bindProxyPort(rawData []string, hasKey bool, 
 
 	value, err := swag.ConvertInt64(raw)
 	if err != nil {
-		return errors.InvalidType("proxy_port", "query", "int64", raw)
+		return errors.InvalidType("proxyPort", "query", "int64", raw)
 	}
 	o.ProxyPort = &value
 
@@ -188,11 +188,11 @@ func (o *DownloadClusterISOParams) bindProxyPort(rawData []string, hasKey bool, 
 // validateProxyPort carries on validations for parameter ProxyPort
 func (o *DownloadClusterISOParams) validateProxyPort(formats strfmt.Registry) error {
 
-	if err := validate.MinimumInt("proxy_port", "query", int64(*o.ProxyPort), 0, false); err != nil {
+	if err := validate.MinimumInt("proxyPort", "query", int64(*o.ProxyPort), 0, false); err != nil {
 		return err
 	}
 
-	if err := validate.MaximumInt("proxy_port", "query", int64(*o.ProxyPort), 65535, false); err != nil {
+	if err := validate.MaximumInt("proxyPort", "query", int64(*o.ProxyPort), 65535, false); err != nil {
 		return err
 	}
 

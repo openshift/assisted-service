@@ -61,7 +61,7 @@ type GetClusterOK struct {
 }
 
 func (o *GetClusterOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /clusters/{clusterId}][%d] getClusterOK  %+v", 200, o.Payload)
 }
 
 func (o *GetClusterOK) GetPayload() *models.Cluster {
@@ -93,7 +93,7 @@ type GetClusterNotFound struct {
 }
 
 func (o *GetClusterNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterNotFound ", 404)
+	return fmt.Sprintf("[GET /clusters/{clusterId}][%d] getClusterNotFound ", 404)
 }
 
 func (o *GetClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -114,7 +114,7 @@ type GetClusterInternalServerError struct {
 }
 
 func (o *GetClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterInternalServerError ", 500)
+	return fmt.Sprintf("[GET /clusters/{clusterId}][%d] getClusterInternalServerError ", 500)
 }
 
 func (o *GetClusterInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

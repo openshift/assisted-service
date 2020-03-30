@@ -22,17 +22,16 @@ type Host struct {
 
 	HostCreateParams
 
-	// cluster id
+	// cluster Id
 	// Format: uuid
-	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`
+	ClusterID strfmt.UUID `json:"clusterId,omitempty" gorm:"primary_key;foreignkey:Cluster"`
 
 	// connectivity
 	// Required: true
 	Connectivity *ConnectivityReport `json:"connectivity"`
 
 	// hardware info
-	// Required: true
-	HardwareInfo *Introspection `json:"hardware_info"`
+	HardwareInfo *Introspection `json:"hardware_info,omitempty"`
 
 	// role
 	// Enum: [undefined master worker]
@@ -45,11 +44,11 @@ type Host struct {
 
 	// status info
 	// Required: true
-	StatusInfo *string `json:"status_info"`
+	StatusInfo *string `json:"statusInfo"`
 
 	// updated at
 	// Format: date-time
-	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:datetime"`
+	UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty" gorm:"type:datetime"`
 }
 
 // UnmarshalJSON unmarshals this object from a JSON structure
@@ -70,19 +69,19 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 
 	// AO2
 	var dataAO2 struct {
-		ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
+		ClusterID strfmt.UUID `json:"clusterId,omitempty"`
 
 		Connectivity *ConnectivityReport `json:"connectivity"`
 
-		HardwareInfo *Introspection `json:"hardware_info"`
+		HardwareInfo *Introspection `json:"hardware_info,omitempty"`
 
 		Role string `json:"role,omitempty"`
 
 		Status *string `json:"status"`
 
-		StatusInfo *string `json:"status_info"`
+		StatusInfo *string `json:"statusInfo"`
 
-		UpdatedAt strfmt.DateTime `json:"updated_at,omitempty"`
+		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
 	}
 	if err := swag.ReadJSON(raw, &dataAO2); err != nil {
 		return err
@@ -121,19 +120,19 @@ func (m Host) MarshalJSON() ([]byte, error) {
 	}
 	_parts = append(_parts, aO1)
 	var dataAO2 struct {
-		ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
+		ClusterID strfmt.UUID `json:"clusterId,omitempty"`
 
 		Connectivity *ConnectivityReport `json:"connectivity"`
 
-		HardwareInfo *Introspection `json:"hardware_info"`
+		HardwareInfo *Introspection `json:"hardware_info,omitempty"`
 
 		Role string `json:"role,omitempty"`
 
 		Status *string `json:"status"`
 
-		StatusInfo *string `json:"status_info"`
+		StatusInfo *string `json:"statusInfo"`
 
-		UpdatedAt strfmt.DateTime `json:"updated_at,omitempty"`
+		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
 	}
 
 	dataAO2.ClusterID = m.ClusterID
@@ -211,7 +210,7 @@ func (m *Host) validateClusterID(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
+	if err := validate.FormatOf("clusterId", "body", "uuid", m.ClusterID.String(), formats); err != nil {
 		return err
 	}
 
@@ -238,8 +237,8 @@ func (m *Host) validateConnectivity(formats strfmt.Registry) error {
 
 func (m *Host) validateHardwareInfo(formats strfmt.Registry) error {
 
-	if err := validate.Required("hardware_info", "body", m.HardwareInfo); err != nil {
-		return err
+	if swag.IsZero(m.HardwareInfo) { // not required
+		return nil
 	}
 
 	if m.HardwareInfo != nil {
@@ -324,7 +323,7 @@ func (m *Host) validateStatus(formats strfmt.Registry) error {
 
 func (m *Host) validateStatusInfo(formats strfmt.Registry) error {
 
-	if err := validate.Required("status_info", "body", m.StatusInfo); err != nil {
+	if err := validate.Required("statusInfo", "body", m.StatusInfo); err != nil {
 		return err
 	}
 
@@ -337,7 +336,7 @@ func (m *Host) validateUpdatedAt(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
+	if err := validate.FormatOf("updatedAt", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
 		return err
 	}
 

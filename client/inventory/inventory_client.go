@@ -94,7 +94,7 @@ func (a *Client) DeregisterCluster(ctx context.Context, params *DeregisterCluste
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DeregisterCluster",
 		Method:             "DELETE",
-		PathPattern:        "/clusters/{cluster_id}",
+		PathPattern:        "/clusters/{clusterId}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -118,7 +118,7 @@ func (a *Client) DeregisterHost(ctx context.Context, params *DeregisterHostParam
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DeregisterHost",
 		Method:             "DELETE",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}",
+		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -142,7 +142,7 @@ func (a *Client) DisableHost(ctx context.Context, params *DisableHostParams) (*D
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DisableHost",
 		Method:             "DELETE",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/enable",
+		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/actions/enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -166,7 +166,7 @@ func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadCluster
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DownloadClusterISO",
 		Method:             "GET",
-		PathPattern:        "/clusters/{cluster_id}/actions/download",
+		PathPattern:        "/clusters/{clusterId}/actions/download",
 		ProducesMediaTypes: []string{"application/octet-stream"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -190,7 +190,7 @@ func (a *Client) EnableHost(ctx context.Context, params *EnableHostParams) (*Ena
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "EnableHost",
 		Method:             "POST",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/enable",
+		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/actions/enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -214,7 +214,7 @@ func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*Get
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetCluster",
 		Method:             "GET",
-		PathPattern:        "/clusters/{cluster_id}",
+		PathPattern:        "/clusters/{clusterId}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -238,7 +238,7 @@ func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetHost",
 		Method:             "GET",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}",
+		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -262,7 +262,7 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetNextSteps",
 		Method:             "GET",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/next-steps",
+		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/next-steps",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -286,7 +286,7 @@ func (a *Client) InstallCluster(ctx context.Context, params *InstallClusterParam
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "InstallCluster",
 		Method:             "POST",
-		PathPattern:        "/clusters/{cluster_id}/actions/install",
+		PathPattern:        "/clusters/{clusterId}/actions/install",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -334,7 +334,7 @@ func (a *Client) ListHosts(ctx context.Context, params *ListHostsParams) (*ListH
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListHosts",
 		Method:             "GET",
-		PathPattern:        "/clusters/{cluster_id}/hosts",
+		PathPattern:        "/clusters/{clusterId}/hosts",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -358,7 +358,7 @@ func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams)
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "PostStepReply",
 		Method:             "POST",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/next-steps/reply",
+		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/next-steps/reply",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -406,7 +406,7 @@ func (a *Client) RegisterHost(ctx context.Context, params *RegisterHostParams) (
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "RegisterHost",
 		Method:             "POST",
-		PathPattern:        "/clusters/{cluster_id}/hosts",
+		PathPattern:        "/clusters/{clusterId}/hosts",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -430,7 +430,7 @@ func (a *Client) SetDebugStep(ctx context.Context, params *SetDebugStepParams) (
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "SetDebugStep",
 		Method:             "POST",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/debug",
+		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/actions/debug",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -454,7 +454,7 @@ func (a *Client) UpdateCluster(ctx context.Context, params *UpdateClusterParams)
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "UpdateCluster",
 		Method:             "PATCH",
-		PathPattern:        "/clusters/{cluster_id}",
+		PathPattern:        "/clusters/{clusterId}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},

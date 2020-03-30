@@ -23,39 +23,39 @@ type Cluster struct {
 
 	// api vip
 	// Format: hostname
-	APIVip strfmt.Hostname `json:"api_vip,omitempty"`
+	APIVip strfmt.Hostname `json:"apiVip,omitempty"`
 
-	// base dns domain
-	BaseDNSDomain string `json:"base_dns_domain,omitempty"`
+	// base Dns domain
+	BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
 
 	// dns vip
 	// Format: hostname
-	DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
+	DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
 
 	// hosts
 	Hosts []*Host `json:"hosts" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
 
 	// ingress vip
 	// Format: hostname
-	IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
+	IngressVip strfmt.Hostname `json:"ingressVip,omitempty"`
 
 	// install completed at
 	// Format: date-time
-	InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty" gorm:"type:datetime;default:0"`
+	InstallCompletedAt strfmt.DateTime `json:"installCompletedAt,omitempty" gorm:"type:datetime;default:0"`
 
 	// install started at
 	// Format: date-time
-	InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty" gorm:"type:datetime;default:0"`
+	InstallStartedAt strfmt.DateTime `json:"installStartedAt,omitempty" gorm:"type:datetime;default:0"`
 
 	// name
 	Name string `json:"name,omitempty"`
 
 	// openshift version
 	// Pattern: ^4\.\d$
-	OpenshiftVersion string `json:"openshift_version,omitempty"`
+	OpenshiftVersion string `json:"openshiftVersion,omitempty"`
 
 	// SSH public key for debugging OpenShift nodes
-	SSHPublicKey string `json:"ssh_public_key,omitempty" gorm:"type:varchar(1024)"`
+	SSHPublicKey string `json:"sshPublicKey,omitempty" gorm:"type:varchar(1024)"`
 
 	// status
 	// Required: true
@@ -64,7 +64,7 @@ type Cluster struct {
 
 	// updated at
 	// Format: date-time
-	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:datetime"`
+	UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty" gorm:"type:datetime"`
 }
 
 // UnmarshalJSON unmarshals this object from a JSON structure
@@ -78,29 +78,29 @@ func (m *Cluster) UnmarshalJSON(raw []byte) error {
 
 	// AO1
 	var dataAO1 struct {
-		APIVip strfmt.Hostname `json:"api_vip,omitempty"`
+		APIVip strfmt.Hostname `json:"apiVip,omitempty"`
 
-		BaseDNSDomain string `json:"base_dns_domain,omitempty"`
+		BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
 
-		DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
+		DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
 
 		Hosts []*Host `json:"hosts"`
 
-		IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
+		IngressVip strfmt.Hostname `json:"ingressVip,omitempty"`
 
-		InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty"`
+		InstallCompletedAt strfmt.DateTime `json:"installCompletedAt,omitempty"`
 
-		InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty"`
+		InstallStartedAt strfmt.DateTime `json:"installStartedAt,omitempty"`
 
 		Name string `json:"name,omitempty"`
 
-		OpenshiftVersion string `json:"openshift_version,omitempty"`
+		OpenshiftVersion string `json:"openshiftVersion,omitempty"`
 
-		SSHPublicKey string `json:"ssh_public_key,omitempty"`
+		SSHPublicKey string `json:"sshPublicKey,omitempty"`
 
 		Status *string `json:"status"`
 
-		UpdatedAt strfmt.DateTime `json:"updated_at,omitempty"`
+		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
 	}
 	if err := swag.ReadJSON(raw, &dataAO1); err != nil {
 		return err
@@ -143,29 +143,29 @@ func (m Cluster) MarshalJSON() ([]byte, error) {
 	}
 	_parts = append(_parts, aO0)
 	var dataAO1 struct {
-		APIVip strfmt.Hostname `json:"api_vip,omitempty"`
+		APIVip strfmt.Hostname `json:"apiVip,omitempty"`
 
-		BaseDNSDomain string `json:"base_dns_domain,omitempty"`
+		BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
 
-		DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
+		DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
 
 		Hosts []*Host `json:"hosts"`
 
-		IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
+		IngressVip strfmt.Hostname `json:"ingressVip,omitempty"`
 
-		InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty"`
+		InstallCompletedAt strfmt.DateTime `json:"installCompletedAt,omitempty"`
 
-		InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty"`
+		InstallStartedAt strfmt.DateTime `json:"installStartedAt,omitempty"`
 
 		Name string `json:"name,omitempty"`
 
-		OpenshiftVersion string `json:"openshift_version,omitempty"`
+		OpenshiftVersion string `json:"openshiftVersion,omitempty"`
 
-		SSHPublicKey string `json:"ssh_public_key,omitempty"`
+		SSHPublicKey string `json:"sshPublicKey,omitempty"`
 
 		Status *string `json:"status"`
 
-		UpdatedAt strfmt.DateTime `json:"updated_at,omitempty"`
+		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
 	}
 
 	dataAO1.APIVip = m.APIVip
@@ -257,7 +257,7 @@ func (m *Cluster) validateAPIVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("api_vip", "body", "hostname", m.APIVip.String(), formats); err != nil {
+	if err := validate.FormatOf("apiVip", "body", "hostname", m.APIVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -270,7 +270,7 @@ func (m *Cluster) validateDNSVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("dns_vip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
+	if err := validate.FormatOf("dnsVip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -308,7 +308,7 @@ func (m *Cluster) validateIngressVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("ingress_vip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
+	if err := validate.FormatOf("ingressVip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -321,7 +321,7 @@ func (m *Cluster) validateInstallCompletedAt(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("install_completed_at", "body", "date-time", m.InstallCompletedAt.String(), formats); err != nil {
+	if err := validate.FormatOf("installCompletedAt", "body", "date-time", m.InstallCompletedAt.String(), formats); err != nil {
 		return err
 	}
 
@@ -334,7 +334,7 @@ func (m *Cluster) validateInstallStartedAt(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("install_started_at", "body", "date-time", m.InstallStartedAt.String(), formats); err != nil {
+	if err := validate.FormatOf("installStartedAt", "body", "date-time", m.InstallStartedAt.String(), formats); err != nil {
 		return err
 	}
 
@@ -347,7 +347,7 @@ func (m *Cluster) validateOpenshiftVersion(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.Pattern("openshift_version", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
+	if err := validate.Pattern("openshiftVersion", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
 		return err
 	}
 
@@ -394,7 +394,7 @@ func (m *Cluster) validateUpdatedAt(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
+	if err := validate.FormatOf("updatedAt", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
 		return err
 	}
 

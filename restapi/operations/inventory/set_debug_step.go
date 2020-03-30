@@ -29,7 +29,7 @@ func NewSetDebugStep(ctx *middleware.Context, handler SetDebugStepHandler) *SetD
 	return &SetDebugStep{Context: ctx, Handler: handler}
 }
 
-/*SetDebugStep swagger:route POST /clusters/{cluster_id}/hosts/{host_id}/actions/debug inventory setDebugStep
+/*SetDebugStep swagger:route POST /clusters/{clusterId}/hosts/{hostId}/actions/debug inventory setDebugStep
 
 Set a single shot debug step that will be sent next time the agent will ask for a command
 

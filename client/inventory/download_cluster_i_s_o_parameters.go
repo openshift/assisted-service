@@ -172,21 +172,21 @@ func (o *DownloadClusterISOParams) WriteToRequest(r runtime.ClientRequest, reg s
 	}
 	var res []error
 
-	// path param cluster_id
-	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+	// path param clusterId
+	if err := r.SetPathParam("clusterId", o.ClusterID.String()); err != nil {
 		return err
 	}
 
 	if o.ProxyIP != nil {
 
-		// query param proxy_ip
+		// query param proxyIp
 		var qrProxyIP strfmt.Hostname
 		if o.ProxyIP != nil {
 			qrProxyIP = *o.ProxyIP
 		}
 		qProxyIP := qrProxyIP.String()
 		if qProxyIP != "" {
-			if err := r.SetQueryParam("proxy_ip", qProxyIP); err != nil {
+			if err := r.SetQueryParam("proxyIp", qProxyIP); err != nil {
 				return err
 			}
 		}
@@ -195,14 +195,14 @@ func (o *DownloadClusterISOParams) WriteToRequest(r runtime.ClientRequest, reg s
 
 	if o.ProxyPort != nil {
 
-		// query param proxy_port
+		// query param proxyPort
 		var qrProxyPort int64
 		if o.ProxyPort != nil {
 			qrProxyPort = *o.ProxyPort
 		}
 		qProxyPort := swag.FormatInt64(qrProxyPort)
 		if qProxyPort != "" {
-			if err := r.SetQueryParam("proxy_port", qProxyPort); err != nil {
+			if err := r.SetQueryParam("proxyPort", qProxyPort); err != nil {
 				return err
 			}
 		}
@@ -211,14 +211,14 @@ func (o *DownloadClusterISOParams) WriteToRequest(r runtime.ClientRequest, reg s
 
 	if o.SSHPublicKey != nil {
 
-		// query param ssh_public_key
+		// query param sshPublicKey
 		var qrSSHPublicKey string
 		if o.SSHPublicKey != nil {
 			qrSSHPublicKey = *o.SSHPublicKey
 		}
 		qSSHPublicKey := qrSSHPublicKey
 		if qSSHPublicKey != "" {
-			if err := r.SetQueryParam("ssh_public_key", qSSHPublicKey); err != nil {
+			if err := r.SetQueryParam("sshPublicKey", qSSHPublicKey); err != nil {
 				return err
 			}
 		}

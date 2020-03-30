@@ -55,7 +55,7 @@ func (o *RegisterHostParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	o.HTTPRequest = r
 
-	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
+	rClusterID, rhkClusterID, _ := route.Params.GetOK("clusterId")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
@@ -101,7 +101,7 @@ func (o *RegisterHostParams) bindClusterID(rawData []string, hasKey bool, format
 	// Format: uuid
 	value, err := formats.Parse("uuid", raw)
 	if err != nil {
-		return errors.InvalidType("cluster_id", "path", "strfmt.UUID", raw)
+		return errors.InvalidType("clusterId", "path", "strfmt.UUID", raw)
 	}
 	o.ClusterID = *(value.(*strfmt.UUID))
 
@@ -115,7 +115,7 @@ func (o *RegisterHostParams) bindClusterID(rawData []string, hasKey bool, format
 // validateClusterID carries on validations for parameter ClusterID
 func (o *RegisterHostParams) validateClusterID(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
+	if err := validate.FormatOf("clusterId", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err
 	}
 	return nil

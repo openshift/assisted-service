@@ -29,7 +29,7 @@ func NewGetCluster(ctx *middleware.Context, handler GetClusterHandler) *GetClust
 	return &GetCluster{Context: ctx, Handler: handler}
 }
 
-/*GetCluster swagger:route GET /clusters/{cluster_id} inventory getCluster
+/*GetCluster swagger:route GET /clusters/{clusterId} inventory getCluster
 
 Retrieve OpenShift bare metal cluster information
 

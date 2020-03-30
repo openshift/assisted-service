@@ -73,7 +73,7 @@ type InstallClusterOK struct {
 }
 
 func (o *InstallClusterOK) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/actions/install][%d] installClusterOK  %+v", 200, o.Payload)
 }
 
 func (o *InstallClusterOK) GetPayload() *models.Cluster {
@@ -105,7 +105,7 @@ type InstallClusterBadRequest struct {
 }
 
 func (o *InstallClusterBadRequest) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterBadRequest ", 400)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/actions/install][%d] installClusterBadRequest ", 400)
 }
 
 func (o *InstallClusterBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -126,7 +126,7 @@ type InstallClusterNotFound struct {
 }
 
 func (o *InstallClusterNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterNotFound ", 404)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/actions/install][%d] installClusterNotFound ", 404)
 }
 
 func (o *InstallClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -147,7 +147,7 @@ type InstallClusterConflict struct {
 }
 
 func (o *InstallClusterConflict) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterConflict ", 409)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/actions/install][%d] installClusterConflict ", 409)
 }
 
 func (o *InstallClusterConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -168,7 +168,7 @@ type InstallClusterInternalServerError struct {
 }
 
 func (o *InstallClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterInternalServerError ", 500)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/actions/install][%d] installClusterInternalServerError ", 500)
 }
 
 func (o *InstallClusterInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -63,7 +63,7 @@ type DeregisterHostNoContent struct {
 }
 
 func (o *DeregisterHostNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostNoContent ", 204)
+	return fmt.Sprintf("[DELETE /clusters/{clusterId}/hosts/{hostId}][%d] deregisterHostNoContent ", 204)
 }
 
 func (o *DeregisterHostNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -84,7 +84,7 @@ type DeregisterHostBadRequest struct {
 }
 
 func (o *DeregisterHostBadRequest) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostBadRequest ", 400)
+	return fmt.Sprintf("[DELETE /clusters/{clusterId}/hosts/{hostId}][%d] deregisterHostBadRequest ", 400)
 }
 
 func (o *DeregisterHostBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -105,7 +105,7 @@ type DeregisterHostNotFound struct {
 }
 
 func (o *DeregisterHostNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostNotFound ", 404)
+	return fmt.Sprintf("[DELETE /clusters/{clusterId}/hosts/{hostId}][%d] deregisterHostNotFound ", 404)
 }
 
 func (o *DeregisterHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -126,7 +126,7 @@ type DeregisterHostInternalServerError struct {
 }
 
 func (o *DeregisterHostInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostInternalServerError ", 500)
+	return fmt.Sprintf("[DELETE /clusters/{clusterId}/hosts/{hostId}][%d] deregisterHostInternalServerError ", 500)
 }
 
 func (o *DeregisterHostInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

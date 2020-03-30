@@ -73,7 +73,7 @@ type UpdateClusterCreated struct {
 }
 
 func (o *UpdateClusterCreated) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterCreated  %+v", 201, o.Payload)
+	return fmt.Sprintf("[PATCH /clusters/{clusterId}][%d] updateClusterCreated  %+v", 201, o.Payload)
 }
 
 func (o *UpdateClusterCreated) GetPayload() *models.Cluster {
@@ -105,7 +105,7 @@ type UpdateClusterBadRequest struct {
 }
 
 func (o *UpdateClusterBadRequest) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterBadRequest ", 400)
+	return fmt.Sprintf("[PATCH /clusters/{clusterId}][%d] updateClusterBadRequest ", 400)
 }
 
 func (o *UpdateClusterBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -126,7 +126,7 @@ type UpdateClusterNotFound struct {
 }
 
 func (o *UpdateClusterNotFound) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterNotFound ", 404)
+	return fmt.Sprintf("[PATCH /clusters/{clusterId}][%d] updateClusterNotFound ", 404)
 }
 
 func (o *UpdateClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -147,7 +147,7 @@ type UpdateClusterConflict struct {
 }
 
 func (o *UpdateClusterConflict) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterConflict ", 409)
+	return fmt.Sprintf("[PATCH /clusters/{clusterId}][%d] updateClusterConflict ", 409)
 }
 
 func (o *UpdateClusterConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -168,7 +168,7 @@ type UpdateClusterInternalServerError struct {
 }
 
 func (o *UpdateClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterInternalServerError ", 500)
+	return fmt.Sprintf("[PATCH /clusters/{clusterId}][%d] updateClusterInternalServerError ", 500)
 }
 
 func (o *UpdateClusterInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

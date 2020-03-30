@@ -123,8 +123,8 @@ func (o *DeregisterClusterParams) WriteToRequest(r runtime.ClientRequest, reg st
 	}
 	var res []error
 
-	// path param cluster_id
-	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
+	// path param clusterId
+	if err := r.SetPathParam("clusterId", o.ClusterID.String()); err != nil {
 		return err
 	}
 

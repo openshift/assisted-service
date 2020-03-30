@@ -19,18 +19,18 @@ type ClusterCreateParams struct {
 
 	// api vip
 	// Format: hostname
-	APIVip strfmt.Hostname `json:"api_vip,omitempty"`
+	APIVip strfmt.Hostname `json:"apiVip,omitempty"`
 
-	// base dns domain
-	BaseDNSDomain string `json:"base_dns_domain,omitempty"`
+	// base Dns domain
+	BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
 
 	// dns vip
 	// Format: hostname
-	DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
+	DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
 
 	// ingress vip
 	// Format: hostname
-	IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
+	IngressVip strfmt.Hostname `json:"ingressVip,omitempty"`
 
 	// name
 	// Required: true
@@ -38,10 +38,10 @@ type ClusterCreateParams struct {
 
 	// openshift version
 	// Pattern: ^4\.\d$
-	OpenshiftVersion string `json:"openshift_version,omitempty"`
+	OpenshiftVersion string `json:"openshiftVersion,omitempty"`
 
 	// SSH public key for debugging OpenShift nodes
-	SSHPublicKey string `json:"ssh_public_key,omitempty"`
+	SSHPublicKey string `json:"sshPublicKey,omitempty"`
 }
 
 // Validate validates this cluster create params
@@ -80,7 +80,7 @@ func (m *ClusterCreateParams) validateAPIVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("api_vip", "body", "hostname", m.APIVip.String(), formats); err != nil {
+	if err := validate.FormatOf("apiVip", "body", "hostname", m.APIVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -93,7 +93,7 @@ func (m *ClusterCreateParams) validateDNSVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("dns_vip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
+	if err := validate.FormatOf("dnsVip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -106,7 +106,7 @@ func (m *ClusterCreateParams) validateIngressVip(formats strfmt.Registry) error 
 		return nil
 	}
 
-	if err := validate.FormatOf("ingress_vip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
+	if err := validate.FormatOf("ingressVip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -128,7 +128,7 @@ func (m *ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) 
 		return nil
 	}
 
-	if err := validate.Pattern("openshift_version", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
+	if err := validate.Pattern("openshiftVersion", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
 		return err
 	}
 

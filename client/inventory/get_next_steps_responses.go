@@ -61,7 +61,7 @@ type GetNextStepsOK struct {
 }
 
 func (o *GetNextStepsOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/next-steps][%d] getNextStepsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /clusters/{clusterId}/hosts/{hostId}/next-steps][%d] getNextStepsOK  %+v", 200, o.Payload)
 }
 
 func (o *GetNextStepsOK) GetPayload() models.Steps {
@@ -91,7 +91,7 @@ type GetNextStepsNotFound struct {
 }
 
 func (o *GetNextStepsNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/next-steps][%d] getNextStepsNotFound ", 404)
+	return fmt.Sprintf("[GET /clusters/{clusterId}/hosts/{hostId}/next-steps][%d] getNextStepsNotFound ", 404)
 }
 
 func (o *GetNextStepsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -112,7 +112,7 @@ type GetNextStepsInternalServerError struct {
 }
 
 func (o *GetNextStepsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/next-steps][%d] getNextStepsInternalServerError ", 500)
+	return fmt.Sprintf("[GET /clusters/{clusterId}/hosts/{hostId}/next-steps][%d] getNextStepsInternalServerError ", 500)
 }
 
 func (o *GetNextStepsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

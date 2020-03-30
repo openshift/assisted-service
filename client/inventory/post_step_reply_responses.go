@@ -63,7 +63,7 @@ type PostStepReplyNoContent struct {
 }
 
 func (o *PostStepReplyNoContent) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/next-steps/reply][%d] postStepReplyNoContent ", 204)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/hosts/{hostId}/next-steps/reply][%d] postStepReplyNoContent ", 204)
 }
 
 func (o *PostStepReplyNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -84,7 +84,7 @@ type PostStepReplyBadRequest struct {
 }
 
 func (o *PostStepReplyBadRequest) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/next-steps/reply][%d] postStepReplyBadRequest ", 400)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/hosts/{hostId}/next-steps/reply][%d] postStepReplyBadRequest ", 400)
 }
 
 func (o *PostStepReplyBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -105,7 +105,7 @@ type PostStepReplyNotFound struct {
 }
 
 func (o *PostStepReplyNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/next-steps/reply][%d] postStepReplyNotFound ", 404)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/hosts/{hostId}/next-steps/reply][%d] postStepReplyNotFound ", 404)
 }
 
 func (o *PostStepReplyNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -126,7 +126,7 @@ type PostStepReplyInternalServerError struct {
 }
 
 func (o *PostStepReplyInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/next-steps/reply][%d] postStepReplyInternalServerError ", 500)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/hosts/{hostId}/next-steps/reply][%d] postStepReplyInternalServerError ", 500)
 }
 
 func (o *PostStepReplyInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

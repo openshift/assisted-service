@@ -42,11 +42,11 @@ func (o *ListHostsURL) SetBasePath(bp string) {
 func (o *ListHostsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{cluster_id}/hosts"
+	var _path = "/clusters/{clusterId}/hosts"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
-		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+		_path = strings.Replace(_path, "{clusterId}", clusterID, -1)
 	} else {
 		return nil, errors.New("clusterId is required on ListHostsURL")
 	}

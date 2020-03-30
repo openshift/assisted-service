@@ -63,7 +63,7 @@ type DeregisterClusterNoContent struct {
 }
 
 func (o *DeregisterClusterNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterNoContent ", 204)
+	return fmt.Sprintf("[DELETE /clusters/{clusterId}][%d] deregisterClusterNoContent ", 204)
 }
 
 func (o *DeregisterClusterNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -84,7 +84,7 @@ type DeregisterClusterNotFound struct {
 }
 
 func (o *DeregisterClusterNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterNotFound ", 404)
+	return fmt.Sprintf("[DELETE /clusters/{clusterId}][%d] deregisterClusterNotFound ", 404)
 }
 
 func (o *DeregisterClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -105,7 +105,7 @@ type DeregisterClusterConflict struct {
 }
 
 func (o *DeregisterClusterConflict) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterConflict ", 409)
+	return fmt.Sprintf("[DELETE /clusters/{clusterId}][%d] deregisterClusterConflict ", 409)
 }
 
 func (o *DeregisterClusterConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -126,7 +126,7 @@ type DeregisterClusterInternalServerError struct {
 }
 
 func (o *DeregisterClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterInternalServerError ", 500)
+	return fmt.Sprintf("[DELETE /clusters/{clusterId}][%d] deregisterClusterInternalServerError ", 500)
 }
 
 func (o *DeregisterClusterInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

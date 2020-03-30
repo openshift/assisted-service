@@ -61,7 +61,7 @@ type RegisterHostCreated struct {
 }
 
 func (o *RegisterHostCreated) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostCreated  %+v", 201, o.Payload)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/hosts][%d] registerHostCreated  %+v", 201, o.Payload)
 }
 
 func (o *RegisterHostCreated) GetPayload() *models.Host {
@@ -93,7 +93,7 @@ type RegisterHostBadRequest struct {
 }
 
 func (o *RegisterHostBadRequest) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostBadRequest ", 400)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/hosts][%d] registerHostBadRequest ", 400)
 }
 
 func (o *RegisterHostBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -114,7 +114,7 @@ type RegisterHostInternalServerError struct {
 }
 
 func (o *RegisterHostInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostInternalServerError ", 500)
+	return fmt.Sprintf("[POST /clusters/{clusterId}/hosts][%d] registerHostInternalServerError ", 500)
 }
 
 func (o *RegisterHostInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

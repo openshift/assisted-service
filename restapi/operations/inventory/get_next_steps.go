@@ -29,7 +29,7 @@ func NewGetNextSteps(ctx *middleware.Context, handler GetNextStepsHandler) *GetN
 	return &GetNextSteps{Context: ctx, Handler: handler}
 }
 
-/*GetNextSteps swagger:route GET /clusters/{cluster_id}/hosts/{host_id}/next-steps inventory getNextSteps
+/*GetNextSteps swagger:route GET /clusters/{clusterId}/hosts/{hostId}/next-steps inventory getNextSteps
 
 Retrieve the next operations that the agent need to perform
 

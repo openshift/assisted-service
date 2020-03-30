@@ -22,31 +22,31 @@ type ClusterUpdateParams struct {
 
 	// api vip
 	// Format: hostname
-	APIVip strfmt.Hostname `json:"api_vip,omitempty"`
+	APIVip strfmt.Hostname `json:"apiVip,omitempty"`
 
-	// base dns domain
-	BaseDNSDomain string `json:"base_dns_domain,omitempty"`
+	// base Dns domain
+	BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
 
 	// dns vip
 	// Format: hostname
-	DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
+	DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
 
 	// hosts roles
-	HostsRoles []*ClusterUpdateParamsHostsRolesItems0 `json:"hosts_roles" gorm:"type:varchar(64)[]"`
+	HostsRoles []*ClusterUpdateParamsHostsRolesItems0 `json:"hostsRoles" gorm:"type:varchar(64)[]"`
 
 	// ingress vip
 	// Format: hostname
-	IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
+	IngressVip strfmt.Hostname `json:"ingressVip,omitempty"`
 
 	// name
 	Name string `json:"name,omitempty"`
 
 	// openshift version
 	// Pattern: ^4\.\d$
-	OpenshiftVersion string `json:"openshift_version,omitempty"`
+	OpenshiftVersion string `json:"openshiftVersion,omitempty"`
 
 	// SSH public key for debugging OpenShift nodes
-	SSHPublicKey string `json:"ssh_public_key,omitempty"`
+	SSHPublicKey string `json:"sshPublicKey,omitempty"`
 }
 
 // Validate validates this cluster update params
@@ -85,7 +85,7 @@ func (m *ClusterUpdateParams) validateAPIVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("api_vip", "body", "hostname", m.APIVip.String(), formats); err != nil {
+	if err := validate.FormatOf("apiVip", "body", "hostname", m.APIVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -98,7 +98,7 @@ func (m *ClusterUpdateParams) validateDNSVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("dns_vip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
+	if err := validate.FormatOf("dnsVip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -119,7 +119,7 @@ func (m *ClusterUpdateParams) validateHostsRoles(formats strfmt.Registry) error 
 		if m.HostsRoles[i] != nil {
 			if err := m.HostsRoles[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("hosts_roles" + "." + strconv.Itoa(i))
+					return ve.ValidateName("hostsRoles" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -136,7 +136,7 @@ func (m *ClusterUpdateParams) validateIngressVip(formats strfmt.Registry) error 
 		return nil
 	}
 
-	if err := validate.FormatOf("ingress_vip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
+	if err := validate.FormatOf("ingressVip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -149,7 +149,7 @@ func (m *ClusterUpdateParams) validateOpenshiftVersion(formats strfmt.Registry) 
 		return nil
 	}
 
-	if err := validate.Pattern("openshift_version", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
+	if err := validate.Pattern("openshiftVersion", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
 		return err
 	}
 

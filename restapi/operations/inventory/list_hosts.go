@@ -29,7 +29,7 @@ func NewListHosts(ctx *middleware.Context, handler ListHostsHandler) *ListHosts 
 	return &ListHosts{Context: ctx, Handler: handler}
 }
 
-/*ListHosts swagger:route GET /clusters/{cluster_id}/hosts inventory listHosts
+/*ListHosts swagger:route GET /clusters/{clusterId}/hosts inventory listHosts
 
 List OpenShift bare metal hosts
 

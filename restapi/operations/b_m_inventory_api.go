@@ -370,39 +370,39 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/clusters/{cluster_id}"] = inventory.NewDeregisterCluster(o.context, o.InventoryDeregisterClusterHandler)
+	o.handlers["DELETE"]["/clusters/{clusterId}"] = inventory.NewDeregisterCluster(o.context, o.InventoryDeregisterClusterHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/clusters/{cluster_id}/hosts/{host_id}"] = inventory.NewDeregisterHost(o.context, o.InventoryDeregisterHostHandler)
+	o.handlers["DELETE"]["/clusters/{clusterId}/hosts/{hostId}"] = inventory.NewDeregisterHost(o.context, o.InventoryDeregisterHostHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/clusters/{cluster_id}/hosts/{host_id}/actions/enable"] = inventory.NewDisableHost(o.context, o.InventoryDisableHostHandler)
+	o.handlers["DELETE"]["/clusters/{clusterId}/hosts/{hostId}/actions/enable"] = inventory.NewDisableHost(o.context, o.InventoryDisableHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/actions/download"] = inventory.NewDownloadClusterISO(o.context, o.InventoryDownloadClusterISOHandler)
+	o.handlers["GET"]["/clusters/{clusterId}/actions/download"] = inventory.NewDownloadClusterISO(o.context, o.InventoryDownloadClusterISOHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/actions/enable"] = inventory.NewEnableHost(o.context, o.InventoryEnableHostHandler)
+	o.handlers["POST"]["/clusters/{clusterId}/hosts/{hostId}/actions/enable"] = inventory.NewEnableHost(o.context, o.InventoryEnableHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}"] = inventory.NewGetCluster(o.context, o.InventoryGetClusterHandler)
+	o.handlers["GET"]["/clusters/{clusterId}"] = inventory.NewGetCluster(o.context, o.InventoryGetClusterHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}"] = inventory.NewGetHost(o.context, o.InventoryGetHostHandler)
+	o.handlers["GET"]["/clusters/{clusterId}/hosts/{hostId}"] = inventory.NewGetHost(o.context, o.InventoryGetHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/next-steps"] = inventory.NewGetNextSteps(o.context, o.InventoryGetNextStepsHandler)
+	o.handlers["GET"]["/clusters/{clusterId}/hosts/{hostId}/next-steps"] = inventory.NewGetNextSteps(o.context, o.InventoryGetNextStepsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/actions/install"] = inventory.NewInstallCluster(o.context, o.InventoryInstallClusterHandler)
+	o.handlers["POST"]["/clusters/{clusterId}/actions/install"] = inventory.NewInstallCluster(o.context, o.InventoryInstallClusterHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -410,11 +410,11 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/hosts"] = inventory.NewListHosts(o.context, o.InventoryListHostsHandler)
+	o.handlers["GET"]["/clusters/{clusterId}/hosts"] = inventory.NewListHosts(o.context, o.InventoryListHostsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/next-steps/reply"] = inventory.NewPostStepReply(o.context, o.InventoryPostStepReplyHandler)
+	o.handlers["POST"]["/clusters/{clusterId}/hosts/{hostId}/next-steps/reply"] = inventory.NewPostStepReply(o.context, o.InventoryPostStepReplyHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -422,15 +422,15 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts"] = inventory.NewRegisterHost(o.context, o.InventoryRegisterHostHandler)
+	o.handlers["POST"]["/clusters/{clusterId}/hosts"] = inventory.NewRegisterHost(o.context, o.InventoryRegisterHostHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/actions/debug"] = inventory.NewSetDebugStep(o.context, o.InventorySetDebugStepHandler)
+	o.handlers["POST"]["/clusters/{clusterId}/hosts/{hostId}/actions/debug"] = inventory.NewSetDebugStep(o.context, o.InventorySetDebugStepHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
-	o.handlers["PATCH"]["/clusters/{cluster_id}"] = inventory.NewUpdateCluster(o.context, o.InventoryUpdateClusterHandler)
+	o.handlers["PATCH"]["/clusters/{clusterId}"] = inventory.NewUpdateCluster(o.context, o.InventoryUpdateClusterHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

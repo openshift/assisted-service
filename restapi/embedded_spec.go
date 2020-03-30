@@ -88,7 +88,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}": {
+    "/clusters/{clusterId}": {
       "get": {
         "tags": [
           "inventory"
@@ -100,7 +100,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to retrieve",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           }
@@ -131,7 +131,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to retrieve",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           }
@@ -162,7 +162,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to retrieve",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -198,7 +198,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/download": {
+    "/clusters/{clusterId}/actions/download": {
       "get": {
         "produces": [
           "application/octet-stream"
@@ -213,7 +213,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster whose ISO to download",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -221,20 +221,20 @@ func init() {
             "type": "string",
             "format": "hostname",
             "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
-            "name": "proxy_ip",
+            "name": "proxyIp",
             "in": "query"
           },
           {
             "maximum": 65535,
             "type": "integer",
             "description": "The port of the HTTP proxy",
-            "name": "proxy_port",
+            "name": "proxyPort",
             "in": "query"
           },
           {
             "type": "string",
             "description": "SSH public key for debugging the installation",
-            "name": "ssh_public_key",
+            "name": "sshPublicKey",
             "in": "query"
           }
         ],
@@ -257,7 +257,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/install": {
+    "/clusters/{clusterId}/actions/install": {
       "post": {
         "tags": [
           "inventory"
@@ -269,7 +269,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to begin installing",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           }
@@ -296,7 +296,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts": {
+    "/clusters/{clusterId}/hosts": {
       "get": {
         "tags": [
           "inventory"
@@ -308,7 +308,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to get hosts from",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           }
@@ -336,7 +336,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to register host to",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -366,7 +366,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}": {
+    "/clusters/{clusterId}/hosts/{hostId}": {
       "get": {
         "tags": [
           "inventory"
@@ -378,7 +378,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to get hosts from",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -386,7 +386,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the host to retrieve",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           }
@@ -417,7 +417,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to deregister host from",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -425,7 +425,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the host to retrieve",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           }
@@ -446,7 +446,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/debug": {
+    "/clusters/{clusterId}/hosts/{hostId}/actions/debug": {
       "post": {
         "tags": [
           "inventory"
@@ -458,7 +458,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster of the host",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -466,7 +466,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the host to debug",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           },
@@ -493,7 +493,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
+    "/clusters/{clusterId}/hosts/{hostId}/actions/enable": {
       "post": {
         "tags": [
           "inventory"
@@ -505,7 +505,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster of the host",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -513,7 +513,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the host to enable",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           }
@@ -544,7 +544,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster of the host",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -552,7 +552,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the host to disable",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           }
@@ -573,7 +573,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/next-steps": {
+    "/clusters/{clusterId}/hosts/{hostId}/next-steps": {
       "get": {
         "tags": [
           "inventory"
@@ -585,7 +585,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster of the host",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -593,7 +593,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "ID of host",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           }
@@ -614,7 +614,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/next-steps/reply": {
+    "/clusters/{clusterId}/hosts/{hostId}/next-steps/reply": {
       "post": {
         "tags": [
           "inventory"
@@ -626,7 +626,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster of the host",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -634,7 +634,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "ID of host",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           },
@@ -746,14 +746,14 @@ func init() {
             "status"
           ],
           "properties": {
-            "api_vip": {
+            "apiVip": {
               "type": "string",
               "format": "hostname"
             },
-            "base_dns_domain": {
+            "baseDnsDomain": {
               "type": "string"
             },
-            "dns_vip": {
+            "dnsVip": {
               "type": "string",
               "format": "hostname"
             },
@@ -765,16 +765,16 @@ func init() {
               },
               "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
             },
-            "ingress_vip": {
+            "ingressVip": {
               "type": "string",
               "format": "hostname"
             },
-            "install_completed_at": {
+            "installCompletedAt": {
               "type": "string",
               "format": "date-time",
               "x-go-custom-tag": "gorm:\"type:datetime;default:0\""
             },
-            "install_started_at": {
+            "installStartedAt": {
               "type": "string",
               "format": "date-time",
               "x-go-custom-tag": "gorm:\"type:datetime;default:0\""
@@ -782,11 +782,11 @@ func init() {
             "name": {
               "type": "string"
             },
-            "openshift_version": {
+            "openshiftVersion": {
               "type": "string",
               "pattern": "^4\\.\\d$"
             },
-            "ssh_public_key": {
+            "sshPublicKey": {
               "description": "SSH public key for debugging OpenShift nodes",
               "type": "string",
               "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
@@ -799,7 +799,7 @@ func init() {
                 "error"
               ]
             },
-            "updated_at": {
+            "updatedAt": {
               "type": "string",
               "format": "date-time",
               "x-go-custom-tag": "gorm:\"type:datetime\""
@@ -814,29 +814,29 @@ func init() {
         "name"
       ],
       "properties": {
-        "api_vip": {
+        "apiVip": {
           "type": "string",
           "format": "hostname"
         },
-        "base_dns_domain": {
+        "baseDnsDomain": {
           "type": "string"
         },
-        "dns_vip": {
+        "dnsVip": {
           "type": "string",
           "format": "hostname"
         },
-        "ingress_vip": {
+        "ingressVip": {
           "type": "string",
           "format": "hostname"
         },
         "name": {
           "type": "string"
         },
-        "openshift_version": {
+        "openshiftVersion": {
           "type": "string",
           "pattern": "^4\\.\\d$"
         },
-        "ssh_public_key": {
+        "sshPublicKey": {
           "description": "SSH public key for debugging OpenShift nodes",
           "type": "string"
         }
@@ -851,18 +851,18 @@ func init() {
     "cluster-update-params": {
       "type": "object",
       "properties": {
-        "api_vip": {
+        "apiVip": {
           "type": "string",
           "format": "hostname"
         },
-        "base_dns_domain": {
+        "baseDnsDomain": {
           "type": "string"
         },
-        "dns_vip": {
+        "dnsVip": {
           "type": "string",
           "format": "hostname"
         },
-        "hosts_roles": {
+        "hostsRoles": {
           "type": "array",
           "items": {
             "type": "object",
@@ -882,18 +882,18 @@ func init() {
           },
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
         },
-        "ingress_vip": {
+        "ingressVip": {
           "type": "string",
           "format": "hostname"
         },
         "name": {
           "type": "string"
         },
-        "openshift_version": {
+        "openshiftVersion": {
           "type": "string",
           "pattern": "^4\\.\\d$"
         },
-        "ssh_public_key": {
+        "sshPublicKey": {
           "description": "SSH public key for debugging OpenShift nodes",
           "type": "string"
         }
@@ -1017,12 +1017,12 @@ func init() {
           "required": [
             "kind",
             "status",
-            "status_info",
+            "statusInfo",
             "connectivity",
-            "hardware_info"
+            "hardwareInfo"
           ],
           "properties": {
-            "cluster_id": {
+            "clusterId": {
               "type": "string",
               "format": "uuid",
               "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
@@ -1053,10 +1053,10 @@ func init() {
                 "installed"
               ]
             },
-            "status_info": {
+            "statusInfo": {
               "type": "string"
             },
-            "updated_at": {
+            "updatedAt": {
               "type": "string",
               "format": "date-time",
               "x-go-custom-tag": "gorm:\"type:datetime\""
@@ -1068,10 +1068,10 @@ func init() {
     "host-create-params": {
       "type": "object",
       "required": [
-        "host_id"
+        "hostId"
       ],
       "properties": {
-        "host_id": {
+        "hostId": {
           "type": "string",
           "format": "uuid"
         }
@@ -1328,7 +1328,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}": {
+    "/clusters/{clusterId}": {
       "get": {
         "tags": [
           "inventory"
@@ -1340,7 +1340,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to retrieve",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           }
@@ -1371,7 +1371,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to retrieve",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           }
@@ -1402,7 +1402,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to retrieve",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -1438,7 +1438,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/download": {
+    "/clusters/{clusterId}/actions/download": {
       "get": {
         "produces": [
           "application/octet-stream"
@@ -1453,7 +1453,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster whose ISO to download",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -1461,7 +1461,7 @@ func init() {
             "type": "string",
             "format": "hostname",
             "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
-            "name": "proxy_ip",
+            "name": "proxyIp",
             "in": "query"
           },
           {
@@ -1469,13 +1469,13 @@ func init() {
             "minimum": 0,
             "type": "integer",
             "description": "The port of the HTTP proxy",
-            "name": "proxy_port",
+            "name": "proxyPort",
             "in": "query"
           },
           {
             "type": "string",
             "description": "SSH public key for debugging the installation",
-            "name": "ssh_public_key",
+            "name": "sshPublicKey",
             "in": "query"
           }
         ],
@@ -1498,7 +1498,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/install": {
+    "/clusters/{clusterId}/actions/install": {
       "post": {
         "tags": [
           "inventory"
@@ -1510,7 +1510,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to begin installing",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           }
@@ -1537,7 +1537,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts": {
+    "/clusters/{clusterId}/hosts": {
       "get": {
         "tags": [
           "inventory"
@@ -1549,7 +1549,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to get hosts from",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           }
@@ -1577,7 +1577,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to register host to",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -1607,7 +1607,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}": {
+    "/clusters/{clusterId}/hosts/{hostId}": {
       "get": {
         "tags": [
           "inventory"
@@ -1619,7 +1619,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to get hosts from",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -1627,7 +1627,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the host to retrieve",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           }
@@ -1658,7 +1658,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to deregister host from",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -1666,7 +1666,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the host to retrieve",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           }
@@ -1687,7 +1687,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/debug": {
+    "/clusters/{clusterId}/hosts/{hostId}/actions/debug": {
       "post": {
         "tags": [
           "inventory"
@@ -1699,7 +1699,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster of the host",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -1707,7 +1707,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the host to debug",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           },
@@ -1734,7 +1734,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
+    "/clusters/{clusterId}/hosts/{hostId}/actions/enable": {
       "post": {
         "tags": [
           "inventory"
@@ -1746,7 +1746,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster of the host",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -1754,7 +1754,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the host to enable",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           }
@@ -1785,7 +1785,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster of the host",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -1793,7 +1793,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the host to disable",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           }
@@ -1814,7 +1814,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/next-steps": {
+    "/clusters/{clusterId}/hosts/{hostId}/next-steps": {
       "get": {
         "tags": [
           "inventory"
@@ -1826,7 +1826,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster of the host",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -1834,7 +1834,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "ID of host",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           }
@@ -1855,7 +1855,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/next-steps/reply": {
+    "/clusters/{clusterId}/hosts/{hostId}/next-steps/reply": {
       "post": {
         "tags": [
           "inventory"
@@ -1867,7 +1867,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster of the host",
-            "name": "cluster_id",
+            "name": "clusterId",
             "in": "path",
             "required": true
           },
@@ -1875,7 +1875,7 @@ func init() {
             "type": "string",
             "format": "uuid",
             "description": "ID of host",
-            "name": "host_id",
+            "name": "hostId",
             "in": "path",
             "required": true
           },
@@ -2003,14 +2003,14 @@ func init() {
             "status"
           ],
           "properties": {
-            "api_vip": {
+            "apiVip": {
               "type": "string",
               "format": "hostname"
             },
-            "base_dns_domain": {
+            "baseDnsDomain": {
               "type": "string"
             },
-            "dns_vip": {
+            "dnsVip": {
               "type": "string",
               "format": "hostname"
             },
@@ -2022,16 +2022,16 @@ func init() {
               },
               "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
             },
-            "ingress_vip": {
+            "ingressVip": {
               "type": "string",
               "format": "hostname"
             },
-            "install_completed_at": {
+            "installCompletedAt": {
               "type": "string",
               "format": "date-time",
               "x-go-custom-tag": "gorm:\"type:datetime;default:0\""
             },
-            "install_started_at": {
+            "installStartedAt": {
               "type": "string",
               "format": "date-time",
               "x-go-custom-tag": "gorm:\"type:datetime;default:0\""
@@ -2039,11 +2039,11 @@ func init() {
             "name": {
               "type": "string"
             },
-            "openshift_version": {
+            "openshiftVersion": {
               "type": "string",
               "pattern": "^4\\.\\d$"
             },
-            "ssh_public_key": {
+            "sshPublicKey": {
               "description": "SSH public key for debugging OpenShift nodes",
               "type": "string",
               "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
@@ -2056,7 +2056,7 @@ func init() {
                 "error"
               ]
             },
-            "updated_at": {
+            "updatedAt": {
               "type": "string",
               "format": "date-time",
               "x-go-custom-tag": "gorm:\"type:datetime\""
@@ -2071,29 +2071,29 @@ func init() {
         "name"
       ],
       "properties": {
-        "api_vip": {
+        "apiVip": {
           "type": "string",
           "format": "hostname"
         },
-        "base_dns_domain": {
+        "baseDnsDomain": {
           "type": "string"
         },
-        "dns_vip": {
+        "dnsVip": {
           "type": "string",
           "format": "hostname"
         },
-        "ingress_vip": {
+        "ingressVip": {
           "type": "string",
           "format": "hostname"
         },
         "name": {
           "type": "string"
         },
-        "openshift_version": {
+        "openshiftVersion": {
           "type": "string",
           "pattern": "^4\\.\\d$"
         },
-        "ssh_public_key": {
+        "sshPublicKey": {
           "description": "SSH public key for debugging OpenShift nodes",
           "type": "string"
         }
@@ -2108,36 +2108,36 @@ func init() {
     "cluster-update-params": {
       "type": "object",
       "properties": {
-        "api_vip": {
+        "apiVip": {
           "type": "string",
           "format": "hostname"
         },
-        "base_dns_domain": {
+        "baseDnsDomain": {
           "type": "string"
         },
-        "dns_vip": {
+        "dnsVip": {
           "type": "string",
           "format": "hostname"
         },
-        "hosts_roles": {
+        "hostsRoles": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/ClusterUpdateParamsHostsRolesItems0"
           },
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
         },
-        "ingress_vip": {
+        "ingressVip": {
           "type": "string",
           "format": "hostname"
         },
         "name": {
           "type": "string"
         },
-        "openshift_version": {
+        "openshiftVersion": {
           "type": "string",
           "pattern": "^4\\.\\d$"
         },
-        "ssh_public_key": {
+        "sshPublicKey": {
           "description": "SSH public key for debugging OpenShift nodes",
           "type": "string"
         }
@@ -2261,12 +2261,12 @@ func init() {
           "required": [
             "kind",
             "status",
-            "status_info",
+            "statusInfo",
             "connectivity",
-            "hardware_info"
+            "hardwareInfo"
           ],
           "properties": {
-            "cluster_id": {
+            "clusterId": {
               "type": "string",
               "format": "uuid",
               "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
@@ -2297,10 +2297,10 @@ func init() {
                 "installed"
               ]
             },
-            "status_info": {
+            "statusInfo": {
               "type": "string"
             },
-            "updated_at": {
+            "updatedAt": {
               "type": "string",
               "format": "date-time",
               "x-go-custom-tag": "gorm:\"type:datetime\""
@@ -2312,10 +2312,10 @@ func init() {
     "host-create-params": {
       "type": "object",
       "required": [
-        "host_id"
+        "hostId"
       ],
       "properties": {
-        "host_id": {
+        "hostId": {
           "type": "string",
           "format": "uuid"
         }

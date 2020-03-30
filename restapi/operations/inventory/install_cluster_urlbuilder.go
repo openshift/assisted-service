@@ -42,11 +42,11 @@ func (o *InstallClusterURL) SetBasePath(bp string) {
 func (o *InstallClusterURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{cluster_id}/actions/install"
+	var _path = "/clusters/{clusterId}/actions/install"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
-		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+		_path = strings.Replace(_path, "{clusterId}", clusterID, -1)
 	} else {
 		return nil, errors.New("clusterId is required on InstallClusterURL")
 	}

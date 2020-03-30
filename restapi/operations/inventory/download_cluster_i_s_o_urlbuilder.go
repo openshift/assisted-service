@@ -47,11 +47,11 @@ func (o *DownloadClusterISOURL) SetBasePath(bp string) {
 func (o *DownloadClusterISOURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{cluster_id}/actions/download"
+	var _path = "/clusters/{clusterId}/actions/download"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
-		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+		_path = strings.Replace(_path, "{clusterId}", clusterID, -1)
 	} else {
 		return nil, errors.New("clusterId is required on DownloadClusterISOURL")
 	}
@@ -69,7 +69,7 @@ func (o *DownloadClusterISOURL) Build() (*url.URL, error) {
 		proxyIPQ = o.ProxyIP.String()
 	}
 	if proxyIPQ != "" {
-		qs.Set("proxy_ip", proxyIPQ)
+		qs.Set("proxyIp", proxyIPQ)
 	}
 
 	var proxyPortQ string
@@ -77,7 +77,7 @@ func (o *DownloadClusterISOURL) Build() (*url.URL, error) {
 		proxyPortQ = swag.FormatInt64(*o.ProxyPort)
 	}
 	if proxyPortQ != "" {
-		qs.Set("proxy_port", proxyPortQ)
+		qs.Set("proxyPort", proxyPortQ)
 	}
 
 	var sSHPublicKeyQ string
@@ -85,7 +85,7 @@ func (o *DownloadClusterISOURL) Build() (*url.URL, error) {
 		sSHPublicKeyQ = *o.SSHPublicKey
 	}
 	if sSHPublicKeyQ != "" {
-		qs.Set("ssh_public_key", sSHPublicKeyQ)
+		qs.Set("sshPublicKey", sSHPublicKeyQ)
 	}
 
 	_result.RawQuery = qs.Encode()

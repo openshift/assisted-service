@@ -29,7 +29,7 @@ func NewGetHost(ctx *middleware.Context, handler GetHostHandler) *GetHost {
 	return &GetHost{Context: ctx, Handler: handler}
 }
 
-/*GetHost swagger:route GET /clusters/{cluster_id}/hosts/{host_id} inventory getHost
+/*GetHost swagger:route GET /clusters/{clusterId}/hosts/{hostId} inventory getHost
 
 Retrieve OpenShift bare metal host information
 
