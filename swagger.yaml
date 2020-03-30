@@ -691,6 +691,7 @@ definitions:
             format: hostname
           ssh_public_key:
             type: string
+            x-go-custom-tag: gorm:"type:varchar(1024)"
             description: SSH public key for debugging OpenShift nodes
           status:
             type: string
