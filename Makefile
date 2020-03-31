@@ -88,7 +88,7 @@ test:
 	INVENTORY=$(shell minikube service bm-inventory --url| sed 's/http:\/\///g') \
 		DB_HOST=$(shell minikube service mariadb --url| sed 's/http:\/\///g' | cut -d ":" -f 1) \
 		DB_PORT=$(shell minikube service mariadb --url| sed 's/http:\/\///g' | cut -d ":" -f 2) \
-		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS}
+		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v
 
 .PHONY: subsystem
 subsystem: deploy-all subsystem-run
