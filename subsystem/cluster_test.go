@@ -3,10 +3,9 @@ package subsystem
 import (
 	"context"
 
-	"github.com/go-openapi/strfmt"
-
 	"github.com/filanov/bm-inventory/client/inventory"
 	"github.com/filanov/bm-inventory/models"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -88,5 +87,57 @@ var _ = Describe("Cluster tests", func() {
 
 		h = getHost(clusterID, *host2.ID)
 		Expect(h.Role).Should(Equal("worker"))
+	})
+})
+
+var _ = Describe("system-test cluster install", func() {
+	ctx := context.Background()
+	AfterEach(func() {
+		clearDB()
+	})
+
+	It("install cluster", func() {
+		cluster, err := bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				APIVip:                   "v1",
+				BaseDNSDomain:            "example.com",
+				ClusterNetworkCIDR:       "10.128.0.0/14",
+				ClusterNetworkHostPrefix: 23,
+				DNSVip:                   "",
+				IngressVip:               "",
+				Name:                     swag.String("test-cluster"),
+				OpenshiftVersion:         "4.0",
+				PullSecret:               `{"auths":{"cloud.openshift.com":{"auth":""}}}`,
+				ServiceNetworkCIDR:       "172.30.0.0/16",
+				SSHPublicKey:             "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC50TuHS7aYci+U+5PLe/aW/I6maBi9PBDucLje6C6gtArfjy7udWA1DCSIQd+DkHhi57/s+PmvEjzfAfzqo+L+/8/O2l2seR1pPhHDxMR/rSyo/6rZP6KIL8HwFqXHHpDUM4tLXdgwKAe1LxBevLt/yNl8kOiHJESUSl+2QSf8z4SIbo/frDD8OwOvtfKBEG4WCb8zEsEuIPNF/Vo/UxPtS9pPTecEsWKDHR67yFjjamoyLvAzMAJotYgyMoxm8PTyCgEzHk3s3S4iO956d6KVOEJVXnTVhAxrtLuubjskd7N4hVN7h2s4Z584wYLKYhrIBL0EViihOMzY4mH3YE4KZusfIx6oMcggKX9b3NHm0la7cj2zg0r6zjUn6ZCP4gXM99e5q4auc0OEfoSfQwofGi3WmxkG3tEozCB8Zz0wGbi2CzR8zlcF+BNV5I2LESlLzjPY5B4dvv5zjxsYoz94p3rUhKnnPM2zTx1kkilDK5C5fC1k9l/I/r5Qk4ebLQU= oscohen@localhost.localdomain",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		clusterID := *cluster.GetPayload().ID
+
+		h1 := registerHost(clusterID)
+		h2 := registerHost(clusterID)
+		h3 := registerHost(clusterID)
+		h4 := registerHost(clusterID)
+
+		_, err = bmclient.Inventory.UpdateCluster(ctx, &inventory.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *h1.ID, Role: "master"},
+				{ID: *h2.ID, Role: "master"},
+				{ID: *h3.ID, Role: "master"},
+				{ID: *h4.ID, Role: "worker"},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		c, err := bmclient.Inventory.InstallCluster(ctx, &inventory.InstallClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("installing"))
+		Expect(len(c.GetPayload().Hosts)).Should(Equal(4))
+		for _, host := range c.GetPayload().Hosts {
+			Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+		}
 	})
 })

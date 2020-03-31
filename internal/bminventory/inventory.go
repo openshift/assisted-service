@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/filanov/bm-inventory/internal/installcfg"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/restapi/operations/inventory"
 	"github.com/go-openapi/runtime/middleware"
@@ -207,14 +208,19 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params invento
 			ID:   &id,
 			Kind: swag.String(ResourceKindCluster),
 		},
-		APIVip:           params.NewClusterParams.APIVip,
-		BaseDNSDomain:    params.NewClusterParams.BaseDNSDomain,
-		DNSVip:           params.NewClusterParams.DNSVip,
-		IngressVip:       params.NewClusterParams.IngressVip,
-		Name:             swag.StringValue(params.NewClusterParams.Name),
-		OpenshiftVersion: params.NewClusterParams.OpenshiftVersion,
-		SSHPublicKey:     params.NewClusterParams.SSHPublicKey,
-		Status:           swag.String(ClusterStatusReady),
+		APIVip:                   params.NewClusterParams.APIVip,
+		BaseDNSDomain:            params.NewClusterParams.BaseDNSDomain,
+		ClusterNetworkCIDR:       params.NewClusterParams.ClusterNetworkCIDR,
+		ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
+		DNSVip:                   params.NewClusterParams.DNSVip,
+		IngressVip:               params.NewClusterParams.IngressVip,
+		Name:                     swag.StringValue(params.NewClusterParams.Name),
+		OpenshiftVersion:         params.NewClusterParams.OpenshiftVersion,
+		PullSecret:               params.NewClusterParams.PullSecret,
+		ServiceNetworkCIDR:       params.NewClusterParams.ServiceNetworkCIDR,
+		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
+		Status:                   swag.String(ClusterStatusReady),
+		UpdatedAt:                strfmt.DateTime{},
 	}
 
 	if err := b.db.Preload("Hosts").Create(&cluster).Error; err != nil {
@@ -293,9 +299,58 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventory.InstallClusterParams) middleware.Responder {
 	var cluster models.Cluster
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	tx := b.db.Begin()
+	if tx.Error != nil {
+		logrus.WithError(tx.Error).Errorf("failed to start db transaction")
+		return inventory.NewInstallClusterInternalServerError()
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Error("update cluster failed")
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return inventory.NewInstallClusterNotFound()
 	}
+
+	// create install-config.yaml
+	cfg, err := installcfg.GetInstallConfig(&cluster)
+	if err != nil {
+		logrus.WithError(err).Errorf("failed to get install config for cluster %s", params.ClusterID)
+		return inventory.NewInstallClusterInternalServerError()
+	}
+	fmt.Println("Install config: \n", string(cfg))
+
+	// generate ignition files from install-config.yaml
+
+	// move hosts states to installing
+	if reply := tx.Model(&models.Host{}).
+		Where("cluster_id = ?", params.ClusterID).
+		Update("status", HostStatusInstalling); reply.Error != nil || reply.RowsAffected == 0 {
+		logrus.WithError(reply.Error).Error("failed to update hosts in cluster: %s state to %s",
+			cluster.ID.String(), HostStatusInstalling)
+		tx.Rollback()
+		return inventory.NewInstallClusterInternalServerError()
+	}
+
+	if err := tx.Model(&models.Cluster{}).Where("id = ?", cluster.ID.String()).
+		Update("status", "installing").Error; err != nil {
+		logrus.WithError(err).Errorf("failed to update cluster %s to status installing", cluster.ID.String())
+		tx.Rollback()
+		return inventory.NewInstallClusterInternalServerError()
+	}
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		logrus.WithError(err).Errorf("failed to commit cluster %s changes on installation", cluster.ID.String())
+		return inventory.NewInstallClusterInternalServerError()
+	}
+
+	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		return inventory.NewInstallClusterInternalServerError()
+	}
+
 	return inventory.NewInstallClusterOK().WithPayload(&cluster)
 }
 
@@ -324,9 +379,13 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory
 	cluster.Name = params.ClusterUpdateParams.Name
 	cluster.APIVip = params.ClusterUpdateParams.APIVip
 	cluster.BaseDNSDomain = params.ClusterUpdateParams.BaseDNSDomain
+	cluster.ClusterNetworkCIDR = params.ClusterUpdateParams.ClusterNetworkCIDR
+	cluster.ClusterNetworkHostPrefix = params.ClusterUpdateParams.ClusterNetworkHostPrefix
 	cluster.DNSVip = params.ClusterUpdateParams.DNSVip
 	cluster.IngressVip = params.ClusterUpdateParams.IngressVip
 	cluster.OpenshiftVersion = params.ClusterUpdateParams.OpenshiftVersion
+	cluster.PullSecret = params.ClusterUpdateParams.PullSecret
+	cluster.ServiceNetworkCIDR = params.ClusterUpdateParams.ServiceNetworkCIDR
 	cluster.SSHPublicKey = params.ClusterUpdateParams.SSHPublicKey
 
 	if err := tx.Model(&cluster).Update(cluster).Error; err != nil {
