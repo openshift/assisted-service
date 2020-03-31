@@ -389,7 +389,7 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params inventory.Ge
 func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.RegisterHostParams) middleware.Responder {
 	host := &models.Host{
 		Base: models.Base{
-			Href: buildHrefURI(ResourceKindHost, params.NewHostParams.HostID.String()),
+			Href: strToURI(fmt.Sprintf("%s/clusters/%s/hosts/%s", baseHref, params.ClusterID, *params.NewHostParams.HostID)),
 			ID:   params.NewHostParams.HostID,
 			Kind: swag.String(ResourceKindHost),
 		},
