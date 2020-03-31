@@ -196,8 +196,6 @@ paths:
             type: file
         404:
           description: Cluster not found
-        409:
-          description: Invalid state
         500:
           description: Internal server error
 
@@ -639,20 +637,42 @@ definitions:
     properties:
       name:
         type: string
+        description: OpenShift cluster name
       openshiftVersion:
         type: string
         pattern: '^4\.\d$'
+        description: OpenShift cluster version
       baseDnsDomain:
         type: string
+        description: The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
+      clusterNetworkCIDR:
+        type: string
+        description: IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
+        pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
+      clusterNetworkHostPrefix:
+        type: integer
+        description: The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.
+        minimum: 1
+        maximum: 32
+      serviceNetworkCIDR:
+        type: string
+        description: The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
+        pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
       apiVip:
         type: string
         format: hostname
+        description: Virtual IP used to reach the OpenShift cluster API
       dnsVip:
         type: string
         format: hostname
+        description: Virtual IP used internally by the cluster for automating internal DNS requirements
       ingressVip:
         type: string
         format: hostname
+        description: Virtual IP used for cluster ingress traffic
+      pullSecret:
+        type: string
+        description: The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
       sshPublicKey:
         type: string
         description: SSH public key for debugging OpenShift nodes
@@ -662,20 +682,42 @@ definitions:
     properties:
       name:
         type: string
+        description: OpenShift cluster name
       openshiftVersion:
         type: string
         pattern: '^4\.\d$'
+        description: OpenShift cluster version
       baseDnsDomain:
         type: string
+        description: The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
+      clusterNetworkCIDR:
+        type: string
+        description: IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
+        pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
+      clusterNetworkHostPrefix:
+        type: integer
+        description: The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.
+        minimum: 1
+        maximum: 32
+      serviceNetworkCIDR:
+        type: string
+        description: The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
+        pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
       apiVip:
         type: string
         format: hostname
+        description: Virtual IP used to reach the OpenShift cluster API
       dnsVip:
         type: string
         format: hostname
+        description: Virtual IP used internally by the cluster for automating internal DNS requirements
       ingressVip:
         type: string
         format: hostname
+        description: Virtual IP used for cluster ingress traffic
+      pullSecret:
+        type: string
+        description: The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
       sshPublicKey:
         type: string
         description: SSH public key for debugging OpenShift nodes
@@ -702,20 +744,42 @@ definitions:
         properties:
           name:
             type: string
+            description: OpenShift cluster name
           openshiftVersion:
             type: string
             pattern: '^4\.\d$'
+            description: OpenShift cluster version
           baseDnsDomain:
             type: string
+            description: The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
+          clusterNetworkCIDR:
+            type: string
+            description: IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
+            pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
+          clusterNetworkHostPrefix:
+            type: integer
+            description: The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.
+            minimum: 1
+            maximum: 32
+          serviceNetworkCIDR:
+            type: string
+            description: The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
+            pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
           apiVip:
             type: string
             format: hostname
+            description: Virtual IP used to reach the OpenShift cluster API
           dnsVip:
             type: string
             format: hostname
+            description: Virtual IP used internally by the cluster for automating internal DNS requirements
           ingressVip:
             type: string
             format: hostname
+            description: Virtual IP used for cluster ingress traffic
+          pullSecret:
+            type: string
+            description: The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
           sshPublicKey:
             type: string
             x-go-custom-tag: gorm:"type:varchar(1024)"
