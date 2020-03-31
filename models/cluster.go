@@ -28,6 +28,10 @@ type Cluster struct {
 	// base Dns domain
 	BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
 
+	// created at
+	// Format: date-time
+	CreatedAt strfmt.DateTime `json:"createdAt,omitempty" gorm:"type:datetime"`
+
 	// dns vip
 	// Format: hostname
 	DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
@@ -82,6 +86,8 @@ func (m *Cluster) UnmarshalJSON(raw []byte) error {
 
 		BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
 
+		CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
+
 		DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
 
 		Hosts []*Host `json:"hosts"`
@@ -109,6 +115,8 @@ func (m *Cluster) UnmarshalJSON(raw []byte) error {
 	m.APIVip = dataAO1.APIVip
 
 	m.BaseDNSDomain = dataAO1.BaseDNSDomain
+
+	m.CreatedAt = dataAO1.CreatedAt
 
 	m.DNSVip = dataAO1.DNSVip
 
@@ -147,6 +155,8 @@ func (m Cluster) MarshalJSON() ([]byte, error) {
 
 		BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
 
+		CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
+
 		DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
 
 		Hosts []*Host `json:"hosts"`
@@ -171,6 +181,8 @@ func (m Cluster) MarshalJSON() ([]byte, error) {
 	dataAO1.APIVip = m.APIVip
 
 	dataAO1.BaseDNSDomain = m.BaseDNSDomain
+
+	dataAO1.CreatedAt = m.CreatedAt
 
 	dataAO1.DNSVip = m.DNSVip
 
@@ -210,6 +222,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateAPIVip(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateCreatedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -258,6 +274,19 @@ func (m *Cluster) validateAPIVip(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("apiVip", "body", "hostname", m.APIVip.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateCreatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.CreatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("createdAt", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
 		return err
 	}
 

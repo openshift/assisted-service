@@ -753,6 +753,11 @@ func init() {
             "baseDnsDomain": {
               "type": "string"
             },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime\""
+            },
             "dnsVip": {
               "type": "string",
               "format": "hostname"
@@ -2009,6 +2014,11 @@ func init() {
             },
             "baseDnsDomain": {
               "type": "string"
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime\""
             },
             "dnsVip": {
               "type": "string",
