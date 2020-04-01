@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/google/uuid"
+
 	"github.com/filanov/bm-inventory/client/inventory"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -46,5 +48,24 @@ var _ = Describe("system-test image tests", func() {
 		s, err := file.Stat()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(s.Size()).ShouldNot(Equal(0))
+	})
+})
+
+var _ = Describe("image tests", func() {
+	ctx := context.Background()
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	It("non existing cluster", func() {
+		file, err := ioutil.TempFile("", "tmp")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.Remove(file.Name())
+
+		_, err = bmclient.Inventory.DownloadClusterISO(ctx, &inventory.DownloadClusterISOParams{ClusterID: *strToUUID(uuid.New().String())}, file)
+		Expect(err).Should(HaveOccurred())
 	})
 })
