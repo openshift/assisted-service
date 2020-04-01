@@ -192,9 +192,10 @@ func (b *bareMetalInventory) getUserSshKey(cluster *models.Cluster) string {
 	}
 	return fmt.Sprintf(`,{
 		"name": "systemUser",
-		"passwordHash": "$PasswordHash.",
+		"passwordHash": "$6$MWO4bibU8TIWG0XV$Hiuj40lWW7pHiwJmXA8MehuBhdxSswLgvGxEh8ByEzeX2D1dk87JILVUYS4JQOP45bxHRegAB9Fs/SWfszXa5.",
 		"sshAuthorizedKeys": [
-		"%s"]}`, cluster.SSHPublicKey)
+		"%s"],
+		"groups": [ "sudo" ]}`, cluster.SSHPublicKey)
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {
