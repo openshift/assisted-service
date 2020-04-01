@@ -24,12 +24,6 @@ import (
 const baseHref = "/api/bm-inventory/v1"
 
 const (
-	ImageStatusCreating = "creating"
-	ImageStatusReady    = "ready"
-	ImageStatusError    = "error"
-)
-
-const (
 	ClusterStatusCreating = "creating"
 	ClusterStatusReady    = "ready"
 	ClusterStatusError    = "error"
