@@ -533,12 +533,14 @@ definitions:
               - discovering
               - known
               - disconnected
-              - insufficient
               - disabled
               - installing
               - installed
           statusInfo:
             type: string
+          minimumRequirements:
+            type: boolean
+            description: Whether the node meets the minimum requirements for its specified role. If false, see statusInfo for reason.
           connectivity:
             $ref: '#/definitions/connectivity-report'
           hardware_info:
