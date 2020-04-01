@@ -68,7 +68,7 @@ type Cluster struct {
 	OpenshiftVersion string `json:"openshiftVersion,omitempty"`
 
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
-	PullSecret string `json:"pullSecret,omitempty"`
+	PullSecret string `json:"pullSecret,omitempty" gorm:"type:varchar(4096)"`
 
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
