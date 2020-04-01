@@ -779,6 +779,7 @@ definitions:
             description: Virtual IP used for cluster ingress traffic
           pullSecret:
             type: string
+            x-go-custom-tag: gorm:"type:varchar(4096)"
             description: The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
           sshPublicKey:
             type: string
