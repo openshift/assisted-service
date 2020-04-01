@@ -552,3 +552,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.En
 	}
 	return inventory.NewEnableHostNoContent()
 }
+
+func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params inventory.DownloadClusterKubeconfigParams) middleware.Responder {
+	return inventory.NewDownloadClusterKubeconfigNotFound()
+}
