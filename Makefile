@@ -84,11 +84,14 @@ deploy-mariadb:
 
 subsystem-run: test subsystem-clean
 
+ifndef SYSTEM
+SYSTEM_TEST=-ginkgo.skip="system-test"
+endif
 test:
 	INVENTORY=$(shell minikube service bm-inventory --url| sed 's/http:\/\///g') \
 		DB_HOST=$(shell minikube service mariadb --url| sed 's/http:\/\///g' | cut -d ":" -f 1) \
 		DB_PORT=$(shell minikube service mariadb --url| sed 's/http:\/\///g' | cut -d ":" -f 2) \
-		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v
+		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v $(SYSTEM_TEST)
 
 .PHONY: subsystem
 subsystem: deploy-all subsystem-run

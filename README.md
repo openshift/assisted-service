@@ -29,14 +29,25 @@ After every change in the api (swagger.yaml) the code should be generated and th
 
 ## Tests
 Pre-configuration
-1. Make sure to change the image in `deploy/bm-inventory.yaml` to your docker registry (the same one from the first setup instructions).
-2. Run minikube on your system.
-3. Deploy service, DB and other requirements `skipper make deploy-for-test`
-4. Wait for all the pods to be up.
+1. Run minikube on your system.
+2. Deploy service, DB and other requirements `skipper make deploy-for-test`
+3. Wait for all the pods to be up.
 
 Running the tests:
 
 `skipper make subsystem-run`
+
+If a full system is deployed a more advanced tests can be run on it, to run all the tests (will work only if `skipper make deploy-all` is used) add `SYSTEM=1` to `subsystem-run` command. The downside is that this will download and execute external dependencies so if they are bugged it will be dificult to understand if the problem is with the service or with external components. To run the full tests suite use:
+
+`skipper make subsystem-run SYSTEM=1`
+
+To add tests that will run will run only as part of the full system add `system-test` in the description of the test:
+
+```go
+var _ = Describe("system-test image tests", func() {
+...
+}
+```
 
 ### Update service for the subsystem tests
 
