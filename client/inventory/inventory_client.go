@@ -31,6 +31,9 @@ type API interface {
 	   DownloadClusterISO downloads open shift per cluster discovery i s o*/
 	DownloadClusterISO(ctx context.Context, params *DownloadClusterISOParams, writer io.Writer) (*DownloadClusterISOOK, error)
 	/*
+	   DownloadClusterKubeconfig downloads the kubeconfig file for the specified cluster*/
+	DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error)
+	/*
 	   EnableHost enables a host for use*/
 	EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostNoContent, error)
 	/*
@@ -166,7 +169,7 @@ func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadCluster
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DownloadClusterISO",
 		Method:             "GET",
-		PathPattern:        "/clusters/{clusterId}/actions/download",
+		PathPattern:        "/clusters/{clusterId}/downloads/image",
 		ProducesMediaTypes: []string{"application/octet-stream"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -179,6 +182,30 @@ func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadCluster
 		return nil, err
 	}
 	return result.(*DownloadClusterISOOK), nil
+
+}
+
+/*
+DownloadClusterKubeconfig downloads the kubeconfig file for the specified cluster
+*/
+func (a *Client) DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadClusterKubeconfig",
+		Method:             "GET",
+		PathPattern:        "/clusters/{clusterId}/downloads/kubeconfig",
+		ProducesMediaTypes: []string{"text/x-yaml"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DownloadClusterKubeconfigReader{formats: a.formats, writer: writer},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadClusterKubeconfigOK), nil
 
 }
 

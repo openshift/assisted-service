@@ -198,7 +198,46 @@ func init() {
         }
       }
     },
-    "/clusters/{clusterId}/actions/download": {
+    "/clusters/{clusterId}/actions/install": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Install a new OpenShift bare metal cluster",
+        "operationId": "InstallCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to begin installing",
+            "name": "clusterId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Installing cluster",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Cluster not found"
+          },
+          "409": {
+            "description": "Invalid state"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/clusters/{clusterId}/downloads/image": {
       "get": {
         "produces": [
           "application/octet-stream"
@@ -257,18 +296,21 @@ func init() {
         }
       }
     },
-    "/clusters/{clusterId}/actions/install": {
-      "post": {
+    "/clusters/{clusterId}/downloads/kubeconfig": {
+      "get": {
+        "produces": [
+          "text/x-yaml"
+        ],
         "tags": [
           "inventory"
         ],
-        "summary": "Install a new OpenShift bare metal cluster",
-        "operationId": "InstallCluster",
+        "summary": "Download the kubeconfig file for the specified cluster",
+        "operationId": "DownloadClusterKubeconfig",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
-            "description": "The ID of the cluster to begin installing",
+            "description": "The ID of the cluster whose kubeconfig to download",
             "name": "clusterId",
             "in": "path",
             "required": true
@@ -276,19 +318,13 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "Installing cluster",
+            "description": "The kubeconfig file",
             "schema": {
-              "$ref": "#/definitions/cluster"
+              "type": "file"
             }
-          },
-          "400": {
-            "description": "Invalid input"
           },
           "404": {
             "description": "Cluster not found"
-          },
-          "409": {
-            "description": "Invalid state"
           },
           "500": {
             "description": "Internal server error"
@@ -747,11 +783,24 @@ func init() {
           ],
           "properties": {
             "apiVip": {
+              "description": "Virtual IP used to reach the OpenShift cluster API",
               "type": "string",
               "format": "hostname"
             },
             "baseDnsDomain": {
+              "description": "The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
               "type": "string"
+            },
+            "clusterNetworkCIDR": {
+              "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+              "type": "string",
+              "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
+            },
+            "clusterNetworkHostPrefix": {
+              "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
+              "type": "integer",
+              "maximum": 32,
+              "minimum": 1
             },
             "createdAt": {
               "type": "string",
@@ -759,6 +808,7 @@ func init() {
               "x-go-custom-tag": "gorm:\"type:datetime\""
             },
             "dnsVip": {
+              "description": "Virtual IP used internally by the cluster for automating internal DNS requirements",
               "type": "string",
               "format": "hostname"
             },
@@ -771,6 +821,7 @@ func init() {
               "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
             },
             "ingressVip": {
+              "description": "Virtual IP used for cluster ingress traffic",
               "type": "string",
               "format": "hostname"
             },
@@ -785,11 +836,22 @@ func init() {
               "x-go-custom-tag": "gorm:\"type:datetime;default:0\""
             },
             "name": {
+              "description": "OpenShift cluster name",
               "type": "string"
             },
             "openshiftVersion": {
+              "description": "OpenShift cluster version",
               "type": "string",
               "pattern": "^4\\.\\d$"
+            },
+            "pullSecret": {
+              "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",
+              "type": "string"
+            },
+            "serviceNetworkCIDR": {
+              "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
+              "type": "string",
+              "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
             },
             "sshPublicKey": {
               "description": "SSH public key for debugging OpenShift nodes",
@@ -820,26 +882,52 @@ func init() {
       ],
       "properties": {
         "apiVip": {
+          "description": "Virtual IP used to reach the OpenShift cluster API",
           "type": "string",
           "format": "hostname"
         },
         "baseDnsDomain": {
+          "description": "The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
         },
+        "clusterNetworkCIDR": {
+          "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
+        },
+        "clusterNetworkHostPrefix": {
+          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "integer",
+          "maximum": 32,
+          "minimum": 1
+        },
         "dnsVip": {
+          "description": "Virtual IP used internally by the cluster for automating internal DNS requirements",
           "type": "string",
           "format": "hostname"
         },
         "ingressVip": {
+          "description": "Virtual IP used for cluster ingress traffic",
           "type": "string",
           "format": "hostname"
         },
         "name": {
+          "description": "OpenShift cluster name",
           "type": "string"
         },
         "openshiftVersion": {
+          "description": "OpenShift cluster version",
           "type": "string",
           "pattern": "^4\\.\\d$"
+        },
+        "pullSecret": {
+          "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",
+          "type": "string"
+        },
+        "serviceNetworkCIDR": {
+          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
         },
         "sshPublicKey": {
           "description": "SSH public key for debugging OpenShift nodes",
@@ -857,13 +945,27 @@ func init() {
       "type": "object",
       "properties": {
         "apiVip": {
+          "description": "Virtual IP used to reach the OpenShift cluster API",
           "type": "string",
           "format": "hostname"
         },
         "baseDnsDomain": {
+          "description": "The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
         },
+        "clusterNetworkCIDR": {
+          "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
+        },
+        "clusterNetworkHostPrefix": {
+          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "integer",
+          "maximum": 32,
+          "minimum": 1
+        },
         "dnsVip": {
+          "description": "Virtual IP used internally by the cluster for automating internal DNS requirements",
           "type": "string",
           "format": "hostname"
         },
@@ -888,15 +990,27 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
         },
         "ingressVip": {
+          "description": "Virtual IP used for cluster ingress traffic",
           "type": "string",
           "format": "hostname"
         },
         "name": {
+          "description": "OpenShift cluster name",
           "type": "string"
         },
         "openshiftVersion": {
+          "description": "OpenShift cluster version",
           "type": "string",
           "pattern": "^4\\.\\d$"
+        },
+        "pullSecret": {
+          "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",
+          "type": "string"
+        },
+        "serviceNetworkCIDR": {
+          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
         },
         "sshPublicKey": {
           "description": "SSH public key for debugging OpenShift nodes",
@@ -1443,7 +1557,46 @@ func init() {
         }
       }
     },
-    "/clusters/{clusterId}/actions/download": {
+    "/clusters/{clusterId}/actions/install": {
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Install a new OpenShift bare metal cluster",
+        "operationId": "InstallCluster",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to begin installing",
+            "name": "clusterId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Installing cluster",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Cluster not found"
+          },
+          "409": {
+            "description": "Invalid state"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/clusters/{clusterId}/downloads/image": {
       "get": {
         "produces": [
           "application/octet-stream"
@@ -1503,18 +1656,21 @@ func init() {
         }
       }
     },
-    "/clusters/{clusterId}/actions/install": {
-      "post": {
+    "/clusters/{clusterId}/downloads/kubeconfig": {
+      "get": {
+        "produces": [
+          "text/x-yaml"
+        ],
         "tags": [
           "inventory"
         ],
-        "summary": "Install a new OpenShift bare metal cluster",
-        "operationId": "InstallCluster",
+        "summary": "Download the kubeconfig file for the specified cluster",
+        "operationId": "DownloadClusterKubeconfig",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
-            "description": "The ID of the cluster to begin installing",
+            "description": "The ID of the cluster whose kubeconfig to download",
             "name": "clusterId",
             "in": "path",
             "required": true
@@ -1522,19 +1678,13 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "Installing cluster",
+            "description": "The kubeconfig file",
             "schema": {
-              "$ref": "#/definitions/cluster"
+              "type": "file"
             }
-          },
-          "400": {
-            "description": "Invalid input"
           },
           "404": {
             "description": "Cluster not found"
-          },
-          "409": {
-            "description": "Invalid state"
           },
           "500": {
             "description": "Internal server error"
@@ -2009,11 +2159,24 @@ func init() {
           ],
           "properties": {
             "apiVip": {
+              "description": "Virtual IP used to reach the OpenShift cluster API",
               "type": "string",
               "format": "hostname"
             },
             "baseDnsDomain": {
+              "description": "The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
               "type": "string"
+            },
+            "clusterNetworkCIDR": {
+              "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+              "type": "string",
+              "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
+            },
+            "clusterNetworkHostPrefix": {
+              "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
+              "type": "integer",
+              "maximum": 32,
+              "minimum": 1
             },
             "createdAt": {
               "type": "string",
@@ -2021,6 +2184,7 @@ func init() {
               "x-go-custom-tag": "gorm:\"type:datetime\""
             },
             "dnsVip": {
+              "description": "Virtual IP used internally by the cluster for automating internal DNS requirements",
               "type": "string",
               "format": "hostname"
             },
@@ -2033,6 +2197,7 @@ func init() {
               "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
             },
             "ingressVip": {
+              "description": "Virtual IP used for cluster ingress traffic",
               "type": "string",
               "format": "hostname"
             },
@@ -2047,11 +2212,22 @@ func init() {
               "x-go-custom-tag": "gorm:\"type:datetime;default:0\""
             },
             "name": {
+              "description": "OpenShift cluster name",
               "type": "string"
             },
             "openshiftVersion": {
+              "description": "OpenShift cluster version",
               "type": "string",
               "pattern": "^4\\.\\d$"
+            },
+            "pullSecret": {
+              "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",
+              "type": "string"
+            },
+            "serviceNetworkCIDR": {
+              "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
+              "type": "string",
+              "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
             },
             "sshPublicKey": {
               "description": "SSH public key for debugging OpenShift nodes",
@@ -2082,26 +2258,52 @@ func init() {
       ],
       "properties": {
         "apiVip": {
+          "description": "Virtual IP used to reach the OpenShift cluster API",
           "type": "string",
           "format": "hostname"
         },
         "baseDnsDomain": {
+          "description": "The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
         },
+        "clusterNetworkCIDR": {
+          "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
+        },
+        "clusterNetworkHostPrefix": {
+          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "integer",
+          "maximum": 32,
+          "minimum": 1
+        },
         "dnsVip": {
+          "description": "Virtual IP used internally by the cluster for automating internal DNS requirements",
           "type": "string",
           "format": "hostname"
         },
         "ingressVip": {
+          "description": "Virtual IP used for cluster ingress traffic",
           "type": "string",
           "format": "hostname"
         },
         "name": {
+          "description": "OpenShift cluster name",
           "type": "string"
         },
         "openshiftVersion": {
+          "description": "OpenShift cluster version",
           "type": "string",
           "pattern": "^4\\.\\d$"
+        },
+        "pullSecret": {
+          "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",
+          "type": "string"
+        },
+        "serviceNetworkCIDR": {
+          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
         },
         "sshPublicKey": {
           "description": "SSH public key for debugging OpenShift nodes",
@@ -2119,13 +2321,27 @@ func init() {
       "type": "object",
       "properties": {
         "apiVip": {
+          "description": "Virtual IP used to reach the OpenShift cluster API",
           "type": "string",
           "format": "hostname"
         },
         "baseDnsDomain": {
+          "description": "The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
         },
+        "clusterNetworkCIDR": {
+          "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
+        },
+        "clusterNetworkHostPrefix": {
+          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "integer",
+          "maximum": 32,
+          "minimum": 1
+        },
         "dnsVip": {
+          "description": "Virtual IP used internally by the cluster for automating internal DNS requirements",
           "type": "string",
           "format": "hostname"
         },
@@ -2137,15 +2353,27 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\""
         },
         "ingressVip": {
+          "description": "Virtual IP used for cluster ingress traffic",
           "type": "string",
           "format": "hostname"
         },
         "name": {
+          "description": "OpenShift cluster name",
           "type": "string"
         },
         "openshiftVersion": {
+          "description": "OpenShift cluster version",
           "type": "string",
           "pattern": "^4\\.\\d$"
+        },
+        "pullSecret": {
+          "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",
+          "type": "string"
+        },
+        "serviceNetworkCIDR": {
+          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
         },
         "sshPublicKey": {
           "description": "SSH public key for debugging OpenShift nodes",

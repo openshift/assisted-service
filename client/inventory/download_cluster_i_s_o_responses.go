@@ -68,7 +68,7 @@ type DownloadClusterISOOK struct {
 }
 
 func (o *DownloadClusterISOOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{clusterId}/actions/download][%d] downloadClusterISOOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /clusters/{clusterId}/downloads/image][%d] downloadClusterISOOK  %+v", 200, o.Payload)
 }
 
 func (o *DownloadClusterISOOK) GetPayload() io.Writer {
@@ -98,7 +98,7 @@ type DownloadClusterISOBadRequest struct {
 }
 
 func (o *DownloadClusterISOBadRequest) Error() string {
-	return fmt.Sprintf("[GET /clusters/{clusterId}/actions/download][%d] downloadClusterISOBadRequest ", 400)
+	return fmt.Sprintf("[GET /clusters/{clusterId}/downloads/image][%d] downloadClusterISOBadRequest ", 400)
 }
 
 func (o *DownloadClusterISOBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -119,7 +119,7 @@ type DownloadClusterISONotFound struct {
 }
 
 func (o *DownloadClusterISONotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{clusterId}/actions/download][%d] downloadClusterISONotFound ", 404)
+	return fmt.Sprintf("[GET /clusters/{clusterId}/downloads/image][%d] downloadClusterISONotFound ", 404)
 }
 
 func (o *DownloadClusterISONotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -140,7 +140,7 @@ type DownloadClusterISOInternalServerError struct {
 }
 
 func (o *DownloadClusterISOInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{clusterId}/actions/download][%d] downloadClusterISOInternalServerError ", 500)
+	return fmt.Sprintf("[GET /clusters/{clusterId}/downloads/image][%d] downloadClusterISOInternalServerError ", 500)
 }
 
 func (o *DownloadClusterISOInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

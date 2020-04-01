@@ -12,16 +12,11 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 )
 
-// DownloadClusterISOURL generates an URL for the download cluster i s o operation
-type DownloadClusterISOURL struct {
+// DownloadClusterKubeconfigURL generates an URL for the download cluster kubeconfig operation
+type DownloadClusterKubeconfigURL struct {
 	ClusterID strfmt.UUID
-
-	ProxyIP      *strfmt.Hostname
-	ProxyPort    *int64
-	SSHPublicKey *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -31,7 +26,7 @@ type DownloadClusterISOURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *DownloadClusterISOURL) WithBasePath(bp string) *DownloadClusterISOURL {
+func (o *DownloadClusterKubeconfigURL) WithBasePath(bp string) *DownloadClusterKubeconfigURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -39,21 +34,21 @@ func (o *DownloadClusterISOURL) WithBasePath(bp string) *DownloadClusterISOURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *DownloadClusterISOURL) SetBasePath(bp string) {
+func (o *DownloadClusterKubeconfigURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *DownloadClusterISOURL) Build() (*url.URL, error) {
+func (o *DownloadClusterKubeconfigURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{clusterId}/downloads/image"
+	var _path = "/clusters/{clusterId}/downloads/kubeconfig"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
 		_path = strings.Replace(_path, "{clusterId}", clusterID, -1)
 	} else {
-		return nil, errors.New("clusterId is required on DownloadClusterISOURL")
+		return nil, errors.New("clusterId is required on DownloadClusterKubeconfigURL")
 	}
 
 	_basePath := o._basePath
@@ -62,39 +57,11 @@ func (o *DownloadClusterISOURL) Build() (*url.URL, error) {
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 
-	qs := make(url.Values)
-
-	var proxyIPQ string
-	if o.ProxyIP != nil {
-		proxyIPQ = o.ProxyIP.String()
-	}
-	if proxyIPQ != "" {
-		qs.Set("proxyIp", proxyIPQ)
-	}
-
-	var proxyPortQ string
-	if o.ProxyPort != nil {
-		proxyPortQ = swag.FormatInt64(*o.ProxyPort)
-	}
-	if proxyPortQ != "" {
-		qs.Set("proxyPort", proxyPortQ)
-	}
-
-	var sSHPublicKeyQ string
-	if o.SSHPublicKey != nil {
-		sSHPublicKeyQ = *o.SSHPublicKey
-	}
-	if sSHPublicKeyQ != "" {
-		qs.Set("sshPublicKey", sSHPublicKeyQ)
-	}
-
-	_result.RawQuery = qs.Encode()
-
 	return &_result, nil
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *DownloadClusterISOURL) Must(u *url.URL, err error) *url.URL {
+func (o *DownloadClusterKubeconfigURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -105,17 +72,17 @@ func (o *DownloadClusterISOURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *DownloadClusterISOURL) String() string {
+func (o *DownloadClusterKubeconfigURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *DownloadClusterISOURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *DownloadClusterKubeconfigURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on DownloadClusterISOURL")
+		return nil, errors.New("scheme is required for a full url on DownloadClusterKubeconfigURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on DownloadClusterISOURL")
+		return nil, errors.New("host is required for a full url on DownloadClusterKubeconfigURL")
 	}
 
 	base, err := o.Build()
@@ -129,6 +96,6 @@ func (o *DownloadClusterISOURL) BuildFull(scheme, host string) (*url.URL, error)
 }
 
 // StringFull returns the string representation of a complete url
-func (o *DownloadClusterISOURL) StringFull(scheme, host string) string {
+func (o *DownloadClusterKubeconfigURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

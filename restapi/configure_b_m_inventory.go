@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -29,6 +30,7 @@ type InventoryAPI interface {
 	DeregisterHost(ctx context.Context, params inventory.DeregisterHostParams) middleware.Responder
 	DisableHost(ctx context.Context, params inventory.DisableHostParams) middleware.Responder
 	DownloadClusterISO(ctx context.Context, params inventory.DownloadClusterISOParams) middleware.Responder
+	DownloadClusterKubeconfig(ctx context.Context, params inventory.DownloadClusterKubeconfigParams) middleware.Responder
 	EnableHost(ctx context.Context, params inventory.EnableHostParams) middleware.Responder
 	GetCluster(ctx context.Context, params inventory.GetClusterParams) middleware.Responder
 	GetHost(ctx context.Context, params inventory.GetHostParams) middleware.Responder
@@ -78,6 +80,9 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.JSONConsumer = runtime.JSONConsumer()
 	api.BinProducer = runtime.ByteStreamProducer()
 	api.JSONProducer = runtime.JSONProducer()
+	api.TextXYamlProducer = runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
+		return errors.NotImplemented("textXYaml producer has not yet been implemented")
+	})
 	api.InventoryDeregisterClusterHandler = inventory.DeregisterClusterHandlerFunc(func(params inventory.DeregisterClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.DeregisterCluster(ctx, params)
@@ -93,6 +98,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.InventoryDownloadClusterISOHandler = inventory.DownloadClusterISOHandlerFunc(func(params inventory.DownloadClusterISOParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.DownloadClusterISO(ctx, params)
+	})
+	api.InventoryDownloadClusterKubeconfigHandler = inventory.DownloadClusterKubeconfigHandlerFunc(func(params inventory.DownloadClusterKubeconfigParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.DownloadClusterKubeconfig(ctx, params)
 	})
 	api.InventoryEnableHostHandler = inventory.EnableHostHandlerFunc(func(params inventory.EnableHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -7,6 +7,7 @@ package operations
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -43,6 +44,9 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 
 		BinProducer:  runtime.ByteStreamProducer(),
 		JSONProducer: runtime.JSONProducer(),
+		TextXYamlProducer: runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
+			return errors.NotImplemented("textXYaml producer has not yet been implemented")
+		}),
 
 		InventoryDeregisterClusterHandler: inventory.DeregisterClusterHandlerFunc(func(params inventory.DeregisterClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.DeregisterCluster has not yet been implemented")
@@ -55,6 +59,9 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		}),
 		InventoryDownloadClusterISOHandler: inventory.DownloadClusterISOHandlerFunc(func(params inventory.DownloadClusterISOParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.DownloadClusterISO has not yet been implemented")
+		}),
+		InventoryDownloadClusterKubeconfigHandler: inventory.DownloadClusterKubeconfigHandlerFunc(func(params inventory.DownloadClusterKubeconfigParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.DownloadClusterKubeconfig has not yet been implemented")
 		}),
 		InventoryEnableHostHandler: inventory.EnableHostHandlerFunc(func(params inventory.EnableHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.EnableHost has not yet been implemented")
@@ -127,6 +134,9 @@ type BMInventoryAPI struct {
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
+	// TextXYamlProducer registers a producer for the following mime types:
+	//   - text/x-yaml
+	TextXYamlProducer runtime.Producer
 
 	// InventoryDeregisterClusterHandler sets the operation handler for the deregister cluster operation
 	InventoryDeregisterClusterHandler inventory.DeregisterClusterHandler
@@ -136,6 +146,8 @@ type BMInventoryAPI struct {
 	InventoryDisableHostHandler inventory.DisableHostHandler
 	// InventoryDownloadClusterISOHandler sets the operation handler for the download cluster i s o operation
 	InventoryDownloadClusterISOHandler inventory.DownloadClusterISOHandler
+	// InventoryDownloadClusterKubeconfigHandler sets the operation handler for the download cluster kubeconfig operation
+	InventoryDownloadClusterKubeconfigHandler inventory.DownloadClusterKubeconfigHandler
 	// InventoryEnableHostHandler sets the operation handler for the enable host operation
 	InventoryEnableHostHandler inventory.EnableHostHandler
 	// InventoryGetClusterHandler sets the operation handler for the get cluster operation
@@ -228,6 +240,9 @@ func (o *BMInventoryAPI) Validate() error {
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
 	}
+	if o.TextXYamlProducer == nil {
+		unregistered = append(unregistered, "TextXYamlProducer")
+	}
 
 	if o.InventoryDeregisterClusterHandler == nil {
 		unregistered = append(unregistered, "inventory.DeregisterClusterHandler")
@@ -240,6 +255,9 @@ func (o *BMInventoryAPI) Validate() error {
 	}
 	if o.InventoryDownloadClusterISOHandler == nil {
 		unregistered = append(unregistered, "inventory.DownloadClusterISOHandler")
+	}
+	if o.InventoryDownloadClusterKubeconfigHandler == nil {
+		unregistered = append(unregistered, "inventory.DownloadClusterKubeconfigHandler")
 	}
 	if o.InventoryEnableHostHandler == nil {
 		unregistered = append(unregistered, "inventory.EnableHostHandler")
@@ -327,6 +345,8 @@ func (o *BMInventoryAPI) ProducersFor(mediaTypes []string) map[string]runtime.Pr
 			result["application/octet-stream"] = o.BinProducer
 		case "application/json":
 			result["application/json"] = o.JSONProducer
+		case "text/x-yaml":
+			result["text/x-yaml"] = o.TextXYamlProducer
 		}
 
 		if p, ok := o.customProducers[mt]; ok {
@@ -382,7 +402,11 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{clusterId}/actions/download"] = inventory.NewDownloadClusterISO(o.context, o.InventoryDownloadClusterISOHandler)
+	o.handlers["GET"]["/clusters/{clusterId}/downloads/image"] = inventory.NewDownloadClusterISO(o.context, o.InventoryDownloadClusterISOHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{clusterId}/downloads/kubeconfig"] = inventory.NewDownloadClusterKubeconfig(o.context, o.InventoryDownloadClusterKubeconfigHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
