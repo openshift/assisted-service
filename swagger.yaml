@@ -422,7 +422,7 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{clusterId}/hosts/{hostId}/next-steps:
+  /clusters/{clusterId}/hosts/{hostId}/instructions:
     get:
       tags:
         - inventory
@@ -443,7 +443,7 @@ paths:
           required: true
       responses:
         200:
-          description: Steps information
+          description: Instruction information
           schema:
             $ref: '#/definitions/steps'
         404:
@@ -451,11 +451,10 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{clusterId}/hosts/{hostId}/next-steps/reply:
     post:
       tags:
         - inventory
-      summary: Post the result of the required operations from the server
+      summary: Post the result of the operations from the server
       operationId: PostStepReply
       parameters:
         - in: path
