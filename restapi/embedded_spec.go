@@ -1136,10 +1136,7 @@ func init() {
           "type": "object",
           "required": [
             "kind",
-            "status",
-            "statusInfo",
-            "connectivity",
-            "hardwareInfo"
+            "status"
           ],
           "properties": {
             "clusterId": {
@@ -2500,10 +2497,7 @@ func init() {
           "type": "object",
           "required": [
             "kind",
-            "status",
-            "statusInfo",
-            "connectivity",
-            "hardwareInfo"
+            "status"
           ],
           "properties": {
             "clusterId": {

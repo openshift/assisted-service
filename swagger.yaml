@@ -522,9 +522,6 @@ definitions:
         required:
           - kind
           - status
-          - statusInfo
-          - connectivity
-          - hardwareInfo
         properties:
           clusterId:
             type: string

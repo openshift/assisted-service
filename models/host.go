@@ -27,8 +27,7 @@ type Host struct {
 	ClusterID strfmt.UUID `json:"clusterId,omitempty" gorm:"primary_key;foreignkey:Cluster"`
 
 	// connectivity
-	// Required: true
-	Connectivity *ConnectivityReport `json:"connectivity"`
+	Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
 	// hardware info
 	HardwareInfo *Introspection `json:"hardware_info,omitempty"`
@@ -43,8 +42,7 @@ type Host struct {
 	Status *string `json:"status"`
 
 	// status info
-	// Required: true
-	StatusInfo *string `json:"statusInfo"`
+	StatusInfo string `json:"statusInfo,omitempty"`
 
 	// updated at
 	// Format: date-time
@@ -71,7 +69,7 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 	var dataAO2 struct {
 		ClusterID strfmt.UUID `json:"clusterId,omitempty"`
 
-		Connectivity *ConnectivityReport `json:"connectivity"`
+		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
 		HardwareInfo *Introspection `json:"hardware_info,omitempty"`
 
@@ -79,7 +77,7 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 
 		Status *string `json:"status"`
 
-		StatusInfo *string `json:"statusInfo"`
+		StatusInfo string `json:"statusInfo,omitempty"`
 
 		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
 	}
@@ -122,7 +120,7 @@ func (m Host) MarshalJSON() ([]byte, error) {
 	var dataAO2 struct {
 		ClusterID strfmt.UUID `json:"clusterId,omitempty"`
 
-		Connectivity *ConnectivityReport `json:"connectivity"`
+		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
 		HardwareInfo *Introspection `json:"hardware_info,omitempty"`
 
@@ -130,7 +128,7 @@ func (m Host) MarshalJSON() ([]byte, error) {
 
 		Status *string `json:"status"`
 
-		StatusInfo *string `json:"statusInfo"`
+		StatusInfo string `json:"statusInfo,omitempty"`
 
 		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
 	}
@@ -190,10 +188,6 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateStatusInfo(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateUpdatedAt(formats); err != nil {
 		res = append(res, err)
 	}
@@ -219,8 +213,8 @@ func (m *Host) validateClusterID(formats strfmt.Registry) error {
 
 func (m *Host) validateConnectivity(formats strfmt.Registry) error {
 
-	if err := validate.Required("connectivity", "body", m.Connectivity); err != nil {
-		return err
+	if swag.IsZero(m.Connectivity) { // not required
+		return nil
 	}
 
 	if m.Connectivity != nil {
@@ -315,15 +309,6 @@ func (m *Host) validateStatus(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateStatusEnum("status", "body", *m.Status); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Host) validateStatusInfo(formats strfmt.Registry) error {
-
-	if err := validate.Required("statusInfo", "body", m.StatusInfo); err != nil {
 		return err
 	}
 
