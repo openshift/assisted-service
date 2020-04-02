@@ -55,7 +55,7 @@ type API interface {
 	   ListHosts lists open shift bare metal hosts*/
 	ListHosts(ctx context.Context, params *ListHostsParams) (*ListHostsOK, error)
 	/*
-	   PostStepReply posts the result of the required operations from the server*/
+	   PostStepReply posts the result of the operations from the server*/
 	PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error)
 	/*
 	   RegisterCluster creates a new open shift bare metal cluster definition*/
@@ -289,7 +289,7 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetNextSteps",
 		Method:             "GET",
-		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/next-steps",
+		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/instructions",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
@@ -378,14 +378,14 @@ func (a *Client) ListHosts(ctx context.Context, params *ListHostsParams) (*ListH
 }
 
 /*
-PostStepReply posts the result of the required operations from the server
+PostStepReply posts the result of the operations from the server
 */
 func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "PostStepReply",
 		Method:             "POST",
-		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/next-steps/reply",
+		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/instructions",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},

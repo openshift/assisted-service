@@ -422,7 +422,7 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{clusterId}/hosts/{hostId}/next-steps"] = inventory.NewGetNextSteps(o.context, o.InventoryGetNextStepsHandler)
+	o.handlers["GET"]["/clusters/{clusterId}/hosts/{hostId}/instructions"] = inventory.NewGetNextSteps(o.context, o.InventoryGetNextStepsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -438,7 +438,7 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{clusterId}/hosts/{hostId}/next-steps/reply"] = inventory.NewPostStepReply(o.context, o.InventoryPostStepReplyHandler)
+	o.handlers["POST"]["/clusters/{clusterId}/hosts/{hostId}/instructions"] = inventory.NewPostStepReply(o.context, o.InventoryPostStepReplyHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

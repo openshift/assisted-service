@@ -43,7 +43,7 @@ func (o *PostStepReplyURL) SetBasePath(bp string) {
 func (o *PostStepReplyURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{clusterId}/hosts/{hostId}/next-steps/reply"
+	var _path = "/clusters/{clusterId}/hosts/{hostId}/instructions"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {

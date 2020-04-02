@@ -609,7 +609,7 @@ func init() {
         }
       }
     },
-    "/clusters/{clusterId}/hosts/{hostId}/next-steps": {
+    "/clusters/{clusterId}/hosts/{hostId}/instructions": {
       "get": {
         "tags": [
           "inventory"
@@ -636,7 +636,7 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "Steps information",
+            "description": "Instruction information",
             "schema": {
               "$ref": "#/definitions/steps"
             }
@@ -648,14 +648,12 @@ func init() {
             "description": "Internal server error"
           }
         }
-      }
-    },
-    "/clusters/{clusterId}/hosts/{hostId}/next-steps/reply": {
+      },
       "post": {
         "tags": [
           "inventory"
         ],
-        "summary": "Post the result of the required operations from the server",
+        "summary": "Post the result of the operations from the server",
         "operationId": "PostStepReply",
         "parameters": [
           {
@@ -1967,7 +1965,7 @@ func init() {
         }
       }
     },
-    "/clusters/{clusterId}/hosts/{hostId}/next-steps": {
+    "/clusters/{clusterId}/hosts/{hostId}/instructions": {
       "get": {
         "tags": [
           "inventory"
@@ -1994,7 +1992,7 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "Steps information",
+            "description": "Instruction information",
             "schema": {
               "$ref": "#/definitions/steps"
             }
@@ -2006,14 +2004,12 @@ func init() {
             "description": "Internal server error"
           }
         }
-      }
-    },
-    "/clusters/{clusterId}/hosts/{hostId}/next-steps/reply": {
+      },
       "post": {
         "tags": [
           "inventory"
         ],
-        "summary": "Post the result of the required operations from the server",
+        "summary": "Post the result of the operations from the server",
         "operationId": "PostStepReply",
         "parameters": [
           {

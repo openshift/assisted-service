@@ -16,7 +16,7 @@ import (
 // GetNextStepsOKCode is the HTTP code returned for type GetNextStepsOK
 const GetNextStepsOKCode int = 200
 
-/*GetNextStepsOK Steps information
+/*GetNextStepsOK Instruction information
 
 swagger:response getNextStepsOK
 */
