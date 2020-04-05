@@ -76,17 +76,22 @@ const ignitionConfigFormat = `{
 }
 }`
 
+type debugCmd struct {
+	cmd    string
+	stepID string
+}
+
 type bareMetalInventory struct {
 	Config
 	imageBuildCmd []string
 	db            *gorm.DB
 	kube          client.Client
-	debugCmdMap   map[strfmt.UUID]string
+	debugCmdMap   map[strfmt.UUID]debugCmd
 	debugCmdMux   sync.Mutex
 }
 
 func NewBareMetalInventory(db *gorm.DB, kclient client.Client, cfg Config) *bareMetalInventory {
-	b := &bareMetalInventory{db: db, kube: kclient, Config: cfg, debugCmdMap: make(map[strfmt.UUID]string)}
+	b := &bareMetalInventory{db: db, kube: kclient, Config: cfg, debugCmdMap: make(map[strfmt.UUID]debugCmd)}
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
 	}
@@ -540,9 +545,9 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 	if cmd, ok := b.debugCmdMap[params.HostID]; ok {
 		step := &models.Step{}
 		step.StepType = models.StepTypeExecute
-		step.StepID = createStepID(step.StepType)
+		step.StepID = cmd.stepID
 		step.Command = "bash"
-		step.Args = []string{"-c", cmd}
+		step.Args = []string{"-c", cmd.cmd}
 		steps = append(steps, step)
 		delete(b.debugCmdMap, params.HostID)
 	}
@@ -566,10 +571,15 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params inventory
 }
 
 func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder {
+	stepID := createStepID(models.StepTypeExecute)
 	b.debugCmdMux.Lock()
-	b.debugCmdMap[params.HostID] = swag.StringValue(params.Step.Command)
+	b.debugCmdMap[params.HostID] = debugCmd{
+		cmd:    swag.StringValue(params.Step.Command),
+		stepID: stepID,
+	}
 	b.debugCmdMux.Unlock()
-	logrus.Infof("Added new debug command for cluster <%s> host <%s>: <%s>", params.ClusterID, params.HostID, swag.StringValue(params.Step.Command))
+	logrus.Infof("Added new debug command <%s> for cluster <%s> host <%s>: <%s>",
+		stepID, params.ClusterID, params.HostID, swag.StringValue(params.Step.Command))
 	return inventory.NewSetDebugStepOK()
 }
 
