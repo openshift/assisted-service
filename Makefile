@@ -6,7 +6,7 @@ SERVICE := $(or ${SERVICE},quay.io/mfilanov/bm-inventory:latest)
 all: build
 
 lint:
-	golangci-lint run
+	golangci-lint run -v
 
 .PHONY: build
 build: lint
