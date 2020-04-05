@@ -103,16 +103,20 @@ func buildHrefURI(base, id string) *strfmt.URI {
 
 func (b *bareMetalInventory) monitorImageBuild(ctx context.Context, id string) error {
 	var job batch.Job
-	b.kube.Get(ctx, client.ObjectKey{
+	if err := b.kube.Get(ctx, client.ObjectKey{
 		Namespace: "default",
 		Name:      fmt.Sprintf("create-image-%s", id),
-	}, &job)
+	}, &job); err != nil {
+		return err
+	}
 
 	for job.Status.Succeeded == 0 && job.Status.Failed == 0 {
-		b.kube.Get(ctx, client.ObjectKey{
+		if err := b.kube.Get(ctx, client.ObjectKey{
 			Namespace: "default",
 			Name:      fmt.Sprintf("create-image-%s", id),
-		}, &job)
+		}, &job); err != nil {
+			return err
+		}
 	}
 
 	if job.Status.Failed > 0 {
@@ -329,7 +333,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 	if reply := tx.Model(&models.Host{}).
 		Where("cluster_id = ?", params.ClusterID).
 		Update("status", HostStatusInstalling); reply.Error != nil || reply.RowsAffected == 0 {
-		logrus.WithError(reply.Error).Error("failed to update hosts in cluster: %s state to %s",
+		logrus.WithError(reply.Error).Errorf("failed to update hosts in cluster: %s state to %s",
 			cluster.ID.String(), HostStatusInstalling)
 		tx.Rollback()
 		return inventory.NewInstallClusterInternalServerError()
@@ -371,7 +375,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory
 	}
 
 	if err := tx.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		logrus.WithError(err).Error("failed to get cluster: %s", params.ClusterID)
+		logrus.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
 		tx.Rollback()
 		return inventory.NewUpdateClusterNotFound()
 	}
@@ -390,7 +394,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory
 
 	if err := tx.Model(&cluster).Update(cluster).Error; err != nil {
 		tx.Rollback()
-		logrus.WithError(err).Error("failed to update cluster: %s", params.ClusterID)
+		logrus.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
 		return inventory.NewUpdateClusterInternalServerError()
 	}
 

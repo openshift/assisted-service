@@ -49,6 +49,7 @@ var _ = Describe("Host tests", func() {
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 		})
+		Expect(err).NotTo(HaveOccurred())
 		list, err = bmclient.Inventory.ListHosts(ctx, &inventory.ListHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(0))
@@ -82,6 +83,7 @@ var _ = Describe("Host tests", func() {
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 		})
+		Expect(err).NotTo(HaveOccurred())
 		host = getHost(clusterID, *host.ID)
 		Expect(*host.Status).Should(Equal("discovering"))
 		Expect(len(getNextSteps(clusterID, *host.ID))).ShouldNot(Equal(0))

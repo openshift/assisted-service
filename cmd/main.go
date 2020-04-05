@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/filanov/bm-inventory/internal/bminventory"
@@ -34,7 +33,7 @@ var Options struct {
 func main() {
 	err := envconfig.Process("myapp", &Options)
 	if err != nil {
-		log.Fatal(err.Error())
+		logrus.Fatal(err.Error())
 	}
 
 	port := flag.String("port", "8090", "define port that the service will listen to")
@@ -52,11 +51,13 @@ func main() {
 	defer db.Close()
 
 	scheme := runtime.NewScheme()
-	clientgoscheme.AddToScheme(scheme)
+	if err := clientgoscheme.AddToScheme(scheme); err != nil {
+		logrus.Fatal()
+	}
 
 	kclient, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
 	if err != nil {
-		log.Fatal("failed to create client:", err)
+		logrus.Fatal("failed to create client:", err)
 	}
 
 	if err := db.AutoMigrate(&models.Host{}, &models.Cluster{}).Error; err != nil {
