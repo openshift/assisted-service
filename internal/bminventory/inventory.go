@@ -45,6 +45,7 @@ const (
 type Config struct {
 	ImageBuilder    string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
 	ImageBuilderCmd string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
+	AgentDockerImg  string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/oamizur/introspector:latest"`
 	InventoryURL    string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
 	InventoryPort   string `envconfig:"INVENTORY_PORT" default:"30485"`
 	S3EndpointURL   string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
@@ -70,7 +71,7 @@ const ignitionConfigFormat = `{
 "units": [{
 "name": "introspector.service",
 "enabled": true,
-"contents": "[Service]\nType=oneshot\nExecStart=docker run --rm --privileged --net=host quay.io/oamizur/introspector:latest /usr/bin/introspector --host %s --port %s --cluster-id %s\n\n[Install]\nWantedBy=multi-user.target"
+"contents": "[Service]\nType=oneshot\nExecStart=docker run --rm --privileged --net=host %s /usr/bin/introspector --host %s --port %s --cluster-id %s\n\n[Install]\nWantedBy=multi-user.target"
 }]
 }
 }`
@@ -187,8 +188,8 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models
 }
 
 func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster) string {
-	return fmt.Sprintf(ignitionConfigFormat, b.getUserSshKey(cluster), b.InventoryURL, b.InventoryPort,
-		cluster.ID.String())
+	return fmt.Sprintf(ignitionConfigFormat, b.getUserSshKey(cluster), b.AgentDockerImg, b.InventoryURL,
+		b.InventoryPort, cluster.ID.String())
 }
 
 func (b *bareMetalInventory) getUserSshKey(cluster *models.Cluster) string {
