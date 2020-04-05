@@ -16,6 +16,9 @@ build: lint
 clean:
 	rm -rf build
 
+format:
+	goimports -w -l cmd/ internal/
+
 generate-from-swagger:
 	rm -rf client models restapi
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD) -v /etc/passwd:/etc/passwd -w $(PWD) quay.io/goswagger/swagger generate server	--template=stratoscale -f swagger.yaml --template-dir=/templates/contrib
