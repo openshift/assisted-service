@@ -474,7 +474,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.
 		if getErr := b.db.First(&models.Host{}, "id = ? and cluster_id = ?",
 			params.NewHostParams.HostID, params.ClusterID).Error; getErr == nil {
 			host.Status = swag.String(HostStatusDiscovering)
-			if err := b.db.Model(&host).
+			if err = b.db.Model(&host).
 				Where("host_id = ? and cluster_id = ?", *params.NewHostParams.HostID, params.ClusterID).
 				Update("status", host.Status).Error; err != nil {
 				logrus.WithError(err).Error("failed to create host")

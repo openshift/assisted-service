@@ -51,7 +51,7 @@ func main() {
 	defer db.Close()
 
 	scheme := runtime.NewScheme()
-	if err := clientgoscheme.AddToScheme(scheme); err != nil {
+	if err = clientgoscheme.AddToScheme(scheme); err != nil {
 		logrus.Fatal()
 	}
 
@@ -60,7 +60,7 @@ func main() {
 		logrus.Fatal("failed to create client:", err)
 	}
 
-	if err := db.AutoMigrate(&models.Host{}, &models.Cluster{}).Error; err != nil {
+	if err = db.AutoMigrate(&models.Host{}, &models.Cluster{}).Error; err != nil {
 		logrus.Fatal("failed to auto migrate, ", err)
 	}
 
