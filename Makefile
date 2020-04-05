@@ -5,8 +5,11 @@ SERVICE := $(or ${SERVICE},quay.io/mfilanov/bm-inventory:latest)
 
 all: build
 
+lint:
+	golangci-lint run
+
 .PHONY: build
-build:
+build: lint
 	mkdir -p build
 	CGO_ENABLED=0 go build -o build/bm-inventory cmd/main.go
 
