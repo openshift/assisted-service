@@ -23,6 +23,7 @@ import (
 )
 
 const baseHref = "/api/bm-inventory/v1"
+const kubeconfigPrefix = "generate-kubeconfig"
 
 const (
 	ClusterStatusCreating = "creating"
@@ -43,13 +44,14 @@ const (
 )
 
 type Config struct {
-	ImageBuilder    string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
-	ImageBuilderCmd string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
-	AgentDockerImg  string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/oamizur/introspector:latest"`
-	InventoryURL    string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
-	InventoryPort   string `envconfig:"INVENTORY_PORT" default:"30485"`
-	S3EndpointURL   string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
-	S3Bucket        string `envconfig:"S3_BUCKET" default:"test"`
+	ImageBuilder    	string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
+	ImageBuilderCmd 	string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
+	AgentDockerImg  	string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/oamizur/introspector:latest"`
+	KubeconfigGenerator	string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/oscohen/ignition-manifests-and-kubeconfig-generate"`
+	InventoryURL    	string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
+	InventoryPort   	string `envconfig:"INVENTORY_PORT" default:"30485"`
+	S3EndpointURL   	string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket        	string `envconfig:"S3_BUCKET" default:"test"`
 }
 
 const ignitionConfigFormat = `{
@@ -107,11 +109,11 @@ func buildHrefURI(base, id string) *strfmt.URI {
 	return strToURI(fmt.Sprintf("%s/%ss/%s", baseHref, base, id))
 }
 
-func (b *bareMetalInventory) monitorImageBuild(ctx context.Context, id string) error {
+func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) error {
 	var job batch.Job
 	if err := b.kube.Get(ctx, client.ObjectKey{
 		Namespace: "default",
-		Name:      fmt.Sprintf("create-image-%s", id),
+		Name:      fmt.Sprint(jobName),
 	}, &job); err != nil {
 		return err
 	}
@@ -119,7 +121,7 @@ func (b *bareMetalInventory) monitorImageBuild(ctx context.Context, id string) e
 	for job.Status.Succeeded == 0 && job.Status.Failed == 0 {
 		if err := b.kube.Get(ctx, client.ObjectKey{
 			Namespace: "default",
-			Name:      fmt.Sprintf("create-image-%s", id),
+			Name:      fmt.Sprint(jobName),
 		}, &job); err != nil {
 			return err
 		}
@@ -179,6 +181,7 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models
 									Name:  "S3_BUCKET",
 									Value: b.S3Bucket,
 								},
+								//TODO add s3 credentials
 							},
 						},
 					},
@@ -290,7 +293,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
-	if err := b.monitorImageBuild(ctx, params.ClusterID.String()); err != nil {
+	if err := b.monitorJob(ctx, fmt.Sprintf("create-image-%s", params.ClusterID)); err != nil {
 		logrus.WithError(err).Error("image creation failed")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
@@ -622,6 +625,99 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.En
 	return inventory.NewEnableHostNoContent()
 }
 
+
+func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *models.Cluster) error {
+	id := cluster.ID
+	cfg, err := installcfg.GetInstallConfig(cluster)
+	if err != nil {
+		logrus.WithError(err).Errorf("Failed to get install config for cluster %s", id)
+		return err
+	}
+
+	if err := b.kube.Create(ctx, &batch.Job{
+		TypeMeta: meta.TypeMeta{
+			Kind:       "Job",
+			APIVersion: "batch/v1",
+		},
+		ObjectMeta: meta.ObjectMeta{
+			Name:      fmt.Sprintf("%s-%s",kubeconfigPrefix, id),
+			Namespace: "default",
+		},
+		Spec: batch.JobSpec{
+			BackoffLimit: swag.Int32(2),
+			Template: core.PodTemplateSpec{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      fmt.Sprintf("%s-%s",kubeconfigPrefix, id),
+					Namespace: "default",
+				},
+				Spec: core.PodSpec{
+					Containers: []core.Container{
+						{
+							Name:            kubeconfigPrefix,
+							Image:           b.Config.KubeconfigGenerator,
+							Command:         b.imageBuildCmd,
+							ImagePullPolicy: "IfNotPresent",
+							Env: []core.EnvVar{
+								{
+									Name:  "S3_ENDPOINT_URL",
+									Value: b.S3EndpointURL,
+								},
+								{
+									Name:  "INSTALLER_CONFIG",
+									Value: string(cfg),
+								},
+								{
+									Name:  "IMAGE_NAME",
+									Value: fmt.Sprintf("%s-%s",kubeconfigPrefix, id),
+								},
+								{
+									Name:  "S3_BUCKET",
+									Value: b.S3Bucket,
+								},
+								{
+									Name:  "CLUSTER_ID",
+									Value: id.String(),
+								},
+							},
+						},
+					},
+					RestartPolicy: "Never",
+				},
+			},
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params inventory.DownloadClusterKubeconfigParams) middleware.Responder {
-	return inventory.NewDownloadClusterKubeconfigNotFound()
+	var cluster models.Cluster
+
+	logrus.Infof("Prepare and download kubeConfig from cluster %s", params.ClusterID)
+
+	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		logrus.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
+		return inventory.NewDownloadClusterKubeconfigNotFound()
+	}
+
+	if err := b.createKubeconfigJob(ctx, &cluster); err != nil {
+		logrus.WithError(err).Error("Failed to create image job")
+		return inventory.NewDownloadClusterKubeconfigInternalServerError()
+	}
+
+	if err := b.monitorJob(ctx, fmt.Sprintf("%s-%s",kubeconfigPrefix, params.ClusterID)); err != nil {
+		logrus.WithError(err).Error("Generating kubeconfig files failed")
+		return inventory.NewDownloadClusterKubeconfigInternalServerError()
+	}
+
+	filesUrl := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
+		fmt.Sprintf("%s/kubeconfig", params.ClusterID))
+	logrus.Info("File URL: ", filesUrl)
+	resp, err := http.Get(filesUrl)
+	if err != nil {
+		logrus.WithError(err).Errorf("Failed to get clusters %s kubeKonfig", params.ClusterID)
+		return inventory.NewDownloadClusterKubeconfigInternalServerError()
+	}
+	return inventory.NewDownloadClusterKubeconfigOK().WithPayload(resp.Body)
 }

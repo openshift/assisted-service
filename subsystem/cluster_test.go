@@ -2,11 +2,14 @@ package subsystem
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
 
 	"github.com/filanov/bm-inventory/client/inventory"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -139,5 +142,20 @@ var _ = Describe("system-test cluster install", func() {
 		for _, host := range c.GetPayload().Hosts {
 			Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
 		}
+
+		file, err := ioutil.TempFile("", "tmp")
+		Expect(err).NotTo(HaveOccurred())
+
+		defer os.Remove(file.Name())
+
+		missingClusterId := strfmt.UUID(uuid.New().String())
+		_, err = bmclient.Inventory.DownloadClusterKubeconfig(ctx, &inventory.DownloadClusterKubeconfigParams{ClusterID: missingClusterId}, file)
+		Expect(err).Should(MatchError(inventory.NewDownloadClusterKubeconfigNotFound()))
+
+		_, err = bmclient.Inventory.DownloadClusterKubeconfig(ctx, &inventory.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+		Expect(err).NotTo(HaveOccurred())
+		s, err := file.Stat()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(s.Size()).ShouldNot(Equal(0))
 	})
 })

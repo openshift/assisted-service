@@ -181,7 +181,7 @@ paths:
       summary: Download the kubeconfig file for the specified cluster
       operationId: DownloadClusterKubeconfig
       produces:
-        - text/x-yaml
+        - application/octet-stream
       parameters:
         - in: path
           name: clusterId
