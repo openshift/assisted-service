@@ -1146,7 +1146,8 @@ func init() {
               "$ref": "#/definitions/connectivity-report"
             },
             "hardware_info": {
-              "$ref": "#/definitions/introspection"
+              "type": "string",
+              "x-go-custom-tag": "gorm:\"type:text\""
             },
             "role": {
               "type": "string",
@@ -1347,7 +1348,7 @@ func init() {
     "step-type": {
       "type": "string",
       "enum": [
-        "hardaware-info",
+        "hardware-info",
         "connectivity-check",
         "execute"
       ]
@@ -2505,7 +2506,8 @@ func init() {
               "$ref": "#/definitions/connectivity-report"
             },
             "hardware_info": {
-              "$ref": "#/definitions/introspection"
+              "type": "string",
+              "x-go-custom-tag": "gorm:\"type:text\""
             },
             "role": {
               "type": "string",
@@ -2706,7 +2708,7 @@ func init() {
     "step-type": {
       "type": "string",
       "enum": [
-        "hardaware-info",
+        "hardware-info",
         "connectivity-check",
         "execute"
       ]

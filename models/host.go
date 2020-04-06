@@ -30,7 +30,7 @@ type Host struct {
 	Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
 	// hardware info
-	HardwareInfo *Introspection `json:"hardware_info,omitempty"`
+	HardwareInfo string `json:"hardware_info,omitempty" gorm:"type:text"`
 
 	// role
 	// Enum: [undefined master worker]
@@ -71,7 +71,7 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 
 		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
-		HardwareInfo *Introspection `json:"hardware_info,omitempty"`
+		HardwareInfo string `json:"hardware_info,omitempty"`
 
 		Role string `json:"role,omitempty"`
 
@@ -122,7 +122,7 @@ func (m Host) MarshalJSON() ([]byte, error) {
 
 		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
-		HardwareInfo *Introspection `json:"hardware_info,omitempty"`
+		HardwareInfo string `json:"hardware_info,omitempty"`
 
 		Role string `json:"role,omitempty"`
 
@@ -176,10 +176,6 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateHardwareInfo(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateRole(formats); err != nil {
 		res = append(res, err)
 	}
@@ -221,24 +217,6 @@ func (m *Host) validateConnectivity(formats strfmt.Registry) error {
 		if err := m.Connectivity.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("connectivity")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (m *Host) validateHardwareInfo(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.HardwareInfo) { // not required
-		return nil
-	}
-
-	if m.HardwareInfo != nil {
-		if err := m.HardwareInfo.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("hardware_info")
 			}
 			return err
 		}
