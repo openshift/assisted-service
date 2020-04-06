@@ -44,14 +44,14 @@ const (
 )
 
 type Config struct {
-	ImageBuilder    	string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
-	ImageBuilderCmd 	string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
-	AgentDockerImg  	string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/oamizur/introspector:latest"`
-	KubeconfigGenerator	string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/oscohen/ignition-manifests-and-kubeconfig-generate"`
-	InventoryURL    	string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
-	InventoryPort   	string `envconfig:"INVENTORY_PORT" default:"30485"`
-	S3EndpointURL   	string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
-	S3Bucket        	string `envconfig:"S3_BUCKET" default:"test"`
+	ImageBuilder        string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
+	ImageBuilderCmd     string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
+	AgentDockerImg      string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/oamizur/introspector:latest"`
+	KubeconfigGenerator string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/oscohen/ignition-manifests-and-kubeconfig-generate"`
+	InventoryURL        string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
+	InventoryPort       string `envconfig:"INVENTORY_PORT" default:"30485"`
+	S3EndpointURL       string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket            string `envconfig:"S3_BUCKET" default:"test"`
 }
 
 const ignitionConfigFormat = `{
@@ -625,7 +625,6 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.En
 	return inventory.NewEnableHostNoContent()
 }
 
-
 func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *models.Cluster) error {
 	id := cluster.ID
 	cfg, err := installcfg.GetInstallConfig(cluster)
@@ -640,14 +639,14 @@ func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *m
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: meta.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s",kubeconfigPrefix, id),
+			Name:      fmt.Sprintf("%s-%s", kubeconfigPrefix, id),
 			Namespace: "default",
 		},
 		Spec: batch.JobSpec{
 			BackoffLimit: swag.Int32(2),
 			Template: core.PodTemplateSpec{
 				ObjectMeta: meta.ObjectMeta{
-					Name:      fmt.Sprintf("%s-%s",kubeconfigPrefix, id),
+					Name:      fmt.Sprintf("%s-%s", kubeconfigPrefix, id),
 					Namespace: "default",
 				},
 				Spec: core.PodSpec{
@@ -668,7 +667,7 @@ func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *m
 								},
 								{
 									Name:  "IMAGE_NAME",
-									Value: fmt.Sprintf("%s-%s",kubeconfigPrefix, id),
+									Value: fmt.Sprintf("%s-%s", kubeconfigPrefix, id),
 								},
 								{
 									Name:  "S3_BUCKET",
@@ -706,7 +705,7 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 		return inventory.NewDownloadClusterKubeconfigInternalServerError()
 	}
 
-	if err := b.monitorJob(ctx, fmt.Sprintf("%s-%s",kubeconfigPrefix, params.ClusterID)); err != nil {
+	if err := b.monitorJob(ctx, fmt.Sprintf("%s-%s", kubeconfigPrefix, params.ClusterID)); err != nil {
 		logrus.WithError(err).Error("Generating kubeconfig files failed")
 		return inventory.NewDownloadClusterKubeconfigInternalServerError()
 	}
