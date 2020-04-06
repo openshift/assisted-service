@@ -7,7 +7,6 @@ package operations
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -44,9 +43,6 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 
 		BinProducer:  runtime.ByteStreamProducer(),
 		JSONProducer: runtime.JSONProducer(),
-		TextXYamlProducer: runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
-			return errors.NotImplemented("textXYaml producer has not yet been implemented")
-		}),
 
 		InventoryDeregisterClusterHandler: inventory.DeregisterClusterHandlerFunc(func(params inventory.DeregisterClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.DeregisterCluster has not yet been implemented")
@@ -134,9 +130,6 @@ type BMInventoryAPI struct {
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
-	// TextXYamlProducer registers a producer for the following mime types:
-	//   - text/x-yaml
-	TextXYamlProducer runtime.Producer
 
 	// InventoryDeregisterClusterHandler sets the operation handler for the deregister cluster operation
 	InventoryDeregisterClusterHandler inventory.DeregisterClusterHandler
@@ -240,9 +233,6 @@ func (o *BMInventoryAPI) Validate() error {
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
 	}
-	if o.TextXYamlProducer == nil {
-		unregistered = append(unregistered, "TextXYamlProducer")
-	}
 
 	if o.InventoryDeregisterClusterHandler == nil {
 		unregistered = append(unregistered, "inventory.DeregisterClusterHandler")
@@ -345,8 +335,6 @@ func (o *BMInventoryAPI) ProducersFor(mediaTypes []string) map[string]runtime.Pr
 			result["application/octet-stream"] = o.BinProducer
 		case "application/json":
 			result["application/json"] = o.JSONProducer
-		case "text/x-yaml":
-			result["text/x-yaml"] = o.TextXYamlProducer
 		}
 
 		if p, ok := o.customProducers[mt]; ok {

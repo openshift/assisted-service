@@ -15,7 +15,6 @@
 //  Produces:
 //    - application/octet-stream
 //    - application/json
-//    - text/x-yaml
 //
 // swagger:meta
 package restapi

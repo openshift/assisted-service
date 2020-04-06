@@ -194,7 +194,7 @@ func (a *Client) DownloadClusterKubeconfig(ctx context.Context, params *Download
 		ID:                 "DownloadClusterKubeconfig",
 		Method:             "GET",
 		PathPattern:        "/clusters/{clusterId}/downloads/kubeconfig",
-		ProducesMediaTypes: []string{"text/x-yaml"},
+		ProducesMediaTypes: []string{"application/octet-stream"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,

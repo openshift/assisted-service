@@ -299,7 +299,7 @@ func init() {
     "/clusters/{clusterId}/downloads/kubeconfig": {
       "get": {
         "produces": [
-          "text/x-yaml"
+          "application/octet-stream"
         ],
         "tags": [
           "inventory"
@@ -1655,7 +1655,7 @@ func init() {
     "/clusters/{clusterId}/downloads/kubeconfig": {
       "get": {
         "produces": [
-          "text/x-yaml"
+          "application/octet-stream"
         ],
         "tags": [
           "inventory"

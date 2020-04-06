@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -80,9 +79,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.JSONConsumer = runtime.JSONConsumer()
 	api.BinProducer = runtime.ByteStreamProducer()
 	api.JSONProducer = runtime.JSONProducer()
-	api.TextXYamlProducer = runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
-		return errors.NotImplemented("textXYaml producer has not yet been implemented")
-	})
 	api.InventoryDeregisterClusterHandler = inventory.DeregisterClusterHandlerFunc(func(params inventory.DeregisterClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.DeregisterCluster(ctx, params)
