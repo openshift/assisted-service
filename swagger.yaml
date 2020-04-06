@@ -541,7 +541,8 @@ definitions:
           connectivity:
             $ref: '#/definitions/connectivity-report'
           hardware_info:
-            $ref: '#/definitions/introspection'
+            x-go-custom-tag: gorm:"type:text"
+            type: string
           role:
             type: string
             enum: ['undefined', 'master', 'worker']
@@ -558,7 +559,7 @@ definitions:
   step-type:
     type: string
     enum:
-      - hardaware-info
+      - hardware-info
       - connectivity-check
       - execute
 
