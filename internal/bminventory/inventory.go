@@ -10,6 +10,7 @@ import (
 
 	"github.com/filanov/bm-inventory/internal/installcfg"
 	"github.com/filanov/bm-inventory/models"
+	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/bm-inventory/restapi/operations/inventory"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -91,10 +92,17 @@ type bareMetalInventory struct {
 	kube          client.Client
 	debugCmdMap   map[strfmt.UUID]debugCmd
 	debugCmdMux   sync.Mutex
+	log           logrus.FieldLogger
 }
 
-func NewBareMetalInventory(db *gorm.DB, kclient client.Client, cfg Config) *bareMetalInventory {
-	b := &bareMetalInventory{db: db, kube: kclient, Config: cfg, debugCmdMap: make(map[strfmt.UUID]debugCmd)}
+func NewBareMetalInventory(db *gorm.DB, log logrus.FieldLogger, kclient client.Client, cfg Config) *bareMetalInventory {
+	b := &bareMetalInventory{
+		db:          db,
+		log:         log,
+		kube:        kclient,
+		Config:      cfg,
+		debugCmdMap: make(map[strfmt.UUID]debugCmd),
+	}
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
 	}
@@ -111,6 +119,7 @@ func buildHrefURI(base, id string) *strfmt.URI {
 }
 
 func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) error {
+	log := logutil.FromContext(ctx, b.log)
 	var job batch.Job
 	if err := b.kube.Get(ctx, client.ObjectKey{
 		Namespace: "default",
@@ -129,12 +138,12 @@ func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) err
 	}
 
 	if job.Status.Failed > 0 {
-		logrus.Error("job failed")
+		log.Error("job failed")
 		return fmt.Errorf("job failed")
 	}
 
 	if err := b.kube.Delete(context.Background(), &job); err != nil {
-		logrus.WithError(err).Error("failed to delete job")
+		log.WithError(err).Error("failed to delete job")
 	}
 
 	return nil
@@ -214,7 +223,8 @@ func (b *bareMetalInventory) getUserSshKey(cluster *models.Cluster) string {
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {
-	logrus.Infof("Register cluster: %s", swag.StringValue(params.NewClusterParams.Name))
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Register cluster: %s", swag.StringValue(params.NewClusterParams.Name))
 	id := strfmt.UUID(uuid.New().String())
 	cluster := models.Cluster{
 		Base: models.Base{
@@ -245,6 +255,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params invento
 }
 
 func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inventory.DeregisterClusterParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
 	var txErr error
 	tx := b.db.Begin()
@@ -261,19 +272,19 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inven
 
 	for i := range cluster.Hosts {
 		if txErr = tx.Where("id = ? and cluster_id = ?", cluster.Hosts[i], params.ClusterID).Delete(&models.Host{}).Error; txErr != nil {
-			logrus.WithError(txErr).Errorf("failed to delete host: %s", cluster.Hosts[i].ID)
+			log.WithError(txErr).Errorf("failed to delete host: %s", cluster.Hosts[i].ID)
 			// TODO: fix error code
 			return inventory.NewDeregisterClusterNotFound()
 		}
 	}
 	if txErr = tx.Delete(cluster).Error; txErr != nil {
-		logrus.WithError(txErr).Errorf("failed to delete cluster %s", cluster.ID)
+		log.WithError(txErr).Errorf("failed to delete cluster %s", cluster.ID)
 		// TODO: fix error code
 		return inventory.NewDeregisterClusterNotFound()
 	}
 
 	if txErr = tx.Commit().Error; txErr != nil {
-		logrus.WithError(txErr).Errorf("failed to delete cluster %s, commit tx", cluster.ID)
+		log.WithError(txErr).Errorf("failed to delete cluster %s, commit tx", cluster.ID)
 		// TODO: fix error code
 		return inventory.NewDeregisterClusterNotFound()
 	}
@@ -282,29 +293,30 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inven
 }
 
 func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inventory.DownloadClusterISOParams) middleware.Responder {
-	logrus.Infof("prepare and download image for cluster %s", params.ClusterID)
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("prepare and download image for cluster %s", params.ClusterID)
 	var cluster models.Cluster
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		logrus.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
+		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
 		return inventory.NewDownloadClusterISONotFound()
 	}
 
 	if err := b.createImageJob(ctx, &cluster); err != nil {
-		logrus.WithError(err).Error("failed to create image job")
+		log.WithError(err).Error("failed to create image job")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
 	if err := b.monitorJob(ctx, fmt.Sprintf("create-image-%s", params.ClusterID)); err != nil {
-		logrus.WithError(err).Error("image creation failed")
+		log.WithError(err).Error("image creation failed")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
 	imageURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
 		fmt.Sprintf("installer-image-%s", params.ClusterID))
-	logrus.Info("Image URL: ", imageURL)
+	log.Info("Image URL: ", imageURL)
 	resp, err := http.Get(imageURL)
 	if err != nil {
-		logrus.WithError(err).Error("failed to get image")
+		log.WithError(err).Error("failed to get image")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
@@ -312,15 +324,16 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 }
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventory.InstallClusterParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
 	tx := b.db.Begin()
 	if tx.Error != nil {
-		logrus.WithError(tx.Error).Errorf("failed to start db transaction")
+		log.WithError(tx.Error).Errorf("failed to start db transaction")
 		return inventory.NewInstallClusterInternalServerError()
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			logrus.Error("update cluster failed")
+			log.Error("update cluster failed")
 			tx.Rollback()
 		}
 	}()
@@ -332,7 +345,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 	// create install-config.yaml
 	cfg, err := installcfg.GetInstallConfig(&cluster)
 	if err != nil {
-		logrus.WithError(err).Errorf("failed to get install config for cluster %s", params.ClusterID)
+		log.WithError(err).Errorf("failed to get install config for cluster %s", params.ClusterID)
 		return inventory.NewInstallClusterInternalServerError()
 	}
 	fmt.Println("Install config: \n", string(cfg))
@@ -343,7 +356,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 	if reply := tx.Model(&models.Host{}).
 		Where("cluster_id = ?", params.ClusterID).
 		Update("status", HostStatusInstalling); reply.Error != nil || reply.RowsAffected == 0 {
-		logrus.WithError(reply.Error).Errorf("failed to update hosts in cluster: %s state to %s",
+		log.WithError(reply.Error).Errorf("failed to update hosts in cluster: %s state to %s",
 			cluster.ID.String(), HostStatusInstalling)
 		tx.Rollback()
 		return inventory.NewInstallClusterInternalServerError()
@@ -351,13 +364,13 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 
 	if err := tx.Model(&models.Cluster{}).Where("id = ?", cluster.ID.String()).
 		Update("status", "installing").Error; err != nil {
-		logrus.WithError(err).Errorf("failed to update cluster %s to status installing", cluster.ID.String())
+		log.WithError(err).Errorf("failed to update cluster %s to status installing", cluster.ID.String())
 		tx.Rollback()
 		return inventory.NewInstallClusterInternalServerError()
 	}
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		logrus.WithError(err).Errorf("failed to commit cluster %s changes on installation", cluster.ID.String())
+		log.WithError(err).Errorf("failed to commit cluster %s changes on installation", cluster.ID.String())
 		return inventory.NewInstallClusterInternalServerError()
 	}
 
@@ -369,23 +382,24 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 }
 
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory.UpdateClusterParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
-	logrus.Info("update cluster ", params.ClusterID)
+	log.Info("update cluster ", params.ClusterID)
 
 	tx := b.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
-			logrus.Error("update cluster failed")
+			log.Error("update cluster failed")
 			tx.Rollback()
 		}
 	}()
 
 	if tx.Error != nil {
-		logrus.WithError(tx.Error).Error("failed to start transaction")
+		log.WithError(tx.Error).Error("failed to start transaction")
 	}
 
 	if err := tx.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		logrus.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
+		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
 		tx.Rollback()
 		return inventory.NewUpdateClusterNotFound()
 	}
@@ -404,19 +418,19 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory
 
 	if err := tx.Model(&cluster).Update(cluster).Error; err != nil {
 		tx.Rollback()
-		logrus.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
+		log.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
 		return inventory.NewUpdateClusterInternalServerError()
 	}
 
 	for i := range params.ClusterUpdateParams.HostsRoles {
-		logrus.Infof("Update host %s to role: %s", params.ClusterUpdateParams.HostsRoles[i].ID,
+		log.Infof("Update host %s to role: %s", params.ClusterUpdateParams.HostsRoles[i].ID,
 			params.ClusterUpdateParams.HostsRoles[i].Role)
 		reply := tx.Model(&models.Host{}).
 			Where("id = ? and cluster_id = ?", params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID).
 			Update("role", params.ClusterUpdateParams.HostsRoles[i].Role)
 		if reply.Error != nil || reply.RowsAffected == 0 {
 			tx.Rollback()
-			logrus.WithError(reply.Error).Error("failed to update host: ",
+			log.WithError(reply.Error).Error("failed to update host: ",
 				params.ClusterUpdateParams.HostsRoles[i].ID)
 			return inventory.NewUpdateClusterNotFound()
 		}
@@ -428,7 +442,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory
 	}
 
 	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		logrus.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
+		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
 		return inventory.NewUpdateClusterInternalServerError()
 	}
 
@@ -436,9 +450,10 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory
 }
 
 func (b *bareMetalInventory) ListClusters(ctx context.Context, params inventory.ListClustersParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	var clusters []*models.Cluster
 	if err := b.db.Preload("Hosts").Find(&clusters).Error; err != nil {
-		logrus.WithError(err).Error("failed to list clusters")
+		log.WithError(err).Error("failed to list clusters")
 		return inventory.NewListClustersInternalServerError()
 	}
 
@@ -455,6 +470,8 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params inventory.Ge
 }
 
 func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.RegisterHostParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
 	host := &models.Host{
 		Base: models.Base{
 			Href: strToURI(fmt.Sprintf("%s/clusters/%s/hosts/%s", baseHref, params.ClusterID, *params.NewHostParams.HostID)),
@@ -466,10 +483,10 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.
 		HostCreateParams: *params.NewHostParams,
 	}
 
-	logrus.Infof("Register host: %+v", host)
+	log.Infof("Register host: %+v", host)
 
 	if err := b.db.First(&models.Cluster{}, "id = ?", params.ClusterID.String()).Error; err != nil {
-		logrus.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID.String())
+		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID.String())
 		return inventory.NewRegisterClusterBadRequest()
 	}
 
@@ -481,15 +498,15 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.
 			if err = b.db.Model(&host).
 				Where("host_id = ? and cluster_id = ?", *params.NewHostParams.HostID, params.ClusterID).
 				Update("status", host.Status).Error; err != nil {
-				logrus.WithError(err).Error("failed to create host")
+				log.WithError(err).Error("failed to create host")
 				return inventory.NewDisableHostInternalServerError()
 			} else {
-				logrus.Infof("Host %s from cluster %s registered again, will go to %s state",
+				log.Infof("Host %s from cluster %s registered again, will go to %s state",
 					*host.ID, host.ClusterID, *host.Status)
 				return inventory.NewRegisterHostCreated().WithPayload(host)
 			}
 		}
-		logrus.WithError(err).Error("failed to create host")
+		log.WithError(err).Error("failed to create host")
 		return inventory.NewRegisterClusterInternalServerError()
 	}
 
@@ -519,9 +536,10 @@ func (b *bareMetalInventory) GetHost(ctx context.Context, params inventory.GetHo
 }
 
 func (b *bareMetalInventory) ListHosts(ctx context.Context, params inventory.ListHostsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	var hosts []*models.Host
 	if err := b.db.Find(&hosts, "cluster_id = ?", params.ClusterID).Error; err != nil {
-		logrus.WithError(err).Errorf("failed to get list of hosts for cluster %s", params.ClusterID)
+		log.WithError(err).Errorf("failed to get list of hosts for cluster %s", params.ClusterID)
 		return inventory.NewListHostsInternalServerError()
 	}
 	return inventory.NewListHostsOK().WithPayload(hosts)
@@ -532,12 +550,13 @@ func createStepID(stepType models.StepType) string {
 }
 
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	steps := models.Steps{}
 	var host models.Host
 
 	//TODO check the error type
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
-		logrus.WithError(err).Error("failed to find host")
+		log.WithError(err).Error("failed to find host")
 		return inventory.NewGetNextStepsNotFound()
 	}
 
@@ -562,19 +581,20 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 		StepID:   createStepID(models.StepTypeHardwareInfo),
 	})
 	for _, step := range steps {
-		logrus.Infof("Submitting step <%s> to cluster <%s> host <%s> Command: <%s> Arguments: <%+v>", step.StepID, params.ClusterID, params.HostID,
+		log.Infof("Submitting step <%s> to cluster <%s> host <%s> Command: <%s> Arguments: <%+v>", step.StepID, params.ClusterID, params.HostID,
 			step.Command, step.Args)
 	}
 	return inventory.NewGetNextStepsOK().WithPayload(steps)
 }
 
 func (b *bareMetalInventory) PostStepReply(ctx context.Context, params inventory.PostStepReplyParams) middleware.Responder {
-	logrus.Infof("Received step reply <%s> from cluster <%s> host <%s>  exit-code <%d> stdout <%s> stderr <%s>", params.Reply.StepID, params.ClusterID,
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Received step reply <%s> from cluster <%s> host <%s>  exit-code <%d> stdout <%s> stderr <%s>", params.Reply.StepID, params.ClusterID,
 		params.HostID, params.Reply.ExitCode, params.Reply.Output, params.Reply.Error)
 
 	var host models.Host
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
-		logrus.WithError(err).Errorf("Failed to find host <%s> cluster <%s> step <%s>",
+		log.WithError(err).Errorf("Failed to find host <%s> cluster <%s> step <%s>",
 			params.HostID, params.ClusterID, params.Reply.StepID)
 		return inventory.NewPostStepReplyNotFound()
 	}
@@ -583,13 +603,13 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params inventory
 		// To make sure we store only information defined in swagger we unmarshal and marshal hw info.
 		hwInfo, err := filterReply(&models.Introspection{}, params.Reply.Output)
 		if err != nil {
-			logrus.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
+			log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
 				params.Reply.StepID, params.HostID, params.ClusterID)
 			return inventory.NewPostStepReplyBadRequest()
 		}
 
 		if err := b.db.Model(&host).Update("hardware_info", hwInfo).Error; err != nil {
-			logrus.WithError(err).Errorf("Failed to update host <%s> cluster <%s> step <%s>",
+			log.WithError(err).Errorf("Failed to update host <%s> cluster <%s> step <%s>",
 				params.HostID, params.ClusterID, params.Reply.StepID)
 			return inventory.NewPostStepReplyInternalServerError()
 		}
@@ -611,6 +631,7 @@ func filterReply(expected interface{}, input string) (string, error) {
 }
 
 func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	stepID := createStepID(models.StepTypeExecute)
 	b.debugCmdMux.Lock()
 	b.debugCmdMap[params.HostID] = debugCmd{
@@ -618,14 +639,15 @@ func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.
 		stepID: stepID,
 	}
 	b.debugCmdMux.Unlock()
-	logrus.Infof("Added new debug command <%s> for cluster <%s> host <%s>: <%s>",
+	log.Infof("Added new debug command <%s> for cluster <%s> host <%s>: <%s>",
 		stepID, params.ClusterID, params.HostID, swag.StringValue(params.Step.Command))
 	return inventory.NewSetDebugStepOK()
 }
 
 func (b *bareMetalInventory) DisableHost(ctx context.Context, params inventory.DisableHostParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	var host models.Host
-	logrus.Info("disabling host: ", params.HostID)
+	log.Info("disabling host: ", params.HostID)
 
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		return inventory.NewDisableHostNotFound()
@@ -643,8 +665,9 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params inventory.D
 }
 
 func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.EnableHostParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	var host models.Host
-	logrus.Info("enable host: ", params.HostID)
+	log.Info("enable host: ", params.HostID)
 
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		return inventory.NewEnableHostNotFound()
@@ -663,10 +686,11 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.En
 }
 
 func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *models.Cluster) error {
+	log := logutil.FromContext(ctx, b.log)
 	id := cluster.ID
 	cfg, err := installcfg.GetInstallConfig(cluster)
 	if err != nil {
-		logrus.WithError(err).Errorf("Failed to get install config for cluster %s", id)
+		log.WithError(err).Errorf("Failed to get install config for cluster %s", id)
 		return err
 	}
 
@@ -728,31 +752,32 @@ func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *m
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params inventory.DownloadClusterKubeconfigParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
 
-	logrus.Infof("Prepare and download kubeConfig from cluster %s", params.ClusterID)
+	log.Infof("Prepare and download kubeConfig from cluster %s", params.ClusterID)
 
 	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		logrus.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
+		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
 		return inventory.NewDownloadClusterKubeconfigNotFound()
 	}
 
 	if err := b.createKubeconfigJob(ctx, &cluster); err != nil {
-		logrus.WithError(err).Error("Failed to create image job")
+		log.WithError(err).Error("Failed to create image job")
 		return inventory.NewDownloadClusterKubeconfigInternalServerError()
 	}
 
 	if err := b.monitorJob(ctx, fmt.Sprintf("%s-%s", kubeconfigPrefix, params.ClusterID)); err != nil {
-		logrus.WithError(err).Error("Generating kubeconfig files failed")
+		log.WithError(err).Error("Generating kubeconfig files failed")
 		return inventory.NewDownloadClusterKubeconfigInternalServerError()
 	}
 
 	filesUrl := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
 		fmt.Sprintf("%s/kubeconfig", params.ClusterID))
-	logrus.Info("File URL: ", filesUrl)
+	log.Info("File URL: ", filesUrl)
 	resp, err := http.Get(filesUrl)
 	if err != nil {
-		logrus.WithError(err).Errorf("Failed to get clusters %s kubeKonfig", params.ClusterID)
+		log.WithError(err).Errorf("Failed to get clusters %s kubeKonfig", params.ClusterID)
 		return inventory.NewDownloadClusterKubeconfigInternalServerError()
 	}
 	return inventory.NewDownloadClusterKubeconfigOK().WithPayload(resp.Body)

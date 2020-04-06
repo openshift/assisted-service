@@ -3,6 +3,7 @@ module github.com/filanov/bm-inventory
 go 1.13
 
 require (
+	github.com/Stratoscale/golib v1.0.66
 	github.com/go-openapi/errors v0.19.3
 	github.com/go-openapi/loads v0.19.4
 	github.com/go-openapi/runtime v0.19.11
@@ -16,6 +17,8 @@ require (
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/sirupsen/logrus v1.4.2
+	github.com/stretchr/testify v1.4.0
+	golang.org/x/tools v0.0.0-20200403190813-44a64ad78b9b // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.17.3
 	k8s.io/apimachinery v0.17.3

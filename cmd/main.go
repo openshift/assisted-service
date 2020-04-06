@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/filanov/bm-inventory/pkg/requestid"
+
 	"github.com/filanov/bm-inventory/internal/bminventory"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/restapi"
@@ -31,47 +33,49 @@ var Options struct {
 }
 
 func main() {
+	log := logrus.New()
 	err := envconfig.Process("myapp", &Options)
 	if err != nil {
-		logrus.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	port := flag.String("port", "8090", "define port that the service will listen to")
 	flag.Parse()
 
-	logrus.Println("Starting bm service")
+	log.Println("Starting bm service")
 
 	db, err := gorm.Open("mysql",
 		fmt.Sprintf("admin:admin@tcp(%s:%s)/installer?charset=utf8&parseTime=True&loc=Local",
 			Options.DBHost, Options.DBPort))
 
 	if err != nil {
-		logrus.Fatal("Fail to connect to DB, ", err)
+		log.Fatal("Fail to connect to DB, ", err)
 	}
 	defer db.Close()
 
 	scheme := runtime.NewScheme()
 	if err = clientgoscheme.AddToScheme(scheme); err != nil {
-		logrus.Fatal()
+		log.Fatal()
 	}
 
 	kclient, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
 	if err != nil {
-		logrus.Fatal("failed to create client:", err)
+		log.Fatal("failed to create client:", err)
 	}
 
 	if err = db.AutoMigrate(&models.Host{}, &models.Cluster{}).Error; err != nil {
-		logrus.Fatal("failed to auto migrate, ", err)
+		log.Fatal("failed to auto migrate, ", err)
 	}
 
-	bm := bminventory.NewBareMetalInventory(db, kclient, Options.BMConfig)
+	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), kclient, Options.BMConfig)
 	h, err := restapi.Handler(restapi.Config{
 		InventoryAPI: bm,
-		Logger:       logrus.Printf,
+		Logger:       log.Printf,
 	})
+	h = requestid.Middleware(h)
 	if err != nil {
-		logrus.Fatal("Failed to init rest handler,", err)
+		log.Fatal("Failed to init rest handler,", err)
 	}
 
-	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
 }
