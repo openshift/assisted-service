@@ -67,3 +67,25 @@ The Other deployment is a system deployment it contain all the components the se
 This option will deploy S3 service (scality), DB and will use the image generator to create the images in the deployed S3 and create relevant bucket in S3.
 
 `skipper make deploy-all`
+
+
+##  Linked repositories 
+* #### coreos_installation_iso:
+    https://github.com/oshercc/coreos_installation_iso 
+
+    Image in charge of generating the Fedora-coreOs image used to install the host with the relevant ignition file
+    
+    Image is uploaded to deployed S3 under the name template "installer-image-<cluster-id>"
+* #### ignition manifests and kubeconfig generate:
+    
+    https://github.com/oshercc/ignition-manifests-and-kubeconfig-generate
+    
+    Image in charge of generating the fallowing installation files:
+    * kubeconfig
+    * bootstrap.ign
+    * master.ign
+    * worker.ign
+    * metadata.json
+    * kubeadmin-password
+    
+   Files are uploaded to deployed S3 under the name template  "<cluster-id>/<filenae>"
