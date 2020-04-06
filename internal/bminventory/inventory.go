@@ -2,6 +2,7 @@ package bminventory
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -557,8 +558,8 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 	b.debugCmdMux.Unlock()
 
 	steps = append(steps, &models.Step{
-		StepType: models.StepTypeHardawareInfo,
-		StepID:   createStepID(models.StepTypeHardawareInfo),
+		StepType: models.StepTypeHardwareInfo,
+		StepID:   createStepID(models.StepTypeHardwareInfo),
 	})
 	for _, step := range steps {
 		logrus.Infof("Submitting step <%s> to cluster <%s> host <%s> Command: <%s> Arguments: <%+v>", step.StepID, params.ClusterID, params.HostID,
@@ -570,7 +571,43 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 func (b *bareMetalInventory) PostStepReply(ctx context.Context, params inventory.PostStepReplyParams) middleware.Responder {
 	logrus.Infof("Received step reply <%s> from cluster <%s> host <%s>  exit-code <%d> stdout <%s> stderr <%s>", params.Reply.StepID, params.ClusterID,
 		params.HostID, params.Reply.ExitCode, params.Reply.Output, params.Reply.Error)
+
+	var host models.Host
+	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
+		logrus.WithError(err).Errorf("Failed to find host <%s> cluster <%s> step <%s>",
+			params.HostID, params.ClusterID, params.Reply.StepID)
+		return inventory.NewPostStepReplyNotFound()
+	}
+
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeHardwareInfo)) {
+		// To make sure we store only information defined in swagger we unmarshal and marshal hw info.
+		hwInfo, err := filterReply(&models.Introspection{}, params.Reply.Output)
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
+				params.Reply.StepID, params.HostID, params.ClusterID)
+			return inventory.NewPostStepReplyBadRequest()
+		}
+
+		if err := b.db.Model(&host).Update("hardware_info", hwInfo).Error; err != nil {
+			logrus.WithError(err).Errorf("Failed to update host <%s> cluster <%s> step <%s>",
+				params.HostID, params.ClusterID, params.Reply.StepID)
+			return inventory.NewPostStepReplyInternalServerError()
+		}
+	}
+
 	return inventory.NewPostStepReplyNoContent()
+}
+
+// filterReply return only the expected parameters from the input.
+func filterReply(expected interface{}, input string) (string, error) {
+	if err := json.Unmarshal([]byte(input), expected); err != nil {
+		return "", err
+	}
+	reply, err := json.Marshal(expected)
+	if err != nil {
+		return "", err
+	}
+	return string(reply), nil
 }
 
 func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder {

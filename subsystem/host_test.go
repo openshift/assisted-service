@@ -64,8 +64,41 @@ var _ = Describe("Host tests", func() {
 	It("next step", func() {
 		host := registerHost(clusterID)
 		steps := getNextSteps(clusterID, *host.ID)
-		_, ok := getStepInList(steps, models.StepTypeHardawareInfo)
+		_, ok := getStepInList(steps, models.StepTypeHardwareInfo)
 		Expect(ok).Should(Equal(true))
+	})
+
+	It("hardware-info store only relevant hw reply", func() {
+		host := registerHost(clusterID)
+
+		extraHwInfo := "{\"extra\":\"data\",\"block-devices\":[{\"device-type\":\"disk\",\"major-device-number\":259,\"name\":\"nvme0n1\",\"size\":256060514304},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":1,\"name\":\"nvme0n1p1\",\"size\":629145600},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":2,\"name\":\"nvme0n1p2\",\"size\":1073741824},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":3,\"name\":\"nvme0n1p3\",\"size\":254356226048}],\"cpu\":{\"architecture\":\"x86_64\",\"cpu-mhz\":1532.999,\"cpus\":8,\"model-name\":\"Intel(R) Core(TM) i7-8665U CPU @ 1.90GHz\",\"sockets\":1,\"threads-per-core\":2},\"memory\":[{\"available\":19743372,\"buff-cached\":13195388,\"free\":8357316,\"name\":\"Mem\",\"shared\":1369116,\"total\":32657728,\"used\":11105024},{\"free\":16400380,\"name\":\"Swap\",\"total\":16400380}],\"nics\":[{\"cidrs\":[],\"mac\":\"f8:75:a4:a4:01:6e\",\"mtu\":1500,\"name\":\"enp0s31f6\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[{\"ip-address\":\"10.100.102.12\",\"mask\":24}],\"mac\":\"80:32:53:4f:16:4f\",\"mtu\":1500,\"name\":\"wlp0s20f3\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[{\"ip-address\":\"192.168.39.1\",\"mask\":24}],\"mac\":\"52:54:00:71:50:da\",\"mtu\":1500,\"name\":\"virbr1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"8e:59:a1:a9:14:23\",\"mtu\":1500,\"name\":\"virbr1-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"ip-address\":\"192.168.122.1\",\"mask\":24}],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"ip-address\":\"172.17.0.1\",\"mask\":16}],\"mac\":\"02:42:aa:59:3a:d3\",\"mtu\":1500,\"name\":\"docker0\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[],\"mac\":\"fe:9b:ea:d0:f5:70\",\"mtu\":1500,\"name\":\"vnet0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"fe:16:a0:ea:b3:0b\",\"mtu\":1500,\"name\":\"vnet1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"}]}"
+		hwInfo := "{\"block-devices\":[{\"device-type\":\"disk\",\"major-device-number\":259,\"name\":\"nvme0n1\",\"size\":256060514304},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":1,\"name\":\"nvme0n1p1\",\"size\":629145600},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":2,\"name\":\"nvme0n1p2\",\"size\":1073741824},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":3,\"name\":\"nvme0n1p3\",\"size\":254356226048}],\"cpu\":{\"architecture\":\"x86_64\",\"cpu-mhz\":1532.999,\"cpus\":8,\"model-name\":\"Intel(R) Core(TM) i7-8665U CPU @ 1.90GHz\",\"sockets\":1,\"threads-per-core\":2},\"memory\":[{\"available\":19743372,\"buff-cached\":13195388,\"free\":8357316,\"name\":\"Mem\",\"shared\":1369116,\"total\":32657728,\"used\":11105024},{\"free\":16400380,\"name\":\"Swap\",\"total\":16400380}],\"nics\":[{\"cidrs\":[],\"mac\":\"f8:75:a4:a4:01:6e\",\"mtu\":1500,\"name\":\"enp0s31f6\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[{\"ip-address\":\"10.100.102.12\",\"mask\":24}],\"mac\":\"80:32:53:4f:16:4f\",\"mtu\":1500,\"name\":\"wlp0s20f3\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[{\"ip-address\":\"192.168.39.1\",\"mask\":24}],\"mac\":\"52:54:00:71:50:da\",\"mtu\":1500,\"name\":\"virbr1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"8e:59:a1:a9:14:23\",\"mtu\":1500,\"name\":\"virbr1-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"ip-address\":\"192.168.122.1\",\"mask\":24}],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"ip-address\":\"172.17.0.1\",\"mask\":16}],\"mac\":\"02:42:aa:59:3a:d3\",\"mtu\":1500,\"name\":\"docker0\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[],\"mac\":\"fe:9b:ea:d0:f5:70\",\"mtu\":1500,\"name\":\"vnet0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"fe:16:a0:ea:b3:0b\",\"mtu\":1500,\"name\":\"vnet1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"}]}"
+
+		_, err := bmclient.Inventory.PostStepReply(ctx, &inventory.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   extraHwInfo,
+				StepID:   string(models.StepTypeHardwareInfo),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		host = getHost(clusterID, *host.ID)
+		Expect(host.HardwareInfo).Should(Equal(hwInfo))
+
+		_, err = bmclient.Inventory.PostStepReply(ctx, &inventory.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   "not a json",
+				StepID:   string(models.StepTypeHardwareInfo),
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		host = getHost(clusterID, *host.ID)
+		Expect(host.HardwareInfo).Should(Equal(hwInfo))
 	})
 
 	It("disable enable", func() {
