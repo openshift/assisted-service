@@ -281,7 +281,8 @@ func init() {
           "200": {
             "description": "The ISO file",
             "schema": {
-              "type": "file"
+              "type": "string",
+              "format": "binary"
             }
           },
           "400": {
@@ -320,7 +321,8 @@ func init() {
           "200": {
             "description": "The kubeconfig file",
             "schema": {
-              "type": "file"
+              "type": "string",
+              "format": "binary"
             }
           },
           "404": {
@@ -1638,7 +1640,8 @@ func init() {
           "200": {
             "description": "The ISO file",
             "schema": {
-              "type": "file"
+              "type": "string",
+              "format": "binary"
             }
           },
           "400": {
@@ -1677,7 +1680,8 @@ func init() {
           "200": {
             "description": "The kubeconfig file",
             "schema": {
-              "type": "file"
+              "type": "string",
+              "format": "binary"
             }
           },
           "404": {
