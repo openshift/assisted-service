@@ -55,7 +55,7 @@ func main() {
 
 	scheme := runtime.NewScheme()
 	if err = clientgoscheme.AddToScheme(scheme); err != nil {
-		log.Fatal()
+		log.Fatal("Failed to add K8S scheme", err)
 	}
 
 	kclient, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
