@@ -124,7 +124,7 @@ func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) err
 	var job batch.Job
 	if err := b.kube.Get(ctx, client.ObjectKey{
 		Namespace: "default",
-		Name:      fmt.Sprint(jobName),
+		Name:      jobName,
 	}, &job); err != nil {
 		return err
 	}
@@ -132,40 +132,43 @@ func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) err
 	for job.Status.Succeeded == 0 && job.Status.Failed == 0 {
 		if err := b.kube.Get(ctx, client.ObjectKey{
 			Namespace: "default",
-			Name:      fmt.Sprint(jobName),
+			Name:      jobName,
 		}, &job); err != nil {
 			return err
 		}
 	}
 
 	if job.Status.Failed > 0 {
-		log.Error("job failed")
-		return fmt.Errorf("job failed")
+		log.Errorf("Job <%s> failed", jobName)
+		return fmt.Errorf("Job <%s> failed", jobName)
 	}
 
 	if err := b.kube.Delete(context.Background(), &job); err != nil {
-		log.WithError(err).Error("failed to delete job")
+		log.WithError(err).Errorf("Failed to delete job <%s>", jobName)
 	}
 
 	return nil
 }
 
-func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models.Cluster) error {
+// create discovery image generation job, return job name and error
+func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models.Cluster) (string, error) {
 	id := cluster.ID
+	// max job name is 63 chars
+	jobName := fmt.Sprintf("create-image-%s-%s", id, uuid.New().String())[:63]
 	if err := b.kube.Create(ctx, &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: meta.ObjectMeta{
-			Name:      fmt.Sprintf("create-image-%s", id),
+			Name:      jobName,
 			Namespace: "default",
 		},
 		Spec: batch.JobSpec{
 			BackoffLimit: swag.Int32(2),
 			Template: core.PodTemplateSpec{
 				ObjectMeta: meta.ObjectMeta{
-					Name:      fmt.Sprintf("create-image-%s", id),
+					Name:      jobName,
 					Namespace: "default",
 				},
 				Spec: core.PodSpec{
@@ -186,7 +189,7 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models
 								},
 								{
 									Name:  "IMAGE_NAME",
-									Value: fmt.Sprintf("installer-image-%s", id),
+									Value: fmt.Sprintf("discovery-image-%s", id),
 								},
 								{
 									Name:  "S3_BUCKET",
@@ -201,9 +204,9 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models
 			},
 		},
 	}); err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return jobName, nil
 }
 
 func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster) string {
@@ -301,13 +304,13 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
 		return inventory.NewDownloadClusterISONotFound()
 	}
-
-	if err := b.createImageJob(ctx, &cluster); err != nil {
+	jobName, err := b.createImageJob(ctx, &cluster)
+	if err != nil {
 		log.WithError(err).Error("failed to create image job")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
-	if err := b.monitorJob(ctx, fmt.Sprintf("create-image-%s", params.ClusterID)); err != nil {
+	if err = b.monitorJob(ctx, jobName); err != nil {
 		log.WithError(err).Error("image creation failed")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
@@ -765,7 +768,7 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 	}
 
 	if err := b.createKubeconfigJob(ctx, &cluster); err != nil {
-		log.WithError(err).Error("Failed to create image job")
+		log.WithError(err).Error("Failed to create kubeconfig generation job")
 		return inventory.NewDownloadClusterKubeconfigInternalServerError()
 	}
 
