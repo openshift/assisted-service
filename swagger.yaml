@@ -166,7 +166,8 @@ paths:
         200:
           description: The ISO file
           schema:
-            type: file
+            type: string
+            format: binary
         400:
           description: Invalid parameters
         404:
@@ -193,7 +194,8 @@ paths:
         200:
           description: The kubeconfig file
           schema:
-            type: file
+            type: string
+            format: binary
         404:
           description: Cluster not found
         500:
