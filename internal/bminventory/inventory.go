@@ -10,6 +10,7 @@ import (
 
 	"github.com/filanov/bm-inventory/internal/installcfg"
 	"github.com/filanov/bm-inventory/models"
+	"github.com/filanov/bm-inventory/pkg/filemiddleware"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/bm-inventory/restapi/operations/inventory"
 	"github.com/go-openapi/runtime/middleware"
@@ -320,7 +321,8 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
-	return inventory.NewDownloadClusterISOOK().WithPayload(resp.Body)
+	return filemiddleware.NewResponder(inventory.NewDownloadClusterISOOK().WithPayload(resp.Body),
+		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()))
 }
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventory.InstallClusterParams) middleware.Responder {
@@ -780,5 +782,5 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 		log.WithError(err).Errorf("Failed to get clusters %s kubeKonfig", params.ClusterID)
 		return inventory.NewDownloadClusterKubeconfigInternalServerError()
 	}
-	return inventory.NewDownloadClusterKubeconfigOK().WithPayload(resp.Body)
+	return filemiddleware.NewResponder(inventory.NewDownloadClusterKubeconfigOK().WithPayload(resp.Body), "kubeconfig")
 }
