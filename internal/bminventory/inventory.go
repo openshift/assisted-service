@@ -189,7 +189,7 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models
 								},
 								{
 									Name:  "IMAGE_NAME",
-									Value: fmt.Sprintf("discovery-image-%s", id),
+									Value: getImageName(*id),
 								},
 								{
 									Name:  "S3_BUCKET",
@@ -315,8 +315,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
-	imageURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
-		fmt.Sprintf("installer-image-%s", params.ClusterID))
+	imageURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket, getImageName(params.ClusterID))
 	log.Info("Image URL: ", imageURL)
 	resp, err := http.Get(imageURL)
 	if err != nil {
@@ -326,6 +325,10 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 
 	return filemiddleware.NewResponder(inventory.NewDownloadClusterISOOK().WithPayload(resp.Body),
 		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()))
+}
+
+func getImageName(clusterID strfmt.UUID) string {
+	return fmt.Sprintf("discovery-image-%s", clusterID.String())
 }
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventory.InstallClusterParams) middleware.Responder {
