@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
@@ -319,7 +320,14 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 	log.Info("Image URL: ", imageURL)
 	resp, err := http.Get(imageURL)
 	if err != nil {
-		log.WithError(err).Error("failed to get image")
+		log.WithError(err).Errorf("Failed to get ISO: %s", getImageName(params.ClusterID))
+		return inventory.NewDownloadClusterISOInternalServerError()
+	}
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		b, _ := ioutil.ReadAll(resp.Body)
+		log.WithError(fmt.Errorf("%s", string(b))).
+			Errorf("Failed to get ISO: %s", getImageName(params.ClusterID))
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
@@ -787,6 +795,13 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get clusters %s kubeKonfig", params.ClusterID)
 		return inventory.NewDownloadClusterKubeconfigInternalServerError()
+	}
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		b, _ := ioutil.ReadAll(resp.Body)
+		log.WithError(fmt.Errorf("%s", string(b))).
+			Errorf("Failed to get clusters %s kubeKonfig", params.ClusterID)
+		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 	return filemiddleware.NewResponder(inventory.NewDownloadClusterKubeconfigOK().WithPayload(resp.Body), "kubeconfig")
 }
