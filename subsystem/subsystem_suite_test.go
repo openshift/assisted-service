@@ -49,5 +49,6 @@ func init() {
 
 func TestSubsystem(t *testing.T) {
 	RegisterFailHandler(Fail)
+	clearDB()
 	RunSpecs(t, "Subsystem Suite")
 }
