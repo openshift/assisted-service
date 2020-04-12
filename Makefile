@@ -9,7 +9,7 @@ lint:
 	golangci-lint run -v
 
 .PHONY: build
-build: lint
+build: lint unit-test
 	mkdir -p build
 	CGO_ENABLED=0 go build -o build/bm-inventory cmd/main.go
 
@@ -18,6 +18,9 @@ clean:
 
 format:
 	goimports -w -l cmd/ internal/
+
+generate:
+	go generate $(shell go list ./... | grep -v 'restapi\|client')
 
 generate-from-swagger:
 	rm -rf client models restapi
@@ -98,6 +101,9 @@ test:
 		DB_HOST=$(shell minikube service mariadb --url| sed 's/http:\/\///g' | cut -d ":" -f 1) \
 		DB_PORT=$(shell minikube service mariadb --url| sed 's/http:\/\///g' | cut -d ":" -f 2) \
 		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v $(SYSTEM_TEST)
+
+unit-test:
+	go test -v $(shell go list ./... | grep -v subsystem) -cover
 
 .PHONY: subsystem
 subsystem: deploy-all subsystem-run
