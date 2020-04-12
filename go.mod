@@ -10,11 +10,13 @@ require (
 	github.com/go-openapi/strfmt v0.19.4
 	github.com/go-openapi/swag v0.19.7
 	github.com/go-openapi/validate v0.19.5
+	github.com/golang/mock v1.2.0
 	github.com/google/uuid v1.1.1
 	github.com/jinzhu/gorm v1.9.12
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
+	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
