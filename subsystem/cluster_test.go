@@ -2,9 +2,11 @@ package subsystem
 
 import (
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"os"
 
+	"github.com/alecthomas/units"
 	"github.com/filanov/bm-inventory/client/inventory"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -94,13 +96,17 @@ var _ = Describe("Cluster tests", func() {
 })
 
 var _ = Describe("system-test cluster install", func() {
-	ctx := context.Background()
+	var (
+		ctx     = context.Background()
+		cluster *models.Cluster
+	)
+
 	AfterEach(func() {
 		clearDB()
 	})
 
-	It("install cluster", func() {
-		cluster, err := bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
+	BeforeEach(func() {
+		registerClusterReply, err := bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				APIVip:                   "v1",
 				BaseDNSDomain:            "example.com",
@@ -116,15 +122,41 @@ var _ = Describe("system-test cluster install", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
+		cluster = registerClusterReply.GetPayload()
+	})
 
-		clusterID := *cluster.GetPayload().ID
+	generateHWPostStepReply := func(h *models.Host, hwInfo *models.Introspection) {
+		hw, err := json.Marshal(&hwInfo)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = bmclient.Inventory.PostStepReply(ctx, &inventory.PostStepReplyParams{
+			ClusterID: h.ClusterID,
+			HostID:    *h.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   string(hw),
+				StepID:   string(models.StepTypeHardwareInfo),
+			},
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+	}
 
+	It("install cluster", func() {
+		clusterID := *cluster.ID
+
+		hwInfo := &models.Introspection{
+			CPU:    &models.CPU{Cpus: 16},
+			Memory: []*models.Memory{{Name: "Mem", Total: int64(32 * units.GiB)}},
+		}
 		h1 := registerHost(clusterID)
+		generateHWPostStepReply(h1, hwInfo)
 		h2 := registerHost(clusterID)
+		generateHWPostStepReply(h2, hwInfo)
 		h3 := registerHost(clusterID)
+		generateHWPostStepReply(h3, hwInfo)
 		h4 := registerHost(clusterID)
+		generateHWPostStepReply(h4, hwInfo)
 
-		_, err = bmclient.Inventory.UpdateCluster(ctx, &inventory.UpdateClusterParams{
+		_, err := bmclient.Inventory.UpdateCluster(ctx, &inventory.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *h1.ID, Role: "master"},
 				{ID: *h2.ID, Role: "master"},
@@ -157,5 +189,41 @@ var _ = Describe("system-test cluster install", func() {
 		s, err := file.Stat()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(s.Size()).ShouldNot(Equal(0))
+	})
+
+	It("install_cluster_insufficient_master", func() {
+		clusterID := *cluster.ID
+
+		hwInfo := &models.Introspection{
+			CPU:    &models.CPU{Cpus: 2},
+			Memory: []*models.Memory{{Name: "Mem", Total: int64(8 * units.GiB)}},
+		}
+		h1 := registerHost(clusterID)
+		generateHWPostStepReply(h1, hwInfo)
+		Expect(*getHost(clusterID, *h1.ID).Status).Should(Equal("known"))
+
+		hwInfo = &models.Introspection{
+			CPU:    &models.CPU{Cpus: 16},
+			Memory: []*models.Memory{{Name: "Mem", Total: int64(32 * units.GiB)}},
+		}
+		h2 := registerHost(clusterID)
+		generateHWPostStepReply(h2, hwInfo)
+		h3 := registerHost(clusterID)
+		generateHWPostStepReply(h3, hwInfo)
+		h4 := registerHost(clusterID)
+		generateHWPostStepReply(h4, hwInfo)
+
+		_, err := bmclient.Inventory.UpdateCluster(ctx, &inventory.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *h1.ID, Role: "master"},
+				{ID: *h2.ID, Role: "master"},
+				{ID: *h3.ID, Role: "master"},
+				{ID: *h4.ID, Role: "worker"},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		h1 = getHost(clusterID, *h1.ID)
+		Expect(*h1.Status).Should(Equal("insufficient"))
 	})
 })

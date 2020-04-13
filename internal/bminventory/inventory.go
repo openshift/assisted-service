@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/internal/installcfg"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/filemiddleware"
@@ -98,15 +99,17 @@ type bareMetalInventory struct {
 	debugCmdMap   map[strfmt.UUID]debugCmd
 	debugCmdMux   sync.Mutex
 	log           logrus.FieldLogger
+	hostApi       host.API
 }
 
-func NewBareMetalInventory(db *gorm.DB, log logrus.FieldLogger, kclient client.Client, cfg Config) *bareMetalInventory {
+func NewBareMetalInventory(db *gorm.DB, log logrus.FieldLogger, kclient client.Client, hostApi host.API, cfg Config) *bareMetalInventory {
 	b := &bareMetalInventory{
 		db:          db,
 		log:         log,
 		kube:        kclient,
 		Config:      cfg,
 		debugCmdMap: make(map[strfmt.UUID]debugCmd),
+		hostApi:     hostApi,
 	}
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
@@ -380,13 +383,13 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 	// generate ignition files from install-config.yaml
 
 	// move hosts states to installing
-	if reply := tx.Model(&models.Host{}).
-		Where("cluster_id = ?", params.ClusterID).
-		Update("status", HostStatusInstalling); reply.Error != nil || reply.RowsAffected == 0 {
-		log.WithError(reply.Error).Errorf("failed to update hosts in cluster: %s state to %s",
-			cluster.ID.String(), HostStatusInstalling)
-		tx.Rollback()
-		return inventory.NewInstallClusterInternalServerError()
+	for i := range cluster.Hosts {
+		if _, err := b.hostApi.Install(ctx, cluster.Hosts[i], tx); err != nil {
+			log.WithError(err).Errorf("failed to install hosts <%s> in cluster: %s",
+				cluster.Hosts[i].ID.String(), cluster.ID.String())
+			tx.Rollback()
+			return inventory.NewInstallClusterConflict()
+		}
 	}
 
 	if err := tx.Model(&models.Cluster{}).Where("id = ?", cluster.ID.String()).
@@ -452,14 +455,20 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory
 	for i := range params.ClusterUpdateParams.HostsRoles {
 		log.Infof("Update host %s to role: %s", params.ClusterUpdateParams.HostsRoles[i].ID,
 			params.ClusterUpdateParams.HostsRoles[i].Role)
-		reply := tx.Model(&models.Host{}).
-			Where("id = ? and cluster_id = ?", params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID).
-			Update("role", params.ClusterUpdateParams.HostsRoles[i].Role)
-		if reply.Error != nil || reply.RowsAffected == 0 {
+		var host models.Host
+		if err := tx.First(&host, "id = ? and cluster_id = ?",
+			params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID).Error; err != nil {
 			tx.Rollback()
-			log.WithError(reply.Error).Error("failed to update host: ",
-				params.ClusterUpdateParams.HostsRoles[i].ID)
+			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
+				params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID)
 			return inventory.NewUpdateClusterNotFound()
+		}
+		if _, err := b.hostApi.UpdateRole(ctx, &host, params.ClusterUpdateParams.HostsRoles[i].Role, tx); err != nil {
+			tx.Rollback()
+			log.WithError(err).Errorf("failed to set role <%s> host <%s> in cluster <%s>",
+				params.ClusterUpdateParams.HostsRoles[i].Role, params.ClusterUpdateParams.HostsRoles[i].ID,
+				params.ClusterID)
+			return inventory.NewUpdateClusterConflict()
 		}
 	}
 
@@ -517,24 +526,10 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.
 		return inventory.NewRegisterClusterBadRequest()
 	}
 
-	if err := b.db.Create(host).Error; err != nil {
-		// check if host already exists - if it does updated the status to discovering
-		if getErr := b.db.First(&models.Host{}, "id = ? and cluster_id = ?",
-			params.NewHostParams.HostID, params.ClusterID).Error; getErr == nil {
-			host.Status = swag.String(HostStatusDiscovering)
-			if err = b.db.Model(&host).
-				Where("host_id = ? and cluster_id = ?", *params.NewHostParams.HostID, params.ClusterID).
-				Update("status", host.Status).Error; err != nil {
-				log.WithError(err).Error("failed to create host")
-				return inventory.NewDisableHostInternalServerError()
-			} else {
-				log.Infof("Host %s from cluster %s registered again, will go to %s state",
-					*host.ID, host.ClusterID, *host.Status)
-				return inventory.NewRegisterHostCreated().WithPayload(host)
-			}
-		}
-		log.WithError(err).Error("failed to create host")
-		return inventory.NewRegisterClusterInternalServerError()
+	if _, err := b.hostApi.RegisterHost(ctx, host); err != nil {
+		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
+			params.NewHostParams.HostID.String(), params.ClusterID.String())
+		return inventory.NewRegisterClusterBadRequest()
 	}
 
 	return inventory.NewRegisterHostCreated().WithPayload(host)
@@ -635,7 +630,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params inventory
 			return inventory.NewPostStepReplyBadRequest()
 		}
 
-		if err := b.db.Model(&host).Update("hardware_info", hwInfo).Error; err != nil {
+		if _, err := b.hostApi.UpdateHwInfo(ctx, &host, hwInfo); err != nil {
 			log.WithError(err).Errorf("Failed to update host <%s> cluster <%s> step <%s>",
 				params.HostID, params.ClusterID, params.Reply.StepID)
 			return inventory.NewPostStepReplyInternalServerError()
@@ -680,13 +675,9 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params inventory.D
 		return inventory.NewDisableHostNotFound()
 	}
 
-	if swag.StringValue(host.Status) == HostStatusInstalling || swag.StringValue(host.Status) == HostStatusInstalled {
+	if _, err := b.hostApi.DisableHost(ctx, &host); err != nil {
+		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
 		return inventory.NewDisableHostConflict()
-	}
-	if err := b.db.Model(&host).
-		Where("host_id = ? and cluster_id = ?", params.HostID.String(), params.ClusterID.String()).
-		Update("status", HostStatusDisabled).Error; err != nil {
-		return inventory.NewDisableHostInternalServerError()
 	}
 	return inventory.NewDisableHostNoContent()
 }
@@ -700,14 +691,9 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.En
 		return inventory.NewEnableHostNotFound()
 	}
 
-	if swag.StringValue(host.Status) != HostStatusDisabled {
+	if _, err := b.hostApi.EnableHost(ctx, &host); err != nil {
+		log.WithError(err).Errorf("failed to enable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
 		return inventory.NewEnableHostConflict()
-	}
-
-	//TODO clear HW info
-	if err := b.db.Model(&host).Where("id = ? and cluster_id = ?", params.HostID.String(), params.ClusterID).
-		Update("status", HostStatusDiscovering).Error; err != nil {
-		return inventory.NewEnableHostInternalServerError()
 	}
 	return inventory.NewEnableHostNoContent()
 }

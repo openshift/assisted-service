@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/filanov/bm-inventory/pkg/requestid"
-
 	"github.com/filanov/bm-inventory/internal/bminventory"
+	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
+	"github.com/filanov/bm-inventory/pkg/requestid"
 	"github.com/filanov/bm-inventory/restapi"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -67,7 +68,8 @@ func main() {
 		log.Fatal("failed to auto migrate, ", err)
 	}
 
-	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), kclient, Options.BMConfig)
+	hostApi := host.NewState(log.WithField("pkg", "host-state"), db, hardware.NewValidator())
+	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), kclient, hostApi, Options.BMConfig)
 	h, err := restapi.Handler(restapi.Config{
 		InventoryAPI: bm,
 		Logger:       log.Printf,
