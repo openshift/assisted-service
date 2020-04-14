@@ -130,7 +130,7 @@ func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) err
 		return err
 	}
 
-	for job.Status.Succeeded == 0 && job.Status.Failed == 0 {
+	for job.Status.Succeeded == 0 && job.Status.Failed <= swag.Int32Value(job.Spec.BackoffLimit)+1 {
 		if err := b.kube.Get(ctx, client.ObjectKey{
 			Namespace: "default",
 			Name:      jobName,
@@ -139,9 +139,9 @@ func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) err
 		}
 	}
 
-	if job.Status.Failed > 0 {
-		log.Errorf("Job <%s> failed", jobName)
-		return fmt.Errorf("Job <%s> failed", jobName)
+	if job.Status.Failed >= swag.Int32Value(job.Spec.BackoffLimit)+1 {
+		log.Errorf("Job <%s> failed %d times", jobName, job.Status.Failed)
+		return fmt.Errorf("Job <%s> failed <%d> times", jobName, job.Status.Failed)
 	}
 
 	if err := b.kube.Delete(context.Background(), &job); err != nil {
