@@ -3,6 +3,7 @@ module github.com/filanov/bm-inventory
 go 1.13
 
 require (
+	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
 	github.com/go-openapi/errors v0.19.3
 	github.com/go-openapi/loads v0.19.4
 	github.com/go-openapi/runtime v0.19.11
@@ -17,6 +18,7 @@ require (
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/pkg/errors v0.8.1
+	github.com/prometheus/common v0.4.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
