@@ -1,9 +1,11 @@
 package bminventory
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -47,6 +49,11 @@ const (
 const (
 	ResourceKindHost    = "host"
 	ResourceKindCluster = "cluster"
+)
+
+const (
+	master    = "master"
+	bootstrap = "bootstrap"
 )
 
 type Config struct {
@@ -392,7 +399,18 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 	if err := tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return inventory.NewInstallClusterNotFound()
 	}
-
+	// validate minimum number of master nodes
+	var masterNodesIds []*strfmt.UUID
+	for i := range cluster.Hosts {
+		if cluster.Hosts[i].Role == master {
+			masterNodesIds = append(masterNodesIds, cluster.Hosts[i].ID)
+		}
+	}
+	minimumMasterNodes := 3
+	if len(masterNodesIds) < minimumMasterNodes {
+		log.Errorf("Can't install cluster without minimum %d master nodes", minimumMasterNodes)
+		return inventory.NewInstallClusterConflict()
+	}
 	// create install-config.yaml
 	cfg, err := installcfg.GetInstallConfig(&cluster)
 	if err != nil {
@@ -401,7 +419,10 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 	}
 	fmt.Println("Install config: \n", string(cfg))
 
-	// generate ignition files from install-config.yaml
+	//TODO: generate ignition files from install-config.yaml
+
+	// Temporary hack - use debug API for setting the executing install command:
+	b.addInstallCommand(masterNodesIds, log, params, cluster, ctx)
 
 	// move hosts states to installing
 	for i := range cluster.Hosts {
@@ -430,6 +451,41 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 	}
 
 	return inventory.NewInstallClusterOK().WithPayload(&cluster)
+}
+
+func (b *bareMetalInventory) addInstallCommand(masterNodesIds []*strfmt.UUID, log logrus.FieldLogger, params inventory.InstallClusterParams, cluster models.Cluster, ctx context.Context) {
+	// set one of the master nodes as bootstrap
+	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
+	log.Debugf("Bootstrap ID is %s", bootstrapId)
+
+	const cmdTmpl = `sudo docker run -e CLUSTER_ID={{.CLUSTER_ID}} -e BUCKET={{.S3_BUCKET}} -e S3_URL={{.S3_URL}} -e DEVICE=/dev/vda -v /dev:/dev:rw,Z --privileged --pid=host  eranco/assisted_installer:latest -r {{.ROLE}}`
+	t := template.Must(template.New("cmd").Parse(cmdTmpl))
+
+	data := map[string]string{
+		"S3_URL":     b.S3EndpointURL,
+		"S3_BUCKET":  b.S3Bucket,
+		"CLUSTER_ID": string(params.ClusterID),
+		"ROLE":       "",
+	}
+	for i := range cluster.Hosts {
+		role := cluster.Hosts[i].Role
+		if cluster.Hosts[i].ID == bootstrapId {
+			role = bootstrap
+		}
+		data["ROLE"] = role
+
+		buf := &bytes.Buffer{}
+		if err := t.Execute(buf, data); err != nil {
+			panic(err)
+		}
+		command := buf.String()
+		b.SetDebugStep(ctx, inventory.SetDebugStepParams{
+			ClusterID: params.ClusterID,
+			HostID:    *cluster.Hosts[i].ID,
+			Step:      &models.DebugStep{Command: &command},
+		},
+		)
+	}
 }
 
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory.UpdateClusterParams) middleware.Responder {
