@@ -61,7 +61,7 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 		reason += fmt.Sprintf("insufficient CPU cores, expected: <%d> got <%d>", minCpuCoresRequired, hwInfo.CPU.Cpus)
 	}
 
-	if total := sumMemory(hwInfo); total < minRamRequired {
+	if total := getTotalMemory(hwInfo); total < minRamRequired {
 		reason += fmt.Sprintf(", insufficient RAM requirements, expected: <%d> got <%d>", total, minRamRequired)
 	}
 
@@ -82,12 +82,11 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 	}, nil
 }
 
-func sumMemory(hwInfo models.Introspection) int64 {
-	var sum int64
+func getTotalMemory(hwInfo models.Introspection) int64 {
 	for i := range hwInfo.Memory {
 		if hwInfo.Memory[i].Name == "Mem" {
-			sum += hwInfo.Memory[i].Total
+			return hwInfo.Memory[i].Total
 		}
 	}
-	return sum
+	return 0
 }
