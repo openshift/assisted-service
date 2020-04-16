@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/filanov/bm-inventory/internal/installcfg"
 	"github.com/filanov/bm-inventory/models"
@@ -131,6 +132,7 @@ func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) err
 	}
 
 	for job.Status.Succeeded == 0 && job.Status.Failed <= swag.Int32Value(job.Spec.BackoffLimit)+1 {
+		time.Sleep(500 * time.Millisecond)
 		if err := b.kube.Get(ctx, client.ObjectKey{
 			Namespace: "default",
 			Name:      jobName,
