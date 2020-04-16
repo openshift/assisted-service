@@ -1,12 +1,22 @@
 digraph ClusterStateMachine {
-    graph [pad="0.5", nodesep="1", ranksep="1"];
+    graph [nodesep = "1.0", ranksep = "1.0"];
+    node [style = filled];
+    compound = true;
+    newrank = false;
 
-    start [shape=house];
-    start -> installing [label = "installation\nstarted"];
+    start [shape = house, color = coral];
+    insufficient [color = lightpink];
+    ready [color = cadetblue3];
+    installing [color = darkolivegreen3];
+    installed [shape = doublecircle, color = chartreuse];
+    error [shape = doublecircle, color = crimson];
 
-    installing -> installed [label = "installation\ncompleted"];
-    installing -> error [label = "installation\nerror"]
+    start -> insufficient [label = "cluster\ncreated", color=lightpink3, fontcolor=lightpink3];
+    insufficient -> ready [label = "min reqs\nmet", color=cadetblue4, fontcolor=cadetblue4];
+    ready -> installing [label = "installation started", color=darkolivegreen4, fontcolor=darkolivegreen4];
+    installing -> installed [label = "installation\ncompleted", color=chartreuse4, fontcolor=chartreuse4];
+    installing -> error [label = "installation\nerror", color=crimson, fontcolor=crimson];
 
-    installed [shape=doublecircle];
-    error [shape=doublecircle];
+    {rank=max; installed}
+    {rank=same; start; ready; installing}
 }
