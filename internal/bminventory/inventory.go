@@ -57,6 +57,8 @@ type Config struct {
 	InventoryPort       string `envconfig:"INVENTORY_PORT" default:"30485"`
 	S3EndpointURL       string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
 	S3Bucket            string `envconfig:"S3_BUCKET" default:"test"`
+	AwsAccessKeyID      string `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey  string `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
 }
 
 const ignitionConfigFormat = `{
@@ -198,7 +200,14 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models
 									Name:  "S3_BUCKET",
 									Value: b.S3Bucket,
 								},
-								//TODO add s3 credentials
+								{
+									Name:  "aws_access_key_id",
+									Value: b.AwsAccessKeyID,
+								},
+								{
+									Name:  "aws_secret_access_key",
+									Value: b.AwsSecretAccessKey,
+								},
 							},
 						},
 					},
@@ -755,6 +764,14 @@ func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *m
 								{
 									Name:  "CLUSTER_ID",
 									Value: id.String(),
+								},
+								{
+									Name:  "aws_access_key_id",
+									Value: b.AwsAccessKeyID,
+								},
+								{
+									Name:  "aws_secret_access_key",
+									Value: b.AwsSecretAccessKey,
 								},
 							},
 						},
