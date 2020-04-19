@@ -58,11 +58,12 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 	}
 
 	if hwInfo.CPU.Cpus < minCpuCoresRequired {
-		reason += fmt.Sprintf("insufficient CPU cores, expected: <%d> got <%d>", minCpuCoresRequired, hwInfo.CPU.Cpus)
+		reason += fmt.Sprintf(", insufficient CPU cores, expected: <%d> got <%d>", minCpuCoresRequired, hwInfo.CPU.Cpus)
 	}
 
 	if total := getTotalMemory(hwInfo); total < minRamRequired {
-		reason += fmt.Sprintf(", insufficient RAM requirements, expected: <%d> got <%d>", total, minRamRequired)
+		reason += fmt.Sprintf(", insufficient RAM requirements, expected: <%s> got <%s>",
+			units.Base2Bytes(minRamRequired), units.Base2Bytes(total))
 	}
 
 	// TODO: check disk space
@@ -70,7 +71,7 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 	if len(reason) == 0 {
 		isSufficient = true
 	} else {
-		reason = fmt.Sprintf("host have insufficient hardware, %s", reason)
+		reason = fmt.Sprintf("host have insufficient hardware%s", reason)
 		if host.Role != "" {
 			reason = fmt.Sprintf("%s %s", host.Role, reason)
 		}
