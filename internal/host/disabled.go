@@ -35,14 +35,14 @@ func (d *disabledState) UpdateRole(ctx context.Context, h *models.Host, role str
 	if db != nil {
 		cdb = db
 	}
-	return updateStateWithParams(logutil.FromContext(ctx, d.log), hostStatusDisabled, statusInfoDisabled, h, cdb,
+	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDisabled, statusInfoDisabled, h, cdb,
 		"role", role)
 }
 
 func (d *disabledState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusDisabled,
+		State:     HostStatusDisabled,
 		IsChanged: false,
 	}, nil
 }
@@ -53,14 +53,14 @@ func (d *disabledState) Install(ctx context.Context, h *models.Host, db *gorm.DB
 }
 
 func (d *disabledState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateStateWithParams(logutil.FromContext(ctx, d.log), hostStatusDiscovering, "", h, d.db,
+	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDiscovering, "", h, d.db,
 		"hardware_info", "")
 }
 
 func (d *disabledState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusDisabled,
+		State:     HostStatusDisabled,
 		IsChanged: false,
 	}, nil
 }

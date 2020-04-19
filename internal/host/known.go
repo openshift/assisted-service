@@ -27,7 +27,7 @@ type knownState struct {
 }
 
 func (k *knownState) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateStateWithParams(logutil.FromContext(ctx, k.log), hostStatusDiscovering, hostStatusDiscovering, h, k.db,
+	return updateStateWithParams(logutil.FromContext(ctx, k.log), HostStatusDiscovering, HostStatusDiscovering, h, k.db,
 		"hardware_info", "")
 }
 
@@ -48,9 +48,9 @@ func (k *knownState) UpdateRole(ctx context.Context, h *models.Host, role string
 		return nil, err
 	}
 	if !reply.IsSufficient {
-		return updateStateWithParams(log, hostStatusInsufficient, reply.Reason, h, cdb, "role", role)
+		return updateStateWithParams(log, HostStatusInsufficient, reply.Reason, h, cdb, "role", role)
 	}
-	return updateStateWithParams(log, hostStatusKnown, "", h, cdb, "role", role)
+	return updateStateWithParams(log, HostStatusKnown, "", h, cdb, "role", role)
 }
 
 func (k *knownState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
@@ -65,17 +65,17 @@ func (k *knownState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (
 	if db != nil {
 		cdb = db
 	}
-	return updateState(logutil.FromContext(ctx, k.log), hostStatusInstalling, statusInfoInstalling, h, cdb)
+	return updateState(logutil.FromContext(ctx, k.log), HostStatusInstalling, statusInfoInstalling, h, cdb)
 }
 
 func (k *knownState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusKnown,
+		State:     HostStatusKnown,
 		IsChanged: false,
 	}, nil
 }
 
 func (k *knownState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateState(logutil.FromContext(ctx, k.log), hostStatusDisabled, statusInfoDisabled, h, k.db)
+	return updateState(logutil.FromContext(ctx, k.log), HostStatusDisabled, statusInfoDisabled, h, k.db)
 }

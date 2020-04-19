@@ -17,7 +17,7 @@ var _ = Describe("disabled_state", func() {
 	ctx := context.Background()
 	var state API
 	var db *gorm.DB
-	currentState := hostStatusDisabled
+	currentState := HostStatusDisabled
 	var host models.Host
 	var id, clusterId strfmt.UUID
 	var updateReply *UpdateReply
@@ -93,7 +93,7 @@ var _ = Describe("disabled_state", func() {
 
 	It("enable_host", func() {
 		updateReply, updateErr = state.EnableHost(ctx, &host)
-		expectedReply.expectedState = hostStatusDiscovering
+		expectedReply.expectedState = HostStatusDiscovering
 		expectedReply.postCheck = func() {
 			h := getHost(id, clusterId, db)
 			Expect(h.HardwareInfo).Should(Equal(""))

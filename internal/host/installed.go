@@ -37,7 +37,7 @@ func (i *installedState) UpdateRole(ctx context.Context, h *models.Host, role st
 func (i *installedState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusInstalled,
+		State:     HostStatusInstalled,
 		IsChanged: false,
 	}, nil
 }
@@ -50,7 +50,7 @@ func (i *installedState) Install(ctx context.Context, h *models.Host, db *gorm.D
 func (i *installedState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusInstalled,
+		State:     HostStatusInstalled,
 		IsChanged: false,
 	}, nil
 }

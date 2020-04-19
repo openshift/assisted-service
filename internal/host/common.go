@@ -12,17 +12,6 @@ import (
 )
 
 const (
-	hostStatusDiscovering  = "discovering"
-	hostStatusKnown        = "known"
-	hostStatusDisconnected = "disconnected"
-	hostStatusInsufficient = "insufficient"
-	hostStatusDisabled     = "disabled"
-	hostStatusInstalling   = "installing"
-	hostStatusInstalled    = "installed"
-	hostStatusError        = "error"
-)
-
-const (
 	statusInfoDisconnected = "Host keepalive timeout"
 	statusInfoDisabled     = "Host is disabled"
 	statusInfoDiscovering  = "Waiting for host hardware info"
@@ -45,7 +34,7 @@ func updateState(log logrus.FieldLogger, state, stateInfo string, h *models.Host
 
 func updateByKeepAlive(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	if time.Since(time.Time(h.UpdatedAt)) > 3*time.Minute {
-		return updateState(log, hostStatusDisconnected, statusInfoDisconnected, h, db)
+		return updateState(log, HostStatusDisconnected, statusInfoDisconnected, h, db)
 	}
 	return &UpdateReply{
 		State:     swag.StringValue(h.Status),
@@ -86,8 +75,8 @@ func updateHwInfo(log logrus.FieldLogger, hwValidator hardware.Validator, h *mod
 		return nil, err
 	}
 	if !reply.IsSufficient {
-		return updateStateWithParams(log, hostStatusInsufficient, reply.Reason, h, db,
+		return updateStateWithParams(log, HostStatusInsufficient, reply.Reason, h, db,
 			"hardware_info", h.HardwareInfo)
 	}
-	return updateStateWithParams(log, hostStatusKnown, "", h, db, "hardware_info", h.HardwareInfo)
+	return updateStateWithParams(log, HostStatusKnown, "", h, db, "hardware_info", h.HardwareInfo)
 }

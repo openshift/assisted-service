@@ -267,3 +267,18 @@ func (mr *MockAPIMockRecorder) DisableHost(ctx, h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableHost", reflect.TypeOf((*MockAPI)(nil).DisableHost), ctx, h)
 }
+
+// GetNextSteps mocks base method.
+func (m *MockAPI) GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNextSteps", ctx, host)
+	ret0, _ := ret[0].(models.Steps)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNextSteps indicates an expected call of GetNextSteps.
+func (mr *MockAPIMockRecorder) GetNextSteps(ctx, host interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextSteps", reflect.TypeOf((*MockAPI)(nil).GetNextSteps), ctx, host)
+}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-openapi/swag"
 
+	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/job"
 	"github.com/filanov/bm-inventory/restapi/operations/inventory"
@@ -32,7 +33,7 @@ func prepareDB() *gorm.DB {
 	db, err := gorm.Open("sqlite3", ":memory:")
 	Expect(err).ShouldNot(HaveOccurred())
 	//db = db.Debug()
-	db.AutoMigrate(&models.Cluster{})
+	db.AutoMigrate(&models.Cluster{}, &models.Host{})
 	return db
 }
 
@@ -40,6 +41,11 @@ func getTestLog() logrus.FieldLogger {
 	l := logrus.New()
 	l.SetOutput(ioutil.Discard)
 	return l
+}
+
+func strToUUID(s string) *strfmt.UUID {
+	u := strfmt.UUID(s)
+	return &u
 }
 
 var _ = Describe("GenerateClusterISO", func() {
@@ -112,4 +118,70 @@ var _ = Describe("GenerateClusterISO", func() {
 		ctrl.Finish()
 		db.Close()
 	})
+
+})
+
+var _ = Describe("GetNextSteps", func() {
+	var (
+		bm          *bareMetalInventory
+		cfg         Config
+		db          *gorm.DB
+		ctx         = context.Background()
+		ctrl        *gomock.Controller
+		mockHostApi *host.MockAPI
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = prepareDB()
+		mockHostApi = host.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, cfg, nil)
+	})
+
+	It("get_next_steps_unknown_host", func() {
+		clusterId := strToUUID(uuid.New().String())
+		unregistered_hostID := strToUUID(uuid.New().String())
+
+		generateReply := bm.GetNextSteps(ctx, inventory.GetNextStepsParams{
+			ClusterID: *clusterId,
+			HostID:    *unregistered_hostID,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGetNextStepsNotFound()))
+	})
+
+	It("get_next_steps_success", func() {
+		clusterId := strToUUID(uuid.New().String())
+		hostId := strToUUID(uuid.New().String())
+		host := models.Host{
+			Base: models.Base{
+				ID: hostId,
+			},
+			ClusterID: *clusterId,
+			Status:    swag.String("discovering"),
+		}
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+		var err error
+		expectedStepsReply := models.Steps{&models.Step{StepType: models.StepTypeHardwareInfo},
+			&models.Step{StepType: models.StepTypeConnectivityCheck}}
+		mockHostApi.EXPECT().GetNextSteps(gomock.Any(), gomock.Any()).Return(expectedStepsReply, err)
+		reply := bm.GetNextSteps(ctx, inventory.GetNextStepsParams{
+			ClusterID: *clusterId,
+			HostID:    *hostId,
+		})
+		Expect(reply).Should(BeAssignableToTypeOf(inventory.NewGetNextStepsOK()))
+		stepsReply := reply.(*inventory.GetNextStepsOK).Payload
+		expectedStepsType := []models.StepType{models.StepTypeHardwareInfo, models.StepTypeConnectivityCheck}
+		Expect(stepsReply).To(HaveLen(len(expectedStepsType)))
+		for i, step := range stepsReply {
+			Expect(step.StepType).Should(Equal(expectedStepsType[i]))
+		}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		db.Close()
+	})
+
 })

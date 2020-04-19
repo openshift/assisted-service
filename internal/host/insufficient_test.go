@@ -21,7 +21,7 @@ var _ = Describe("insufficient_state", func() {
 		ctx           = context.Background()
 		state         API
 		db            *gorm.DB
-		currentState  = hostStatusInsufficient
+		currentState  = HostStatusInsufficient
 		host          models.Host
 		id, clusterId strfmt.UUID
 		updateReply   *UpdateReply
@@ -53,7 +53,7 @@ var _ = Describe("insufficient_state", func() {
 
 	It("register_host", func() {
 		updateReply, updateErr = state.RegisterHost(ctx, &host)
-		expectedReply.expectedState = hostStatusDiscovering
+		expectedReply.expectedState = HostStatusDiscovering
 		expectedReply.postCheck = func() {
 			h := getHost(id, clusterId, db)
 			Expect(h.HardwareInfo).Should(Equal(""))
@@ -65,7 +65,7 @@ var _ = Describe("insufficient_state", func() {
 			mockValidator.EXPECT().IsSufficient(gomock.Any()).
 				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
 			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
-			expectedReply.expectedState = hostStatusKnown
+			expectedReply.expectedState = HostStatusKnown
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.HardwareInfo).Should(Equal("some hw info"))
@@ -75,7 +75,7 @@ var _ = Describe("insufficient_state", func() {
 			mockValidator.EXPECT().IsSufficient(gomock.Any()).
 				Return(&hardware.IsSufficientReply{IsSufficient: false, Reason: "because"}, nil).Times(1)
 			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
-			expectedReply.expectedState = hostStatusInsufficient
+			expectedReply.expectedState = HostStatusInsufficient
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.HardwareInfo).Should(Equal("some hw info"))
@@ -99,7 +99,7 @@ var _ = Describe("insufficient_state", func() {
 			mockValidator.EXPECT().IsSufficient(gomock.Any()).
 				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
 			updateReply, updateErr = state.UpdateRole(ctx, &host, "master", nil)
-			expectedReply.expectedState = hostStatusKnown
+			expectedReply.expectedState = HostStatusKnown
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Role).Should(Equal("master"))
@@ -145,7 +145,7 @@ var _ = Describe("insufficient_state", func() {
 		})
 		It("keep_alive_timeout", func() {
 			host.UpdatedAt = strfmt.DateTime(time.Now().Add(-time.Hour))
-			expectedReply.expectedState = hostStatusDisconnected
+			expectedReply.expectedState = HostStatusDisconnected
 			updateReply, updateErr = state.RefreshStatus(ctx, &host)
 		})
 	})
@@ -161,7 +161,7 @@ var _ = Describe("insufficient_state", func() {
 
 	It("disable_host", func() {
 		updateReply, updateErr = state.DisableHost(ctx, &host)
-		expectedReply.expectedState = hostStatusDisabled
+		expectedReply.expectedState = HostStatusDisabled
 	})
 
 	AfterEach(func() {

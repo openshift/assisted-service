@@ -42,13 +42,6 @@ const (
 )
 
 const (
-	HostStatusDisabled    = "disabled"
-	HostStatusInstalling  = "installing"
-	HostStatusInstalled   = "installed"
-	HostStatusDiscovering = "discovering"
-)
-
-const (
 	ResourceKindHost    = "host"
 	ResourceKindCluster = "cluster"
 )
@@ -123,6 +116,7 @@ func NewBareMetalInventory(db *gorm.DB, log logrus.FieldLogger, hostApi host.API
 		hostApi:     hostApi,
 		job:         jobApi,
 	}
+
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
 	}
@@ -667,17 +661,19 @@ func createStepID(stepType models.StepType) string {
 
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	steps := models.Steps{}
+	var steps models.Steps
 	var host models.Host
 
 	//TODO check the error type
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
-		log.WithError(err).Error("failed to find host")
+		log.WithError(err).Errorf("failed to find host %s", params.HostID)
 		return inventory.NewGetNextStepsNotFound()
 	}
 
-	if swag.StringValue(host.Status) == HostStatusDisabled {
-		return inventory.NewGetNextStepsOK().WithPayload(steps)
+	var err error
+	steps, err = b.hostApi.GetNextSteps(ctx, &host)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get steps for host %s cluster %s", params.ClusterID, params.HostID)
 	}
 
 	b.debugCmdMux.Lock()
@@ -692,14 +688,6 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params inventory.
 	}
 	b.debugCmdMux.Unlock()
 
-	steps = append(steps, &models.Step{
-		StepType: models.StepTypeHardwareInfo,
-		StepID:   createStepID(models.StepTypeHardwareInfo),
-	})
-	for _, step := range steps {
-		log.Infof("Submitting step <%s> to cluster <%s> host <%s> Command: <%s> Arguments: <%+v>", step.StepID, params.ClusterID, params.HostID,
-			step.Command, step.Args)
-	}
 	return inventory.NewGetNextStepsOK().WithPayload(steps)
 }
 

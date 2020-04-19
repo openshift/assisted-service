@@ -21,7 +21,7 @@ var _ = Describe("discovering_state", func() {
 		ctx           = context.Background()
 		state         API
 		db            *gorm.DB
-		currentState  = hostStatusDiscovering
+		currentState  = HostStatusDiscovering
 		host          models.Host
 		id, clusterId strfmt.UUID
 		updateReply   *UpdateReply
@@ -35,7 +35,6 @@ var _ = Describe("discovering_state", func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
-		state = NewDiscoveringState(getTestLog(), db, mockValidator)
 		state = &Manager{discovering: NewDiscoveringState(getTestLog(), db, mockValidator)}
 
 		id = strfmt.UUID(uuid.New().String())
@@ -76,7 +75,7 @@ var _ = Describe("discovering_state", func() {
 			mockValidator.EXPECT().IsSufficient(gomock.Any()).
 				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
 			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
-			expectedReply.expectedState = hostStatusKnown
+			expectedReply.expectedState = HostStatusKnown
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.HardwareInfo).Should(Equal("some hw info"))
@@ -86,7 +85,7 @@ var _ = Describe("discovering_state", func() {
 			mockValidator.EXPECT().IsSufficient(gomock.Any()).
 				Return(&hardware.IsSufficientReply{IsSufficient: false, Reason: "because"}, nil).Times(1)
 			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
-			expectedReply.expectedState = hostStatusInsufficient
+			expectedReply.expectedState = HostStatusInsufficient
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.HardwareInfo).Should(Equal("some hw info"))
@@ -132,7 +131,7 @@ var _ = Describe("discovering_state", func() {
 		It("keep_alive_timeout", func() {
 			host.UpdatedAt = strfmt.DateTime(time.Now().Add(-time.Hour))
 			updateReply, updateErr = state.RefreshStatus(ctx, &host)
-			expectedReply.expectedState = hostStatusDisconnected
+			expectedReply.expectedState = HostStatusDisconnected
 		})
 	})
 
@@ -147,7 +146,7 @@ var _ = Describe("discovering_state", func() {
 
 	It("disable_host", func() {
 		updateReply, updateErr = state.DisableHost(ctx, &host)
-		expectedReply.expectedState = hostStatusDisabled
+		expectedReply.expectedState = HostStatusDisabled
 	})
 
 	AfterEach(func() {

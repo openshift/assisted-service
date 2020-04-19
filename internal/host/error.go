@@ -37,7 +37,7 @@ func (e *errorState) UpdateRole(ctx context.Context, h *models.Host, role string
 func (e *errorState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusError,
+		State:     HostStatusError,
 		IsChanged: false,
 	}, nil
 }
@@ -50,7 +50,7 @@ func (e *errorState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (
 func (e *errorState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusError,
+		State:     HostStatusError,
 		IsChanged: false,
 	}, nil
 }

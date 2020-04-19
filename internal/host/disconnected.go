@@ -28,7 +28,7 @@ type disconnectedState struct {
 }
 
 func (d *disconnectedState) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateStateWithParams(logutil.FromContext(ctx, d.log), hostStatusDiscovering, statusInfoDiscovering, h, d.db,
+	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDiscovering, statusInfoDiscovering, h, d.db,
 		"hardware_info", "")
 }
 
@@ -42,14 +42,14 @@ func (d *disconnectedState) UpdateRole(ctx context.Context, h *models.Host, role
 	if db != nil {
 		cdb = db
 	}
-	return updateStateWithParams(logutil.FromContext(ctx, d.log), hostStatusDisconnected, h.StatusInfo, h, cdb,
+	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDisconnected, h.StatusInfo, h, cdb,
 		"role", role)
 }
 
 func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusDisconnected,
+		State:     HostStatusDisconnected,
 		IsChanged: false,
 	}, nil
 }
@@ -62,11 +62,11 @@ func (d *disconnectedState) Install(ctx context.Context, h *models.Host, db *gor
 func (d *disconnectedState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusDisconnected,
+		State:     HostStatusDisconnected,
 		IsChanged: false,
 	}, nil
 }
 
 func (d *disconnectedState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateState(logutil.FromContext(ctx, d.log), hostStatusDisabled, statusInfoDisabled, h, d.db)
+	return updateState(logutil.FromContext(ctx, d.log), HostStatusDisabled, statusInfoDisabled, h, d.db)
 }

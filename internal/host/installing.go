@@ -21,7 +21,7 @@ func NewInstallingState(log logrus.FieldLogger, db *gorm.DB) *installingState {
 type installingState baseState
 
 func (i *installingState) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateStateWithParams(logutil.FromContext(ctx, i.log), hostStatusError,
+	return updateStateWithParams(logutil.FromContext(ctx, i.log), HostStatusError,
 		"host rebooted during installation process", h, i.db)
 }
 
@@ -38,7 +38,7 @@ func (i *installingState) UpdateRole(ctx context.Context, h *models.Host, role s
 func (i *installingState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusInstalling,
+		State:     HostStatusInstalling,
 		IsChanged: false,
 	}, nil
 }
@@ -52,7 +52,7 @@ func (i *installingState) Install(ctx context.Context, h *models.Host, db *gorm.
 func (i *installingState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusInstalling,
+		State:     HostStatusInstalling,
 		IsChanged: false,
 	}, nil
 }

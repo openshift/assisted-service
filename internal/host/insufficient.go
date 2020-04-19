@@ -28,7 +28,7 @@ type insufficientState struct {
 }
 
 func (i *insufficientState) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateStateWithParams(logutil.FromContext(ctx, i.log), hostStatusDiscovering, hostStatusDiscovering, h, i.db,
+	return updateStateWithParams(logutil.FromContext(ctx, i.log), HostStatusDiscovering, HostStatusDiscovering, h, i.db,
 		"hardware_info", "")
 }
 
@@ -48,10 +48,10 @@ func (i *insufficientState) UpdateRole(ctx context.Context, h *models.Host, role
 		return nil, err
 	}
 	if !reply.IsSufficient {
-		return updateStateWithParams(log, hostStatusInsufficient, reply.Reason, h, cdb,
+		return updateStateWithParams(log, HostStatusInsufficient, reply.Reason, h, cdb,
 			"role", role)
 	}
-	return updateStateWithParams(log, hostStatusKnown, "", h, cdb, "role", role)
+	return updateStateWithParams(log, HostStatusKnown, "", h, cdb, "role", role)
 }
 
 func (i *insufficientState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
@@ -66,11 +66,11 @@ func (i *insufficientState) Install(ctx context.Context, h *models.Host, db *gor
 func (i *insufficientState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusInsufficient,
+		State:     HostStatusInsufficient,
 		IsChanged: false,
 	}, nil
 }
 
 func (i *insufficientState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateState(logutil.FromContext(ctx, i.log), hostStatusDisabled, statusInfoDisabled, h, i.db)
+	return updateState(logutil.FromContext(ctx, i.log), HostStatusDisabled, statusInfoDisabled, h, i.db)
 }

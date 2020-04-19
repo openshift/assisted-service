@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=host.go -package=host -destination=mock_host_api.go
+//go:generate mockgen -source=host.go -package=host -aux_files=github.com/filanov/bm-inventory/internal/host=instructionmanager.go -destination=mock_host_api.go
 type StateAPI interface {
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error)
@@ -29,52 +29,66 @@ type StateAPI interface {
 	DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error)
 }
 
+const (
+	HostStatusDiscovering  = "discovering"
+	HostStatusKnown        = "known"
+	HostStatusDisconnected = "disconnected"
+	HostStatusInsufficient = "insufficient"
+	HostStatusDisabled     = "disabled"
+	HostStatusInstalling   = "installing"
+	HostStatusInstalled    = "installed"
+	HostStatusError        = "error"
+)
+
 type API interface {
 	StateAPI
+	InstructionApi
 }
 
 type Manager struct {
-	discovering  StateAPI
-	known        StateAPI
-	insufficient StateAPI
-	disconnected StateAPI
-	disabled     StateAPI
-	installing   StateAPI
-	installed    StateAPI
-	error        StateAPI
+	discovering    StateAPI
+	known          StateAPI
+	insufficient   StateAPI
+	disconnected   StateAPI
+	disabled       StateAPI
+	installing     StateAPI
+	installed      StateAPI
+	error          StateAPI
+	instructionApi InstructionApi
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator) *Manager {
 	return &Manager{
-		discovering:  NewDiscoveringState(log, db, hwValidator),
-		known:        NewKnownState(log, db, hwValidator),
-		insufficient: NewInsufficientState(log, db, hwValidator),
-		disconnected: NewDisconnectedState(log, db, hwValidator),
-		disabled:     NewDisabledState(log, db),
-		installing:   NewInstallingState(log, db),
-		installed:    NewInstalledState(log, db),
-		error:        NewErrorState(log, db),
+		discovering:    NewDiscoveringState(log, db, hwValidator),
+		known:          NewKnownState(log, db, hwValidator),
+		insufficient:   NewInsufficientState(log, db, hwValidator),
+		disconnected:   NewDisconnectedState(log, db, hwValidator),
+		disabled:       NewDisabledState(log, db),
+		installing:     NewInstallingState(log, db),
+		installed:      NewInstalledState(log, db),
+		error:          NewErrorState(log, db),
+		instructionApi: NewInstructionManager(log, db),
 	}
 }
 
-func (m *Manager) getCurrentState(status string) (API, error) {
+func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 	switch status {
 	case "":
-	case hostStatusDiscovering:
+	case HostStatusDiscovering:
 		return m.discovering, nil
-	case hostStatusKnown:
+	case HostStatusKnown:
 		return m.known, nil
-	case hostStatusInsufficient:
+	case HostStatusInsufficient:
 		return m.insufficient, nil
-	case hostStatusDisconnected:
+	case HostStatusDisconnected:
 		return m.disconnected, nil
-	case hostStatusDisabled:
+	case HostStatusDisabled:
 		return m.disabled, nil
-	case hostStatusInstalling:
+	case HostStatusInstalling:
 		return m.installing, nil
-	case hostStatusInstalled:
+	case HostStatusInstalled:
 		return m.installed, nil
-	case hostStatusError:
+	case HostStatusError:
 		return m.error, nil
 	}
 	return nil, fmt.Errorf("not supported host status: %s", status)
@@ -134,4 +148,8 @@ func (m *Manager) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply
 		return nil, err
 	}
 	return state.DisableHost(ctx, h)
+}
+
+func (m *Manager) GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error) {
+	return m.instructionApi.GetNextSteps(ctx, host)
 }

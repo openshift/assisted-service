@@ -17,7 +17,7 @@ var _ = Describe("installing_state", func() {
 	ctx := context.Background()
 	var state API
 	var db *gorm.DB
-	currentState := hostStatusInstalling
+	currentState := HostStatusInstalling
 	var host models.Host
 	var id, clusterId strfmt.UUID
 	var updateReply *UpdateReply
@@ -44,7 +44,7 @@ var _ = Describe("installing_state", func() {
 
 	It("register_host", func() {
 		updateReply, updateErr = state.RegisterHost(ctx, &host)
-		expectedReply.expectedState = hostStatusError
+		expectedReply.expectedState = HostStatusError
 	})
 
 	It("update_hw_info", func() {

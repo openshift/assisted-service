@@ -17,7 +17,7 @@ var _ = Describe("error_state", func() {
 	ctx := context.Background()
 	var state API
 	var db *gorm.DB
-	currentState := hostStatusError
+	currentState := HostStatusError
 	var host models.Host
 	var id, clusterId strfmt.UUID
 	var updateReply *UpdateReply

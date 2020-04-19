@@ -33,17 +33,17 @@ func (d *discoveringState) RegisterHost(ctx context.Context, h *models.Host) (*U
 
 	// if already exists, reset role and hw info
 	if err := d.db.First(&host, "id = ? and cluster_id = ?", h.ID, h.ClusterID).Error; err == nil {
-		return updateStateWithParams(log, hostStatusDiscovering, statusInfoDiscovering, &host, d.db,
+		return updateStateWithParams(log, HostStatusDiscovering, statusInfoDiscovering, &host, d.db,
 			"hardware_info", "", "role", "")
 	}
 
 	// new host
-	h.Status = swag.String(hostStatusDiscovering)
+	h.Status = swag.String(HostStatusDiscovering)
 	if err := d.db.Create(h).Error; err != nil {
 		return nil, err
 	}
 	return &UpdateReply{
-		State:     hostStatusDiscovering,
+		State:     HostStatusDiscovering,
 		IsChanged: false,
 	}, nil
 }
@@ -58,7 +58,7 @@ func (d *discoveringState) UpdateRole(ctx context.Context, h *models.Host, role 
 	if db != nil {
 		cdb = db
 	}
-	return updateStateWithParams(logutil.FromContext(ctx, d.log), hostStatusDiscovering, statusInfoDiscovering, h, cdb, "role", role)
+	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDiscovering, statusInfoDiscovering, h, cdb, "role", role)
 }
 
 func (d *discoveringState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
@@ -73,11 +73,11 @@ func (d *discoveringState) Install(ctx context.Context, h *models.Host, db *gorm
 func (d *discoveringState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{
-		State:     hostStatusDiscovering,
+		State:     HostStatusDiscovering,
 		IsChanged: false,
 	}, nil
 }
 
 func (d *discoveringState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateState(logutil.FromContext(ctx, d.log), hostStatusDisabled, statusInfoDisabled, h, d.db)
+	return updateState(logutil.FromContext(ctx, d.log), HostStatusDisabled, statusInfoDisabled, h, d.db)
 }
