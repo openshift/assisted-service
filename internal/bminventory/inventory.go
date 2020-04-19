@@ -126,24 +126,33 @@ func buildHrefURI(base, id string) *strfmt.URI {
 	return strToURI(fmt.Sprintf("%s/%ss/%s", baseHref, base, id))
 }
 
+func retry(f func() error) error {
+	var err error
+	for i := 30; i > 0; i-- {
+		if err = f(); err == nil {
+			return nil
+		}
+		time.Sleep(time.Second)
+	}
+	return err
+}
+
 func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) error {
 	log := logutil.FromContext(ctx, b.log)
 	var job batch.Job
-	if err := b.kube.Get(ctx, client.ObjectKey{
-		Namespace: "default",
-		Name:      jobName,
-	}, &job); err != nil {
-		return err
-	}
-
 	for job.Status.Succeeded == 0 && job.Status.Failed <= swag.Int32Value(job.Spec.BackoffLimit)+1 {
-		time.Sleep(500 * time.Millisecond)
-		if err := b.kube.Get(ctx, client.ObjectKey{
-			Namespace: "default",
-			Name:      jobName,
-		}, &job); err != nil {
+		if err := retry(func() error {
+			if err := b.kube.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      jobName,
+			}, &job); err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
 			return err
 		}
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	if job.Status.Failed >= swag.Int32Value(job.Spec.BackoffLimit)+1 {
