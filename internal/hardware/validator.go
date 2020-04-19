@@ -71,7 +71,7 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 	if len(reason) == 0 {
 		isSufficient = true
 	} else {
-		reason = fmt.Sprintf("host have insufficient hardware%s", reason)
+		reason = fmt.Sprintf("host has insufficient hardware%s", reason)
 		if host.Role != "" {
 			reason = fmt.Sprintf("%s %s", host.Role, reason)
 		}
