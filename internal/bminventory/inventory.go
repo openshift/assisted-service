@@ -829,6 +829,10 @@ func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *m
 									Value: id.String(),
 								},
 								{
+									Name:  "OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE",
+									Value: "quay.io/openshift-release-dev/ocp-release:4.4.0-rc.7-x86_64", //TODO: change this to match the cluster openshift version
+								},
+								{
 									Name:  "aws_access_key_id",
 									Value: b.AwsAccessKeyID,
 								},
