@@ -8,6 +8,7 @@ import (
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
+	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -23,7 +24,9 @@ var _ = Describe("hardware_validator", func() {
 		host        *models.Host
 	)
 	BeforeEach(func() {
-		hwvalidator = NewValidator()
+		var cfg ValidatorCfg
+		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+		hwvalidator = NewValidator(cfg)
 		id := strfmt.UUID(uuid.New().String())
 		host = &models.Host{Base: models.Base{ID: &id}, ClusterID: strfmt.UUID(uuid.New().String())}
 	})

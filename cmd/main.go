@@ -28,9 +28,10 @@ func init() {
 }
 
 var Options struct {
-	BMConfig bminventory.Config
-	DBHost   string `envconfig:"DB_HOST" default:"mariadb"`
-	DBPort   string `envconfig:"DB_PORT" default:"3306"`
+	BMConfig          bminventory.Config
+	DBHost            string `envconfig:"DB_HOST" default:"mariadb"`
+	DBPort            string `envconfig:"DB_PORT" default:"3306"`
+	HWValidatorConfig hardware.ValidatorCfg
 }
 
 func main() {
@@ -68,7 +69,7 @@ func main() {
 		log.Fatal("failed to auto migrate, ", err)
 	}
 
-	hostApi := host.NewState(log.WithField("pkg", "host-state"), db, hardware.NewValidator())
+	hostApi := host.NewState(log.WithField("pkg", "host-state"), db, hardware.NewValidator(Options.HWValidatorConfig))
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), kclient, hostApi, Options.BMConfig)
 	h, err := restapi.Handler(restapi.Config{
 		InventoryAPI: bm,

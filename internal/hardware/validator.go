@@ -8,17 +8,6 @@ import (
 	"github.com/filanov/bm-inventory/models"
 )
 
-const (
-	// minimal CPU requirements
-	minCPUCores       = 2
-	minCpuCoresMaster = 4
-	minCpuCoresWorker = 2
-	// minimal RAM requirements
-	minRam       = int64(8 * units.Gibibyte)
-	minRamMaster = int64(16 * units.Gibibyte)
-	minRamWorker = int64(8 * units.Gibibyte)
-)
-
 type IsSufficientReply struct {
 	IsSufficient bool
 	Reason       string
@@ -29,11 +18,22 @@ type Validator interface {
 	IsSufficient(host *models.Host) (*IsSufficientReply, error)
 }
 
-func NewValidator() Validator {
-	return &validator{}
+func NewValidator(cfg ValidatorCfg) Validator {
+	return &validator{ValidatorCfg: cfg}
 }
 
-type validator struct{}
+type ValidatorCfg struct {
+	MinCPUCores       int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES" default:"2"`
+	MinCPUCoresWorker int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_WORKER" default:"2"`
+	MinCPUCoresMaster int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_MASTER" default:"4"`
+	MinRamGib         int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
+	MinRamGibWorker   int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_WORKER" default:"8"`
+	MinRamGibMaster   int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_MASTER" default:"16"`
+}
+
+type validator struct {
+	ValidatorCfg
+}
 
 func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) {
 	var err error
@@ -45,16 +45,16 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 		return nil, err
 	}
 
-	var minCpuCoresRequired int64 = minCPUCores
-	var minRamRequired int64 = minRam
+	var minCpuCoresRequired int64 = v.MinCPUCores
+	var minRamRequired int64 = gibToBytes(v.MinRamGib)
 
 	switch host.Role {
 	case "master":
-		minCpuCoresRequired = minCpuCoresMaster
-		minRamRequired = minRamMaster
+		minCpuCoresRequired = v.MinCPUCoresMaster
+		minRamRequired = gibToBytes(v.MinRamGibMaster)
 	case "worker":
-		minCpuCoresRequired = minCpuCoresWorker
-		minRamRequired = minRamWorker
+		minCpuCoresRequired = v.MinCPUCoresWorker
+		minRamRequired = gibToBytes(v.MinRamGibWorker)
 	}
 
 	if hwInfo.CPU.Cpus < minCpuCoresRequired {
@@ -90,4 +90,8 @@ func getTotalMemory(hwInfo models.Introspection) int64 {
 		}
 	}
 	return 0
+}
+
+func gibToBytes(gib int64) int64 {
+	return gib * int64(units.GiB)
 }
