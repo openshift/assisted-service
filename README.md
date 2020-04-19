@@ -1,3 +1,4 @@
+[![Actions Status](https://github.com/filanov/bm-inventory/workflows/unit-test/badge.svg)](https://github.com/filanov/bm-inventory/actions)
 # bm-inventory
 
 1. docker

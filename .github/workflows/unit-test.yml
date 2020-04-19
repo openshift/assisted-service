@@ -1,0 +1,88 @@
+name: unit-test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  remove-label:
+    runs-on: ubuntu-latest
+    steps:
+    - name: remove label
+      uses: actions/github-script@0.9.0
+      if: github.event_name == 'pull_request'
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+
+          // Fetch the list of labels attached to the issue that
+          // triggered the workflow
+          const opts = github.issues.listLabelsOnIssue.endpoint.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+          });
+          const labels = await github.paginate(opts);
+
+          for (const label of labels) {
+            // If the issue has a label named 'tests-passed', remove it
+            if (label.name === 'tests-passed') {
+              await github.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'tests-passed'
+              })
+              return;
+            }
+          }
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v1
+    # the golanci-lint step publishes annotations on failed lines
+    # It does not, however faile the build. That is why lated, during the test phase we also
+    # invoke the linter from the Makefile
+    - name: golangci-lint
+      uses: reviewdog/action-golangci-lint@v1.1.3
+      with:
+        github_token: ${{ secrets.github_token }}
+        golangci_lint_flags: "--config=.golangci.yml"
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v1
+    - name: Set up Python 2.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 2.7.17
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        sudo pip install strato-skipper
+        mkdir -p ~/.docker
+        echo "{}" > ~/.docker/config.json
+        touch ${HOME}/.gitconfig
+    - name: test
+      run: |
+        skipper make build
+    - name: apply label
+      uses: actions/github-script@0.9.0
+      if: github.event_name == 'pull_request'
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          github.issues.addLabels({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            labels: ['tests-passed']
+          })
