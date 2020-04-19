@@ -140,7 +140,20 @@ func retry(f func() error) error {
 func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) error {
 	log := logutil.FromContext(ctx, b.log)
 	var job batch.Job
+	if err := retry(func() error {
+		if err := b.kube.Get(ctx, client.ObjectKey{
+			Namespace: "default",
+			Name:      jobName,
+		}, &job); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
 	for job.Status.Succeeded == 0 && job.Status.Failed <= swag.Int32Value(job.Spec.BackoffLimit)+1 {
+		time.Sleep(500 * time.Millisecond)
 		if err := retry(func() error {
 			if err := b.kube.Get(ctx, client.ObjectKey{
 				Namespace: "default",
@@ -152,7 +165,6 @@ func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) err
 		}); err != nil {
 			return err
 		}
-		time.Sleep(500 * time.Millisecond)
 	}
 
 	if job.Status.Failed >= swag.Int32Value(job.Spec.BackoffLimit)+1 {
