@@ -1,0 +1,35 @@
+name: unit-test
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v1
+    - name: Set up Python 2.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 2.7.17
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        sudo pip install strato-skipper
+        mkdir -p ~/.docker
+        echo "{}" > ~/.docker/config.json
+        touch ${HOME}/.gitconfig
+        ln -s Dockerfile.bm-inventory Dockerfile
+    - name: build
+      run: |
+        skipper make build
+    - name: Publish to Registry
+      uses: elgohr/Publish-Docker-Github-Action@2.14
+      with:
+        name: bm-inventory:stable
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        REGISTRY: 'quay.io/mfilanov'
