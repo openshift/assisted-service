@@ -30,7 +30,7 @@ type Host struct {
 	Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
 	// hardware info
-	HardwareInfo string `json:"hardware_info,omitempty" gorm:"type:text"`
+	HardwareInfo string `json:"hardwareInfo,omitempty" gorm:"type:text"`
 
 	// role
 	// Enum: [undefined master worker]
@@ -71,7 +71,7 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 
 		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
-		HardwareInfo string `json:"hardware_info,omitempty"`
+		HardwareInfo string `json:"hardwareInfo,omitempty"`
 
 		Role string `json:"role,omitempty"`
 
@@ -122,7 +122,7 @@ func (m Host) MarshalJSON() ([]byte, error) {
 
 		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
-		HardwareInfo string `json:"hardware_info,omitempty"`
+		HardwareInfo string `json:"hardwareInfo,omitempty"`
 
 		Role string `json:"role,omitempty"`
 

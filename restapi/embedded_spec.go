@@ -1147,7 +1147,7 @@ func init() {
             "connectivity": {
               "$ref": "#/definitions/connectivity-report"
             },
-            "hardware_info": {
+            "hardwareInfo": {
               "type": "string",
               "x-go-custom-tag": "gorm:\"type:text\""
             },
@@ -2509,7 +2509,7 @@ func init() {
             "connectivity": {
               "$ref": "#/definitions/connectivity-report"
             },
-            "hardware_info": {
+            "hardwareInfo": {
               "type": "string",
               "x-go-custom-tag": "gorm:\"type:text\""
             },
