@@ -53,11 +53,11 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		InventoryDisableHostHandler: inventory.DisableHostHandlerFunc(func(params inventory.DisableHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.DisableHost has not yet been implemented")
 		}),
+		InventoryDownloadClusterFilesHandler: inventory.DownloadClusterFilesHandlerFunc(func(params inventory.DownloadClusterFilesParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.DownloadClusterFiles has not yet been implemented")
+		}),
 		InventoryDownloadClusterISOHandler: inventory.DownloadClusterISOHandlerFunc(func(params inventory.DownloadClusterISOParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.DownloadClusterISO has not yet been implemented")
-		}),
-		InventoryDownloadClusterKubeconfigHandler: inventory.DownloadClusterKubeconfigHandlerFunc(func(params inventory.DownloadClusterKubeconfigParams) middleware.Responder {
-			return middleware.NotImplemented("operation inventory.DownloadClusterKubeconfig has not yet been implemented")
 		}),
 		InventoryEnableHostHandler: inventory.EnableHostHandlerFunc(func(params inventory.EnableHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.EnableHost has not yet been implemented")
@@ -137,10 +137,10 @@ type BMInventoryAPI struct {
 	InventoryDeregisterHostHandler inventory.DeregisterHostHandler
 	// InventoryDisableHostHandler sets the operation handler for the disable host operation
 	InventoryDisableHostHandler inventory.DisableHostHandler
+	// InventoryDownloadClusterFilesHandler sets the operation handler for the download cluster files operation
+	InventoryDownloadClusterFilesHandler inventory.DownloadClusterFilesHandler
 	// InventoryDownloadClusterISOHandler sets the operation handler for the download cluster i s o operation
 	InventoryDownloadClusterISOHandler inventory.DownloadClusterISOHandler
-	// InventoryDownloadClusterKubeconfigHandler sets the operation handler for the download cluster kubeconfig operation
-	InventoryDownloadClusterKubeconfigHandler inventory.DownloadClusterKubeconfigHandler
 	// InventoryEnableHostHandler sets the operation handler for the enable host operation
 	InventoryEnableHostHandler inventory.EnableHostHandler
 	// InventoryGetClusterHandler sets the operation handler for the get cluster operation
@@ -243,11 +243,11 @@ func (o *BMInventoryAPI) Validate() error {
 	if o.InventoryDisableHostHandler == nil {
 		unregistered = append(unregistered, "inventory.DisableHostHandler")
 	}
+	if o.InventoryDownloadClusterFilesHandler == nil {
+		unregistered = append(unregistered, "inventory.DownloadClusterFilesHandler")
+	}
 	if o.InventoryDownloadClusterISOHandler == nil {
 		unregistered = append(unregistered, "inventory.DownloadClusterISOHandler")
-	}
-	if o.InventoryDownloadClusterKubeconfigHandler == nil {
-		unregistered = append(unregistered, "inventory.DownloadClusterKubeconfigHandler")
 	}
 	if o.InventoryEnableHostHandler == nil {
 		unregistered = append(unregistered, "inventory.EnableHostHandler")
@@ -390,11 +390,11 @@ func (o *BMInventoryAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{clusterId}/downloads/image"] = inventory.NewDownloadClusterISO(o.context, o.InventoryDownloadClusterISOHandler)
+	o.handlers["GET"]["/clusters/{clusterId}/downloads/files"] = inventory.NewDownloadClusterFiles(o.context, o.InventoryDownloadClusterFilesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{clusterId}/downloads/kubeconfig"] = inventory.NewDownloadClusterKubeconfig(o.context, o.InventoryDownloadClusterKubeconfigHandler)
+	o.handlers["GET"]["/clusters/{clusterId}/downloads/image"] = inventory.NewDownloadClusterISO(o.context, o.InventoryDownloadClusterISOHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

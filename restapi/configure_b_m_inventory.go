@@ -28,8 +28,8 @@ type InventoryAPI interface {
 	DeregisterCluster(ctx context.Context, params inventory.DeregisterClusterParams) middleware.Responder
 	DeregisterHost(ctx context.Context, params inventory.DeregisterHostParams) middleware.Responder
 	DisableHost(ctx context.Context, params inventory.DisableHostParams) middleware.Responder
+	DownloadClusterFiles(ctx context.Context, params inventory.DownloadClusterFilesParams) middleware.Responder
 	DownloadClusterISO(ctx context.Context, params inventory.DownloadClusterISOParams) middleware.Responder
-	DownloadClusterKubeconfig(ctx context.Context, params inventory.DownloadClusterKubeconfigParams) middleware.Responder
 	EnableHost(ctx context.Context, params inventory.EnableHostParams) middleware.Responder
 	GetCluster(ctx context.Context, params inventory.GetClusterParams) middleware.Responder
 	GetHost(ctx context.Context, params inventory.GetHostParams) middleware.Responder
@@ -91,13 +91,13 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.DisableHost(ctx, params)
 	})
+	api.InventoryDownloadClusterFilesHandler = inventory.DownloadClusterFilesHandlerFunc(func(params inventory.DownloadClusterFilesParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.DownloadClusterFiles(ctx, params)
+	})
 	api.InventoryDownloadClusterISOHandler = inventory.DownloadClusterISOHandlerFunc(func(params inventory.DownloadClusterISOParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.DownloadClusterISO(ctx, params)
-	})
-	api.InventoryDownloadClusterKubeconfigHandler = inventory.DownloadClusterKubeconfigHandlerFunc(func(params inventory.DownloadClusterKubeconfigParams) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		return c.InventoryAPI.DownloadClusterKubeconfig(ctx, params)
 	})
 	api.InventoryEnableHostHandler = inventory.EnableHostHandlerFunc(func(params inventory.EnableHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

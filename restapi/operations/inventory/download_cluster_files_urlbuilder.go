@@ -14,9 +14,11 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// DownloadClusterKubeconfigURL generates an URL for the download cluster kubeconfig operation
-type DownloadClusterKubeconfigURL struct {
+// DownloadClusterFilesURL generates an URL for the download cluster files operation
+type DownloadClusterFilesURL struct {
 	ClusterID strfmt.UUID
+
+	FileName string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -26,7 +28,7 @@ type DownloadClusterKubeconfigURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *DownloadClusterKubeconfigURL) WithBasePath(bp string) *DownloadClusterKubeconfigURL {
+func (o *DownloadClusterFilesURL) WithBasePath(bp string) *DownloadClusterFilesURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -34,21 +36,21 @@ func (o *DownloadClusterKubeconfigURL) WithBasePath(bp string) *DownloadClusterK
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *DownloadClusterKubeconfigURL) SetBasePath(bp string) {
+func (o *DownloadClusterFilesURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *DownloadClusterKubeconfigURL) Build() (*url.URL, error) {
+func (o *DownloadClusterFilesURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{clusterId}/downloads/kubeconfig"
+	var _path = "/clusters/{clusterId}/downloads/files"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
 		_path = strings.Replace(_path, "{clusterId}", clusterID, -1)
 	} else {
-		return nil, errors.New("clusterId is required on DownloadClusterKubeconfigURL")
+		return nil, errors.New("clusterId is required on DownloadClusterFilesURL")
 	}
 
 	_basePath := o._basePath
@@ -57,11 +59,20 @@ func (o *DownloadClusterKubeconfigURL) Build() (*url.URL, error) {
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 
+	qs := make(url.Values)
+
+	fileNameQ := o.FileName
+	if fileNameQ != "" {
+		qs.Set("fileName", fileNameQ)
+	}
+
+	_result.RawQuery = qs.Encode()
+
 	return &_result, nil
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *DownloadClusterKubeconfigURL) Must(u *url.URL, err error) *url.URL {
+func (o *DownloadClusterFilesURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -72,17 +83,17 @@ func (o *DownloadClusterKubeconfigURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *DownloadClusterKubeconfigURL) String() string {
+func (o *DownloadClusterFilesURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *DownloadClusterKubeconfigURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *DownloadClusterFilesURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on DownloadClusterKubeconfigURL")
+		return nil, errors.New("scheme is required for a full url on DownloadClusterFilesURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on DownloadClusterKubeconfigURL")
+		return nil, errors.New("host is required for a full url on DownloadClusterFilesURL")
 	}
 
 	base, err := o.Build()
@@ -96,6 +107,6 @@ func (o *DownloadClusterKubeconfigURL) BuildFull(scheme, host string) (*url.URL,
 }
 
 // StringFull returns the string representation of a complete url
-func (o *DownloadClusterKubeconfigURL) StringFull(scheme, host string) string {
+func (o *DownloadClusterFilesURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

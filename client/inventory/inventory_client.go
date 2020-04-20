@@ -28,11 +28,11 @@ type API interface {
 	   DisableHost disables a host for use*/
 	DisableHost(ctx context.Context, params *DisableHostParams) (*DisableHostNoContent, error)
 	/*
+	   DownloadClusterFiles downloads files relating to the installed installing cluster*/
+	DownloadClusterFiles(ctx context.Context, params *DownloadClusterFilesParams, writer io.Writer) (*DownloadClusterFilesOK, error)
+	/*
 	   DownloadClusterISO downloads open shift per cluster discovery i s o*/
 	DownloadClusterISO(ctx context.Context, params *DownloadClusterISOParams, writer io.Writer) (*DownloadClusterISOOK, error)
-	/*
-	   DownloadClusterKubeconfig downloads the kubeconfig file for the specified cluster*/
-	DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error)
 	/*
 	   EnableHost enables a host for use*/
 	EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostNoContent, error)
@@ -162,6 +162,30 @@ func (a *Client) DisableHost(ctx context.Context, params *DisableHostParams) (*D
 }
 
 /*
+DownloadClusterFiles downloads files relating to the installed installing cluster
+*/
+func (a *Client) DownloadClusterFiles(ctx context.Context, params *DownloadClusterFilesParams, writer io.Writer) (*DownloadClusterFilesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadClusterFiles",
+		Method:             "GET",
+		PathPattern:        "/clusters/{clusterId}/downloads/files",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DownloadClusterFilesReader{formats: a.formats, writer: writer},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadClusterFilesOK), nil
+
+}
+
+/*
 DownloadClusterISO downloads open shift per cluster discovery i s o
 */
 func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadClusterISOParams, writer io.Writer) (*DownloadClusterISOOK, error) {
@@ -182,30 +206,6 @@ func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadCluster
 		return nil, err
 	}
 	return result.(*DownloadClusterISOOK), nil
-
-}
-
-/*
-DownloadClusterKubeconfig downloads the kubeconfig file for the specified cluster
-*/
-func (a *Client) DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DownloadClusterKubeconfig",
-		Method:             "GET",
-		PathPattern:        "/clusters/{clusterId}/downloads/kubeconfig",
-		ProducesMediaTypes: []string{"application/octet-stream"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &DownloadClusterKubeconfigReader{formats: a.formats, writer: writer},
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DownloadClusterKubeconfigOK), nil
 
 }
 
