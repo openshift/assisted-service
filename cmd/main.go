@@ -9,6 +9,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
+	"github.com/filanov/bm-inventory/pkg/job"
 	"github.com/filanov/bm-inventory/pkg/requestid"
 	"github.com/filanov/bm-inventory/restapi"
 	"github.com/go-openapi/strfmt"
@@ -32,6 +33,7 @@ var Options struct {
 	DBHost            string `envconfig:"DB_HOST" default:"mariadb"`
 	DBPort            string `envconfig:"DB_PORT" default:"3306"`
 	HWValidatorConfig hardware.ValidatorCfg
+	JobConfig         job.Config
 }
 
 func main() {
@@ -70,7 +72,8 @@ func main() {
 	}
 
 	hostApi := host.NewState(log.WithField("pkg", "host-state"), db, hardware.NewValidator(Options.HWValidatorConfig))
-	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), kclient, hostApi, Options.BMConfig)
+	jobApi := job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
+	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, Options.BMConfig, jobApi)
 	h, err := restapi.Handler(restapi.Config{
 		InventoryAPI: bm,
 		Logger:       log.Printf,

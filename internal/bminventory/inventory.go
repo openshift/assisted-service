@@ -10,12 +10,12 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/internal/installcfg"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/filemiddleware"
+	"github.com/filanov/bm-inventory/pkg/job"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/bm-inventory/restapi/operations/inventory"
 	"github.com/go-openapi/runtime/middleware"
@@ -27,11 +27,12 @@ import (
 	batch "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const baseHref = "/api/bm-inventory/v1"
 const kubeconfigPrefix = "generate-kubeconfig"
+
+const defaultJobNamespace = "default"
 
 const (
 	ClusterStatusCreating = "creating"
@@ -102,21 +103,23 @@ type bareMetalInventory struct {
 	Config
 	imageBuildCmd []string
 	db            *gorm.DB
-	kube          client.Client
 	debugCmdMap   map[strfmt.UUID]debugCmd
 	debugCmdMux   sync.Mutex
 	log           logrus.FieldLogger
+	job           job.API
 	hostApi       host.API
 }
 
-func NewBareMetalInventory(db *gorm.DB, log logrus.FieldLogger, kclient client.Client, hostApi host.API, cfg Config) *bareMetalInventory {
+func NewBareMetalInventory(db *gorm.DB, log logrus.FieldLogger, hostApi host.API, cfg Config,
+	jobApi job.API) *bareMetalInventory {
+
 	b := &bareMetalInventory{
 		db:          db,
 		log:         log,
-		kube:        kclient,
 		Config:      cfg,
 		debugCmdMap: make(map[strfmt.UUID]debugCmd),
 		hostApi:     hostApi,
+		job:         jobApi,
 	}
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
@@ -133,78 +136,23 @@ func buildHrefURI(base, id string) *strfmt.URI {
 	return strToURI(fmt.Sprintf("%s/%ss/%s", baseHref, base, id))
 }
 
-func retry(f func() error) error {
-	var err error
-	for i := 30; i > 0; i-- {
-		if err = f(); err == nil {
-			return nil
-		}
-		time.Sleep(time.Second)
-	}
-	return err
-}
-
-func (b *bareMetalInventory) monitorJob(ctx context.Context, jobName string) error {
-	log := logutil.FromContext(ctx, b.log)
-	var job batch.Job
-	if err := retry(func() error {
-		if err := b.kube.Get(ctx, client.ObjectKey{
-			Namespace: "default",
-			Name:      jobName,
-		}, &job); err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	for job.Status.Succeeded == 0 && job.Status.Failed <= swag.Int32Value(job.Spec.BackoffLimit)+1 {
-		time.Sleep(500 * time.Millisecond)
-		if err := retry(func() error {
-			if err := b.kube.Get(ctx, client.ObjectKey{
-				Namespace: "default",
-				Name:      jobName,
-			}, &job); err != nil {
-				return err
-			}
-			return nil
-		}); err != nil {
-			return err
-		}
-	}
-
-	if job.Status.Failed >= swag.Int32Value(job.Spec.BackoffLimit)+1 {
-		log.Errorf("Job <%s> failed %d times", jobName, job.Status.Failed)
-		return fmt.Errorf("Job <%s> failed <%d> times", jobName, job.Status.Failed)
-	}
-
-	if err := b.kube.Delete(context.Background(), &job); err != nil {
-		log.WithError(err).Errorf("Failed to delete job <%s>", jobName)
-	}
-
-	return nil
-}
-
 // create discovery image generation job, return job name and error
-func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models.Cluster) (string, error) {
+func (b *bareMetalInventory) createImageJob(cluster *models.Cluster, name string) *batch.Job {
 	id := cluster.ID
-	// max job name is 63 chars
-	jobName := fmt.Sprintf("create-image-%s-%s", id, uuid.New().String())[:63]
-	if err := b.kube.Create(ctx, &batch.Job{
+	return &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: meta.ObjectMeta{
-			Name:      jobName,
+			Name:      name,
 			Namespace: "default",
 		},
 		Spec: batch.JobSpec{
 			BackoffLimit: swag.Int32(2),
 			Template: core.PodTemplateSpec{
 				ObjectMeta: meta.ObjectMeta{
-					Name:      jobName,
+					Name:      name,
 					Namespace: "default",
 				},
 				Spec: core.PodSpec{
@@ -246,10 +194,7 @@ func (b *bareMetalInventory) createImageJob(ctx context.Context, cluster *models
 				},
 			},
 		},
-	}); err != nil {
-		return "", err
 	}
-	return jobName, nil
 }
 
 func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster) string {
@@ -347,13 +292,14 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
 		return inventory.NewDownloadClusterISONotFound()
 	}
-	jobName, err := b.createImageJob(ctx, &cluster)
-	if err != nil {
+	// max job name is 63 chars
+	jobName := fmt.Sprintf("create-image-%s-%s", cluster.ID.String(), uuid.New().String())[:63]
+	if err := b.job.Create(ctx, b.createImageJob(&cluster, jobName)); err != nil {
 		log.WithError(err).Error("failed to create image job")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
-	if err = b.monitorJob(ctx, jobName); err != nil {
+	if err := b.job.Monitor(ctx, jobName, defaultJobNamespace); err != nil {
 		log.WithError(err).Error("image creation failed")
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
@@ -775,7 +721,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params inventory.En
 	return inventory.NewEnableHostNoContent()
 }
 
-func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *models.Cluster) error {
+func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *models.Cluster, name string) error {
 	log := logutil.FromContext(ctx, b.log)
 	id := cluster.ID
 	cfg, err := installcfg.GetInstallConfig(cluster)
@@ -784,20 +730,20 @@ func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *m
 		return err
 	}
 
-	if err := b.kube.Create(ctx, &batch.Job{
+	return b.job.Create(ctx, &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: meta.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", kubeconfigPrefix, id),
+			Name:      name,
 			Namespace: "default",
 		},
 		Spec: batch.JobSpec{
 			BackoffLimit: swag.Int32(2),
 			Template: core.PodTemplateSpec{
 				ObjectMeta: meta.ObjectMeta{
-					Name:      fmt.Sprintf("%s-%s", kubeconfigPrefix, id),
+					Name:      name,
 					Namespace: "default",
 				},
 				Spec: core.PodSpec{
@@ -818,7 +764,7 @@ func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *m
 								},
 								{
 									Name:  "IMAGE_NAME",
-									Value: fmt.Sprintf("%s-%s", kubeconfigPrefix, id),
+									Value: name,
 								},
 								{
 									Name:  "S3_BUCKET",
@@ -847,10 +793,7 @@ func (b *bareMetalInventory) createKubeconfigJob(ctx context.Context, cluster *m
 				},
 			},
 		},
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params inventory.DownloadClusterKubeconfigParams) middleware.Responder {
@@ -864,12 +807,13 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 		return inventory.NewDownloadClusterKubeconfigNotFound()
 	}
 
-	if err := b.createKubeconfigJob(ctx, &cluster); err != nil {
+	jobName := fmt.Sprintf("%s-%s", kubeconfigPrefix, params.ClusterID)
+	if err := b.createKubeconfigJob(ctx, &cluster, jobName); err != nil {
 		log.WithError(err).Error("Failed to create kubeconfig generation job")
 		return inventory.NewDownloadClusterKubeconfigInternalServerError()
 	}
 
-	if err := b.monitorJob(ctx, fmt.Sprintf("%s-%s", kubeconfigPrefix, params.ClusterID)); err != nil {
+	if err := b.job.Monitor(ctx, jobName, defaultJobNamespace); err != nil {
 		log.WithError(err).Error("Generating kubeconfig files failed")
 		return inventory.NewDownloadClusterKubeconfigInternalServerError()
 	}
