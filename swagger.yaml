@@ -542,7 +542,7 @@ definitions:
             type: string
           connectivity:
             $ref: '#/definitions/connectivity-report'
-          hardware_info:
+          hardwareInfo:
             x-go-custom-tag: gorm:"type:text"
             type: string
           role:
