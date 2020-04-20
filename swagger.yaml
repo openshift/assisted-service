@@ -175,29 +175,36 @@ paths:
         500:
           description: Internal server error
 
-  /clusters/{clusterId}/downloads/kubeconfig:
+  /clusters/{clusterId}/downloads/files:
     get:
       tags:
         - inventory
-      summary: Download the kubeconfig file for the specified cluster
-      operationId: DownloadClusterKubeconfig
+      summary: Download files relating to the installed/installing cluster
+      operationId: DownloadClusterFiles
       produces:
         - application/octet-stream
       parameters:
         - in: path
           name: clusterId
-          description: The ID of the cluster whose kubeconfig to download
+          description: The ID of the installed/installing cluster
           type: string
           format: uuid
           required: true
+        - in: query
+          name: fileName
+          description: The desired file to download
+          type: string
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig]
+          required: true
       responses:
         200:
-          description: The kubeconfig file
+          description: The requested file
           schema:
-            type: string
-            format: binary
+            type: file
         404:
           description: Cluster not found
+        409:
+          description: Conflict
         500:
           description: Internal server error
 

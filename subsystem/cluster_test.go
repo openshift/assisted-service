@@ -140,55 +140,71 @@ var _ = Describe("system-test cluster install", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 
-	It("install cluster", func() {
-		clusterID := *cluster.ID
+	Context("install cluster cases", func() {
+		var clusterID strfmt.UUID
+		BeforeEach(func() {
+			clusterID = *cluster.ID
 
-		hwInfo := &models.Introspection{
-			CPU:    &models.CPU{Cpus: 16},
-			Memory: []*models.Memory{{Name: "Mem", Total: int64(32 * units.GiB)}},
-		}
-		h1 := registerHost(clusterID)
-		generateHWPostStepReply(h1, hwInfo)
-		h2 := registerHost(clusterID)
-		generateHWPostStepReply(h2, hwInfo)
-		h3 := registerHost(clusterID)
-		generateHWPostStepReply(h3, hwInfo)
-		h4 := registerHost(clusterID)
-		generateHWPostStepReply(h4, hwInfo)
+			hwInfo := &models.Introspection{
+				CPU:    &models.CPU{Cpus: 16},
+				Memory: []*models.Memory{{Name: "Mem", Total: int64(32 * units.GiB)}},
+			}
+			h1 := registerHost(clusterID)
+			generateHWPostStepReply(h1, hwInfo)
+			h2 := registerHost(clusterID)
+			generateHWPostStepReply(h2, hwInfo)
+			h3 := registerHost(clusterID)
+			generateHWPostStepReply(h3, hwInfo)
+			h4 := registerHost(clusterID)
+			generateHWPostStepReply(h4, hwInfo)
 
-		_, err := bmclient.Inventory.UpdateCluster(ctx, &inventory.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h1.ID, Role: "master"},
-				{ID: *h2.ID, Role: "master"},
-				{ID: *h3.ID, Role: "master"},
-				{ID: *h4.ID, Role: "worker"},
-			}},
-			ClusterID: clusterID,
+			_, err := bmclient.Inventory.UpdateCluster(ctx, &inventory.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+					{ID: *h1.ID, Role: "master"},
+					{ID: *h2.ID, Role: "master"},
+					{ID: *h3.ID, Role: "master"},
+					{ID: *h4.ID, Role: "worker"},
+				}},
+				ClusterID: clusterID,
+			})
+			Expect(err).NotTo(HaveOccurred())
 		})
-		Expect(err).NotTo(HaveOccurred())
 
-		c, err := bmclient.Inventory.InstallCluster(ctx, &inventory.InstallClusterParams{ClusterID: clusterID})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("installing"))
-		Expect(len(c.GetPayload().Hosts)).Should(Equal(4))
-		for _, host := range c.GetPayload().Hosts {
-			Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
-		}
+		It("install cluster", func() {
+			c, err := bmclient.Inventory.InstallCluster(ctx, &inventory.InstallClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("installing"))
+			Expect(len(c.GetPayload().Hosts)).Should(Equal(4))
+			for _, host := range c.GetPayload().Hosts {
+				Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+			}
+		})
+		It("install download_config_files", func() {
 
-		file, err := ioutil.TempFile("", "tmp")
-		Expect(err).NotTo(HaveOccurred())
+			//Test downloading kubeconfig files in worng state
+			file, err := ioutil.TempFile("", "tmp")
+			Expect(err).NotTo(HaveOccurred())
 
-		defer os.Remove(file.Name())
+			defer os.Remove(file.Name())
+			_, err = bmclient.Inventory.DownloadClusterFiles(ctx, &inventory.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
+			Expect(err).Should(MatchError(inventory.NewDownloadClusterFilesConflict()))
 
-		missingClusterId := strfmt.UUID(uuid.New().String())
-		_, err = bmclient.Inventory.DownloadClusterKubeconfig(ctx, &inventory.DownloadClusterKubeconfigParams{ClusterID: missingClusterId}, file)
-		Expect(err).Should(MatchError(inventory.NewDownloadClusterKubeconfigNotFound()))
+			_, err = bmclient.Inventory.InstallCluster(ctx, &inventory.InstallClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
 
-		_, err = bmclient.Inventory.DownloadClusterKubeconfig(ctx, &inventory.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
-		Expect(err).NotTo(HaveOccurred())
-		s, err := file.Stat()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(s.Size()).ShouldNot(Equal(0))
+			missingClusterId := strfmt.UUID(uuid.New().String())
+			_, err = bmclient.Inventory.DownloadClusterFiles(ctx, &inventory.DownloadClusterFilesParams{ClusterID: missingClusterId, FileName: "bootstrap.ign"}, file)
+			Expect(err).Should(MatchError(inventory.NewDownloadClusterFilesNotFound()))
+
+			_, err = bmclient.Inventory.DownloadClusterFiles(ctx, &inventory.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "not_real_file"}, file)
+			Expect(err).Should(HaveOccurred())
+
+			_, err = bmclient.Inventory.DownloadClusterFiles(ctx, &inventory.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
+			Expect(err).NotTo(HaveOccurred())
+			s, err := file.Stat()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(s.Size()).ShouldNot(Equal(0))
+		})
 	})
 
 	It("install_cluster_insufficient_master", func() {
