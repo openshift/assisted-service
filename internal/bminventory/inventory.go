@@ -425,7 +425,7 @@ func (b *bareMetalInventory) addInstallCommand(masterNodesIds []*strfmt.UUID, lo
 	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
 	log.Debugf("Bootstrap ID is %s", bootstrapId)
 
-	const cmdTmpl = `sudo docker run -e CLUSTER_ID={{.CLUSTER_ID}} -e BUCKET={{.S3_BUCKET}} -e S3_URL={{.S3_URL}} -e DEVICE=/dev/vda -v /dev:/dev:rw,Z --privileged --pid=host  eranco/assisted_installer:latest -r {{.ROLE}}`
+	const cmdTmpl = `sudo podman run -e CLUSTER_ID={{.CLUSTER_ID}} -e BUCKET={{.S3_BUCKET}} -e S3_URL={{.S3_URL}} -e DEVICE=/dev/vda -v /dev:/dev:rw --privileged --pid=host  eranco/assisted_installer:latest -r {{.ROLE}}`
 	t := template.Must(template.New("cmd").Parse(cmdTmpl))
 
 	data := map[string]string{
