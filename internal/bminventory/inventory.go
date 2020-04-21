@@ -70,6 +70,7 @@ type Config struct {
 	S3Bucket            string `envconfig:"S3_BUCKET" default:"test"`
 	AwsAccessKeyID      string `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
 	AwsSecretAccessKey  string `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	InstallerImage      string `envconfig:"INSTALLER_IMAGE" default:"quay.io/eranco74/assisted-installer:latest"`
 }
 
 const ignitionConfigFormat = `{
@@ -425,7 +426,7 @@ func (b *bareMetalInventory) addInstallCommand(masterNodesIds []*strfmt.UUID, lo
 	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
 	log.Debugf("Bootstrap ID is %s", bootstrapId)
 
-	const cmdTmpl = `sudo podman run -e CLUSTER_ID={{.CLUSTER_ID}} -e BUCKET={{.S3_BUCKET}} -e S3_URL={{.S3_URL}} -e DEVICE=/dev/vda -v /dev:/dev:rw --privileged --pid=host  eranco/assisted_installer:latest -r {{.ROLE}}`
+	const cmdTmpl = `sudo podman run -e CLUSTER_ID={{.CLUSTER_ID}} -e BUCKET={{.S3_BUCKET}} -e S3_URL={{.S3_URL}} -e DEVICE=/dev/vda -v /dev:/dev:rw --privileged --pid=host  {{.INSTALLER}} -r {{.ROLE}}`
 	t := template.Must(template.New("cmd").Parse(cmdTmpl))
 
 	data := map[string]string{
@@ -433,6 +434,7 @@ func (b *bareMetalInventory) addInstallCommand(masterNodesIds []*strfmt.UUID, lo
 		"S3_BUCKET":  b.S3Bucket,
 		"CLUSTER_ID": string(params.ClusterID),
 		"ROLE":       "",
+		"INSTALLER":  b.Config.InstallerImage,
 	}
 	for i := range cluster.Hosts {
 		role := cluster.Hosts[i].Role
