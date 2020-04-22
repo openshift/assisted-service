@@ -79,7 +79,7 @@ type Cluster struct {
 
 	// status
 	// Required: true
-	// Enum: [creating ready error]
+	// Enum: [insufficient ready error installing installed]
 	Status *string `json:"status"`
 
 	// updated at
@@ -490,7 +490,7 @@ var clusterTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["creating","ready","error"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["insufficient","ready","error","installing","installed"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

@@ -879,9 +879,11 @@ func init() {
             "status": {
               "type": "string",
               "enum": [
-                "creating",
+                "insufficient",
                 "ready",
-                "error"
+                "error",
+                "installing",
+                "installed"
               ]
             },
             "updatedAt": {
@@ -1185,7 +1187,8 @@ func init() {
                 "insufficient",
                 "disabled",
                 "installing",
-                "installed"
+                "installed",
+                "error"
               ]
             },
             "statusInfo": {
@@ -2271,9 +2274,11 @@ func init() {
             "status": {
               "type": "string",
               "enum": [
-                "creating",
+                "insufficient",
                 "ready",
-                "error"
+                "error",
+                "installing",
+                "installed"
               ]
             },
             "updatedAt": {
@@ -2564,7 +2569,8 @@ func init() {
                 "insufficient",
                 "disabled",
                 "installing",
-                "installed"
+                "installed",
+                "error"
               ]
             },
             "statusInfo": {

@@ -38,7 +38,7 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected insufficient disabled installing installed]
+	// Enum: [discovering known disconnected insufficient disabled installing installed error]
 	Status *string `json:"status"`
 
 	// status info
@@ -263,7 +263,7 @@ var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","installing","installed"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","installing","installed","error"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
