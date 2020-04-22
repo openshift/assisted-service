@@ -35,7 +35,6 @@ const kubeconfigPrefix = "generate-kubeconfig"
 const defaultJobNamespace = "default"
 
 const (
-	ClusterStatusCreating   = "creating"
 	ClusterStatusReady      = "ready"
 	ClusterStatusError      = "error"
 	ClusterStatusInstalling = "installing"
@@ -238,8 +237,9 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params invento
 		PullSecret:               params.NewClusterParams.PullSecret,
 		ServiceNetworkCIDR:       params.NewClusterParams.ServiceNetworkCIDR,
 		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
-		Status:                   swag.String(ClusterStatusReady),
-		UpdatedAt:                strfmt.DateTime{},
+		// TODO: should start as insufficient
+		Status:    swag.String(ClusterStatusReady),
+		UpdatedAt: strfmt.DateTime{},
 	}
 
 	if err := b.db.Preload("Hosts").Create(&cluster).Error; err != nil {
