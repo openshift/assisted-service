@@ -26,7 +26,7 @@ var _ = Describe("installing_state", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = &State{installing: NewInstallingState(getTestLog(), db)}
+		state = &Manager{installing: NewInstallingState(getTestLog(), db)}
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())

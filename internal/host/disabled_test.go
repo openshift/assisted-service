@@ -26,7 +26,7 @@ var _ = Describe("disabled_state", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = &State{disabled: NewDisabledState(getTestLog(), db)}
+		state = &Manager{disabled: NewDisabledState(getTestLog(), db)}
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())

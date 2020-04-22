@@ -35,7 +35,7 @@ var _ = Describe("disconnected_state", func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
-		state = &State{disconnected: NewDisconnectedState(getTestLog(), db, mockValidator)}
+		state = &Manager{disconnected: NewDisconnectedState(getTestLog(), db, mockValidator)}
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())

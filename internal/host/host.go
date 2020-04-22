@@ -11,8 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=statemachine.go -package=host -destination=mock_host_api.go
-type API interface {
+//go:generate mockgen -source=host.go -package=host -destination=mock_host_api.go
+type StateAPI interface {
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error)
 	// Set a new HW information
@@ -29,19 +29,23 @@ type API interface {
 	DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error)
 }
 
-type State struct {
-	discovering  API
-	known        API
-	insufficient API
-	disconnected API
-	disabled     API
-	installing   API
-	installed    API
-	error        API
+type API interface {
+	StateAPI
 }
 
-func NewState(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator) *State {
-	return &State{
+type Manager struct {
+	discovering  StateAPI
+	known        StateAPI
+	insufficient StateAPI
+	disconnected StateAPI
+	disabled     StateAPI
+	installing   StateAPI
+	installed    StateAPI
+	error        StateAPI
+}
+
+func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator) *Manager {
+	return &Manager{
 		discovering:  NewDiscoveringState(log, db, hwValidator),
 		known:        NewKnownState(log, db, hwValidator),
 		insufficient: NewInsufficientState(log, db, hwValidator),
@@ -53,79 +57,79 @@ func NewState(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validato
 	}
 }
 
-func (s *State) getCurrentState(status string) (API, error) {
+func (m *Manager) getCurrentState(status string) (API, error) {
 	switch status {
 	case "":
 	case hostStatusDiscovering:
-		return s.discovering, nil
+		return m.discovering, nil
 	case hostStatusKnown:
-		return s.known, nil
+		return m.known, nil
 	case hostStatusInsufficient:
-		return s.insufficient, nil
+		return m.insufficient, nil
 	case hostStatusDisconnected:
-		return s.disconnected, nil
+		return m.disconnected, nil
 	case hostStatusDisabled:
-		return s.disabled, nil
+		return m.disabled, nil
 	case hostStatusInstalling:
-		return s.installing, nil
+		return m.installing, nil
 	case hostStatusInstalled:
-		return s.installed, nil
+		return m.installed, nil
 	case hostStatusError:
-		return s.error, nil
+		return m.error, nil
 	}
 	return nil, fmt.Errorf("not supported host status: %s", status)
 }
 
-func (s *State) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	state, err := s.getCurrentState(swag.StringValue(h.Status))
+func (m *Manager) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
+	state, err := m.getCurrentState(swag.StringValue(h.Status))
 	if err != nil {
 		return nil, err
 	}
 	return state.RegisterHost(ctx, h)
 }
 
-func (s *State) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
-	state, err := s.getCurrentState(swag.StringValue(h.Status))
+func (m *Manager) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
+	state, err := m.getCurrentState(swag.StringValue(h.Status))
 	if err != nil {
 		return nil, err
 	}
 	return state.UpdateHwInfo(ctx, h, hwInfo)
 }
 
-func (s *State) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
-	state, err := s.getCurrentState(swag.StringValue(h.Status))
+func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
+	state, err := m.getCurrentState(swag.StringValue(h.Status))
 	if err != nil {
 		return nil, err
 	}
 	return state.UpdateRole(ctx, h, role, db)
 }
 
-func (s *State) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	state, err := s.getCurrentState(swag.StringValue(h.Status))
+func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
+	state, err := m.getCurrentState(swag.StringValue(h.Status))
 	if err != nil {
 		return nil, err
 	}
 	return state.RefreshStatus(ctx, h)
 }
 
-func (s *State) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	state, err := s.getCurrentState(swag.StringValue(h.Status))
+func (m *Manager) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	state, err := m.getCurrentState(swag.StringValue(h.Status))
 	if err != nil {
 		return nil, err
 	}
 	return state.Install(ctx, h, db)
 }
 
-func (s *State) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	state, err := s.getCurrentState(swag.StringValue(h.Status))
+func (m *Manager) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
+	state, err := m.getCurrentState(swag.StringValue(h.Status))
 	if err != nil {
 		return nil, err
 	}
 	return state.EnableHost(ctx, h)
 }
 
-func (s *State) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	state, err := s.getCurrentState(swag.StringValue(h.Status))
+func (m *Manager) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
+	state, err := m.getCurrentState(swag.StringValue(h.Status))
 	if err != nil {
 		return nil, err
 	}

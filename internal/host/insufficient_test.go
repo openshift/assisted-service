@@ -35,7 +35,7 @@ var _ = Describe("insufficient_state", func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
-		state = &State{insufficient: NewInsufficientState(getTestLog(), db, mockValidator)}
+		state = &Manager{insufficient: NewInsufficientState(getTestLog(), db, mockValidator)}
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())

@@ -36,7 +36,7 @@ var _ = Describe("discovering_state", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		state = NewDiscoveringState(getTestLog(), db, mockValidator)
-		state = &State{discovering: NewDiscoveringState(getTestLog(), db, mockValidator)}
+		state = &Manager{discovering: NewDiscoveringState(getTestLog(), db, mockValidator)}
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())

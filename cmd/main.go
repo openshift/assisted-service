@@ -71,7 +71,7 @@ func main() {
 		log.Fatal("failed to auto migrate, ", err)
 	}
 
-	hostApi := host.NewState(log.WithField("pkg", "host-state"), db, hardware.NewValidator(Options.HWValidatorConfig))
+	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, hardware.NewValidator(Options.HWValidatorConfig))
 	jobApi := job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, Options.BMConfig, jobApi)
 	h, err := restapi.Handler(restapi.Config{

@@ -35,7 +35,7 @@ var _ = Describe("known_state", func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
-		state = &State{known: NewKnownState(getTestLog(), db, mockValidator)}
+		state = &Manager{known: NewKnownState(getTestLog(), db, mockValidator)}
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())

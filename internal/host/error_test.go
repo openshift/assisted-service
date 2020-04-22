@@ -26,7 +26,7 @@ var _ = Describe("error_state", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = &State{error: NewErrorState(getTestLog(), db)}
+		state = &Manager{error: NewErrorState(getTestLog(), db)}
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
