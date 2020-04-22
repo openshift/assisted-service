@@ -545,6 +545,7 @@ definitions:
               - disabled
               - installing
               - installed
+              - error
           statusInfo:
             type: string
           connectivity:
@@ -793,7 +794,12 @@ definitions:
             description: SSH public key for debugging OpenShift nodes
           status:
             type: string
-            enum: ['creating', 'ready', 'error']
+            enum:
+              - insufficient
+              - ready
+              - error
+              - installing
+              - installed
           hosts:
             x-go-custom-tag: gorm:"foreignkey:ClusterID;association_foreignkey:ID"
             type: array
