@@ -1,7 +1,7 @@
 PWD = $(shell pwd)
 UID = $(shell id -u)
 
-SERVICE := $(or ${SERVICE},quay.io/mfilanov/bm-inventory:latest)
+SERVICE := $(or ${SERVICE},quay.io/mfilanov/bm-inventory:stable)
 
 all: build
 
