@@ -32,4 +32,4 @@ jobs:
         name: bm-inventory:stable
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-        REGISTRY: 'quay.io/mfilanov'
+        REGISTRY: 'quay.io/ocpmetal'
