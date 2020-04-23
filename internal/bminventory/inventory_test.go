@@ -73,14 +73,16 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), defaultJobNamespace).Return(nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
-			ClusterID: *clusterId,
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISOCreated()))
 	})
 
 	It("cluster_not_exists", func() {
 		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
-			ClusterID: strfmt.UUID(uuid.New().String()),
+			ClusterID:         strfmt.UUID(uuid.New().String()),
+			ImageCreateParams: &models.ImageCreateParams{},
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISONotFound()))
 	})
@@ -89,7 +91,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		clusterId := registerCluster().ID
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
-			ClusterID: *clusterId,
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISOInternalServerError()))
 	})
@@ -99,7 +102,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), defaultJobNamespace).Return(fmt.Errorf("error")).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
-			ClusterID: *clusterId,
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISOInternalServerError()))
 	})

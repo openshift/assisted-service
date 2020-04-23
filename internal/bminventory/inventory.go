@@ -84,14 +84,14 @@ const ignitionConfigFormat = `{
         "name": "core",
         "passwordHash": "$6$MWO4bibU8TIWG0XV$Hiuj40lWW7pHiwJmXA8MehuBhdxSswLgvGxEh8ByEzeX2D1dk87JILVUYS4JQOP45bxHRegAB9Fs/SWfszXa5."
       }
-	 %s
+	 {{.userSshKey}}
     ]
   },
 "systemd": {
 "units": [{
 "name": "agent.service",
 "enabled": true,
-"contents": "[Service]\nType=simple\nExecStartPre=docker run --privileged --rm -v /usr/local/bin:/hostbin %s cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host %s --port %s --cluster-id %s\n\n[Install]\nWantedBy=multi-user.target"
+"contents": "[Service]\nType=simple\nExecStartPre=docker run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}}\n\n[Install]\nWantedBy=multi-user.target"
 }]
 }
 }`
@@ -139,7 +139,7 @@ func buildHrefURI(base, id string) *strfmt.URI {
 }
 
 // create discovery image generation job, return job name and error
-func (b *bareMetalInventory) createImageJob(cluster *models.Cluster, jobName, imgName string) *batch.Job {
+func (b *bareMetalInventory) createImageJob(cluster *models.Cluster, jobName, imgName, ignitionConfig string) *batch.Job {
 	return &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
@@ -170,7 +170,7 @@ func (b *bareMetalInventory) createImageJob(cluster *models.Cluster, jobName, im
 								},
 								{
 									Name:  "IGNITION_CONFIG",
-									Value: b.formatIgnitionFile(cluster),
+									Value: ignitionConfig,
 								},
 								{
 									Name:  "IMAGE_NAME",
@@ -198,13 +198,29 @@ func (b *bareMetalInventory) createImageJob(cluster *models.Cluster, jobName, im
 	}
 }
 
-func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster) string {
-	return fmt.Sprintf(ignitionConfigFormat, b.getUserSshKey(cluster), b.AgentDockerImg, b.InventoryURL,
-		b.InventoryPort, cluster.ID.String())
+func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster, params inventory.GenerateClusterISOParams) (string, error) {
+	var ignitionParams = map[string]string{
+		"userSshKey":     b.getUserSshKey(params),
+		"AgentDockerImg": b.AgentDockerImg,
+		"InventoryURL":   b.InventoryURL,
+		"InventoryPort":  b.InventoryPort,
+		"clusterId":      cluster.ID.String(),
+	}
+	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
+	if err != nil {
+		return "", err
+	}
+	buf := &bytes.Buffer{}
+	if err := tmpl.Execute(buf, ignitionParams); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+
 }
 
-func (b *bareMetalInventory) getUserSshKey(cluster *models.Cluster) string {
-	if cluster.SSHPublicKey == "" {
+func (b *bareMetalInventory) getUserSshKey(params inventory.GenerateClusterISOParams) string {
+	sshKey := params.ImageCreateParams.SSHPublicKey
+	if sshKey == "" {
 		return ""
 	}
 	return fmt.Sprintf(`,{
@@ -212,7 +228,7 @@ func (b *bareMetalInventory) getUserSshKey(cluster *models.Cluster) string {
 		"passwordHash": "$6$MWO4bibU8TIWG0XV$Hiuj40lWW7pHiwJmXA8MehuBhdxSswLgvGxEh8ByEzeX2D1dk87JILVUYS4JQOP45bxHRegAB9Fs/SWfszXa5.",
 		"sshAuthorizedKeys": [
 		"%s"],
-		"groups": [ "sudo" ]}`, cluster.SSHPublicKey)
+		"groups": [ "sudo" ]}`, sshKey)
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {
@@ -294,6 +310,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inve
 	}
 	imgName := getImageName(params.ClusterID, params.ImageID)
 	imageURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket, imgName)
+
 	log.Info("Image URL: ", imageURL)
 	resp, err := http.Get(imageURL)
 	if err != nil {
@@ -329,7 +346,14 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inve
 	imgName := getImageName(params.ClusterID, imgId)
 	// max job name is 63 chars
 	jobName := fmt.Sprintf("create-image-%s-%s", cluster.ID, imgId)[:63]
-	if err := b.job.Create(ctx, b.createImageJob(&cluster, jobName, imgName)); err != nil {
+
+	ignitionConfig, formatErr := b.formatIgnitionFile(&cluster, params)
+	if formatErr != nil {
+		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
+		return inventory.NewGenerateClusterISOInternalServerError()
+	}
+
+	if err := b.job.Create(ctx, b.createImageJob(&cluster, jobName, imgName, ignitionConfig)); err != nil {
 		log.WithError(err).Error("failed to create image job")
 		return inventory.NewGenerateClusterISOInternalServerError()
 	}
