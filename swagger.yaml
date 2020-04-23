@@ -132,6 +132,38 @@ paths:
           description: Internal server error
 
   /clusters/{clusterId}/downloads/image:
+    post:
+      tags:
+        - inventory
+      summary: Create a new OpenShift per-cluster discovery ISO
+      operationId: GenerateClusterISO
+      parameters:
+        - in: path
+          name: clusterId
+          description: The ID of the cluster whose ISO to create
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: new-iso-params
+          description: New ISO parameters
+          required: true
+          schema:
+            $ref: '#/definitions/image-create-params'
+      responses:
+        201:
+          description: Created ISO
+          schema:
+            type: object
+            properties:
+              imageId:
+                type: string
+                format: uuid
+        400:
+          description: Invalid input
+        500:
+          description: Internal server error
+
     get:
       tags:
         - inventory
@@ -148,20 +180,10 @@ paths:
           format: uuid
           required: true
         - in: query
-          name: proxyIp
-          description: The IP address of the HTTP proxy that agents should use to access the discovery service
+          name: imageId
+          description: The ID of a previously-created image
           type: string
-          format: hostname
-        - in: query
-          name: proxyPort
-          description: The port of the HTTP proxy
-          type: integer
-          minimum: 0
-          maximum: 65535
-        - in: query
-          name: sshPublicKey
-          description: SSH public key for debugging the installation
-          type: string
+          format: uuid
       responses:
         200:
           description: The ISO file
@@ -171,7 +193,7 @@ paths:
         400:
           description: Invalid parameters
         404:
-          description: Cluster not found
+          description: Cluster or image not found
         500:
           description: Internal server error
 
@@ -511,6 +533,26 @@ definitions:
       href:
         type: string
         format: uri
+
+  image-create-params:
+    type: object
+    properties:
+      clusterId:
+        type: string
+        format: uuid
+        description: The ID of the cluster whose ISO to download
+      proxyIp:
+        type: string
+        format: hostname
+        description: The IP address of the HTTP proxy that agents should use to access the discovery service
+      proxyPort:
+        type: integer
+        description: The port of the HTTP proxy
+        minimum: 0
+        maximum: 65535
+      sshPublicKey:
+        type: string
+        description: SSH public key for debugging the installation
 
   host-create-params:
     type: object
