@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
+	"text/template"
 
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/internal/installcfg"
@@ -375,7 +375,11 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 	}
 
 	// Temporary hack - use debug API for setting the executing install command:
-	b.addInstallCommand(masterNodesIds, log, params, cluster, ctx)
+	if err := b.addInstallCommand(ctx, masterNodesIds, log, params, cluster); err != nil {
+		tx.Rollback()
+		log.WithError(err).Errorf("failed to add install command to cluster <%s>", params.ClusterID)
+		return inventory.NewInstallClusterInternalServerError()
+	}
 
 	// move hosts states to installing
 	for i := range cluster.Hosts {
@@ -421,13 +425,17 @@ func generateClusterInstallConfig(b *bareMetalInventory, cluster models.Cluster,
 	return nil
 }
 
-func (b *bareMetalInventory) addInstallCommand(masterNodesIds []*strfmt.UUID, log logrus.FieldLogger, params inventory.InstallClusterParams, cluster models.Cluster, ctx context.Context) {
+func (b *bareMetalInventory) addInstallCommand(ctx context.Context, masterNodesIds []*strfmt.UUID,
+	log logrus.FieldLogger, params inventory.InstallClusterParams, cluster models.Cluster) error {
 	// set one of the master nodes as bootstrap
 	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
 	log.Debugf("Bootstrap ID is %s", bootstrapId)
 
 	const cmdTmpl = `sudo podman run -e CLUSTER_ID={{.CLUSTER_ID}} -e BUCKET={{.S3_BUCKET}} -e S3_URL={{.S3_URL}} -e DEVICE=/dev/vda -v /dev:/dev:rw --privileged --pid=host  {{.INSTALLER}} -r {{.ROLE}}`
-	t := template.Must(template.New("cmd").Parse(cmdTmpl))
+	t, err := template.New("cmd").Parse(cmdTmpl)
+	if err != nil {
+		return err
+	}
 
 	data := map[string]string{
 		"S3_URL":     b.S3EndpointURL,
@@ -445,16 +453,16 @@ func (b *bareMetalInventory) addInstallCommand(masterNodesIds []*strfmt.UUID, lo
 
 		buf := &bytes.Buffer{}
 		if err := t.Execute(buf, data); err != nil {
-			panic(err)
+			return err
 		}
 		command := buf.String()
 		b.SetDebugStep(ctx, inventory.SetDebugStepParams{
 			ClusterID: params.ClusterID,
 			HostID:    *cluster.Hosts[i].ID,
 			Step:      &models.DebugStep{Command: &command},
-		},
-		)
+		})
 	}
+	return nil
 }
 
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory.UpdateClusterParams) middleware.Responder {
