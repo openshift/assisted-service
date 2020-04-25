@@ -366,6 +366,35 @@ paths:
         500:
           description: Internal server error
 
+  /clusters/{clusterId}/hosts/{hostId}/progress:
+    put:
+      tags:
+        - inventory
+      summary: Update installation progress
+      operationId: UpdateHostInstallProgress
+      parameters:
+        - in: path
+          name: clusterId
+          description: The ID of the cluster to retrieve
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: hostId
+          description: The ID of the host to retrieve
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: host-install-progress-params
+          description: New progress value
+          required: true
+          schema:
+            $ref: '#/definitions/host-install-progress-params'
+      responses:
+        200:
+          description: Update install progress
+
   /clusters/{clusterId}/hosts/{hostId}/actions/debug:
     post:
       tags:
@@ -1022,3 +1051,6 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/connectivity-remote-host'
+
+  host-install-progress-params:
+    type: string
