@@ -618,13 +618,13 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params inventory.
 
 	if err := b.db.First(&models.Cluster{}, "id = ?", params.ClusterID.String()).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID.String())
-		return inventory.NewRegisterClusterBadRequest()
+		return inventory.NewRegisterHostBadRequest()
 	}
 
 	if _, err := b.hostApi.RegisterHost(ctx, host); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
 			params.NewHostParams.HostID.String(), params.ClusterID.String())
-		return inventory.NewRegisterClusterBadRequest()
+		return inventory.NewRegisterHostBadRequest()
 	}
 
 	return inventory.NewRegisterHostCreated().WithPayload(host)
@@ -871,7 +871,7 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 		if gorm.IsRecordNotFoundError(err) {
 			return inventory.NewDownloadClusterFilesNotFound()
 		} else {
-			return inventory.NewDownloadClusterISOInternalServerError()
+			return inventory.NewDownloadClusterFilesInternalServerError()
 		}
 	}
 	clusterStatus := swag.StringValue(cluster.Status)
