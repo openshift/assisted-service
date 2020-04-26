@@ -12,7 +12,6 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
@@ -37,20 +36,11 @@ type DownloadClusterISOParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*The IP address of the HTTP proxy that agents should use to access the discovery service
+	/*The ID of a previously-created image
+	  Required: true
 	  In: query
 	*/
-	ProxyIP *strfmt.Hostname
-	/*The port of the HTTP proxy
-	  Maximum: 65535
-	  Minimum: 0
-	  In: query
-	*/
-	ProxyPort *int64
-	/*SSH public key for debugging the installation
-	  In: query
-	*/
-	SSHPublicKey *string
+	ImageID strfmt.UUID
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -69,18 +59,8 @@ func (o *DownloadClusterISOParams) BindRequest(r *http.Request, route *middlewar
 		res = append(res, err)
 	}
 
-	qProxyIP, qhkProxyIP, _ := qs.GetOK("proxyIp")
-	if err := o.bindProxyIP(qProxyIP, qhkProxyIP, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
-	qProxyPort, qhkProxyPort, _ := qs.GetOK("proxyPort")
-	if err := o.bindProxyPort(qProxyPort, qhkProxyPort, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
-	qSSHPublicKey, qhkSSHPublicKey, _ := qs.GetOK("sshPublicKey")
-	if err := o.bindSSHPublicKey(qSSHPublicKey, qhkSSHPublicKey, route.Formats); err != nil {
+	qImageID, qhkImageID, _ := qs.GetOK("imageId")
+	if err := o.bindImageID(qImageID, qhkImageID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -123,96 +103,41 @@ func (o *DownloadClusterISOParams) validateClusterID(formats strfmt.Registry) er
 	return nil
 }
 
-// bindProxyIP binds and validates parameter ProxyIP from query.
-func (o *DownloadClusterISOParams) bindProxyIP(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindImageID binds and validates parameter ImageID from query.
+func (o *DownloadClusterISOParams) bindImageID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	if !hasKey {
+		return errors.Required("imageId", "query")
+	}
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
 	}
 
-	// Required: false
+	// Required: true
 	// AllowEmptyValue: false
-	if raw == "" { // empty values pass all other validations
-		return nil
+	if err := validate.RequiredString("imageId", "query", raw); err != nil {
+		return err
 	}
 
-	// Format: hostname
-	value, err := formats.Parse("hostname", raw)
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
 	if err != nil {
-		return errors.InvalidType("proxyIp", "query", "strfmt.Hostname", raw)
+		return errors.InvalidType("imageId", "query", "strfmt.UUID", raw)
 	}
-	o.ProxyIP = (value.(*strfmt.Hostname))
+	o.ImageID = *(value.(*strfmt.UUID))
 
-	if err := o.validateProxyIP(formats); err != nil {
+	if err := o.validateImageID(formats); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// validateProxyIP carries on validations for parameter ProxyIP
-func (o *DownloadClusterISOParams) validateProxyIP(formats strfmt.Registry) error {
+// validateImageID carries on validations for parameter ImageID
+func (o *DownloadClusterISOParams) validateImageID(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("proxyIp", "query", "hostname", o.ProxyIP.String(), formats); err != nil {
+	if err := validate.FormatOf("imageId", "query", "uuid", o.ImageID.String(), formats); err != nil {
 		return err
 	}
-	return nil
-}
-
-// bindProxyPort binds and validates parameter ProxyPort from query.
-func (o *DownloadClusterISOParams) bindProxyPort(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: false
-	// AllowEmptyValue: false
-	if raw == "" { // empty values pass all other validations
-		return nil
-	}
-
-	value, err := swag.ConvertInt64(raw)
-	if err != nil {
-		return errors.InvalidType("proxyPort", "query", "int64", raw)
-	}
-	o.ProxyPort = &value
-
-	if err := o.validateProxyPort(formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// validateProxyPort carries on validations for parameter ProxyPort
-func (o *DownloadClusterISOParams) validateProxyPort(formats strfmt.Registry) error {
-
-	if err := validate.MinimumInt("proxyPort", "query", int64(*o.ProxyPort), 0, false); err != nil {
-		return err
-	}
-
-	if err := validate.MaximumInt("proxyPort", "query", int64(*o.ProxyPort), 65535, false); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// bindSSHPublicKey binds and validates parameter SSHPublicKey from query.
-func (o *DownloadClusterISOParams) bindSSHPublicKey(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: false
-	// AllowEmptyValue: false
-	if raw == "" { // empty values pass all other validations
-		return nil
-	}
-
-	o.SSHPublicKey = &raw
-
 	return nil
 }

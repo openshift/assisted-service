@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 )
 
 // NewDownloadClusterISOParams creates a new DownloadClusterISOParams object
@@ -66,21 +65,11 @@ type DownloadClusterISOParams struct {
 
 	*/
 	ClusterID strfmt.UUID
-	/*ProxyIP
-	  The IP address of the HTTP proxy that agents should use to access the discovery service
+	/*ImageID
+	  The ID of a previously-created image
 
 	*/
-	ProxyIP *strfmt.Hostname
-	/*ProxyPort
-	  The port of the HTTP proxy
-
-	*/
-	ProxyPort *int64
-	/*SSHPublicKey
-	  SSH public key for debugging the installation
-
-	*/
-	SSHPublicKey *string
+	ImageID strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -131,37 +120,15 @@ func (o *DownloadClusterISOParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
-// WithProxyIP adds the proxyIP to the download cluster i s o params
-func (o *DownloadClusterISOParams) WithProxyIP(proxyIP *strfmt.Hostname) *DownloadClusterISOParams {
-	o.SetProxyIP(proxyIP)
+// WithImageID adds the imageID to the download cluster i s o params
+func (o *DownloadClusterISOParams) WithImageID(imageID strfmt.UUID) *DownloadClusterISOParams {
+	o.SetImageID(imageID)
 	return o
 }
 
-// SetProxyIP adds the proxyIp to the download cluster i s o params
-func (o *DownloadClusterISOParams) SetProxyIP(proxyIP *strfmt.Hostname) {
-	o.ProxyIP = proxyIP
-}
-
-// WithProxyPort adds the proxyPort to the download cluster i s o params
-func (o *DownloadClusterISOParams) WithProxyPort(proxyPort *int64) *DownloadClusterISOParams {
-	o.SetProxyPort(proxyPort)
-	return o
-}
-
-// SetProxyPort adds the proxyPort to the download cluster i s o params
-func (o *DownloadClusterISOParams) SetProxyPort(proxyPort *int64) {
-	o.ProxyPort = proxyPort
-}
-
-// WithSSHPublicKey adds the sSHPublicKey to the download cluster i s o params
-func (o *DownloadClusterISOParams) WithSSHPublicKey(sSHPublicKey *string) *DownloadClusterISOParams {
-	o.SetSSHPublicKey(sSHPublicKey)
-	return o
-}
-
-// SetSSHPublicKey adds the sshPublicKey to the download cluster i s o params
-func (o *DownloadClusterISOParams) SetSSHPublicKey(sSHPublicKey *string) {
-	o.SSHPublicKey = sSHPublicKey
+// SetImageID adds the imageId to the download cluster i s o params
+func (o *DownloadClusterISOParams) SetImageID(imageID strfmt.UUID) {
+	o.ImageID = imageID
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -177,52 +144,13 @@ func (o *DownloadClusterISOParams) WriteToRequest(r runtime.ClientRequest, reg s
 		return err
 	}
 
-	if o.ProxyIP != nil {
-
-		// query param proxyIp
-		var qrProxyIP strfmt.Hostname
-		if o.ProxyIP != nil {
-			qrProxyIP = *o.ProxyIP
+	// query param imageId
+	qrImageID := o.ImageID
+	qImageID := qrImageID.String()
+	if qImageID != "" {
+		if err := r.SetQueryParam("imageId", qImageID); err != nil {
+			return err
 		}
-		qProxyIP := qrProxyIP.String()
-		if qProxyIP != "" {
-			if err := r.SetQueryParam("proxyIp", qProxyIP); err != nil {
-				return err
-			}
-		}
-
-	}
-
-	if o.ProxyPort != nil {
-
-		// query param proxyPort
-		var qrProxyPort int64
-		if o.ProxyPort != nil {
-			qrProxyPort = *o.ProxyPort
-		}
-		qProxyPort := swag.FormatInt64(qrProxyPort)
-		if qProxyPort != "" {
-			if err := r.SetQueryParam("proxyPort", qProxyPort); err != nil {
-				return err
-			}
-		}
-
-	}
-
-	if o.SSHPublicKey != nil {
-
-		// query param sshPublicKey
-		var qrSSHPublicKey string
-		if o.SSHPublicKey != nil {
-			qrSSHPublicKey = *o.SSHPublicKey
-		}
-		qSSHPublicKey := qrSSHPublicKey
-		if qSSHPublicKey != "" {
-			if err := r.SetQueryParam("sshPublicKey", qSSHPublicKey); err != nil {
-				return err
-			}
-		}
-
 	}
 
 	if len(res) > 0 {

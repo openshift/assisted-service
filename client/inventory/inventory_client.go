@@ -37,6 +37,9 @@ type API interface {
 	   EnableHost enables a host for use*/
 	EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostNoContent, error)
 	/*
+	   GenerateClusterISO creates a new open shift per cluster discovery i s o*/
+	GenerateClusterISO(ctx context.Context, params *GenerateClusterISOParams) (*GenerateClusterISOCreated, error)
+	/*
 	   GetCluster retrieves open shift bare metal cluster information*/
 	GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error)
 	/*
@@ -230,6 +233,30 @@ func (a *Client) EnableHost(ctx context.Context, params *EnableHostParams) (*Ena
 		return nil, err
 	}
 	return result.(*EnableHostNoContent), nil
+
+}
+
+/*
+GenerateClusterISO creates a new open shift per cluster discovery i s o
+*/
+func (a *Client) GenerateClusterISO(ctx context.Context, params *GenerateClusterISOParams) (*GenerateClusterISOCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GenerateClusterISO",
+		Method:             "POST",
+		PathPattern:        "/clusters/{clusterId}/downloads/image",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GenerateClusterISOReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GenerateClusterISOCreated), nil
 
 }
 

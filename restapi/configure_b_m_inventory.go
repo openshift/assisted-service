@@ -31,6 +31,7 @@ type InventoryAPI interface {
 	DownloadClusterFiles(ctx context.Context, params inventory.DownloadClusterFilesParams) middleware.Responder
 	DownloadClusterISO(ctx context.Context, params inventory.DownloadClusterISOParams) middleware.Responder
 	EnableHost(ctx context.Context, params inventory.EnableHostParams) middleware.Responder
+	GenerateClusterISO(ctx context.Context, params inventory.GenerateClusterISOParams) middleware.Responder
 	GetCluster(ctx context.Context, params inventory.GetClusterParams) middleware.Responder
 	GetHost(ctx context.Context, params inventory.GetHostParams) middleware.Responder
 	GetNextSteps(ctx context.Context, params inventory.GetNextStepsParams) middleware.Responder
@@ -102,6 +103,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.InventoryEnableHostHandler = inventory.EnableHostHandlerFunc(func(params inventory.EnableHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.EnableHost(ctx, params)
+	})
+	api.InventoryGenerateClusterISOHandler = inventory.GenerateClusterISOHandlerFunc(func(params inventory.GenerateClusterISOParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.GenerateClusterISO(ctx, params)
 	})
 	api.InventoryGetClusterHandler = inventory.GetClusterHandlerFunc(func(params inventory.GetClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

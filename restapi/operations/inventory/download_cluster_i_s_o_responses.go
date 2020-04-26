@@ -81,7 +81,7 @@ func (o *DownloadClusterISOBadRequest) WriteResponse(rw http.ResponseWriter, pro
 // DownloadClusterISONotFoundCode is the HTTP code returned for type DownloadClusterISONotFound
 const DownloadClusterISONotFoundCode int = 404
 
-/*DownloadClusterISONotFound Cluster not found
+/*DownloadClusterISONotFound Cluster or image not found
 
 swagger:response downloadClusterISONotFound
 */

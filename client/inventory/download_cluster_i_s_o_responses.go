@@ -113,7 +113,7 @@ func NewDownloadClusterISONotFound() *DownloadClusterISONotFound {
 
 /*DownloadClusterISONotFound handles this case with default header values.
 
-Cluster not found
+Cluster or image not found
 */
 type DownloadClusterISONotFound struct {
 }

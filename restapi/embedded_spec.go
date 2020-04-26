@@ -312,23 +312,11 @@ func init() {
           },
           {
             "type": "string",
-            "format": "hostname",
-            "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
-            "name": "proxyIp",
-            "in": "query"
-          },
-          {
-            "maximum": 65535,
-            "type": "integer",
-            "description": "The port of the HTTP proxy",
-            "name": "proxyPort",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "SSH public key for debugging the installation",
-            "name": "sshPublicKey",
-            "in": "query"
+            "format": "uuid",
+            "description": "The ID of a previously-created image",
+            "name": "imageId",
+            "in": "query",
+            "required": true
           }
         ],
         "responses": {
@@ -341,6 +329,55 @@ func init() {
           },
           "400": {
             "description": "Invalid parameters"
+          },
+          "404": {
+            "description": "Cluster or image not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Create a new OpenShift per-cluster discovery ISO",
+        "operationId": "GenerateClusterISO",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster whose ISO to create",
+            "name": "clusterId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "New ISO parameters",
+            "name": "image-create-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/image-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created ISO",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "imageId": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
           },
           "404": {
             "description": "Cluster not found"
@@ -1221,6 +1258,25 @@ func init() {
         "$ref": "#/definitions/host"
       }
     },
+    "image-create-params": {
+      "type": "object",
+      "properties": {
+        "proxyIp": {
+          "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
+          "type": "string",
+          "format": "hostname"
+        },
+        "proxyPort": {
+          "description": "The port of the HTTP proxy",
+          "type": "integer",
+          "maximum": 65535
+        },
+        "sshPublicKey": {
+          "description": "SSH public key for debugging the installation",
+          "type": "string"
+        }
+      }
+    },
     "introspection": {
       "type": "object",
       "properties": {
@@ -1690,24 +1746,11 @@ func init() {
           },
           {
             "type": "string",
-            "format": "hostname",
-            "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
-            "name": "proxyIp",
-            "in": "query"
-          },
-          {
-            "maximum": 65535,
-            "minimum": 0,
-            "type": "integer",
-            "description": "The port of the HTTP proxy",
-            "name": "proxyPort",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "SSH public key for debugging the installation",
-            "name": "sshPublicKey",
-            "in": "query"
+            "format": "uuid",
+            "description": "The ID of a previously-created image",
+            "name": "imageId",
+            "in": "query",
+            "required": true
           }
         ],
         "responses": {
@@ -1720,6 +1763,55 @@ func init() {
           },
           "400": {
             "description": "Invalid parameters"
+          },
+          "404": {
+            "description": "Cluster or image not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Create a new OpenShift per-cluster discovery ISO",
+        "operationId": "GenerateClusterISO",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster whose ISO to create",
+            "name": "clusterId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "New ISO parameters",
+            "name": "image-create-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/image-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created ISO",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "imageId": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
           },
           "404": {
             "description": "Cluster not found"
@@ -2601,6 +2693,26 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/host"
+      }
+    },
+    "image-create-params": {
+      "type": "object",
+      "properties": {
+        "proxyIp": {
+          "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
+          "type": "string",
+          "format": "hostname"
+        },
+        "proxyPort": {
+          "description": "The port of the HTTP proxy",
+          "type": "integer",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "sshPublicKey": {
+          "description": "SSH public key for debugging the installation",
+          "type": "string"
+        }
       }
     },
     "introspection": {

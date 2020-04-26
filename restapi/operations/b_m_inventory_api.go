@@ -62,6 +62,9 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		InventoryEnableHostHandler: inventory.EnableHostHandlerFunc(func(params inventory.EnableHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.EnableHost has not yet been implemented")
 		}),
+		InventoryGenerateClusterISOHandler: inventory.GenerateClusterISOHandlerFunc(func(params inventory.GenerateClusterISOParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.GenerateClusterISO has not yet been implemented")
+		}),
 		InventoryGetClusterHandler: inventory.GetClusterHandlerFunc(func(params inventory.GetClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.GetCluster has not yet been implemented")
 		}),
@@ -143,6 +146,8 @@ type BMInventoryAPI struct {
 	InventoryDownloadClusterISOHandler inventory.DownloadClusterISOHandler
 	// InventoryEnableHostHandler sets the operation handler for the enable host operation
 	InventoryEnableHostHandler inventory.EnableHostHandler
+	// InventoryGenerateClusterISOHandler sets the operation handler for the generate cluster i s o operation
+	InventoryGenerateClusterISOHandler inventory.GenerateClusterISOHandler
 	// InventoryGetClusterHandler sets the operation handler for the get cluster operation
 	InventoryGetClusterHandler inventory.GetClusterHandler
 	// InventoryGetHostHandler sets the operation handler for the get host operation
@@ -251,6 +256,9 @@ func (o *BMInventoryAPI) Validate() error {
 	}
 	if o.InventoryEnableHostHandler == nil {
 		unregistered = append(unregistered, "inventory.EnableHostHandler")
+	}
+	if o.InventoryGenerateClusterISOHandler == nil {
+		unregistered = append(unregistered, "inventory.GenerateClusterISOHandler")
 	}
 	if o.InventoryGetClusterHandler == nil {
 		unregistered = append(unregistered, "inventory.GetClusterHandler")
@@ -399,6 +407,10 @@ func (o *BMInventoryAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{clusterId}/hosts/{hostId}/actions/enable"] = inventory.NewEnableHost(o.context, o.InventoryEnableHostHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{clusterId}/downloads/image"] = inventory.NewGenerateClusterISO(o.context, o.InventoryGenerateClusterISOHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
