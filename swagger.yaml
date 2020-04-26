@@ -145,7 +145,7 @@ paths:
           format: uuid
           required: true
         - in: body
-          name: new-iso-params
+          name: image-create-params
           description: New ISO parameters
           required: true
           schema:
@@ -161,6 +161,8 @@ paths:
                 format: uuid
         400:
           description: Invalid input
+        404:
+          description: Cluster not found
         500:
           description: Internal server error
 
@@ -537,10 +539,6 @@ definitions:
   image-create-params:
     type: object
     properties:
-      clusterId:
-        type: string
-        format: uuid
-        description: The ID of the cluster whose ISO to download
       proxyIp:
         type: string
         format: hostname
