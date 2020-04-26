@@ -139,22 +139,21 @@ func buildHrefURI(base, id string) *strfmt.URI {
 }
 
 // create discovery image generation job, return job name and error
-func (b *bareMetalInventory) createImageJob(cluster *models.Cluster, name string) *batch.Job {
-	id := cluster.ID
+func (b *bareMetalInventory) createImageJob(cluster *models.Cluster, jobName, imgName string) *batch.Job {
 	return &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: meta.ObjectMeta{
-			Name:      name,
+			Name:      jobName,
 			Namespace: "default",
 		},
 		Spec: batch.JobSpec{
 			BackoffLimit: swag.Int32(2),
 			Template: core.PodTemplateSpec{
 				ObjectMeta: meta.ObjectMeta{
-					Name:      name,
+					Name:      jobName,
 					Namespace: "default",
 				},
 				Spec: core.PodSpec{
@@ -175,7 +174,7 @@ func (b *bareMetalInventory) createImageJob(cluster *models.Cluster, name string
 								},
 								{
 									Name:  "IMAGE_NAME",
-									Value: getImageName(*id),
+									Value: imgName,
 								},
 								{
 									Name:  "S3_BUCKET",
@@ -289,45 +288,63 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inven
 
 func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inventory.DownloadClusterISOParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	log.Infof("prepare and download image for cluster %s", params.ClusterID)
-	var cluster models.Cluster
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	if err := b.db.First(&models.Cluster{}, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
 		return inventory.NewDownloadClusterISONotFound()
 	}
-	// max job name is 63 chars
-	jobName := fmt.Sprintf("create-image-%s-%s", cluster.ID.String(), uuid.New().String())[:63]
-	if err := b.job.Create(ctx, b.createImageJob(&cluster, jobName)); err != nil {
-		log.WithError(err).Error("failed to create image job")
-		return inventory.NewDownloadClusterISOInternalServerError()
-	}
-
-	if err := b.job.Monitor(ctx, jobName, defaultJobNamespace); err != nil {
-		log.WithError(err).Error("image creation failed")
-		return inventory.NewDownloadClusterISOInternalServerError()
-	}
-
-	imageURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket, getImageName(params.ClusterID))
+	imgName := getImageName(params.ClusterID, params.ImageID)
+	imageURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket, imgName)
 	log.Info("Image URL: ", imageURL)
 	resp, err := http.Get(imageURL)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get ISO: %s", getImageName(params.ClusterID))
+		log.WithError(err).Errorf("Failed to get ISO: %s", imgName)
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
 		b, _ := ioutil.ReadAll(resp.Body)
-		log.WithError(fmt.Errorf("%s", string(b))).
-			Errorf("Failed to get ISO: %s", getImageName(params.ClusterID))
+		log.WithError(fmt.Errorf("%d - %s", resp.StatusCode, string(b))).
+			Errorf("Failed to get ISO: %s", imgName)
+		if resp.StatusCode == http.StatusNotFound {
+			return inventory.NewDownloadClusterISONotFound()
+		}
 		return inventory.NewDownloadClusterISOInternalServerError()
 	}
 
 	return filemiddleware.NewResponder(inventory.NewDownloadClusterISOOK().WithPayload(resp.Body),
-		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()))
+		fmt.Sprintf("%s-cluster-%s-discovery.iso", params.ImageID.String(), params.ClusterID.String()))
 }
 
-func getImageName(clusterID strfmt.UUID) string {
-	return fmt.Sprintf("discovery-image-%s", clusterID.String())
+// GenerateClusterISO and return image ID that can be used to download the ISO
+func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inventory.GenerateClusterISOParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("prepare image for cluster %s", params.ClusterID)
+	var cluster models.Cluster
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
+		return inventory.NewGenerateClusterISONotFound()
+	}
+	// generating a new uuid for each call to prevent races between concurrent requests
+	imgId := strfmt.UUID(uuid.New().String())
+	imgName := getImageName(params.ClusterID, imgId)
+	// max job name is 63 chars
+	jobName := fmt.Sprintf("create-image-%s-%s", cluster.ID, imgId)[:63]
+	if err := b.job.Create(ctx, b.createImageJob(&cluster, jobName, imgName)); err != nil {
+		log.WithError(err).Error("failed to create image job")
+		return inventory.NewGenerateClusterISOInternalServerError()
+	}
+
+	if err := b.job.Monitor(ctx, jobName, defaultJobNamespace); err != nil {
+		log.WithError(err).Error("image creation failed")
+		return inventory.NewGenerateClusterISOInternalServerError()
+	}
+
+	return inventory.NewGenerateClusterISOCreated().
+		WithPayload(&inventory.GenerateClusterISOCreatedBody{ImageID: imgId})
+}
+
+func getImageName(clusterID, id strfmt.UUID) string {
+	return fmt.Sprintf("discovery-image-%s-%s", clusterID.String(), id)
 }
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventory.InstallClusterParams) middleware.Responder {
