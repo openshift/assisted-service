@@ -186,6 +186,7 @@ paths:
           description: The ID of a previously-created image
           type: string
           format: uuid
+          required: true
       responses:
         200:
           description: The ISO file
