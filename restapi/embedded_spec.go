@@ -923,6 +923,9 @@ func init() {
                 "installed"
               ]
             },
+            "statusInfo": {
+              "type": "string"
+            },
             "updatedAt": {
               "type": "string",
               "format": "date-time",
@@ -2372,6 +2375,9 @@ func init() {
                 "installing",
                 "installed"
               ]
+            },
+            "statusInfo": {
+              "type": "string"
             },
             "updatedAt": {
               "type": "string",

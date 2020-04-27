@@ -82,6 +82,9 @@ type Cluster struct {
 	// Enum: [insufficient ready error installing installed]
 	Status *string `json:"status"`
 
+	// status info
+	StatusInfo string `json:"statusInfo,omitempty"`
+
 	// updated at
 	// Format: date-time
 	UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty" gorm:"type:datetime"`
@@ -130,6 +133,8 @@ func (m *Cluster) UnmarshalJSON(raw []byte) error {
 
 		Status *string `json:"status"`
 
+		StatusInfo string `json:"statusInfo,omitempty"`
+
 		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
 	}
 	if err := swag.ReadJSON(raw, &dataAO1); err != nil {
@@ -167,6 +172,8 @@ func (m *Cluster) UnmarshalJSON(raw []byte) error {
 	m.SSHPublicKey = dataAO1.SSHPublicKey
 
 	m.Status = dataAO1.Status
+
+	m.StatusInfo = dataAO1.StatusInfo
 
 	m.UpdatedAt = dataAO1.UpdatedAt
 
@@ -215,6 +222,8 @@ func (m Cluster) MarshalJSON() ([]byte, error) {
 
 		Status *string `json:"status"`
 
+		StatusInfo string `json:"statusInfo,omitempty"`
+
 		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
 	}
 
@@ -249,6 +258,8 @@ func (m Cluster) MarshalJSON() ([]byte, error) {
 	dataAO1.SSHPublicKey = m.SSHPublicKey
 
 	dataAO1.Status = m.Status
+
+	dataAO1.StatusInfo = m.StatusInfo
 
 	dataAO1.UpdatedAt = m.UpdatedAt
 
