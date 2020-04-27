@@ -841,6 +841,8 @@ definitions:
               - error
               - installing
               - installed
+          statusInfo:
+            type: string
           hosts:
             x-go-custom-tag: gorm:"foreignkey:ClusterID;association_foreignkey:ID"
             type: array
