@@ -1,6 +1,22 @@
 PWD = $(shell pwd)
 UID = $(shell id -u)
 
+TARGET := $(or ${TARGET},minikube)
+
+ifeq ($(TARGET), minikube)
+define get_service
+minikube service --url $(1)
+endef
+else
+define get_service
+kubectl get service scality | grep scality | awk '{print $$4 ":" $$5}' | \
+	awk '{split($$0,a,":"); print a[1] ":" a[2]}'
+endef
+endif
+
+bla:
+	aws --endpoint-url=`$(call get_service,scality)` s3api list-buckets
+
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/bm-inventory:stable)
 
 all: build
@@ -39,7 +55,7 @@ deploy-all: deploy-mariadb deploy-s3 deploy-service
 deploy-s3-configmap:
 	$(eval CONFIGMAP=./build/scality-configmap.yaml)
 	cp ./deploy/s3/scality-configmap.yaml $(CONFIGMAP)
-	$(eval URL=`minikube service scality --url`)
+	$(eval URL=`$(call get_service,scality)`)
 	sed -i "s#REPLACE_URL#$(URL)#" $(CONFIGMAP)
 	echo "deploying s3 configmap"
 	cat $(CONFIGMAP)
@@ -60,14 +76,14 @@ deploy-s3:
 	make deploy-s3-configmap
 	mkdir -p "${AWS_DIR}" ; echo "$$CREDENTIALS" > ${AWS_SHARED_CREDENTIALS_FILE}
 	n=20 ; \
-	aws --endpoint-url=`minikube service scality --url` s3api create-bucket --bucket test ; \
+	aws --endpoint-url=`$(call get_service,scality)` s3api create-bucket --bucket test ; \
 	REPLY=$$? ; \
 	echo $(REPLY) ; \
 	while [ $${n} -gt 0 ] && [ $${REPLY} -ne 0 ] ; do \
 		sleep 5 ; \
 		echo $$n ; \
 		n=`expr $$n - 1`; \
-		aws --endpoint-url=`minikube service scality --url` s3api create-bucket --bucket test ; \
+		aws --endpoint-url=`$(call get_service,scality)` s3api create-bucket --bucket test ; \
 		REPLY=$$? ; \
 	done; \
 	if [ $${n} -eq 0 ]; \
@@ -79,8 +95,8 @@ deploy-s3:
 deploy-service-requirements: deploy-role
 	kubectl apply -f deploy/bm-inventory-service.yaml
 	$(eval CONFIGMAP=./deploy/tmp-bm-inventory-configmap.yaml)
-	$(eval URL=`minikube service bm-inventory --url| sed 's/http:\/\///g' | cut -d ":" -f 1`)
-	$(eval PORT=`minikube service bm-inventory --url| sed 's/http:\/\///g' | cut -d ":" -f 2`)
+	$(eval URL=`$(call get_service,bm-inventory) | sed 's/http:\/\///g' | cut -d ":" -f 1`)
+	$(eval PORT=`$(call get_service,bm-inventory) | sed 's/http:\/\///g' | cut -d ":" -f 2`)
 	sed "s#REPLACE_URL#\"$(URL)\"#;s#REPLACE_PORT#\"$(PORT)\"#" ./deploy/bm-inventory-configmap.yaml > $(CONFIGMAP)
 	echo "Apply bm-inventory-config configmap"
 	cat $(CONFIGMAP)
@@ -111,9 +127,9 @@ ifndef SYSTEM
 SYSTEM_TEST=-ginkgo.skip="system-test"
 endif
 test:
-	INVENTORY=$(shell minikube service bm-inventory --url| sed 's/http:\/\///g') \
-		DB_HOST=$(shell minikube service mariadb --url| sed 's/http:\/\///g' | cut -d ":" -f 1) \
-		DB_PORT=$(shell minikube service mariadb --url| sed 's/http:\/\///g' | cut -d ":" -f 2) \
+	INVENTORY=$(shell $(call get_service,bm-inventory) | sed 's/http:\/\///g') \
+		DB_HOST=$(shell $(call get_service,mariadb) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
+		DB_PORT=$(shell $(call get_service,mariadb) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
 		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v $(SYSTEM_TEST)
 
 unit-test:
