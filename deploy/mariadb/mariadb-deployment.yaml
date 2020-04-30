@@ -29,8 +29,10 @@ metadata:
   labels:
     app: mariadb
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
     - port: 3306
   selector:
     app: mariadb
+status:
+  loadBalancer: {}
