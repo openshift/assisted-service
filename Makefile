@@ -37,7 +37,13 @@ deploy-for-test: deploy-mariadb deploy-s3-configmap deploy-service-for-test
 deploy-all: deploy-mariadb deploy-s3 deploy-service
 
 deploy-s3-configmap:
-	./deploy/s3/deploy-configmap.sh
+	$(eval CONFIGMAP=./build/scality-configmap.yaml)
+	cp ./deploy/s3/scality-configmap.yaml $(CONFIGMAP)
+	$(eval URL=`minikube service scality --url`)
+	sed -i "s#REPLACE_URL#$(URL)#" $(CONFIGMAP)
+	echo "deploying s3 configmap"
+	cat $(CONFIGMAP)
+	kubectl apply -f $(CONFIGMAP)
 
 # scalitiy default credentials
 define CREDENTIALS =
@@ -72,7 +78,14 @@ deploy-s3:
 
 deploy-service-requirements: deploy-role
 	kubectl apply -f deploy/bm-inventory-service.yaml
-	./deploy/deploy-configmap.sh
+	$(eval CONFIGMAP=./deploy/tmp-bm-inventory-configmap.yaml)
+	$(eval URL=`minikube service bm-inventory --url| sed 's/http:\/\///g' | cut -d ":" -f 1`)
+	$(eval PORT=`minikube service bm-inventory --url| sed 's/http:\/\///g' | cut -d ":" -f 2`)
+	sed "s#REPLACE_URL#\"$(URL)\"#;s#REPLACE_PORT#\"$(PORT)\"#" ./deploy/bm-inventory-configmap.yaml > $(CONFIGMAP)
+	echo "Apply bm-inventory-config configmap"
+	cat $(CONFIGMAP)
+	kubectl apply -f $(CONFIGMAP)
+	rm $(CONFIGMAP)
 
 deploy-service-for-test: deploy-service-requirements
 	sed '/IMAGE_BUILDER_CMD$$/{$$!{N;s/IMAGE_BUILDER_CMD\n              value: \"\"$$/IMAGE_BUILDER_CMD\n              value: \"echo hello\"/;ty;P;D;:y}}' deploy/bm-inventory.yaml > deploy/bm-inventory-tmp.yaml
