@@ -69,7 +69,7 @@ type Config struct {
 	S3Bucket            string `envconfig:"S3_BUCKET" default:"test"`
 	AwsAccessKeyID      string `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
 	AwsSecretAccessKey  string `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
-	InstallerImage      string `envconfig:"INSTALLER_IMAGE" default:"quay.io/eranco74/assisted-installer:stable"`
+	InstallerImage      string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:stable"`
 }
 
 const ignitionConfigFormat = `{
@@ -472,15 +472,15 @@ func (b *bareMetalInventory) addInstallCommand(ctx context.Context, masterNodesI
 	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
 	log.Debugf("Bootstrap ID is %s", bootstrapId)
 
-	const cmdTmpl = `sudo podman run -v /dev:/dev:rw --privileged --pid=host  {{.INSTALLER}} --role {{.ROLE}}  --cluster-id {{.CLUSTER_ID}}  --s3-bucket {{.S3_BUCKET}}  --s3-endpoint {{.S3_URL}} --boot-device /dev/vda`
+	const cmdTmpl = `sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host  {{.INSTALLER}} --role {{.ROLE}}  --cluster-id {{.CLUSTER_ID}}  --host {{.HOST}} --port {{.PORT}} --boot-device /dev/vda`
 	t, err := template.New("cmd").Parse(cmdTmpl)
 	if err != nil {
 		return err
 	}
 
 	data := map[string]string{
-		"S3_URL":     b.S3EndpointURL,
-		"S3_BUCKET":  b.S3Bucket,
+		"HOST":       b.InventoryURL,
+		"PORT":       b.InventoryPort,
 		"CLUSTER_ID": string(params.ClusterID),
 		"ROLE":       "",
 		"INSTALLER":  b.Config.InstallerImage,
