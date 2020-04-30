@@ -20,8 +20,11 @@ func TestValidator(t *testing.T) {
 
 var _ = Describe("hardware_validator", func() {
 	var (
-		hwvalidator Validator
-		host        *models.Host
+		hwvalidator      Validator
+		host             *models.Host
+		hwInfo           *models.Introspection
+		validDiskSize    = int64(128849018880)
+		notValidDiskSize = int64(108849018880)
 	)
 	BeforeEach(func() {
 		var cfg ValidatorCfg
@@ -29,13 +32,16 @@ var _ = Describe("hardware_validator", func() {
 		hwvalidator = NewValidator(cfg)
 		id := strfmt.UUID(uuid.New().String())
 		host = &models.Host{Base: models.Base{ID: &id}, ClusterID: strfmt.UUID(uuid.New().String())}
+		hwInfo = &models.Introspection{
+			CPU:    &models.CPU{Cpus: 16},
+			Memory: []*models.Memory{{Name: "Mem", Total: int64(32 * units.GiB)}},
+			BlockDevices: []*models.BlockDevice{
+				{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", ReadOnly: true, RemovableDevice: 1, Size: validDiskSize},
+				{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize}},
+		}
 	})
 
 	It("sufficient_hw", func() {
-		hwInfo := &models.Introspection{
-			CPU:    &models.CPU{Cpus: 16},
-			Memory: []*models.Memory{{Name: "Mem", Total: int64(32 * units.GiB)}},
-		}
 		hw, err := json.Marshal(&hwInfo)
 		Expect(err).NotTo(HaveOccurred())
 		host.HardwareInfo = string(hw)
@@ -48,10 +54,8 @@ var _ = Describe("hardware_validator", func() {
 	})
 
 	It("insufficient_minimal_hw_requirements", func() {
-		hwInfo := &models.Introspection{
-			CPU:    &models.CPU{Cpus: 1},
-			Memory: []*models.Memory{{Name: "Mem", Total: int64(3 * units.GiB)}},
-		}
+		hwInfo.CPU = &models.CPU{Cpus: 1}
+		hwInfo.Memory = []*models.Memory{{Name: "Mem", Total: int64(3 * units.GiB)}}
 		hw, err := json.Marshal(&hwInfo)
 		Expect(err).NotTo(HaveOccurred())
 		host.HardwareInfo = string(hw)
@@ -63,11 +67,9 @@ var _ = Describe("hardware_validator", func() {
 		}
 	})
 
-	It("insufficent_master_but_valid_worker", func() {
-		hwInfo := &models.Introspection{
-			CPU:    &models.CPU{Cpus: 8},
-			Memory: []*models.Memory{{Name: "Mem", Total: int64(8 * units.GiB)}},
-		}
+	It("insufficient_master_but_valid_worker", func() {
+		hwInfo.CPU = &models.CPU{Cpus: 8}
+		hwInfo.Memory = []*models.Memory{{Name: "Mem", Total: int64(8 * units.GiB)}}
 		hw, err := json.Marshal(&hwInfo)
 		Expect(err).NotTo(HaveOccurred())
 		host.HardwareInfo = string(hw)
@@ -75,6 +77,45 @@ var _ = Describe("hardware_validator", func() {
 		insufficient(hwvalidator.IsSufficient(host))
 		host.Role = "worker"
 		sufficient(hwvalidator.IsSufficient(host))
+	})
+
+	It("insufficient_number_of_valid_disks", func() {
+		hwInfo.BlockDevices = []*models.BlockDevice{
+			// Not disk type
+			{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", Size: validDiskSize},
+			// Not enough size
+			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: notValidDiskSize},
+			// Removable
+			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sda", RemovableDevice: 1, Size: validDiskSize},
+			// Read-only
+			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdh", ReadOnly: true, Size: validDiskSize},
+		}
+		hw, err := json.Marshal(&hwInfo)
+		Expect(err).NotTo(HaveOccurred())
+
+		host.HardwareInfo = string(hw)
+		insufficient(hwvalidator.IsSufficient(host))
+
+		disks, err := hwvalidator.GetHostValidDisks(host)
+		Expect(err).To(HaveOccurred())
+		Expect(disks).To(BeNil())
+	})
+
+	It("validate_disk_list_return_order", func() {
+		hwInfo.BlockDevices = []*models.BlockDevice{
+			// Not disk type
+			{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "aaa", ReadOnly: true, RemovableDevice: 1, Size: validDiskSize},
+			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize},
+			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sda", Size: validDiskSize},
+			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdh", Size: validDiskSize},
+		}
+		hw, err := json.Marshal(&hwInfo)
+		Expect(err).NotTo(HaveOccurred())
+		host.HardwareInfo = string(hw)
+		disks, err := hwvalidator.GetHostValidDisks(host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(disks[0].Name).Should(Equal("sda"))
+		Expect(len(disks)).Should(Equal(3))
 	})
 
 	It("invalid_hw_info", func() {
@@ -86,7 +127,11 @@ var _ = Describe("hardware_validator", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(reply).To(BeNil())
 		}
+		disks, err := hwvalidator.GetHostValidDisks(host)
+		Expect(err).To(HaveOccurred())
+		Expect(disks).To(BeNil())
 	})
+
 })
 
 func sufficient(reply *IsSufficientReply, err error) {
