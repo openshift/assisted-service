@@ -12,6 +12,8 @@ import (
 	"sync"
 	"text/template"
 
+	"github.com/filanov/bm-inventory/internal/cluster"
+
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/internal/installcfg"
 	"github.com/filanov/bm-inventory/models"
@@ -37,9 +39,9 @@ const defaultJobNamespace = "default"
 
 const (
 	ClusterStatusReady      = "ready"
-	ClusterStatusError      = "error"
 	ClusterStatusInstalling = "installing"
 	ClusterStatusInstalled  = "installed"
+	ClusterStatusError      = "error"
 )
 
 const (
@@ -104,9 +106,10 @@ type bareMetalInventory struct {
 	log           logrus.FieldLogger
 	job           job.API
 	hostApi       host.API
+	clusterApi    cluster.API
 }
 
-func NewBareMetalInventory(db *gorm.DB, log logrus.FieldLogger, hostApi host.API, cfg Config,
+func NewBareMetalInventory(db *gorm.DB, log logrus.FieldLogger, hostApi host.API, clusterApi cluster.API, cfg Config,
 	jobApi job.API) *bareMetalInventory {
 
 	b := &bareMetalInventory{
@@ -115,6 +118,7 @@ func NewBareMetalInventory(db *gorm.DB, log logrus.FieldLogger, hostApi host.API
 		Config:      cfg,
 		debugCmdMap: make(map[strfmt.UUID]debugCmd),
 		hostApi:     hostApi,
+		clusterApi:  clusterApi,
 		job:         jobApi,
 	}
 
@@ -242,8 +246,8 @@ func (b *bareMetalInventory) getPortForIgnition(params inventory.GenerateCluster
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Register cluster: %s", swag.StringValue(params.NewClusterParams.Name))
 	id := strfmt.UUID(uuid.New().String())
+	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
 	cluster := models.Cluster{
 		Base: models.Base{
 			Href: buildHrefURI(ResourceKindCluster, id.String()),
@@ -261,12 +265,11 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params invento
 		PullSecret:               params.NewClusterParams.PullSecret,
 		ServiceNetworkCIDR:       params.NewClusterParams.ServiceNetworkCIDR,
 		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
-		// TODO: should start as insufficient
-		Status:    swag.String(ClusterStatusReady),
-		UpdatedAt: strfmt.DateTime{},
+		UpdatedAt:                strfmt.DateTime{},
 	}
 
-	if err := b.db.Preload("Hosts").Create(&cluster).Error; err != nil {
+	if _, err := b.clusterApi.RegisterCluster(ctx, &cluster); err != nil {
+		log.Errorf("failed to register cluster %s ", swag.StringValue(params.NewClusterParams.Name))
 		return inventory.NewRegisterClusterInternalServerError()
 	}
 
@@ -276,35 +279,13 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params invento
 func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inventory.DeregisterClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
-	var txErr error
-	tx := b.db.Begin()
 
-	defer func() {
-		if txErr != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err := tx.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return inventory.NewDeregisterClusterNotFound()
 	}
 
-	for i := range cluster.Hosts {
-		if txErr = tx.Where("id = ? and cluster_id = ?", cluster.Hosts[i], params.ClusterID).Delete(&models.Host{}).Error; txErr != nil {
-			log.WithError(txErr).Errorf("failed to delete host: %s", cluster.Hosts[i].ID)
-			// TODO: fix error code
-			return inventory.NewDeregisterClusterNotFound()
-		}
-	}
-	if txErr = tx.Delete(cluster).Error; txErr != nil {
-		log.WithError(txErr).Errorf("failed to delete cluster %s", cluster.ID)
-		// TODO: fix error code
-		return inventory.NewDeregisterClusterNotFound()
-	}
-
-	if txErr = tx.Commit().Error; txErr != nil {
-		log.WithError(txErr).Errorf("failed to delete cluster %s, commit tx", cluster.ID)
-		// TODO: fix error code
+	if _, err := b.clusterApi.DeregisterCluster(ctx, &cluster); err != nil {
+		log.WithError(err).Errorf("failed to deregister cluster cluster %s", params.ClusterID)
 		return inventory.NewDeregisterClusterNotFound()
 	}
 
@@ -580,6 +561,12 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory
 				params.ClusterID)
 			return inventory.NewUpdateClusterConflict()
 		}
+	}
+
+	if _, err := b.clusterApi.RefreshStatus(ctx, &cluster, tx); err != nil {
+		tx.Rollback()
+		log.WithError(err).Errorf("failed to validate or update cluster %s state", params.ClusterID)
+		return inventory.NewRegisterClusterInternalServerError()
 	}
 
 	if tx.Commit().Error != nil {

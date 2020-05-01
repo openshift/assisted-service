@@ -6,16 +6,16 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/google/uuid"
-
-	"github.com/go-openapi/swag"
+	"github.com/filanov/bm-inventory/internal/cluster"
 
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/job"
 	"github.com/filanov/bm-inventory/restapi/operations/inventory"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kelseyhightower/envconfig"
@@ -50,12 +50,13 @@ func strToUUID(s string) *strfmt.UUID {
 
 var _ = Describe("GenerateClusterISO", func() {
 	var (
-		bm      *bareMetalInventory
-		cfg     Config
-		db      *gorm.DB
-		ctx     = context.Background()
-		ctrl    *gomock.Controller
-		mockJob *job.MockAPI
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		ctrl           *gomock.Controller
+		mockJob        *job.MockAPI
+		mockClusterAPI *cluster.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -63,15 +64,19 @@ var _ = Describe("GenerateClusterISO", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = prepareDB()
 		mockJob = job.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, cfg, mockJob)
+		mockClusterAPI = cluster.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, mockClusterAPI, cfg, mockJob)
 	})
 
 	registerCluster := func() *models.Cluster {
-		reply := bm.RegisterCluster(ctx, inventory.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{Name: swag.String("some-cluster")},
-		})
-		Expect(reply).Should(BeAssignableToTypeOf(inventory.NewRegisterClusterCreated()))
-		return reply.(*inventory.RegisterClusterCreated).Payload
+		clusterId := strfmt.UUID(uuid.New().String())
+		cluster := models.Cluster{
+			Base: models.Base{
+				ID: &clusterId,
+			},
+		}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		return &cluster
 	}
 
 	It("success", func() {
@@ -147,7 +152,7 @@ var _ = Describe("GetNextSteps", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = prepareDB()
 		mockHostApi = host.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, cfg, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil)
 	})
 
 	It("get_next_steps_unknown_host", func() {
@@ -194,7 +199,6 @@ var _ = Describe("GetNextSteps", func() {
 		ctrl.Finish()
 		db.Close()
 	})
-
 })
 
 var _ = Describe("UpdateHostInstallProgress", func() {
@@ -212,7 +216,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = prepareDB()
 		mockHostApi = host.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, cfg, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil)
 	})
 
 	Context("host exists", func() {
