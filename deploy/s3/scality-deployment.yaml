@@ -18,6 +18,9 @@ spec:
         - image: scality/s3server
           imagePullPolicy: Always
           name: s3server
+          envFrom:
+            - configMapRef:
+                name: s3-config
 ---
 apiVersion: v1
 kind: Service
