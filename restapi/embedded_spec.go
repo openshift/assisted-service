@@ -938,7 +938,8 @@ func init() {
     "cluster-create-params": {
       "type": "object",
       "required": [
-        "name"
+        "name",
+        "openshiftVersion"
       ],
       "properties": {
         "apiVip": {
@@ -1057,11 +1058,6 @@ func init() {
         "name": {
           "description": "OpenShift cluster name",
           "type": "string"
-        },
-        "openshiftVersion": {
-          "description": "OpenShift cluster version",
-          "type": "string",
-          "pattern": "^4\\.\\d$"
         },
         "pullSecret": {
           "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",
@@ -2391,7 +2387,8 @@ func init() {
     "cluster-create-params": {
       "type": "object",
       "required": [
-        "name"
+        "name",
+        "openshiftVersion"
       ],
       "properties": {
         "apiVip": {
@@ -2497,11 +2494,6 @@ func init() {
         "name": {
           "description": "OpenShift cluster name",
           "type": "string"
-        },
-        "openshiftVersion": {
-          "description": "OpenShift cluster version",
-          "type": "string",
-          "pattern": "^4\\.\\d$"
         },
         "pullSecret": {
           "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",

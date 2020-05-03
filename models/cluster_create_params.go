@@ -46,8 +46,9 @@ type ClusterCreateParams struct {
 	Name *string `json:"name"`
 
 	// OpenShift cluster version
+	// Required: true
 	// Pattern: ^4\.\d$
-	OpenshiftVersion string `json:"openshiftVersion,omitempty"`
+	OpenshiftVersion *string `json:"openshiftVersion"`
 
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
 	PullSecret string `json:"pullSecret,omitempty"`
@@ -182,11 +183,11 @@ func (m *ClusterCreateParams) validateName(formats strfmt.Registry) error {
 
 func (m *ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.OpenshiftVersion) { // not required
-		return nil
+	if err := validate.Required("openshiftVersion", "body", m.OpenshiftVersion); err != nil {
+		return err
 	}
 
-	if err := validate.Pattern("openshiftVersion", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
+	if err := validate.Pattern("openshiftVersion", "body", string(*m.OpenshiftVersion), `^4\.\d$`); err != nil {
 		return err
 	}
 

@@ -50,10 +50,6 @@ type ClusterUpdateParams struct {
 	// OpenShift cluster name
 	Name string `json:"name,omitempty"`
 
-	// OpenShift cluster version
-	// Pattern: ^4\.\d$
-	OpenshiftVersion string `json:"openshiftVersion,omitempty"`
-
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
 	PullSecret string `json:"pullSecret,omitempty"`
 
@@ -90,10 +86,6 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateIngressVip(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateOpenshiftVersion(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -195,19 +187,6 @@ func (m *ClusterUpdateParams) validateIngressVip(formats strfmt.Registry) error 
 	}
 
 	if err := validate.FormatOf("ingressVip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *ClusterUpdateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.OpenshiftVersion) { // not required
-		return nil
-	}
-
-	if err := validate.Pattern("openshiftVersion", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
 		return err
 	}
 
