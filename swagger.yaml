@@ -682,6 +682,7 @@ definitions:
     type: object
     required:
       - name
+      - openshiftVersion
     properties:
       name:
         type: string
@@ -731,10 +732,6 @@ definitions:
       name:
         type: string
         description: OpenShift cluster name
-      openshiftVersion:
-        type: string
-        pattern: '^4\.\d$'
-        description: OpenShift cluster version
       baseDnsDomain:
         type: string
         description: The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
