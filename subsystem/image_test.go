@@ -29,7 +29,8 @@ var _ = Describe("system-test image tests", func() {
 		var err error
 		cluster, err = bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name: swag.String("test cluster"),
+				Name:             swag.String("test cluster"),
+				OpenshiftVersion: swag.String("4.4"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -89,7 +90,8 @@ var _ = Describe("image tests", func() {
 	It("download_non_existing_image", func() {
 		cluster, err := bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name: swag.String("test cluster"),
+				Name:             swag.String("test cluster"),
+				OpenshiftVersion: swag.String("4.4"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

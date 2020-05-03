@@ -26,7 +26,8 @@ var _ = Describe("Host tests", func() {
 		var err error
 		cluster, err = bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name: swag.String("test cluster"),
+				Name:             swag.String("test cluster"),
+				OpenshiftVersion: swag.String("4.4"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -173,7 +174,8 @@ var _ = Describe("Host tests", func() {
 
 		cluster2, err := bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name: swag.String("another cluster"),
+				Name:             swag.String("another cluster"),
+				OpenshiftVersion: swag.String("4.4"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

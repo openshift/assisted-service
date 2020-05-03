@@ -248,7 +248,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params invento
 		DNSVip:                   params.NewClusterParams.DNSVip,
 		IngressVip:               params.NewClusterParams.IngressVip,
 		Name:                     swag.StringValue(params.NewClusterParams.Name),
-		OpenshiftVersion:         params.NewClusterParams.OpenshiftVersion,
+		OpenshiftVersion:         swag.StringValue(params.NewClusterParams.OpenshiftVersion),
 		PullSecret:               params.NewClusterParams.PullSecret,
 		ServiceNetworkCIDR:       params.NewClusterParams.ServiceNetworkCIDR,
 		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
@@ -536,7 +536,6 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params inventory
 	cluster.ClusterNetworkHostPrefix = params.ClusterUpdateParams.ClusterNetworkHostPrefix
 	cluster.DNSVip = params.ClusterUpdateParams.DNSVip
 	cluster.IngressVip = params.ClusterUpdateParams.IngressVip
-	cluster.OpenshiftVersion = params.ClusterUpdateParams.OpenshiftVersion
 	cluster.PullSecret = params.ClusterUpdateParams.PullSecret
 	cluster.ServiceNetworkCIDR = params.ClusterUpdateParams.ServiceNetworkCIDR
 	cluster.SSHPublicKey = params.ClusterUpdateParams.SSHPublicKey
