@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -196,8 +197,8 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster, params 
 	var ignitionParams = map[string]string{
 		"userSshKey":     b.getUserSshKey(params),
 		"AgentDockerImg": b.AgentDockerImg,
-		"InventoryURL":   b.InventoryURL,
-		"InventoryPort":  b.InventoryPort,
+		"InventoryURL":   b.getURLForIngnition(params),
+		"InventoryPort":  b.getPortForIgnition(params),
 		"clusterId":      cluster.ID.String(),
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
@@ -223,6 +224,20 @@ func (b *bareMetalInventory) getUserSshKey(params inventory.GenerateClusterISOPa
 		"sshAuthorizedKeys": [
 		"%s"],
 		"groups": [ "sudo" ]}`, sshKey)
+}
+
+func (b *bareMetalInventory) getURLForIngnition(params inventory.GenerateClusterISOParams) string {
+	if params.ImageCreateParams.ProxyIP != "" {
+		return params.ImageCreateParams.ProxyIP
+	}
+	return b.InventoryURL
+}
+
+func (b *bareMetalInventory) getPortForIgnition(params inventory.GenerateClusterISOParams) string {
+	if params.ImageCreateParams.ProxyPort != nil {
+		return strconv.FormatInt(*params.ImageCreateParams.ProxyPort, 10)
+	}
+	return b.InventoryPort
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {

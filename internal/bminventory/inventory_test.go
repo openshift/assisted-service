@@ -85,6 +85,17 @@ var _ = Describe("GenerateClusterISO", func() {
 		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISOCreated()))
 	})
 
+	It("success with proxy", func() {
+		clusterId := registerCluster().ID
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), defaultJobNamespace).Return(nil).Times(1)
+		proxyPort := int64(1234)
+		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{ProxyPort: &proxyPort, ProxyIP: "1.1.1.1"},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISOCreated()))
+	})
 	It("cluster_not_exists", func() {
 		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
 			ClusterID:         strfmt.UUID(uuid.New().String()),
