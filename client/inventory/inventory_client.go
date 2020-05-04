@@ -72,6 +72,9 @@ type API interface {
 	/*
 	   UpdateCluster updates an open shift bare metal cluster definition*/
 	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
+	/*
+	   UpdateHostInstallProgress updates installation progress*/
+	UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error)
 }
 
 // New creates a new inventory API client.
@@ -521,5 +524,29 @@ func (a *Client) UpdateCluster(ctx context.Context, params *UpdateClusterParams)
 		return nil, err
 	}
 	return result.(*UpdateClusterCreated), nil
+
+}
+
+/*
+UpdateHostInstallProgress updates installation progress
+*/
+func (a *Client) UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateHostInstallProgress",
+		Method:             "PUT",
+		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &UpdateHostInstallProgressReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateHostInstallProgressOK), nil
 
 }

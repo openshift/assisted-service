@@ -427,3 +427,26 @@ func (_m *MockAPI) UpdateCluster(ctx context.Context, params *UpdateClusterParam
 
 	return r0, r1
 }
+
+// UpdateHostInstallProgress provides a mock function with given fields: ctx, params
+func (_m *MockAPI) UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error) {
+	ret := _m.Called(ctx, params)
+
+	var r0 *UpdateHostInstallProgressOK
+	if rf, ok := ret.Get(0).(func(context.Context, *UpdateHostInstallProgressParams) *UpdateHostInstallProgressOK); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*UpdateHostInstallProgressOK)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *UpdateHostInstallProgressParams) error); ok {
+		r1 = rf(ctx, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}

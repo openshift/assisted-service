@@ -43,6 +43,7 @@ type InventoryAPI interface {
 	RegisterHost(ctx context.Context, params inventory.RegisterHostParams) middleware.Responder
 	SetDebugStep(ctx context.Context, params inventory.SetDebugStepParams) middleware.Responder
 	UpdateCluster(ctx context.Context, params inventory.UpdateClusterParams) middleware.Responder
+	UpdateHostInstallProgress(ctx context.Context, params inventory.UpdateHostInstallProgressParams) middleware.Responder
 }
 
 // Config is configuration for Handler
@@ -151,6 +152,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.BMInventoryAPI, error) {
 	api.InventoryUpdateClusterHandler = inventory.UpdateClusterHandlerFunc(func(params inventory.UpdateClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InventoryAPI.UpdateCluster(ctx, params)
+	})
+	api.InventoryUpdateHostInstallProgressHandler = inventory.UpdateHostInstallProgressHandlerFunc(func(params inventory.UpdateHostInstallProgressParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InventoryAPI.UpdateHostInstallProgress(ctx, params)
 	})
 	api.ServerShutdown = func() {}
 	return api.Serve(c.InnerMiddleware), api, nil

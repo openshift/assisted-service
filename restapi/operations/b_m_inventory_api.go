@@ -98,6 +98,9 @@ func NewBMInventoryAPI(spec *loads.Document) *BMInventoryAPI {
 		InventoryUpdateClusterHandler: inventory.UpdateClusterHandlerFunc(func(params inventory.UpdateClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation inventory.UpdateCluster has not yet been implemented")
 		}),
+		InventoryUpdateHostInstallProgressHandler: inventory.UpdateHostInstallProgressHandlerFunc(func(params inventory.UpdateHostInstallProgressParams) middleware.Responder {
+			return middleware.NotImplemented("operation inventory.UpdateHostInstallProgress has not yet been implemented")
+		}),
 	}
 }
 
@@ -170,6 +173,8 @@ type BMInventoryAPI struct {
 	InventorySetDebugStepHandler inventory.SetDebugStepHandler
 	// InventoryUpdateClusterHandler sets the operation handler for the update cluster operation
 	InventoryUpdateClusterHandler inventory.UpdateClusterHandler
+	// InventoryUpdateHostInstallProgressHandler sets the operation handler for the update host install progress operation
+	InventoryUpdateHostInstallProgressHandler inventory.UpdateHostInstallProgressHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -292,6 +297,9 @@ func (o *BMInventoryAPI) Validate() error {
 	}
 	if o.InventoryUpdateClusterHandler == nil {
 		unregistered = append(unregistered, "inventory.UpdateClusterHandler")
+	}
+	if o.InventoryUpdateHostInstallProgressHandler == nil {
+		unregistered = append(unregistered, "inventory.UpdateHostInstallProgressHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -455,6 +463,10 @@ func (o *BMInventoryAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/clusters/{clusterId}"] = inventory.NewUpdateCluster(o.context, o.InventoryUpdateClusterHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/clusters/{clusterId}/hosts/{hostId}/progress"] = inventory.NewUpdateHostInstallProgress(o.context, o.InventoryUpdateHostInstallProgressHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

@@ -303,3 +303,19 @@ func (_m *MockInventoryAPI) UpdateCluster(ctx context.Context, params inventory.
 
 	return r0
 }
+
+// UpdateHostInstallProgress provides a mock function with given fields: ctx, params
+func (_m *MockInventoryAPI) UpdateHostInstallProgress(ctx context.Context, params inventory.UpdateHostInstallProgressParams) middleware.Responder {
+	ret := _m.Called(ctx, params)
+
+	var r0 middleware.Responder
+	if rf, ok := ret.Get(0).(func(context.Context, inventory.UpdateHostInstallProgressParams) middleware.Responder); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(middleware.Responder)
+		}
+	}
+
+	return r0
+}

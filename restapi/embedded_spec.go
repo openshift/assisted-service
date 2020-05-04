@@ -751,6 +751,47 @@ func init() {
           }
         }
       }
+    },
+    "/clusters/{clusterId}/hosts/{hostId}/progress": {
+      "put": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Update installation progress",
+        "operationId": "UpdateHostInstallProgress",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to retrieve",
+            "name": "clusterId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to retrieve",
+            "name": "hostId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "New progress value",
+            "name": "host-install-progress-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-install-progress-params"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update install progress"
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -1250,6 +1291,9 @@ func init() {
           "format": "uuid"
         }
       }
+    },
+    "host-install-progress-params": {
+      "type": "string"
     },
     "host-list": {
       "type": "array",
@@ -2183,6 +2227,47 @@ func init() {
           }
         }
       }
+    },
+    "/clusters/{clusterId}/hosts/{hostId}/progress": {
+      "put": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "Update installation progress",
+        "operationId": "UpdateHostInstallProgress",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the cluster to retrieve",
+            "name": "clusterId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the host to retrieve",
+            "name": "hostId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "New progress value",
+            "name": "host-install-progress-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-install-progress-params"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update install progress"
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -2685,6 +2770,9 @@ func init() {
           "format": "uuid"
         }
       }
+    },
+    "host-install-progress-params": {
+      "type": "string"
     },
     "host-list": {
       "type": "array",
