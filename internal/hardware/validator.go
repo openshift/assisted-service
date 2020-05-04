@@ -3,6 +3,7 @@ package hardware
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/alecthomas/units"
 	"github.com/filanov/bm-inventory/models"
@@ -16,6 +17,7 @@ type IsSufficientReply struct {
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
 	IsSufficient(host *models.Host) (*IsSufficientReply, error)
+	GetHostValidDisks(host *models.Host) ([]*models.BlockDevice, error)
 }
 
 func NewValidator(cfg ValidatorCfg) Validator {
@@ -29,6 +31,7 @@ type ValidatorCfg struct {
 	MinRamGib         int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
 	MinRamGibWorker   int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_WORKER" default:"8"`
 	MinRamGibMaster   int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_MASTER" default:"16"`
+	MinDiskSizeGib    int64 `envconfig:"HW_VALIDATOR_MIN_DISK_SIZE_GIB" default:"120"`
 }
 
 type validator struct {
@@ -47,6 +50,7 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 
 	var minCpuCoresRequired int64 = v.MinCPUCores
 	var minRamRequired int64 = gibToBytes(v.MinRamGib)
+	var minDiskSizeRequired int64 = gibToBytes(v.MinDiskSizeGib)
 
 	switch host.Role {
 	case "master":
@@ -66,7 +70,10 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 			units.Base2Bytes(minRamRequired), units.Base2Bytes(total))
 	}
 
-	// TODO: check disk space
+	if disks := listValidDisks(hwInfo, minDiskSizeRequired); len(disks) < 1 {
+		reason += fmt.Sprintf(", insufficient number of disks with required size, "+
+			"expected at least 1 not removable, not readonly disk of size more than <%d>", minDiskSizeRequired)
+	}
 
 	if len(reason) == 0 {
 		isSufficient = true
@@ -83,6 +90,18 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 	}, nil
 }
 
+func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.BlockDevice, error) {
+	var hwInfo models.Introspection
+	if err := json.Unmarshal([]byte(host.HardwareInfo), &hwInfo); err != nil {
+		return nil, err
+	}
+	disks := listValidDisks(hwInfo, gibToBytes(v.MinDiskSizeGib))
+	if len(disks) == 0 {
+		return nil, fmt.Errorf("host %s doesn't have valid disks", host.HostID)
+	}
+	return disks, nil
+}
+
 func getTotalMemory(hwInfo models.Introspection) int64 {
 	for i := range hwInfo.Memory {
 		if hwInfo.Memory[i].Name == "Mem" {
@@ -94,4 +113,21 @@ func getTotalMemory(hwInfo models.Introspection) int64 {
 
 func gibToBytes(gib int64) int64 {
 	return gib * int64(units.GiB)
+}
+
+func listValidDisks(hwInfo models.Introspection, minSizeRequiredInBytes int64) []*models.BlockDevice {
+	var disks []*models.BlockDevice
+	for _, blockDevice := range hwInfo.BlockDevices {
+		// Valid disk: type=disk, not removable, not readonly and size bigger than minimum required
+		if blockDevice.DeviceType == "disk" && blockDevice.RemovableDevice == 0 &&
+			!blockDevice.ReadOnly && blockDevice.Size >= minSizeRequiredInBytes {
+
+			disks = append(disks, blockDevice)
+		}
+	}
+	// Sorting list by name
+	sort.Slice(disks, func(i, j int) bool {
+		return disks[i].Name < disks[j].Name
+	})
+	return disks
 }

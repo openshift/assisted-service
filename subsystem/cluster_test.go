@@ -98,8 +98,9 @@ var _ = Describe("Cluster tests", func() {
 
 var _ = Describe("system-test cluster install", func() {
 	var (
-		ctx     = context.Background()
-		cluster *models.Cluster
+		ctx           = context.Background()
+		cluster       *models.Cluster
+		validDiskSize = int64(128849018880)
 	)
 
 	AfterEach(func() {
@@ -149,6 +150,9 @@ var _ = Describe("system-test cluster install", func() {
 			hwInfo := &models.Introspection{
 				CPU:    &models.CPU{Cpus: 16},
 				Memory: []*models.Memory{{Name: "Mem", Total: int64(32 * units.GiB)}},
+				BlockDevices: []*models.BlockDevice{
+					{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", ReadOnly: true, RemovableDevice: 1, Size: validDiskSize},
+					{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize}},
 			}
 			h1 := registerHost(clusterID)
 			generateHWPostStepReply(h1, hwInfo)
@@ -214,6 +218,8 @@ var _ = Describe("system-test cluster install", func() {
 		hwInfo := &models.Introspection{
 			CPU:    &models.CPU{Cpus: 2},
 			Memory: []*models.Memory{{Name: "Mem", Total: int64(8 * units.GiB)}},
+			BlockDevices: []*models.BlockDevice{
+				{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize}},
 		}
 		h1 := registerHost(clusterID)
 		generateHWPostStepReply(h1, hwInfo)

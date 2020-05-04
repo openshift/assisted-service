@@ -29,6 +29,10 @@ type StateAPI interface {
 	DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error)
 }
 
+type SpecificHardwareParams interface {
+	GetHostValidDisks(h *models.Host) ([]*models.BlockDevice, error)
+}
+
 const (
 	HostStatusDiscovering  = "discovering"
 	HostStatusKnown        = "known"
@@ -43,6 +47,7 @@ const (
 type API interface {
 	StateAPI
 	InstructionApi
+	SpecificHardwareParams
 }
 
 type Manager struct {
@@ -55,6 +60,7 @@ type Manager struct {
 	installed      StateAPI
 	error          StateAPI
 	instructionApi InstructionApi
+	hwValidator    hardware.Validator
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator) *Manager {
@@ -68,6 +74,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Valida
 		installed:      NewInstalledState(log, db),
 		error:          NewErrorState(log, db),
 		instructionApi: NewInstructionManager(log, db),
+		hwValidator:    hwValidator,
 	}
 }
 
@@ -152,4 +159,8 @@ func (m *Manager) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply
 
 func (m *Manager) GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error) {
 	return m.instructionApi.GetNextSteps(ctx, host)
+}
+
+func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.BlockDevice, error) {
+	return m.hwValidator.GetHostValidDisks(host)
 }
