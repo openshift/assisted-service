@@ -140,6 +140,44 @@ func (mr *MockStateAPIMockRecorder) DisableHost(ctx, h interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableHost", reflect.TypeOf((*MockStateAPI)(nil).DisableHost), ctx, h)
 }
 
+// MockSpecificHardwareParams is a mock of SpecificHardwareParams interface.
+type MockSpecificHardwareParams struct {
+	ctrl     *gomock.Controller
+	recorder *MockSpecificHardwareParamsMockRecorder
+}
+
+// MockSpecificHardwareParamsMockRecorder is the mock recorder for MockSpecificHardwareParams.
+type MockSpecificHardwareParamsMockRecorder struct {
+	mock *MockSpecificHardwareParams
+}
+
+// NewMockSpecificHardwareParams creates a new mock instance.
+func NewMockSpecificHardwareParams(ctrl *gomock.Controller) *MockSpecificHardwareParams {
+	mock := &MockSpecificHardwareParams{ctrl: ctrl}
+	mock.recorder = &MockSpecificHardwareParamsMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSpecificHardwareParams) EXPECT() *MockSpecificHardwareParamsMockRecorder {
+	return m.recorder
+}
+
+// GetHostValidDisks mocks base method.
+func (m *MockSpecificHardwareParams) GetHostValidDisks(h *models.Host) ([]*models.BlockDevice, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostValidDisks", h)
+	ret0, _ := ret[0].([]*models.BlockDevice)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHostValidDisks indicates an expected call of GetHostValidDisks.
+func (mr *MockSpecificHardwareParamsMockRecorder) GetHostValidDisks(h interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockSpecificHardwareParams)(nil).GetHostValidDisks), h)
+}
+
 // MockAPI is a mock of API interface.
 type MockAPI struct {
 	ctrl     *gomock.Controller
@@ -283,17 +321,17 @@ func (mr *MockAPIMockRecorder) GetNextSteps(ctx, host interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextSteps", reflect.TypeOf((*MockAPI)(nil).GetNextSteps), ctx, host)
 }
 
-// GetNextSteps mocks base method.
-func (m *MockAPI) GetHostValidDisks(host *models.Host) ([]*models.BlockDevice, error) {
+// GetHostValidDisks mocks base method.
+func (m *MockAPI) GetHostValidDisks(h *models.Host) ([]*models.BlockDevice, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostValidDisks", host)
+	ret := m.ctrl.Call(m, "GetHostValidDisks", h)
 	ret0, _ := ret[0].([]*models.BlockDevice)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetHostValidDisks indicates an expected call of GetHostValidDisks.
-func (mr *MockAPIMockRecorder) GetHostValidDisks(host interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GetHostValidDisks(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockAPI)(nil).GetHostValidDisks), host)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockAPI)(nil).GetHostValidDisks), h)
 }

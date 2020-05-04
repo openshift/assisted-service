@@ -42,7 +42,13 @@ func (m *MockValidator) IsSufficient(host *models.Host) (*IsSufficientReply, err
 	return ret0, ret1
 }
 
-// IsSufficient mocks base method.
+// IsSufficient indicates an expected call of IsSufficient.
+func (mr *MockValidatorMockRecorder) IsSufficient(host interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSufficient", reflect.TypeOf((*MockValidator)(nil).IsSufficient), host)
+}
+
+// GetHostValidDisks mocks base method.
 func (m *MockValidator) GetHostValidDisks(host *models.Host) ([]*models.BlockDevice, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostValidDisks", host)
@@ -51,15 +57,8 @@ func (m *MockValidator) GetHostValidDisks(host *models.Host) ([]*models.BlockDev
 	return ret0, ret1
 }
 
-// IsSufficient indicates an expected call of IsSufficient.
-func (mr *MockValidatorMockRecorder) IsSufficient(host interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSufficient", reflect.TypeOf((*MockValidator)(nil).IsSufficient), host)
-}
-
 // GetHostValidDisks indicates an expected call of GetHostValidDisks.
 func (mr *MockValidatorMockRecorder) GetHostValidDisks(host interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockValidator)(nil).GetHostValidDisks), host)
 }
-
