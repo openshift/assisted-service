@@ -6,6 +6,7 @@ import (
 
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
+	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
@@ -48,9 +49,12 @@ type API interface {
 	StateAPI
 	InstructionApi
 	SpecificHardwareParams
+	UpdateInstallProgress(ctx context.Context, h *models.Host, progress string) error
 }
 
 type Manager struct {
+	log            logrus.FieldLogger
+	db             *gorm.DB
 	discovering    StateAPI
 	known          StateAPI
 	insufficient   StateAPI
@@ -65,6 +69,8 @@ type Manager struct {
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator) *Manager {
 	return &Manager{
+		log:            log,
+		db:             db,
 		discovering:    NewDiscoveringState(log, db, hwValidator),
 		known:          NewKnownState(log, db, hwValidator),
 		insufficient:   NewInsufficientState(log, db, hwValidator),
@@ -163,4 +169,21 @@ func (m *Manager) GetNextSteps(ctx context.Context, host *models.Host) (models.S
 
 func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.BlockDevice, error) {
 	return m.hwValidator.GetHostValidDisks(host)
+}
+
+func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress string) error {
+	if swag.StringValue(h.Status) != HostStatusInstalling {
+		return fmt.Errorf("can't set progress to host in status <%s>", swag.StringValue(h.Status))
+	}
+
+	// installation done
+	if progress == "done" {
+		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log),
+			HostStatusInstalled, HostStatusInstalled, h, m.db)
+		return err
+	}
+
+	_, err := updateStateWithParams(logutil.FromContext(ctx, m.log),
+		HostStatusInstalling, progress, h, m.db)
+	return err
 }

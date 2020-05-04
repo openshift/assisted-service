@@ -184,6 +184,40 @@ var _ = Describe("system-test cluster install", func() {
 				Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
 			}
 		})
+
+		It("report_progress", func() {
+			c, err := bmclient.Inventory.InstallCluster(ctx, &inventory.InstallClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+
+			h := c.GetPayload().Hosts[0]
+
+			updateProgress := func(progress string) {
+				installProgress := models.HostInstallProgressParams(progress)
+				updateReply, err := bmclient.Inventory.UpdateHostInstallProgress(ctx, &inventory.UpdateHostInstallProgressParams{
+					ClusterID:                 clusterID,
+					HostInstallProgressParams: installProgress,
+					HostID:                    *h.ID,
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(updateReply).Should(BeAssignableToTypeOf(inventory.NewUpdateHostInstallProgressOK()))
+			}
+
+			By("progress_to_some_host", func() {
+				installProgress := "installation step 1"
+				updateProgress(installProgress)
+				h = getHost(clusterID, *h.ID)
+				Expect(*h.Status).Should(Equal("installing"))
+				Expect(h.StatusInfo).Should(Equal(installProgress))
+			})
+
+			By("report_done", func() {
+				updateProgress("done")
+				h = getHost(clusterID, *h.ID)
+				Expect(*h.Status).Should(Equal("installed"))
+				Expect(h.StatusInfo).Should(Equal(string("installed")))
+			})
+		})
+
 		It("install download_config_files", func() {
 
 			//Test downloading kubeconfig files in worng state

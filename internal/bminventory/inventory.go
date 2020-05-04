@@ -906,3 +906,19 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 	}
 	return filemiddleware.NewResponder(inventory.NewDownloadClusterFilesOK().WithPayload(resp.Body), params.FileName)
 }
+
+func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, params inventory.UpdateHostInstallProgressParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var host models.Host
+	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find host %s", params.HostID)
+		// host have nothing to do with the error so we just log it
+		return inventory.NewUpdateHostInstallProgressOK()
+	}
+	if err := b.hostApi.UpdateInstallProgress(ctx, &host, string(params.HostInstallProgressParams)); err != nil {
+		log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
+		// host have nothing to do with the error so we just log it
+		return inventory.NewUpdateHostInstallProgressOK()
+	}
+	return inventory.NewUpdateHostInstallProgressOK()
+}

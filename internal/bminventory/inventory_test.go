@@ -196,3 +196,70 @@ var _ = Describe("GetNextSteps", func() {
 	})
 
 })
+
+var _ = Describe("UpdateHostInstallProgress", func() {
+	var (
+		bm          *bareMetalInventory
+		cfg         Config
+		db          *gorm.DB
+		ctx         = context.Background()
+		ctrl        *gomock.Controller
+		mockHostApi *host.MockAPI
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = prepareDB()
+		mockHostApi = host.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, cfg, nil)
+	})
+
+	Context("host exists", func() {
+		var hostID, clusterID strfmt.UUID
+		BeforeEach(func() {
+			hostID = strfmt.UUID(uuid.New().String())
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&models.Host{
+				Base:      models.Base{ID: &hostID},
+				ClusterID: clusterID,
+			}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+		})
+
+		It("success", func() {
+			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reply := bm.UpdateHostInstallProgress(ctx, inventory.UpdateHostInstallProgressParams{
+				ClusterID:                 clusterID,
+				HostInstallProgressParams: "some progress",
+				HostID:                    hostID,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewUpdateHostInstallProgressOK()))
+		})
+
+		It("update_failed", func() {
+			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reply := bm.UpdateHostInstallProgress(ctx, inventory.UpdateHostInstallProgressParams{
+				ClusterID:                 clusterID,
+				HostInstallProgressParams: "some progress",
+				HostID:                    hostID,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewUpdateHostInstallProgressOK()))
+		})
+	})
+
+	It("host_dont_exist", func() {
+		reply := bm.UpdateHostInstallProgress(ctx, inventory.UpdateHostInstallProgressParams{
+			ClusterID:                 strfmt.UUID(uuid.New().String()),
+			HostInstallProgressParams: "some progress",
+			HostID:                    strfmt.UUID(uuid.New().String()),
+		})
+		Expect(reply).Should(BeAssignableToTypeOf(inventory.NewUpdateHostInstallProgressOK()))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		db.Close()
+	})
+})

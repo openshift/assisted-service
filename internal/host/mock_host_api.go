@@ -335,3 +335,17 @@ func (mr *MockAPIMockRecorder) GetHostValidDisks(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockAPI)(nil).GetHostValidDisks), h)
 }
+
+// UpdateInstallProgress mocks base method.
+func (m *MockAPI) UpdateInstallProgress(ctx context.Context, h *models.Host, progress string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInstallProgress", ctx, h, progress)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateInstallProgress indicates an expected call of UpdateInstallProgress.
+func (mr *MockAPIMockRecorder) UpdateInstallProgress(ctx, h, progress interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallProgress", reflect.TypeOf((*MockAPI)(nil).UpdateInstallProgress), ctx, h, progress)
+}

@@ -18,6 +18,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var defaultHwInfo = "default hw info" // invalid hw info used only for tests
+
 var _ = Describe("statemachine", func() {
 	var (
 		ctx           = context.Background()
@@ -87,7 +89,52 @@ var _ = Describe("statemachine", func() {
 		db.Close()
 	})
 })
-var defaultHwInfo = "default hw info" // invalid hw info used only for tests
+
+var _ = Describe("update_progress", func() {
+	var (
+		ctx   = context.Background()
+		db    *gorm.DB
+		state API
+		host  models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		state = NewManager(getTestLog(), db, nil)
+		id := strfmt.UUID(uuid.New().String())
+		clusterId := strfmt.UUID(uuid.New().String())
+		host = models.Host{
+			Base: models.Base{
+				ID: &id,
+			},
+			ClusterID:    clusterId,
+			HardwareInfo: defaultHwInfo,
+		}
+	})
+	Context("installaing host", func() {
+		BeforeEach(func() {
+			host.Status = swag.String(HostStatusInstalling)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
+		It("some_progress", func() {
+			Expect(state.UpdateInstallProgress(ctx, &host, "some progress")).ShouldNot(HaveOccurred())
+			h := getHost(*host.ID, host.ClusterID, db)
+			Expect(*h.Status).Should(Equal(HostStatusInstalling))
+			Expect(h.StatusInfo).Should(Equal("some progress"))
+		})
+
+		It("done", func() {
+			Expect(state.UpdateInstallProgress(ctx, &host, "done")).ShouldNot(HaveOccurred())
+			h := getHost(*host.ID, host.ClusterID, db)
+			Expect(*h.Status).Should(Equal(HostStatusInstalled))
+			Expect(h.StatusInfo).Should(Equal(HostStatusInstalled))
+		})
+	})
+
+	It("invalid state", func() {
+		Expect(state.UpdateInstallProgress(ctx, &host, "don't care")).Should(HaveOccurred())
+	})
+})
 
 func TestSubsystem(t *testing.T) {
 	RegisterFailHandler(Fail)
