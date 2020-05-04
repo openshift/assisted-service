@@ -1262,8 +1262,7 @@ func init() {
       "properties": {
         "proxyIp": {
           "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
-          "type": "string",
-          "format": "hostname"
+          "type": "string"
         },
         "proxyPort": {
           "description": "The port of the HTTP proxy",
@@ -2698,8 +2697,7 @@ func init() {
       "properties": {
         "proxyIp": {
           "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
-          "type": "string",
-          "format": "hostname"
+          "type": "string"
         },
         "proxyPort": {
           "description": "The port of the HTTP proxy",

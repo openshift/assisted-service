@@ -18,8 +18,7 @@ import (
 type ImageCreateParams struct {
 
 	// The IP address of the HTTP proxy that agents should use to access the discovery service
-	// Format: hostname
-	ProxyIP strfmt.Hostname `json:"proxyIp,omitempty"`
+	ProxyIP string `json:"proxyIp,omitempty"`
 
 	// The port of the HTTP proxy
 	// Maximum: 65535
@@ -34,10 +33,6 @@ type ImageCreateParams struct {
 func (m *ImageCreateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateProxyIP(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateProxyPort(formats); err != nil {
 		res = append(res, err)
 	}
@@ -45,19 +40,6 @@ func (m *ImageCreateParams) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *ImageCreateParams) validateProxyIP(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.ProxyIP) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("proxyIp", "body", "hostname", m.ProxyIP.String(), formats); err != nil {
-		return err
-	}
-
 	return nil
 }
 
