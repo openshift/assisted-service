@@ -20,7 +20,7 @@ format:
 	goimports -w -l cmd/ internal/
 
 generate:
-	go generate $(shell go list ./... | grep -v 'restapi\|client')
+	go generate $(shell go list ./... | grep -v 'restapi')
 
 generate-from-swagger:
 	rm -rf client models restapi
