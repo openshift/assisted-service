@@ -20,12 +20,13 @@ format:
 	goimports -w -l cmd/ internal/
 
 generate:
-	go generate $(shell go list ./... | grep -v 'restapi')
+	go generate $(shell go list ./...)
 
 generate-from-swagger:
 	rm -rf client models restapi
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD) -v /etc/passwd:/etc/passwd -w $(PWD) quay.io/goswagger/swagger generate server	--template=stratoscale -f swagger.yaml --template-dir=/templates/contrib
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD) -v /etc/passwd:/etc/passwd -w $(PWD) quay.io/goswagger/swagger generate client	--template=stratoscale -f swagger.yaml --template-dir=/templates/contrib
+	go generate $(shell go list ./client/... ./models/... ./restapi/...)
 
 update: build
 	docker build -f Dockerfile.bm-inventory . -t $(SERVICE)
