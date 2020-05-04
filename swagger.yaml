@@ -542,7 +542,6 @@ definitions:
     properties:
       proxyIp:
         type: string
-        format: hostname
         description: The IP address of the HTTP proxy that agents should use to access the discovery service
       proxyPort:
         type: integer
