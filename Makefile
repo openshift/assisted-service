@@ -100,7 +100,7 @@ deploy-service-requirements: deploy-inventory-service-file
 	$(eval CONFIGMAP=./deploy/tmp-bm-inventory-configmap.yaml)
 	$(eval URL=$(shell $(call get_service,bm-inventory) | sed 's/http:\/\///g' | cut -d ":" -f 1))
 	$(eval PORT=$(shell $(call get_service,bm-inventory) | sed 's/http:\/\///g' | cut -d ":" -f 2))
-	sed "s#REPLACE_URL#\"http://$(URL)\"#;s#REPLACE_PORT#\"$(PORT)\"#" ./deploy/bm-inventory-configmap.yaml > $(CONFIGMAP)
+	sed "s#REPLACE_URL#\"$(URL)\"#;s#REPLACE_PORT#\"$(PORT)\"#" ./deploy/bm-inventory-configmap.yaml > $(CONFIGMAP)
 	echo "Apply bm-inventory-config configmap"
 	cat $(CONFIGMAP)
 	kubectl apply -f $(CONFIGMAP)
