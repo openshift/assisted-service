@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -87,7 +86,7 @@ const ignitionConfigFormat = `{
 "units": [{
 "name": "agent.service",
 "enabled": true,
-"contents": "[Service]\nType=simple\nExecStartPre=docker run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}}\n\n[Install]\nWantedBy=multi-user.target"
+"contents": "[Service]\nType=simple\nEnvironment=HTTPS_PROXY={{.httpsProxyURL}}\nEnvironment=HTTP_PROXY={{.httpProxyURL}}\nEnvironment=http_proxy=http://{{.httpProxyURL}}\nEnvironment=https_proxy={{.httpsProxyURL}}\nExecStartPre=docker run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}}\n\n[Install]\nWantedBy=multi-user.target"
 }]
 }
 }`
@@ -201,9 +200,11 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster, params 
 	var ignitionParams = map[string]string{
 		"userSshKey":     b.getUserSshKey(params),
 		"AgentDockerImg": b.AgentDockerImg,
-		"InventoryURL":   b.getURLForIngnition(params),
-		"InventoryPort":  b.getPortForIgnition(params),
+		"InventoryURL":   b.InventoryURL,
+		"InventoryPort":  b.InventoryPort,
 		"clusterId":      cluster.ID.String(),
+		"httpProxyURL":   b.setProxyPrefix(params.ImageCreateParams.ProxyURL, "http://"),
+		"httpsProxyURL":  b.setProxyPrefix(params.ImageCreateParams.ProxyURL, "https://"),
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
@@ -214,7 +215,15 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster, params 
 		return "", err
 	}
 	return buf.String(), nil
+}
 
+func (b *bareMetalInventory) setProxyPrefix(proxy, prefix string) string {
+	proxyURL := strings.TrimPrefix(proxy, "https://")
+	proxyURL = strings.TrimPrefix(proxyURL, "http://")
+	if proxyURL == "" {
+		return proxyURL
+	}
+	return fmt.Sprintf("%s%s", prefix, proxyURL)
 }
 
 func (b *bareMetalInventory) getUserSshKey(params inventory.GenerateClusterISOParams) string {
@@ -228,20 +237,6 @@ func (b *bareMetalInventory) getUserSshKey(params inventory.GenerateClusterISOPa
 		"sshAuthorizedKeys": [
 		"%s"],
 		"groups": [ "sudo" ]}`, sshKey)
-}
-
-func (b *bareMetalInventory) getURLForIngnition(params inventory.GenerateClusterISOParams) string {
-	if params.ImageCreateParams.ProxyIP != "" {
-		return params.ImageCreateParams.ProxyIP
-	}
-	return b.InventoryURL
-}
-
-func (b *bareMetalInventory) getPortForIgnition(params inventory.GenerateClusterISOParams) string {
-	if params.ImageCreateParams.ProxyPort != nil {
-		return strconv.FormatInt(*params.ImageCreateParams.ProxyPort, 10)
-	}
-	return b.InventoryPort
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params inventory.RegisterClusterParams) middleware.Responder {
