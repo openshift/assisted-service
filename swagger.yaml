@@ -569,14 +569,11 @@ definitions:
   image-create-params:
     type: object
     properties:
-      proxyIp:
+      proxyURL:
         type: string
-        description: The IP address of the HTTP proxy that agents should use to access the discovery service
-      proxyPort:
-        type: integer
-        description: The port of the HTTP proxy
-        minimum: 0
-        maximum: 65535
+        description: |
+          The URL of the HTTP/S proxy that agents should use to access the discovery service
+          http://\<user\>:\<password\>@\<server\>:\<port\>/
       sshPublicKey:
         type: string
         description: SSH public key for debugging the installation
