@@ -629,6 +629,10 @@ definitions:
             type: string
             format: date-time
             x-go-custom-tag: gorm:"type:datetime"
+          createdAt:
+            type: string
+            format: date-time
+            x-go-custom-tag: gorm:"type:datetime"
 
   steps:
     type: array
