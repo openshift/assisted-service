@@ -6,10 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // ImageCreateParams image create params
@@ -17,13 +15,10 @@ import (
 // swagger:model image-create-params
 type ImageCreateParams struct {
 
-	// The IP address of the HTTP proxy that agents should use to access the discovery service
-	ProxyIP string `json:"proxyIp,omitempty"`
-
-	// The port of the HTTP proxy
-	// Maximum: 65535
-	// Minimum: 0
-	ProxyPort *int64 `json:"proxyPort,omitempty"`
+	// The URL of the HTTP/S proxy that agents should use to access the discovery service
+	// http://\<user\>:\<password\>@\<server\>:\<port\>/
+	//
+	ProxyURL string `json:"proxyURL,omitempty"`
 
 	// SSH public key for debugging the installation
 	SSHPublicKey string `json:"sshPublicKey,omitempty"`
@@ -31,32 +26,6 @@ type ImageCreateParams struct {
 
 // Validate validates this image create params
 func (m *ImageCreateParams) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateProxyPort(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *ImageCreateParams) validateProxyPort(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.ProxyPort) { // not required
-		return nil
-	}
-
-	if err := validate.MinimumInt("proxyPort", "body", int64(*m.ProxyPort), 0, false); err != nil {
-		return err
-	}
-
-	if err := validate.MaximumInt("proxyPort", "body", int64(*m.ProxyPort), 65535, false); err != nil {
-		return err
-	}
-
 	return nil
 }
 

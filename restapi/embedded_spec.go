@@ -1309,14 +1309,9 @@ func init() {
     "image-create-params": {
       "type": "object",
       "properties": {
-        "proxyIp": {
-          "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
+        "proxyURL": {
+          "description": "The URL of the HTTP/S proxy that agents should use to access the discovery service\nhttp://\\\u003cuser\\\u003e:\\\u003cpassword\\\u003e@\\\u003cserver\\\u003e:\\\u003cport\\\u003e/\n",
           "type": "string"
-        },
-        "proxyPort": {
-          "description": "The port of the HTTP proxy",
-          "type": "integer",
-          "maximum": 65535
         },
         "sshPublicKey": {
           "description": "SSH public key for debugging the installation",
@@ -2793,15 +2788,9 @@ func init() {
     "image-create-params": {
       "type": "object",
       "properties": {
-        "proxyIp": {
-          "description": "The IP address of the HTTP proxy that agents should use to access the discovery service",
+        "proxyURL": {
+          "description": "The URL of the HTTP/S proxy that agents should use to access the discovery service\nhttp://\\\u003cuser\\\u003e:\\\u003cpassword\\\u003e@\\\u003cserver\\\u003e:\\\u003cport\\\u003e/\n",
           "type": "string"
-        },
-        "proxyPort": {
-          "description": "The port of the HTTP proxy",
-          "type": "integer",
-          "maximum": 65535,
-          "minimum": 0
         },
         "sshPublicKey": {
           "description": "SSH public key for debugging the installation",
