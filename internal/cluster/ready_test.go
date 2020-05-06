@@ -21,7 +21,6 @@ var _ = Describe("insufficient_state", func() {
 		updateReply *UpdateReply
 		updateErr   error
 		cluster     models.Cluster
-		host        models.Host
 	)
 
 	BeforeEach(func() {
@@ -69,17 +68,6 @@ var _ = Describe("insufficient_state", func() {
 			cluster = geCluster(*cluster.ID, db)
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(clusterStatusInsufficient))
 
-		})
-	})
-
-	Context("deregister", func() {
-		It("unregister a ready cluster", func() {
-			println(len(cluster.Hosts))
-			updateReply, updateErr = state.DeregisterCluster(ctx, &cluster)
-			Expect(updateErr).Should(BeNil())
-			Expect(updateReply.State).Should(Equal("unregistered"))
-			Expect(db.First(&cluster, "id = ?", cluster.ID).Error).Should(HaveOccurred())
-			Expect(db.First(&host, "cluster_id = ?", cluster.ID).Error).Should(HaveOccurred())
 		})
 	})
 

@@ -22,7 +22,6 @@ var _ = Describe("insufficient_state", func() {
 		updateReply  *UpdateReply
 		updateErr    error
 		cluster      models.Cluster
-		host         models.Host
 	)
 
 	BeforeEach(func() {
@@ -38,9 +37,9 @@ var _ = Describe("insufficient_state", func() {
 			Status: swag.String(currentState),
 		}
 
-		updateReply, updateErr = registerManager.RegisterCluster(ctx, &cluster)
-		Expect(updateErr).Should(BeNil())
-		Expect(updateReply.State).Should(Equal(clusterStatusInsufficient))
+		replyErr := registerManager.RegisterCluster(ctx, &cluster)
+		Expect(replyErr).Should(BeNil())
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(clusterStatusInsufficient))
 		c := geCluster(*cluster.ID, db)
 		Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInsufficient))
 	})
@@ -62,25 +61,6 @@ var _ = Describe("insufficient_state", func() {
 			c := geCluster(*cluster.ID, db)
 			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusReady))
 
-		})
-	})
-
-	Context("deregister", func() {
-		It("unregister a registered cluster", func() {
-			Expect(db.First(&host, "cluster_id = ?", cluster.ID).Error).Should(HaveOccurred())
-			updateReply, updateErr = state.DeregisterCluster(ctx, &cluster)
-			Expect(updateErr).Should(BeNil())
-			Expect(updateReply.State).Should(Equal("unregistered"))
-			Expect(db.First(&cluster, "id = ?", cluster.ID).Error).Should(HaveOccurred())
-			Expect(db.First(&host, "cluster_id = ?", cluster.ID).Error).Should(HaveOccurred())
-
-		})
-
-		It("unregister a unregistered cluster", func() {
-			unregisteredClusterId := strfmt.UUID(uuid.New().String())
-			cluster.ID = &unregisteredClusterId
-			updateReply, updateErr = state.DeregisterCluster(ctx, &cluster)
-			Expect(updateReply.State).Should(Equal("unregistered"))
 		})
 	})
 

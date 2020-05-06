@@ -42,7 +42,3 @@ func (r *readyState) RefreshStatus(ctx context.Context, c *models.Cluster, db *g
 func (r *readyState) Install(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
 	return updateState(clusterStatusInstalling, c, r.db, r.log)
 }
-
-func (r *readyState) DeregisterCluster(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
-	return deregisterCluster(c, r.db)
-}

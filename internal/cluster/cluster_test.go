@@ -50,10 +50,6 @@ var _ = Describe("statemachine", func() {
 			stateReply, stateErr = state.Install(ctx, &cluster)
 		})
 
-		It("deregister_cluster", func() {
-			stateReply, stateErr = state.DeregisterCluster(ctx, &cluster)
-		})
-
 		AfterEach(func() {
 			Expect(stateReply).To(BeNil())
 			Expect(stateErr).Should(HaveOccurred())

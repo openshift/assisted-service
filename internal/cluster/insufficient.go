@@ -42,7 +42,3 @@ func (i *insufficientState) Install(ctx context.Context, c *models.Cluster) (*Up
 	return nil, errors.Errorf("unable to install cluster <%s> in <%s> status",
 		c.ID, swag.StringValue(c.Status))
 }
-
-func (i *insufficientState) DeregisterCluster(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
-	return deregisterCluster(c, i.db)
-}

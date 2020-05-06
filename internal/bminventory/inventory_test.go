@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/filanov/bm-inventory/internal/cluster"
-
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/job"
@@ -50,13 +48,12 @@ func strToUUID(s string) *strfmt.UUID {
 
 var _ = Describe("GenerateClusterISO", func() {
 	var (
-		bm             *bareMetalInventory
-		cfg            Config
-		db             *gorm.DB
-		ctx            = context.Background()
-		ctrl           *gomock.Controller
-		mockJob        *job.MockAPI
-		mockClusterAPI *cluster.MockAPI
+		bm      *bareMetalInventory
+		cfg     Config
+		db      *gorm.DB
+		ctx     = context.Background()
+		ctrl    *gomock.Controller
+		mockJob *job.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -64,8 +61,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = prepareDB()
 		mockJob = job.NewMockAPI(ctrl)
-		mockClusterAPI = cluster.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, mockClusterAPI, cfg, mockJob)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob)
 	})
 
 	registerCluster := func() *models.Cluster {

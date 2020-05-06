@@ -382,6 +382,9 @@ var _ = Describe("system-test cluster install", func() {
 
 		_, err = bmclient.Inventory.DeregisterCluster(ctx, &inventory.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
+
+		_, err = bmclient.Inventory.GetCluster(ctx, &inventory.GetClusterParams{ClusterID: clusterID})
+		Expect(err).Should(MatchError(inventory.NewGetClusterNotFound()))
 	})
 
 	It("install_cluster_insufficient_master", func() {

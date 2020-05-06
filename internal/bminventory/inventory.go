@@ -253,7 +253,8 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params invento
 		UpdatedAt:                strfmt.DateTime{},
 	}
 
-	if _, err := b.clusterApi.RegisterCluster(ctx, &cluster); err != nil {
+	err := b.clusterApi.RegisterCluster(ctx, &cluster)
+	if err != nil {
 		log.Errorf("failed to register cluster %s ", swag.StringValue(params.NewClusterParams.Name))
 		return inventory.NewRegisterClusterInternalServerError()
 	}
@@ -269,7 +270,8 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params inven
 		return inventory.NewDeregisterClusterNotFound()
 	}
 
-	if _, err := b.clusterApi.DeregisterCluster(ctx, &cluster); err != nil {
+	err := b.clusterApi.DeregisterCluster(ctx, &cluster)
+	if err != nil {
 		log.WithError(err).Errorf("failed to deregister cluster cluster %s", params.ClusterID)
 		return inventory.NewDeregisterClusterNotFound()
 	}

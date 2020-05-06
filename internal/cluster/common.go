@@ -75,33 +75,3 @@ func isClusterReady(c *models.Cluster, db *gorm.DB, log logrus.FieldLogger) (boo
 		return true, nil
 	}
 }
-
-func deregisterCluster(c *models.Cluster, db *gorm.DB) (*UpdateReply, error) {
-	var txErr error
-	tx := db.Begin()
-
-	defer func() {
-		if txErr != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if txErr = tx.Where("cluster_id = ?", c.ID).Delete(&models.Host{}).Error; txErr != nil {
-		tx.Rollback()
-		return nil, errors.Errorf("failed to deregister host while unregistering cluster %s", c.ID)
-	}
-
-	if txErr = tx.Delete(c).Error; txErr != nil {
-		tx.Rollback()
-		return nil, errors.Errorf("failed to delete cluster %s", c.ID)
-	}
-
-	if tx.Commit().Error != nil {
-		tx.Rollback()
-		return nil, errors.Errorf("failed to delete cluster %s, commit tx", c.ID)
-	}
-	return &UpdateReply{
-		State:     "unregistered",
-		IsChanged: true,
-	}, nil
-}
