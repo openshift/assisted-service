@@ -29,6 +29,10 @@ type Host struct {
 	// connectivity
 	Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
+	// created at
+	// Format: date-time
+	CreatedAt strfmt.DateTime `json:"createdAt,omitempty" gorm:"type:datetime"`
+
 	// hardware info
 	HardwareInfo string `json:"hardwareInfo,omitempty" gorm:"type:text"`
 
@@ -71,6 +75,8 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 
 		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
+		CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
+
 		HardwareInfo string `json:"hardwareInfo,omitempty"`
 
 		Role string `json:"role,omitempty"`
@@ -88,6 +94,8 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 	m.ClusterID = dataAO2.ClusterID
 
 	m.Connectivity = dataAO2.Connectivity
+
+	m.CreatedAt = dataAO2.CreatedAt
 
 	m.HardwareInfo = dataAO2.HardwareInfo
 
@@ -122,6 +130,8 @@ func (m Host) MarshalJSON() ([]byte, error) {
 
 		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
+		CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
+
 		HardwareInfo string `json:"hardwareInfo,omitempty"`
 
 		Role string `json:"role,omitempty"`
@@ -136,6 +146,8 @@ func (m Host) MarshalJSON() ([]byte, error) {
 	dataAO2.ClusterID = m.ClusterID
 
 	dataAO2.Connectivity = m.Connectivity
+
+	dataAO2.CreatedAt = m.CreatedAt
 
 	dataAO2.HardwareInfo = m.HardwareInfo
 
@@ -173,6 +185,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateConnectivity(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateCreatedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -220,6 +236,19 @@ func (m *Host) validateConnectivity(formats strfmt.Registry) error {
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *Host) validateCreatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.CreatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("createdAt", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+		return err
 	}
 
 	return nil

@@ -1243,6 +1243,11 @@ func init() {
             "connectivity": {
               "$ref": "#/definitions/connectivity-report"
             },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime\""
+            },
             "hardwareInfo": {
               "type": "string",
               "x-go-custom-tag": "gorm:\"type:text\""
@@ -2721,6 +2726,11 @@ func init() {
             },
             "connectivity": {
               "$ref": "#/definitions/connectivity-report"
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "x-go-custom-tag": "gorm:\"type:datetime\""
             },
             "hardwareInfo": {
               "type": "string",
