@@ -86,7 +86,7 @@ const ignitionConfigFormat = `{
 "units": [{
 "name": "agent.service",
 "enabled": true,
-"contents": "[Service]\nType=simple\nEnvironment=HTTPS_PROXY={{.httpsProxyURL}}\nEnvironment=HTTP_PROXY={{.httpProxyURL}}\nEnvironment=http_proxy=http://{{.httpProxyURL}}\nEnvironment=https_proxy={{.httpsProxyURL}}\nExecStartPre=docker run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}}\n\n[Install]\nWantedBy=multi-user.target"
+"contents": "[Service]\nType=simple\nEnvironment=HTTPS_PROXY={{.ProxyURL}}\nEnvironment=HTTP_PROXY={{.ProxyURL}}\nEnvironment=http_proxy=http://{{.ProxyURL}}\nEnvironment=https_proxy={{.ProxyURL}}\nExecStartPre=docker run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}}\n\n[Install]\nWantedBy=multi-user.target"
 }]
 }
 }`
@@ -203,8 +203,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster, params 
 		"InventoryURL":   b.InventoryURL,
 		"InventoryPort":  b.InventoryPort,
 		"clusterId":      cluster.ID.String(),
-		"httpProxyURL":   b.setProxyPrefix(params.ImageCreateParams.ProxyURL, "http://"),
-		"httpsProxyURL":  b.setProxyPrefix(params.ImageCreateParams.ProxyURL, "https://"),
+		"ProxyURL":       params.ImageCreateParams.ProxyURL,
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
@@ -215,15 +214,6 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *models.Cluster, params 
 		return "", err
 	}
 	return buf.String(), nil
-}
-
-func (b *bareMetalInventory) setProxyPrefix(proxy, prefix string) string {
-	proxyURL := strings.TrimPrefix(proxy, "https://")
-	proxyURL = strings.TrimPrefix(proxyURL, "http://")
-	if proxyURL == "" {
-		return proxyURL
-	}
-	return fmt.Sprintf("%s%s", prefix, proxyURL)
 }
 
 func (b *bareMetalInventory) getUserSshKey(params inventory.GenerateClusterISOParams) string {
@@ -348,6 +338,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inve
 		return inventory.NewGenerateClusterISOInternalServerError()
 	}
 
+	log.Info("Generated cluster <%s> image <%s> with ignition config %s", params.ClusterID, imgId, ignitionConfig)
 	return inventory.NewGenerateClusterISOCreated().
 		WithPayload(&inventory.GenerateClusterISOCreatedBody{ImageID: imgId})
 }
