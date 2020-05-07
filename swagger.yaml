@@ -610,6 +610,7 @@ definitions:
               - insufficient
               - disabled
               - installing
+              - installing-in-progress
               - installed
               - error
           statusInfo:
@@ -622,6 +623,8 @@ definitions:
           role:
             type: string
             enum: ['undefined', 'master', 'worker']
+          bootstrap:
+            type: boolean
           updatedAt:
             type: string
             format: date-time

@@ -218,8 +218,19 @@ var _ = Describe("system-test cluster install", func() {
 				installProgress := "installation step 1"
 				updateProgress(*h.ID, installProgress)
 				h = getHost(clusterID, *h.ID)
-				Expect(*h.Status).Should(Equal("installing"))
+				Expect(*h.Status).Should(Equal("installing-in-progress"))
 				Expect(h.StatusInfo).Should(Equal(installProgress))
+				installProgress = "installation step 1"
+				updateProgress(*h.ID, installProgress)
+				h = getHost(clusterID, *h.ID)
+				Expect(*h.Status).Should(Equal("installing-in-progress"))
+				Expect(h.StatusInfo).Should(Equal(installProgress))
+				installProgress = "installation step 2"
+				updateProgress(*h.ID, installProgress)
+				h = getHost(clusterID, *h.ID)
+				Expect(*h.Status).Should(Equal("installing-in-progress"))
+				Expect(h.StatusInfo).Should(Equal(installProgress))
+
 			})
 
 			By("report_done", func() {

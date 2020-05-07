@@ -1239,6 +1239,9 @@ func init() {
             "status"
           ],
           "properties": {
+            "bootstrap": {
+              "type": "boolean"
+            },
             "clusterId": {
               "type": "string",
               "format": "uuid",
@@ -1273,6 +1276,7 @@ func init() {
                 "insufficient",
                 "disabled",
                 "installing",
+                "installing-in-progress",
                 "installed",
                 "error"
               ]
@@ -2722,6 +2726,9 @@ func init() {
             "status"
           ],
           "properties": {
+            "bootstrap": {
+              "type": "boolean"
+            },
             "clusterId": {
               "type": "string",
               "format": "uuid",
@@ -2756,6 +2763,7 @@ func init() {
                 "insufficient",
                 "disabled",
                 "installing",
+                "installing-in-progress",
                 "installed",
                 "error"
               ]

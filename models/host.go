@@ -22,6 +22,9 @@ type Host struct {
 
 	HostCreateParams
 
+	// bootstrap
+	Bootstrap bool `json:"bootstrap,omitempty"`
+
 	// cluster Id
 	// Format: uuid
 	ClusterID strfmt.UUID `json:"clusterId,omitempty" gorm:"primary_key;foreignkey:Cluster"`
@@ -42,7 +45,7 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected insufficient disabled installing installed error]
+	// Enum: [discovering known disconnected insufficient disabled installing installing-in-progress installed error]
 	Status *string `json:"status"`
 
 	// status info
@@ -71,6 +74,8 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 
 	// AO2
 	var dataAO2 struct {
+		Bootstrap bool `json:"bootstrap,omitempty"`
+
 		ClusterID strfmt.UUID `json:"clusterId,omitempty"`
 
 		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
@@ -90,6 +95,8 @@ func (m *Host) UnmarshalJSON(raw []byte) error {
 	if err := swag.ReadJSON(raw, &dataAO2); err != nil {
 		return err
 	}
+
+	m.Bootstrap = dataAO2.Bootstrap
 
 	m.ClusterID = dataAO2.ClusterID
 
@@ -126,6 +133,8 @@ func (m Host) MarshalJSON() ([]byte, error) {
 	}
 	_parts = append(_parts, aO1)
 	var dataAO2 struct {
+		Bootstrap bool `json:"bootstrap,omitempty"`
+
 		ClusterID strfmt.UUID `json:"clusterId,omitempty"`
 
 		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
@@ -142,6 +151,8 @@ func (m Host) MarshalJSON() ([]byte, error) {
 
 		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
 	}
+
+	dataAO2.Bootstrap = m.Bootstrap
 
 	dataAO2.ClusterID = m.ClusterID
 
@@ -292,7 +303,7 @@ var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","installing","installed","error"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","installing","installing-in-progress","installed","error"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

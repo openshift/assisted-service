@@ -85,7 +85,6 @@ var _ = Describe("Host tests", func() {
 		steps = getNextSteps(clusterID, *host.ID)
 		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
 		Expect(ok).Should(Equal(true))
-
 	})
 
 	It("hardware-info store only relevant hw reply", func() {

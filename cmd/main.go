@@ -36,6 +36,7 @@ var Options struct {
 	DBPort            string `envconfig:"DB_PORT" default:"3306"`
 	HWValidatorConfig hardware.ValidatorCfg
 	JobConfig         job.Config
+	InstructionConfig host.InstructionConfig
 }
 
 func main() {
@@ -73,8 +74,10 @@ func main() {
 		log.Fatal("failed to auto migrate, ", err)
 	}
 
-	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, hardware.NewValidator(Options.HWValidatorConfig))
 	clusterApi := cluster.NewManager(log.WithField("pkg", "cluster-state"), db)
+	hwValidator := hardware.NewValidator(Options.HWValidatorConfig)
+	instructionApi := host.NewInstructionManager(log, db, hwValidator, Options.InstructionConfig)
+	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, hwValidator, instructionApi)
 	jobApi := job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, jobApi)
 	h, err := restapi.Handler(restapi.Config{

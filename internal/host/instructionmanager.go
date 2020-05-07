@@ -6,6 +6,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 
+	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/go-openapi/strfmt"
@@ -26,9 +27,15 @@ type InstructionManager struct {
 	db           *gorm.DB
 	stateToSteps stateToStepsMap
 }
+type InstructionConfig struct {
+	InventoryURL   string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
+	InventoryPort  string `envconfig:"INVENTORY_PORT" default:"30485"`
+	InstallerImage string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:stable"`
+}
 
-func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB) *InstructionManager {
+func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig) *InstructionManager {
 	connectivityCmd := NewConnectivityCheckCmd(log, db)
+	installCmd := NewInstallCmd(log, db, hwValidator, instructionConfig)
 	hwCmd := NewHwInfoCmd(log)
 
 	return &InstructionManager{
@@ -39,6 +46,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB) *InstructionMana
 			HostStatusInsufficient: {connectivityCmd},
 			HostStatusDisconnected: {hwCmd, connectivityCmd},
 			HostStatusDiscovering:  {hwCmd, connectivityCmd},
+			HostStatusInstalling:   {installCmd},
 		},
 	}
 

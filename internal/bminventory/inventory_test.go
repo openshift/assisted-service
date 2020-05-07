@@ -317,6 +317,9 @@ var _ = Describe("cluster", func() {
 	setDefaultHostGetHostValidDisks := func(mockClusterApi *cluster.MockAPI) {
 		mockHostApi.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.BlockDevice{getDisk()}, nil).AnyTimes()
 	}
+	setDefaultHostSetBootstrap := func(mockClusterApi *cluster.MockAPI) {
+		mockHostApi.EXPECT().SetBootstrap(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	}
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
@@ -352,6 +355,7 @@ var _ = Describe("cluster", func() {
 
 			setDefaultHostInstall(mockClusterApi)
 			setDefaultHostGetHostValidDisks(mockClusterApi)
+			setDefaultHostSetBootstrap(mockClusterApi)
 
 			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
 				ClusterID: clusterID,
@@ -374,6 +378,7 @@ var _ = Describe("cluster", func() {
 
 			mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("host has a error")).AnyTimes()
 			setDefaultHostGetHostValidDisks(mockClusterApi)
+			setDefaultHostSetBootstrap(mockClusterApi)
 
 			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
 				ClusterID: clusterID,
@@ -404,21 +409,6 @@ var _ = Describe("cluster", func() {
 
 			setDefaultHostInstall(mockClusterApi)
 			setDefaultHostGetHostValidDisks(mockClusterApi)
-
-			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
-				ClusterID: clusterID,
-			})
-
-			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterInternalServerError()))
-		})
-		//GetHostValidDisks
-		It("GetHostValidDisks returns err", func() {
-
-			setDefaultInstall(mockClusterApi)
-			setDefaultGetMasterNodesIds(mockClusterApi)
-
-			setDefaultHostInstall(mockClusterApi)
-			mockHostApi.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, errors.Errorf("you fail")).AnyTimes()
 
 			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
 				ClusterID: clusterID,
