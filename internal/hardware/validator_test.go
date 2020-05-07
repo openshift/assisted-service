@@ -89,6 +89,8 @@ var _ = Describe("hardware_validator", func() {
 			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sda", RemovableDevice: 1, Size: validDiskSize},
 			// Read-only
 			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdh", ReadOnly: true, Size: validDiskSize},
+			// Filtered Name
+			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "nvme01fs", Size: validDiskSize},
 		}
 		hw, err := json.Marshal(&hwInfo)
 		Expect(err).NotTo(HaveOccurred())
@@ -102,20 +104,23 @@ var _ = Describe("hardware_validator", func() {
 	})
 
 	It("validate_disk_list_return_order", func() {
+		nvmename := "nvme01fs"
 		hwInfo.BlockDevices = []*models.BlockDevice{
 			// Not disk type
 			{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "aaa", ReadOnly: true, RemovableDevice: 1, Size: validDiskSize},
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize},
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sda", Size: validDiskSize},
+			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize + 1},
+			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sda", Size: validDiskSize + 100},
 			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdh", Size: validDiskSize},
+			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: nvmename, Size: validDiskSize},
 		}
 		hw, err := json.Marshal(&hwInfo)
 		Expect(err).NotTo(HaveOccurred())
 		host.HardwareInfo = string(hw)
 		disks, err := hwvalidator.GetHostValidDisks(host)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(disks[0].Name).Should(Equal("sda"))
+		Expect(disks[0].Name).Should(Equal("sdh"))
 		Expect(len(disks)).Should(Equal(3))
+		Expect(isBlockDeviceNameInlist(disks, nvmename)).Should(Equal(false))
 	})
 
 	It("invalid_hw_info", func() {
@@ -144,4 +149,14 @@ func insufficient(reply *IsSufficientReply, err error) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(reply.IsSufficient).To(BeFalse())
 	Expect(reply.Reason).ShouldNot(Equal(""))
+}
+
+func isBlockDeviceNameInlist(blockDevices []*models.BlockDevice, name string) bool {
+	for _, blockDevice := range blockDevices {
+		// Valid disk: type=disk, not removable, not readonly and size bigger than minimum required
+		if blockDevice.Name == name {
+			return true
+		}
+	}
+	return false
 }

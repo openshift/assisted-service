@@ -3,6 +3,7 @@ package hardware
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 
 	"github.com/alecthomas/units"
@@ -13,6 +14,8 @@ type IsSufficientReply struct {
 	IsSufficient bool
 	Reason       string
 }
+
+const diskNameFilterRegex = "nvme"
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
@@ -117,17 +120,19 @@ func gibToBytes(gib int64) int64 {
 
 func listValidDisks(hwInfo models.Introspection, minSizeRequiredInBytes int64) []*models.BlockDevice {
 	var disks []*models.BlockDevice
+	filter, _ := regexp.Compile(diskNameFilterRegex)
 	for _, blockDevice := range hwInfo.BlockDevices {
 		// Valid disk: type=disk, not removable, not readonly and size bigger than minimum required
+		// and name is not matched by filter
 		if blockDevice.DeviceType == "disk" && blockDevice.RemovableDevice == 0 &&
-			!blockDevice.ReadOnly && blockDevice.Size >= minSizeRequiredInBytes {
+			!blockDevice.ReadOnly && blockDevice.Size >= minSizeRequiredInBytes && !filter.MatchString(blockDevice.Name) {
 
 			disks = append(disks, blockDevice)
 		}
 	}
-	// Sorting list by name
+	// Sorting list by size increase
 	sort.Slice(disks, func(i, j int) bool {
-		return disks[i].Name < disks[j].Name
+		return disks[i].Size < disks[j].Size
 	})
 	return disks
 }
