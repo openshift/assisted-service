@@ -29,9 +29,7 @@ var _ = Describe("ready_state", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = models.Cluster{
-			Base: models.Base{
-				ID: &id,
-			},
+			ID:     &id,
 			Status: swag.String(clusterStatusReady),
 		}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -72,7 +70,6 @@ var _ = Describe("ready_state", func() {
 	})
 
 	AfterEach(func() {
-
 		db.Close()
 		updateReply = nil
 		updateErr = nil

@@ -42,8 +42,8 @@ func (d *disconnectedState) UpdateRole(ctx context.Context, h *models.Host, role
 	if db != nil {
 		cdb = db
 	}
-	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDisconnected, h.StatusInfo, h, cdb,
-		"role", role)
+	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDisconnected,
+		swag.StringValue(h.StatusInfo), h, cdb, "role", role)
 }
 
 func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {

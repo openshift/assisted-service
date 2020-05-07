@@ -33,9 +33,7 @@ var _ = Describe("statemachine", func() {
 		state = NewManager(getTestLog(), db)
 		id := strfmt.UUID(uuid.New().String())
 		cluster = models.Cluster{
-			Base: models.Base{
-				ID: &id,
-			},
+			ID:     &id,
 			Status: swag.String("not a known state"),
 		}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -88,9 +86,7 @@ func addInstallationRequirements(clusterId strfmt.UUID, db *gorm.DB) {
 	for i := 0; i < 3; i++ {
 		hostId = strfmt.UUID(uuid.New().String())
 		host = models.Host{
-			Base: models.Base{
-				ID: &hostId,
-			},
+			ID:        &hostId,
 			ClusterID: clusterId,
 			Role:      "master",
 			Status:    swag.String("known"),

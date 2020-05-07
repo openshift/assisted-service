@@ -5,7 +5,6 @@ import (
 
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
@@ -27,14 +26,7 @@ var _ = Describe("hwinfocmd", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = models.Host{
-			Base: models.Base{
-				ID: &id,
-			},
-			ClusterID:    clusterId,
-			Status:       swag.String(HostStatusDiscovering),
-			HardwareInfo: defaultHwInfo,
-		}
+		host = getTestHost(id, clusterId, HostStatusDiscovering)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 
@@ -45,7 +37,6 @@ var _ = Describe("hwinfocmd", func() {
 	})
 
 	AfterEach(func() {
-
 		// cleanup
 		db.Close()
 		stepReply = nil

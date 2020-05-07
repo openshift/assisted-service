@@ -7,7 +7,6 @@ import (
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
@@ -39,14 +38,7 @@ var _ = Describe("insufficient_state", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = models.Host{
-			Base: models.Base{
-				ID: &id,
-			},
-			ClusterID:    clusterId,
-			Status:       swag.String(currentState),
-			HardwareInfo: defaultHwInfo,
-		}
+		host = getTestHost(id, clusterId, currentState)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		expectedReply = &expect{expectedState: currentState}
 	})
@@ -79,7 +71,7 @@ var _ = Describe("insufficient_state", func() {
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.HardwareInfo).Should(Equal("some hw info"))
-				Expect(h.StatusInfo).Should(Equal("because"))
+				Expect(*h.StatusInfo).Should(Equal("because"))
 			}
 		})
 		It("hw_validation_error", func() {
@@ -112,7 +104,7 @@ var _ = Describe("insufficient_state", func() {
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Role).Should(Equal("master"))
-				Expect(h.StatusInfo).Should(Equal("because"))
+				Expect(*h.StatusInfo).Should(Equal("because"))
 			}
 		})
 		It("hw_validation_error", func() {

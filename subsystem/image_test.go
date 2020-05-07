@@ -5,20 +5,20 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"reflect"
 
-	"github.com/google/uuid"
-
-	"github.com/filanov/bm-inventory/client/inventory"
+	"github.com/filanov/bm-inventory/client/installer"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("system-test image tests", func() {
 	ctx := context.Background()
-	var cluster *inventory.RegisterClusterCreated
+	var cluster *installer.RegisterClusterCreated
 	var clusterID strfmt.UUID
 
 	AfterEach(func() {
@@ -27,7 +27,7 @@ var _ = Describe("system-test image tests", func() {
 
 	BeforeEach(func() {
 		var err error
-		cluster, err = bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
+		cluster, err = bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test cluster"),
 				OpenshiftVersion: swag.String("4.4"),
@@ -44,12 +44,12 @@ var _ = Describe("system-test image tests", func() {
 		}
 		defer os.Remove(file.Name())
 
-		imgReply, err := bmclient.Inventory.GenerateClusterISO(ctx, &inventory.GenerateClusterISOParams{
+		imgReply, err := bmclient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
 			ClusterID:         clusterID,
 			ImageCreateParams: &models.ImageCreateParams{},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		_, err = bmclient.Inventory.DownloadClusterISO(ctx, &inventory.DownloadClusterISOParams{
+		_, err = bmclient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
 			ClusterID: clusterID,
 			ImageID:   imgReply.GetPayload().ImageID,
 		}, file)
@@ -57,13 +57,6 @@ var _ = Describe("system-test image tests", func() {
 		s, err := file.Stat()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(s.Size()).ShouldNot(Equal(0))
-		By("non_existing_image")
-		dummyId := strfmt.UUID(uuid.New().String())
-		_, err = bmclient.Inventory.DownloadClusterISO(ctx, &inventory.DownloadClusterISOParams{
-			ClusterID: clusterID,
-			ImageID:   dummyId,
-		}, file)
-		Expect(err).Should(BeAssignableToTypeOf(inventory.NewDownloadClusterISONotFound()))
 	})
 })
 
@@ -83,20 +76,22 @@ var _ = Describe("image tests", func() {
 	})
 
 	It("download_non_existing_cluster", func() {
-		_, err = bmclient.Inventory.DownloadClusterISO(ctx, &inventory.DownloadClusterISOParams{ClusterID: *strToUUID(uuid.New().String())}, file)
+		_, err = bmclient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: *strToUUID(uuid.New().String())}, file)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("download_non_existing_image", func() {
-		cluster, err := bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
+		cluster, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test cluster"),
 				OpenshiftVersion: swag.String("4.4"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		_, err = bmclient.Inventory.DownloadClusterISO(ctx,
-			&inventory.DownloadClusterISOParams{ClusterID: *cluster.GetPayload().ID}, file)
-		Expect(err).Should(HaveOccurred())
+		_, err = bmclient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
+			ClusterID: *cluster.GetPayload().ID,
+			ImageID:   strfmt.UUID(uuid.New().String()),
+		}, file)
+		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterISONotFound())))
 	})
 })

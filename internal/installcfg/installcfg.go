@@ -82,10 +82,10 @@ func GetInstallConfig(cluster *models.Cluster) ([]byte, error) {
 				Cidr       string `yaml:"cidr"`
 				HostPrefix int    `yaml:"hostPrefix"`
 			}{
-				{Cidr: cluster.ClusterNetworkCIDR, HostPrefix: int(cluster.ClusterNetworkHostPrefix)},
+				{Cidr: cluster.ClusterNetworkCidr, HostPrefix: int(cluster.ClusterNetworkHostPrefix)},
 			},
 			NetworkType:    "OpenShiftSDN",
-			ServiceNetwork: []string{cluster.ServiceNetworkCIDR},
+			ServiceNetwork: []string{cluster.ServiceNetworkCidr},
 		},
 		Platform: struct {
 			None struct{} `yaml:"none"`

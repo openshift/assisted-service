@@ -3,7 +3,7 @@ package subsystem
 import (
 	"context"
 
-	"github.com/filanov/bm-inventory/client/inventory"
+	"github.com/filanov/bm-inventory/client/installer"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -21,7 +21,7 @@ func strToUUID(s string) *strfmt.UUID {
 }
 
 func registerHost(clusterID strfmt.UUID) *models.Host {
-	host, err := bmclient.Inventory.RegisterHost(context.Background(), &inventory.RegisterHostParams{
+	host, err := bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
 		ClusterID: clusterID,
 		NewHostParams: &models.HostCreateParams{
 			HostID: strToUUID(uuid.New().String()),
@@ -32,7 +32,7 @@ func registerHost(clusterID strfmt.UUID) *models.Host {
 }
 
 func getHost(clusterID, hostID strfmt.UUID) *models.Host {
-	host, err := bmclient.Inventory.GetHost(context.Background(), &inventory.GetHostParams{
+	host, err := bmclient.Installer.GetHost(context.Background(), &installer.GetHostParams{
 		ClusterID: clusterID,
 		HostID:    hostID,
 	})

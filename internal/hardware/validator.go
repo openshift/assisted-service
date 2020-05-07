@@ -100,7 +100,7 @@ func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.BlockDevice,
 	}
 	disks := listValidDisks(hwInfo, gibToBytes(v.MinDiskSizeGib))
 	if len(disks) == 0 {
-		return nil, fmt.Errorf("host %s doesn't have valid disks", host.HostID)
+		return nil, fmt.Errorf("host %s doesn't have valid disks", host.ID)
 	}
 	return disks, nil
 }

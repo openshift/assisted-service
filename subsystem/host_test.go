@@ -6,7 +6,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 
-	"github.com/filanov/bm-inventory/client/inventory"
+	"github.com/filanov/bm-inventory/client/installer"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
@@ -15,7 +15,7 @@ import (
 
 var _ = Describe("Host tests", func() {
 	ctx := context.Background()
-	var cluster *inventory.RegisterClusterCreated
+	var cluster *installer.RegisterClusterCreated
 	var clusterID strfmt.UUID
 
 	AfterEach(func() {
@@ -24,7 +24,7 @@ var _ = Describe("Host tests", func() {
 
 	BeforeEach(func() {
 		var err error
-		cluster, err = bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
+		cluster, err = bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test cluster"),
 				OpenshiftVersion: swag.String("4.4"),
@@ -42,20 +42,20 @@ var _ = Describe("Host tests", func() {
 		host = getHost(clusterID, *host.ID)
 		Expect(*host.Status).Should(Equal("discovering"))
 
-		list, err := bmclient.Inventory.ListHosts(ctx, &inventory.ListHostsParams{ClusterID: clusterID})
+		list, err := bmclient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
-		_, err = bmclient.Inventory.DeregisterHost(ctx, &inventory.DeregisterHostParams{
+		_, err = bmclient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		list, err = bmclient.Inventory.ListHosts(ctx, &inventory.ListHostsParams{ClusterID: clusterID})
+		list, err = bmclient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(0))
 
-		_, err = bmclient.Inventory.GetHost(ctx, &inventory.GetHostParams{
+		_, err = bmclient.Installer.GetHost(ctx, &installer.GetHostParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 		})
@@ -87,13 +87,13 @@ var _ = Describe("Host tests", func() {
 		Expect(ok).Should(Equal(true))
 	})
 
-	It("hardware-info store only relevant hw reply", func() {
+	It("hardware_info_store_only_relevant_hw_reply", func() {
 		host := registerHost(clusterID)
 
-		extraHwInfo := "{\"extra\":\"data\",\"block-devices\":[{\"device-type\":\"disk\",\"major-device-number\":259,\"name\":\"nvme0n1\",\"size\":256060514304},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":1,\"name\":\"nvme0n1p1\",\"size\":629145600},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":2,\"name\":\"nvme0n1p2\",\"size\":1073741824},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":3,\"name\":\"nvme0n1p3\",\"size\":254356226048}],\"cpu\":{\"architecture\":\"x86_64\",\"cpu-mhz\":1532.999,\"cpus\":8,\"model-name\":\"Intel(R) Core(TM) i7-8665U CPU @ 1.90GHz\",\"sockets\":1,\"threads-per-core\":2},\"memory\":[{\"available\":19743372,\"buff-cached\":13195388,\"free\":8357316,\"name\":\"Mem\",\"shared\":1369116,\"total\":32657728,\"used\":11105024},{\"free\":16400380,\"name\":\"Swap\",\"total\":16400380}],\"nics\":[{\"cidrs\":[],\"mac\":\"f8:75:a4:a4:01:6e\",\"mtu\":1500,\"name\":\"enp0s31f6\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[{\"ip-address\":\"10.100.102.12\",\"mask\":24}],\"mac\":\"80:32:53:4f:16:4f\",\"mtu\":1500,\"name\":\"wlp0s20f3\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[{\"ip-address\":\"192.168.39.1\",\"mask\":24}],\"mac\":\"52:54:00:71:50:da\",\"mtu\":1500,\"name\":\"virbr1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"8e:59:a1:a9:14:23\",\"mtu\":1500,\"name\":\"virbr1-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"ip-address\":\"192.168.122.1\",\"mask\":24}],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"ip-address\":\"172.17.0.1\",\"mask\":16}],\"mac\":\"02:42:aa:59:3a:d3\",\"mtu\":1500,\"name\":\"docker0\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[],\"mac\":\"fe:9b:ea:d0:f5:70\",\"mtu\":1500,\"name\":\"vnet0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"fe:16:a0:ea:b3:0b\",\"mtu\":1500,\"name\":\"vnet1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"}]}"
-		hwInfo := "{\"block-devices\":[{\"device-type\":\"disk\",\"major-device-number\":259,\"name\":\"nvme0n1\",\"size\":256060514304},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":1,\"name\":\"nvme0n1p1\",\"size\":629145600},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":2,\"name\":\"nvme0n1p2\",\"size\":1073741824},{\"device-type\":\"part\",\"major-device-number\":259,\"minor-device-number\":3,\"name\":\"nvme0n1p3\",\"size\":254356226048}],\"cpu\":{\"architecture\":\"x86_64\",\"cpu-mhz\":1532.999,\"cpus\":8,\"model-name\":\"Intel(R) Core(TM) i7-8665U CPU @ 1.90GHz\",\"sockets\":1,\"threads-per-core\":2},\"memory\":[{\"available\":19743372,\"buff-cached\":13195388,\"free\":8357316,\"name\":\"Mem\",\"shared\":1369116,\"total\":32657728,\"used\":11105024},{\"free\":16400380,\"name\":\"Swap\",\"total\":16400380}],\"nics\":[{\"cidrs\":[],\"mac\":\"f8:75:a4:a4:01:6e\",\"mtu\":1500,\"name\":\"enp0s31f6\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[{\"ip-address\":\"10.100.102.12\",\"mask\":24}],\"mac\":\"80:32:53:4f:16:4f\",\"mtu\":1500,\"name\":\"wlp0s20f3\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[{\"ip-address\":\"192.168.39.1\",\"mask\":24}],\"mac\":\"52:54:00:71:50:da\",\"mtu\":1500,\"name\":\"virbr1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"8e:59:a1:a9:14:23\",\"mtu\":1500,\"name\":\"virbr1-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"ip-address\":\"192.168.122.1\",\"mask\":24}],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"ip-address\":\"172.17.0.1\",\"mask\":16}],\"mac\":\"02:42:aa:59:3a:d3\",\"mtu\":1500,\"name\":\"docker0\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[],\"mac\":\"fe:9b:ea:d0:f5:70\",\"mtu\":1500,\"name\":\"vnet0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"fe:16:a0:ea:b3:0b\",\"mtu\":1500,\"name\":\"vnet1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"}]}"
+		extraHwInfo := "{\"extra\":\"data\",\"block_devices\":null,\"cpu\":{\"architecture\":\"x86_64\",\"cpus\":8,\"sockets\":1},\"memory\":[{\"available\":19743372,\"free\":8357316,\"name\":\"Mem\",\"shared\":1369116,\"total\":32657728,\"used\":11105024},{\"free\":16400380,\"name\":\"Swap\",\"total\":16400380}],\"nics\":[{\"cidrs\":[],\"mac\":\"f8:75:a4:a4:01:6e\",\"mtu\":1500,\"name\":\"enp0s31f6\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"80:32:53:4f:16:4f\",\"mtu\":1500,\"name\":\"wlp0s20f3\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"52:54:00:71:50:da\",\"mtu\":1500,\"name\":\"virbr1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"8e:59:a1:a9:14:23\",\"mtu\":1500,\"name\":\"virbr1-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"mask\":16}],\"mac\":\"02:42:aa:59:3a:d3\",\"mtu\":1500,\"name\":\"docker0\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[],\"mac\":\"fe:9b:ea:d0:f5:70\",\"mtu\":1500,\"name\":\"vnet0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"fe:16:a0:ea:b3:0b\",\"mtu\":1500,\"name\":\"vnet1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"}]}"
+		hwInfo := "{\"block_devices\":null,\"cpu\":{\"architecture\":\"x86_64\",\"cpus\":8,\"sockets\":1},\"memory\":[{\"available\":19743372,\"free\":8357316,\"name\":\"Mem\",\"shared\":1369116,\"total\":32657728,\"used\":11105024},{\"free\":16400380,\"name\":\"Swap\",\"total\":16400380}],\"nics\":[{\"cidrs\":[],\"mac\":\"f8:75:a4:a4:01:6e\",\"mtu\":1500,\"name\":\"enp0s31f6\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"80:32:53:4f:16:4f\",\"mtu\":1500,\"name\":\"wlp0s20f3\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"52:54:00:71:50:da\",\"mtu\":1500,\"name\":\"virbr1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"8e:59:a1:a9:14:23\",\"mtu\":1500,\"name\":\"virbr1-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"mask\":16}],\"mac\":\"02:42:aa:59:3a:d3\",\"mtu\":1500,\"name\":\"docker0\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[],\"mac\":\"fe:9b:ea:d0:f5:70\",\"mtu\":1500,\"name\":\"vnet0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"fe:16:a0:ea:b3:0b\",\"mtu\":1500,\"name\":\"vnet1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"}]}"
 
-		_, err := bmclient.Inventory.PostStepReply(ctx, &inventory.PostStepReplyParams{
+		_, err := bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 			Reply: &models.StepReply{
@@ -106,7 +106,7 @@ var _ = Describe("Host tests", func() {
 		host = getHost(clusterID, *host.ID)
 		Expect(host.HardwareInfo).Should(Equal(hwInfo))
 
-		_, err = bmclient.Inventory.PostStepReply(ctx, &inventory.PostStepReplyParams{
+		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 			Reply: &models.StepReply{
@@ -122,7 +122,7 @@ var _ = Describe("Host tests", func() {
 
 	It("disable enable", func() {
 		host := registerHost(clusterID)
-		_, err := bmclient.Inventory.DisableHost(ctx, &inventory.DisableHostParams{
+		_, err := bmclient.Installer.DisableHost(ctx, &installer.DisableHostParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 		})
@@ -131,7 +131,7 @@ var _ = Describe("Host tests", func() {
 		Expect(*host.Status).Should(Equal("disabled"))
 		Expect(len(getNextSteps(clusterID, *host.ID))).Should(Equal(0))
 
-		_, err = bmclient.Inventory.EnableHost(ctx, &inventory.EnableHostParams{
+		_, err = bmclient.Installer.EnableHost(ctx, &installer.EnableHostParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 		})
@@ -145,9 +145,9 @@ var _ = Describe("Host tests", func() {
 		host1 := registerHost(clusterID)
 		host2 := registerHost(clusterID)
 		// set debug to host1
-		_, err := bmclient.Inventory.SetDebugStep(ctx, &inventory.SetDebugStepParams{
+		_, err := bmclient.Installer.SetDebugStep(ctx, &installer.SetDebugStepParams{
 			ClusterID: clusterID,
-			HostID:    *host1.HostID,
+			HostID:    *host1.ID,
 			Step:      &models.DebugStep{Command: swag.String("echo hello")},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -167,7 +167,7 @@ var _ = Describe("Host tests", func() {
 		_, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeExecute)
 		Expect(ok).Should(Equal(false))
 
-		_, err = bmclient.Inventory.PostStepReply(ctx, &inventory.PostStepReplyParams{
+		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *host1.ID,
 			Reply: &models.StepReply{
@@ -182,7 +182,7 @@ var _ = Describe("Host tests", func() {
 	It("register same host id", func() {
 		hostID := strToUUID(uuid.New().String())
 		// register to cluster1
-		_, err := bmclient.Inventory.RegisterHost(context.Background(), &inventory.RegisterHostParams{
+		_, err := bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
 			ClusterID: clusterID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
@@ -190,7 +190,7 @@ var _ = Describe("Host tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		cluster2, err := bmclient.Inventory.RegisterCluster(ctx, &inventory.RegisterClusterParams{
+		cluster2, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("another cluster"),
 				OpenshiftVersion: swag.String("4.4"),
@@ -199,7 +199,7 @@ var _ = Describe("Host tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// register to cluster2
-		_, err = bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
+		_, err = bmclient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
 			ClusterID: *cluster2.GetPayload().ID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
@@ -211,7 +211,7 @@ var _ = Describe("Host tests", func() {
 		_ = getHost(clusterID, *hostID)
 		_ = getHost(*cluster2.GetPayload().ID, *hostID)
 
-		_, err = bmclient.Inventory.DeregisterHost(ctx, &inventory.DeregisterHostParams{
+		_, err = bmclient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
 			ClusterID: clusterID,
 			HostID:    *hostID,
 		})
@@ -222,7 +222,7 @@ var _ = Describe("Host tests", func() {
 		Expect(db.Model(h).Update("status", "known").Error).NotTo(HaveOccurred())
 		h = getHost(*cluster2.GetPayload().ID, *hostID)
 		Expect(swag.StringValue(h.Status)).Should(Equal("known"))
-		_, err = bmclient.Inventory.RegisterHost(ctx, &inventory.RegisterHostParams{
+		_, err = bmclient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
 			ClusterID: *cluster2.GetPayload().ID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
@@ -244,7 +244,7 @@ func getStepInList(steps models.Steps, sType models.StepType) (*models.Step, boo
 }
 
 func getNextSteps(clusterID, hostID strfmt.UUID) models.Steps {
-	steps, err := bmclient.Inventory.GetNextSteps(context.Background(), &inventory.GetNextStepsParams{
+	steps, err := bmclient.Installer.GetNextSteps(context.Background(), &installer.GetNextStepsParams{
 		ClusterID: clusterID,
 		HostID:    hostID,
 	})

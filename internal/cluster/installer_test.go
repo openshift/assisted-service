@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/filanov/bm-inventory/internal/host"
-
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -31,9 +30,7 @@ var _ = Describe("installer", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = models.Cluster{
-			Base: models.Base{
-				ID: &id,
-			},
+			ID:     &id,
 			Status: swag.String(clusterStatusReady),
 		}
 
@@ -110,9 +107,7 @@ func addHost(role string, state string, clusterId strfmt.UUID, db *gorm.DB) strf
 
 	hostId := strfmt.UUID(uuid.New().String())
 	host := models.Host{
-		Base: models.Base{
-			ID: &hostId,
-		},
+		ID:        &hostId,
 		ClusterID: clusterId,
 		Status:    swag.String(state),
 		Role:      role,

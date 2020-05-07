@@ -31,9 +31,7 @@ var _ = Describe("insufficient_state", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = models.Cluster{
-			Base: models.Base{
-				ID: &id,
-			},
+			ID:     &id,
 			Status: swag.String(currentState),
 		}
 
@@ -65,7 +63,6 @@ var _ = Describe("insufficient_state", func() {
 	})
 
 	AfterEach(func() {
-
 		db.Close()
 		updateReply = nil
 		updateErr = nil

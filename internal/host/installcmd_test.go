@@ -99,9 +99,7 @@ var _ = Describe("installcmd", func() {
 func createClusterInDb(db *gorm.DB) models.Cluster {
 	clusterId := strfmt.UUID(uuid.New().String())
 	cluster := models.Cluster{
-		Base: models.Base{
-			ID: &clusterId,
-		},
+		ID: &clusterId,
 	}
 	Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	return cluster
@@ -110,9 +108,7 @@ func createClusterInDb(db *gorm.DB) models.Cluster {
 func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role string, bootstrap bool) models.Host {
 	id := strfmt.UUID(uuid.New().String())
 	host := models.Host{
-		Base: models.Base{
-			ID: &id,
-		},
+		ID:           &id,
 		ClusterID:    clusterId,
 		Status:       swag.String(HostStatusDiscovering),
 		Role:         role,

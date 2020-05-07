@@ -81,7 +81,7 @@ func main() {
 	jobApi := job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, jobApi)
 	h, err := restapi.Handler(restapi.Config{
-		InventoryAPI: bm,
+		InstallerAPI: bm,
 		Logger:       log.Printf,
 	})
 	h = requestid.Middleware(h)

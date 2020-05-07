@@ -6,7 +6,6 @@ import (
 
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
@@ -30,14 +29,7 @@ var _ = Describe("disabled_state", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = models.Host{
-			Base: models.Base{
-				ID: &id,
-			},
-			ClusterID:    clusterId,
-			Status:       swag.String(currentState),
-			HardwareInfo: defaultHwInfo,
-		}
+		host = getTestHost(id, clusterId, currentState)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		expectedReply = &expect{expectedState: currentState}
 	})
@@ -97,7 +89,7 @@ var _ = Describe("disabled_state", func() {
 		expectedReply.postCheck = func() {
 			h := getHost(id, clusterId, db)
 			Expect(h.HardwareInfo).Should(Equal(""))
-			Expect(h.StatusInfo).Should(Equal(""))
+			Expect(*h.StatusInfo).Should(Equal(""))
 		}
 	})
 
@@ -107,7 +99,6 @@ var _ = Describe("disabled_state", func() {
 
 	AfterEach(func() {
 		postValidation(expectedReply, currentState, db, id, clusterId, updateReply, updateErr)
-
 		// cleanup
 		db.Close()
 		expectedReply = nil

@@ -29,9 +29,7 @@ var _ = Describe("registrar", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = models.Cluster{
-			Base: models.Base{
-				ID: &id,
-			},
+			ID:     &id,
 			Status: swag.String(clusterStatusInsufficient),
 		}
 
@@ -80,7 +78,6 @@ var _ = Describe("registrar", func() {
 	})
 
 	AfterEach(func() {
-
 		db.Close()
 		updateErr = nil
 	})

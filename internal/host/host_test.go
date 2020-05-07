@@ -40,14 +40,7 @@ var _ = Describe("statemachine", func() {
 		state = NewManager(getTestLog(), db, mockValidator, nil)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
-		host = models.Host{
-			Base: models.Base{
-				ID: &id,
-			},
-			ClusterID:    clusterId,
-			Status:       swag.String("unknown invalid state"),
-			HardwareInfo: defaultHwInfo,
-		}
+		host = getTestHost(id, clusterId, "unknown invalid state")
 	})
 
 	Context("unknown_host_state", func() {
@@ -104,13 +97,7 @@ var _ = Describe("update_progress", func() {
 		state = NewManager(getTestLog(), db, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
-		host = models.Host{
-			Base: models.Base{
-				ID: &id,
-			},
-			ClusterID:    clusterId,
-			HardwareInfo: defaultHwInfo,
-		}
+		host = getTestHost(id, clusterId, "")
 	})
 	Context("installaing host", func() {
 		BeforeEach(func() {
@@ -121,14 +108,14 @@ var _ = Describe("update_progress", func() {
 			Expect(state.UpdateInstallProgress(ctx, &host, "some progress")).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusInstallingInProgress))
-			Expect(h.StatusInfo).Should(Equal("some progress"))
+			Expect(*h.StatusInfo).Should(Equal("some progress"))
 		})
 
 		It("done", func() {
 			Expect(state.UpdateInstallProgress(ctx, &host, progressDone)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusInstalled))
-			Expect(h.StatusInfo).Should(Equal(HostStatusInstalled))
+			Expect(*h.StatusInfo).Should(Equal(HostStatusInstalled))
 		})
 
 		It("progress_failed", func() {
@@ -136,7 +123,7 @@ var _ = Describe("update_progress", func() {
 			Expect(state.UpdateInstallProgress(ctx, &host, failedProgress)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusError))
-			Expect(h.StatusInfo).Should(Equal(failedProgress))
+			Expect(*h.StatusInfo).Should(Equal(failedProgress))
 		})
 	})
 
@@ -200,4 +187,13 @@ func getTestLog() logrus.FieldLogger {
 	l := logrus.New()
 	l.SetOutput(ioutil.Discard)
 	return l
+}
+
+func getTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
+	return models.Host{
+		ID:           &hostID,
+		ClusterID:    clusterID,
+		Status:       swag.String(state),
+		HardwareInfo: defaultHwInfo,
+	}
 }

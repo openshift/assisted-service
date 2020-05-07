@@ -35,22 +35,10 @@ var _ = Describe("instructionmanager", func() {
 		instMng = NewInstructionManager(getTestLog(), db, mockValidator, instructionConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		cluster := models.Cluster{
-			Base: models.Base{
-				ID: &clusterId,
-			},
-		}
+		cluster := models.Cluster{ID: &clusterId}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-
-		host = models.Host{
-			Base: models.Base{
-				ID: &hostId,
-			},
-			ClusterID:    clusterId,
-			Role:         RoleMaster,
-			Status:       swag.String("unknown invalid state"),
-			HardwareInfo: defaultHwInfo,
-		}
+		host = getTestHost(hostId, clusterId, "unknown invalid state")
+		host.Role = RoleMaster
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 
@@ -88,7 +76,6 @@ var _ = Describe("instructionmanager", func() {
 	})
 
 	AfterEach(func() {
-
 		// cleanup
 		db.Close()
 		ctrl.Finish()

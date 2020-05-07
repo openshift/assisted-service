@@ -31,7 +31,7 @@ var _ = Describe("hardware_validator", func() {
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 		hwvalidator = NewValidator(cfg)
 		id := strfmt.UUID(uuid.New().String())
-		host = &models.Host{Base: models.Base{ID: &id}, ClusterID: strfmt.UUID(uuid.New().String())}
+		host = &models.Host{ID: &id, ClusterID: strfmt.UUID(uuid.New().String())}
 		hwInfo = &models.Introspection{
 			CPU:    &models.CPU{Cpus: 16},
 			Memory: []*models.Memory{{Name: "Mem", Total: int64(32 * units.GiB)}},

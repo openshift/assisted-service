@@ -16,7 +16,7 @@ import (
 )
 
 var db *gorm.DB
-var bmclient *client.BMInventory
+var bmclient *client.AssistedInstall
 
 var Options struct {
 	DBHost        string `envconfig:"DB_HOST"`

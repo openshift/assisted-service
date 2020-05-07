@@ -4,15 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"testing"
-
-	"github.com/pkg/errors"
 
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/job"
-	"github.com/filanov/bm-inventory/restapi/operations/inventory"
+	"github.com/filanov/bm-inventory/restapi/operations/installer"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -22,6 +21,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -70,9 +70,7 @@ var _ = Describe("GenerateClusterISO", func() {
 	registerCluster := func() *models.Cluster {
 		clusterId := strfmt.UUID(uuid.New().String())
 		cluster := models.Cluster{
-			Base: models.Base{
-				ID: &clusterId,
-			},
+			ID: &clusterId,
 		}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		return &cluster
@@ -82,50 +80,50 @@ var _ = Describe("GenerateClusterISO", func() {
 		clusterId := registerCluster().ID
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), defaultJobNamespace).Return(nil).Times(1)
-		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISOCreated()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 	})
 
 	It("success with proxy", func() {
 		clusterId := registerCluster().ID
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), defaultJobNamespace).Return(nil).Times(1)
-		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{ProxyURL: "http://1.1.1.1:1234"},
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISOCreated()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 	})
 	It("cluster_not_exists", func() {
-		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         strfmt.UUID(uuid.New().String()),
 			ImageCreateParams: &models.ImageCreateParams{},
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISONotFound()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISONotFound()))
 	})
 
 	It("failed_to_create_job", func() {
 		clusterId := registerCluster().ID
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).Times(1)
-		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISOInternalServerError()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOInternalServerError()))
 	})
 
 	It("job_failed", func() {
 		clusterId := registerCluster().ID
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), defaultJobNamespace).Return(fmt.Errorf("error")).Times(1)
-		generateReply := bm.GenerateClusterISO(ctx, inventory.GenerateClusterISOParams{
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGenerateClusterISOInternalServerError()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOInternalServerError()))
 	})
 
 	AfterEach(func() {
@@ -157,20 +155,18 @@ var _ = Describe("GetNextSteps", func() {
 		clusterId := strToUUID(uuid.New().String())
 		unregistered_hostID := strToUUID(uuid.New().String())
 
-		generateReply := bm.GetNextSteps(ctx, inventory.GetNextStepsParams{
+		generateReply := bm.GetNextSteps(ctx, installer.GetNextStepsParams{
 			ClusterID: *clusterId,
 			HostID:    *unregistered_hostID,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(inventory.NewGetNextStepsNotFound()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGetNextStepsNotFound()))
 	})
 
 	It("get_next_steps_success", func() {
 		clusterId := strToUUID(uuid.New().String())
 		hostId := strToUUID(uuid.New().String())
 		host := models.Host{
-			Base: models.Base{
-				ID: hostId,
-			},
+			ID:        hostId,
 			ClusterID: *clusterId,
 			Status:    swag.String("discovering"),
 		}
@@ -180,12 +176,12 @@ var _ = Describe("GetNextSteps", func() {
 		expectedStepsReply := models.Steps{&models.Step{StepType: models.StepTypeHardwareInfo},
 			&models.Step{StepType: models.StepTypeConnectivityCheck}}
 		mockHostApi.EXPECT().GetNextSteps(gomock.Any(), gomock.Any()).Return(expectedStepsReply, err)
-		reply := bm.GetNextSteps(ctx, inventory.GetNextStepsParams{
+		reply := bm.GetNextSteps(ctx, installer.GetNextStepsParams{
 			ClusterID: *clusterId,
 			HostID:    *hostId,
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(inventory.NewGetNextStepsOK()))
-		stepsReply := reply.(*inventory.GetNextStepsOK).Payload
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetNextStepsOK()))
+		stepsReply := reply.(*installer.GetNextStepsOK).Payload
 		expectedStepsType := []models.StepType{models.StepTypeHardwareInfo, models.StepTypeConnectivityCheck}
 		Expect(stepsReply).To(HaveLen(len(expectedStepsType)))
 		for i, step := range stepsReply {
@@ -223,7 +219,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 			hostID = strfmt.UUID(uuid.New().String())
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&models.Host{
-				Base:      models.Base{ID: &hostID},
+				ID:        &hostID,
 				ClusterID: clusterID,
 			}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -232,32 +228,32 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 
 		It("success", func() {
 			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			reply := bm.UpdateHostInstallProgress(ctx, inventory.UpdateHostInstallProgressParams{
+			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 				ClusterID:                 clusterID,
 				HostInstallProgressParams: "some progress",
 				HostID:                    hostID,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewUpdateHostInstallProgressOK()))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
 		})
 
 		It("update_failed", func() {
 			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			reply := bm.UpdateHostInstallProgress(ctx, inventory.UpdateHostInstallProgressParams{
+			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 				ClusterID:                 clusterID,
 				HostInstallProgressParams: "some progress",
 				HostID:                    hostID,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewUpdateHostInstallProgressOK()))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
 		})
 	})
 
 	It("host_dont_exist", func() {
-		reply := bm.UpdateHostInstallProgress(ctx, inventory.UpdateHostInstallProgressParams{
+		reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 			ClusterID:                 strfmt.UUID(uuid.New().String()),
 			HostInstallProgressParams: "some progress",
 			HostID:                    strfmt.UUID(uuid.New().String()),
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(inventory.NewUpdateHostInstallProgressOK()))
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
 	})
 
 	AfterEach(func() {
@@ -285,9 +281,7 @@ var _ = Describe("cluster", func() {
 
 	addHost := func(hostId strfmt.UUID, role string, state string, clusterId strfmt.UUID, db *gorm.DB) models.Host {
 		host := models.Host{
-			Base: models.Base{
-				ID: &hostId,
-			},
+			ID:        &hostId,
 			ClusterID: clusterId,
 			Status:    swag.String(state),
 			Role:      role,
@@ -336,7 +330,7 @@ var _ = Describe("cluster", func() {
 		BeforeEach(func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&models.Cluster{
-				Base: models.Base{ID: &clusterID},
+				ID: &clusterID,
 			}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -357,19 +351,18 @@ var _ = Describe("cluster", func() {
 			setDefaultHostGetHostValidDisks(mockClusterApi)
 			setDefaultHostSetBootstrap(mockClusterApi)
 
-			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
 
-			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterOK()))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterOK()))
 		})
 		It("cluster failed to update", func() {
 			mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("cluster has a error"))
-			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterConflict()))
-
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewInstallClusterConflict())))
 		})
 		It("host failed to install", func() {
 
@@ -380,10 +373,10 @@ var _ = Describe("cluster", func() {
 			setDefaultHostGetHostValidDisks(mockClusterApi)
 			setDefaultHostSetBootstrap(mockClusterApi)
 
-			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterConflict()))
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewInstallClusterConflict())))
 
 		})
 		It("GetMasterNodesIds fails", func() {
@@ -395,11 +388,11 @@ var _ = Describe("cluster", func() {
 			setDefaultHostInstall(mockClusterApi)
 			setDefaultHostGetHostValidDisks(mockClusterApi)
 
-			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
 
-			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterInternalServerError()))
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewInstallClusterInternalServerError())))
 		})
 		It("GetMasterNodesIds returns empty list", func() {
 
@@ -410,11 +403,11 @@ var _ = Describe("cluster", func() {
 			setDefaultHostInstall(mockClusterApi)
 			setDefaultHostGetHostValidDisks(mockClusterApi)
 
-			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
 
-			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterInternalServerError()))
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewInstallClusterInternalServerError())))
 		})
 	})
 	AfterEach(func() {
