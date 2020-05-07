@@ -19,272 +19,100 @@ import (
 //
 // swagger:model cluster
 type Cluster struct {
-	Base
 
-	// Virtual IP used to reach the OpenShift cluster API
+	// Virtual IP used to reach the OpenShift cluster API.
 	// Format: hostname
-	APIVip strfmt.Hostname `json:"apiVip,omitempty"`
+	APIVip strfmt.Hostname `json:"api_vip,omitempty"`
 
-	// The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
-	BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
+	// Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
+	BaseDNSDomain string `json:"base_dns_domain,omitempty"`
 
 	// IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
-	ClusterNetworkCIDR string `json:"clusterNetworkCIDR,omitempty"`
+	ClusterNetworkCidr string `json:"cluster_network_cidr,omitempty"`
 
 	// The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.
 	// Maximum: 32
 	// Minimum: 1
-	ClusterNetworkHostPrefix int64 `json:"clusterNetworkHostPrefix,omitempty"`
+	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
 
-	// created at
+	// The time that this cluster was created.
 	// Format: date-time
-	CreatedAt strfmt.DateTime `json:"createdAt,omitempty" gorm:"type:datetime"`
+	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:datetime"`
 
-	// Virtual IP used internally by the cluster for automating internal DNS requirements
+	// Virtual IP used internally by the cluster for automating internal DNS requirements.
 	// Format: hostname
-	DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
+	DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
 
-	// hosts
+	// Hosts that are associated with this cluster.
 	Hosts []*Host `json:"hosts" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
 
-	// Virtual IP used for cluster ingress traffic
+	// Self link.
+	// Required: true
+	Href *string `json:"href"`
+
+	// Unique identifier of the object.
+	// Required: true
+	// Format: uuid
+	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
+
+	// Virtual IP used for cluster ingress traffic.
 	// Format: hostname
-	IngressVip strfmt.Hostname `json:"ingressVip,omitempty"`
+	IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
 
-	// install completed at
+	// The time that this cluster completed installation.
 	// Format: date-time
-	InstallCompletedAt strfmt.DateTime `json:"installCompletedAt,omitempty" gorm:"type:datetime;default:0"`
+	InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty" gorm:"type:datetime;default:0"`
 
-	// install started at
+	// The time that this cluster began installation.
 	// Format: date-time
-	InstallStartedAt strfmt.DateTime `json:"installStartedAt,omitempty" gorm:"type:datetime;default:0"`
+	InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty" gorm:"type:datetime;default:0"`
 
-	// OpenShift cluster name
+	// Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link.
+	// Required: true
+	// Enum: [Cluster]
+	Kind *string `json:"kind"`
+
+	// Name of the OpenShift cluster.
 	Name string `json:"name,omitempty"`
 
-	// OpenShift cluster version
+	// Version of the OpenShift cluster.
 	// Enum: [4.4]
-	OpenshiftVersion string `json:"openshiftVersion,omitempty"`
+	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
-	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
-	PullSecret string `json:"pullSecret,omitempty" gorm:"type:varchar(4096)"`
+	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
+	PullSecret string `json:"pull_secret,omitempty" gorm:"type:varchar(4096)"`
 
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
-	ServiceNetworkCIDR string `json:"serviceNetworkCIDR,omitempty"`
+	ServiceNetworkCidr string `json:"service_network_cidr,omitempty"`
 
-	// SSH public key for debugging OpenShift nodes
-	SSHPublicKey string `json:"sshPublicKey,omitempty" gorm:"type:varchar(1024)"`
+	// SSH public key for debugging OpenShift nodes.
+	SSHPublicKey string `json:"ssh_public_key,omitempty" gorm:"type:varchar(1024)"`
 
-	// status
+	// Status of the OpenShift cluster.
 	// Required: true
 	// Enum: [insufficient ready error installing installed]
 	Status *string `json:"status"`
 
-	// status info
-	StatusInfo string `json:"statusInfo,omitempty"`
+	// Additional information pertaining to the status of the OpenShift cluster.
+	// Required: true
+	StatusInfo *string `json:"status_info"`
 
-	// updated at
+	// The last time that this cluster was updated.
 	// Format: date-time
-	UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty" gorm:"type:datetime"`
-}
-
-// UnmarshalJSON unmarshals this object from a JSON structure
-func (m *Cluster) UnmarshalJSON(raw []byte) error {
-	// AO0
-	var aO0 Base
-	if err := swag.ReadJSON(raw, &aO0); err != nil {
-		return err
-	}
-	m.Base = aO0
-
-	// AO1
-	var dataAO1 struct {
-		APIVip strfmt.Hostname `json:"apiVip,omitempty"`
-
-		BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
-
-		ClusterNetworkCIDR string `json:"clusterNetworkCIDR,omitempty"`
-
-		ClusterNetworkHostPrefix int64 `json:"clusterNetworkHostPrefix,omitempty"`
-
-		CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
-
-		DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
-
-		Hosts []*Host `json:"hosts"`
-
-		IngressVip strfmt.Hostname `json:"ingressVip,omitempty"`
-
-		InstallCompletedAt strfmt.DateTime `json:"installCompletedAt,omitempty"`
-
-		InstallStartedAt strfmt.DateTime `json:"installStartedAt,omitempty"`
-
-		Name string `json:"name,omitempty"`
-
-		OpenshiftVersion string `json:"openshiftVersion,omitempty"`
-
-		PullSecret string `json:"pullSecret,omitempty"`
-
-		ServiceNetworkCIDR string `json:"serviceNetworkCIDR,omitempty"`
-
-		SSHPublicKey string `json:"sshPublicKey,omitempty"`
-
-		Status *string `json:"status"`
-
-		StatusInfo string `json:"statusInfo,omitempty"`
-
-		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
-	}
-	if err := swag.ReadJSON(raw, &dataAO1); err != nil {
-		return err
-	}
-
-	m.APIVip = dataAO1.APIVip
-
-	m.BaseDNSDomain = dataAO1.BaseDNSDomain
-
-	m.ClusterNetworkCIDR = dataAO1.ClusterNetworkCIDR
-
-	m.ClusterNetworkHostPrefix = dataAO1.ClusterNetworkHostPrefix
-
-	m.CreatedAt = dataAO1.CreatedAt
-
-	m.DNSVip = dataAO1.DNSVip
-
-	m.Hosts = dataAO1.Hosts
-
-	m.IngressVip = dataAO1.IngressVip
-
-	m.InstallCompletedAt = dataAO1.InstallCompletedAt
-
-	m.InstallStartedAt = dataAO1.InstallStartedAt
-
-	m.Name = dataAO1.Name
-
-	m.OpenshiftVersion = dataAO1.OpenshiftVersion
-
-	m.PullSecret = dataAO1.PullSecret
-
-	m.ServiceNetworkCIDR = dataAO1.ServiceNetworkCIDR
-
-	m.SSHPublicKey = dataAO1.SSHPublicKey
-
-	m.Status = dataAO1.Status
-
-	m.StatusInfo = dataAO1.StatusInfo
-
-	m.UpdatedAt = dataAO1.UpdatedAt
-
-	return nil
-}
-
-// MarshalJSON marshals this object to a JSON structure
-func (m Cluster) MarshalJSON() ([]byte, error) {
-	_parts := make([][]byte, 0, 2)
-
-	aO0, err := swag.WriteJSON(m.Base)
-	if err != nil {
-		return nil, err
-	}
-	_parts = append(_parts, aO0)
-	var dataAO1 struct {
-		APIVip strfmt.Hostname `json:"apiVip,omitempty"`
-
-		BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
-
-		ClusterNetworkCIDR string `json:"clusterNetworkCIDR,omitempty"`
-
-		ClusterNetworkHostPrefix int64 `json:"clusterNetworkHostPrefix,omitempty"`
-
-		CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
-
-		DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
-
-		Hosts []*Host `json:"hosts"`
-
-		IngressVip strfmt.Hostname `json:"ingressVip,omitempty"`
-
-		InstallCompletedAt strfmt.DateTime `json:"installCompletedAt,omitempty"`
-
-		InstallStartedAt strfmt.DateTime `json:"installStartedAt,omitempty"`
-
-		Name string `json:"name,omitempty"`
-
-		OpenshiftVersion string `json:"openshiftVersion,omitempty"`
-
-		PullSecret string `json:"pullSecret,omitempty"`
-
-		ServiceNetworkCIDR string `json:"serviceNetworkCIDR,omitempty"`
-
-		SSHPublicKey string `json:"sshPublicKey,omitempty"`
-
-		Status *string `json:"status"`
-
-		StatusInfo string `json:"statusInfo,omitempty"`
-
-		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
-	}
-
-	dataAO1.APIVip = m.APIVip
-
-	dataAO1.BaseDNSDomain = m.BaseDNSDomain
-
-	dataAO1.ClusterNetworkCIDR = m.ClusterNetworkCIDR
-
-	dataAO1.ClusterNetworkHostPrefix = m.ClusterNetworkHostPrefix
-
-	dataAO1.CreatedAt = m.CreatedAt
-
-	dataAO1.DNSVip = m.DNSVip
-
-	dataAO1.Hosts = m.Hosts
-
-	dataAO1.IngressVip = m.IngressVip
-
-	dataAO1.InstallCompletedAt = m.InstallCompletedAt
-
-	dataAO1.InstallStartedAt = m.InstallStartedAt
-
-	dataAO1.Name = m.Name
-
-	dataAO1.OpenshiftVersion = m.OpenshiftVersion
-
-	dataAO1.PullSecret = m.PullSecret
-
-	dataAO1.ServiceNetworkCIDR = m.ServiceNetworkCIDR
-
-	dataAO1.SSHPublicKey = m.SSHPublicKey
-
-	dataAO1.Status = m.Status
-
-	dataAO1.StatusInfo = m.StatusInfo
-
-	dataAO1.UpdatedAt = m.UpdatedAt
-
-	jsonDataAO1, errAO1 := swag.WriteJSON(dataAO1)
-	if errAO1 != nil {
-		return nil, errAO1
-	}
-	_parts = append(_parts, jsonDataAO1)
-	return swag.ConcatJSON(_parts...), nil
+	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:datetime"`
 }
 
 // Validate validates this cluster
 func (m *Cluster) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	// validation for a type composition with Base
-	if err := m.Base.Validate(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateAPIVip(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateClusterNetworkCIDR(formats); err != nil {
+	if err := m.validateClusterNetworkCidr(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -304,6 +132,14 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateHref(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateIngressVip(formats); err != nil {
 		res = append(res, err)
 	}
@@ -316,15 +152,23 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateKind(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateOpenshiftVersion(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateServiceNetworkCIDR(formats); err != nil {
+	if err := m.validateServiceNetworkCidr(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateStatus(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStatusInfo(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -344,20 +188,20 @@ func (m *Cluster) validateAPIVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("apiVip", "body", "hostname", m.APIVip.String(), formats); err != nil {
+	if err := validate.FormatOf("api_vip", "body", "hostname", m.APIVip.String(), formats); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *Cluster) validateClusterNetworkCIDR(formats strfmt.Registry) error {
+func (m *Cluster) validateClusterNetworkCidr(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.ClusterNetworkCIDR) { // not required
+	if swag.IsZero(m.ClusterNetworkCidr) { // not required
 		return nil
 	}
 
-	if err := validate.Pattern("clusterNetworkCIDR", "body", string(m.ClusterNetworkCIDR), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+	if err := validate.Pattern("cluster_network_cidr", "body", string(m.ClusterNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
 		return err
 	}
 
@@ -370,11 +214,11 @@ func (m *Cluster) validateClusterNetworkHostPrefix(formats strfmt.Registry) erro
 		return nil
 	}
 
-	if err := validate.MinimumInt("clusterNetworkHostPrefix", "body", int64(m.ClusterNetworkHostPrefix), 1, false); err != nil {
+	if err := validate.MinimumInt("cluster_network_host_prefix", "body", int64(m.ClusterNetworkHostPrefix), 1, false); err != nil {
 		return err
 	}
 
-	if err := validate.MaximumInt("clusterNetworkHostPrefix", "body", int64(m.ClusterNetworkHostPrefix), 32, false); err != nil {
+	if err := validate.MaximumInt("cluster_network_host_prefix", "body", int64(m.ClusterNetworkHostPrefix), 32, false); err != nil {
 		return err
 	}
 
@@ -387,7 +231,7 @@ func (m *Cluster) validateCreatedAt(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("createdAt", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
 		return err
 	}
 
@@ -400,7 +244,7 @@ func (m *Cluster) validateDNSVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("dnsVip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
+	if err := validate.FormatOf("dns_vip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -432,13 +276,35 @@ func (m *Cluster) validateHosts(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *Cluster) validateHref(formats strfmt.Registry) error {
+
+	if err := validate.Required("href", "body", m.Href); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateID(formats strfmt.Registry) error {
+
+	if err := validate.Required("id", "body", m.ID); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Cluster) validateIngressVip(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.IngressVip) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("ingressVip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
+	if err := validate.FormatOf("ingress_vip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -451,7 +317,7 @@ func (m *Cluster) validateInstallCompletedAt(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("installCompletedAt", "body", "date-time", m.InstallCompletedAt.String(), formats); err != nil {
+	if err := validate.FormatOf("install_completed_at", "body", "date-time", m.InstallCompletedAt.String(), formats); err != nil {
 		return err
 	}
 
@@ -464,7 +330,47 @@ func (m *Cluster) validateInstallStartedAt(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("installStartedAt", "body", "date-time", m.InstallStartedAt.String(), formats); err != nil {
+	if err := validate.FormatOf("install_started_at", "body", "date-time", m.InstallStartedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var clusterTypeKindPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["Cluster"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		clusterTypeKindPropEnum = append(clusterTypeKindPropEnum, v)
+	}
+}
+
+const (
+
+	// ClusterKindCluster captures enum value "Cluster"
+	ClusterKindCluster string = "Cluster"
+)
+
+// prop value enum
+func (m *Cluster) validateKindEnum(path, location string, value string) error {
+	if err := validate.Enum(path, location, value, clusterTypeKindPropEnum); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Cluster) validateKind(formats strfmt.Registry) error {
+
+	if err := validate.Required("kind", "body", m.Kind); err != nil {
+		return err
+	}
+
+	// value enum
+	if err := m.validateKindEnum("kind", "body", *m.Kind); err != nil {
 		return err
 	}
 
@@ -483,7 +389,13 @@ func init() {
 	}
 }
 
-// property enum
+const (
+
+	// ClusterOpenshiftVersionNr44 captures enum value "4.4"
+	ClusterOpenshiftVersionNr44 string = "4.4"
+)
+
+// prop value enum
 func (m *Cluster) validateOpenshiftVersionEnum(path, location string, value string) error {
 	if err := validate.Enum(path, location, value, clusterTypeOpenshiftVersionPropEnum); err != nil {
 		return err
@@ -498,20 +410,20 @@ func (m *Cluster) validateOpenshiftVersion(formats strfmt.Registry) error {
 	}
 
 	// value enum
-	if err := m.validateOpenshiftVersionEnum("openshiftVersion", "body", m.OpenshiftVersion); err != nil {
+	if err := m.validateOpenshiftVersionEnum("openshift_version", "body", m.OpenshiftVersion); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *Cluster) validateServiceNetworkCIDR(formats strfmt.Registry) error {
+func (m *Cluster) validateServiceNetworkCidr(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.ServiceNetworkCIDR) { // not required
+	if swag.IsZero(m.ServiceNetworkCidr) { // not required
 		return nil
 	}
 
-	if err := validate.Pattern("serviceNetworkCIDR", "body", string(m.ServiceNetworkCIDR), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+	if err := validate.Pattern("service_network_cidr", "body", string(m.ServiceNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
 		return err
 	}
 
@@ -530,7 +442,25 @@ func init() {
 	}
 }
 
-// property enum
+const (
+
+	// ClusterStatusInsufficient captures enum value "insufficient"
+	ClusterStatusInsufficient string = "insufficient"
+
+	// ClusterStatusReady captures enum value "ready"
+	ClusterStatusReady string = "ready"
+
+	// ClusterStatusError captures enum value "error"
+	ClusterStatusError string = "error"
+
+	// ClusterStatusInstalling captures enum value "installing"
+	ClusterStatusInstalling string = "installing"
+
+	// ClusterStatusInstalled captures enum value "installed"
+	ClusterStatusInstalled string = "installed"
+)
+
+// prop value enum
 func (m *Cluster) validateStatusEnum(path, location string, value string) error {
 	if err := validate.Enum(path, location, value, clusterTypeStatusPropEnum); err != nil {
 		return err
@@ -552,13 +482,22 @@ func (m *Cluster) validateStatus(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *Cluster) validateStatusInfo(formats strfmt.Registry) error {
+
+	if err := validate.Required("status_info", "body", m.StatusInfo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Cluster) validateUpdatedAt(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.UpdatedAt) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("updatedAt", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
+	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
 		return err
 	}
 

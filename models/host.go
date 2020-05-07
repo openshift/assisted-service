@@ -18,26 +18,37 @@ import (
 //
 // swagger:model host
 type Host struct {
-	Base
-
-	HostCreateParams
 
 	// bootstrap
 	Bootstrap bool `json:"bootstrap,omitempty"`
 
-	// cluster Id
+	// The cluster that this host is associated with.
 	// Format: uuid
-	ClusterID strfmt.UUID `json:"clusterId,omitempty" gorm:"primary_key;foreignkey:Cluster"`
+	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`
 
 	// connectivity
 	Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
 
 	// created at
 	// Format: date-time
-	CreatedAt strfmt.DateTime `json:"createdAt,omitempty" gorm:"type:datetime"`
+	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:datetime"`
 
 	// hardware info
-	HardwareInfo string `json:"hardwareInfo,omitempty" gorm:"type:text"`
+	HardwareInfo string `json:"hardware_info,omitempty" gorm:"type:text"`
+
+	// Self link.
+	// Required: true
+	Href *string `json:"href"`
+
+	// Unique identifier of the object.
+	// Required: true
+	// Format: uuid
+	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
+
+	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.
+	// Required: true
+	// Enum: [Host]
+	Kind *string `json:"kind"`
 
 	// role
 	// Enum: [undefined master worker]
@@ -45,151 +56,21 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected insufficient disabled installing installing-in-progress installed error]
+	// Enum: [discovering known disconnected insufficient disabled installing installed error]
 	Status *string `json:"status"`
 
 	// status info
-	StatusInfo string `json:"statusInfo,omitempty"`
+	// Required: true
+	StatusInfo *string `json:"status_info"`
 
 	// updated at
 	// Format: date-time
-	UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty" gorm:"type:datetime"`
-}
-
-// UnmarshalJSON unmarshals this object from a JSON structure
-func (m *Host) UnmarshalJSON(raw []byte) error {
-	// AO0
-	var aO0 Base
-	if err := swag.ReadJSON(raw, &aO0); err != nil {
-		return err
-	}
-	m.Base = aO0
-
-	// AO1
-	var aO1 HostCreateParams
-	if err := swag.ReadJSON(raw, &aO1); err != nil {
-		return err
-	}
-	m.HostCreateParams = aO1
-
-	// AO2
-	var dataAO2 struct {
-		Bootstrap bool `json:"bootstrap,omitempty"`
-
-		ClusterID strfmt.UUID `json:"clusterId,omitempty"`
-
-		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
-
-		CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
-
-		HardwareInfo string `json:"hardwareInfo,omitempty"`
-
-		Role string `json:"role,omitempty"`
-
-		Status *string `json:"status"`
-
-		StatusInfo string `json:"statusInfo,omitempty"`
-
-		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
-	}
-	if err := swag.ReadJSON(raw, &dataAO2); err != nil {
-		return err
-	}
-
-	m.Bootstrap = dataAO2.Bootstrap
-
-	m.ClusterID = dataAO2.ClusterID
-
-	m.Connectivity = dataAO2.Connectivity
-
-	m.CreatedAt = dataAO2.CreatedAt
-
-	m.HardwareInfo = dataAO2.HardwareInfo
-
-	m.Role = dataAO2.Role
-
-	m.Status = dataAO2.Status
-
-	m.StatusInfo = dataAO2.StatusInfo
-
-	m.UpdatedAt = dataAO2.UpdatedAt
-
-	return nil
-}
-
-// MarshalJSON marshals this object to a JSON structure
-func (m Host) MarshalJSON() ([]byte, error) {
-	_parts := make([][]byte, 0, 3)
-
-	aO0, err := swag.WriteJSON(m.Base)
-	if err != nil {
-		return nil, err
-	}
-	_parts = append(_parts, aO0)
-
-	aO1, err := swag.WriteJSON(m.HostCreateParams)
-	if err != nil {
-		return nil, err
-	}
-	_parts = append(_parts, aO1)
-	var dataAO2 struct {
-		Bootstrap bool `json:"bootstrap,omitempty"`
-
-		ClusterID strfmt.UUID `json:"clusterId,omitempty"`
-
-		Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
-
-		CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
-
-		HardwareInfo string `json:"hardwareInfo,omitempty"`
-
-		Role string `json:"role,omitempty"`
-
-		Status *string `json:"status"`
-
-		StatusInfo string `json:"statusInfo,omitempty"`
-
-		UpdatedAt strfmt.DateTime `json:"updatedAt,omitempty"`
-	}
-
-	dataAO2.Bootstrap = m.Bootstrap
-
-	dataAO2.ClusterID = m.ClusterID
-
-	dataAO2.Connectivity = m.Connectivity
-
-	dataAO2.CreatedAt = m.CreatedAt
-
-	dataAO2.HardwareInfo = m.HardwareInfo
-
-	dataAO2.Role = m.Role
-
-	dataAO2.Status = m.Status
-
-	dataAO2.StatusInfo = m.StatusInfo
-
-	dataAO2.UpdatedAt = m.UpdatedAt
-
-	jsonDataAO2, errAO2 := swag.WriteJSON(dataAO2)
-	if errAO2 != nil {
-		return nil, errAO2
-	}
-	_parts = append(_parts, jsonDataAO2)
-	return swag.ConcatJSON(_parts...), nil
+	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:datetime"`
 }
 
 // Validate validates this host
 func (m *Host) Validate(formats strfmt.Registry) error {
 	var res []error
-
-	// validation for a type composition with Base
-	if err := m.Base.Validate(formats); err != nil {
-		res = append(res, err)
-	}
-	// validation for a type composition with HostCreateParams
-	if err := m.HostCreateParams.Validate(formats); err != nil {
-		res = append(res, err)
-	}
 
 	if err := m.validateClusterID(formats); err != nil {
 		res = append(res, err)
@@ -203,11 +84,27 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateHref(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateKind(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateRole(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateStatus(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStatusInfo(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -227,7 +124,7 @@ func (m *Host) validateClusterID(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("clusterId", "body", "uuid", m.ClusterID.String(), formats); err != nil {
+	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
 		return err
 	}
 
@@ -258,7 +155,69 @@ func (m *Host) validateCreatedAt(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("createdAt", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateHref(formats strfmt.Registry) error {
+
+	if err := validate.Required("href", "body", m.Href); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateID(formats strfmt.Registry) error {
+
+	if err := validate.Required("id", "body", m.ID); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var hostTypeKindPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["Host"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		hostTypeKindPropEnum = append(hostTypeKindPropEnum, v)
+	}
+}
+
+const (
+
+	// HostKindHost captures enum value "Host"
+	HostKindHost string = "Host"
+)
+
+// prop value enum
+func (m *Host) validateKindEnum(path, location string, value string) error {
+	if err := validate.Enum(path, location, value, hostTypeKindPropEnum); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Host) validateKind(formats strfmt.Registry) error {
+
+	if err := validate.Required("kind", "body", m.Kind); err != nil {
+		return err
+	}
+
+	// value enum
+	if err := m.validateKindEnum("kind", "body", *m.Kind); err != nil {
 		return err
 	}
 
@@ -277,7 +236,19 @@ func init() {
 	}
 }
 
-// property enum
+const (
+
+	// HostRoleUndefined captures enum value "undefined"
+	HostRoleUndefined string = "undefined"
+
+	// HostRoleMaster captures enum value "master"
+	HostRoleMaster string = "master"
+
+	// HostRoleWorker captures enum value "worker"
+	HostRoleWorker string = "worker"
+)
+
+// prop value enum
 func (m *Host) validateRoleEnum(path, location string, value string) error {
 	if err := validate.Enum(path, location, value, hostTypeRolePropEnum); err != nil {
 		return err
@@ -303,7 +274,7 @@ var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","installing","installing-in-progress","installed","error"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","installing","installed","error"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -311,7 +282,34 @@ func init() {
 	}
 }
 
-// property enum
+const (
+
+	// HostStatusDiscovering captures enum value "discovering"
+	HostStatusDiscovering string = "discovering"
+
+	// HostStatusKnown captures enum value "known"
+	HostStatusKnown string = "known"
+
+	// HostStatusDisconnected captures enum value "disconnected"
+	HostStatusDisconnected string = "disconnected"
+
+	// HostStatusInsufficient captures enum value "insufficient"
+	HostStatusInsufficient string = "insufficient"
+
+	// HostStatusDisabled captures enum value "disabled"
+	HostStatusDisabled string = "disabled"
+
+	// HostStatusInstalling captures enum value "installing"
+	HostStatusInstalling string = "installing"
+
+	// HostStatusInstalled captures enum value "installed"
+	HostStatusInstalled string = "installed"
+
+	// HostStatusError captures enum value "error"
+	HostStatusError string = "error"
+)
+
+// prop value enum
 func (m *Host) validateStatusEnum(path, location string, value string) error {
 	if err := validate.Enum(path, location, value, hostTypeStatusPropEnum); err != nil {
 		return err
@@ -333,13 +331,22 @@ func (m *Host) validateStatus(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *Host) validateStatusInfo(formats strfmt.Registry) error {
+
+	if err := validate.Required("status_info", "body", m.StatusInfo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Host) validateUpdatedAt(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.UpdatedAt) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("updatedAt", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
+	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
 		return err
 	}
 

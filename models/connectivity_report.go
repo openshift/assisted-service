@@ -19,7 +19,7 @@ import (
 type ConnectivityReport struct {
 
 	// remote hosts
-	RemoteHosts []*ConnectivityRemoteHost `json:"remote-hosts"`
+	RemoteHosts []*ConnectivityRemoteHost `json:"remote_hosts"`
 }
 
 // Validate validates this connectivity report
@@ -50,7 +50,7 @@ func (m *ConnectivityReport) validateRemoteHosts(formats strfmt.Registry) error 
 		if m.RemoteHosts[i] != nil {
 			if err := m.RemoteHosts[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("remote-hosts" + "." + strconv.Itoa(i))
+					return ve.ValidateName("remote_hosts" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

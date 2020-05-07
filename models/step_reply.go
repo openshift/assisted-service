@@ -19,13 +19,13 @@ type StepReply struct {
 	Error string `json:"error,omitempty"`
 
 	// exit code
-	ExitCode int64 `json:"exit-code,omitempty"`
+	ExitCode int64 `json:"exit_code,omitempty"`
 
 	// output
 	Output string `json:"output,omitempty"`
 
 	// step id
-	StepID string `json:"step-id,omitempty"`
+	StepID string `json:"step_id,omitempty"`
 }
 
 // Validate validates this step reply

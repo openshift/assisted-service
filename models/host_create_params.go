@@ -17,10 +17,10 @@ import (
 // swagger:model host-create-params
 type HostCreateParams struct {
 
-	// host Id
+	// host id
 	// Required: true
 	// Format: uuid
-	HostID *strfmt.UUID `json:"hostId"`
+	HostID *strfmt.UUID `json:"host_id"`
 }
 
 // Validate validates this host create params
@@ -39,11 +39,11 @@ func (m *HostCreateParams) Validate(formats strfmt.Registry) error {
 
 func (m *HostCreateParams) validateHostID(formats strfmt.Registry) error {
 
-	if err := validate.Required("hostId", "body", m.HostID); err != nil {
+	if err := validate.Required("host_id", "body", m.HostID); err != nil {
 		return err
 	}
 
-	if err := validate.FormatOf("hostId", "body", "uuid", m.HostID.String(), formats); err != nil {
+	if err := validate.FormatOf("host_id", "body", "uuid", m.HostID.String(), formats); err != nil {
 		return err
 	}
 

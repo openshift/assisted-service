@@ -21,13 +21,13 @@ type ConnectivityRemoteHost struct {
 
 	// host id
 	// Format: uuid
-	HostID strfmt.UUID `json:"host-id,omitempty"`
+	HostID strfmt.UUID `json:"host_id,omitempty"`
 
 	// l2 connectivity
-	L2Connectivity []*L2Connectivity `json:"l2-connectivity"`
+	L2Connectivity []*L2Connectivity `json:"l2_connectivity"`
 
 	// l3 connectivity
-	L3Connectivity []*L3Connectivity `json:"l3-connectivity"`
+	L3Connectivity []*L3Connectivity `json:"l3_connectivity"`
 }
 
 // Validate validates this connectivity remote host
@@ -58,7 +58,7 @@ func (m *ConnectivityRemoteHost) validateHostID(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("host-id", "body", "uuid", m.HostID.String(), formats); err != nil {
+	if err := validate.FormatOf("host_id", "body", "uuid", m.HostID.String(), formats); err != nil {
 		return err
 	}
 
@@ -79,7 +79,7 @@ func (m *ConnectivityRemoteHost) validateL2Connectivity(formats strfmt.Registry)
 		if m.L2Connectivity[i] != nil {
 			if err := m.L2Connectivity[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("l2-connectivity" + "." + strconv.Itoa(i))
+					return ve.ValidateName("l2_connectivity" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -104,7 +104,7 @@ func (m *ConnectivityRemoteHost) validateL3Connectivity(formats strfmt.Registry)
 		if m.L3Connectivity[i] != nil {
 			if err := m.L3Connectivity[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("l3-connectivity" + "." + strconv.Itoa(i))
+					return ve.ValidateName("l3_connectivity" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

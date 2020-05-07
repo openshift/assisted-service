@@ -16,10 +16,10 @@ import (
 type L3Connectivity struct {
 
 	// outgoing nic
-	OutgoingNic string `json:"outgoing-nic,omitempty"`
+	OutgoingNic string `json:"outgoing_nic,omitempty"`
 
 	// remote ip address
-	RemoteIPAddress string `json:"remote-ip-address,omitempty"`
+	RemoteIPAddress string `json:"remote_ip_address,omitempty"`
 
 	// successful
 	Successful bool `json:"successful,omitempty"`

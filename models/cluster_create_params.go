@@ -19,48 +19,48 @@ import (
 // swagger:model cluster-create-params
 type ClusterCreateParams struct {
 
-	// Virtual IP used to reach the OpenShift cluster API
+	// Virtual IP used to reach the OpenShift cluster API.
 	// Format: hostname
-	APIVip strfmt.Hostname `json:"apiVip,omitempty"`
+	APIVip strfmt.Hostname `json:"api_vip,omitempty"`
 
-	// The base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
-	BaseDNSDomain string `json:"baseDnsDomain,omitempty"`
+	// Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
+	BaseDNSDomain string `json:"base_dns_domain,omitempty"`
 
 	// IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
-	ClusterNetworkCIDR string `json:"clusterNetworkCIDR,omitempty"`
+	ClusterNetworkCidr string `json:"cluster_network_cidr,omitempty"`
 
 	// The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.
 	// Maximum: 32
 	// Minimum: 1
-	ClusterNetworkHostPrefix int64 `json:"clusterNetworkHostPrefix,omitempty"`
+	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
 
-	// Virtual IP used internally by the cluster for automating internal DNS requirements
+	// Virtual IP used internally by the cluster for automating internal DNS requirements.
 	// Format: hostname
-	DNSVip strfmt.Hostname `json:"dnsVip,omitempty"`
+	DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
 
-	// Virtual IP used for cluster ingress traffic
+	// Virtual IP used for cluster ingress traffic.
 	// Format: hostname
-	IngressVip strfmt.Hostname `json:"ingressVip,omitempty"`
+	IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
 
-	// OpenShift cluster name
+	// Name of the OpenShift cluster.
 	// Required: true
 	Name *string `json:"name"`
 
-	// OpenShift cluster version
+	// Version of the OpenShift cluster.
 	// Required: true
 	// Enum: [4.4]
-	OpenshiftVersion *string `json:"openshiftVersion"`
+	OpenshiftVersion *string `json:"openshift_version"`
 
-	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
-	PullSecret string `json:"pullSecret,omitempty"`
+	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
+	PullSecret string `json:"pull_secret,omitempty"`
 
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
-	ServiceNetworkCIDR string `json:"serviceNetworkCIDR,omitempty"`
+	ServiceNetworkCidr string `json:"service_network_cidr,omitempty"`
 
-	// SSH public key for debugging OpenShift nodes
-	SSHPublicKey string `json:"sshPublicKey,omitempty"`
+	// SSH public key for debugging OpenShift nodes.
+	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 }
 
 // Validate validates this cluster create params
@@ -71,7 +71,7 @@ func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateClusterNetworkCIDR(formats); err != nil {
+	if err := m.validateClusterNetworkCidr(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -95,7 +95,7 @@ func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateServiceNetworkCIDR(formats); err != nil {
+	if err := m.validateServiceNetworkCidr(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -111,20 +111,20 @@ func (m *ClusterCreateParams) validateAPIVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("apiVip", "body", "hostname", m.APIVip.String(), formats); err != nil {
+	if err := validate.FormatOf("api_vip", "body", "hostname", m.APIVip.String(), formats); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *ClusterCreateParams) validateClusterNetworkCIDR(formats strfmt.Registry) error {
+func (m *ClusterCreateParams) validateClusterNetworkCidr(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.ClusterNetworkCIDR) { // not required
+	if swag.IsZero(m.ClusterNetworkCidr) { // not required
 		return nil
 	}
 
-	if err := validate.Pattern("clusterNetworkCIDR", "body", string(m.ClusterNetworkCIDR), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+	if err := validate.Pattern("cluster_network_cidr", "body", string(m.ClusterNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
 		return err
 	}
 
@@ -137,11 +137,11 @@ func (m *ClusterCreateParams) validateClusterNetworkHostPrefix(formats strfmt.Re
 		return nil
 	}
 
-	if err := validate.MinimumInt("clusterNetworkHostPrefix", "body", int64(m.ClusterNetworkHostPrefix), 1, false); err != nil {
+	if err := validate.MinimumInt("cluster_network_host_prefix", "body", int64(m.ClusterNetworkHostPrefix), 1, false); err != nil {
 		return err
 	}
 
-	if err := validate.MaximumInt("clusterNetworkHostPrefix", "body", int64(m.ClusterNetworkHostPrefix), 32, false); err != nil {
+	if err := validate.MaximumInt("cluster_network_host_prefix", "body", int64(m.ClusterNetworkHostPrefix), 32, false); err != nil {
 		return err
 	}
 
@@ -154,7 +154,7 @@ func (m *ClusterCreateParams) validateDNSVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("dnsVip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
+	if err := validate.FormatOf("dns_vip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -167,7 +167,7 @@ func (m *ClusterCreateParams) validateIngressVip(formats strfmt.Registry) error 
 		return nil
 	}
 
-	if err := validate.FormatOf("ingressVip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
+	if err := validate.FormatOf("ingress_vip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -211,25 +211,25 @@ func (m *ClusterCreateParams) validateOpenshiftVersionEnum(path, location string
 
 func (m *ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
 
-	if err := validate.Required("openshiftVersion", "body", m.OpenshiftVersion); err != nil {
+	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
 		return err
 	}
 
 	// value enum
-	if err := m.validateOpenshiftVersionEnum("openshiftVersion", "body", *m.OpenshiftVersion); err != nil {
+	if err := m.validateOpenshiftVersionEnum("openshift_version", "body", *m.OpenshiftVersion); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *ClusterCreateParams) validateServiceNetworkCIDR(formats strfmt.Registry) error {
+func (m *ClusterCreateParams) validateServiceNetworkCidr(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.ServiceNetworkCIDR) { // not required
+	if swag.IsZero(m.ServiceNetworkCidr) { // not required
 		return nil
 	}
 
-	if err := validate.Pattern("serviceNetworkCIDR", "body", string(m.ServiceNetworkCIDR), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+	if err := validate.Pattern("service_network_cidr", "body", string(m.ServiceNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
 		return err
 	}
 

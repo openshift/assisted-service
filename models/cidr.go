@@ -16,7 +16,7 @@ import (
 type Cidr struct {
 
 	// ip address
-	IPAddress string `json:"ip-address,omitempty"`
+	IPAddress string `json:"ip_address,omitempty"`
 
 	// mask
 	Mask int64 `json:"mask,omitempty"`

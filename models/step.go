@@ -23,10 +23,10 @@ type Step struct {
 	Command string `json:"command,omitempty"`
 
 	// step id
-	StepID string `json:"step-id,omitempty"`
+	StepID string `json:"step_id,omitempty"`
 
 	// step type
-	StepType StepType `json:"step-type,omitempty"`
+	StepType StepType `json:"step_type,omitempty"`
 }
 
 // Validate validates this step
@@ -51,7 +51,7 @@ func (m *Step) validateStepType(formats strfmt.Registry) error {
 
 	if err := m.StepType.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("step-type")
+			return ve.ValidateName("step_type")
 		}
 		return err
 	}

@@ -19,7 +19,7 @@ import (
 type Introspection struct {
 
 	// block devices
-	BlockDevices []*BlockDevice `json:"block-devices"`
+	BlockDevices []*BlockDevice `json:"block_devices"`
 
 	// cpu
 	CPU *CPU `json:"cpu,omitempty"`
@@ -71,7 +71,7 @@ func (m *Introspection) validateBlockDevices(formats strfmt.Registry) error {
 		if m.BlockDevices[i] != nil {
 			if err := m.BlockDevices[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("block-devices" + "." + strconv.Itoa(i))
+					return ve.ValidateName("block_devices" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

@@ -16,16 +16,16 @@ import (
 type L2Connectivity struct {
 
 	// outgoing ip address
-	OutgoingIPAddress string `json:"outgoing-ip-address,omitempty"`
+	OutgoingIPAddress string `json:"outgoing_ip_address,omitempty"`
 
 	// outgoing nic
-	OutgoingNic string `json:"outgoing-nic,omitempty"`
+	OutgoingNic string `json:"outgoing_nic,omitempty"`
 
 	// remote ip address
-	RemoteIPAddress string `json:"remote-ip-address,omitempty"`
+	RemoteIPAddress string `json:"remote_ip_address,omitempty"`
 
 	// remote mac
-	RemoteMac string `json:"remote-mac,omitempty"`
+	RemoteMac string `json:"remote_mac,omitempty"`
 
 	// successful
 	Successful bool `json:"successful,omitempty"`

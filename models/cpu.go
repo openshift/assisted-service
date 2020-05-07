@@ -19,19 +19,19 @@ type CPU struct {
 	Architecture string `json:"architecture,omitempty"`
 
 	// cpu mhz
-	CPUMhz float64 `json:"cpu-mhz,omitempty"`
+	CPUMhz float64 `json:"cpu_mhz,omitempty"`
 
 	// cpus
 	Cpus int64 `json:"cpus,omitempty"`
 
 	// model name
-	ModelName string `json:"model-name,omitempty"`
+	ModelName string `json:"model_name,omitempty"`
 
 	// sockets
 	Sockets int64 `json:"sockets,omitempty"`
 
 	// threads per core
-	ThreadsPerCore int64 `json:"threads-per-core,omitempty"`
+	ThreadsPerCore int64 `json:"threads_per_core,omitempty"`
 }
 
 // Validate validates this cpu

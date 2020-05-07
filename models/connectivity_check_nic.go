@@ -16,7 +16,7 @@ import (
 type ConnectivityCheckNic struct {
 
 	// ip addresses
-	IPAddresses []string `json:"ip-addresses"`
+	IPAddresses []string `json:"ip_addresses"`
 
 	// mac
 	Mac string `json:"mac,omitempty"`

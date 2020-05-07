@@ -16,16 +16,16 @@ import (
 type BlockDevice struct {
 
 	// device type
-	DeviceType string `json:"device-type,omitempty"`
+	DeviceType string `json:"device_type,omitempty"`
 
 	// fstype
 	Fstype string `json:"fstype,omitempty"`
 
 	// major device number
-	MajorDeviceNumber int64 `json:"major-device-number,omitempty"`
+	MajorDeviceNumber int64 `json:"major_device_number,omitempty"`
 
 	// minor device number
-	MinorDeviceNumber int64 `json:"minor-device-number,omitempty"`
+	MinorDeviceNumber int64 `json:"minor_device_number,omitempty"`
 
 	// mountpoint
 	Mountpoint string `json:"mountpoint,omitempty"`
@@ -34,10 +34,10 @@ type BlockDevice struct {
 	Name string `json:"name,omitempty"`
 
 	// read only
-	ReadOnly bool `json:"read-only,omitempty"`
+	ReadOnly bool `json:"read_only,omitempty"`
 
 	// removable device
-	RemovableDevice int64 `json:"removable-device,omitempty"`
+	RemovableDevice int64 `json:"removable_device,omitempty"`
 
 	// size
 	Size int64 `json:"size,omitempty"`

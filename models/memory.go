@@ -19,7 +19,7 @@ type Memory struct {
 	Available int64 `json:"available,omitempty"`
 
 	// buff cached
-	BuffCached int64 `json:"buff-cached,omitempty"`
+	BuffCached int64 `json:"buff_cached,omitempty"`
 
 	// free
 	Free int64 `json:"free,omitempty"`

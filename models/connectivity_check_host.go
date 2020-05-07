@@ -21,7 +21,7 @@ type ConnectivityCheckHost struct {
 
 	// host id
 	// Format: uuid
-	HostID strfmt.UUID `json:"host-id,omitempty"`
+	HostID strfmt.UUID `json:"host_id,omitempty"`
 
 	// nics
 	Nics []*ConnectivityCheckNic `json:"nics"`
@@ -51,7 +51,7 @@ func (m *ConnectivityCheckHost) validateHostID(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("host-id", "body", "uuid", m.HostID.String(), formats); err != nil {
+	if err := validate.FormatOf("host_id", "body", "uuid", m.HostID.String(), formats); err != nil {
 		return err
 	}
 
