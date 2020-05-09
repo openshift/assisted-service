@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("insufficient_state", func() {
+var _ = Describe("ready_state", func() {
 	var (
 		ctx         = context.Background()
 		state       API

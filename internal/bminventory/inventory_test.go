@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/pkg/errors"
+
+	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/job"
@@ -257,6 +260,174 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		Expect(reply).Should(BeAssignableToTypeOf(inventory.NewUpdateHostInstallProgressOK()))
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+		db.Close()
+	})
+})
+
+var _ = Describe("cluster", func() {
+	masterHostId1 := strfmt.UUID(uuid.New().String())
+	masterHostId2 := strfmt.UUID(uuid.New().String())
+	masterHostId3 := strfmt.UUID(uuid.New().String())
+
+	var (
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		ctrl           *gomock.Controller
+		mockHostApi    *host.MockAPI
+		mockClusterApi *cluster.MockAPI
+		mockJob        *job.MockAPI
+		clusterID      strfmt.UUID
+	)
+
+	addHost := func(role string, state string, clusterId strfmt.UUID, db *gorm.DB) models.Host {
+		hostId := strfmt.UUID(uuid.New().String())
+		host := models.Host{
+			Base: models.Base{
+				ID: &hostId,
+			},
+			ClusterID: clusterId,
+			Status:    swag.String(state),
+			Role:      role,
+		}
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		return host
+	}
+	getDisk := func() *models.BlockDevice {
+		disk := models.BlockDevice{DeviceType: "loop", Fstype: "test", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", ReadOnly: true, RemovableDevice: 1, Size: 0}
+		return &disk
+	}
+	setDefaultInstall := func(mockClusterApi *cluster.MockAPI) {
+		mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	}
+	setDefaultGetMasterNodesIds := func(mockClusterApi *cluster.MockAPI) {
+		mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil)
+	}
+	setDefaultJobCreate := func(mockJobApi *job.MockAPI) {
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	}
+	setDefaultJobMaonitor := func(mockJobApi *job.MockAPI) {
+		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), defaultJobNamespace).Return(nil).Times(1)
+	}
+	setDefaultHostInstall := func(mockClusterApi *cluster.MockAPI) {
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	}
+	setDefaultHostGetHostValidDisks := func(mockClusterApi *cluster.MockAPI) {
+		mockHostApi.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.BlockDevice{getDisk()}, nil).AnyTimes()
+	}
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = prepareDB()
+		mockJob = job.NewMockAPI(ctrl)
+		mockClusterApi = cluster.NewMockAPI(ctrl)
+		mockHostApi = host.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob)
+
+	})
+
+	Context("Install", func() {
+		BeforeEach(func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&models.Cluster{
+				Base: models.Base{ID: &clusterID},
+			}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			for i := 0; i < 3; i++ {
+				addHost("master", "known", clusterID, db)
+			}
+		})
+
+		It("success", func() {
+
+			setDefaultInstall(mockClusterApi)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+
+			setDefaultJobCreate(mockJob)
+			setDefaultJobMaonitor(mockJob)
+
+			setDefaultHostInstall(mockClusterApi)
+			setDefaultHostGetHostValidDisks(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterOK()))
+		})
+		It("cluster failed to update", func() {
+			mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("cluster has a error"))
+			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterConflict()))
+
+		})
+		It("host failed to install", func() {
+
+			setDefaultInstall(mockClusterApi)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+
+			mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("host has a error")).AnyTimes()
+			setDefaultHostGetHostValidDisks(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterConflict()))
+
+		})
+		It("GetMasterNodesIds fails", func() {
+
+			setDefaultInstall(mockClusterApi)
+			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
+
+			setDefaultHostInstall(mockClusterApi)
+			setDefaultHostGetHostValidDisks(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterInternalServerError()))
+		})
+		It("GetMasterNodesIds returns empty list", func() {
+
+			setDefaultInstall(mockClusterApi)
+			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
+
+			setDefaultHostInstall(mockClusterApi)
+			setDefaultHostGetHostValidDisks(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterInternalServerError()))
+		})
+		//GetHostValidDisks
+		It("GetHostValidDisks returns err", func() {
+
+			setDefaultInstall(mockClusterApi)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+
+			setDefaultHostInstall(mockClusterApi)
+			mockHostApi.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, errors.Errorf("you fail")).AnyTimes()
+
+			reply := bm.InstallCluster(ctx, inventory.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(inventory.NewInstallClusterInternalServerError()))
+		})
+	})
 	AfterEach(func() {
 		ctrl.Finish()
 		db.Close()

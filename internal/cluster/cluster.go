@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-openapi/strfmt"
+
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -15,8 +17,6 @@ import (
 type StateAPI interface {
 	// Refresh state in case of hosts update7
 	RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error)
-	// Install cluster
-	Install(ctx context.Context, c *models.Cluster) (*UpdateReply, error)
 }
 
 type RegistrationAPI interface {
@@ -26,9 +26,17 @@ type RegistrationAPI interface {
 	DeregisterCluster(ctx context.Context, c *models.Cluster) error
 }
 
+type InstallationAPI interface {
+	// Install cluster
+	Install(ctx context.Context, c *models.Cluster, db *gorm.DB) error
+	// Get the cluster master nodes ID's
+	GetMasterNodesIds(ctx context.Context, c *models.Cluster, db *gorm.DB) ([]*strfmt.UUID, error)
+}
+
 type API interface {
 	StateAPI
 	RegistrationAPI
+	InstallationAPI
 }
 
 type Manager struct {
@@ -38,6 +46,7 @@ type Manager struct {
 	installed       StateAPI
 	error           StateAPI
 	registrationAPI RegistrationAPI
+	installationAPI InstallationAPI
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB) *Manager {
@@ -48,6 +57,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB) *Manager {
 		installed:       NewInstalledState(log, db),
 		error:           NewErrorState(log, db),
 		registrationAPI: NewRegistrar(log, db),
+		installationAPI: NewInstaller(log, db),
 	}
 }
 
@@ -84,10 +94,9 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm
 	return state.RefreshStatus(ctx, c, db)
 }
 
-func (m *Manager) Install(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
-	state, err := m.getCurrentState(swag.StringValue(c.Status))
-	if err != nil {
-		return nil, err
-	}
-	return state.Install(ctx, c)
+func (m *Manager) Install(ctx context.Context, c *models.Cluster, db *gorm.DB) error {
+	return m.installationAPI.Install(ctx, c, db)
+}
+func (m *Manager) GetMasterNodesIds(ctx context.Context, c *models.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
+	return m.installationAPI.GetMasterNodesIds(ctx, c, db)
 }
