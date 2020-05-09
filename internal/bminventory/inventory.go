@@ -11,10 +11,11 @@ import (
 	"sync"
 	"text/template"
 
+	"github.com/filanov/bm-inventory/internal/installcfg"
+
 	"github.com/filanov/bm-inventory/internal/cluster"
 
 	"github.com/filanov/bm-inventory/internal/host"
-	"github.com/filanov/bm-inventory/internal/installcfg"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/filemiddleware"
 	"github.com/filanov/bm-inventory/pkg/job"
@@ -49,7 +50,6 @@ const (
 )
 
 const (
-	master    = "master"
 	bootstrap = "bootstrap"
 )
 
@@ -368,33 +368,21 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 	if err := tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return inventory.NewInstallClusterNotFound()
 	}
-	// validate minimum number of master nodes
-	var masterNodesIds []*strfmt.UUID
-	for i := range cluster.Hosts {
-		if cluster.Hosts[i].Role == master {
-			masterNodesIds = append(masterNodesIds, cluster.Hosts[i].ID)
-		}
-	}
-	minimumMasterNodes := 3
-	if len(masterNodesIds) < minimumMasterNodes {
-		log.Errorf("Can't install cluster without minimum %d master nodes", minimumMasterNodes)
-		return inventory.NewInstallClusterConflict()
-	}
-	// create install-config.yaml
-	cfg, err := installcfg.GetInstallConfig(&cluster)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get install config for cluster %s", params.ClusterID)
-		return inventory.NewInstallClusterInternalServerError()
-	}
-	fmt.Println("Install config: \n", string(cfg))
 
-	if err := generateClusterInstallConfig(b, cluster, log, ctx, cfg); err != nil {
+	if err := b.clusterApi.Install(ctx, &cluster, tx); err != nil {
+		log.WithError(err).Errorf("failed to install cluster %s", cluster.ID.String())
 		tx.Rollback()
-		return err
+		return inventory.NewInstallClusterConflict()
 	}
 
 	// Temporary hack - use debug API for setting the executing install command:
-	if err := b.addInstallCommand(ctx, masterNodesIds, log, params, cluster); err != nil {
+	masterNodesIds, err := b.clusterApi.GetMasterNodesIds(ctx, &cluster, tx)
+	if err != nil {
+		tx.Rollback()
+		log.WithError(err).Errorf("failed to get cluster %s master node id's", cluster.ID)
+		return inventory.NewInstallClusterInternalServerError()
+	}
+	if err = b.addInstallCommand(ctx, masterNodesIds, log, params, cluster); err != nil {
 		tx.Rollback()
 		log.WithError(err).Errorf("failed to add install command to cluster <%s>", params.ClusterID)
 		return inventory.NewInstallClusterInternalServerError()
@@ -402,35 +390,36 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params inventor
 
 	// move hosts states to installing
 	for i := range cluster.Hosts {
-		if _, err := b.hostApi.Install(ctx, cluster.Hosts[i], tx); err != nil {
+		if _, err = b.hostApi.Install(ctx, cluster.Hosts[i], tx); err != nil {
 			log.WithError(err).Errorf("failed to install hosts <%s> in cluster: %s",
 				cluster.Hosts[i].ID.String(), cluster.ID.String())
 			tx.Rollback()
 			return inventory.NewInstallClusterConflict()
 		}
 	}
-
-	if err := tx.Model(&models.Cluster{}).Where("id = ?", cluster.ID.String()).
-		Update("status", ClusterStatusInstalling).Error; err != nil {
-		log.WithError(err).Errorf("failed to update cluster %s to status installing", cluster.ID.String())
+	if err := b.generateClusterInstallConfig(ctx, cluster); err != nil {
 		tx.Rollback()
-		return inventory.NewInstallClusterInternalServerError()
+		return err
 	}
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
 		log.WithError(err).Errorf("failed to commit cluster %s changes on installation", cluster.ID.String())
 		return inventory.NewInstallClusterInternalServerError()
 	}
-
 	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return inventory.NewInstallClusterInternalServerError()
 	}
-
 	return inventory.NewInstallClusterOK().WithPayload(&cluster)
 }
 
-func generateClusterInstallConfig(b *bareMetalInventory, cluster models.Cluster, log logrus.FieldLogger, ctx context.Context, cfg []byte) middleware.Responder {
+func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster models.Cluster) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 
+	cfg, err := installcfg.GetInstallConfig(&cluster)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get install config for cluster %s", cluster.ID)
+		return inventory.NewInstallClusterInternalServerError()
+	}
 	jobName := fmt.Sprintf("%s-%s-%s", kubeconfigPrefix, cluster.ID.String(), uuid.New().String())[:63]
 	if err := b.job.Create(ctx, b.createKubeconfigJob(&cluster, jobName, cfg)); err != nil {
 		log.WithError(err).Errorf("Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
@@ -446,11 +435,12 @@ func generateClusterInstallConfig(b *bareMetalInventory, cluster models.Cluster,
 
 func (b *bareMetalInventory) addInstallCommand(ctx context.Context, masterNodesIds []*strfmt.UUID,
 	log logrus.FieldLogger, params inventory.InstallClusterParams, cluster models.Cluster) error {
-	// set one of the master nodes as bootstrap
-	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
-	log.Debugf("Bootstrap ID is %s", bootstrapId)
 
 	const cmdTmpl = `sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host  {{.INSTALLER}} --role {{.ROLE}}  --cluster-id {{.CLUSTER_ID}}  --host {{.HOST}} --port {{.PORT}} --boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}}`
+
+	// set one of the master nodes as bootstrap
+	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
+	log.Infof("Bootstrap ID is %s", bootstrapId)
 
 	t, err := template.New("cmd").Parse(cmdTmpl)
 	if err != nil {
@@ -466,27 +456,30 @@ func (b *bareMetalInventory) addInstallCommand(ctx context.Context, masterNodesI
 		"BOOT_DEVICE":       "",
 		"OPENSHIFT_VERSION": cluster.OpenshiftVersion,
 	}
-	for i := range cluster.Hosts {
-		role := cluster.Hosts[i].Role
-		if cluster.Hosts[i].ID == bootstrapId {
+	for _, h := range cluster.Hosts {
+		role := h.Role
+		if h.ID.String() == bootstrapId.String() {
 			role = bootstrap
 		}
 		data["ROLE"] = role
-		disks, err := b.hostApi.GetHostValidDisks(cluster.Hosts[i])
+		disks, err := b.hostApi.GetHostValidDisks(h)
 		if err != nil {
-			log.Errorf("Failed to get valid disks on host with id %s", cluster.Hosts[i].ID)
+			log.Errorf("Failed to get valid disks on host with id %s", h.ID)
 			return err
 		}
 		data["BOOT_DEVICE"] = fmt.Sprintf("/dev/%s", disks[0].Name)
-		data["HOST_ID"] = string(*cluster.Hosts[i].ID)
+		data["HOST_ID"] = string(*h.ID)
 		buf := &bytes.Buffer{}
+
+		log.Infof("host installation data : %s", data)
+
 		if err := t.Execute(buf, data); err != nil {
 			return err
 		}
 		command := buf.String()
 		b.SetDebugStep(ctx, inventory.SetDebugStepParams{
 			ClusterID: params.ClusterID,
-			HostID:    *cluster.Hosts[i].ID,
+			HostID:    *h.ID,
 			Step:      &models.DebugStep{Command: &command},
 		})
 	}

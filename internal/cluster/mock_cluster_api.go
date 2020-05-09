@@ -7,6 +7,7 @@ package cluster
 import (
 	context "context"
 	models "github.com/filanov/bm-inventory/models"
+	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	reflect "reflect"
@@ -50,21 +51,6 @@ func (mr *MockStateAPIMockRecorder) RefreshStatus(ctx, c, db interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockStateAPI)(nil).RefreshStatus), ctx, c, db)
 }
 
-// Install mocks base method.
-func (m *MockStateAPI) Install(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Install", ctx, c)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Install indicates an expected call of Install.
-func (mr *MockStateAPIMockRecorder) Install(ctx, c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockStateAPI)(nil).Install), ctx, c)
-}
-
 // MockRegistrationAPI is a mock of RegistrationAPI interface.
 type MockRegistrationAPI struct {
 	ctrl     *gomock.Controller
@@ -89,12 +75,11 @@ func (m *MockRegistrationAPI) EXPECT() *MockRegistrationAPIMockRecorder {
 }
 
 // RegisterCluster mocks base method.
-func (m *MockRegistrationAPI) RegisterCluster(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
+func (m *MockRegistrationAPI) RegisterCluster(ctx context.Context, c *models.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterCluster", ctx, c)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // RegisterCluster indicates an expected call of RegisterCluster.
@@ -104,18 +89,69 @@ func (mr *MockRegistrationAPIMockRecorder) RegisterCluster(ctx, c interface{}) *
 }
 
 // DeregisterCluster mocks base method.
-func (m *MockRegistrationAPI) DeregisterCluster(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
+func (m *MockRegistrationAPI) DeregisterCluster(ctx context.Context, c *models.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeregisterCluster", ctx, c)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // DeregisterCluster indicates an expected call of DeregisterCluster.
 func (mr *MockRegistrationAPIMockRecorder) DeregisterCluster(ctx, c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).DeregisterCluster), ctx, c)
+}
+
+// MockInstallationAPI is a mock of InstallationAPI interface.
+type MockInstallationAPI struct {
+	ctrl     *gomock.Controller
+	recorder *MockInstallationAPIMockRecorder
+}
+
+// MockInstallationAPIMockRecorder is the mock recorder for MockInstallationAPI.
+type MockInstallationAPIMockRecorder struct {
+	mock *MockInstallationAPI
+}
+
+// NewMockInstallationAPI creates a new mock instance.
+func NewMockInstallationAPI(ctrl *gomock.Controller) *MockInstallationAPI {
+	mock := &MockInstallationAPI{ctrl: ctrl}
+	mock.recorder = &MockInstallationAPIMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockInstallationAPI) EXPECT() *MockInstallationAPIMockRecorder {
+	return m.recorder
+}
+
+// Install mocks base method.
+func (m *MockInstallationAPI) Install(ctx context.Context, c *models.Cluster, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Install", ctx, c, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Install indicates an expected call of Install.
+func (mr *MockInstallationAPIMockRecorder) Install(ctx, c, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockInstallationAPI)(nil).Install), ctx, c, db)
+}
+
+// GetMasterNodesIds mocks base method.
+func (m *MockInstallationAPI) GetMasterNodesIds(ctx context.Context, c *models.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMasterNodesIds", ctx, c, db)
+	ret0, _ := ret[0].([]*strfmt.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMasterNodesIds indicates an expected call of GetMasterNodesIds.
+func (mr *MockInstallationAPIMockRecorder) GetMasterNodesIds(ctx, c, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMasterNodesIds", reflect.TypeOf((*MockInstallationAPI)(nil).GetMasterNodesIds), ctx, c, db)
 }
 
 // MockAPI is a mock of API interface.
@@ -156,28 +192,12 @@ func (mr *MockAPIMockRecorder) RefreshStatus(ctx, c, db interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, c, db)
 }
 
-// Install mocks base method.
-func (m *MockAPI) Install(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Install", ctx, c)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Install indicates an expected call of Install.
-func (mr *MockAPIMockRecorder) Install(ctx, c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockAPI)(nil).Install), ctx, c)
-}
-
 // RegisterCluster mocks base method.
-func (m *MockAPI) RegisterCluster(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
+func (m *MockAPI) RegisterCluster(ctx context.Context, c *models.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterCluster", ctx, c)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // RegisterCluster indicates an expected call of RegisterCluster.
@@ -187,16 +207,44 @@ func (mr *MockAPIMockRecorder) RegisterCluster(ctx, c interface{}) *gomock.Call 
 }
 
 // DeregisterCluster mocks base method.
-func (m *MockAPI) DeregisterCluster(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
+func (m *MockAPI) DeregisterCluster(ctx context.Context, c *models.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeregisterCluster", ctx, c)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // DeregisterCluster indicates an expected call of DeregisterCluster.
 func (mr *MockAPIMockRecorder) DeregisterCluster(ctx, c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterCluster", reflect.TypeOf((*MockAPI)(nil).DeregisterCluster), ctx, c)
+}
+
+// Install mocks base method.
+func (m *MockAPI) Install(ctx context.Context, c *models.Cluster, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Install", ctx, c, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Install indicates an expected call of Install.
+func (mr *MockAPIMockRecorder) Install(ctx, c, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockAPI)(nil).Install), ctx, c, db)
+}
+
+// GetMasterNodesIds mocks base method.
+func (m *MockAPI) GetMasterNodesIds(ctx context.Context, c *models.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMasterNodesIds", ctx, c, db)
+	ret0, _ := ret[0].([]*strfmt.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMasterNodesIds indicates an expected call of GetMasterNodesIds.
+func (mr *MockAPIMockRecorder) GetMasterNodesIds(ctx, c, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMasterNodesIds", reflect.TypeOf((*MockAPI)(nil).GetMasterNodesIds), ctx, c, db)
 }

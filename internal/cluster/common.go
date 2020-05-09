@@ -66,10 +66,10 @@ func isClusterReady(c *models.Cluster, db *gorm.DB, log logrus.FieldLogger) (boo
 	if err != nil {
 		return false, errors.Errorf("unable to determine cluster %s hosts state ", c.ID)
 	}
-	minimumMasterNodes := 3
-	if len(masterNodesIds) < minimumMasterNodes {
+	minimumKnownMasterNodes := 3
+	if len(masterNodesIds) < minimumKnownMasterNodes {
 		log.Infof("cluster %s has %d known master hosts which is less then the %d minimum needed for cluster installation",
-			c.ID, len(masterNodesIds), minimumMasterNodes)
+			c.ID, len(masterNodesIds), minimumKnownMasterNodes)
 		return false, nil
 	} else {
 		return true, nil
