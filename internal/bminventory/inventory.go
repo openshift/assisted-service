@@ -450,7 +450,7 @@ func (b *bareMetalInventory) addInstallCommand(ctx context.Context, masterNodesI
 	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
 	log.Debugf("Bootstrap ID is %s", bootstrapId)
 
-	const cmdTmpl = `sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host  {{.INSTALLER}} --role {{.ROLE}}  --cluster-id {{.CLUSTER_ID}}  --host {{.HOST}} --port {{.PORT}} --boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}}`
+	const cmdTmpl = `sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host  {{.INSTALLER}} --role {{.ROLE}}  --cluster-id {{.CLUSTER_ID}}  --host {{.HOST}} --port {{.PORT}} --boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}}`
 
 	t, err := template.New("cmd").Parse(cmdTmpl)
 	if err != nil {
@@ -458,12 +458,13 @@ func (b *bareMetalInventory) addInstallCommand(ctx context.Context, masterNodesI
 	}
 
 	data := map[string]string{
-		"HOST":        b.InventoryURL,
-		"PORT":        b.InventoryPort,
-		"CLUSTER_ID":  string(params.ClusterID),
-		"ROLE":        "",
-		"INSTALLER":   b.Config.InstallerImage,
-		"BOOT_DEVICE": "",
+		"HOST":              b.InventoryURL,
+		"PORT":              b.InventoryPort,
+		"CLUSTER_ID":        string(params.ClusterID),
+		"ROLE":              "",
+		"INSTALLER":         b.Config.InstallerImage,
+		"BOOT_DEVICE":       "",
+		"OPENSHIFT_VERSION": cluster.OpenshiftVersion,
 	}
 	for i := range cluster.Hosts {
 		role := cluster.Hosts[i].Role
