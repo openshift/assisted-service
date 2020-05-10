@@ -60,13 +60,12 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v1
-    - name: Set up Python 2.7
+    - name: Set up Python
       uses: actions/setup-python@v1
       with:
-        python-version: 2.7.17
+        python-version: 3.x
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         sudo pip install strato-skipper
         mkdir -p ~/.docker
         echo "{}" > ~/.docker/config.json
