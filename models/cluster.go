@@ -64,7 +64,7 @@ type Cluster struct {
 	Name string `json:"name,omitempty"`
 
 	// OpenShift cluster version
-	// Pattern: ^4\.\d$
+	// Enum: [4.4]
 	OpenshiftVersion string `json:"openshiftVersion,omitempty"`
 
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
@@ -471,13 +471,34 @@ func (m *Cluster) validateInstallStartedAt(formats strfmt.Registry) error {
 	return nil
 }
 
+var clusterTypeOpenshiftVersionPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["4.4"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		clusterTypeOpenshiftVersionPropEnum = append(clusterTypeOpenshiftVersionPropEnum, v)
+	}
+}
+
+// property enum
+func (m *Cluster) validateOpenshiftVersionEnum(path, location string, value string) error {
+	if err := validate.Enum(path, location, value, clusterTypeOpenshiftVersionPropEnum); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *Cluster) validateOpenshiftVersion(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.OpenshiftVersion) { // not required
 		return nil
 	}
 
-	if err := validate.Pattern("openshiftVersion", "body", string(m.OpenshiftVersion), `^4\.\d$`); err != nil {
+	// value enum
+	if err := m.validateOpenshiftVersionEnum("openshiftVersion", "body", m.OpenshiftVersion); err != nil {
 		return err
 	}
 

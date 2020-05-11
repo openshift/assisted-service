@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -47,7 +49,7 @@ type ClusterCreateParams struct {
 
 	// OpenShift cluster version
 	// Required: true
-	// Pattern: ^4\.\d$
+	// Enum: [4.4]
 	OpenshiftVersion *string `json:"openshiftVersion"`
 
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site
@@ -181,13 +183,40 @@ func (m *ClusterCreateParams) validateName(formats strfmt.Registry) error {
 	return nil
 }
 
+var clusterCreateParamsTypeOpenshiftVersionPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["4.4"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		clusterCreateParamsTypeOpenshiftVersionPropEnum = append(clusterCreateParamsTypeOpenshiftVersionPropEnum, v)
+	}
+}
+
+const (
+
+	// ClusterCreateParamsOpenshiftVersionNr44 captures enum value "4.4"
+	ClusterCreateParamsOpenshiftVersionNr44 string = "4.4"
+)
+
+// prop value enum
+func (m *ClusterCreateParams) validateOpenshiftVersionEnum(path, location string, value string) error {
+	if err := validate.Enum(path, location, value, clusterCreateParamsTypeOpenshiftVersionPropEnum); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
 
 	if err := validate.Required("openshiftVersion", "body", m.OpenshiftVersion); err != nil {
 		return err
 	}
 
-	if err := validate.Pattern("openshiftVersion", "body", string(*m.OpenshiftVersion), `^4\.\d$`); err != nil {
+	// value enum
+	if err := m.validateOpenshiftVersionEnum("openshiftVersion", "body", *m.OpenshiftVersion); err != nil {
 		return err
 	}
 

@@ -937,7 +937,9 @@ func init() {
             "openshiftVersion": {
               "description": "OpenShift cluster version",
               "type": "string",
-              "pattern": "^4\\.\\d$"
+              "enum": [
+                "4.4"
+              ]
             },
             "pullSecret": {
               "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",
@@ -1020,7 +1022,9 @@ func init() {
         "openshiftVersion": {
           "description": "OpenShift cluster version",
           "type": "string",
-          "pattern": "^4\\.\\d$"
+          "enum": [
+            "4.4"
+          ]
         },
         "pullSecret": {
           "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",
@@ -2429,7 +2433,9 @@ func init() {
             "openshiftVersion": {
               "description": "OpenShift cluster version",
               "type": "string",
-              "pattern": "^4\\.\\d$"
+              "enum": [
+                "4.4"
+              ]
             },
             "pullSecret": {
               "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",
@@ -2512,7 +2518,9 @@ func init() {
         "openshiftVersion": {
           "description": "OpenShift cluster version",
           "type": "string",
-          "pattern": "^4\\.\\d$"
+          "enum": [
+            "4.4"
+          ]
         },
         "pullSecret": {
           "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site",

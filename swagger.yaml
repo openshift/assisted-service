@@ -718,7 +718,7 @@ definitions:
         description: OpenShift cluster name
       openshiftVersion:
         type: string
-        pattern: '^4\.\d$'
+        enum: ['4.4']
         description: OpenShift cluster version
       baseDnsDomain:
         type: string
@@ -821,7 +821,7 @@ definitions:
             description: OpenShift cluster name
           openshiftVersion:
             type: string
-            pattern: '^4\.\d$'
+            enum: ['4.4']
             description: OpenShift cluster version
           baseDnsDomain:
             type: string
