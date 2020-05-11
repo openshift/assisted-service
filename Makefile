@@ -22,9 +22,11 @@ lint:
 	golangci-lint run -v
 
 .PHONY: build
-build: lint unit-test
-	mkdir -p build
+build: create-build-dir lint unit-test
 	CGO_ENABLED=0 go build -o build/bm-inventory cmd/main.go
+
+create-build-dir:
+	mkdir -p build
 
 clean:
 	rm -rf build
@@ -45,9 +47,9 @@ update: build
 	docker build -f Dockerfile.bm-inventory . -t $(SERVICE)
 	docker push $(SERVICE)
 
-deploy-for-test: deploy-mariadb deploy-s3-configmap deploy-service-for-test
+deploy-for-test: create-build-dir deploy-mariadb deploy-s3-configmap deploy-service-for-test
 
-deploy-all: deploy-mariadb deploy-s3 deploy-service
+deploy-all: create-build-dir deploy-mariadb deploy-s3 deploy-service
 
 deploy-s3-configmap:
 	$(eval CONFIGMAP=./build/scality-configmap.yaml)
