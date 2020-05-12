@@ -187,16 +187,6 @@ var _ = Describe("system-test cluster install", func() {
 			}
 		})
 
-		It("host install fails while install cluster", func() {
-			c, err := bmclient.Inventory.InstallCluster(ctx, &inventory.InstallClusterParams{ClusterID: clusterID})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("installing"))
-			Expect(len(c.GetPayload().Hosts)).Should(Equal(4))
-			for _, host := range c.GetPayload().Hosts {
-				Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
-			}
-		})
-
 		It("report_progress", func() {
 			c, err := bmclient.Inventory.InstallCluster(ctx, &inventory.InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())

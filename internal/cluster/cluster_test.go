@@ -47,7 +47,7 @@ var _ = Describe("statemachine", func() {
 		})
 
 		It("install_cluster", func() {
-			stateErr = state.Install(ctx, &cluster, db)
+			stateReply, stateErr = state.Install(ctx, &cluster)
 		})
 
 		AfterEach(func() {
