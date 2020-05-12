@@ -700,6 +700,7 @@ definitions:
       - hardware-info
       - connectivity-check
       - execute
+      - inventory
 
   step:
     type: object
@@ -984,7 +985,7 @@ definitions:
       command:
         type: string
 
-  cpu:
+  cpu_details:
     type: object
     properties:
       architecture:
@@ -1022,7 +1023,7 @@ definitions:
       fstype:
         type: string
 
-  memory:
+  memory_details:
     type: object
     properties:
       name:
@@ -1070,7 +1071,7 @@ definitions:
     type: object
     properties:
       cpu:
-        $ref: '#/definitions/cpu'
+        $ref: '#/definitions/cpu_details'
       block_devices:
         type: array
         items:
@@ -1078,7 +1079,7 @@ definitions:
       memory:
         type: array
         items:
-          $ref: '#/definitions/memory'
+          $ref: '#/definitions/memory_details'
       nics:
         type: array
         items:
@@ -1163,3 +1164,130 @@ definitions:
       reason:
         type: string
         description: Human readable description of the error.
+
+
+  interface:
+    type: object
+    properties:
+      ipv6_addresses:
+        type: array
+        items:
+          type: string
+      vendor:
+        type: string
+      name:
+        type: string
+      has_carrier:
+        type: boolean
+      product:
+        type: string
+      mtu:
+        type: integer
+      ipv4_addresses:
+        type: array
+        items:
+          type: string
+      biosdevname:
+        type: string
+      client_id:
+        type: string
+      mac_address:
+        type: string
+      flags:
+        type: array
+        items:
+          type: string
+      speed_mbps:
+        type: integer
+
+  disk:
+    type: object
+    properties:
+      drive_type:
+        type: string
+      vendor:
+        type: string
+      name:
+        type: string
+      path:
+        type: string
+      hctl:
+        type: string
+      by_path:
+        type: string
+      model:
+        type: string
+      wwn:
+        type: string
+      serial:
+        type: string
+      size_bytes:
+        type: integer
+
+  boot:
+    type: object
+    properties:
+      current_boot_mode:
+        type: string
+      pxe_interface:
+        type: string
+
+  system_vendor:
+    type: object
+    properties:
+      serial_number:
+        type: string
+      product_name:
+        type: string
+      manufacturer:
+        type: string
+
+  memory:
+    type: object
+    properties:
+      physical_bytes:
+        type: integer
+      usable_bytes:
+        type: integer
+
+  cpu:
+    type: object
+    properties:
+      count:
+        type: integer
+      frequency:
+        type: number
+      flags:
+        type: array
+        items:
+          type: string
+      model_name:
+        type: string
+      architecture:
+        type: string
+
+  inventory:
+    type: object
+    properties:
+      hostname:
+        type: string
+      bmc_address:
+        type: string
+      interfaces:
+        type: array
+        items:
+          $ref: '#/definitions/interface'
+      disks:
+        type: array
+        items:
+          $ref: '#/definitions/disk'
+      boot:
+        $ref: '#/definitions/boot'
+      system_vendor:
+        $ref: '#/definitions/system_vendor'
+      bmc_v6address:
+        type: string
+      memory:
+        $ref: '#/definitions/memory'
+      cpu:
+        $ref: '#/definitions/cpu'
