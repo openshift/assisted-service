@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -124,10 +125,18 @@ var _ = Describe("update_progress", func() {
 		})
 
 		It("done", func() {
-			Expect(state.UpdateInstallProgress(ctx, &host, "done")).ShouldNot(HaveOccurred())
+			Expect(state.UpdateInstallProgress(ctx, &host, progressDone)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusInstalled))
 			Expect(h.StatusInfo).Should(Equal(HostStatusInstalled))
+		})
+
+		It("progress_failed", func() {
+			failedProgress := fmt.Sprintf("%s because of something", progressFailed)
+			Expect(state.UpdateInstallProgress(ctx, &host, failedProgress)).ShouldNot(HaveOccurred())
+			h := getHost(*host.ID, host.ClusterID, db)
+			Expect(*h.Status).Should(Equal(HostStatusError))
+			Expect(h.StatusInfo).Should(Equal(failedProgress))
 		})
 	})
 

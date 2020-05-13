@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
@@ -43,6 +44,11 @@ const (
 	HostStatusInstalling   = "installing"
 	HostStatusInstalled    = "installed"
 	HostStatusError        = "error"
+)
+
+const (
+	progressDone   = "Done"
+	progressFailed = "Failed"
 )
 
 type API interface {
@@ -177,9 +183,16 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	}
 
 	// installation done
-	if progress == "done" {
+	if progress == progressDone {
 		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log),
 			HostStatusInstalled, HostStatusInstalled, h, m.db)
+		return err
+	}
+
+	// installation failed
+	if strings.HasPrefix(progress, progressFailed) {
+		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log),
+			HostStatusError, progress, h, m.db)
 		return err
 	}
 

@@ -203,12 +203,12 @@ var _ = Describe("system-test cluster install", func() {
 
 			h := c.GetPayload().Hosts[0]
 
-			updateProgress := func(progress string) {
+			updateProgress := func(hostID strfmt.UUID, progress string) {
 				installProgress := models.HostInstallProgressParams(progress)
 				updateReply, err := bmclient.Inventory.UpdateHostInstallProgress(ctx, &inventory.UpdateHostInstallProgressParams{
 					ClusterID:                 clusterID,
 					HostInstallProgressParams: installProgress,
-					HostID:                    *h.ID,
+					HostID:                    hostID,
 				})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(updateReply).Should(BeAssignableToTypeOf(inventory.NewUpdateHostInstallProgressOK()))
@@ -216,17 +216,25 @@ var _ = Describe("system-test cluster install", func() {
 
 			By("progress_to_some_host", func() {
 				installProgress := "installation step 1"
-				updateProgress(installProgress)
+				updateProgress(*h.ID, installProgress)
 				h = getHost(clusterID, *h.ID)
 				Expect(*h.Status).Should(Equal("installing"))
 				Expect(h.StatusInfo).Should(Equal(installProgress))
 			})
 
 			By("report_done", func() {
-				updateProgress("done")
+				updateProgress(*h.ID, "Done")
 				h = getHost(clusterID, *h.ID)
 				Expect(*h.Status).Should(Equal("installed"))
-				Expect(h.StatusInfo).Should(Equal(string("installed")))
+				Expect(h.StatusInfo).Should(Equal("installed"))
+			})
+
+			By("report failed on other host", func() {
+				h1 := c.GetPayload().Hosts[1]
+				updateProgress(*h1.ID, "Failed because some error")
+				h1 = getHost(clusterID, *h1.ID)
+				Expect(*h1.Status).Should(Equal("error"))
+				Expect(h1.StatusInfo).Should(Equal("Failed because some error"))
 			})
 		})
 
