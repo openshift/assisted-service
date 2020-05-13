@@ -20,7 +20,7 @@ For the first build of the build container run:
 
 ## Build
 
-`skipper make all` will only
+`skipper make all`
 
 ### Generate code after swagger changes
 
@@ -31,24 +31,12 @@ After every change in the api (swagger.yaml) the code should be generated and th
 ## Tests
 Pre-configuration
 1. Run minikube on your system.
-2. Deploy service, DB and other requirements `skipper make deploy-for-test`
+2. Deploy service, DB and other requirements `skipper make deploy-all`
 3. Wait for all the pods to be up.
 
 Running the tests:
 
 `skipper make subsystem-run`
-
-If a full system is deployed a more advanced tests can be run on it, to run all the tests (will work only if `skipper make deploy-all` is used) add `SYSTEM=1` to `subsystem-run` command. The downside is that this will download and execute external dependencies so if they are bugged it will be dificult to understand if the problem is with the service or with external components. To run the full tests suite use:
-
-`skipper make subsystem-run SYSTEM=1`
-
-To add tests that will run will run only as part of the full system add `system-test` in the description of the test:
-
-```go
-var _ = Describe("system-test image tests", func() {
-...
-}
-```
 
 ### Update service for the subsystem tests
 
@@ -60,15 +48,10 @@ if will build and push a new image of the service to your docker registry, then 
 
 ## Deployment
 
-There are two types of deployment in this service, one for subsystem test that deploy only the service and DB, those are the most basic components that the service need to run with out external services, APIs to external services like image creation are dummy.
-
-`skipper make deploy-for-test`
-
-The Other deployment is a system deployment it contain all the components the service need for all the operations to work (if implemented).
-This option will deploy S3 service (scality), DB and will use the image generator to create the images in the deployed S3 and create relevant bucket in S3.
+The deployment is a system deployment, it contains all the components the service need for all the operations to work (if implemented).
+S3 service (scality), DB and will use the image generator to create the images in the deployed S3 and create relevant bucket in S3.
 
 `skipper make deploy-all`
-
 
 ##  Linked repositories 
 * #### coreos_installation_iso:

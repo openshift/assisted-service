@@ -47,8 +47,6 @@ update: build
 	docker build -f Dockerfile.bm-inventory . -t $(SERVICE)
 	docker push $(SERVICE)
 
-deploy-for-test: create-build-dir deploy-mariadb deploy-s3-configmap deploy-service-for-test
-
 deploy-all: create-build-dir deploy-mariadb deploy-s3 deploy-service
 
 deploy-s3-configmap:
@@ -108,12 +106,6 @@ deploy-service-requirements: deploy-inventory-service-file
 	kubectl apply -f $(CONFIGMAP)
 	rm $(CONFIGMAP)
 
-deploy-service-for-test: deploy-service-requirements deploy-role
-	sed '/IMAGE_BUILDER_CMD$$/{$$!{N;s/IMAGE_BUILDER_CMD\n              value: \"\"$$/IMAGE_BUILDER_CMD\n              value: \"echo hello\"/;ty;P;D;:y}}' deploy/bm-inventory.yaml > deploy/bm-inventory-tmp.yaml
-	sed -i "s#REPLACE_IMAGE#${SERVICE}#g" deploy/bm-inventory-tmp.yaml
-	kubectl apply -f deploy/bm-inventory-tmp.yaml
-	rm deploy/bm-inventory-tmp.yaml
-
 deploy-service: deploy-service-requirements deploy-role
 	sed "s#REPLACE_IMAGE#${SERVICE}#g" deploy/bm-inventory.yaml > deploy/bm-inventory-tmp.yaml
 	kubectl apply -f deploy/bm-inventory-tmp.yaml
@@ -128,20 +120,14 @@ deploy-mariadb:
 
 subsystem-run: test subsystem-clean
 
-ifndef SYSTEM
-SYSTEM_TEST=-ginkgo.skip="system-test"
-endif
 test:
 	INVENTORY=$(shell $(call get_service,bm-inventory) | sed 's/http:\/\///g') \
 		DB_HOST=$(shell $(call get_service,mariadb) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
 		DB_PORT=$(shell $(call get_service,mariadb) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
-		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v $(SYSTEM_TEST)
+		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v
 
 unit-test:
 	go test -v $(shell go list ./... | grep -v subsystem) -cover
-
-.PHONY: subsystem
-subsystem: deploy-all subsystem-run
 
 subsystem-clean:
 	kubectl get pod -o name | grep create-image | xargs kubectl delete 1> /dev/null ; true
