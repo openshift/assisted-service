@@ -24,7 +24,7 @@ var _ StateAPI = (*Manager)(nil)
 
 func (i *installedState) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error) {
 	return &UpdateReply{
-		State:     clusterStatusError,
+		State:     clusterStatusInstalled,
 		IsChanged: false,
 	}, nil
 }

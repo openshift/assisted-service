@@ -248,3 +248,15 @@ func (mr *MockAPIMockRecorder) GetMasterNodesIds(ctx, c, db interface{}) *gomock
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMasterNodesIds", reflect.TypeOf((*MockAPI)(nil).GetMasterNodesIds), ctx, c, db)
 }
+
+// ClusterMonitoring mocks base method.
+func (m *MockAPI) ClusterMonitoring() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClusterMonitoring")
+}
+
+// ClusterMonitoring indicates an expected call of ClusterMonitoring.
+func (mr *MockAPIMockRecorder) ClusterMonitoring() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterMonitoring", reflect.TypeOf((*MockAPI)(nil).ClusterMonitoring))
+}

@@ -61,17 +61,18 @@ func getKnownMastersNodesIds(c *models.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 	return masterNodesIds, nil
 }
 
-func isClusterReady(c *models.Cluster, db *gorm.DB, log logrus.FieldLogger) (bool, error) {
-	masterNodesIds, err := getKnownMastersNodesIds(c, db)
-	if err != nil {
-		return false, errors.Errorf("unable to determine cluster %s hosts state ", c.ID)
+func mapMasterHostsByStatus(c *models.Cluster) map[string][]*models.Host {
+	hostMap := make(map[string][]*models.Host)
+
+	for _, host := range c.Hosts {
+		if host.Role != "master" {
+			continue
+		}
+		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {
+			hostMap[swag.StringValue(host.Status)] = append(hostMap[swag.StringValue(host.Status)], host)
+		} else {
+			hostMap[swag.StringValue(host.Status)] = []*models.Host{host}
+		}
 	}
-	minimumKnownMasterNodes := 3
-	if len(masterNodesIds) < minimumKnownMasterNodes {
-		log.Infof("cluster %s has %d known master hosts which is less then the %d minimum needed for cluster installation",
-			c.ID, len(masterNodesIds), minimumKnownMasterNodes)
-		return false, nil
-	} else {
-		return true, nil
-	}
+	return hostMap
 }
