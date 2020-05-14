@@ -28,6 +28,9 @@ const (
 
 	// StepTypeExecute captures enum value "execute"
 	StepTypeExecute StepType = "execute"
+
+	// StepTypeInventory captures enum value "inventory"
+	StepTypeInventory StepType = "inventory"
 )
 
 // for schema
@@ -35,7 +38,7 @@ var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType
-	if err := json.Unmarshal([]byte(`["hardware-info","connectivity-check","execute"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["hardware-info","connectivity-check","execute","inventory"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

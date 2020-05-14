@@ -10,25 +10,25 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// Memory memory
+// Boot boot
 //
-// swagger:model memory
-type Memory struct {
+// swagger:model boot
+type Boot struct {
 
-	// physical bytes
-	PhysicalBytes int64 `json:"physical_bytes,omitempty"`
+	// current boot mode
+	CurrentBootMode string `json:"current_boot_mode,omitempty"`
 
-	// usable bytes
-	UsableBytes int64 `json:"usable_bytes,omitempty"`
+	// pxe interface
+	PxeInterface string `json:"pxe_interface,omitempty"`
 }
 
-// Validate validates this memory
-func (m *Memory) Validate(formats strfmt.Registry) error {
+// Validate validates this boot
+func (m *Boot) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *Memory) MarshalBinary() ([]byte, error) {
+func (m *Boot) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -36,8 +36,8 @@ func (m *Memory) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *Memory) UnmarshalBinary(b []byte) error {
-	var res Memory
+func (m *Boot) UnmarshalBinary(b []byte) error {
+	var res Boot
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

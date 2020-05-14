@@ -22,10 +22,10 @@ type Introspection struct {
 	BlockDevices []*BlockDevice `json:"block_devices"`
 
 	// cpu
-	CPU *CPU `json:"cpu,omitempty"`
+	CPU *CPUDetails `json:"cpu,omitempty"`
 
 	// memory
-	Memory []*Memory `json:"memory"`
+	Memory []*MemoryDetails `json:"memory"`
 
 	// nics
 	Nics []*Nic `json:"nics"`

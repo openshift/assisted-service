@@ -10,34 +10,37 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// CPU cpu
+// CPUDetails cpu details
 //
-// swagger:model cpu
-type CPU struct {
+// swagger:model cpu_details
+type CPUDetails struct {
 
 	// architecture
 	Architecture string `json:"architecture,omitempty"`
 
-	// count
-	Count int64 `json:"count,omitempty"`
+	// cpu mhz
+	CPUMhz float64 `json:"cpu_mhz,omitempty"`
 
-	// flags
-	Flags []string `json:"flags"`
-
-	// frequency
-	Frequency float64 `json:"frequency,omitempty"`
+	// cpus
+	Cpus int64 `json:"cpus,omitempty"`
 
 	// model name
 	ModelName string `json:"model_name,omitempty"`
+
+	// sockets
+	Sockets int64 `json:"sockets,omitempty"`
+
+	// threads per core
+	ThreadsPerCore int64 `json:"threads_per_core,omitempty"`
 }
 
-// Validate validates this cpu
-func (m *CPU) Validate(formats strfmt.Registry) error {
+// Validate validates this cpu details
+func (m *CPUDetails) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *CPU) MarshalBinary() ([]byte, error) {
+func (m *CPUDetails) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -45,8 +48,8 @@ func (m *CPU) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *CPU) UnmarshalBinary(b []byte) error {
-	var res CPU
+func (m *CPUDetails) UnmarshalBinary(b []byte) error {
+	var res CPUDetails
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
