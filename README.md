@@ -2,17 +2,22 @@
 # bm-inventory
 
 1. docker
-2. skipper https://github.com/stratoscale/skipper
-3. minikube (for tests)
-4. kubectl
+1. skipper https://github.com/stratoscale/skipper
+1. minikube (for tests)
+1. kubectl
 
 
 ## First Setup
 
-To push your build target to a docker registry you first need to change the default target, export `SERVICE` environment variable to your docker registry
+To push your build target to a docker registry you first need to change the default target.
+1. Create a quay.io or Docker Hub account if you don't already have one. These instructions refer to quay.io, Docker Hub is similar.
+1. Create a repository called bm-inventory
+1. Make sure you have your~/.docker/config.json file set up to point to your account. For quay.io, you can go to quay.io -> User Settings, and click "Generate Encrypted Password" under "Docker CLI Password".
+1. Login to quay.io using `docker login quay.io`
+1. Export the `SERVICE` environment variable to your docker registry, and pass a tag of your choice, e.g., "test":
 
 ```shell script
-export SERVICE=<registry>/<image-name>:<tag>
+export SERVICE=quay.io/<username>/bm-inventory:<tag>
 ```
 
 For the first build of the build container run:
