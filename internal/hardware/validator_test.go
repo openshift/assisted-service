@@ -33,8 +33,8 @@ var _ = Describe("hardware_validator", func() {
 		id := strfmt.UUID(uuid.New().String())
 		host = &models.Host{ID: &id, ClusterID: strfmt.UUID(uuid.New().String())}
 		hwInfo = &models.Introspection{
-			CPU:    &models.CPU{Cpus: 16},
-			Memory: []*models.Memory{{Name: "Mem", Total: int64(32 * units.GiB)}},
+			CPU:    &models.CPUDetails{Cpus: 16},
+			Memory: []*models.MemoryDetails{{Name: "Mem", Total: int64(32 * units.GiB)}},
 			BlockDevices: []*models.BlockDevice{
 				{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", ReadOnly: true, RemovableDevice: 1, Size: validDiskSize},
 				{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize}},
@@ -54,8 +54,8 @@ var _ = Describe("hardware_validator", func() {
 	})
 
 	It("insufficient_minimal_hw_requirements", func() {
-		hwInfo.CPU = &models.CPU{Cpus: 1}
-		hwInfo.Memory = []*models.Memory{{Name: "Mem", Total: int64(3 * units.GiB)}}
+		hwInfo.CPU = &models.CPUDetails{Cpus: 1}
+		hwInfo.Memory = []*models.MemoryDetails{{Name: "Mem", Total: int64(3 * units.GiB)}}
 		hw, err := json.Marshal(&hwInfo)
 		Expect(err).NotTo(HaveOccurred())
 		host.HardwareInfo = string(hw)
@@ -68,8 +68,8 @@ var _ = Describe("hardware_validator", func() {
 	})
 
 	It("insufficient_master_but_valid_worker", func() {
-		hwInfo.CPU = &models.CPU{Cpus: 8}
-		hwInfo.Memory = []*models.Memory{{Name: "Mem", Total: int64(8 * units.GiB)}}
+		hwInfo.CPU = &models.CPUDetails{Cpus: 8}
+		hwInfo.Memory = []*models.MemoryDetails{{Name: "Mem", Total: int64(8 * units.GiB)}}
 		hw, err := json.Marshal(&hwInfo)
 		Expect(err).NotTo(HaveOccurred())
 		host.HardwareInfo = string(hw)
