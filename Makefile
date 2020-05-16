@@ -48,75 +48,32 @@ update: build
 	docker push $(SERVICE)
 
 deploy-all: create-build-dir deploy-mariadb deploy-s3 deploy-service
+	echo "Deployment done"
 
 deploy-s3-configmap:
-	$(eval CONFIGMAP=./build/scality-configmap.yaml)
-	cp ./deploy/s3/scality-configmap.yaml $(CONFIGMAP)
-	$(eval URL=$(shell $(call get_service,scality)))
-	sed -i "s#REPLACE_URL#http://$(URL)#" $(CONFIGMAP)
-	$(eval HOST=$(shell $(call get_service,scality) | sed 's/http:\/\///g' | cut -d ":" -f 1))
-	sed -i "s#REPLACE_HOST_NAME#$(HOST)#" $(CONFIGMAP)
-	echo "deploying s3 configmap"
-	cat $(CONFIGMAP)
-	kubectl apply -f $(CONFIGMAP)
-
-# scalitiy default credentials
-define CREDENTIALS =
-[default]
-aws_access_key_id = accessKey1
-aws_secret_access_key = verySecretKey1
-endef
-export CREDENTIALS
-export AWS_DIR = ${PWD}/build/.aws
-export AWS_SHARED_CREDENTIALS_FILE = ${AWS_DIR}/credentials
+	python3 tools/deploy_scality_configmap.py
 
 deploy-s3:
-	kubectl apply -f deploy/s3/scality-deployment.yaml
+	python3 ./tools/deploy_s3.py
 	sleep 5;  # wait for service to get an address
 	make deploy-s3-configmap
-	mkdir -p "${AWS_DIR}" ; echo "$$CREDENTIALS" > ${AWS_SHARED_CREDENTIALS_FILE}
-	n=20 ; \
-	aws --endpoint-url=http://`$(call get_service,scality)` s3api create-bucket --bucket test ; \
-	REPLY=$$? ; \
-	echo $(REPLY) ; \
-	while [ $${n} -gt 0 ] && [ $${REPLY} -ne 0 ] ; do \
-		sleep 5 ; \
-		echo $$n ; \
-		n=`expr $$n - 1`; \
-		aws --endpoint-url=http://`$(call get_service,scality)` s3api create-bucket --bucket test ; \
-		REPLY=$$? ; \
-	done; \
-	if [ $${n} -eq 0 ]; \
-	then \
-		echo "bucket creation failed"; \
-		false; \
-	fi
+	python3 ./tools/create_default_s3_bucket.py
 
 deploy-inventory-service-file:
-	kubectl apply -f deploy/bm-inventory-service.yaml
+	python3 ./tools/deploy_inventory_service.py
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-inventory-service-file
-	$(eval CONFIGMAP=./deploy/tmp-bm-inventory-configmap.yaml)
-	$(eval URL=$(shell $(call get_service,bm-inventory) | sed 's/http:\/\///g' | cut -d ":" -f 1))
-	$(eval PORT=$(shell $(call get_service,bm-inventory) | sed 's/http:\/\///g' | cut -d ":" -f 2))
-	sed "s#REPLACE_URL#\"$(URL)\"#;s#REPLACE_PORT#\"$(PORT)\"#" ./deploy/bm-inventory-configmap.yaml > $(CONFIGMAP)
-	echo "Apply bm-inventory-config configmap"
-	cat $(CONFIGMAP)
-	kubectl apply -f $(CONFIGMAP)
-	rm $(CONFIGMAP)
+	python3 ./tools/deploy_assisted_installer_configmap.py
 
 deploy-service: deploy-service-requirements deploy-role
-	sed "s#REPLACE_IMAGE#${SERVICE}#g" deploy/bm-inventory.yaml > deploy/bm-inventory-tmp.yaml
-	kubectl apply -f deploy/bm-inventory-tmp.yaml
-	rm deploy/bm-inventory-tmp.yaml
+	python3 ./tools/deploy_assisted_installer.py
 
 deploy-role:
-	kubectl apply -f deploy/roles/role_binding.yaml
+	python3 ./tools/deploy_role.py
 
 deploy-mariadb:
-	kubectl apply -f deploy/mariadb/mariadb-configmap.yaml
-	kubectl apply -f deploy/mariadb/mariadb-deployment.yaml
+	python3 ./tools/deploy_mariadb.py
 
 subsystem-run: test subsystem-clean
 
