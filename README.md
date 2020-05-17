@@ -20,6 +20,11 @@ To push your build target to a docker registry you first need to change the defa
 export SERVICE=quay.io/<username>/bm-inventory:<tag>
 ```
 
+Do the same for s3-object-expirer:
+```shell script
+export OBJEXP=quay.io/<username>/s3-object-expirer:<tag>
+```
+
 For the first build of the build container run:
 `skipper build bm-inventory-build`
 

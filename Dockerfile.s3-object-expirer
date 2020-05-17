@@ -1,0 +1,7 @@
+FROM python:3
+
+ARG GIT_REVISION
+LABEL "git_revision"=${GIT_REVISION}
+
+ADD tools/expirer.py /
+RUN pip install --no-cache-dir boto3 pytz

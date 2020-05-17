@@ -15,6 +15,7 @@ endef
 endif
 
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/bm-inventory:stable)
+OBJEXP := $(or ${OBJEXP},quay.io/ocpmetal/s3-object-expirer:stable)
 GIT_REVISION := $(shell git rev-parse HEAD)
 
 all: build
@@ -48,7 +49,11 @@ update: build
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.bm-inventory . -t $(SERVICE)
 	docker push $(SERVICE)
 
-deploy-all: create-build-dir deploy-mariadb deploy-s3 deploy-service
+update-expirer: build
+	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.s3-object-expirer . -t $(OBJEXP)
+	docker push $(OBJEXP)
+
+deploy-all: create-build-dir deploy-mariadb deploy-s3 deploy-service deploy-expirer
 	echo "Deployment done"
 
 deploy-s3-configmap:
@@ -69,6 +74,9 @@ deploy-service-requirements: deploy-inventory-service-file
 
 deploy-service: deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py
+
+deploy-expirer: deploy-role
+	python3 ./tools/deploy_s3_object_expirer.py
 
 deploy-role:
 	python3 ./tools/deploy_role.py

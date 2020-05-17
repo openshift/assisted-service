@@ -28,7 +28,7 @@ jobs:
     - name: Get release version
       id: get_version
       run: echo ::set-env name=GIT_REVISION::$(echo ${GITHUB_SHA})
-    - name: Publish to Registry
+    - name: Publish bm-inventory to Registry
       uses: elgohr/Publish-Docker-Github-Action@2.15
       with:
         name: bm-inventory
@@ -36,5 +36,15 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         REGISTRY: 'quay.io/ocpmetal'
         dockerfile: "Dockerfile.bm-inventory"
+        buildargs: GIT_REVISION
+        tags: "stable,${{ env.GIT_REVISION }}"
+    - name: Publish expirer to Registry
+      uses: elgohr/Publish-Docker-Github-Action@2.15
+      with:
+        name: s3-object-expirer
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        REGISTRY: 'quay.io/ocpmetal'
+        dockerfile: "Dockerfile.s3-object-expirer"
         buildargs: GIT_REVISION
         tags: "stable,${{ env.GIT_REVISION }}"
