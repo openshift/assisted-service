@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"strings"
 
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
@@ -13,7 +14,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	funk "github.com/thoas/go-funk"
 )
 
 var _ = Describe("installcmd", func() {
@@ -129,6 +129,6 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 		Expect(expectedstepreply).Should(BeNil())
 	} else {
 		Expect(expectedstepreply.StepType).To(Equal(models.StepTypeExecute))
-		Expect(funk.Contains(expectedstepreply.Args, expectedrole)).To(Equal(true))
+		Expect(strings.Contains(expectedstepreply.Args[1], expectedrole)).To(Equal(true))
 	}
 }
