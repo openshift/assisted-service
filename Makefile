@@ -15,6 +15,7 @@ endef
 endif
 
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/bm-inventory:stable)
+OBJEXP := $(or ${OBJEXP},quay.io/ocpmetal/s3-object-expirer:stable)
 
 all: build
 
@@ -46,8 +47,10 @@ generate-from-swagger:
 update: build
 	docker build -f Dockerfile.bm-inventory . -t $(SERVICE)
 	docker push $(SERVICE)
+	docker build -f Dockerfile.s3-object-expirer . -t $(OBJEXP)
+	docker push $(OBJEXP)
 
-deploy-all: create-build-dir deploy-mariadb deploy-s3 deploy-service
+deploy-all: create-build-dir deploy-mariadb deploy-s3 deploy-service deploy-expirer
 
 deploy-s3-configmap:
 	$(eval CONFIGMAP=./build/scality-configmap.yaml)
@@ -110,6 +113,11 @@ deploy-service: deploy-service-requirements deploy-role
 	sed "s#REPLACE_IMAGE#${SERVICE}#g" deploy/bm-inventory.yaml > deploy/bm-inventory-tmp.yaml
 	kubectl apply -f deploy/bm-inventory-tmp.yaml
 	rm deploy/bm-inventory-tmp.yaml
+
+deploy-expirer: deploy-role
+	sed "s#REPLACE_IMAGE#${OBJEXP}#g" deploy/s3/s3-object-expirer-cron.yaml > deploy/s3/s3-object-expirer-cron-tmp.yaml
+	kubectl apply -f deploy/s3/s3-object-expirer-cron-tmp.yaml
+	rm deploy/s3/s3-object-expirer-cron-tmp.yaml
 
 deploy-role:
 	kubectl apply -f deploy/roles/role_binding.yaml
