@@ -15,6 +15,7 @@ endef
 endif
 
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/bm-inventory:stable)
+GIT_REVISION := $(shell git rev-parse HEAD)
 
 all: build
 
@@ -43,12 +44,8 @@ generate-from-swagger:
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD) -v /etc/passwd:/etc/passwd -w $(PWD) quay.io/goswagger/swagger generate client	--template=stratoscale -f swagger.yaml --template-dir=/templates/contrib
 	go generate $(shell go list ./client/... ./models/... ./restapi/...)
 
-.PHONY: update_revision_file
-update_revision_file:
-	git rev-parse HEAD > build/git_revision
-
-update: update_revision_file build
-	docker build -f Dockerfile.bm-inventory . -t $(SERVICE)
+update: build
+	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.bm-inventory . -t $(SERVICE)
 	docker push $(SERVICE)
 
 deploy-all: create-build-dir deploy-mariadb deploy-s3 deploy-service
