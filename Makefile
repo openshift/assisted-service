@@ -43,7 +43,11 @@ generate-from-swagger:
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD) -v /etc/passwd:/etc/passwd -w $(PWD) quay.io/goswagger/swagger generate client	--template=stratoscale -f swagger.yaml --template-dir=/templates/contrib
 	go generate $(shell go list ./client/... ./models/... ./restapi/...)
 
-update: build
+.PHONY: update_revision_file
+update_revision_file:
+	git rev-parse HEAD > build/git_revision
+
+update: update_revision_file build
 	docker build -f Dockerfile.bm-inventory . -t $(SERVICE)
 	docker push $(SERVICE)
 

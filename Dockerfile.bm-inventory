@@ -1,3 +1,4 @@
 FROM scratch
+ADD build/git_revision /etc/git_revision
 ADD build/bm-inventory /bm-inventory
 CMD ["/bm-inventory"]
