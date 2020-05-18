@@ -2,8 +2,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: bm-inventory-config
+  namespace: assisted-installer
   labels:
     app: bm-inventory
 data:
   INVENTORY_URL: REPLACE_URL
   INVENTORY_PORT: REPLACE_PORT
+  NAMESPACE: assisted-installer

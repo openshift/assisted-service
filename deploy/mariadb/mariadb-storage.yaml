@@ -2,6 +2,7 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: mariadb-pv-claim
+  namespace: assisted-installer
   labels:
     app: mariadb
 spec:

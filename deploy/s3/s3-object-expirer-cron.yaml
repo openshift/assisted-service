@@ -2,6 +2,7 @@ apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
   name: s3-object-expirer-cron-job
+  namespace: assisted-installer
 spec:
   schedule: "@hourly"
   jobTemplate:

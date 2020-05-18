@@ -4,6 +4,7 @@ metadata:
   labels:
     app: scality
   name: scality
+  namespace: assisted-installer
 spec:
   replicas: 1
   selector:
@@ -35,6 +36,7 @@ metadata:
   labels:
     app: scality
   name: scality
+  namespace: assisted-installer
 spec:
   ports:
     - port: 8000
