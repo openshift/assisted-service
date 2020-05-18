@@ -797,15 +797,15 @@ definitions:
         pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
       api_vip:
         type: string
-        format: hostname
+        format: ipv4
         description: Virtual IP used to reach the OpenShift cluster API.
       dns_vip:
         type: string
-        format: hostname
+        format: ipv4
         description: Virtual IP used internally by the cluster for automating internal DNS requirements.
       ingress_vip:
         type: string
-        format: hostname
+        format: ipv4
         description: Virtual IP used for cluster ingress traffic.
       pull_secret:
         type: string
@@ -838,15 +838,15 @@ definitions:
         pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
       api_vip:
         type: string
-        format: hostname
+        format: ipv4
         description: Virtual IP used to reach the OpenShift cluster API.
       dns_vip:
         type: string
-        format: hostname
+        format: ipv4
         description: Virtual IP used internally by the cluster for automating internal DNS requirements.
       ingress_vip:
         type: string
-        format: hostname
+        format: ipv4
         description: Virtual IP used for cluster ingress traffic.
       pull_secret:
         type: string
@@ -914,15 +914,15 @@ definitions:
         pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
       api_vip:
         type: string
-        format: hostname
+        format: ipv4
         description: Virtual IP used to reach the OpenShift cluster API.
       dns_vip:
         type: string
-        format: hostname
+        format: ipv4
         description: Virtual IP used internally by the cluster for automating internal DNS requirements.
       ingress_vip:
         type: string
-        format: hostname
+        format: ipv4
         description: Virtual IP used for cluster ingress traffic.
       pull_secret:
         type: string
