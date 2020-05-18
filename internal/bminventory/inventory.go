@@ -11,6 +11,8 @@ import (
 	"sync"
 	"text/template"
 
+	"github.com/pkg/errors"
+
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/internal/installcfg"
@@ -345,12 +347,13 @@ func getImageName(clusterID, id strfmt.UUID) string {
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
+	var err error
 
 	tx := b.db.Begin()
 	if tx.Error != nil {
 		log.WithError(tx.Error).Errorf("failed to start db transaction")
 		return installer.NewInstallClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateInternalFromError(err))
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -359,56 +362,58 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		}
 	}()
 
-	if err := tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	if err = tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return installer.NewInstallClusterNotFound().
 			WithPayload(generateError(http.StatusNotFound))
 	}
 
-	if err := b.clusterApi.Install(ctx, &cluster, tx); err != nil {
+	if err = b.clusterApi.Install(ctx, &cluster, tx); err != nil {
 		log.WithError(err).Errorf("failed to install cluster %s", cluster.ID.String())
 		tx.Rollback()
 		return installer.NewInstallClusterConflict().WithPayload(generateError(http.StatusConflict))
 	}
 
 	// set one of the master nodes as bootstrap
-	if err := b.setBootstrapHost(ctx, cluster, tx); err != nil {
+	if err = b.setBootstrapHost(ctx, cluster, tx); err != nil {
 		tx.Rollback()
-		return err
+		return installer.NewInstallClusterInternalServerError().
+			WithPayload(generateInternalFromError(err))
 	}
 
 	// move hosts states to installing
 	for i := range cluster.Hosts {
-		if _, err := b.hostApi.Install(ctx, cluster.Hosts[i], tx); err != nil {
+		if _, err = b.hostApi.Install(ctx, cluster.Hosts[i], tx); err != nil {
 			log.WithError(err).Errorf("failed to install hosts <%s> in cluster: %s",
 				cluster.Hosts[i].ID.String(), cluster.ID.String())
 			tx.Rollback()
 			return installer.NewInstallClusterConflict().WithPayload(generateError(http.StatusConflict))
 		}
 	}
-	if err := b.generateClusterInstallConfig(ctx, cluster); err != nil {
+	if err = b.generateClusterInstallConfig(ctx, cluster); err != nil {
 		tx.Rollback()
+		return installer.NewInstallClusterInternalServerError().
+			WithPayload(generateInternalFromError(err))
 	}
-	if err := tx.Commit().Error; err != nil {
+	if err = tx.Commit().Error; err != nil {
 		tx.Rollback()
 		log.WithError(err).Errorf("failed to commit cluster %s changes on installation", cluster.ID.String())
 		return installer.NewInstallClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateInternalFromError(err))
 	}
-	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	if err = b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return installer.NewInstallClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateInternalFromError(err))
 	}
 	return installer.NewInstallClusterOK().WithPayload(&cluster)
 }
 
-func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster models.Cluster, db *gorm.DB) middleware.Responder {
+func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster models.Cluster, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, b.log)
 
 	masterNodesIds, err := b.clusterApi.GetMasterNodesIds(ctx, &cluster, db)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s master node id's", cluster.ID)
-		return installer.NewInstallClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+		return errors.Wrapf(err, "Failed to get cluster %s master node id's", cluster.ID)
 	}
 	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
 	log.Infof("Bootstrap ID is %s", bootstrapId)
@@ -417,34 +422,30 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster model
 			err = b.hostApi.SetBootstrap(ctx, cluster.Hosts[i], true)
 			if err != nil {
 				log.WithError(err).Errorf("failed to update bootstrap host for cluster %s", cluster.ID)
-				return installer.NewInstallClusterInternalServerError().
-					WithPayload(generateError(http.StatusInternalServerError))
+				return errors.Wrapf(err, "Failed to update bootstrap host for cluster %s", cluster.ID)
 			}
 		}
 	}
 	return nil
 }
 
-func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster models.Cluster) middleware.Responder {
+func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster models.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 
 	cfg, err := installcfg.GetInstallConfig(&cluster)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get install config for cluster %s", cluster.ID)
-		return installer.NewInstallClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
 	jobName := fmt.Sprintf("%s-%s-%s", kubeconfigPrefix, cluster.ID.String(), uuid.New().String())[:63]
 	if err := b.job.Create(ctx, b.createKubeconfigJob(&cluster, jobName, cfg)); err != nil {
 		log.WithError(err).Errorf("Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
-		return installer.NewInstallClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+		return errors.Wrapf(err, "Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
 	}
 
 	if err := b.job.Monitor(ctx, jobName, defaultJobNamespace); err != nil {
 		log.WithError(err).Errorf("Generating kubeconfig files %s failed for cluster %s", jobName, cluster.ID)
-		return installer.NewInstallClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+		return errors.Wrapf(err, "Generating kubeconfig files %s failed for cluster %s", jobName, cluster.ID)
 	}
 	return nil
 }
@@ -881,5 +882,15 @@ func generateError(id int32) *models.Error {
 		ID:     swag.Int32(id),
 		Kind:   swag.String("Error"),
 		Reason: swag.String(""),
+	}
+}
+
+func generateInternalFromError(err error) *models.Error {
+	return &models.Error{
+		Code:   swag.String(string(http.StatusInternalServerError)),
+		Href:   swag.String(""),
+		ID:     swag.Int32(http.StatusInternalServerError),
+		Kind:   swag.String("Error"),
+		Reason: swag.String(err.Error()),
 	}
 }
