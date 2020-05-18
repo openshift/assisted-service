@@ -36,4 +36,5 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         REGISTRY: 'quay.io/ocpmetal'
+        dockerfile: "Dockerfile.bm-inventory"
         tags: "stable,${{ env.RELEASE_VERSION }}"
