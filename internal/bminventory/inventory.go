@@ -32,7 +32,6 @@ import (
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const baseHref = "/api/bm-inventory/v1"
 const kubeconfigPrefix = "generate-kubeconfig"
 
 const defaultJobNamespace = "default"
@@ -218,10 +217,11 @@ func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOPa
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	id := strfmt.UUID(uuid.New().String())
+	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
 	cluster := models.Cluster{
 		ID:                       &id,
-		Href:                     swag.String(fmt.Sprintf("%s/clusters/%s", baseHref, id.String())),
+		Href:                     swag.String(url.String()),
 		Kind:                     swag.String(ResourceKindCluster),
 		APIVip:                   params.NewClusterParams.APIVip,
 		BaseDNSDomain:            params.NewClusterParams.BaseDNSDomain,
@@ -557,9 +557,10 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.Ge
 
 func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
 	host := &models.Host{
 		ID:        params.NewHostParams.HostID,
-		Href:      swag.String(fmt.Sprintf("%s/clusters/%s/hosts/%s", baseHref, params.ClusterID, *params.NewHostParams.HostID)),
+		Href:      swag.String(url.String()),
 		Kind:      swag.String(ResourceKindHost),
 		Status:    swag.String("discovering"),
 		ClusterID: params.ClusterID,
