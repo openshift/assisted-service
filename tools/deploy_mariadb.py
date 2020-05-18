@@ -22,6 +22,7 @@ def main():
             print("Deploying {}:\n{}".format(DST_FILE, data))
             dst.write(data)
 
+    utils.apply("deploy/mariadb/mariadb-storage.yaml")
     utils.apply(DST_FILE)
 
 

@@ -7,3 +7,5 @@ metadata:
 data:
   S3_ENDPOINT_URL: REPLACE_URL
   HOST_NAME: REPLACE_HOST_NAME
+  S3DATAPATH: /mnt/data
+  S3METADATAPATH: /mnt/data

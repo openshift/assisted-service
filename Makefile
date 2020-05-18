@@ -106,3 +106,7 @@ clear-deployment:
 	kubectl delete configmap mariadb-config 1> /dev/null ; true
 	kubectl delete configmap s3-config 1> /dev/null ; true
 	kubectl delete configmap scality-config 1> /dev/null ; true
+	kubectl delete pvc scality-pv-claim 1> /dev/null ; true
+	kubectl delete pvc mariadb-pv-claim 1> /dev/null ; true
+	kubectl delete pv scality-pv-volume 1> /dev/null ; true
+	kubectl delete pv mariadb-pv-volume 1> /dev/null ; true

@@ -21,6 +21,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: mariadb-config
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mariadbvol
+      volumes:
+        - name: mariadbvol
+          persistentVolumeClaim:
+            claimName: mariadb-pv-claim
 ---
 apiVersion: v1
 kind: Service

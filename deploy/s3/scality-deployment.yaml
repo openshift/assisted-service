@@ -21,6 +21,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: s3-config
+          volumeMounts:
+            - mountPath: /mnt/data
+              name: scalityvol
+      volumes:
+        - name: scalityvol
+          persistentVolumeClaim:
+            claimName: scality-pv-claim
 ---
 apiVersion: v1
 kind: Service

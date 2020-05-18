@@ -1,6 +1,7 @@
 import os
 import utils
 import boto3
+import sys
 import time
 
 def get_s3_client():
