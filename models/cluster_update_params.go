@@ -21,8 +21,8 @@ import (
 type ClusterUpdateParams struct {
 
 	// Virtual IP used to reach the OpenShift cluster API.
-	// Format: hostname
-	APIVip strfmt.Hostname `json:"api_vip,omitempty"`
+	// Format: ipv4
+	APIVip strfmt.IPv4 `json:"api_vip,omitempty"`
 
 	// Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
 	BaseDNSDomain string `json:"base_dns_domain,omitempty"`
@@ -37,15 +37,15 @@ type ClusterUpdateParams struct {
 	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
 
 	// Virtual IP used internally by the cluster for automating internal DNS requirements.
-	// Format: hostname
-	DNSVip strfmt.Hostname `json:"dns_vip,omitempty"`
+	// Format: ipv4
+	DNSVip strfmt.IPv4 `json:"dns_vip,omitempty"`
 
 	// The desired role for hosts associated with the cluster.
 	HostsRoles []*ClusterUpdateParamsHostsRolesItems0 `json:"hosts_roles" gorm:"type:varchar(64)[]"`
 
 	// Virtual IP used for cluster ingress traffic.
-	// Format: hostname
-	IngressVip strfmt.Hostname `json:"ingress_vip,omitempty"`
+	// Format: ipv4
+	IngressVip strfmt.IPv4 `json:"ingress_vip,omitempty"`
 
 	// OpenShift cluster name
 	Name string `json:"name,omitempty"`
@@ -105,7 +105,7 @@ func (m *ClusterUpdateParams) validateAPIVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("api_vip", "body", "hostname", m.APIVip.String(), formats); err != nil {
+	if err := validate.FormatOf("api_vip", "body", "ipv4", m.APIVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -148,7 +148,7 @@ func (m *ClusterUpdateParams) validateDNSVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("dns_vip", "body", "hostname", m.DNSVip.String(), formats); err != nil {
+	if err := validate.FormatOf("dns_vip", "body", "ipv4", m.DNSVip.String(), formats); err != nil {
 		return err
 	}
 
@@ -186,7 +186,7 @@ func (m *ClusterUpdateParams) validateIngressVip(formats strfmt.Registry) error 
 		return nil
 	}
 
-	if err := validate.FormatOf("ingress_vip", "body", "hostname", m.IngressVip.String(), formats); err != nil {
+	if err := validate.FormatOf("ingress_vip", "body", "ipv4", m.IngressVip.String(), formats); err != nil {
 		return err
 	}
 
