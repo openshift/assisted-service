@@ -58,6 +58,10 @@ S3 service (scality), DB and will use the image generator to create the images i
 
 `skipper make deploy-all`
 
+## Troubleshooting
+
+A document that can assist troubleshooting: [link](https://docs.google.com/document/d/1WDc5LQjNnqpznM9YFTGb9Bg1kqPVckgGepS4KBxGSqw)
+
 ##  Linked repositories 
 * #### coreos_installation_iso:
     https://github.com/oshercc/coreos_installation_iso 
