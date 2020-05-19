@@ -675,6 +675,9 @@ definitions:
       hardware_info:
         x-go-custom-tag: gorm:"type:text"
         type: string
+      inventory:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
       role:
         type: string
         enum: ['undefined', 'master', 'worker']
