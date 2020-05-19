@@ -11,8 +11,6 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/pkg/errors"
-
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/internal/installcfg"
@@ -26,6 +24,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	batch "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
@@ -241,7 +240,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", swag.StringValue(params.NewClusterParams.Name))
 		return installer.NewRegisterClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 
 	return installer.NewRegisterClusterCreated().WithPayload(&cluster)
@@ -253,14 +252,14 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params insta
 
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return installer.NewDeregisterClusterNotFound().
-			WithPayload(generateError(http.StatusNotFound))
+			WithPayload(generateError(http.StatusNotFound, err))
 	}
 
 	err := b.clusterApi.DeregisterCluster(ctx, &cluster)
 	if err != nil {
 		log.WithError(err).Errorf("failed to deregister cluster cluster %s", params.ClusterID)
 		return installer.NewDeregisterClusterNotFound().
-			WithPayload(generateError(http.StatusNotFound))
+			WithPayload(generateError(http.StatusNotFound, err))
 	}
 
 	return installer.NewDeregisterClusterNoContent()
@@ -271,7 +270,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 	if err := b.db.First(&models.Cluster{}, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
 		return installer.NewDownloadClusterISONotFound().
-			WithPayload(generateError(http.StatusNotFound))
+			WithPayload(generateError(http.StatusNotFound, err))
 	}
 	imgName := getImageName(params.ClusterID, params.ImageID)
 	imageURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket, imgName)
@@ -281,7 +280,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ISO: %s", imgName)
 		return installer.NewDownloadClusterISOInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
@@ -290,10 +289,10 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 			Errorf("Failed to get ISO: %s", imgName)
 		if resp.StatusCode == http.StatusNotFound {
 			return installer.NewDownloadClusterISONotFound().
-				WithPayload(generateError(http.StatusNotFound))
+				WithPayload(generateError(http.StatusNotFound, errors.New(string(b))))
 		}
 		return installer.NewDownloadClusterISOInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, errors.New(string(b))))
 	}
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(resp.Body),
@@ -308,7 +307,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
 		return installer.NewGenerateClusterISONotFound().
-			WithPayload(generateError(http.StatusNotFound))
+			WithPayload(generateError(http.StatusNotFound, err))
 	}
 	// generating a new uuid for each call to prevent races between concurrent requests
 	imgId := strfmt.UUID(uuid.New().String())
@@ -320,19 +319,19 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	if formatErr != nil {
 		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
 		return installer.NewGenerateClusterISOInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, formatErr))
 	}
 
 	if err := b.job.Create(ctx, b.createImageJob(&cluster, jobName, imgName, ignitionConfig)); err != nil {
 		log.WithError(err).Error("failed to create image job")
 		return installer.NewGenerateClusterISOInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 
 	if err := b.job.Monitor(ctx, jobName, defaultJobNamespace); err != nil {
 		log.WithError(err).Error("image creation failed")
 		return installer.NewGenerateClusterISOInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 
 	log.Info("Generated cluster <%s> image <%s> with ignition config %s", params.ClusterID, imgId, ignitionConfig)
@@ -364,13 +363,13 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 
 	if err = tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return installer.NewInstallClusterNotFound().
-			WithPayload(generateError(http.StatusNotFound))
+			WithPayload(generateError(http.StatusNotFound, err))
 	}
 
 	if err = b.clusterApi.Install(ctx, &cluster, tx); err != nil {
 		log.WithError(err).Errorf("failed to install cluster %s", cluster.ID.String())
 		tx.Rollback()
-		return installer.NewInstallClusterConflict().WithPayload(generateError(http.StatusConflict))
+		return installer.NewInstallClusterConflict().WithPayload(generateError(http.StatusConflict, err))
 	}
 
 	// set one of the master nodes as bootstrap
@@ -386,7 +385,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 			log.WithError(err).Errorf("failed to install hosts <%s> in cluster: %s",
 				cluster.Hosts[i].ID.String(), cluster.ID.String())
 			tx.Rollback()
-			return installer.NewInstallClusterConflict().WithPayload(generateError(http.StatusConflict))
+			return installer.NewInstallClusterConflict().WithPayload(generateError(http.StatusConflict, err))
 		}
 	}
 	if err = b.generateClusterInstallConfig(ctx, cluster); err != nil {
@@ -470,7 +469,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	if err := tx.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
 		tx.Rollback()
-		return installer.NewUpdateClusterNotFound().WithPayload(generateError(http.StatusNotFound))
+		return installer.NewUpdateClusterNotFound().WithPayload(generateError(http.StatusNotFound, err))
 	}
 
 	cluster.Name = params.ClusterUpdateParams.Name
@@ -488,7 +487,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		tx.Rollback()
 		log.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 
 	for i := range params.ClusterUpdateParams.HostsRoles {
@@ -500,14 +499,14 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 			tx.Rollback()
 			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID)
-			return installer.NewUpdateClusterNotFound().WithPayload(generateError(http.StatusNotFound))
+			return installer.NewUpdateClusterNotFound().WithPayload(generateError(http.StatusNotFound, err))
 		}
 		if _, err := b.hostApi.UpdateRole(ctx, &host, params.ClusterUpdateParams.HostsRoles[i].Role, tx); err != nil {
 			tx.Rollback()
 			log.WithError(err).Errorf("failed to set role <%s> host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsRoles[i].Role, params.ClusterUpdateParams.HostsRoles[i].ID,
 				params.ClusterID)
-			return installer.NewUpdateClusterConflict().WithPayload(generateError(http.StatusConflict))
+			return installer.NewUpdateClusterConflict().WithPayload(generateError(http.StatusConflict, err))
 		}
 	}
 
@@ -515,19 +514,19 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		tx.Rollback()
 		log.WithError(err).Errorf("failed to validate or update cluster %s state", params.ClusterID)
 		return installer.NewRegisterClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 
 	if tx.Commit().Error != nil {
 		tx.Rollback()
 		return installer.NewUpdateClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, errors.New("DB error, failed to commit")))
 	}
 
 	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
 		return installer.NewUpdateClusterInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 
 	return installer.NewUpdateClusterCreated().WithPayload(&cluster)
@@ -539,7 +538,7 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 	if err := b.db.Preload("Hosts").Find(&clusters).Error; err != nil {
 		log.WithError(err).Error("failed to list clusters")
 		return installer.NewListClustersInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 
 	return installer.NewListClustersOK().WithPayload(clusters)
@@ -550,7 +549,7 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.Ge
 	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		// TODO: check for the right error
 		return installer.NewGetClusterNotFound().
-			WithPayload(generateError(http.StatusNotFound))
+			WithPayload(generateError(http.StatusNotFound, err))
 	}
 	return installer.NewGetClusterOK().WithPayload(&cluster)
 }
@@ -571,14 +570,14 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	if err := b.db.First(&models.Cluster{}, "id = ?", params.ClusterID.String()).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID.String())
 		return installer.NewRegisterHostBadRequest().
-			WithPayload(generateError(http.StatusBadRequest))
+			WithPayload(generateError(http.StatusBadRequest, err))
 	}
 
 	if _, err := b.hostApi.RegisterHost(ctx, host); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
 			params.NewHostParams.HostID.String(), params.ClusterID.String())
 		return installer.NewRegisterHostBadRequest().
-			WithPayload(generateError(http.StatusBadRequest))
+			WithPayload(generateError(http.StatusBadRequest, err))
 	}
 
 	return installer.NewRegisterHostCreated().WithPayload(host)
@@ -589,7 +588,7 @@ func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params installe
 		Delete(&models.Host{}).Error; err != nil {
 		// TODO: check error type
 		return installer.NewDeregisterHostBadRequest().
-			WithPayload(generateError(http.StatusBadRequest))
+			WithPayload(generateError(http.StatusBadRequest, err))
 	}
 
 	// TODO: need to check that host can be deleted from the cluster
@@ -601,7 +600,7 @@ func (b *bareMetalInventory) GetHost(ctx context.Context, params installer.GetHo
 	// TODO: validate what is the error
 	if err := b.db.Where("id = ? and cluster_id = ?", params.HostID, params.ClusterID).
 		First(&host).Error; err != nil {
-		return installer.NewGetHostNotFound().WithPayload(generateError(http.StatusNotFound))
+		return installer.NewGetHostNotFound().WithPayload(generateError(http.StatusNotFound, err))
 	}
 
 	return installer.NewGetHostOK().WithPayload(&host)
@@ -613,7 +612,7 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.Lis
 	if err := b.db.Find(&hosts, "cluster_id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get list of hosts for cluster %s", params.ClusterID)
 		return installer.NewListHostsInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 	return installer.NewListHostsOK().WithPayload(hosts)
 }
@@ -631,7 +630,7 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find host %s", params.HostID)
 		return installer.NewGetNextStepsNotFound().
-			WithPayload(generateError(http.StatusNotFound))
+			WithPayload(generateError(http.StatusNotFound, err))
 	}
 
 	var err error
@@ -665,7 +664,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 		log.WithError(err).Errorf("Failed to find host <%s> cluster <%s> step <%s>",
 			params.HostID, params.ClusterID, params.Reply.StepID)
 		return installer.NewPostStepReplyNotFound().
-			WithPayload(generateError(http.StatusNotFound))
+			WithPayload(generateError(http.StatusNotFound, err))
 	}
 
 	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeHardwareInfo)) {
@@ -675,14 +674,14 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 			log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
 				params.Reply.StepID, params.HostID, params.ClusterID)
 			return installer.NewPostStepReplyBadRequest().
-				WithPayload(generateError(http.StatusBadRequest))
+				WithPayload(generateError(http.StatusBadRequest, err))
 		}
 
 		if _, err := b.hostApi.UpdateHwInfo(ctx, &host, hwInfo); err != nil {
 			log.WithError(err).Errorf("Failed to update host <%s> cluster <%s> step <%s>",
 				params.HostID, params.ClusterID, params.Reply.StepID)
 			return installer.NewPostStepReplyInternalServerError().
-				WithPayload(generateError(http.StatusInternalServerError))
+				WithPayload(generateError(http.StatusInternalServerError, err))
 		}
 	}
 
@@ -722,13 +721,13 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		return installer.NewDisableHostNotFound().
-			WithPayload(generateError(http.StatusNotFound))
+			WithPayload(generateError(http.StatusNotFound, err))
 	}
 
 	if _, err := b.hostApi.DisableHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
 		return installer.NewDisableHostConflict().
-			WithPayload(generateError(http.StatusConflict))
+			WithPayload(generateError(http.StatusConflict, err))
 	}
 	return installer.NewDisableHostNoContent()
 }
@@ -740,13 +739,13 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		return installer.NewEnableHostNotFound().
-			WithPayload(generateError(http.StatusNotFound))
+			WithPayload(generateError(http.StatusNotFound, err))
 	}
 
 	if _, err := b.hostApi.EnableHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to enable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
 		return installer.NewEnableHostConflict().
-			WithPayload(generateError(http.StatusConflict))
+			WithPayload(generateError(http.StatusConflict, err))
 	}
 	return installer.NewEnableHostNoContent()
 }
@@ -827,17 +826,18 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 		if gorm.IsRecordNotFoundError(err) {
 			return installer.NewDownloadClusterFilesNotFound().
-				WithPayload(generateError(http.StatusNotFound))
+				WithPayload(generateError(http.StatusNotFound, err))
 		} else {
 			return installer.NewDownloadClusterFilesInternalServerError().
-				WithPayload(generateError(http.StatusInternalServerError))
+				WithPayload(generateError(http.StatusInternalServerError, err))
 		}
 	}
 	clusterStatus := swag.StringValue(cluster.Status)
 	if clusterStatus != ClusterStatusInstalling && clusterStatus != ClusterStatusInstalled {
-		log.Warnf("Cluster %s is in %s state, files can be downloaded only in installing or installed state", params.ClusterID, clusterStatus)
+		msg := fmt.Sprintf("Cluster %s is in %s state, files can be downloaded only in installing or installed state", params.ClusterID, clusterStatus)
+		log.Warn(msg)
 		return installer.NewDownloadClusterFilesConflict().
-			WithPayload(generateError(http.StatusConflict))
+			WithPayload(generateError(http.StatusConflict, errors.New(msg)))
 	}
 
 	filesUrl := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
@@ -847,7 +847,7 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get clusters %s %s file", params.ClusterID, params.FileName)
 		return installer.NewDownloadClusterFilesInternalServerError().
-			WithPayload(generateError(http.StatusInternalServerError))
+			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
@@ -855,7 +855,7 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 		log.WithError(fmt.Errorf("%s", string(b))).
 			Errorf("Failed to get clusters %s kubeKonfig", params.ClusterID)
 		return installer.NewDownloadClusterFilesConflict().
-			WithPayload(generateError(http.StatusConflict))
+			WithPayload(generateError(http.StatusConflict, errors.New(string(b))))
 	}
 	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(resp.Body), params.FileName)
 }
@@ -876,13 +876,13 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 	return installer.NewUpdateHostInstallProgressOK()
 }
 
-func generateError(id int32) *models.Error {
+func generateError(id int32, err error) *models.Error {
 	return &models.Error{
 		Code:   swag.String(string(id)),
 		Href:   swag.String(""),
 		ID:     swag.Int32(id),
 		Kind:   swag.String("Error"),
-		Reason: swag.String(""),
+		Reason: swag.String(err.Error()),
 	}
 }
 
