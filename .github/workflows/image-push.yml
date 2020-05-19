@@ -25,7 +25,6 @@ jobs:
     - name: build
       run: |
         skipper make build
-        skipper make update_revision_file
     - name: Get release version
       id: get_version
       run: echo ::set-env name=GIT_REVISION::$(echo ${GITHUB_SHA})
