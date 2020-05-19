@@ -1473,6 +1473,10 @@ func init() {
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
         },
+        "inventory": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "kind": {
           "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.",
           "type": "string",
@@ -3291,6 +3295,10 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "inventory": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
           "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.",

@@ -45,6 +45,9 @@ type Host struct {
 	// Format: uuid
 	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
 
+	// inventory
+	Inventory string `json:"inventory,omitempty" gorm:"type:text"`
+
 	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.
 	// Required: true
 	// Enum: [Host]
