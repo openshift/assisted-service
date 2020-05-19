@@ -112,12 +112,9 @@ var _ = Describe("system-test cluster install", func() {
 	BeforeEach(func() {
 		registerClusterReply, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				APIVip:                   "v1",
 				BaseDNSDomain:            "example.com",
 				ClusterNetworkCidr:       "10.128.0.0/14",
 				ClusterNetworkHostPrefix: 23,
-				DNSVip:                   "",
-				IngressVip:               "",
 				Name:                     swag.String("test-cluster"),
 				OpenshiftVersion:         swag.String("4.4"),
 				PullSecret:               `{"auths":{"cloud.openshift.com":{"auth":""}}}`,
