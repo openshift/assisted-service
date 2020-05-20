@@ -277,7 +277,7 @@ paths:
           format: uuid
           required: true
       responses:
-        200:
+        202:
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
