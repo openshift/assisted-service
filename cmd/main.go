@@ -4,16 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"time"
 
-	"github.com/filanov/bm-inventory/internal/cluster"
-
-	"github.com/filanov/bm-inventory/internal/bminventory"
-	"github.com/filanov/bm-inventory/internal/hardware"
-	"github.com/filanov/bm-inventory/internal/host"
-	"github.com/filanov/bm-inventory/models"
-	"github.com/filanov/bm-inventory/pkg/job"
-	"github.com/filanov/bm-inventory/pkg/requestid"
-	"github.com/filanov/bm-inventory/restapi"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -24,6 +16,16 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	"github.com/filanov/bm-inventory/internal/bminventory"
+	"github.com/filanov/bm-inventory/internal/cluster"
+	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/filanov/bm-inventory/internal/host"
+	"github.com/filanov/bm-inventory/models"
+	"github.com/filanov/bm-inventory/pkg/job"
+	"github.com/filanov/bm-inventory/pkg/requestid"
+	"github.com/filanov/bm-inventory/pkg/thread"
+	"github.com/filanov/bm-inventory/restapi"
 )
 
 func init() {
@@ -31,12 +33,13 @@ func init() {
 }
 
 var Options struct {
-	BMConfig          bminventory.Config
-	DBHost            string `envconfig:"DB_HOST" default:"mariadb"`
-	DBPort            string `envconfig:"DB_PORT" default:"3306"`
-	HWValidatorConfig hardware.ValidatorCfg
-	JobConfig         job.Config
-	InstructionConfig host.InstructionConfig
+	BMConfig                    bminventory.Config
+	DBHost                      string `envconfig:"DB_HOST" default:"mariadb"`
+	DBPort                      string `envconfig:"DB_PORT" default:"3306"`
+	HWValidatorConfig           hardware.ValidatorCfg
+	JobConfig                   job.Config
+	InstructionConfig           host.InstructionConfig
+	clusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 }
 
 func main() {
@@ -74,10 +77,16 @@ func main() {
 		log.Fatal("failed to auto migrate, ", err)
 	}
 
-	clusterApi := cluster.NewManager(log.WithField("pkg", "cluster-state"), db)
 	hwValidator := hardware.NewValidator(Options.HWValidatorConfig)
 	instructionApi := host.NewInstructionManager(log, db, hwValidator, Options.InstructionConfig)
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, hwValidator, instructionApi)
+	clusterApi := cluster.NewManager(log.WithField("pkg", "cluster-state"), db)
+
+	clusterStateMonitor := thread.New(
+		log.WithField("pkg", "cluster-monitor"), "State Monitor", Options.clusterStateMonitorInterval, clusterApi.ClusterMonitoring)
+	clusterStateMonitor.Start()
+	defer clusterStateMonitor.Stop()
+
 	jobApi := job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, jobApi)
 	h, err := restapi.Handler(restapi.Config{

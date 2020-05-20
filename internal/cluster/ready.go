@@ -5,7 +5,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	intenralhost "github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
+	logutil "github.com/filanov/bm-inventory/pkg/log"
+
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -22,23 +25,32 @@ type readyState baseState
 var _ StateAPI = (*Manager)(nil)
 
 func (r *readyState) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error) {
-	clusterIsReady, err := isClusterReady(c, db, r.log)
-	if err != nil {
-		return nil, errors.Errorf("unable to determine cluster %s hosts state ", c.ID)
-	}
+	log := logutil.FromContext(ctx, r.log)
 
-	if clusterIsReady {
-
+	if err := db.Preload("Hosts").First(&c, "id = ?", c.ID).Error; err != nil {
 		return &UpdateReply{
-			State:     clusterStatusReady,
-			IsChanged: false,
-		}, nil
-	} else {
-		return updateState(clusterStatusInsufficient, c, db, r.log)
-
+			State:     clusterStatusInsufficient,
+			IsChanged: false}, errors.Errorf("cluster %s not found", c.ID)
 	}
-}
+	mappedMastersByRole := mapMasterHostsByStatus(c)
 
-func (r *readyState) Install(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
-	return updateState(clusterStatusInstalling, c, r.db, r.log)
+	// Installation has started
+	mastersInInstalling := mappedMastersByRole[intenralhost.HostStatusInstalling]
+	mastersInInstallingInProgress := mappedMastersByRole[intenralhost.HostStatusInstallingInProgress]
+	if len(mastersInInstalling) > 0 || len(mastersInInstallingInProgress) > 0 {
+		return &UpdateReply{State: clusterStatusReady,
+			IsChanged: false}, nil
+	}
+
+	// Cluster is insufficient
+	mastersInKnown := mappedMastersByRole[intenralhost.HostStatusKnown]
+	if len(mastersInKnown) < minHostsNeededForInstallation {
+		log.Infof("Cluster %s dos not have at least %d known master hosts, cluster is insufficient.", c.ID, minHostsNeededForInstallation)
+		return updateState(clusterStatusInsufficient, c, db, log)
+
+		//cluster is still ready
+	} else {
+		return &UpdateReply{State: clusterStatusReady,
+			IsChanged: false}, nil
+	}
 }
