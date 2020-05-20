@@ -34,11 +34,6 @@ var _ = Describe("installing_state", func() {
 		expectedReply = &expect{expectedState: currentState}
 	})
 
-	It("register_host", func() {
-		updateReply, updateErr = state.RegisterHost(ctx, &host)
-		expectedReply.expectedState = HostStatusError
-	})
-
 	It("update_hw_info", func() {
 		updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
 		expectedReply.expectError = true

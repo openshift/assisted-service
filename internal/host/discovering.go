@@ -27,27 +27,6 @@ type discoveringState struct {
 	hwValidator hardware.Validator
 }
 
-func (d *discoveringState) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	host := models.Host{}
-	log := logutil.FromContext(ctx, d.log)
-
-	// if already exists, reset role and hw info
-	if err := d.db.First(&host, "id = ? and cluster_id = ?", h.ID, h.ClusterID).Error; err == nil {
-		return updateStateWithParams(log, HostStatusDiscovering, statusInfoDiscovering, &host, d.db,
-			"hardware_info", "", "role", "")
-	}
-
-	// new host
-	h.Status = swag.String(HostStatusDiscovering)
-	if err := d.db.Create(h).Error; err != nil {
-		return nil, err
-	}
-	return &UpdateReply{
-		State:     HostStatusDiscovering,
-		IsChanged: false,
-	}, nil
-}
-
 func (d *discoveringState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
 	h.HardwareInfo = hwInfo
 	return updateHwInfo(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)

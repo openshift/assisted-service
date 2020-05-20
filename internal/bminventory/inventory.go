@@ -557,16 +557,8 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.Ge
 
 func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
-	host := &models.Host{
-		ID:        params.NewHostParams.HostID,
-		Href:      swag.String(url.String()),
-		Kind:      swag.String(ResourceKindHost),
-		Status:    swag.String("discovering"),
-		ClusterID: params.ClusterID,
-	}
-
-	log.Infof("Register host: %+v", host)
+	var host models.Host
+	log.Infof("Register host: %+v", params)
 
 	if err := b.db.First(&models.Cluster{}, "id = ?", params.ClusterID.String()).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID.String())
@@ -574,14 +566,22 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 			WithPayload(generateError(http.StatusBadRequest, err))
 	}
 
-	if _, err := b.hostApi.RegisterHost(ctx, host); err != nil {
+	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
+	host = models.Host{
+		ID:        params.NewHostParams.HostID,
+		Href:      swag.String(url.String()),
+		Kind:      swag.String(ResourceKindHost),
+		ClusterID: params.ClusterID,
+	}
+
+	if err := b.hostApi.RegisterHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
 			params.NewHostParams.HostID.String(), params.ClusterID.String())
 		return installer.NewRegisterHostBadRequest().
 			WithPayload(generateError(http.StatusBadRequest, err))
 	}
 
-	return installer.NewRegisterHostCreated().WithPayload(host)
+	return installer.NewRegisterHostCreated().WithPayload(&host)
 }
 
 func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder {

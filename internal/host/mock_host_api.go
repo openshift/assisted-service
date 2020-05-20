@@ -36,21 +36,6 @@ func (m *MockStateAPI) EXPECT() *MockStateAPIMockRecorder {
 	return m.recorder
 }
 
-// RegisterHost mocks base method.
-func (m *MockStateAPI) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterHost", ctx, h)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RegisterHost indicates an expected call of RegisterHost.
-func (mr *MockStateAPIMockRecorder) RegisterHost(ctx, h interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterHost", reflect.TypeOf((*MockStateAPI)(nil).RegisterHost), ctx, h)
-}
-
 // UpdateHwInfo mocks base method.
 func (m *MockStateAPI) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
 	m.ctrl.T.Helper()
@@ -218,12 +203,11 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 }
 
 // RegisterHost mocks base method.
-func (m *MockAPI) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
+func (m *MockAPI) RegisterHost(ctx context.Context, h *models.Host) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterHost", ctx, h)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // RegisterHost indicates an expected call of RegisterHost.

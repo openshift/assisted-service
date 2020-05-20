@@ -20,11 +20,6 @@ func NewDisabledState(log logrus.FieldLogger, db *gorm.DB) *disabledState {
 
 type disabledState baseState
 
-func (d *disabledState) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to register host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
-}
-
 func (d *disabledState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
 	return nil, errors.Errorf("unable to update hardware info to host <%s> in <%s> status",
 		h.ID, swag.StringValue(h.Status))

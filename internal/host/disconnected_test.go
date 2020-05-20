@@ -43,15 +43,6 @@ var _ = Describe("disconnected_state", func() {
 		expectedReply = &expect{expectedState: currentState}
 	})
 
-	It("register_host", func() {
-		updateReply, updateErr = state.RegisterHost(ctx, &host)
-		expectedReply.expectedState = HostStatusDiscovering
-		expectedReply.postCheck = func() {
-			h := getHost(id, clusterId, db)
-			Expect(h.HardwareInfo).Should(Equal(""))
-		}
-	})
-
 	Context("update hw info", func() {
 		It("update", func() {
 			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")

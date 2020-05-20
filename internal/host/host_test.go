@@ -44,9 +44,6 @@ var _ = Describe("statemachine", func() {
 	})
 
 	Context("unknown_host_state", func() {
-		It("register_host", func() {
-			stateReply, stateErr = state.RegisterHost(ctx, &host)
-		})
 
 		It("enable_host", func() {
 			stateReply, stateErr = state.EnableHost(ctx, &host)

@@ -179,7 +179,7 @@ var _ = Describe("Host tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("register same host id", func() {
+	It("register_same_host_id", func() {
 		hostID := strToUUID(uuid.New().String())
 		// register to cluster1
 		_, err := bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{

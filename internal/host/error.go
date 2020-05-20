@@ -19,11 +19,6 @@ func NewErrorState(log logrus.FieldLogger, db *gorm.DB) *errorState {
 
 type errorState baseState
 
-func (e *errorState) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to register host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
-}
-
 func (e *errorState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
 	return nil, errors.Errorf("unable to update hardware info to host <%s> in <%s> status",
 		h.ID, swag.StringValue(h.Status))

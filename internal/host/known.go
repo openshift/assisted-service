@@ -26,11 +26,6 @@ type knownState struct {
 	hwValidator hardware.Validator
 }
 
-func (k *knownState) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateStateWithParams(logutil.FromContext(ctx, k.log), HostStatusDiscovering, HostStatusDiscovering, h, k.db,
-		"hardware_info", "")
-}
-
 func (k *knownState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
 	h.HardwareInfo = hwInfo
 	return updateHwInfo(logutil.FromContext(ctx, k.log), k.hwValidator, h, k.db)

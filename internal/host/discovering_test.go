@@ -43,36 +43,6 @@ var _ = Describe("discovering_state", func() {
 		expectedReply = &expect{expectedState: currentState}
 	})
 
-	Context("register_host", func() {
-		It("already_exists_sufficient_hw", func() {
-			updateReply, updateErr = state.RegisterHost(ctx, &host)
-			expectedReply.postCheck = func() {
-				h := getHost(id, clusterId, db)
-				Expect(h.HardwareInfo).Should(Equal(""))
-			}
-		})
-		It("new_host_sufficient_hardware", func() {
-			Expect(db.Delete(&host).Error).ShouldNot(HaveOccurred())
-			host.HardwareInfo = ""
-			updateReply, updateErr = state.RegisterHost(ctx, &host)
-			expectedReply.postCheck = func() {
-				h := getHost(id, clusterId, db)
-				Expect(h.HardwareInfo).Should(Equal(""))
-			}
-		})
-	})
-	Context("update hw info", func() {
-		It("update hw info", func() {
-			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
-			expectedReply.expectedState = HostStatusDiscovering
-			expectedReply.postCheck = func() {
-				h := getHost(id, clusterId, db)
-				Expect(h.Inventory).Should(Equal(""))
-				Expect(h.HardwareInfo).Should(Equal("some hw info"))
-			}
-		})
-	})
-
 	Context("update inventory", func() {
 		It("sufficient_hw", func() {
 			mockValidator.EXPECT().IsSufficient(gomock.Any()).

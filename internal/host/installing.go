@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/filanov/bm-inventory/models"
-	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -19,11 +18,6 @@ func NewInstallingState(log logrus.FieldLogger, db *gorm.DB) *installingState {
 }
 
 type installingState baseState
-
-func (i *installingState) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateStateWithParams(logutil.FromContext(ctx, i.log), HostStatusError,
-		"host rebooted during installation process", h, i.db)
-}
 
 func (i *installingState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
 	return nil, errors.Errorf("unable to update hardware info to host <%s> in <%s> status",

@@ -27,11 +27,6 @@ type insufficientState struct {
 	hwValidator hardware.Validator
 }
 
-func (i *insufficientState) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateStateWithParams(logutil.FromContext(ctx, i.log), HostStatusDiscovering, HostStatusDiscovering, h, i.db,
-		"hardware_info", "")
-}
-
 func (i *insufficientState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
 	h.HardwareInfo = hwInfo
 	return updateHwInfo(logutil.FromContext(ctx, i.log), i.hwValidator, h, i.db)

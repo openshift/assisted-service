@@ -69,6 +69,32 @@ func updateStateWithParams(log logrus.FieldLogger, status, statusInfo string, h 
 	}, nil
 }
 
+func updateHostStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo string, h *models.Host, db *gorm.DB,
+	extra ...interface{}) error {
+
+	updates := map[string]interface{}{"status": swag.StringValue(h.Status), "status_info": statusInfo}
+	if len(extra)%2 != 0 {
+		return errors.Errorf("invalid update extra parameters %+v", extra)
+	}
+	for i := 0; i < len(extra); i += 2 {
+		updates[extra[i].(string)] = extra[i+1]
+	}
+	dbReply := db.Model(&models.Host{}).Where("id = ? and cluster_id = ? and status = ?",
+		h.ID.String(), h.ClusterID.String(), srcStatus).
+		Updates(updates)
+	if dbReply.Error != nil {
+		return errors.Wrapf(dbReply.Error, "failed to update host %s from cluster %s state from %s to %s",
+			h.ID.String(), h.ClusterID, srcStatus, swag.StringValue(h.Status))
+	}
+	if dbReply.RowsAffected == 0 && swag.StringValue(h.Status) != srcStatus {
+		return errors.Errorf("failed to update host %s from cluster %s state from %s to %s, nothing have changed",
+			h.ID.String(), h.ClusterID, srcStatus, swag.StringValue(h.Status))
+	}
+	log.Infof("Updated host <%s> status from <%s> to <%s> with fields: %s",
+		h.ID.String(), srcStatus, swag.StringValue(h.Status), updates)
+	return nil
+}
+
 func updateHwInfo(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	status := ""
 	if h.Status != nil {

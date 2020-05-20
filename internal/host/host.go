@@ -5,20 +5,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
+	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 //go:generate mockgen -source=host.go -package=host -aux_files=github.com/filanov/bm-inventory/internal/host=instructionmanager.go -destination=mock_host_api.go
+
 type StateAPI interface {
-	// Register a new host
-	RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error)
 	// Set a new HW information
 	UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error)
 	// Set a new inventory information
@@ -63,6 +62,8 @@ const (
 )
 
 type API interface {
+	// Register a new host
+	RegisterHost(ctx context.Context, h *models.Host) error
 	StateAPI
 	InstructionApi
 	SpecificHardwareParams
@@ -83,9 +84,14 @@ type Manager struct {
 	error          StateAPI
 	instructionApi InstructionApi
 	hwValidator    hardware.Validator
+	sm             stateswitch.StateMachine
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionApi InstructionApi) *Manager {
+	th := &transitionHandler{
+		db:  db,
+		log: log,
+	}
 	return &Manager{
 		log:            log,
 		db:             db,
@@ -99,6 +105,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Valida
 		error:          NewErrorState(log, db),
 		instructionApi: instructionApi,
 		hwValidator:    hwValidator,
+		sm:             NewHostStateMachine(th),
 	}
 }
 
@@ -125,12 +132,21 @@ func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 	return nil, fmt.Errorf("not supported host status: %s", status)
 }
 
-func (m *Manager) RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	state, err := m.getCurrentState(swag.StringValue(h.Status))
-	if err != nil {
-		return nil, err
+func (m *Manager) RegisterHost(ctx context.Context, h *models.Host) error {
+	var host models.Host
+	err := m.db.First(&host, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error
+	if err != nil && !gorm.IsRecordNotFoundError(err) {
+		return err
 	}
-	return state.RegisterHost(ctx, h)
+
+	pHost := &host
+	if err != nil && gorm.IsRecordNotFoundError(err) {
+		pHost = h
+	}
+
+	return m.sm.Run(TransitionTypeRegisterHost, newStateHost(pHost), &TransitionArgsRegisterHost{
+		ctx: ctx,
+	})
 }
 
 func (m *Manager) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
