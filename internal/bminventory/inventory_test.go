@@ -289,8 +289,8 @@ var _ = Describe("cluster", func() {
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		return host
 	}
-	getDisk := func() *models.BlockDevice {
-		disk := models.BlockDevice{DeviceType: "loop", Fstype: "test", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", ReadOnly: true, RemovableDevice: 1, Size: 0}
+	getDisk := func() *models.Disk {
+		disk := models.Disk{DriveType: "SSD", Name: "loop0", SizeBytes: 0}
 		return &disk
 	}
 	setDefaultInstall := func(mockClusterApi *cluster.MockAPI) {
@@ -309,7 +309,7 @@ var _ = Describe("cluster", func() {
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	}
 	setDefaultHostGetHostValidDisks := func(mockClusterApi *cluster.MockAPI) {
-		mockHostApi.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.BlockDevice{getDisk()}, nil).AnyTimes()
+		mockHostApi.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.Disk{getDisk()}, nil).AnyTimes()
 	}
 	setDefaultHostSetBootstrap := func(mockClusterApi *cluster.MockAPI) {
 		mockHostApi.EXPECT().SetBootstrap(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()

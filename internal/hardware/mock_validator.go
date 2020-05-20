@@ -50,10 +50,10 @@ func (mr *MockValidatorMockRecorder) IsSufficient(host interface{}) *gomock.Call
 }
 
 // GetHostValidDisks mocks base method.
-func (m *MockValidator) GetHostValidDisks(host *models.Host) ([]*models.BlockDevice, error) {
+func (m *MockValidator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostValidDisks", host)
-	ret0, _ := ret[0].([]*models.BlockDevice)
+	ret0, _ := ret[0].([]*models.Disk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

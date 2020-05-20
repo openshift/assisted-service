@@ -66,6 +66,21 @@ func (mr *MockStateAPIMockRecorder) UpdateHwInfo(ctx, h, hwInfo interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHwInfo", reflect.TypeOf((*MockStateAPI)(nil).UpdateHwInfo), ctx, h, hwInfo)
 }
 
+// UpdateInventory mocks base method.
+func (m *MockStateAPI) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInventory", ctx, h, inventory)
+	ret0, _ := ret[0].(*UpdateReply)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateInventory indicates an expected call of UpdateInventory.
+func (mr *MockStateAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockStateAPI)(nil).UpdateInventory), ctx, h, inventory)
+}
+
 // UpdateRole mocks base method.
 func (m *MockStateAPI) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	m.ctrl.T.Helper()
@@ -165,10 +180,10 @@ func (m *MockSpecificHardwareParams) EXPECT() *MockSpecificHardwareParamsMockRec
 }
 
 // GetHostValidDisks mocks base method.
-func (m *MockSpecificHardwareParams) GetHostValidDisks(h *models.Host) ([]*models.BlockDevice, error) {
+func (m *MockSpecificHardwareParams) GetHostValidDisks(h *models.Host) ([]*models.Disk, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostValidDisks", h)
-	ret0, _ := ret[0].([]*models.BlockDevice)
+	ret0, _ := ret[0].([]*models.Disk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -230,6 +245,21 @@ func (m *MockAPI) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo strin
 func (mr *MockAPIMockRecorder) UpdateHwInfo(ctx, h, hwInfo interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHwInfo", reflect.TypeOf((*MockAPI)(nil).UpdateHwInfo), ctx, h, hwInfo)
+}
+
+// UpdateInventory mocks base method.
+func (m *MockAPI) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInventory", ctx, h, inventory)
+	ret0, _ := ret[0].(*UpdateReply)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateInventory indicates an expected call of UpdateInventory.
+func (mr *MockAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockAPI)(nil).UpdateInventory), ctx, h, inventory)
 }
 
 // UpdateRole mocks base method.
@@ -323,10 +353,10 @@ func (mr *MockAPIMockRecorder) GetNextSteps(ctx, host interface{}) *gomock.Call 
 }
 
 // GetHostValidDisks mocks base method.
-func (m *MockAPI) GetHostValidDisks(h *models.Host) ([]*models.BlockDevice, error) {
+func (m *MockAPI) GetHostValidDisks(h *models.Host) ([]*models.Disk, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostValidDisks", h)
-	ret0, _ := ret[0].([]*models.BlockDevice)
+	ret0, _ := ret[0].([]*models.Disk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

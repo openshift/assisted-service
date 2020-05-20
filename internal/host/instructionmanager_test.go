@@ -50,7 +50,7 @@ var _ = Describe("instructionmanager", func() {
 		})
 		It("discovering", func() {
 			checkStepsByState(HostStatusDiscovering, &host, db, instMng, mockValidator, ctx,
-				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeConnectivityCheck})
+				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck})
 		})
 		It("known", func() {
 			checkStepsByState(HostStatusKnown, &host, db, instMng, mockValidator, ctx,
@@ -58,7 +58,7 @@ var _ = Describe("instructionmanager", func() {
 		})
 		It("disconnected", func() {
 			checkStepsByState(HostStatusDisconnected, &host, db, instMng, mockValidator, ctx,
-				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeConnectivityCheck})
+				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck})
 		})
 		It("insufficient", func() {
 			checkStepsByState(HostStatusInsufficient, &host, db, instMng, mockValidator, ctx,
@@ -88,21 +88,21 @@ var _ = Describe("instructionmanager", func() {
 func checkStepsByState(state string, host *models.Host, db *gorm.DB, instMng *InstructionManager, mockValidator *hardware.MockValidator, ctx context.Context,
 	expectedStepTypes []models.StepType) {
 	updateReply, updateErr := updateState(getTestLog(), state, "", host, db)
-	Expect(updateErr).ShouldNot(HaveOccurred())
-	Expect(updateReply.IsChanged).Should(BeTrue())
+	ExpectWithOffset(1, updateErr).ShouldNot(HaveOccurred())
+	ExpectWithOffset(1, updateReply.IsChanged).Should(BeTrue())
 	h := getHost(*host.ID, host.ClusterID, db)
-	Expect(swag.StringValue(h.Status)).Should(Equal(state))
+	ExpectWithOffset(1, swag.StringValue(h.Status)).Should(Equal(state))
 	validDiskSize := int64(128849018880)
-	var disks = []*models.BlockDevice{
-		{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize},
-		{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sda", Size: validDiskSize},
-		{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdh", Size: validDiskSize},
+	var disks = []*models.Disk{
+		{DriveType: "disk", Name: "sdb", SizeBytes: validDiskSize},
+		{DriveType: "disk", Name: "sda", SizeBytes: validDiskSize},
+		{DriveType: "disk", Name: "sdh", SizeBytes: validDiskSize},
 	}
 	mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
 	stepsReply, stepsErr := instMng.GetNextSteps(ctx, h)
-	Expect(stepsReply).To(HaveLen(len(expectedStepTypes)))
+	ExpectWithOffset(1, stepsReply).To(HaveLen(len(expectedStepTypes)))
 	for i, step := range stepsReply {
-		Expect(step.StepType).Should(Equal(expectedStepTypes[i]))
+		ExpectWithOffset(1, step.StepType).Should(Equal(expectedStepTypes[i]))
 	}
-	Expect(stepsErr).ShouldNot(HaveOccurred())
+	ExpectWithOffset(1, stepsErr).ShouldNot(HaveOccurred())
 }

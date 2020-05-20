@@ -127,7 +127,7 @@ var _ = Describe("system-test cluster install", func() {
 		cluster = registerClusterReply.GetPayload()
 	})
 
-	generateHWPostStepReply := func(h *models.Host, hwInfo *models.Introspection) {
+	generateHWPostStepReply := func(h *models.Host, hwInfo *models.Inventory) {
 		hw, err := json.Marshal(&hwInfo)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
@@ -136,7 +136,7 @@ var _ = Describe("system-test cluster install", func() {
 			Reply: &models.StepReply{
 				ExitCode: 0,
 				Output:   string(hw),
-				StepID:   string(models.StepTypeHardwareInfo),
+				StepID:   string(models.StepTypeInventory),
 			},
 		})
 		Expect(err).ShouldNot(HaveOccurred())
@@ -147,12 +147,12 @@ var _ = Describe("system-test cluster install", func() {
 		BeforeEach(func() {
 			clusterID = *cluster.ID
 
-			hwInfo := &models.Introspection{
-				CPU:    &models.CPUDetails{Cpus: 16},
-				Memory: []*models.MemoryDetails{{Name: "Mem", Total: int64(32 * units.GiB)}},
-				BlockDevices: []*models.BlockDevice{
-					{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", ReadOnly: true, RemovableDevice: 1, Size: validDiskSize},
-					{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize}},
+			hwInfo := &models.Inventory{
+				CPU:    &models.CPU{Count: 16},
+				Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
+				Disks: []*models.Disk{
+					{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
+					{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
 			}
 
 			h1 := registerHost(clusterID)
@@ -280,12 +280,12 @@ var _ = Describe("system-test cluster install", func() {
 	It("install cluster requirement", func() {
 		clusterID := *cluster.ID
 
-		hwInfo := &models.Introspection{
-			CPU:    &models.CPUDetails{Cpus: 16},
-			Memory: []*models.MemoryDetails{{Name: "Mem", Total: int64(32 * units.GiB)}},
-			BlockDevices: []*models.BlockDevice{
-				{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", ReadOnly: true, RemovableDevice: 1, Size: validDiskSize},
-				{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize}},
+		hwInfo := &models.Inventory{
+			CPU:    &models.CPU{Count: 16},
+			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
+			Disks: []*models.Disk{
+				{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
+				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
 		}
 		Expect(swag.StringValue(cluster.Status)).Should(Equal("insufficient"))
 
@@ -323,12 +323,12 @@ var _ = Describe("system-test cluster install", func() {
 	It("install_cluster_states", func() {
 		clusterID := *cluster.ID
 
-		hwInfo := &models.Introspection{
-			CPU:    &models.CPUDetails{Cpus: 16},
-			Memory: []*models.MemoryDetails{{Name: "Mem", Total: int64(32 * units.GiB)}},
-			BlockDevices: []*models.BlockDevice{
-				{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", ReadOnly: true, RemovableDevice: 1, Size: validDiskSize},
-				{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize}},
+		hwInfo := &models.Inventory{
+			CPU:    &models.CPU{Count: 16},
+			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
+			Disks: []*models.Disk{
+				{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
+				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
 		}
 		Expect(swag.StringValue(cluster.Status)).Should(Equal("insufficient"))
 
@@ -419,19 +419,19 @@ var _ = Describe("system-test cluster install", func() {
 	It("install_cluster_insufficient_master", func() {
 		clusterID := *cluster.ID
 
-		hwInfo := &models.Introspection{
-			CPU:    &models.CPUDetails{Cpus: 2},
-			Memory: []*models.MemoryDetails{{Name: "Mem", Total: int64(8 * units.GiB)}},
-			BlockDevices: []*models.BlockDevice{
-				{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize}},
+		hwInfo := &models.Inventory{
+			CPU:    &models.CPU{Count: 2},
+			Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB)},
+			Disks: []*models.Disk{
+				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
 		}
 		h1 := registerHost(clusterID)
 		generateHWPostStepReply(h1, hwInfo)
 		Expect(*getHost(clusterID, *h1.ID).Status).Should(Equal("known"))
 
-		hwInfo = &models.Introspection{
-			CPU:    &models.CPUDetails{Cpus: 16},
-			Memory: []*models.MemoryDetails{{Name: "Mem", Total: int64(32 * units.GiB)}},
+		hwInfo = &models.Inventory{
+			CPU:    &models.CPU{Count: 16},
+			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
 		}
 		h2 := registerHost(clusterID)
 		generateHWPostStepReply(h2, hwInfo)

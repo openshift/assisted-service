@@ -22,7 +22,7 @@ var _ = Describe("hardware_validator", func() {
 	var (
 		hwvalidator      Validator
 		host             *models.Host
-		hwInfo           *models.Introspection
+		inventory        *models.Inventory
 		validDiskSize    = int64(128849018880)
 		notValidDiskSize = int64(108849018880)
 	)
@@ -32,19 +32,19 @@ var _ = Describe("hardware_validator", func() {
 		hwvalidator = NewValidator(cfg)
 		id := strfmt.UUID(uuid.New().String())
 		host = &models.Host{ID: &id, ClusterID: strfmt.UUID(uuid.New().String())}
-		hwInfo = &models.Introspection{
-			CPU:    &models.CPUDetails{Cpus: 16},
-			Memory: []*models.MemoryDetails{{Name: "Mem", Total: int64(32 * units.GiB)}},
-			BlockDevices: []*models.BlockDevice{
-				{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", ReadOnly: true, RemovableDevice: 1, Size: validDiskSize},
-				{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize}},
+		inventory = &models.Inventory{
+			CPU:    &models.CPU{Count: 16},
+			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
+			Disks: []*models.Disk{
+				{DriveType: "ODD", Name: "loop0", SizeBytes: validDiskSize},
+				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
 		}
 	})
 
 	It("sufficient_hw", func() {
-		hw, err := json.Marshal(&hwInfo)
+		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
-		host.HardwareInfo = string(hw)
+		host.Inventory = string(hw)
 
 		roles := []string{"", "master", "worker"}
 		for _, role := range roles {
@@ -54,11 +54,11 @@ var _ = Describe("hardware_validator", func() {
 	})
 
 	It("insufficient_minimal_hw_requirements", func() {
-		hwInfo.CPU = &models.CPUDetails{Cpus: 1}
-		hwInfo.Memory = []*models.MemoryDetails{{Name: "Mem", Total: int64(3 * units.GiB)}}
-		hw, err := json.Marshal(&hwInfo)
+		inventory.CPU = &models.CPU{Count: 1}
+		inventory.Memory = &models.Memory{PhysicalBytes: int64(3 * units.GiB)}
+		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
-		host.HardwareInfo = string(hw)
+		host.Inventory = string(hw)
 
 		roles := []string{"", "master", "worker"}
 		for _, role := range roles {
@@ -68,11 +68,11 @@ var _ = Describe("hardware_validator", func() {
 	})
 
 	It("insufficient_master_but_valid_worker", func() {
-		hwInfo.CPU = &models.CPUDetails{Cpus: 8}
-		hwInfo.Memory = []*models.MemoryDetails{{Name: "Mem", Total: int64(8 * units.GiB)}}
-		hw, err := json.Marshal(&hwInfo)
+		inventory.CPU = &models.CPU{Count: 8}
+		inventory.Memory = &models.Memory{PhysicalBytes: int64(8 * units.GiB)}
+		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
-		host.HardwareInfo = string(hw)
+		host.Inventory = string(hw)
 		host.Role = "master"
 		insufficient(hwvalidator.IsSufficient(host))
 		host.Role = "worker"
@@ -80,22 +80,18 @@ var _ = Describe("hardware_validator", func() {
 	})
 
 	It("insufficient_number_of_valid_disks", func() {
-		hwInfo.BlockDevices = []*models.BlockDevice{
-			// Not disk type
-			{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "loop0", Size: validDiskSize},
+		inventory.Disks = []*models.Disk{
 			// Not enough size
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: notValidDiskSize},
+			{DriveType: "HDD", Name: "sdb", SizeBytes: notValidDiskSize},
 			// Removable
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sda", RemovableDevice: 1, Size: validDiskSize},
-			// Read-only
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdh", ReadOnly: true, Size: validDiskSize},
+			{DriveType: "FDD", Name: "sda", SizeBytes: validDiskSize},
 			// Filtered Name
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "nvme01fs", Size: validDiskSize},
+			{DriveType: "HDD", Name: "nvme01fs", SizeBytes: validDiskSize},
 		}
-		hw, err := json.Marshal(&hwInfo)
+		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 
-		host.HardwareInfo = string(hw)
+		host.Inventory = string(hw)
 		insufficient(hwvalidator.IsSufficient(host))
 
 		disks, err := hwvalidator.GetHostValidDisks(host)
@@ -105,17 +101,17 @@ var _ = Describe("hardware_validator", func() {
 
 	It("validate_disk_list_return_order", func() {
 		nvmename := "nvme01fs"
-		hwInfo.BlockDevices = []*models.BlockDevice{
+		inventory.Disks = []*models.Disk{
 			// Not disk type
-			{DeviceType: "loop", Fstype: "squashfs", MajorDeviceNumber: 7, MinorDeviceNumber: 0, Mountpoint: "/sysroot", Name: "aaa", ReadOnly: true, RemovableDevice: 1, Size: validDiskSize},
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize + 1},
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sda", Size: validDiskSize + 100},
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdh", Size: validDiskSize},
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: nvmename, Size: validDiskSize},
+			{DriveType: "ODD", Name: "aaa", SizeBytes: validDiskSize},
+			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize + 1},
+			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize + 100},
+			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize},
+			{DriveType: "SDD", Name: nvmename, SizeBytes: validDiskSize},
 		}
-		hw, err := json.Marshal(&hwInfo)
+		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
-		host.HardwareInfo = string(hw)
+		host.Inventory = string(hw)
 		disks, err := hwvalidator.GetHostValidDisks(host)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(disks[0].Name).Should(Equal("sdh"))
@@ -124,7 +120,7 @@ var _ = Describe("hardware_validator", func() {
 	})
 
 	It("invalid_hw_info", func() {
-		host.HardwareInfo = "not a valid json"
+		host.Inventory = "not a valid json"
 		roles := []string{"", "master", "worker"}
 		for _, role := range roles {
 			host.Role = role
@@ -140,21 +136,21 @@ var _ = Describe("hardware_validator", func() {
 })
 
 func sufficient(reply *IsSufficientReply, err error) {
-	Expect(err).NotTo(HaveOccurred())
-	Expect(reply.IsSufficient).To(BeTrue())
-	Expect(reply.Reason).Should(Equal(""))
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, reply.IsSufficient).To(BeTrue())
+	ExpectWithOffset(1, reply.Reason).Should(Equal(""))
 }
 
 func insufficient(reply *IsSufficientReply, err error) {
-	Expect(err).NotTo(HaveOccurred())
-	Expect(reply.IsSufficient).To(BeFalse())
-	Expect(reply.Reason).ShouldNot(Equal(""))
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, reply.IsSufficient).To(BeFalse())
+	ExpectWithOffset(1, reply.Reason).ShouldNot(Equal(""))
 }
 
-func isBlockDeviceNameInlist(blockDevices []*models.BlockDevice, name string) bool {
-	for _, blockDevice := range blockDevices {
+func isBlockDeviceNameInlist(disks []*models.Disk, name string) bool {
+	for _, disk := range disks {
 		// Valid disk: type=disk, not removable, not readonly and size bigger than minimum required
-		if blockDevice.Name == name {
+		if disk.Name == name {
 			return true
 		}
 	}

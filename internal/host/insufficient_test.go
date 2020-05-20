@@ -52,32 +52,46 @@ var _ = Describe("insufficient_state", func() {
 		}
 	})
 
-	Context("update_hw_info", func() {
+	Context("update hw info", func() {
+		It("update", func() {
+			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
+			expectedReply.expectedState = HostStatusInsufficient
+			expectedReply.postCheck = func() {
+				h := getHost(id, clusterId, db)
+				Expect(h.Inventory).Should(Equal(""))
+				Expect(h.HardwareInfo).Should(Equal("some hw info"))
+			}
+		})
+	})
+
+	Context("update_inventory", func() {
 		It("sufficient_hw", func() {
 			mockValidator.EXPECT().IsSufficient(gomock.Any()).
 				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
-			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
+			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			expectedReply.expectedState = HostStatusKnown
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
-				Expect(h.HardwareInfo).Should(Equal("some hw info"))
+				Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+				Expect(h.Inventory).Should(Equal("some hw info"))
 			}
 		})
 		It("insufficient_hw", func() {
 			mockValidator.EXPECT().IsSufficient(gomock.Any()).
 				Return(&hardware.IsSufficientReply{IsSufficient: false, Reason: "because"}, nil).Times(1)
-			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
+			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			expectedReply.expectedState = HostStatusInsufficient
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
-				Expect(h.HardwareInfo).Should(Equal("some hw info"))
+				Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+				Expect(h.Inventory).Should(Equal("some hw info"))
 				Expect(*h.StatusInfo).Should(Equal("because"))
 			}
 		})
 		It("hw_validation_error", func() {
 			mockValidator.EXPECT().IsSufficient(gomock.Any()).
 				Return(nil, errors.New("error")).Times(1)
-			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
+			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			expectedReply.expectError = true
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)

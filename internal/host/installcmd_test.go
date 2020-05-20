@@ -29,7 +29,7 @@ var _ = Describe("installcmd", func() {
 		ctrl              *gomock.Controller
 		mockValidator     *hardware.MockValidator
 		instructionConfig InstructionConfig
-		disks             []*models.BlockDevice
+		disks             []*models.Disk
 	)
 
 	BeforeEach(func() {
@@ -46,10 +46,10 @@ var _ = Describe("installcmd", func() {
 		clusterId = *cluster.ID
 		host = createHostInDb(db, clusterId, RoleMaster, false)
 		validDiskSize := int64(128849018880)
-		disks = []*models.BlockDevice{
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdb", Size: validDiskSize},
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sda", Size: validDiskSize},
-			{DeviceType: "disk", Fstype: "iso9660", MajorDeviceNumber: 11, Mountpoint: "/test", Name: "sdh", Size: validDiskSize},
+		disks = []*models.Disk{
+			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
+			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize},
+			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize},
 		}
 
 	})
@@ -61,7 +61,7 @@ var _ = Describe("installcmd", func() {
 	})
 
 	It("get_step_one_master_no_disks", func() {
-		var emptydisks []*models.BlockDevice
+		var emptydisks []*models.Disk
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(emptydisks, nil).Times(1)
 		stepReply, stepErr = installCmd.GetStep(ctx, &host)
 		postvalidation(true, true, stepReply, stepErr, "")
@@ -121,14 +121,14 @@ func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role string, bootstrap b
 
 func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *models.Step, expectedsteperr error, expectedrole string) {
 	if issteperrnil {
-		Expect(expectedsteperr).Should(HaveOccurred())
+		ExpectWithOffset(1, expectedsteperr).Should(HaveOccurred())
 	} else {
-		Expect(expectedsteperr).ShouldNot(HaveOccurred())
+		ExpectWithOffset(1, expectedsteperr).ShouldNot(HaveOccurred())
 	}
 	if isstepreplynil {
-		Expect(expectedstepreply).Should(BeNil())
+		ExpectWithOffset(1, expectedstepreply).Should(BeNil())
 	} else {
-		Expect(expectedstepreply.StepType).To(Equal(models.StepTypeExecute))
-		Expect(strings.Contains(expectedstepreply.Args[1], expectedrole)).To(Equal(true))
+		ExpectWithOffset(1, expectedstepreply.StepType).To(Equal(models.StepTypeExecute))
+		ExpectWithOffset(1, strings.Contains(expectedstepreply.Args[1], expectedrole)).To(Equal(true))
 	}
 }
