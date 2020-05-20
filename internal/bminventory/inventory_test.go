@@ -355,7 +355,7 @@ var _ = Describe("cluster", func() {
 				ClusterID: clusterID,
 			})
 
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterOK()))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
 		})
 		It("cluster failed to update", func() {
 			mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("cluster has a error"))

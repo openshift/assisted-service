@@ -403,7 +403,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		return installer.NewInstallClusterInternalServerError().
 			WithPayload(generateInternalFromError(err))
 	}
-	return installer.NewInstallClusterOK().WithPayload(&cluster)
+	return installer.NewInstallClusterAccepted().WithPayload(&cluster)
 }
 
 func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster models.Cluster, db *gorm.DB) error {
