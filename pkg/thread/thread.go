@@ -9,7 +9,7 @@ import (
 // Thread provides a background, periodic thread, which invokes the given function every supplied interval.
 //
 // Sample usage:
-//    monitorFunc := func() {
+//    monitorFunc := fun() {
 //        //do monitoring logic
 //    }
 //    monitor := thread.New(log, "Health Monitor", time.Minute*2, monitorFunc)

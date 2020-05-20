@@ -5,10 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	host2 "github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
-	logutil "github.com/filanov/bm-inventory/pkg/log"
-
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -25,24 +22,23 @@ type readyState baseState
 var _ StateAPI = (*Manager)(nil)
 
 func (r *readyState) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error) {
-	log := logutil.FromContext(ctx, r.log)
+	clusterIsReady, err := isClusterReady(c, db, r.log)
+	if err != nil {
+		return nil, errors.Errorf("unable to determine cluster %s hosts state ", c.ID)
+	}
 
-	if err := db.Preload("Hosts").First(&c, "id = ?", c.ID).Error; err != nil {
+	if clusterIsReady {
+
 		return &UpdateReply{
-			State:     clusterStatusInsufficient,
-			IsChanged: false}, errors.Errorf("cluster %s not found", c.ID)
-	}
-	mappedMastersByRole := mapMasterHostsByStatus(c)
-
-	// Cluster is insufficient
-	mastersInKnown := mappedMastersByRole[host2.HostStatusKnown]
-	if len(mastersInKnown) < minHostsNeededForInstallation {
-		log.Infof("Cluster %s dos not have at least %d known master hosts, cluster is insufficient.", c.ID, minHostsNeededForInstallation)
-		return updateState(clusterStatusInsufficient, c, db, log)
-
-		//cluster is still ready
+			State:     clusterStatusReady,
+			IsChanged: false,
+		}, nil
 	} else {
-		return &UpdateReply{State: clusterStatusReady,
-			IsChanged: false}, nil
+		return updateState(clusterStatusInsufficient, c, db, r.log)
+
 	}
+}
+
+func (r *readyState) Install(ctx context.Context, c *models.Cluster) (*UpdateReply, error) {
+	return updateState(clusterStatusInstalling, c, r.db, r.log)
 }
