@@ -287,7 +287,7 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "202": {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/cluster"
@@ -2103,7 +2103,7 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "202": {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/cluster"

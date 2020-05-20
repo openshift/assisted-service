@@ -245,15 +245,15 @@ func (_m *MockAPI) GetNextSteps(ctx context.Context, params *GetNextStepsParams)
 }
 
 // InstallCluster provides a mock function with given fields: ctx, params
-func (_m *MockAPI) InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterOK, error) {
+func (_m *MockAPI) InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterAccepted, error) {
 	ret := _m.Called(ctx, params)
 
-	var r0 *InstallClusterOK
-	if rf, ok := ret.Get(0).(func(context.Context, *InstallClusterParams) *InstallClusterOK); ok {
+	var r0 *InstallClusterAccepted
+	if rf, ok := ret.Get(0).(func(context.Context, *InstallClusterParams) *InstallClusterAccepted); ok {
 		r0 = rf(ctx, params)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*InstallClusterOK)
+			r0 = ret.Get(0).(*InstallClusterAccepted)
 		}
 	}
 

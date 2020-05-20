@@ -13,14 +13,14 @@ import (
 	"github.com/filanov/bm-inventory/models"
 )
 
-// InstallClusterOKCode is the HTTP code returned for type InstallClusterOK
-const InstallClusterOKCode int = 200
+// InstallClusterAcceptedCode is the HTTP code returned for type InstallClusterAccepted
+const InstallClusterAcceptedCode int = 202
 
-/*InstallClusterOK Success.
+/*InstallClusterAccepted Success.
 
-swagger:response installClusterOK
+swagger:response installClusterAccepted
 */
-type InstallClusterOK struct {
+type InstallClusterAccepted struct {
 
 	/*
 	  In: Body
@@ -28,27 +28,27 @@ type InstallClusterOK struct {
 	Payload *models.Cluster `json:"body,omitempty"`
 }
 
-// NewInstallClusterOK creates InstallClusterOK with default headers values
-func NewInstallClusterOK() *InstallClusterOK {
+// NewInstallClusterAccepted creates InstallClusterAccepted with default headers values
+func NewInstallClusterAccepted() *InstallClusterAccepted {
 
-	return &InstallClusterOK{}
+	return &InstallClusterAccepted{}
 }
 
-// WithPayload adds the payload to the install cluster o k response
-func (o *InstallClusterOK) WithPayload(payload *models.Cluster) *InstallClusterOK {
+// WithPayload adds the payload to the install cluster accepted response
+func (o *InstallClusterAccepted) WithPayload(payload *models.Cluster) *InstallClusterAccepted {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the install cluster o k response
-func (o *InstallClusterOK) SetPayload(payload *models.Cluster) {
+// SetPayload sets the payload to the install cluster accepted response
+func (o *InstallClusterAccepted) SetPayload(payload *models.Cluster) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *InstallClusterOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *InstallClusterAccepted) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.WriteHeader(200)
+	rw.WriteHeader(202)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

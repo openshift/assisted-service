@@ -23,8 +23,8 @@ type InstallClusterReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *InstallClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 200:
-		result := NewInstallClusterOK()
+	case 202:
+		result := NewInstallClusterAccepted()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -59,28 +59,28 @@ func (o *InstallClusterReader) ReadResponse(response runtime.ClientResponse, con
 	}
 }
 
-// NewInstallClusterOK creates a InstallClusterOK with default headers values
-func NewInstallClusterOK() *InstallClusterOK {
-	return &InstallClusterOK{}
+// NewInstallClusterAccepted creates a InstallClusterAccepted with default headers values
+func NewInstallClusterAccepted() *InstallClusterAccepted {
+	return &InstallClusterAccepted{}
 }
 
-/*InstallClusterOK handles this case with default header values.
+/*InstallClusterAccepted handles this case with default header values.
 
 Success.
 */
-type InstallClusterOK struct {
+type InstallClusterAccepted struct {
 	Payload *models.Cluster
 }
 
-func (o *InstallClusterOK) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterOK  %+v", 200, o.Payload)
+func (o *InstallClusterAccepted) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterAccepted  %+v", 202, o.Payload)
 }
 
-func (o *InstallClusterOK) GetPayload() *models.Cluster {
+func (o *InstallClusterAccepted) GetPayload() *models.Cluster {
 	return o.Payload
 }
 
-func (o *InstallClusterOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *InstallClusterAccepted) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Cluster)
 

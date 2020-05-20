@@ -50,7 +50,7 @@ type API interface {
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
 	/*
 	   InstallCluster installs the open shift bare metal cluster*/
-	InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterOK, error)
+	InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterAccepted, error)
 	/*
 	   ListClusters retrieves the list of open shift bare metal clusters*/
 	ListClusters(ctx context.Context, params *ListClustersParams) (*ListClustersOK, error)
@@ -338,7 +338,7 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 /*
 InstallCluster installs the open shift bare metal cluster
 */
-func (a *Client) InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterOK, error) {
+func (a *Client) InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterAccepted, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "InstallCluster",
@@ -355,7 +355,7 @@ func (a *Client) InstallCluster(ctx context.Context, params *InstallClusterParam
 	if err != nil {
 		return nil, err
 	}
-	return result.(*InstallClusterOK), nil
+	return result.(*InstallClusterAccepted), nil
 
 }
 
