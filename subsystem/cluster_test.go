@@ -8,13 +8,14 @@ import (
 	"reflect"
 
 	"github.com/alecthomas/units"
-	"github.com/filanov/bm-inventory/client/installer"
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/filanov/bm-inventory/client/installer"
+	"github.com/filanov/bm-inventory/models"
 )
 
 var _ = Describe("Cluster tests", func() {
@@ -175,42 +176,46 @@ var _ = Describe("system-test cluster install", func() {
 			Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("ready"))
 		})
 
-		It("install cluster", func() {
-			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("installing"))
-			Expect(len(c.GetPayload().Hosts)).Should(Equal(4))
-			for _, host := range c.GetPayload().Hosts {
-				Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
-			}
-		})
+		updateProgress := func(hostID strfmt.UUID, progress string) {
+			installProgress := models.HostInstallProgressParams(progress)
+			updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
+				ClusterID:                 clusterID,
+				HostInstallProgressParams: installProgress,
+				HostID:                    hostID,
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
+		}
 
-		It("host install fails while install cluster", func() {
-			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("installing"))
-			Expect(len(c.GetPayload().Hosts)).Should(Equal(4))
-			for _, host := range c.GetPayload().Hosts {
-				Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
-			}
-		})
+		Context("install cluster", func() {
 
+			It("install cluster", func() {
+				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+				Expect(len(c.Hosts)).Should(Equal(4))
+				for _, host := range c.Hosts {
+					Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+				}
+
+				for _, host := range c.Hosts {
+					updateProgress(*host.ID, "Done")
+				}
+				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c = rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal("installed"))
+			})
+		})
 		It("report_progress", func() {
 			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 
 			h := c.GetPayload().Hosts[0]
-
-			updateProgress := func(hostID strfmt.UUID, progress string) {
-				installProgress := models.HostInstallProgressParams(progress)
-				updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
-					ClusterID:                 clusterID,
-					HostInstallProgressParams: installProgress,
-					HostID:                    hostID,
-				})
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
-			}
 
 			By("progress_to_some_host", func() {
 				installProgress := "installation step 1"
