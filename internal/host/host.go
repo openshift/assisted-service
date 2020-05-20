@@ -21,6 +21,8 @@ type StateAPI interface {
 	RegisterHost(ctx context.Context, h *models.Host) (*UpdateReply, error)
 	// Set a new HW information
 	UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error)
+	// Set a new inventory information
+	UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error)
 	// Set host state
 	UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error)
 	// check keep alive
@@ -34,7 +36,7 @@ type StateAPI interface {
 }
 
 type SpecificHardwareParams interface {
-	GetHostValidDisks(h *models.Host) ([]*models.BlockDevice, error)
+	GetHostValidDisks(h *models.Host) ([]*models.Disk, error)
 }
 
 const (
@@ -139,6 +141,14 @@ func (m *Manager) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo strin
 	return state.UpdateHwInfo(ctx, h, hwInfo)
 }
 
+func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
+	state, err := m.getCurrentState(swag.StringValue(h.Status))
+	if err != nil {
+		return nil, err
+	}
+	return state.UpdateInventory(ctx, h, inventory)
+}
+
 func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	state, err := m.getCurrentState(swag.StringValue(h.Status))
 	if err != nil {
@@ -183,7 +193,7 @@ func (m *Manager) GetNextSteps(ctx context.Context, host *models.Host) (models.S
 	return m.instructionApi.GetNextSteps(ctx, host)
 }
 
-func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.BlockDevice, error) {
+func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
 	return m.hwValidator.GetHostValidDisks(host)
 }
 

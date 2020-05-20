@@ -30,6 +30,11 @@ func (d *disabledState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo
 		h.ID, swag.StringValue(h.Status))
 }
 
+func (d *disabledState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
+	return nil, errors.Errorf("unable to update inventory to host <%s> in <%s> status",
+		h.ID, swag.StringValue(h.Status))
+}
+
 func (d *disabledState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	cdb := d.db
 	if db != nil {

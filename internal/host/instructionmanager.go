@@ -37,6 +37,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	connectivityCmd := NewConnectivityCheckCmd(log, db)
 	installCmd := NewInstallCmd(log, db, hwValidator, instructionConfig)
 	hwCmd := NewHwInfoCmd(log)
+	inventoryCmd := NewInventoryCmd(log)
 
 	return &InstructionManager{
 		log: log,
@@ -44,8 +45,8 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 		stateToSteps: stateToStepsMap{
 			HostStatusKnown:        {connectivityCmd},
 			HostStatusInsufficient: {connectivityCmd},
-			HostStatusDisconnected: {hwCmd, connectivityCmd},
-			HostStatusDiscovering:  {hwCmd, connectivityCmd},
+			HostStatusDisconnected: {hwCmd, inventoryCmd, connectivityCmd},
+			HostStatusDiscovering:  {hwCmd, inventoryCmd, connectivityCmd},
 			HostStatusInstalling:   {installCmd},
 		},
 	}

@@ -53,6 +53,11 @@ func (d *discoveringState) UpdateHwInfo(ctx context.Context, h *models.Host, hwI
 	return updateHwInfo(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
 }
 
+func (d *discoveringState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
+	h.Inventory = inventory
+	return updateInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
+}
+
 func (d *discoveringState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	cdb := d.db
 	if db != nil {

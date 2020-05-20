@@ -36,6 +36,11 @@ func (k *knownState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo st
 	return updateHwInfo(logutil.FromContext(ctx, k.log), k.hwValidator, h, k.db)
 }
 
+func (k *knownState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
+	h.Inventory = inventory
+	return updateInventory(logutil.FromContext(ctx, k.log), k.hwValidator, h, k.db)
+}
+
 func (k *knownState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	log := logutil.FromContext(ctx, k.log)
 	cdb := k.db

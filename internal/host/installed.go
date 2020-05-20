@@ -29,6 +29,11 @@ func (i *installedState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInf
 		h.ID, swag.StringValue(h.Status))
 }
 
+func (i *installedState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
+	return nil, errors.Errorf("unable to update inventory to host <%s> in <%s> status",
+		h.ID, swag.StringValue(h.Status))
+}
+
 func (i *installedState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	return nil, errors.Errorf("unable to set role host <%s> in <%s> status",
 		h.ID, swag.StringValue(h.Status))

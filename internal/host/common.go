@@ -70,13 +70,21 @@ func updateStateWithParams(log logrus.FieldLogger, status, statusInfo string, h 
 }
 
 func updateHwInfo(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	status := ""
+	if h.Status != nil {
+		status = *h.Status
+	}
+	return updateStateWithParams(log, status, "", h, db, "hardware_info", h.HardwareInfo)
+}
+
+func updateInventory(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	reply, err := hwValidator.IsSufficient(h)
 	if err != nil {
 		return nil, err
 	}
 	if !reply.IsSufficient {
 		return updateStateWithParams(log, HostStatusInsufficient, reply.Reason, h, db,
-			"hardware_info", h.HardwareInfo)
+			"inventory", h.Inventory)
 	}
-	return updateStateWithParams(log, HostStatusKnown, "", h, db, "hardware_info", h.HardwareInfo)
+	return updateStateWithParams(log, HostStatusKnown, "", h, db, "inventory", h.Inventory)
 }

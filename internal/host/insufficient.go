@@ -37,6 +37,11 @@ func (i *insufficientState) UpdateHwInfo(ctx context.Context, h *models.Host, hw
 	return updateHwInfo(logutil.FromContext(ctx, i.log), i.hwValidator, h, i.db)
 }
 
+func (d *insufficientState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
+	h.Inventory = inventory
+	return updateInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
+}
+
 func (i *insufficientState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	log := logutil.FromContext(ctx, i.log)
 	cdb := i.db

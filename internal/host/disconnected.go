@@ -37,6 +37,11 @@ func (d *disconnectedState) UpdateHwInfo(ctx context.Context, h *models.Host, hw
 	return updateHwInfo(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
 }
 
+func (d *disconnectedState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
+	h.Inventory = inventory
+	return updateInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
+}
+
 func (d *disconnectedState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	cdb := d.db
 	if db != nil {

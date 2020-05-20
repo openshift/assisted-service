@@ -686,6 +686,24 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 		}
 	}
 
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeInventory)) {
+		// To make sure we store only information defined in swagger we unmarshal and marshal hw info.
+		inventory, err := filterReply(&models.Inventory{}, params.Reply.Output)
+		if err != nil {
+			log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
+				params.Reply.StepID, params.HostID, params.ClusterID)
+			return installer.NewPostStepReplyBadRequest().
+				WithPayload(generateError(http.StatusBadRequest, err))
+		}
+
+		if _, err := b.hostApi.UpdateInventory(ctx, &host, inventory); err != nil {
+			log.WithError(err).Errorf("Failed to update host <%s> cluster <%s> step <%s>",
+				params.HostID, params.ClusterID, params.Reply.StepID)
+			return installer.NewPostStepReplyInternalServerError().
+				WithPayload(generateError(http.StatusInternalServerError, err))
+		}
+	}
+
 	return installer.NewPostStepReplyNoContent()
 }
 
