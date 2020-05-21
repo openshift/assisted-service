@@ -48,16 +48,17 @@ const (
 )
 
 type Config struct {
-	ImageBuilder        string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
-	ImageBuilderCmd     string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
-	AgentDockerImg      string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/oamizur/agent:latest"`
-	KubeconfigGenerator string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:stable"`
-	InventoryURL        string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
-	InventoryPort       string `envconfig:"INVENTORY_PORT" default:"30485"`
-	S3EndpointURL       string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
-	S3Bucket            string `envconfig:"S3_BUCKET" default:"test"`
-	AwsAccessKeyID      string `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
-	AwsSecretAccessKey  string `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	ImageBuilder           string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
+	ImageBuilderCmd        string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
+	AgentDockerImg         string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/oamizur/agent:latest"`
+	KubeconfigGenerator    string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:stable"`
+	KubeconfigGenerator4_4 string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/oscohen/ignition-manifests-and-kubeconfig-generate"`
+	InventoryURL           string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
+	InventoryPort          string `envconfig:"INVENTORY_PORT" default:"30485"`
+	S3EndpointURL          string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket               string `envconfig:"S3_BUCKET" default:"test"`
+	AwsAccessKeyID         string `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey     string `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
 }
 
 const ignitionConfigFormat = `{
@@ -756,6 +757,10 @@ func (b *bareMetalInventory) createKubeconfigJob(cluster *models.Cluster, jobNam
 	if cluster.OpenshiftVersion == models.ClusterOpenshiftVersionNr44 {
 		overrideImageName = "quay.io/openshift-release-dev/ocp-release:4.4.0-rc.7-x86_64"
 	}
+	kubeConfigGeneratorImage := b.Config.KubeconfigGenerator
+	if cluster.OpenshiftVersion == models.ClusterOpenshiftVersionNr44 {
+		kubeConfigGeneratorImage = b.Config.KubeconfigGenerator4_4
+	}
 	return &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
@@ -776,7 +781,7 @@ func (b *bareMetalInventory) createKubeconfigJob(cluster *models.Cluster, jobNam
 					Containers: []core.Container{
 						{
 							Name:            kubeconfigPrefix,
-							Image:           b.Config.KubeconfigGenerator,
+							Image:           kubeConfigGeneratorImage,
 							Command:         b.imageBuildCmd,
 							ImagePullPolicy: "IfNotPresent",
 							Env: []core.EnvVar{
