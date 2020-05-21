@@ -2,6 +2,7 @@ package bminventory
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"reflect"
@@ -279,12 +280,13 @@ var _ = Describe("cluster", func() {
 		clusterID      strfmt.UUID
 	)
 
-	addHost := func(hostId strfmt.UUID, role string, state string, clusterId strfmt.UUID, db *gorm.DB) models.Host {
+	addHost := func(hostId strfmt.UUID, role string, state string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
 		host := models.Host{
 			ID:        &hostId,
 			ClusterID: clusterId,
 			Status:    swag.String(state),
 			Role:      role,
+			Inventory: inventory,
 		}
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		return host
@@ -315,6 +317,16 @@ var _ = Describe("cluster", func() {
 		mockHostApi.EXPECT().SetBootstrap(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
 
+	getInventoryStr := func(ipv4Addresses ...string) string {
+		inventory := models.Inventory{Interfaces: []*models.Interface{
+			{
+				IPV4Addresses: append(make([]string, 0), ipv4Addresses...),
+			},
+		}}
+		ret, _ := json.Marshal(&inventory)
+		return string(ret)
+	}
+
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
@@ -330,13 +342,14 @@ var _ = Describe("cluster", func() {
 		BeforeEach(func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&models.Cluster{
-				ID: &clusterID,
+				ID:     &clusterID,
+				APIVip: "10.11.12.13",
 			}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			addHost(masterHostId1, "master", "known", clusterID, db)
-			addHost(masterHostId2, "master", "known", clusterID, db)
-			addHost(masterHostId3, "master", "known", clusterID, db)
+			addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24"), db)
+			addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
+			addHost(masterHostId3, "master", "known", clusterID, getInventoryStr(), db)
 		})
 
 		It("success", func() {

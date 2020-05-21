@@ -113,6 +113,7 @@ var _ = Describe("system-test cluster install", func() {
 	BeforeEach(func() {
 		registerClusterReply, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
+				APIVip:                   "1.2.3.4",
 				BaseDNSDomain:            "example.com",
 				ClusterNetworkCidr:       "10.128.0.0/14",
 				ClusterNetworkHostPrefix: 23,
@@ -153,6 +154,11 @@ var _ = Describe("system-test cluster install", func() {
 				Disks: []*models.Disk{
 					{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
 					{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+				Interfaces: []*models.Interface{
+					{
+						IPV4Addresses: []string{"1.2.3.5/24"},
+					},
+				},
 			}
 
 			h1 := registerHost(clusterID)
