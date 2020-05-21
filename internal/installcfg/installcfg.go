@@ -1,7 +1,13 @@
 package installcfg
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net"
+
 	"github.com/filanov/bm-inventory/models"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -96,7 +102,43 @@ func countHostsByRole(cluster *models.Cluster, role string) int {
 	return count
 }
 
+func getMachineCIDR(cluster *models.Cluster) (string, error) {
+	parsedVipAddr := net.ParseIP(string(cluster.APIVip))
+	if parsedVipAddr == nil {
+		errStr := fmt.Sprintf("Could not parse VIP ip %s", cluster.APIVip)
+		logrus.Warn(errStr)
+		return "", errors.New(errStr)
+	}
+	for _, h := range cluster.Hosts {
+		var inventory models.Inventory
+		err := json.Unmarshal([]byte(h.Inventory), &inventory)
+		if err != nil {
+			logrus.WithError(err).Warnf("Error unmarshalling host inventory %s", h.Inventory)
+			continue
+		}
+		for _, intf := range inventory.Interfaces {
+			for _, ipv4addr := range intf.IPV4Addresses {
+				_, ipnet, err := net.ParseCIDR(ipv4addr)
+				if err != nil {
+					logrus.WithError(err).Warnf("Could not parse cidr %s", ipv4addr)
+					continue
+				}
+				if ipnet.Contains(parsedVipAddr) {
+					return ipnet.String(), nil
+				}
+			}
+		}
+	}
+	errStr := fmt.Sprintf("No suitable matching CIDR found for VIP %s", cluster.APIVip)
+	logrus.Warn(errStr)
+	return "", errors.New(errStr)
+}
+
 func GetInstallConfig(cluster *models.Cluster) ([]byte, error) {
+	machineCidr, err := getMachineCIDR(cluster)
+	if err != nil {
+		return nil, err
+	}
 	var cfg interface{}
 	if cluster.OpenshiftVersion != models.ClusterOpenshiftVersionNr44 {
 		cfg = InstallerConfigBaremetal{
@@ -123,7 +165,7 @@ func GetInstallConfig(cluster *models.Cluster) ([]byte, error) {
 				MachineNetwork: []struct {
 					Cidr string `yaml:"cidr"`
 				}{
-					{Cidr: "192.168.126.0/24"},
+					{Cidr: machineCidr},
 				},
 				ServiceNetwork: []string{cluster.ServiceNetworkCidr},
 			},
