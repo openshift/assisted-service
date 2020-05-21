@@ -12,30 +12,30 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockHandler is a mock of Handler interface.
+// MockHandler is a mock of Handler interface
 type MockHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockHandlerMockRecorder
 }
 
-// MockHandlerMockRecorder is the mock recorder for MockHandler.
+// MockHandlerMockRecorder is the mock recorder for MockHandler
 type MockHandlerMockRecorder struct {
 	mock *MockHandler
 }
 
-// NewMockHandler creates a new mock instance.
+// NewMockHandler creates a new mock instance
 func NewMockHandler(ctrl *gomock.Controller) *MockHandler {
 	mock := &MockHandler{ctrl: ctrl}
 	mock.recorder = &MockHandlerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return m.recorder
 }
 
-// AddEvent mocks base method.
+// AddEvent mocks base method
 func (m *MockHandler) AddEvent(ctx context.Context, entityID, msg string, eventTime time.Time, otherEntities ...string) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, entityID, msg, eventTime}
@@ -45,14 +45,14 @@ func (m *MockHandler) AddEvent(ctx context.Context, entityID, msg string, eventT
 	m.ctrl.Call(m, "AddEvent", varargs...)
 }
 
-// AddEvent indicates an expected call of AddEvent.
+// AddEvent indicates an expected call of AddEvent
 func (mr *MockHandlerMockRecorder) AddEvent(ctx, entityID, msg, eventTime interface{}, otherEntities ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, entityID, msg, eventTime}, otherEntities...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEvent", reflect.TypeOf((*MockHandler)(nil).AddEvent), varargs...)
 }
 
-// GetEvents mocks base method.
+// GetEvents mocks base method
 func (m *MockHandler) GetEvents(entityID string) ([]*Event, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEvents", entityID)
@@ -61,7 +61,7 @@ func (m *MockHandler) GetEvents(entityID string) ([]*Event, error) {
 	return ret0, ret1
 }
 
-// GetEvents indicates an expected call of GetEvents.
+// GetEvents indicates an expected call of GetEvents
 func (mr *MockHandlerMockRecorder) GetEvents(entityID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEvents", reflect.TypeOf((*MockHandler)(nil).GetEvents), entityID)

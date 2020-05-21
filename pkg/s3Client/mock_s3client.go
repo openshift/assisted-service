@@ -11,30 +11,30 @@ import (
 	reflect "reflect"
 )
 
-// MockS3Client is a mock of S3Client interface.
+// MockS3Client is a mock of S3Client interface
 type MockS3Client struct {
 	ctrl     *gomock.Controller
 	recorder *MockS3ClientMockRecorder
 }
 
-// MockS3ClientMockRecorder is the mock recorder for MockS3Client.
+// MockS3ClientMockRecorder is the mock recorder for MockS3Client
 type MockS3ClientMockRecorder struct {
 	mock *MockS3Client
 }
 
-// NewMockS3Client creates a new mock instance.
+// NewMockS3Client creates a new mock instance
 func NewMockS3Client(ctrl *gomock.Controller) *MockS3Client {
 	mock := &MockS3Client{ctrl: ctrl}
 	mock.recorder = &MockS3ClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockS3Client) EXPECT() *MockS3ClientMockRecorder {
 	return m.recorder
 }
 
-// PushDataToS3 mocks base method.
+// PushDataToS3 mocks base method
 func (m *MockS3Client) PushDataToS3(ctx context.Context, data []byte, fileName, s3Bucket string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PushDataToS3", ctx, data, fileName, s3Bucket)
@@ -42,13 +42,13 @@ func (m *MockS3Client) PushDataToS3(ctx context.Context, data []byte, fileName, 
 	return ret0
 }
 
-// PushDataToS3 indicates an expected call of PushDataToS3.
+// PushDataToS3 indicates an expected call of PushDataToS3
 func (mr *MockS3ClientMockRecorder) PushDataToS3(ctx, data, fileName, s3Bucket interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PushDataToS3", reflect.TypeOf((*MockS3Client)(nil).PushDataToS3), ctx, data, fileName, s3Bucket)
 }
 
-// DownloadFileFromS3 mocks base method.
+// DownloadFileFromS3 mocks base method
 func (m *MockS3Client) DownloadFileFromS3(ctx context.Context, fileName, s3Bucket string) (io.ReadCloser, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DownloadFileFromS3", ctx, fileName, s3Bucket)
@@ -57,7 +57,7 @@ func (m *MockS3Client) DownloadFileFromS3(ctx context.Context, fileName, s3Bucke
 	return ret0, ret1
 }
 
-// DownloadFileFromS3 indicates an expected call of DownloadFileFromS3.
+// DownloadFileFromS3 indicates an expected call of DownloadFileFromS3
 func (mr *MockS3ClientMockRecorder) DownloadFileFromS3(ctx, fileName, s3Bucket interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadFileFromS3", reflect.TypeOf((*MockS3Client)(nil).DownloadFileFromS3), ctx, fileName, s3Bucket)

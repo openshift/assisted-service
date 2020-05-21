@@ -11,30 +11,30 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockValidator is a mock of Validator interface.
+// MockValidator is a mock of Validator interface
 type MockValidator struct {
 	ctrl     *gomock.Controller
 	recorder *MockValidatorMockRecorder
 }
 
-// MockValidatorMockRecorder is the mock recorder for MockValidator.
+// MockValidatorMockRecorder is the mock recorder for MockValidator
 type MockValidatorMockRecorder struct {
 	mock *MockValidator
 }
 
-// NewMockValidator creates a new mock instance.
+// NewMockValidator creates a new mock instance
 func NewMockValidator(ctrl *gomock.Controller) *MockValidator {
 	mock := &MockValidator{ctrl: ctrl}
 	mock.recorder = &MockValidatorMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 	return m.recorder
 }
 
-// IsSufficient mocks base method.
+// IsSufficient mocks base method
 func (m *MockValidator) IsSufficient(host *models.Host) (*IsSufficientReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsSufficient", host)
@@ -43,13 +43,13 @@ func (m *MockValidator) IsSufficient(host *models.Host) (*IsSufficientReply, err
 	return ret0, ret1
 }
 
-// IsSufficient indicates an expected call of IsSufficient.
+// IsSufficient indicates an expected call of IsSufficient
 func (mr *MockValidatorMockRecorder) IsSufficient(host interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSufficient", reflect.TypeOf((*MockValidator)(nil).IsSufficient), host)
 }
 
-// GetHostValidDisks mocks base method.
+// GetHostValidDisks mocks base method
 func (m *MockValidator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostValidDisks", host)
@@ -58,13 +58,13 @@ func (m *MockValidator) GetHostValidDisks(host *models.Host) ([]*models.Disk, er
 	return ret0, ret1
 }
 
-// GetHostValidDisks indicates an expected call of GetHostValidDisks.
+// GetHostValidDisks indicates an expected call of GetHostValidDisks
 func (mr *MockValidatorMockRecorder) GetHostValidDisks(host interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockValidator)(nil).GetHostValidDisks), host)
 }
 
-// GetHostValidInterfaces mocks base method.
+// GetHostValidInterfaces mocks base method
 func (m *MockValidator) GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostValidInterfaces", host)
@@ -73,7 +73,7 @@ func (m *MockValidator) GetHostValidInterfaces(host *models.Host) ([]*models.Int
 	return ret0, ret1
 }
 
-// GetHostValidInterfaces indicates an expected call of GetHostValidInterfaces.
+// GetHostValidInterfaces indicates an expected call of GetHostValidInterfaces
 func (mr *MockValidatorMockRecorder) GetHostValidInterfaces(host interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidInterfaces", reflect.TypeOf((*MockValidator)(nil).GetHostValidInterfaces), host)

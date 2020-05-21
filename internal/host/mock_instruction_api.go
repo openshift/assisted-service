@@ -12,30 +12,30 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockInstructionApi is a mock of InstructionApi interface.
+// MockInstructionApi is a mock of InstructionApi interface
 type MockInstructionApi struct {
 	ctrl     *gomock.Controller
 	recorder *MockInstructionApiMockRecorder
 }
 
-// MockInstructionApiMockRecorder is the mock recorder for MockInstructionApi.
+// MockInstructionApiMockRecorder is the mock recorder for MockInstructionApi
 type MockInstructionApiMockRecorder struct {
 	mock *MockInstructionApi
 }
 
-// NewMockInstructionApi creates a new mock instance.
+// NewMockInstructionApi creates a new mock instance
 func NewMockInstructionApi(ctrl *gomock.Controller) *MockInstructionApi {
 	mock := &MockInstructionApi{ctrl: ctrl}
 	mock.recorder = &MockInstructionApiMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockInstructionApi) EXPECT() *MockInstructionApiMockRecorder {
 	return m.recorder
 }
 
-// GetNextSteps mocks base method.
+// GetNextSteps mocks base method
 func (m *MockInstructionApi) GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNextSteps", ctx, host)
@@ -44,7 +44,7 @@ func (m *MockInstructionApi) GetNextSteps(ctx context.Context, host *models.Host
 	return ret0, ret1
 }
 
-// GetNextSteps indicates an expected call of GetNextSteps.
+// GetNextSteps indicates an expected call of GetNextSteps
 func (mr *MockInstructionApiMockRecorder) GetNextSteps(ctx, host interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextSteps", reflect.TypeOf((*MockInstructionApi)(nil).GetNextSteps), ctx, host)
