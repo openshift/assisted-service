@@ -1049,7 +1049,8 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4"
+            "4.4",
+            "4.5"
           ]
         },
         "pull_secret": {
@@ -1135,7 +1136,8 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4"
+            "4.4",
+            "4.5"
           ]
         },
         "pull_secret": {
@@ -2885,7 +2887,8 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4"
+            "4.4",
+            "4.5"
           ]
         },
         "pull_secret": {
@@ -2971,7 +2974,8 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4"
+            "4.4",
+            "4.5"
           ]
         },
         "pull_secret": {
