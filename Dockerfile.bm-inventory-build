@@ -1,14 +1,15 @@
-FROM golang:1.14
+FROM golang:1.14.3
+
+ENV GO111MODULE=on
 
 RUN apt-get update && apt-get install -y docker.io libvirt-clients awscli python3-pip \
  && rm -rf /var/lib/apt/lists/*
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.24.0
-RUN go get -u github.com/onsi/ginkgo/ginkgo  # installs the ginkgo CLI
-RUN go get -u github.com/onsi/gomega/...     # fetches the matcher library
-RUN go get -u golang.org/x/tools/cmd/goimports
-RUN go get -u github.com/golang/mock/mockgen
-RUN go get -u github.com/vektra/mockery/.../
-RUN pip3 install boto3
-RUN curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+RUN go get -u github.com/onsi/ginkgo/ginkgo@v1.12.2  # installs the ginkgo CLI
+RUN go get -u golang.org/x/tools/cmd/goimports@v0.0.0-20200520220537-cf2d1e09c845
+RUN go get -u github.com/golang/mock/mockgen@v1.4.3
+RUN go get -u github.com/vektra/mockery/.../@v1.1.2
+RUN pip3 install boto3==1.13.14
+RUN curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.10.1/minikube-linux-amd64 \
   && chmod +x minikube && mkdir -p /usr/local/bin/ && install minikube /usr/local/bin/
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
