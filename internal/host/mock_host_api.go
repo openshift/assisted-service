@@ -378,3 +378,17 @@ func (mr *MockAPIMockRecorder) SetBootstrap(ctx, h, isbootstrap interface{}) *go
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBootstrap", reflect.TypeOf((*MockAPI)(nil).SetBootstrap), ctx, h, isbootstrap)
 }
+
+// UpdateConnectivityReport mocks base method.
+func (m *MockAPI) UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateConnectivityReport", ctx, h, connectivityReport)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateConnectivityReport indicates an expected call of UpdateConnectivityReport.
+func (mr *MockAPIMockRecorder) UpdateConnectivityReport(ctx, h, connectivityReport interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConnectivityReport", reflect.TypeOf((*MockAPI)(nil).UpdateConnectivityReport), ctx, h, connectivityReport)
+}

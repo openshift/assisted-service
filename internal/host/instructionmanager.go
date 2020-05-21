@@ -34,7 +34,7 @@ type InstructionConfig struct {
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig) *InstructionManager {
-	connectivityCmd := NewConnectivityCheckCmd(log, db)
+	connectivityCmd := NewConnectivityCheckCmd(log, db, hwValidator)
 	installCmd := NewInstallCmd(log, db, hwValidator, instructionConfig)
 	hwCmd := NewHwInfoCmd(log)
 	inventoryCmd := NewInventoryCmd(log)

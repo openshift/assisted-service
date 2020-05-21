@@ -1572,7 +1572,8 @@ func init() {
           "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
         },
         "connectivity": {
-          "$ref": "#/definitions/connectivity-report"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "created_at": {
           "type": "string",
@@ -3536,7 +3537,8 @@ func init() {
           "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
         },
         "connectivity": {
-          "$ref": "#/definitions/connectivity-report"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "created_at": {
           "type": "string",

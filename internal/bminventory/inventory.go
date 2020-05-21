@@ -719,55 +719,79 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 }
 
 func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder {
+	var err error
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Received step reply <%s> from cluster <%s> host <%s>  exit-code <%d> stdout <%s> stderr <%s>", params.Reply.StepID, params.ClusterID,
 		params.HostID, params.Reply.ExitCode, params.Reply.Output, params.Reply.Error)
 
+	//check the output exit code
+	if params.Reply.ExitCode != 0 {
+		err = fmt.Errorf("Exit code is %d reply error is %s for %s reply for host %s cluster %s",
+			params.Reply.ExitCode, params.Reply.Error, params.Reply.StepID, params.HostID, params.ClusterID)
+		log.WithError(err).Errorf("Exit code is <%d> , reply error is <%s> for <%s> reply for host <%s> cluster <%s>",
+			params.Reply.ExitCode, params.Reply.Error, params.Reply.StepID, params.HostID, params.ClusterID)
+		return installer.NewPostStepReplyBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+
 	var host models.Host
-	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
+	if err = b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("Failed to find host <%s> cluster <%s> step <%s>",
 			params.HostID, params.ClusterID, params.Reply.StepID)
 		return installer.NewPostStepReplyNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 
-	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeHardwareInfo)) {
-		// To make sure we store only information defined in swagger we unmarshal and marshal hw info.
-		hwInfo, err := filterReply(&models.Introspection{}, params.Reply.Output)
-		if err != nil {
-			log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
-				params.Reply.StepID, params.HostID, params.ClusterID)
-			return installer.NewPostStepReplyBadRequest().
-				WithPayload(common.GenerateError(http.StatusBadRequest, err))
-		}
-
-		if _, err := b.hostApi.UpdateHwInfo(ctx, &host, hwInfo); err != nil {
-			log.WithError(err).Errorf("Failed to update host <%s> cluster <%s> step <%s>",
-				params.HostID, params.ClusterID, params.Reply.StepID)
-			return installer.NewPostStepReplyInternalServerError().
-				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
+	var stepReply string
+	stepReply, err = filterReplyByType(params)
+	if err != nil {
+		log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
+			params.Reply.StepID, params.HostID, params.ClusterID)
+		return installer.NewPostStepReplyBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
-	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeInventory)) {
-		// To make sure we store only information defined in swagger we unmarshal and marshal hw info.
-		inventory, err := filterReply(&models.Inventory{}, params.Reply.Output)
-		if err != nil {
-			log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
-				params.Reply.StepID, params.HostID, params.ClusterID)
-			return installer.NewPostStepReplyBadRequest().
-				WithPayload(common.GenerateError(http.StatusBadRequest, err))
-		}
-
-		if _, err := b.hostApi.UpdateInventory(ctx, &host, inventory); err != nil {
-			log.WithError(err).Errorf("Failed to update host <%s> cluster <%s> step <%s>",
-				params.HostID, params.ClusterID, params.Reply.StepID)
-			return installer.NewPostStepReplyInternalServerError().
-				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
+	err = handleReplyByType(params, b, ctx, host, stepReply)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to update step reply for host <%s> cluster <%s> step <%s>",
+			params.HostID, params.ClusterID, params.Reply.StepID)
+		return installer.NewPostStepReplyInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
 	return installer.NewPostStepReplyNoContent()
+}
+
+func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {
+	var err error
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeHardwareInfo)) {
+		_, err = b.hostApi.UpdateHwInfo(ctx, &host, stepReply)
+	}
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeConnectivityCheck)) {
+		err = b.hostApi.UpdateConnectivityReport(ctx, &host, stepReply)
+	}
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeInventory)) {
+		_, err = b.hostApi.UpdateInventory(ctx, &host, stepReply)
+	}
+	return err
+}
+
+func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
+	var stepReply string
+	var err error
+	// To make sure we store only information defined in swagger we unmarshal and marshal the stepReplyParams.
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeHardwareInfo)) {
+		stepReply, err = filterReply(&models.Introspection{}, params.Reply.Output)
+	}
+
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeConnectivityCheck)) {
+		stepReply, err = filterReply(&models.ConnectivityReport{}, params.Reply.Output)
+	}
+
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeInventory)) {
+		stepReply, err = filterReply(&models.Inventory{}, params.Reply.Output)
+	}
+	return stepReply, err
 }
 
 // filterReply return only the expected parameters from the input.

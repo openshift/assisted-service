@@ -69,6 +69,7 @@ type API interface {
 	SpecificHardwareParams
 	UpdateInstallProgress(ctx context.Context, h *models.Host, progress string) error
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool) error
+	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 }
 
 type Manager struct {
@@ -245,4 +246,15 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 		}
 	}
 	return nil
+}
+
+func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error {
+	if h.Connectivity != connectivityReport {
+		err := m.db.Model(h).Update("connectivity", connectivityReport).Error
+		if err != nil {
+			return errors.Wrapf(err, "failed to set connectivity to host %s", h.ID.String())
+		}
+	}
+	return nil
+
 }

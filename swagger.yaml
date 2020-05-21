@@ -745,7 +745,8 @@ definitions:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
       connectivity:
-        $ref: '#/definitions/connectivity-report'
+        x-go-custom-tag: gorm:"type:text"
+        type: string
       hardware_info:
         x-go-custom-tag: gorm:"type:text"
         type: string

@@ -21,6 +21,7 @@ const diskNameFilterRegex = "nvme"
 type Validator interface {
 	IsSufficient(host *models.Host) (*IsSufficientReply, error)
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
+	GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error)
 }
 
 func NewValidator(cfg ValidatorCfg) Validator {
@@ -103,6 +104,17 @@ func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 		return nil, fmt.Errorf("host %s doesn't have valid disks", host.ID)
 	}
 	return disks, nil
+}
+
+func (v *validator) GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error) {
+	var inventory models.Inventory
+	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+		return nil, err
+	}
+	if len(inventory.Interfaces) == 0 {
+		return nil, fmt.Errorf("host %s doesn't have interfaces", host.ID)
+	}
+	return inventory.Interfaces, nil
 }
 
 func gibToBytes(gib int64) int64 {

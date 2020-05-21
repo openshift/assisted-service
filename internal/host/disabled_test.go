@@ -100,4 +100,5 @@ var _ = Describe("disabled_state", func() {
 		updateReply = nil
 		updateErr = nil
 	})
+
 })

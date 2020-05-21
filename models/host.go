@@ -27,7 +27,7 @@ type Host struct {
 	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`
 
 	// connectivity
-	Connectivity *ConnectivityReport `json:"connectivity,omitempty"`
+	Connectivity string `json:"connectivity,omitempty" gorm:"type:text"`
 
 	// created at
 	// Format: date-time
@@ -79,10 +79,6 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateConnectivity(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateCreatedAt(formats); err != nil {
 		res = append(res, err)
 	}
@@ -129,24 +125,6 @@ func (m *Host) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (m *Host) validateConnectivity(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Connectivity) { // not required
-		return nil
-	}
-
-	if m.Connectivity != nil {
-		if err := m.Connectivity.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("connectivity")
-			}
-			return err
-		}
 	}
 
 	return nil

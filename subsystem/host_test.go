@@ -120,6 +120,55 @@ var _ = Describe("Host tests", func() {
 		Expect(host.HardwareInfo).Should(Equal(hwInfo))
 	})
 
+	It("connectivity_report_store_only_relevant_reply", func() {
+		host := registerHost(clusterID)
+
+		connectivity := "{\"remote_hosts\":[{\"host_id\":\"b8a1228d-1091-4e79-be66-738a160f9ff7\",\"l2_connectivity\":null,\"l3_connectivity\":null}]}"
+		extraConnectivity := "{\"extra\":\"data\",\"remote_hosts\":[{\"host_id\":\"b8a1228d-1091-4e79-be66-738a160f9ff7\",\"l2_connectivity\":null,\"l3_connectivity\":null}]}"
+
+		_, err := bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   extraConnectivity,
+				StepID:   string(models.StepTypeConnectivityCheck),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Connectivity).Should(Equal(connectivity))
+
+		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   "not a json",
+				StepID:   string(models.StepTypeConnectivityCheck),
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Connectivity).Should(Equal(connectivity))
+
+		//exit code is not 0
+		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: -1,
+				Error:    "some error",
+				Output:   "not a json",
+				StepID:   string(models.StepTypeConnectivityCheck),
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Connectivity).Should(Equal(connectivity))
+
+	})
+
 	It("disable enable", func() {
 		host := registerHost(clusterID)
 		_, err := bmclient.Installer.DisableHost(ctx, &installer.DisableHostParams{
