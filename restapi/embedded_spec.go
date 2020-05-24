@@ -900,6 +900,38 @@ func init() {
           }
         }
       }
+    },
+    "/events/{entity_id}": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Lists events for an entity_id",
+        "operationId": "ListEvents",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "entity_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/event-list"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -1433,6 +1465,36 @@ func init() {
           "description": "Human readable description of the error.",
           "type": "string"
         }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "entity_id",
+        "message",
+        "event_time"
+      ],
+      "properties": {
+        "entity_id": {
+          "description": "Unique identifier of the object this event relates to.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"index\""
+        },
+        "event_time": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "event-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/event"
       }
     },
     "host": {
@@ -2725,6 +2787,38 @@ func init() {
           }
         }
       }
+    },
+    "/events/{entity_id}": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Lists events for an entity_id",
+        "operationId": "ListEvents",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "entity_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/event-list"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -3261,6 +3355,36 @@ func init() {
           "description": "Human readable description of the error.",
           "type": "string"
         }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "entity_id",
+        "message",
+        "event_time"
+      ],
+      "properties": {
+        "entity_id": {
+          "description": "Unique identifier of the object this event relates to.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"index\""
+        },
+        "event_time": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "event-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/event"
       }
     },
     "host": {

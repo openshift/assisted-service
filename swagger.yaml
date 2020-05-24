@@ -608,8 +608,54 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /events/{entity_id}:
+    get:
+      tags:
+        - events
+      summary: Lists events for an entity_id
+      operationId: ListEvents
+      parameters:
+        - in: path
+          name: entity_id
+          type: string
+          format: uuid
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/event-list'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 
 definitions:
+  event-list:
+    type: array
+    items:
+      $ref: '#/definitions/event'
+
+  event:
+    type: object
+    required:
+      - entity_id
+      - message
+      - event_time
+    properties:
+      entity_id:
+        type: string
+        format: uuid
+        description: Unique identifier of the object this event relates to.
+        x-go-custom-tag: gorm:"index"
+      message:
+        type: string
+      event_time:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:datetime"
+
   image-create-params:
     type: object
     properties:

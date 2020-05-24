@@ -14,12 +14,20 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 
 	"github.com/filanov/bm-inventory/restapi/operations"
+	"github.com/filanov/bm-inventory/restapi/operations/events"
 	"github.com/filanov/bm-inventory/restapi/operations/installer"
 )
 
 type contextKey string
 
 const AuthKey contextKey = "Auth"
+
+//go:generate mockery -name EventsAPI -inpkg
+
+// EventsAPI
+type EventsAPI interface {
+	ListEvents(ctx context.Context, params events.ListEventsParams) middleware.Responder
+}
 
 //go:generate mockery -name InstallerAPI -inpkg
 
@@ -48,6 +56,7 @@ type InstallerAPI interface {
 
 // Config is configuration for Handler
 type Config struct {
+	EventsAPI
 	InstallerAPI
 	Logger func(string, ...interface{})
 	// InnerMiddleware is for the handler executors. These do not apply to the swagger.json document.
@@ -128,6 +137,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	api.InstallerListClustersHandler = installer.ListClustersHandlerFunc(func(params installer.ListClustersParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InstallerAPI.ListClusters(ctx, params)
+	})
+	api.EventsListEventsHandler = events.ListEventsHandlerFunc(func(params events.ListEventsParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.EventsAPI.ListEvents(ctx, params)
 	})
 	api.InstallerListHostsHandler = installer.ListHostsHandlerFunc(func(params installer.ListHostsParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

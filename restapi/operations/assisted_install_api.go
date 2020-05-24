@@ -19,6 +19,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
+	"github.com/filanov/bm-inventory/restapi/operations/events"
 	"github.com/filanov/bm-inventory/restapi/operations/installer"
 )
 
@@ -79,6 +80,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerListClustersHandler: installer.ListClustersHandlerFunc(func(params installer.ListClustersParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListClusters has not yet been implemented")
+		}),
+		EventsListEventsHandler: events.ListEventsHandlerFunc(func(params events.ListEventsParams) middleware.Responder {
+			return middleware.NotImplemented("operation events.ListEvents has not yet been implemented")
 		}),
 		InstallerListHostsHandler: installer.ListHostsHandlerFunc(func(params installer.ListHostsParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListHosts has not yet been implemented")
@@ -161,6 +165,8 @@ type AssistedInstallAPI struct {
 	InstallerInstallClusterHandler installer.InstallClusterHandler
 	// InstallerListClustersHandler sets the operation handler for the list clusters operation
 	InstallerListClustersHandler installer.ListClustersHandler
+	// EventsListEventsHandler sets the operation handler for the list events operation
+	EventsListEventsHandler events.ListEventsHandler
 	// InstallerListHostsHandler sets the operation handler for the list hosts operation
 	InstallerListHostsHandler installer.ListHostsHandler
 	// InstallerPostStepReplyHandler sets the operation handler for the post step reply operation
@@ -279,6 +285,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerListClustersHandler == nil {
 		unregistered = append(unregistered, "installer.ListClustersHandler")
+	}
+	if o.EventsListEventsHandler == nil {
+		unregistered = append(unregistered, "events.ListEventsHandler")
 	}
 	if o.InstallerListHostsHandler == nil {
 		unregistered = append(unregistered, "installer.ListHostsHandler")
@@ -439,6 +448,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters"] = installer.NewListClusters(o.context, o.InstallerListClustersHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/events/{entity_id}"] = events.NewListEvents(o.context, o.EventsListEventsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
