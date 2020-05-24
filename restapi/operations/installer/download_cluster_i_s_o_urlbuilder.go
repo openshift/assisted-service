@@ -18,8 +18,6 @@ import (
 type DownloadClusterISOURL struct {
 	ClusterID strfmt.UUID
 
-	ImageID strfmt.UUID
-
 	_basePath string
 	// avoid unkeyed usage
 	_ struct{}
@@ -58,15 +56,6 @@ func (o *DownloadClusterISOURL) Build() (*url.URL, error) {
 		_basePath = "/api/assisted-install/v1"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
-
-	qs := make(url.Values)
-
-	imageIDQ := o.ImageID.String()
-	if imageIDQ != "" {
-		qs.Set("image_id", imageIDQ)
-	}
-
-	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }

@@ -9,11 +9,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 
 	"github.com/filanov/bm-inventory/models"
 )
@@ -44,6 +41,12 @@ func (o *GenerateClusterISOReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
+	case 409:
+		result := NewGenerateClusterISOConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewGenerateClusterISOInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -66,20 +69,20 @@ func NewGenerateClusterISOCreated() *GenerateClusterISOCreated {
 Success.
 */
 type GenerateClusterISOCreated struct {
-	Payload *GenerateClusterISOCreatedBody
+	Payload *models.Cluster
 }
 
 func (o *GenerateClusterISOCreated) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOCreated  %+v", 201, o.Payload)
 }
 
-func (o *GenerateClusterISOCreated) GetPayload() *GenerateClusterISOCreatedBody {
+func (o *GenerateClusterISOCreated) GetPayload() *models.Cluster {
 	return o.Payload
 }
 
 func (o *GenerateClusterISOCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(GenerateClusterISOCreatedBody)
+	o.Payload = new(models.Cluster)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -155,6 +158,27 @@ func (o *GenerateClusterISONotFound) readResponse(response runtime.ClientRespons
 	return nil
 }
 
+// NewGenerateClusterISOConflict creates a GenerateClusterISOConflict with default headers values
+func NewGenerateClusterISOConflict() *GenerateClusterISOConflict {
+	return &GenerateClusterISOConflict{}
+}
+
+/*GenerateClusterISOConflict handles this case with default header values.
+
+Error.
+*/
+type GenerateClusterISOConflict struct {
+}
+
+func (o *GenerateClusterISOConflict) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOConflict ", 409)
+}
+
+func (o *GenerateClusterISOConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
 // NewGenerateClusterISOInternalServerError creates a GenerateClusterISOInternalServerError with default headers values
 func NewGenerateClusterISOInternalServerError() *GenerateClusterISOInternalServerError {
 	return &GenerateClusterISOInternalServerError{}
@@ -185,60 +209,5 @@ func (o *GenerateClusterISOInternalServerError) readResponse(response runtime.Cl
 		return err
 	}
 
-	return nil
-}
-
-/*GenerateClusterISOCreatedBody generate cluster i s o created body
-swagger:model GenerateClusterISOCreatedBody
-*/
-type GenerateClusterISOCreatedBody struct {
-
-	// image Id
-	// Format: uuid
-	ImageID strfmt.UUID `json:"imageId,omitempty"`
-}
-
-// Validate validates this generate cluster i s o created body
-func (o *GenerateClusterISOCreatedBody) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := o.validateImageID(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (o *GenerateClusterISOCreatedBody) validateImageID(formats strfmt.Registry) error {
-
-	if swag.IsZero(o.ImageID) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("generateClusterISOCreated"+"."+"imageId", "body", "uuid", o.ImageID.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (o *GenerateClusterISOCreatedBody) MarshalBinary() ([]byte, error) {
-	if o == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(o)
-}
-
-// UnmarshalBinary interface implementation
-func (o *GenerateClusterISOCreatedBody) UnmarshalBinary(b []byte) error {
-	var res GenerateClusterISOCreatedBody
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*o = res
 	return nil
 }

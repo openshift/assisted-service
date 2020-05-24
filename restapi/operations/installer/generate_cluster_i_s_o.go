@@ -8,11 +8,7 @@ package installer
 import (
 	"net/http"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // GenerateClusterISOHandlerFunc turns a function with the right signature into a generate cluster i s o handler
@@ -59,59 +55,4 @@ func (o *GenerateClusterISO) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
-}
-
-// GenerateClusterISOCreatedBody generate cluster i s o created body
-//
-// swagger:model GenerateClusterISOCreatedBody
-type GenerateClusterISOCreatedBody struct {
-
-	// image Id
-	// Format: uuid
-	ImageID strfmt.UUID `json:"imageId,omitempty"`
-}
-
-// Validate validates this generate cluster i s o created body
-func (o *GenerateClusterISOCreatedBody) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := o.validateImageID(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (o *GenerateClusterISOCreatedBody) validateImageID(formats strfmt.Registry) error {
-
-	if swag.IsZero(o.ImageID) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("generateClusterISOCreated"+"."+"imageId", "body", "uuid", o.ImageID.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (o *GenerateClusterISOCreatedBody) MarshalBinary() ([]byte, error) {
-	if o == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(o)
-}
-
-// UnmarshalBinary interface implementation
-func (o *GenerateClusterISOCreatedBody) UnmarshalBinary(b []byte) error {
-	var res GenerateClusterISOCreatedBody
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*o = res
-	return nil
 }

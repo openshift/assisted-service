@@ -56,6 +56,10 @@ type Cluster struct {
 	// Format: uuid
 	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
 
+	// image info
+	// Required: true
+	ImageInfo *ImageInfo `json:"image_info" gorm:"embedded;embedded_prefix:image_"`
+
 	// Virtual IP used for cluster ingress traffic.
 	// Format: ipv4
 	IngressVip strfmt.IPv4 `json:"ingress_vip,omitempty"`
@@ -137,6 +141,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateImageInfo(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -293,6 +301,24 @@ func (m *Cluster) validateID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateImageInfo(formats strfmt.Registry) error {
+
+	if err := validate.Required("image_info", "body", m.ImageInfo); err != nil {
+		return err
+	}
+
+	if m.ImageInfo != nil {
+		if err := m.ImageInfo.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("image_info")
+			}
+			return err
+		}
 	}
 
 	return nil

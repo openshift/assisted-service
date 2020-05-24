@@ -398,13 +398,6 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "image_id",
-            "in": "query",
-            "required": true
           }
         ],
         "responses": {
@@ -462,13 +455,7 @@ func init() {
           "201": {
             "description": "Success.",
             "schema": {
-              "type": "object",
-              "properties": {
-                "imageId": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
+              "$ref": "#/definitions/cluster"
             }
           },
           "400": {
@@ -482,6 +469,9 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
+          },
+          "409": {
+            "description": "Error."
           },
           "500": {
             "description": "Error.",
@@ -995,6 +985,7 @@ func init() {
         "kind",
         "id",
         "href",
+        "image_info",
         "status",
         "status_info"
       ],
@@ -1048,6 +1039,10 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "image_info": {
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
+          "$ref": "#/definitions/image_info"
         },
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
@@ -1617,6 +1612,24 @@ func init() {
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
+          "type": "string"
+        }
+      }
+    },
+    "image_info": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
+        },
+        "proxy_url": {
+          "description": "The URL of the HTTP/S proxy that agents should use to access the discovery service\nhttp://\\\u003cuser\\\u003e:\\\u003cpassword\\\u003e@\\\u003cserver\\\u003e:\\\u003cport\\\u003e/\n",
+          "type": "string"
+        },
+        "ssh_public_key": {
+          "description": "SSH public key for debugging the installation",
           "type": "string"
         }
       }
@@ -2290,13 +2303,6 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "image_id",
-            "in": "query",
-            "required": true
           }
         ],
         "responses": {
@@ -2354,13 +2360,7 @@ func init() {
           "201": {
             "description": "Success.",
             "schema": {
-              "type": "object",
-              "properties": {
-                "imageId": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
+              "$ref": "#/definitions/cluster"
             }
           },
           "400": {
@@ -2374,6 +2374,9 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
+          },
+          "409": {
+            "description": "Error."
           },
           "500": {
             "description": "Error.",
@@ -2903,6 +2906,7 @@ func init() {
         "kind",
         "id",
         "href",
+        "image_info",
         "status",
         "status_info"
       ],
@@ -2956,6 +2960,10 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "image_info": {
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
+          "$ref": "#/definitions/image_info"
         },
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
@@ -3512,6 +3520,24 @@ func init() {
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
+          "type": "string"
+        }
+      }
+    },
+    "image_info": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
+        },
+        "proxy_url": {
+          "description": "The URL of the HTTP/S proxy that agents should use to access the discovery service\nhttp://\\\u003cuser\\\u003e:\\\u003cpassword\\\u003e@\\\u003cserver\\\u003e:\\\u003cport\\\u003e/\n",
+          "type": "string"
+        },
+        "ssh_public_key": {
+          "description": "SSH public key for debugging the installation",
           "type": "string"
         }
       }

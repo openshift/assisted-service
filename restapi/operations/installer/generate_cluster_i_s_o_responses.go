@@ -25,7 +25,7 @@ type GenerateClusterISOCreated struct {
 	/*
 	  In: Body
 	*/
-	Payload *GenerateClusterISOCreatedBody `json:"body,omitempty"`
+	Payload *models.Cluster `json:"body,omitempty"`
 }
 
 // NewGenerateClusterISOCreated creates GenerateClusterISOCreated with default headers values
@@ -35,13 +35,13 @@ func NewGenerateClusterISOCreated() *GenerateClusterISOCreated {
 }
 
 // WithPayload adds the payload to the generate cluster i s o created response
-func (o *GenerateClusterISOCreated) WithPayload(payload *GenerateClusterISOCreatedBody) *GenerateClusterISOCreated {
+func (o *GenerateClusterISOCreated) WithPayload(payload *models.Cluster) *GenerateClusterISOCreated {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the generate cluster i s o created response
-func (o *GenerateClusterISOCreated) SetPayload(payload *GenerateClusterISOCreatedBody) {
+func (o *GenerateClusterISOCreated) SetPayload(payload *models.Cluster) {
 	o.Payload = payload
 }
 
@@ -143,6 +143,30 @@ func (o *GenerateClusterISONotFound) WriteResponse(rw http.ResponseWriter, produ
 			panic(err) // let the recovery middleware deal with this
 		}
 	}
+}
+
+// GenerateClusterISOConflictCode is the HTTP code returned for type GenerateClusterISOConflict
+const GenerateClusterISOConflictCode int = 409
+
+/*GenerateClusterISOConflict Error.
+
+swagger:response generateClusterISOConflict
+*/
+type GenerateClusterISOConflict struct {
+}
+
+// NewGenerateClusterISOConflict creates GenerateClusterISOConflict with default headers values
+func NewGenerateClusterISOConflict() *GenerateClusterISOConflict {
+
+	return &GenerateClusterISOConflict{}
+}
+
+// WriteResponse to the client
+func (o *GenerateClusterISOConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(409)
 }
 
 // GenerateClusterISOInternalServerErrorCode is the HTTP code returned for type GenerateClusterISOInternalServerError
