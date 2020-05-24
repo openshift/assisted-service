@@ -47,7 +47,9 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		role = RoleBootstrap
 	}
 
-	const cmdArgsTmpl = `sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host --net=host --name assisted-insatller {{.INSTALLER}} --role {{.ROLE}}  --cluster-id {{.CLUSTER_ID}}  --host {{.HOST}} --port {{.PORT}} --boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}}`
+	const cmdArgsTmpl = "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host --net=host " +
+		"--name assisted-installer {{.INSTALLER}} --role {{.ROLE}} --cluster-id {{.CLUSTER_ID}} --host {{.HOST}} " +
+		"--port {{.PORT}} --boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}}"
 	t, err := template.New("cmd").Parse(cmdArgsTmpl)
 	if err != nil {
 		return nil, err

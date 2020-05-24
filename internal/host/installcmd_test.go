@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/filanov/bm-inventory/internal/hardware"
@@ -31,7 +32,6 @@ var _ = Describe("installcmd", func() {
 		instructionConfig InstructionConfig
 		disks             []*models.Disk
 	)
-
 	BeforeEach(func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
@@ -71,6 +71,7 @@ var _ = Describe("installcmd", func() {
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		stepReply, stepErr = installCmd.GetStep(ctx, &host)
 		postvalidation(false, false, stepReply, stepErr, RoleMaster)
+		validateInstallCommand(stepReply, RoleMaster, string(clusterId), string(*host.ID))
 	})
 
 	It("get_step_three_master_success", func() {
@@ -80,10 +81,13 @@ var _ = Describe("installcmd", func() {
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(3)
 		stepReply, stepErr = installCmd.GetStep(ctx, &host)
 		postvalidation(false, false, stepReply, stepErr, RoleMaster)
+		validateInstallCommand(stepReply, RoleMaster, string(clusterId), string(*host.ID))
 		stepReply, stepErr = installCmd.GetStep(ctx, &host2)
 		postvalidation(false, false, stepReply, stepErr, RoleMaster)
+		validateInstallCommand(stepReply, RoleMaster, string(clusterId), string(*host2.ID))
 		stepReply, stepErr = installCmd.GetStep(ctx, &host3)
 		postvalidation(false, false, stepReply, stepErr, RoleBootstrap)
+		validateInstallCommand(stepReply, RoleBootstrap, string(clusterId), string(*host3.ID))
 	})
 
 	AfterEach(func() {
@@ -99,7 +103,8 @@ var _ = Describe("installcmd", func() {
 func createClusterInDb(db *gorm.DB) models.Cluster {
 	clusterId := strfmt.UUID(uuid.New().String())
 	cluster := models.Cluster{
-		ID: &clusterId,
+		ID:               &clusterId,
+		OpenshiftVersion: "4.5",
 	}
 	Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	return cluster
@@ -131,4 +136,12 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 		ExpectWithOffset(1, expectedstepreply.StepType).To(Equal(models.StepTypeExecute))
 		ExpectWithOffset(1, strings.Contains(expectedstepreply.Args[1], expectedrole)).To(Equal(true))
 	}
+}
+
+func validateInstallCommand(reply *models.Step, role string, clusterId string, hostId string) {
+	installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host --net=host " +
+		"--name assisted-installer quay.io/ocpmetal/assisted-installer:stable --role %s " +
+		"--cluster-id %s --host 10.35.59.36 --port 30485 " +
+		"--boot-device /dev/sdb --host-id %s --openshift-version 4.5"
+	ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId, hostId)))
 }
