@@ -47,14 +47,13 @@ var _ = Describe("system-test image tests", func() {
 		}
 		defer os.Remove(file.Name())
 
-		imgReply, err := bmclient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+		_, err = bmclient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
 			ClusterID:         clusterID,
 			ImageCreateParams: &models.ImageCreateParams{},
 		})
 		Expect(err).NotTo(HaveOccurred())
 		_, err = bmclient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
 			ClusterID: clusterID,
-			ImageID:   imgReply.GetPayload().ImageID,
 		}, file)
 		Expect(err).NotTo(HaveOccurred())
 		s, err := file.Stat()
@@ -108,7 +107,6 @@ var _ = Describe("image tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		_, err = bmclient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
 			ClusterID: *cluster.GetPayload().ID,
-			ImageID:   strfmt.UUID(uuid.New().String()),
 		}, file)
 		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterISONotFound())))
 	})

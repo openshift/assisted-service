@@ -282,7 +282,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 		return installer.NewDownloadClusterISONotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
-	imgName := getImageName(params.ClusterID, params.ImageID)
+	imgName := getImageName(params.ClusterID)
 	imageURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket, imgName)
 
 	log.Info("Image URL: ", imageURL)
@@ -306,24 +306,71 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 	}
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(resp.Body),
-		fmt.Sprintf("%s-cluster-%s-discovery.iso", params.ImageID.String(), params.ClusterID.String()))
+		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()))
 }
 
-// GenerateClusterISO and return image ID that can be used to download the ISO
 func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params installer.GenerateClusterISOParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("prepare image for cluster %s", params.ClusterID)
 	var cluster models.Cluster
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
+
+	tx := b.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("generate cluster ISO failed")
+			tx.Rollback()
+		}
+	}()
+
+	if tx.Error != nil {
+		log.WithError(tx.Error).Errorf("failed to start db transaction")
+		return installer.NewInstallClusterInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
+	}
+
+	if err := tx.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
+		tx.Rollback()
 		return installer.NewGenerateClusterISONotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
-	// generating a new uuid for each call to prevent races between concurrent requests
-	imgId := strfmt.UUID(uuid.New().String())
-	imgName := getImageName(params.ClusterID, imgId)
-	// max job name is 63 chars
-	jobName := fmt.Sprintf("create-image-%s-%s", cluster.ID, imgId)[:63]
+
+	/* We need to ensure that the metadata in the DB matches the image that will be uploaded to S3,
+	so we check that at least 10 seconds have past since the previous request to reduce the chance
+	of a race between two consecutive requests.
+	*/
+	now := time.Now()
+	previousCreatedAt := time.Time(cluster.ImageInfo.CreatedAt)
+	if previousCreatedAt.Add(10 * time.Second).After(now) {
+		log.Error("request came too soon after previous request")
+		tx.Rollback()
+		return installer.NewGenerateClusterISOConflict()
+	}
+
+	cluster.ImageInfo.ProxyURL = params.ImageCreateParams.ProxyURL
+	cluster.ImageInfo.SSHPublicKey = params.ImageCreateParams.SSHPublicKey
+	cluster.ImageInfo.CreatedAt = strfmt.DateTime(now)
+
+	if err := tx.Model(&cluster).Update(cluster).Error; err != nil {
+		tx.Rollback()
+		log.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
+		return installer.NewGenerateClusterISOInternalServerError()
+	}
+
+	if tx.Commit().Error != nil {
+		tx.Rollback()
+		return installer.NewGenerateClusterISOInternalServerError()
+	}
+
+	// Kill the previous job in case it's still running
+	prevJobName := fmt.Sprintf("createimage-%s-%s", cluster.ID, previousCreatedAt.Format("20060102150405"))
+	log.Info("Attempting to delete job %s", prevJobName)
+	if err := b.job.Delete(ctx, prevJobName, b.Namespace); err != nil {
+		log.WithError(err).Errorf("failed to kill previous job in cluster %s", cluster.ID)
+		return installer.NewGenerateClusterISOInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+	log.Info("Finished attempting to delete job %s", prevJobName)
 
 	ignitionConfig, formatErr := b.formatIgnitionFile(&cluster, params)
 	if formatErr != nil {
@@ -332,6 +379,10 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 			WithPayload(common.GenerateError(http.StatusInternalServerError, formatErr))
 	}
 
+	// This job name is exactly 63 characters which is the maximum for a job - be careful if modifying
+	jobName := fmt.Sprintf("createimage-%s-%s", cluster.ID, now.Format("20060102150405"))
+	imgName := getImageName(params.ClusterID)
+	log.Info("Creating job %s", jobName)
 	if err := b.job.Create(ctx, b.createImageJob(&cluster, jobName, imgName, ignitionConfig)); err != nil {
 		log.WithError(err).Error("failed to create image job")
 		return installer.NewGenerateClusterISOInternalServerError().
@@ -344,13 +395,12 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	log.Infof("Generated cluster <%s> image <%s> with ignition config %s", params.ClusterID, imgId, ignitionConfig)
-	return installer.NewGenerateClusterISOCreated().
-		WithPayload(&installer.GenerateClusterISOCreatedBody{ImageID: imgId})
+	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfig)
+	return installer.NewGenerateClusterISOCreated().WithPayload(&cluster)
 }
 
-func getImageName(clusterID, id strfmt.UUID) string {
-	return fmt.Sprintf("discovery-image-%s-%s", clusterID.String(), id)
+func getImageName(clusterID strfmt.UUID) string {
+	return fmt.Sprintf("discovery-image-%s", clusterID.String())
 }
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
@@ -473,7 +523,9 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}()
 
 	if tx.Error != nil {
-		log.WithError(tx.Error).Error("failed to start transaction")
+		log.WithError(tx.Error).Errorf("failed to start db transaction")
+		return installer.NewUpdateClusterInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
 	}
 
 	if err := tx.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {

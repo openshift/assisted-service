@@ -67,3 +67,17 @@ func (mr *MockAPIMockRecorder) Monitor(ctx, name, namespace interface{}) *gomock
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Monitor", reflect.TypeOf((*MockAPI)(nil).Monitor), ctx, name, namespace)
 }
+
+// Delete mocks base method.
+func (m *MockAPI) Delete(ctx context.Context, name, namespace string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete", ctx, name, namespace)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Monitor.
+func (mr *MockAPIMockRecorder) Delete(ctx, name, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockAPI)(nil).Monitor), ctx, name, namespace)
+}
