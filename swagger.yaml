@@ -666,6 +666,7 @@ definitions:
           - insufficient
           - disabled
           - installing
+          - installing-in-progress
           - installed
           - error
       status_info:
