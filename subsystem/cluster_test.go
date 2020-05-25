@@ -212,20 +212,9 @@ var _ = Describe("system-test cluster install", func() {
 				for _, host := range c.Hosts {
 					updateProgress(*host.ID, "Done")
 				}
-				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-				Expect(err).NotTo(HaveOccurred())
-				c = rep.GetPayload()
-				for start := time.Now(); time.Since(start) < 10*time.Second; {
-					rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-					Expect(err).NotTo(HaveOccurred())
-					c = rep.GetPayload()
-					if swag.StringValue(c.Status) != "installing" {
-						break
-					}
-					time.Sleep(time.Second)
-				}
 
-				Expect(swag.StringValue(c.Status)).Should(Equal("installed"))
+				waitForClusterState(ctx, clusterID, "installing", "installed")
+
 			})
 		})
 		It("report_progress", func() {
@@ -471,3 +460,19 @@ var _ = Describe("system-test cluster install", func() {
 		Expect(*h1.Status).Should(Equal("insufficient"))
 	})
 })
+
+func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, fromState, toState string) {
+	for start := time.Now(); time.Since(start) < 10*time.Second; {
+		rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		c := rep.GetPayload()
+		if swag.StringValue(c.Status) != fromState {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	c := rep.GetPayload()
+	Expect(swag.StringValue(c.Status)).Should(Equal(toState))
+}
