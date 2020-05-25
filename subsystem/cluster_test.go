@@ -195,7 +195,7 @@ var _ = Describe("system-test cluster install", func() {
 
 		Context("install cluster", func() {
 
-			It("install_cluster", func() {
+			It("install cluster", func() {
 				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -207,14 +207,14 @@ var _ = Describe("system-test cluster install", func() {
 				for _, host := range c.Hosts {
 					Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
 				}
-				By("update host progress to done")
+
 				for _, host := range c.Hosts {
 					updateProgress(*host.ID, "Done")
 				}
-				//rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-				//Expect(err).NotTo(HaveOccurred())
-				//c = rep.GetPayload()
-				//Expect(swag.StringValue(c.Status)).Should(Equal("installed"))
+				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c = rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal("installed"))
 			})
 		})
 		It("report_progress", func() {
