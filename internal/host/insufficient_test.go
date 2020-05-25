@@ -138,10 +138,11 @@ var _ = Describe("insufficient_state", func() {
 
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
+			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			updateReply, updateErr = state.RefreshStatus(ctx, &host)
 		})
 		It("keep_alive_timeout", func() {
-			host.UpdatedAt = strfmt.DateTime(time.Now().Add(-time.Hour))
+			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Hour))
 			expectedReply.expectedState = HostStatusDisconnected
 			updateReply, updateErr = state.RefreshStatus(ctx, &host)
 		})

@@ -70,6 +70,7 @@ type API interface {
 	UpdateInstallProgress(ctx context.Context, h *models.Host, progress string) error
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
+	HostMonitoring()
 }
 
 type Manager struct {
@@ -256,5 +257,4 @@ func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, 
 		}
 	}
 	return nil
-
 }

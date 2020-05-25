@@ -698,11 +698,39 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 	var steps models.Steps
 	var host models.Host
 
+	tx := b.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("get next steps failed")
+			tx.Rollback()
+		}
+	}()
+
+	if tx.Error != nil {
+		log.WithError(tx.Error).Errorf("failed to start db transaction")
+		return installer.NewUpdateClusterInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
+	}
+
 	//TODO check the error type
-	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to find host %s", params.HostID)
+	if err := tx.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find host: %s", params.HostID)
+		tx.Rollback()
 		return installer.NewGetNextStepsNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
+	}
+
+	host.CheckedInAt = strfmt.DateTime(time.Now())
+
+	if err := tx.Model(&host).Update(host).Error; err != nil {
+		tx.Rollback()
+		log.WithError(err).Errorf("failed to update host: %s", params.ClusterID)
+		return installer.NewGetNextStepsInternalServerError()
+	}
+
+	if tx.Commit().Error != nil {
+		tx.Rollback()
+		return installer.NewGetNextStepsInternalServerError()
 	}
 
 	var err error

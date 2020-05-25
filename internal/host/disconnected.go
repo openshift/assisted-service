@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"time"
 
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
@@ -47,7 +48,11 @@ func (d *disconnectedState) UpdateRole(ctx context.Context, h *models.Host, role
 }
 
 func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	// State in the same state
+	log := logutil.FromContext(ctx, d.log)
+	if time.Since(time.Time(h.CheckedInAt)) < 3*time.Minute {
+		return updateState(log, HostStatusDiscovering, statusInfoDiscovering, h, d.db)
+	}
+	// Stay in the same state
 	return &UpdateReply{
 		State:     HostStatusDisconnected,
 		IsChanged: false,

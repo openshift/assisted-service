@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
@@ -126,6 +127,68 @@ var _ = Describe("update_progress", func() {
 
 	It("invalid state", func() {
 		Expect(state.UpdateInstallProgress(ctx, &host, "don't care")).Should(HaveOccurred())
+	})
+})
+
+var _ = Describe("monitor_disconnection", func() {
+	var (
+		ctx   = context.Background()
+		db    *gorm.DB
+		state API
+		host  models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		state = NewManager(getTestLog(), db, nil, nil)
+		host = getTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), HostStatusDiscovering)
+		err := state.RegisterHost(ctx, &host)
+		Expect(err).ShouldNot(HaveOccurred())
+		db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
+	})
+
+	Context("host_disconnecting", func() {
+		It("known_host_disconnects", func() {
+			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
+			host.Status = swag.String(HostStatusKnown)
+			db.Save(&host)
+		})
+
+		It("discovering_host_disconnects", func() {
+			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
+			host.Status = swag.String(HostStatusDiscovering)
+			db.Save(&host)
+		})
+
+		It("known_host_insufficient", func() {
+			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
+			host.Status = swag.String(HostStatusInsufficient)
+			db.Save(&host)
+		})
+
+		AfterEach(func() {
+			state.HostMonitoring()
+			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
+			Expect(*host.Status).Should(Equal(HostStatusDisconnected))
+		})
+	})
+
+	Context("host_reconnecting", func() {
+		It("host_connects", func() {
+			host.CheckedInAt = strfmt.DateTime(time.Now())
+			host.Status = swag.String(HostStatusDisconnected)
+			db.Save(&host)
+		})
+
+		AfterEach(func() {
+			state.HostMonitoring()
+			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
+			Expect(*host.Status).Should(Equal(HostStatusDiscovering))
+		})
+	})
+
+	AfterEach(func() {
+		db.Close()
 	})
 })
 

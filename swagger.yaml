@@ -842,6 +842,7 @@ definitions:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:datetime"
+        description: The last time the host's agent communicated with the service.
 
   steps:
     type: array

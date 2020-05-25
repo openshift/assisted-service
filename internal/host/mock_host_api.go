@@ -392,3 +392,15 @@ func (mr *MockAPIMockRecorder) UpdateConnectivityReport(ctx, h, connectivityRepo
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConnectivityReport", reflect.TypeOf((*MockAPI)(nil).UpdateConnectivityReport), ctx, h, connectivityReport)
 }
+
+// HostMonitoring mocks base method.
+func (m *MockAPI) HostMonitoring() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "HostMonitoring")
+}
+
+// HostMonitoring indicates an expected call of HostMonitoring.
+func (mr *MockAPIMockRecorder) HostMonitoring() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostMonitoring", reflect.TypeOf((*MockAPI)(nil).HostMonitoring))
+}
