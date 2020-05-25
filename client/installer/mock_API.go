@@ -129,6 +129,29 @@ func (_m *MockAPI) DownloadClusterISO(ctx context.Context, params *DownloadClust
 	return r0, r1
 }
 
+// DownloadClusterKubeconfig provides a mock function with given fields: ctx, params, writer
+func (_m *MockAPI) DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error) {
+	ret := _m.Called(ctx, params, writer)
+
+	var r0 *DownloadClusterKubeconfigOK
+	if rf, ok := ret.Get(0).(func(context.Context, *DownloadClusterKubeconfigParams, io.Writer) *DownloadClusterKubeconfigOK); ok {
+		r0 = rf(ctx, params, writer)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*DownloadClusterKubeconfigOK)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *DownloadClusterKubeconfigParams, io.Writer) error); ok {
+		r1 = rf(ctx, params, writer)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // EnableHost provides a mock function with given fields: ctx, params
 func (_m *MockAPI) EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostNoContent, error) {
 	ret := _m.Called(ctx, params)
@@ -466,6 +489,29 @@ func (_m *MockAPI) UpdateHostInstallProgress(ctx context.Context, params *Update
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *UpdateHostInstallProgressParams) error); ok {
+		r1 = rf(ctx, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UploadClusterIngressCert provides a mock function with given fields: ctx, params
+func (_m *MockAPI) UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error) {
+	ret := _m.Called(ctx, params)
+
+	var r0 *UploadClusterIngressCertCreated
+	if rf, ok := ret.Get(0).(func(context.Context, *UploadClusterIngressCertParams) *UploadClusterIngressCertCreated); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*UploadClusterIngressCertCreated)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *UploadClusterIngressCertParams) error); ok {
 		r1 = rf(ctx, params)
 	} else {
 		r1 = ret.Error(1)

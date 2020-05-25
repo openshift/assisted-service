@@ -60,6 +60,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerDownloadClusterISOHandler: installer.DownloadClusterISOHandlerFunc(func(params installer.DownloadClusterISOParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadClusterISO has not yet been implemented")
 		}),
+		InstallerDownloadClusterKubeconfigHandler: installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams) middleware.Responder {
+			return middleware.NotImplemented("operation installer.DownloadClusterKubeconfig has not yet been implemented")
+		}),
 		InstallerEnableHostHandler: installer.EnableHostHandlerFunc(func(params installer.EnableHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.EnableHost has not yet been implemented")
 		}),
@@ -108,6 +111,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerUpdateHostInstallProgressHandler: installer.UpdateHostInstallProgressHandlerFunc(func(params installer.UpdateHostInstallProgressParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateHostInstallProgress has not yet been implemented")
 		}),
+		InstallerUploadClusterIngressCertHandler: installer.UploadClusterIngressCertHandlerFunc(func(params installer.UploadClusterIngressCertParams) middleware.Responder {
+			return middleware.NotImplemented("operation installer.UploadClusterIngressCert has not yet been implemented")
+		}),
 	}
 }
 
@@ -154,6 +160,8 @@ type AssistedInstallAPI struct {
 	InstallerDownloadClusterFilesHandler installer.DownloadClusterFilesHandler
 	// InstallerDownloadClusterISOHandler sets the operation handler for the download cluster i s o operation
 	InstallerDownloadClusterISOHandler installer.DownloadClusterISOHandler
+	// InstallerDownloadClusterKubeconfigHandler sets the operation handler for the download cluster kubeconfig operation
+	InstallerDownloadClusterKubeconfigHandler installer.DownloadClusterKubeconfigHandler
 	// InstallerEnableHostHandler sets the operation handler for the enable host operation
 	InstallerEnableHostHandler installer.EnableHostHandler
 	// InstallerGenerateClusterISOHandler sets the operation handler for the generate cluster i s o operation
@@ -186,6 +194,8 @@ type AssistedInstallAPI struct {
 	InstallerUpdateClusterHandler installer.UpdateClusterHandler
 	// InstallerUpdateHostInstallProgressHandler sets the operation handler for the update host install progress operation
 	InstallerUpdateHostInstallProgressHandler installer.UpdateHostInstallProgressHandler
+	// InstallerUploadClusterIngressCertHandler sets the operation handler for the upload cluster ingress cert operation
+	InstallerUploadClusterIngressCertHandler installer.UploadClusterIngressCertHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -270,6 +280,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerDownloadClusterISOHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadClusterISOHandler")
 	}
+	if o.InstallerDownloadClusterKubeconfigHandler == nil {
+		unregistered = append(unregistered, "installer.DownloadClusterKubeconfigHandler")
+	}
 	if o.InstallerEnableHostHandler == nil {
 		unregistered = append(unregistered, "installer.EnableHostHandler")
 	}
@@ -317,6 +330,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerUpdateHostInstallProgressHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateHostInstallProgressHandler")
+	}
+	if o.InstallerUploadClusterIngressCertHandler == nil {
+		unregistered = append(unregistered, "installer.UploadClusterIngressCertHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -428,6 +444,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/downloads/image"] = installer.NewDownloadClusterISO(o.context, o.InstallerDownloadClusterISOHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{cluster_id}/downloads/kubeconfig"] = installer.NewDownloadClusterKubeconfig(o.context, o.InstallerDownloadClusterKubeconfigHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -492,6 +512,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
 	o.handlers["PUT"]["/clusters/{clusterId}/hosts/{hostId}/progress"] = installer.NewUpdateHostInstallProgress(o.context, o.InstallerUpdateHostInstallProgressHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/uploads/ingress-cert"] = installer.NewUploadClusterIngressCert(o.context, o.InstallerUploadClusterIngressCertHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

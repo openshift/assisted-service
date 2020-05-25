@@ -389,7 +389,7 @@ func init() {
               "metadata.json",
               "worker.ign",
               "kubeadmin-password",
-              "kubeconfig"
+              "kubeconfig-noingress"
             ],
             "type": "string",
             "name": "file_name",
@@ -516,6 +516,54 @@ func init() {
           },
           "409": {
             "description": "Error."
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/downloads/kubeconfig": {
+      "get": {
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Downloads the kubeconfig file for this cluster.",
+        "operationId": "DownloadClusterKubeconfig",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           },
           "500": {
             "description": "Error.",
@@ -956,6 +1004,55 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/event-list"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/uploads/ingress-cert": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Transfer the ingress certificate for the cluster.",
+        "operationId": "UploadClusterIngressCert",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "image-create-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ingress-cert-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -1691,6 +1788,9 @@ func init() {
         }
       }
     },
+    "ingress-cert-params": {
+      "type": "string"
+    },
     "interface": {
       "type": "object",
       "properties": {
@@ -2351,7 +2451,7 @@ func init() {
               "metadata.json",
               "worker.ign",
               "kubeadmin-password",
-              "kubeconfig"
+              "kubeconfig-noingress"
             ],
             "type": "string",
             "name": "file_name",
@@ -2478,6 +2578,54 @@ func init() {
           },
           "409": {
             "description": "Error."
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/downloads/kubeconfig": {
+      "get": {
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Downloads the kubeconfig file for this cluster.",
+        "operationId": "DownloadClusterKubeconfig",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           },
           "500": {
             "description": "Error.",
@@ -2918,6 +3066,55 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/event-list"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/uploads/ingress-cert": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Transfer the ingress certificate for the cluster.",
+        "operationId": "UploadClusterIngressCert",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "image-create-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ingress-cert-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -3655,6 +3852,9 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
         }
       }
+    },
+    "ingress-cert-params": {
+      "type": "string"
     },
     "interface": {
       "type": "object",

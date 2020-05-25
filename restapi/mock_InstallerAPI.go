@@ -96,6 +96,22 @@ func (_m *MockInstallerAPI) DownloadClusterISO(ctx context.Context, params insta
 	return r0
 }
 
+// DownloadClusterKubeconfig provides a mock function with given fields: ctx, params
+func (_m *MockInstallerAPI) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
+	ret := _m.Called(ctx, params)
+
+	var r0 middleware.Responder
+	if rf, ok := ret.Get(0).(func(context.Context, installer.DownloadClusterKubeconfigParams) middleware.Responder); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(middleware.Responder)
+		}
+	}
+
+	return r0
+}
+
 // EnableHost provides a mock function with given fields: ctx, params
 func (_m *MockInstallerAPI) EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder {
 	ret := _m.Called(ctx, params)
@@ -326,6 +342,22 @@ func (_m *MockInstallerAPI) UpdateHostInstallProgress(ctx context.Context, param
 
 	var r0 middleware.Responder
 	if rf, ok := ret.Get(0).(func(context.Context, installer.UpdateHostInstallProgressParams) middleware.Responder); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(middleware.Responder)
+		}
+	}
+
+	return r0
+}
+
+// UploadClusterIngressCert provides a mock function with given fields: ctx, params
+func (_m *MockInstallerAPI) UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder {
+	ret := _m.Called(ctx, params)
+
+	var r0 middleware.Responder
+	if rf, ok := ret.Get(0).(func(context.Context, installer.UploadClusterIngressCertParams) middleware.Responder); ok {
 		r0 = rf(ctx, params)
 	} else {
 		if ret.Get(0) != nil {

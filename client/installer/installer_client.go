@@ -34,6 +34,9 @@ type API interface {
 	   DownloadClusterISO downloads the open shift per cluster discovery i s o*/
 	DownloadClusterISO(ctx context.Context, params *DownloadClusterISOParams, writer io.Writer) (*DownloadClusterISOOK, error)
 	/*
+	   DownloadClusterKubeconfig downloads the kubeconfig file for this cluster*/
+	DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error)
+	/*
 	   EnableHost enables a host for inclusion in the cluster*/
 	EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostNoContent, error)
 	/*
@@ -78,6 +81,9 @@ type API interface {
 	/*
 	   UpdateHostInstallProgress updates installation progress*/
 	UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error)
+	/*
+	   UploadClusterIngressCert transfers the ingress certificate for the cluster*/
+	UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error)
 }
 
 // New creates a new installer API client.
@@ -215,6 +221,30 @@ func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadCluster
 		return nil, err
 	}
 	return result.(*DownloadClusterISOOK), nil
+
+}
+
+/*
+DownloadClusterKubeconfig downloads the kubeconfig file for this cluster
+*/
+func (a *Client) DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadClusterKubeconfig",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/downloads/kubeconfig",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DownloadClusterKubeconfigReader{formats: a.formats, writer: writer},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadClusterKubeconfigOK), nil
 
 }
 
@@ -575,5 +605,29 @@ func (a *Client) UpdateHostInstallProgress(ctx context.Context, params *UpdateHo
 		return nil, err
 	}
 	return result.(*UpdateHostInstallProgressOK), nil
+
+}
+
+/*
+UploadClusterIngressCert transfers the ingress certificate for the cluster
+*/
+func (a *Client) UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UploadClusterIngressCert",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/uploads/ingress-cert",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &UploadClusterIngressCertReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UploadClusterIngressCertCreated), nil
 
 }
