@@ -237,7 +237,7 @@ paths:
         - in: query
           name: file_name
           type: string
-          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig]
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig-noingress]
           required: true
       responses:
         200:
@@ -278,6 +278,72 @@ paths:
           schema:
             $ref: '#/definitions/error'
         409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /clusters/{cluster_id}/downloads/kubeconfig:
+    get:
+      tags:
+        - installer
+      summary: Downloads the kubeconfig file for this cluster.
+      operationId: DownloadClusterKubeconfig
+      produces:
+        - application/octet-stream
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            type: string
+            format: binary
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /clusters/{cluster_id}/uploads/ingress-cert:
+    post:
+      tags:
+        - installer
+      summary: Transfer the ingress certificate for the cluster.
+      operationId: UploadClusterIngressCert
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: image-create-params
+          required: true
+          schema:
+            $ref: '#/definitions/ingress-cert-params'
+      responses:
+        201:
+          description: Success.
+        400:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        404:
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1232,6 +1298,9 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/connectivity-remote-host'
+
+  ingress-cert-params:
+    type: string
 
   host-install-progress-params:
     type: string
