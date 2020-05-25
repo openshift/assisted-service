@@ -11,6 +11,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// [TODO] - remove once we stop supporting none platform
 type InstallerConfigNone struct {
 	APIVersion string `yaml:"apiVersion"`
 	BaseDomain string `yaml:"baseDomain"`
@@ -43,6 +44,33 @@ type InstallerConfigNone struct {
 	SSHKey     string `yaml:"sshKey"`
 }
 
+type bmc struct {
+	Address  string `yaml:"address"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+type host struct {
+	Name            string `yaml:"name"`
+	Role            string `yaml:"role"`
+	Bmc             bmc    `yaml:"bmc"`
+	BootMACAddress  string `yaml:"bootMACAddress"`
+	BootMode        string `yaml:"bootMode"`
+	HardwareProfile string `yaml:"hardwareProfile"`
+}
+
+type baremetal struct {
+	ProvisioningNetworkInterface string `yaml:"provisioningNetworkInterface"`
+	APIVIP                       string `yaml:"apiVIP"`
+	IngressVIP                   string `yaml:"ingressVIP"`
+	DNSVIP                       string `yaml:"dnsVIP"`
+	Hosts                        []host `yaml:"hosts"`
+}
+
+type platform struct {
+	Baremetal baremetal `yaml:"baremetal"`
+}
+
 type InstallerConfigBaremetal struct {
 	APIVersion string `yaml:"apiVersion"`
 	BaseDomain string `yaml:"baseDomain"`
@@ -68,28 +96,9 @@ type InstallerConfigBaremetal struct {
 		Name     string `yaml:"name"`
 		Replicas int    `yaml:"replicas"`
 	} `yaml:"controlPlane"`
-	Platform struct {
-		Baremetal struct {
-			ProvisioningNetworkInterface string `yaml:"provisioningNetworkInterface"`
-			APIVIP                       string `yaml:"apiVIP"`
-			IngressVIP                   string `yaml:"ingressVIP"`
-			DNSVIP                       string `yaml:"dnsVIP"`
-			Hosts                        []struct {
-				Name string `yaml:"name"`
-				Role string `yaml:"role"`
-				Bmc  struct {
-					Address  string `yaml:"address"`
-					Username string `yaml:"username"`
-					Password string `yaml:"password"`
-				} `yaml:"bmc"`
-				BootMACAddress  string `yaml:"bootMACAddress"`
-				BootMode        string `yaml:"bootMode"`
-				HardwareProfile string `yaml:"hardwareProfile"`
-			} `yaml:"hosts"`
-		} `yaml:"baremetal"`
-	} `yaml:"platform"`
-	PullSecret string `yaml:"pullSecret"`
-	SSHKey     string `yaml:"sshKey"`
+	Platform   platform `yaml:"platform"`
+	PullSecret string   `yaml:"pullSecret"`
+	SSHKey     string   `yaml:"sshKey"`
 }
 
 func countHostsByRole(cluster *models.Cluster, role string) int {
@@ -134,185 +143,132 @@ func getMachineCIDR(cluster *models.Cluster) (string, error) {
 	return "", errors.New(errStr)
 }
 
+func getBasicInstallConfig(cluster *models.Cluster, machineCIDR string) *InstallerConfigBaremetal {
+	return &InstallerConfigBaremetal{
+		APIVersion: "v1",
+		BaseDomain: cluster.BaseDNSDomain,
+		Networking: struct {
+			NetworkType    string `yaml:"networkType"`
+			ClusterNetwork []struct {
+				Cidr       string `yaml:"cidr"`
+				HostPrefix int    `yaml:"hostPrefix"`
+			} `yaml:"clusterNetwork"`
+			MachineNetwork []struct {
+				Cidr string `yaml:"cidr"`
+			} `yaml:"machineNetwork"`
+			ServiceNetwork []string `yaml:"serviceNetwork"`
+		}{
+			NetworkType: "OpenShiftSDN",
+			ClusterNetwork: []struct {
+				Cidr       string `yaml:"cidr"`
+				HostPrefix int    `yaml:"hostPrefix"`
+			}{
+				{Cidr: cluster.ClusterNetworkCidr, HostPrefix: int(cluster.ClusterNetworkHostPrefix)},
+			},
+			MachineNetwork: []struct {
+				Cidr string `yaml:"cidr"`
+			}{
+				{Cidr: machineCIDR},
+			},
+			ServiceNetwork: []string{cluster.ServiceNetworkCidr},
+		},
+		Metadata: struct {
+			Name string `yaml:"name"`
+		}{
+			Name: cluster.Name,
+		},
+		Compute: []struct {
+			Name     string `yaml:"name"`
+			Replicas int    `yaml:"replicas"`
+		}{
+			{Name: "worker", Replicas: countHostsByRole(cluster, "worker")},
+		},
+		ControlPlane: struct {
+			Name     string `yaml:"name"`
+			Replicas int    `yaml:"replicas"`
+		}{
+			Name:     "master",
+			Replicas: countHostsByRole(cluster, "master"),
+		},
+		PullSecret: cluster.PullSecret,
+		SSHKey:     cluster.SSHPublicKey,
+	}
+}
+
+// [TODO] - remove once we decide to use specific values from the hosts of the cluster
+func getDummyMAC(dummyMAC string, count int) (string, error) {
+	hwMac, err := net.ParseMAC(dummyMAC)
+	if err != nil {
+		logrus.Warn("Failed to parse dummyMac")
+		return "", err
+	}
+	hwMac[len(hwMac)-1] = hwMac[len(hwMac)-1] + byte(count)
+	return hwMac.String(), nil
+}
+
+func setPlatformInstallconfig(cluster *models.Cluster, cfg *InstallerConfigBaremetal) error {
+	// set hosts
+	numMasters := countHostsByRole(cluster, "master")
+	numWorkers := countHostsByRole(cluster, "worker")
+	masterCount := 0
+	workerCount := 0
+	hosts := make([]host, numWorkers+numMasters)
+
+	// dummy MAC and port, once we start using real BMH, those values should be set from cluster
+	dummyMAC := "00:aa:39:b3:51:10"
+	dummyPort := 6230
+
+	for i := range hosts {
+		logrus.Infof("Setting master, host %d, master count %d", i, masterCount)
+		if i >= numMasters {
+			hosts[i].Name = fmt.Sprintf("openshift-worker-%d", workerCount)
+			hosts[i].Role = "worker"
+			workerCount += 1
+		} else {
+			hosts[i].Name = fmt.Sprintf("openshift-master-%d", masterCount)
+			hosts[i].Role = "master"
+			masterCount += 1
+		}
+		hosts[i].Bmc = bmc{
+			Address:  fmt.Sprintf("ipmi://192.168.111.1:%d", dummyPort+i),
+			Username: "admin",
+			Password: "rackattack",
+		}
+		hwMac, err := getDummyMAC(dummyMAC, i)
+		if err != nil {
+			logrus.Warn("Failed to parse dummyMac")
+			return err
+		}
+		hosts[i].BootMACAddress = hwMac
+		hosts[i].BootMode = "UEFI"
+		hosts[i].HardwareProfile = "unknown"
+	}
+	cfg.Platform = platform{
+		Baremetal: baremetal{
+			ProvisioningNetworkInterface: "ethh0",
+			APIVIP:                       cluster.APIVip.String(),
+			IngressVIP:                   cluster.IngressVip.String(),
+			DNSVIP:                       cluster.DNSVip.String(),
+			Hosts:                        hosts,
+		},
+	}
+	return nil
+}
+
 func GetInstallConfig(cluster *models.Cluster) ([]byte, error) {
 	machineCidr, err := getMachineCIDR(cluster)
 	if err != nil {
 		return nil, err
 	}
-	var cfg interface{}
 	if cluster.OpenshiftVersion != models.ClusterOpenshiftVersionNr44 {
-		cfg = InstallerConfigBaremetal{
-			APIVersion: "v1",
-			BaseDomain: cluster.BaseDNSDomain,
-			Networking: struct {
-				NetworkType    string `yaml:"networkType"`
-				ClusterNetwork []struct {
-					Cidr       string `yaml:"cidr"`
-					HostPrefix int    `yaml:"hostPrefix"`
-				} `yaml:"clusterNetwork"`
-				MachineNetwork []struct {
-					Cidr string `yaml:"cidr"`
-				} `yaml:"machineNetwork"`
-				ServiceNetwork []string `yaml:"serviceNetwork"`
-			}{
-				NetworkType: "OpenShiftSDN",
-				ClusterNetwork: []struct {
-					Cidr       string `yaml:"cidr"`
-					HostPrefix int    `yaml:"hostPrefix"`
-				}{
-					{Cidr: cluster.ClusterNetworkCidr, HostPrefix: int(cluster.ClusterNetworkHostPrefix)},
-				},
-				MachineNetwork: []struct {
-					Cidr string `yaml:"cidr"`
-				}{
-					{Cidr: machineCidr},
-				},
-				ServiceNetwork: []string{cluster.ServiceNetworkCidr},
-			},
-			Metadata: struct {
-				Name string `yaml:"name"`
-			}{
-				Name: cluster.Name,
-			},
-			Compute: []struct {
-				Name     string `yaml:"name"`
-				Replicas int    `yaml:"replicas"`
-			}{
-				{Name: "worker", Replicas: countHostsByRole(cluster, "worker")},
-			},
-			ControlPlane: struct {
-				Name     string `yaml:"name"`
-				Replicas int    `yaml:"replicas"`
-			}{
-				Name:     "master",
-				Replicas: countHostsByRole(cluster, "master"),
-			},
-			Platform: struct {
-				Baremetal struct {
-					ProvisioningNetworkInterface string `yaml:"provisioningNetworkInterface"`
-					APIVIP                       string `yaml:"apiVIP"`
-					IngressVIP                   string `yaml:"ingressVIP"`
-					DNSVIP                       string `yaml:"dnsVIP"`
-					Hosts                        []struct {
-						Name string `yaml:"name"`
-						Role string `yaml:"role"`
-						Bmc  struct {
-							Address  string `yaml:"address"`
-							Username string `yaml:"username"`
-							Password string `yaml:"password"`
-						} `yaml:"bmc"`
-						BootMACAddress  string `yaml:"bootMACAddress"`
-						BootMode        string `yaml:"bootMode"`
-						HardwareProfile string `yaml:"hardwareProfile"`
-					} `yaml:"hosts"`
-				} `yaml:"baremetal"`
-			}{
-				Baremetal: struct {
-					ProvisioningNetworkInterface string `yaml:"provisioningNetworkInterface"`
-					APIVIP                       string `yaml:"apiVIP"`
-					IngressVIP                   string `yaml:"ingressVIP"`
-					DNSVIP                       string `yaml:"dnsVIP"`
-					Hosts                        []struct {
-						Name string `yaml:"name"`
-						Role string `yaml:"role"`
-						Bmc  struct {
-							Address  string `yaml:"address"`
-							Username string `yaml:"username"`
-							Password string `yaml:"password"`
-						} `yaml:"bmc"`
-						BootMACAddress  string `yaml:"bootMACAddress"`
-						BootMode        string `yaml:"bootMode"`
-						HardwareProfile string `yaml:"hardwareProfile"`
-					} `yaml:"hosts"`
-				}{
-					ProvisioningNetworkInterface: "ethh0",
-					APIVIP:                       cluster.APIVip.String(),
-					IngressVIP:                   cluster.IngressVip.String(),
-					DNSVIP:                       cluster.DNSVip.String(),
-					Hosts: []struct {
-						Name string `yaml:"name"`
-						Role string `yaml:"role"`
-						Bmc  struct {
-							Address  string `yaml:"address"`
-							Username string `yaml:"username"`
-							Password string `yaml:"password"`
-						} `yaml:"bmc"`
-						BootMACAddress  string `yaml:"bootMACAddress"`
-						BootMode        string `yaml:"bootMode"`
-						HardwareProfile string `yaml:"hardwareProfile"`
-					}{
-						{
-							Name: "openshift-master-0",
-							Role: "master",
-							Bmc: struct {
-								Address  string `yaml:"address"`
-								Username string `yaml:"username"`
-								Password string `yaml:"password"`
-							}{
-								Address:  "ipmi://192.168.111.1:6230",
-								Username: "admin",
-								Password: "rackattack",
-							},
-							BootMACAddress:  "00:aa:39:b3:51:f4",
-							BootMode:        "UEFI",
-							HardwareProfile: "unknown",
-						},
-						{
-							Name: "openshift-master-1",
-							Role: "master",
-							Bmc: struct {
-								Address  string `yaml:"address"`
-								Username string `yaml:"username"`
-								Password string `yaml:"password"`
-							}{
-								Address:  "ipmi://192.168.111.1:6231",
-								Username: "admin",
-								Password: "rackattack",
-							},
-							BootMACAddress:  "00:aa:39:b3:51:f5",
-							BootMode:        "UEFI",
-							HardwareProfile: "unknown",
-						},
-						{
-							Name: "openshift-master-2",
-							Role: "master",
-							Bmc: struct {
-								Address  string `yaml:"address"`
-								Username string `yaml:"username"`
-								Password string `yaml:"password"`
-							}{
-								Address:  "ipmi://192.168.111.1:6232",
-								Username: "admin",
-								Password: "rackattack",
-							},
-							BootMACAddress:  "00:aa:39:b3:51:f6",
-							BootMode:        "UEFI",
-							HardwareProfile: "unknown",
-						},
-						{
-							Name: "openshift-worker-0",
-							Role: "worker",
-							Bmc: struct {
-								Address  string `yaml:"address"`
-								Username string `yaml:"username"`
-								Password string `yaml:"password"`
-							}{
-								Address:  "ipmi://192.168.111.1:6233",
-								Username: "admin",
-								Password: "rackattack",
-							},
-							BootMACAddress:  "00:aa:39:b3:51:f7",
-							BootMode:        "UEFI",
-							HardwareProfile: "unknown",
-						},
-					},
-				},
-			},
-			PullSecret: cluster.PullSecret,
-			SSHKey:     cluster.SSHPublicKey,
+		cfg := getBasicInstallConfig(cluster, machineCidr)
+		err = setPlatformInstallconfig(cluster, cfg)
+		if err != nil {
+			return nil, err
 		}
+		return yaml.Marshal(*cfg)
 	} else {
-		cfg = InstallerConfigNone{
+		cfg := InstallerConfigNone{
 			APIVersion: "v1",
 			BaseDomain: cluster.BaseDNSDomain,
 			Compute: []struct {
@@ -357,6 +313,6 @@ func GetInstallConfig(cluster *models.Cluster) ([]byte, error) {
 			PullSecret: cluster.PullSecret,
 			SSHKey:     cluster.SSHPublicKey,
 		}
+		return yaml.Marshal(cfg)
 	}
-	return yaml.Marshal(cfg)
 }
