@@ -61,20 +61,19 @@ deploy-namespace:
 	python3 ./tools/deploy_namespace.py
 
 deploy-s3-configmap:
-	python3 tools/deploy_scality_configmap.py
+	python3 ./tools/deploy_scality_configmap.py
 
 deploy-s3: deploy-namespace
 	python3 ./tools/deploy_s3.py
 	sleep 5;  # wait for service to get an address
 	make deploy-s3-configmap
-	python3 ./tools/create_default_s3_bucket.py
 
 deploy-inventory-service-file: deploy-namespace
-	python3 ./tools/deploy_inventory_service.py
+	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)"
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_assisted_installer_configmap.py
+	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)"
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py

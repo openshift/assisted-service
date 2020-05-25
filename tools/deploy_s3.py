@@ -1,18 +1,18 @@
 import os
-import sys
 import utils
 
+
 def main():
-    SRC_FILE = os.path.join(os.getcwd(), "deploy/s3/scality-deployment.yaml")
-    DST_FILE = os.path.join(os.getcwd(), "build/scality-deployment.yaml")
-    with open(SRC_FILE, "r") as src:
-        with open(DST_FILE, "w+") as dst:
+    src_file = os.path.join(os.getcwd(), "deploy/s3/scality-deployment.yaml")
+    dst_file = os.path.join(os.getcwd(), "build/scality-deployment.yaml")
+    with open(src_file, "r") as src:
+        with open(dst_file, "w+") as dst:
             data = src.read()
-            print("Deploying {}:\n{}".format(DST_FILE, data))
+            print("Deploying {}".format(dst_file))
             dst.write(data)
 
     utils.apply("deploy/s3/scality-storage.yaml")
-    utils.apply(DST_FILE)
+    utils.apply(dst_file)
 
 
 if __name__ == "__main__":

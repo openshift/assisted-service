@@ -35,7 +35,9 @@ kind: Service
 metadata:
   labels:
     app: scality
-  name: scality
+  # cloudserver-front supported as one of the default hostnames that can receive messages
+  # to support other hostnamnes they need to be defined with HOST_NAME environment variable.
+  name: cloudserver-front
   namespace: assisted-installer
 spec:
   ports:
@@ -44,6 +46,6 @@ spec:
       targetPort: 8000
   selector:
     app: scality
-  type: LoadBalancer
+  clusterIP: None
 status:
   loadBalancer: {}

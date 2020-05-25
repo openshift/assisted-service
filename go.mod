@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
-	github.com/aws/aws-sdk-go v1.31.4
+	github.com/aws/aws-sdk-go v1.31.5
 	github.com/filanov/stateswitch v0.0.0-20200513095115-051501b05b45
 	github.com/go-openapi/errors v0.19.3
 	github.com/go-openapi/loads v0.19.4
@@ -27,7 +27,6 @@ require (
 	github.com/slok/go-http-metrics v0.6.1
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
-	golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.17.3

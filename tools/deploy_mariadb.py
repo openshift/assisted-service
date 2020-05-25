@@ -1,5 +1,4 @@
 import os
-import sys
 import utils
 
 
@@ -9,7 +8,7 @@ def main():
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:
             data = src.read()
-            print("Deploying {}:\n{}".format(DST_FILE, data))
+            print("Deploying {}".format(DST_FILE))
             dst.write(data)
 
     utils.apply(DST_FILE)
@@ -19,7 +18,7 @@ def main():
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:
             data = src.read()
-            print("Deploying {}:\n{}".format(DST_FILE, data))
+            print("Deploying {}".format(DST_FILE))
             dst.write(data)
 
     utils.apply("deploy/mariadb/mariadb-storage.yaml")

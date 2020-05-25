@@ -1,5 +1,4 @@
 import os
-import sys
 import utils
 
 SRC_FILE = os.path.join(os.getcwd(), "deploy/bm-inventory.yaml")
@@ -10,7 +9,7 @@ def main():
         with open(DST_FILE, "w+") as dst:
             data = src.read()
             data = data.replace("REPLACE_IMAGE", os.environ.get("SERVICE"))
-            print("Deploying {}:\n{}".format(DST_FILE, data))
+            print("Deploying {}".format(DST_FILE))
             dst.write(data)
 
     utils.apply(DST_FILE)

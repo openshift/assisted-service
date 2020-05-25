@@ -47,6 +47,7 @@ issues:
   # excluded by default patterns execute `golangci-lint run --help`
   exclude:
     - G107
+    - G402  # support scality DisableSSL
 
 linters:
   enable:

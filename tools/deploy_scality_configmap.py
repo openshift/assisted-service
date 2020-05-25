@@ -1,23 +1,19 @@
 import os
-import sys
 import utils
 
-SRC_FILE = os.path.join(os.getcwd(), "deploy/s3/scality-configmap.yaml")
-DST_FILE = os.path.join(os.getcwd(), "build/scality-configmap.yaml")
-SERVICE = 'scality'
 
 def main():
-    scality_url = utils.get_service_url(SERVICE)
-    scality_host = utils.get_service_host(SERVICE)
-    with open(SRC_FILE, "r") as src:
-        with open(DST_FILE, "w+") as dst:
+    src_file = os.path.join(os.getcwd(), "deploy/s3/scality-configmap.yaml")
+    dst_file = os.path.join(os.getcwd(), "build/scality-configmap.yaml")
+    scality_url = "http://cloudserver-front:8000"
+    with open(src_file, "r") as src:
+        with open(dst_file, "w+") as dst:
             data = src.read()
             data = data.replace('REPLACE_URL', scality_url)
-            data = data.replace('REPLACE_HOST_NAME', scality_host)
-            print("Deploying {}:\n{}".format(DST_FILE, data))
+            print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    utils.apply(DST_FILE)
+    utils.apply(dst_file)
 
 
 if __name__ == "__main__":

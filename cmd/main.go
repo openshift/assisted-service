@@ -6,11 +6,19 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/filanov/bm-inventory/pkg/app"
-
+	"github.com/filanov/bm-inventory/internal/bminventory"
+	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/events"
+	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/filanov/bm-inventory/internal/host"
+	"github.com/filanov/bm-inventory/models"
+	"github.com/filanov/bm-inventory/pkg/app"
+	"github.com/filanov/bm-inventory/pkg/job"
+	"github.com/filanov/bm-inventory/pkg/requestid"
 	awsS3Client "github.com/filanov/bm-inventory/pkg/s3Client"
-
+	"github.com/filanov/bm-inventory/pkg/s3wrapper"
+	"github.com/filanov/bm-inventory/pkg/thread"
+	"github.com/filanov/bm-inventory/restapi"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -21,16 +29,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-
-	"github.com/filanov/bm-inventory/internal/bminventory"
-	"github.com/filanov/bm-inventory/internal/cluster"
-	"github.com/filanov/bm-inventory/internal/hardware"
-	"github.com/filanov/bm-inventory/internal/host"
-	"github.com/filanov/bm-inventory/models"
-	"github.com/filanov/bm-inventory/pkg/job"
-	"github.com/filanov/bm-inventory/pkg/requestid"
-	"github.com/filanov/bm-inventory/pkg/thread"
-	"github.com/filanov/bm-inventory/restapi"
 )
 
 func init() {
@@ -45,6 +43,7 @@ var Options struct {
 	JobConfig                   job.Config
 	InstructionConfig           host.InstructionConfig
 	ClusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
+	S3Config                    s3wrapper.Config
 }
 
 func main() {
@@ -58,6 +57,10 @@ func main() {
 	flag.Parse()
 
 	log.Println("Starting bm service")
+
+	if err = s3wrapper.CreateBucket(&Options.S3Config); err != nil {
+		log.Fatal(err)
+	}
 
 	db, err := gorm.Open("mysql",
 		fmt.Sprintf("admin:admin@tcp(%s:%s)/installer?charset=utf8&parseTime=True&loc=Local",
