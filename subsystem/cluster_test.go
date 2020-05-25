@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"time"
 
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
@@ -214,6 +215,16 @@ var _ = Describe("system-test cluster install", func() {
 				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c = rep.GetPayload()
+				for start := time.Now(); time.Since(start) < 10*time.Second; {
+					rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+					Expect(err).NotTo(HaveOccurred())
+					c = rep.GetPayload()
+					if swag.StringValue(c.Status) != "installing" {
+						break
+					}
+					time.Sleep(time.Second)
+				}
+
 				Expect(swag.StringValue(c.Status)).Should(Equal("installed"))
 			})
 		})
