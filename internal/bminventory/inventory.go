@@ -326,7 +326,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 			WithPayload(generateError(http.StatusInternalServerError, err))
 	}
 
-	log.Info("Generated cluster <%s> image <%s> with ignition config %s", params.ClusterID, imgId, ignitionConfig)
+	log.Infof("Generated cluster <%s> image <%s> with ignition config %s", params.ClusterID, imgId, ignitionConfig)
 	return installer.NewGenerateClusterISOCreated().
 		WithPayload(&installer.GenerateClusterISOCreatedBody{ImageID: imgId})
 }
