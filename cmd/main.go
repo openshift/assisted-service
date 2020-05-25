@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/events"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -73,14 +75,15 @@ func main() {
 		log.Fatal("failed to create client:", err)
 	}
 
-	if err = db.AutoMigrate(&models.Host{}, &models.Cluster{}).Error; err != nil {
+	if err = db.AutoMigrate(&models.Host{}, &models.Cluster{}, &events.Event{}).Error; err != nil {
 		log.Fatal("failed to auto migrate, ", err)
 	}
 
+	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 	hwValidator := hardware.NewValidator(Options.HWValidatorConfig)
 	instructionApi := host.NewInstructionManager(log, db, hwValidator, Options.InstructionConfig)
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, hwValidator, instructionApi)
-	clusterApi := cluster.NewManager(log.WithField("pkg", "cluster-state"), db)
+	clusterApi := cluster.NewManager(log.WithField("pkg", "cluster-state"), db, eventsHandler)
 
 	clusterStateMonitor := thread.New(
 		log.WithField("pkg", "cluster-monitor"), "State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
@@ -88,9 +91,13 @@ func main() {
 	defer clusterStateMonitor.Stop()
 
 	jobApi := job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
-	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, jobApi)
+	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, jobApi, eventsHandler)
+
+	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
+
 	h, err := restapi.Handler(restapi.Config{
 		InstallerAPI: bm,
+		EventsAPI:    events,
 		Logger:       log.Printf,
 	})
 	h = requestid.Middleware(h)

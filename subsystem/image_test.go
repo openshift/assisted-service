@@ -2,11 +2,14 @@ package subsystem
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
+	"strings"
 
+	"github.com/filanov/bm-inventory/client/events"
 	"github.com/filanov/bm-inventory/client/installer"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -57,6 +60,21 @@ var _ = Describe("system-test image tests", func() {
 		s, err := file.Stat()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(s.Size()).ShouldNot(Equal(0))
+		eventsReply, err := bmclient.Events.ListEvents(context.TODO(), &events.ListEventsParams{
+			EntityID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(eventsReply.Payload).ShouldNot(HaveLen(0))
+		nRegisteredEvents := 0
+		for _, ev := range eventsReply.Payload {
+			fmt.Printf("EntityID:%s, Message:%s\n", ev.EntityID, *ev.Message)
+			Expect(ev.EntityID.String()).Should(Equal(clusterID.String()))
+			if strings.Contains(*ev.Message, "Registered cluster") {
+				nRegisteredEvents++
+			}
+		}
+		Expect(nRegisteredEvents).ShouldNot(Equal(0))
+
 	})
 })
 

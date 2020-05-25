@@ -3,6 +3,9 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/filanov/bm-inventory/internal/events"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -52,9 +55,10 @@ type Manager struct {
 	error           StateAPI
 	registrationAPI RegistrationAPI
 	installationAPI InstallationAPI
+	eventsHandler   events.Handler
 }
 
-func NewManager(log logrus.FieldLogger, db *gorm.DB) *Manager {
+func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler) *Manager {
 	return &Manager{
 		log:             log,
 		db:              db,
@@ -65,6 +69,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB) *Manager {
 		error:           NewErrorState(log, db),
 		registrationAPI: NewRegistrar(log, db),
 		installationAPI: NewInstaller(log, db),
+		eventsHandler:   eventsHandler,
 	}
 }
 
@@ -86,11 +91,27 @@ func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 }
 
 func (m *Manager) RegisterCluster(ctx context.Context, c *models.Cluster) error {
-	return m.registrationAPI.RegisterCluster(ctx, c)
+	err := m.registrationAPI.RegisterCluster(ctx, c)
+	var msg string
+	if err != nil {
+		msg = fmt.Sprintf("Registration of cluster %s failed. Error: %s", c.ID, err.Error())
+	} else {
+		msg = fmt.Sprintf("Registered cluster %s", c.ID)
+	}
+	m.eventsHandler.AddEvent(c.ID.String(), msg, time.Now())
+	return err
 }
 
 func (m *Manager) DeregisterCluster(ctx context.Context, c *models.Cluster) error {
-	return m.registrationAPI.DeregisterCluster(ctx, c)
+	err := m.registrationAPI.DeregisterCluster(ctx, c)
+	var msg string
+	if err != nil {
+		msg = fmt.Sprintf("Deregistration of cluster %s failed. Error: %s", c.ID, err.Error())
+	} else {
+		msg = fmt.Sprintf("Deregistered cluster %s", c.ID)
+	}
+	m.eventsHandler.AddEvent(c.ID.String(), msg, time.Now())
+	return err
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error) {

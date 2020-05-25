@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/filanov/bm-inventory/internal/events"
+
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
@@ -52,12 +54,13 @@ func strToUUID(s string) *strfmt.UUID {
 
 var _ = Describe("GenerateClusterISO", func() {
 	var (
-		bm      *bareMetalInventory
-		cfg     Config
-		db      *gorm.DB
-		ctx     = context.Background()
-		ctrl    *gomock.Controller
-		mockJob *job.MockAPI
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		ctrl       *gomock.Controller
+		mockJob    *job.MockAPI
+		mockEvents *events.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -65,7 +68,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = prepareDB()
 		mockJob = job.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob)
+		mockEvents = events.NewMockHandler(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, mockEvents)
 	})
 
 	registerCluster := func() *models.Cluster {
@@ -142,6 +146,7 @@ var _ = Describe("GetNextSteps", func() {
 		ctx         = context.Background()
 		ctrl        *gomock.Controller
 		mockHostApi *host.MockAPI
+		mockEvents  *events.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -149,7 +154,8 @@ var _ = Describe("GetNextSteps", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = prepareDB()
 		mockHostApi = host.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil)
+		mockEvents = events.NewMockHandler(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents)
 	})
 
 	It("get_next_steps_unknown_host", func() {
@@ -204,6 +210,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		ctx         = context.Background()
 		ctrl        *gomock.Controller
 		mockHostApi *host.MockAPI
+		mockEvents  *events.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -211,7 +218,8 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = prepareDB()
 		mockHostApi = host.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil)
+		mockEvents = events.NewMockHandler(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents)
 	})
 
 	Context("host exists", func() {
@@ -228,6 +236,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		})
 
 		It("success", func() {
+			mockEvents.EXPECT().AddEvent(hostID.String(), gomock.Any(), gomock.Any(), clusterID.String())
 			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 				ClusterID:                 clusterID,
@@ -238,7 +247,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		})
 
 		It("update_failed", func() {
-			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error"))
 			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 				ClusterID:                 clusterID,
 				HostInstallProgressParams: "some progress",
@@ -278,6 +287,7 @@ var _ = Describe("cluster", func() {
 		mockClusterApi *cluster.MockAPI
 		mockJob        *job.MockAPI
 		clusterID      strfmt.UUID
+		mockEvents     *events.MockHandler
 	)
 
 	addHost := func(hostId strfmt.UUID, role string, state string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
@@ -334,7 +344,8 @@ var _ = Describe("cluster", func() {
 		mockJob = job.NewMockAPI(ctrl)
 		mockClusterApi = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob)
+		mockEvents = events.NewMockHandler(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents)
 
 	})
 

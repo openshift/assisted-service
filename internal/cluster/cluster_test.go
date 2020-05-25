@@ -31,7 +31,7 @@ var _ = Describe("stateMachine", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db)
+		state = NewManager(getTestLog(), db, nil)
 		id := strfmt.UUID(uuid.New().String())
 		cluster = models.Cluster{
 			ID:     &id,
@@ -81,7 +81,7 @@ var _ = Describe("cluster monitor", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		id = strfmt.UUID(uuid.New().String())
-		clusterApi = NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db)
+		clusterApi = NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
 	})
 
 	Context("from installing state", func() {
