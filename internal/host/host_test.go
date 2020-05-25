@@ -8,6 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/connectivity"
+	"github.com/pkg/errors"
+
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
@@ -26,21 +29,23 @@ var defaultHwInfo = "default hw info" // invalid hw info used only for tests
 
 var _ = Describe("statemachine", func() {
 	var (
-		ctx           = context.Background()
-		db            *gorm.DB
-		ctrl          *gomock.Controller
-		mockValidator *hardware.MockValidator
-		state         API
-		host          models.Host
-		stateReply    *UpdateReply
-		stateErr      error
+		ctx                       = context.Background()
+		db                        *gorm.DB
+		ctrl                      *gomock.Controller
+		mockHwValidator           *hardware.MockValidator
+		mockConnectivityValidator *connectivity.MockValidator
+		state                     API
+		host                      models.Host
+		stateReply                *UpdateReply
+		stateErr                  error
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockValidator = hardware.NewMockValidator(ctrl)
-		state = NewManager(getTestLog(), db, mockValidator, nil)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+		mockConnectivityValidator = connectivity.NewMockValidator(ctrl)
+		state = NewManager(getTestLog(), db, mockHwValidator, nil, mockConnectivityValidator)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, "unknown invalid state")
@@ -94,7 +99,7 @@ var _ = Describe("update_progress", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil)
+		state = NewManager(getTestLog(), db, nil, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, "")
@@ -142,7 +147,7 @@ var _ = Describe("monitor_disconnection", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil)
+		state = NewManager(getTestLog(), db, nil, nil, nil)
 		host = getTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), HostStatusDiscovering)
 		err := state.RegisterHost(ctx, &host)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -260,7 +265,48 @@ func getTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
 		Status:       swag.String(state),
 		HardwareInfo: defaultHwInfo,
 		Inventory:    defaultInventory(),
+		Role:         "worker",
+		CheckedInAt:  strfmt.DateTime(time.Now()),
 	}
+}
+
+func mockConnectivityAndHwValidators(mockHWValidator *hardware.MockValidator, mockConnectivityValidator *connectivity.MockValidator, hwError, sufficientHw, sufficientConnectivity bool) string {
+	var statusInfoDetails = make(map[string]string)
+	statusInfoDetails["role"] = ""
+	if hwError {
+		mockHWValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
+			Return(nil, errors.New("error")).AnyTimes()
+		statusInfoDetails["hardware"] = "parsing error"
+	} else if sufficientHw {
+		mockHWValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
+			Return(&common.IsSufficientReply{Type: "hardware", IsSufficient: true}, nil).AnyTimes()
+		statusInfoDetails["hardware"] = ""
+	} else {
+		//insufficient hw
+		mockHWValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
+			Return(&common.IsSufficientReply{Type: "hardware", IsSufficient: false, Reason: "failed reason"}, nil).AnyTimes()
+		statusInfoDetails["hardware"] = "failed reason"
+	}
+	if sufficientConnectivity {
+		mockConnectivityValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
+			Return(&common.IsSufficientReply{Type: "connectivity", IsSufficient: true}, nil).AnyTimes()
+		statusInfoDetails["connectivity"] = ""
+	} else {
+		//insufficient connectivity
+		mockConnectivityValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
+			Return(&common.IsSufficientReply{Type: "connectivity", IsSufficient: false, Reason: "failed reason"}, nil).AnyTimes()
+		statusInfoDetails["connectivity"] = "failed reason"
+	}
+
+	if !hwError && sufficientHw && sufficientConnectivity {
+		return ""
+	}
+
+	statusInfo, err := json.Marshal(statusInfoDetails)
+	if err != nil {
+		return ""
+	}
+	return string(statusInfo)
 }
 
 func defaultInventory() string {

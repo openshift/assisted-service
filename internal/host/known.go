@@ -3,6 +3,8 @@ package host
 import (
 	"context"
 
+	"github.com/filanov/bm-inventory/internal/connectivity"
+
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
@@ -12,19 +14,21 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-func NewKnownState(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator) *knownState {
+func NewKnownState(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, connectivityValidator connectivity.Validator) *knownState {
 	return &knownState{
 		baseState: baseState{
 			log: log,
 			db:  db,
 		},
-		hwValidator: hwValidator,
+		hwValidator:           hwValidator,
+		connectivityValidator: connectivityValidator,
 	}
 }
 
 type knownState struct {
 	baseState
-	hwValidator hardware.Validator
+	hwValidator           hardware.Validator
+	connectivityValidator connectivity.Validator
 }
 
 func (k *knownState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
@@ -34,39 +38,20 @@ func (k *knownState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo st
 
 func (k *knownState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
 	h.Inventory = inventory
-	return updateStateFromInventory(logutil.FromContext(ctx, k.log), k.hwValidator, h, k.db)
+	return updateInventory(logutil.FromContext(ctx, k.log), k.hwValidator, h, k.db)
 }
 
 func (k *knownState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
-	log := logutil.FromContext(ctx, k.log)
+	h.Role = role
 	cdb := k.db
 	if db != nil {
 		cdb = db
 	}
-	cluster, err := getCluster(h.ClusterID, cdb)
-	if err != nil {
-		return nil, err
-	}
-	h.Role = role
-	reply, err := k.hwValidator.IsSufficient(h, cluster)
-	if err != nil {
-		return nil, err
-	}
-	if !reply.IsSufficient {
-		return updateStateWithParams(log, HostStatusInsufficient, reply.Reason, h, cdb, "role", role)
-	}
-	return updateStateWithParams(log, HostStatusKnown, "", h, cdb, "role", role)
+	return updateRole(logutil.FromContext(ctx, k.log), h, cdb)
 }
 
 func (k *knownState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	if db == nil {
-		db = k.db
-	}
-	reply, err := updateByKeepAlive(logutil.FromContext(ctx, k.log), h, db)
-	if err != nil || reply.IsChanged || h.Inventory == "" {
-		return reply, err
-	}
-	return updateStateFromInventory(logutil.FromContext(ctx, k.log), k.hwValidator, h, db)
+	return isSufficientHost(logutil.FromContext(ctx, k.log), h, db, k.hwValidator, k.connectivityValidator)
 }
 
 func (k *knownState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {

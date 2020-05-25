@@ -9,6 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
+	"github.com/filanov/bm-inventory/internal/connectivity"
 	"github.com/filanov/bm-inventory/internal/versions"
 
 	"github.com/filanov/bm-inventory/internal/bminventory"
@@ -52,7 +53,7 @@ var Options struct {
 	InstructionConfig           host.InstructionConfig
 	ClusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	S3Config                    s3wrapper.Config
-	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"30s"`
+	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
 	UseK8s                      bool `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
 }
@@ -111,8 +112,9 @@ func main() {
 	versionHandler := versions.NewHandler(Options.Versions)
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
+	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	instructionApi := host.NewInstructionManager(log, db, hwValidator, Options.InstructionConfig)
-	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, hwValidator, instructionApi)
+	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, hwValidator, instructionApi, connectivityValidator)
 	clusterApi := cluster.NewManager(log.WithField("pkg", "cluster-state"), db, eventsHandler)
 
 	clusterStateMonitor := thread.New(

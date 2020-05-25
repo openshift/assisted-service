@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/filanov/bm-inventory/internal/connectivity"
 
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
@@ -38,7 +39,7 @@ type StateAPI interface {
 
 type SpecificHardwareParams interface {
 	GetHostValidDisks(h *models.Host) ([]*models.Disk, error)
-	ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*hardware.IsSufficientReply, error)
+	ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*common.IsSufficientReply, error)
 }
 
 const (
@@ -93,7 +94,7 @@ type Manager struct {
 	sm             stateswitch.StateMachine
 }
 
-func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionApi InstructionApi) *Manager {
+func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionApi InstructionApi, connectivityValidator connectivity.Validator) *Manager {
 	th := &transitionHandler{
 		db:  db,
 		log: log,
@@ -101,9 +102,9 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Valida
 	return &Manager{
 		log:            log,
 		db:             db,
-		discovering:    NewDiscoveringState(log, db, hwValidator),
-		known:          NewKnownState(log, db, hwValidator),
-		insufficient:   NewInsufficientState(log, db, hwValidator),
+		discovering:    NewDiscoveringState(log, db, hwValidator, connectivityValidator),
+		known:          NewKnownState(log, db, hwValidator, connectivityValidator),
+		insufficient:   NewInsufficientState(log, db, hwValidator, connectivityValidator),
 		disconnected:   NewDisconnectedState(log, db, hwValidator),
 		disabled:       NewDisabledState(log, db),
 		installing:     NewInstallingState(log, db),
@@ -227,7 +228,7 @@ func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
 	return m.hwValidator.GetHostValidDisks(host)
 }
 
-func (m *Manager) ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*hardware.IsSufficientReply, error) {
+func (m *Manager) ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*common.IsSufficientReply, error) {
 	return m.hwValidator.IsSufficient(host, cluster)
 }
 

@@ -22,7 +22,7 @@ func (m *Manager) HostMonitoring() {
 			continue
 
 		}
-		stateReply, err := state.RefreshStatus(context.Background(), host, nil)
+		stateReply, err := state.RefreshStatus(context.Background(), host, m.db)
 		if err != nil {
 			m.log.WithError(err).Errorf("failed to refresh host %s state", host.ID)
 			continue

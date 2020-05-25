@@ -36,10 +36,10 @@ func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 }
 
 // IsSufficient mocks base method
-func (m *MockValidator) IsSufficient(host *models.Host, cluster *common.Cluster) (*IsSufficientReply, error) {
+func (m *MockValidator) IsSufficient(host *models.Host, cluster *common.Cluster) (*common.IsSufficientReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsSufficient", host, cluster)
-	ret0, _ := ret[0].(*IsSufficientReply)
+	ret0, _ := ret[0].(*common.IsSufficientReply)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

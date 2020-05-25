@@ -2,9 +2,9 @@ package host
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/connectivity"
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -14,29 +14,30 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 )
 
 var _ = Describe("known_state", func() {
 	var (
-		ctx           = context.Background()
-		state         API
-		db            *gorm.DB
-		currentState  = HostStatusKnown
-		host          models.Host
-		id, clusterId strfmt.UUID
-		updateReply   *UpdateReply
-		updateErr     error
-		expectedReply *expect
-		ctrl          *gomock.Controller
-		mockValidator *hardware.MockValidator
+		ctx                       = context.Background()
+		state                     API
+		db                        *gorm.DB
+		currentState              = HostStatusKnown
+		host                      models.Host
+		id, clusterId             strfmt.UUID
+		updateReply               *UpdateReply
+		updateErr                 error
+		expectedReply             *expect
+		ctrl                      *gomock.Controller
+		mockHWValidator           *hardware.MockValidator
+		mockConnectivityValidator *connectivity.MockValidator
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockValidator = hardware.NewMockValidator(ctrl)
-		state = &Manager{known: NewKnownState(getTestLog(), db, mockValidator)}
+		mockHWValidator = hardware.NewMockValidator(ctrl)
+		mockConnectivityValidator = connectivity.NewMockValidator(ctrl)
+		state = &Manager{known: NewKnownState(getTestLog(), db, mockHWValidator, mockConnectivityValidator)}
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -48,132 +49,82 @@ var _ = Describe("known_state", func() {
 
 	Context("update hw info", func() {
 		It("update", func() {
+			expectedStatusInfo := mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusKnown
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Inventory).Should(Equal(defaultInventory()))
 				Expect(h.HardwareInfo).Should(Equal("some hw info"))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
 			}
 		})
 	})
 
-	Context("update_inventory", func() {
+	Context("update inventory", func() {
 		It("sufficient_hw", func() {
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
+			expectedStatusInfo := mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
+			expectedReply.expectedState = HostStatusKnown
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
-				Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
 				Expect(h.Inventory).Should(Equal("some hw info"))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
 			}
 		})
 		It("insufficient_hw", func() {
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(&hardware.IsSufficientReply{IsSufficient: false, Reason: "because"}, nil).Times(1)
+			expectedStatusInfo := mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, false, true)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusInsufficient
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
-				Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
 				Expect(h.Inventory).Should(Equal("some hw info"))
-				Expect(*h.StatusInfo).Should(Equal("because"))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
 			}
 		})
 		It("hw_validation_error", func() {
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(nil, errors.New("error")).Times(1)
+			expectedStatusInfo := mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, true, false, true)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
-			expectedReply.expectError = true
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
+			expectedReply.expectedState = HostStatusInsufficient
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Inventory).Should(Equal(defaultInventory()))
-				Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
 			}
 		})
-	})
-
-	Context("refresh state", func() {
-		BeforeEach(func() {
-			host.CheckedInAt = strfmt.DateTime(time.Now())
-		})
-		It("sufficient_hw", func() {
-			expectedReply.postCheck = nil
-			expectedReply.expectedState = "known"
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
+		It("sufficient_hw_insufficient_connectivity", func() {
+			expectedStatusInfo := mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, false)
+			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			Expect(updateErr).To(Not(HaveOccurred()))
-			var h models.Host
-			Expect(db.Take(&h, "id = ?", *host.ID).Error).NotTo(HaveOccurred())
-			Expect(h.Status).To(Equal(swag.String("known")))
-		})
-		It("insufficient_hw", func() {
-			expectedReply.postCheck = nil
-			expectedReply.expectedState = "insufficient"
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(&hardware.IsSufficientReply{IsSufficient: false}, nil).Times(1)
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			Expect(updateErr).To(Not(HaveOccurred()))
-			var h models.Host
-			Expect(db.Take(&h, "id = ?", *host.ID).Error).NotTo(HaveOccurred())
-			Expect(h.Status).To(Equal(swag.String("insufficient")))
-		})
-		It("error", func() {
-			expectedReply.postCheck = nil
-			expectedReply.expectError = true
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(nil, fmt.Errorf("Blah")).Times(1)
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			Expect(updateErr).To(HaveOccurred())
-			var h models.Host
-			Expect(db.Take(&h, "id = ?", *host.ID).Error).NotTo(HaveOccurred())
-			Expect(h.Status).To(Equal(swag.String("known")))
+			expectedReply.expectedState = HostStatusInsufficient
+			expectedReply.postCheck = func() {
+				h := getHost(id, clusterId, db)
+				Expect(h.Inventory).Should(Equal("some hw info"))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
+			}
 		})
 	})
 
 	Context("update_role", func() {
-		It("sufficient_hw", func() {
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
+		It("master", func() {
 			updateReply, updateErr = state.UpdateRole(ctx, &host, "master", nil)
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Role).Should(Equal("master"))
-			}
-		})
-		It("insufficient_hw", func() {
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(&hardware.IsSufficientReply{IsSufficient: false, Reason: "because"}, nil).Times(1)
-			updateReply, updateErr = state.UpdateRole(ctx, &host, "master", nil)
-			expectedReply.expectedState = HostStatusInsufficient
-			expectedReply.postCheck = func() {
-				h := getHost(id, clusterId, db)
-				Expect(h.Role).Should(Equal("master"))
-				Expect(*h.StatusInfo).Should(Equal("because"))
-			}
-		})
-		It("hw_validation_error", func() {
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(nil, errors.New("error")).Times(1)
-			updateReply, updateErr = state.UpdateRole(ctx, &host, "master", nil)
-			expectedReply.expectError = true
-			expectedReply.postCheck = func() {
-				h := getHost(id, clusterId, db)
-				Expect(h.Role).Should(Equal(""))
 			}
 		})
 		It("master_with_tx", func() {
 			tx := db.Begin()
 			Expect(tx.Error).ShouldNot(HaveOccurred())
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
 			updateReply, updateErr = state.UpdateRole(ctx, &host, "master", tx)
 			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
-				Expect(h.Role).Should(Equal(""))
+				Expect(h.Role).Should(Equal("worker"))
 			}
 		})
 	})
@@ -181,19 +132,22 @@ var _ = Describe("known_state", func() {
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Minute))
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
+			host.Inventory = ""
+			mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
+			expectedReply.expectedState = HostStatusKnown
 		})
 		It("keep_alive_timeout", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Hour))
+			mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusDisconnected
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 	})
 
 	Context("install", func() {
 		It("no_role", func() {
+			host.Role = ""
 			updateReply, updateErr = state.Install(ctx, &host, nil)
 			expectedReply.expectError = true
 		})

@@ -1,7 +1,10 @@
 package host
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/filanov/bm-inventory/internal/connectivity"
 
 	"github.com/filanov/bm-inventory/internal/common"
 
@@ -44,7 +47,7 @@ func defaultReply(h *models.Host) (*UpdateReply, error) {
 }
 
 func updateByKeepAlive(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	if time.Since(time.Time(h.CheckedInAt)) > 3*time.Minute {
+	if h.CheckedInAt.String() != "" && time.Since(time.Time(h.CheckedInAt)) > 3*time.Minute {
 		return updateState(log, HostStatusDisconnected, statusInfoDisconnected, h, db)
 	}
 	return defaultReply(h)
@@ -104,11 +107,14 @@ func updateHostStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo str
 }
 
 func updateHwInfo(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	status := ""
+	status, statusInfo := "", ""
 	if h.Status != nil {
 		status = *h.Status
 	}
-	return updateStateWithParams(log, status, "", h, db, "hardware_info", h.HardwareInfo)
+	if h.StatusInfo != nil {
+		statusInfo = *h.StatusInfo
+	}
+	return updateStateWithParams(log, status, statusInfo, h, db, "hardware_info", h.HardwareInfo)
 }
 
 func getCluster(clusterID strfmt.UUID, db *gorm.DB) (*common.Cluster, error) {
@@ -119,18 +125,99 @@ func getCluster(clusterID strfmt.UUID, db *gorm.DB) (*common.Cluster, error) {
 	return &cluster, nil
 }
 
-func updateStateFromInventory(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+func updateInventory(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	cluster, err := getCluster(h.ClusterID, db)
 	if err != nil {
 		return nil, err
 	}
-	reply, err := hwValidator.IsSufficient(h, cluster)
+	_, err = hwValidator.IsSufficient(h, cluster)
 	if err != nil {
 		return nil, err
 	}
-	if !reply.IsSufficient {
-		return updateStateWithParams(log, HostStatusInsufficient, reply.Reason, h, db,
-			"inventory", h.Inventory)
+	status, statusInfo := "", ""
+	if h.Status != nil {
+		status = *h.Status
 	}
-	return updateStateWithParams(log, HostStatusKnown, "", h, db, "inventory", h.Inventory)
+	if h.StatusInfo != nil {
+		statusInfo = *h.StatusInfo
+	}
+	return updateStateWithParams(log, status, statusInfo, h, db, "inventory", h.Inventory)
+}
+
+func updateRole(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	status, statusInfo := "", ""
+	if h.Status != nil {
+		status = *h.Status
+	}
+	if h.StatusInfo != nil {
+		statusInfo = *h.StatusInfo
+	}
+	return updateStateWithParams(log, status, statusInfo, h, db, "role", h.Role)
+}
+
+func isSufficientRole(h *models.Host) *common.IsSufficientReply {
+	var reason string
+	isSufficient := true
+
+	if h.Role == "undefined" || h.Role == "" {
+		isSufficient = false
+		reason = "No role selected"
+	}
+
+	return &common.IsSufficientReply{
+		Type:         "role",
+		IsSufficient: isSufficient,
+		Reason:       reason,
+	}
+}
+
+func isSufficientHost(log logrus.FieldLogger, h *models.Host, db *gorm.DB, hwValidator hardware.Validator, connectivityValidator connectivity.Validator) (*UpdateReply, error) {
+	//checking if need to change state to disconnect
+	stateReply, err := updateByKeepAlive(log, h, db)
+	if err != nil || stateReply.IsChanged {
+		return stateReply, err
+	}
+	var statusInfoDetails = make(map[string]string)
+	//checking inventory isInsufficient
+	cluster, err := getCluster(h.ClusterID, db)
+	if err != nil {
+		return nil, err
+	}
+	inventoryReply, _ := hwValidator.IsSufficient(h, cluster)
+	if inventoryReply != nil {
+		statusInfoDetails[inventoryReply.Type] = inventoryReply.Reason
+	} else {
+		statusInfoDetails["hardware"] = "parsing error"
+	}
+
+	//checking connectivity isSufficient
+	connectivityReply, _ := connectivityValidator.IsSufficient(h, cluster)
+	statusInfoDetails[connectivityReply.Type] = connectivityReply.Reason
+
+	//checking role isSufficient
+	roleReply := isSufficientRole(h)
+	statusInfoDetails[roleReply.Type] = roleReply.Reason
+
+	var newStatus, newStatusInfo string
+	if inventoryReply != nil && inventoryReply.IsSufficient && roleReply.IsSufficient && connectivityReply.IsSufficient {
+		newStatus = HostStatusKnown
+		newStatusInfo = ""
+	} else {
+		statusInfo, err := json.Marshal(statusInfoDetails)
+		if err != nil {
+			return nil, err
+		}
+		newStatus = HostStatusInsufficient
+		newStatusInfo = string(statusInfo)
+	}
+
+	//update status & status info in DB only if there is a change
+	if swag.StringValue(h.Status) != newStatus || swag.StringValue(h.StatusInfo) != newStatusInfo {
+		log.Infof("is sufficient host: %s role reply %+v inventory reply %+v connectivity reply %+v", h.ID, roleReply, inventoryReply, connectivityReply)
+		return updateState(log, newStatus, newStatusInfo, h, db)
+	}
+	return &UpdateReply{
+		State:     swag.StringValue(h.Status),
+		IsChanged: false,
+	}, nil
 }

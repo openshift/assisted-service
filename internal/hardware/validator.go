@@ -14,16 +14,11 @@ import (
 	"github.com/filanov/bm-inventory/models"
 )
 
-type IsSufficientReply struct {
-	IsSufficient bool
-	Reason       string
-}
-
 const diskNameFilterRegex = "nvme"
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
-	IsSufficient(host *models.Host, cluster *common.Cluster) (*IsSufficientReply, error)
+	IsSufficient(host *models.Host, cluster *common.Cluster) (*common.IsSufficientReply, error)
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error)
 }
@@ -50,7 +45,7 @@ type validator struct {
 	log logrus.FieldLogger
 }
 
-func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*IsSufficientReply, error) {
+func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*common.IsSufficientReply, error) {
 	var err error
 	var reason string
 	var isSufficient bool
@@ -89,10 +84,6 @@ func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*I
 			"expected at least 1 not removable, not readonly disk of size more than <%d>", minDiskSizeRequired)
 	}
 
-	if !common.IsHostInMachineNetCidr(v.log, cluster, host) {
-		reason += fmt.Sprintf(", host %s does not belong to cluster machine network %s, The machine network is set by configuring the API-VIP", *host.ID, cluster.MachineNetworkCidr)
-	}
-
 	if !v.isHostnameUnique(cluster, host, hwInfo.Hostname) {
 		reason += fmt.Sprintf(", host with hostname \"%s\" already exists.", hwInfo.Hostname)
 	}
@@ -105,7 +96,8 @@ func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*I
 		}
 	}
 
-	return &IsSufficientReply{
+	return &common.IsSufficientReply{
+		Type:         "hardware",
 		IsSufficient: isSufficient,
 		Reason:       reason,
 	}, nil

@@ -19,7 +19,7 @@ import (
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Validator tests Suite")
+	RunSpecs(t, "Hardware Validator tests Suite")
 }
 
 var _ = Describe("hardware_validator", func() {
@@ -116,45 +116,6 @@ var _ = Describe("hardware_validator", func() {
 		Expect(disks).To(BeNil())
 	})
 
-	It("insufficient network", func() {
-		cluster.MachineNetworkCidr = "10.11.0.0/16"
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host.Inventory = string(hw)
-
-		roles := []string{"", "master", "worker"}
-		for _, role := range roles {
-			host.Role = role
-			insufficient(hwvalidator.IsSufficient(host, cluster))
-		}
-	})
-
-	It("missing network", func() {
-		cluster.MachineNetworkCidr = ""
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host.Inventory = string(hw)
-
-		roles := []string{"", "master", "worker"}
-		for _, role := range roles {
-			host.Role = role
-			insufficient(hwvalidator.IsSufficient(host, cluster))
-		}
-	})
-
-	It("illegal network", func() {
-		cluster.MachineNetworkCidr = "blah"
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host.Inventory = string(hw)
-
-		roles := []string{"", "master", "worker"}
-		for _, role := range roles {
-			host.Role = role
-			insufficient(hwvalidator.IsSufficient(host, cluster))
-		}
-	})
-
 	It("validate_disk_list_return_order", func() {
 		nvmename := "nvme01fs"
 		inventory.Disks = []*models.Disk{
@@ -191,13 +152,13 @@ var _ = Describe("hardware_validator", func() {
 
 })
 
-func sufficient(reply *IsSufficientReply, err error) {
+func sufficient(reply *common.IsSufficientReply, err error) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	ExpectWithOffset(1, reply.IsSufficient).To(BeTrue())
 	ExpectWithOffset(1, reply.Reason).Should(Equal(""))
 }
 
-func insufficient(reply *IsSufficientReply, err error) {
+func insufficient(reply *common.IsSufficientReply, err error) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	ExpectWithOffset(1, reply.IsSufficient).To(BeFalse())
 	ExpectWithOffset(1, reply.Reason).ShouldNot(Equal(""))

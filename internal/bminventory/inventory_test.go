@@ -11,8 +11,6 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/filanov/bm-inventory/internal/hardware"
-
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/go-openapi/runtime/middleware"
 
@@ -448,7 +446,7 @@ var _ = Describe("cluster", func() {
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	}
 	validateHostInventory := func(mockClusterApi *cluster.MockAPI) {
-		sufficient := hardware.IsSufficientReply{IsSufficient: true}
+		sufficient := common.IsSufficientReply{IsSufficient: true}
 		mockHostApi.EXPECT().ValidateCurrentInventory(gomock.Any(), gomock.Any()).Return(&sufficient, nil).AnyTimes()
 	}
 	setDefaultHostGetHostValidDisks := func(mockClusterApi *cluster.MockAPI) {
@@ -762,7 +760,7 @@ var _ = Describe("cluster", func() {
 			verifyApiError(reply, http.StatusConflict)
 		})
 		It("cluster failed to  validateHostInventory", func() {
-			mockHostApi.EXPECT().ValidateCurrentInventory(gomock.Any(), gomock.Any()).Return(&hardware.IsSufficientReply{IsSufficient: false, Reason: "dummy"}, nil)
+			mockHostApi.EXPECT().ValidateCurrentInventory(gomock.Any(), gomock.Any()).Return(&common.IsSufficientReply{IsSufficient: false, Reason: "dummy"}, nil)
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
