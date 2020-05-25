@@ -5,10 +5,9 @@
 package hardware
 
 import (
-	reflect "reflect"
-
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // MockValidator is a mock of Validator interface.
