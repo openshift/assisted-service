@@ -292,6 +292,29 @@ var _ = Describe("system-test cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(s.Size()).ShouldNot(Equal(0))
 		})
+		It("Get kubeadmin password", func() {
+			//Test happy flow
+
+			By("Test getting kubeadmin password for not found cluster")
+			{
+				missingClusterId := strfmt.UUID(uuid.New().String())
+				_, err := bmclient.Installer.GetKubeadminPassword(ctx, &installer.GetKubeadminPasswordParams{ClusterID: missingClusterId})
+				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetKubeadminPasswordNotFound())))
+			}
+			By("Test getting kubeadmin password in wrong state")
+			{
+				_, err := bmclient.Installer.GetKubeadminPassword(ctx, &installer.GetKubeadminPasswordParams{ClusterID: clusterID})
+				Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewGetKubeadminPasswordConflict())))
+			}
+			By("Test happy flow")
+			{
+				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				password, err := bmclient.Installer.GetKubeadminPassword(ctx, &installer.GetKubeadminPasswordParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(password.GetPayload())).NotTo(Equal(0))
+			}
+		})
 	})
 
 	It("install cluster requirement", func() {
