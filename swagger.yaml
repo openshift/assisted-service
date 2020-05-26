@@ -237,7 +237,7 @@ paths:
         - in: query
           name: file_name
           type: string
-          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig-noingress]
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress]
           required: true
       responses:
         200:
@@ -332,7 +332,7 @@ paths:
           format: uuid
           required: true
         - in: body
-          name: image-create-params
+          name: ingress-cert-params
           required: true
           schema:
             $ref: '#/definitions/ingress-cert-params'
