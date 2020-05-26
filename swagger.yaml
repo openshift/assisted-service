@@ -256,6 +256,35 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+  /clusters/{cluster_id}/kubeadmin-password:
+    get:
+      tags:
+        - installer
+      summary: Get the password for the kubeadmin user.
+      operationId: GetKubeadminPassword
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            type: string
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/actions/install:
     post:
