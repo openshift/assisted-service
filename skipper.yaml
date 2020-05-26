@@ -12,6 +12,8 @@ volumes:
     - $HOME/.kube/:$HOME/.kube
     - /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock
     - /var/lib/libvirt/:/var/lib/libvirt/
+    - $KUBECONFIG:$KUBECONFIG
 env:
     SERVICE: $SERVICE
     OBJEXP: $OBJEXP
+    KUBECONFIG: $KUBECONFIG
