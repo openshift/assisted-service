@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filanov/bm-inventory/pkg/requestid"
+	"github.com/pborman/uuid"
+
 	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -61,7 +64,7 @@ var _ = Describe("Events library", func() {
 
 	Context("With events", func() {
 		It("Adding a single event", func() {
-			theEvents.AddEvent(context.TODO(),"1", "the event1", time.Now())
+			theEvents.AddEvent(context.TODO(), "1", "the event1", time.Now())
 			Expect(numOfEvents("1")).Should(Equal(1))
 			Expect(numOfEvents("2")).Should(Equal(0))
 			Expect(numOfEvents("3")).Should(Equal(0))
@@ -108,10 +111,35 @@ var _ = Describe("Events library", func() {
 			Expect(numOfEvents("2")).Should(Equal(0))
 			Expect(numOfEvents("3")).Should(Equal(0))
 		})
-
 	})
 
+	Context("events with request ID", func() {
+		It("events with request ID", func() {
+			ctx := context.Background()
+			rid1 := uuid.NewRandom().String()
+			ctx = requestid.ToContext(ctx, rid1)
+			theEvents.AddEvent(ctx, "1", "event1", time.Now(), "2")
+			Expect(numOfEvents("1")).Should(Equal(1))
+
+			evs, err := theEvents.GetEvents("1")
+			Expect(err).Should(BeNil())
+			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
+			Expect(evs[0]).Should(WithRequestID(rid1))
+
+			evs, err = theEvents.GetEvents("2")
+			Expect(err).Should(BeNil())
+			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
+			Expect(evs[0]).Should(WithRequestID(rid1))
+
+		})
+	})
 })
+
+func WithRequestID(requestID string) types.GomegaMatcher {
+	return WithTransform(func(e *events.Event) string {
+		return e.RequestID.String()
+	}, Equal(requestID))
+}
 
 func WithMessage(msg *string) types.GomegaMatcher {
 	return WithTransform(func(e *events.Event) *string {

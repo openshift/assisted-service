@@ -98,7 +98,7 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *models.Cluster) error 
 	} else {
 		msg = fmt.Sprintf("Registered cluster %s", c.ID)
 	}
-	m.eventsHandler.AddEvent(c.ID.String(), msg, time.Now())
+	m.eventsHandler.AddEvent(ctx, c.ID.String(), msg, time.Now())
 	return err
 }
 
@@ -110,7 +110,7 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *models.Cluster) erro
 	} else {
 		msg = fmt.Sprintf("Deregistered cluster %s", c.ID)
 	}
-	m.eventsHandler.AddEvent(c.ID.String(), msg, time.Now())
+	m.eventsHandler.AddEvent(ctx, c.ID.String(), msg, time.Now())
 	return err
 }
 

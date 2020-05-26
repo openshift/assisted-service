@@ -2,8 +2,10 @@ package events
 
 import (
 	"context"
-	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"time"
+
+	logutil "github.com/filanov/bm-inventory/pkg/log"
+	"github.com/filanov/bm-inventory/pkg/requestid"
 
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -42,14 +44,16 @@ func New(db *gorm.DB, log logrus.FieldLogger) *Events {
 	}
 }
 
-func addEventToDB(db *gorm.DB, id string, message string, t time.Time) error {
+func addEventToDB(db *gorm.DB, id string, message string, t time.Time, requestID string) error {
 	tt := strfmt.DateTime(t)
 	uid := strfmt.UUID(id)
+	rid := strfmt.UUID(requestID)
 	e := Event{
 		Event: models.Event{
 			EventTime: &tt,
 			EntityID:  &uid,
 			Message:   &message,
+			RequestID: rid,
 		},
 	}
 
@@ -72,7 +76,8 @@ func (e *Events) AddEvent(ctx context.Context, entityID string, msg string, even
 		}
 	}()
 
-	err := addEventToDB(tx, entityID, msg, eventTime)
+	requestID := requestid.FromContext(ctx)
+	err := addEventToDB(tx, entityID, msg, eventTime, requestID)
 	if err != nil {
 		return
 	}
@@ -80,7 +85,7 @@ func (e *Events) AddEvent(ctx context.Context, entityID string, msg string, even
 	// Since we don't keep different tables to support multiple IDs for a single event,
 	// the workaround is to add to the DB a new event for every ID this event relates to
 	for _, entity := range otherEntities {
-		err := addEventToDB(tx, entity, msg, eventTime)
+		err := addEventToDB(tx, entity, msg, eventTime, requestID)
 		if err != nil {
 			return
 		}
