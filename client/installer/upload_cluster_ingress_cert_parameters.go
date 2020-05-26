@@ -64,8 +64,8 @@ type UploadClusterIngressCertParams struct {
 
 	/*ClusterID*/
 	ClusterID strfmt.UUID
-	/*ImageCreateParams*/
-	ImageCreateParams models.IngressCertParams
+	/*IngressCertParams*/
+	IngressCertParams models.IngressCertParams
 
 	timeout    time.Duration
 	Context    context.Context
@@ -116,15 +116,15 @@ func (o *UploadClusterIngressCertParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
-// WithImageCreateParams adds the imageCreateParams to the upload cluster ingress cert params
-func (o *UploadClusterIngressCertParams) WithImageCreateParams(imageCreateParams models.IngressCertParams) *UploadClusterIngressCertParams {
-	o.SetImageCreateParams(imageCreateParams)
+// WithIngressCertParams adds the ingressCertParams to the upload cluster ingress cert params
+func (o *UploadClusterIngressCertParams) WithIngressCertParams(ingressCertParams models.IngressCertParams) *UploadClusterIngressCertParams {
+	o.SetIngressCertParams(ingressCertParams)
 	return o
 }
 
-// SetImageCreateParams adds the imageCreateParams to the upload cluster ingress cert params
-func (o *UploadClusterIngressCertParams) SetImageCreateParams(imageCreateParams models.IngressCertParams) {
-	o.ImageCreateParams = imageCreateParams
+// SetIngressCertParams adds the ingressCertParams to the upload cluster ingress cert params
+func (o *UploadClusterIngressCertParams) SetIngressCertParams(ingressCertParams models.IngressCertParams) {
+	o.IngressCertParams = ingressCertParams
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -140,7 +140,7 @@ func (o *UploadClusterIngressCertParams) WriteToRequest(r runtime.ClientRequest,
 		return err
 	}
 
-	if err := r.SetBodyParam(o.ImageCreateParams); err != nil {
+	if err := r.SetBodyParam(o.IngressCertParams); err != nil {
 		return err
 	}
 

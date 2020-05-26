@@ -389,6 +389,7 @@ func init() {
               "metadata.json",
               "worker.ign",
               "kubeadmin-password",
+              "kubeconfig",
               "kubeconfig-noingress"
             ],
             "type": "string",
@@ -1031,7 +1032,7 @@ func init() {
             "required": true
           },
           {
-            "name": "image-create-params",
+            "name": "ingress-cert-params",
             "in": "body",
             "required": true,
             "schema": {
@@ -2451,6 +2452,7 @@ func init() {
               "metadata.json",
               "worker.ign",
               "kubeadmin-password",
+              "kubeconfig",
               "kubeconfig-noingress"
             ],
             "type": "string",
@@ -3093,7 +3095,7 @@ func init() {
             "required": true
           },
           {
-            "name": "image-create-params",
+            "name": "ingress-cert-params",
             "in": "body",
             "required": true,
             "schema": {

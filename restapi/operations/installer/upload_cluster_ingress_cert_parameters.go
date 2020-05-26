@@ -43,7 +43,7 @@ type UploadClusterIngressCertParams struct {
 	  Required: true
 	  In: body
 	*/
-	ImageCreateParams models.IngressCertParams
+	IngressCertParams models.IngressCertParams
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -65,9 +65,9 @@ func (o *UploadClusterIngressCertParams) BindRequest(r *http.Request, route *mid
 		var body models.IngressCertParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("imageCreateParams", "body"))
+				res = append(res, errors.Required("ingressCertParams", "body"))
 			} else {
-				res = append(res, errors.NewParseError("imageCreateParams", "body", "", err))
+				res = append(res, errors.NewParseError("ingressCertParams", "body", "", err))
 			}
 		} else {
 			// validate body object
@@ -76,11 +76,11 @@ func (o *UploadClusterIngressCertParams) BindRequest(r *http.Request, route *mid
 			}
 
 			if len(res) == 0 {
-				o.ImageCreateParams = body
+				o.IngressCertParams = body
 			}
 		}
 	} else {
-		res = append(res, errors.Required("imageCreateParams", "body"))
+		res = append(res, errors.Required("ingressCertParams", "body"))
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
