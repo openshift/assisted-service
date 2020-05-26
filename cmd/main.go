@@ -116,6 +116,7 @@ func main() {
 
 	h = withMetricsMiddleware(h)
 	h = metricsRecorder.Handler("", h)
+	h = withHealthMiddleware(h)
 
 	h = requestid.Middleware(h)
 	if err != nil {
@@ -129,6 +130,16 @@ func withMetricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/metrics" {
 			promhttp.Handler().ServeHTTP(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func withHealthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/health" {
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 		next.ServeHTTP(w, r)
