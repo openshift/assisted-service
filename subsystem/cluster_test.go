@@ -19,6 +19,11 @@ import (
 	"github.com/filanov/bm-inventory/models"
 )
 
+const (
+	clusterInsufficientStateInfo = "cluster is insufficient, exactly 3 known master hosts are needed for installation"
+	clusterReadyStateInfo        = "Cluster ready to be installed"
+)
+
 var _ = Describe("Cluster tests", func() {
 	ctx := context.Background()
 	var cluster *installer.RegisterClusterCreated
@@ -37,6 +42,7 @@ var _ = Describe("Cluster tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
+		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 	})
 
 	JustBeforeEach(func() {
@@ -181,6 +187,7 @@ var _ = Describe("system-test cluster install", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("ready"))
+			Expect(swag.StringValue(c.GetPayload().StatusInfo)).Should(Equal(clusterReadyStateInfo))
 		})
 
 		updateProgress := func(hostID strfmt.UUID, progress string) {
@@ -204,6 +211,7 @@ var _ = Describe("system-test cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				c := rep.GetPayload()
 				Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+				Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
 				Expect(len(c.Hosts)).Should(Equal(4))
 				for _, host := range c.Hosts {
 					Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
@@ -214,7 +222,10 @@ var _ = Describe("system-test cluster install", func() {
 				}
 
 				waitForClusterState(ctx, clusterID, "installed")
-
+				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c = rep.GetPayload()
+				Expect(swag.StringValue(c.StatusInfo)).Should(Equal("installed"))
 			})
 		})
 		It("report_progress", func() {
@@ -294,6 +305,7 @@ var _ = Describe("system-test cluster install", func() {
 				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
 		}
 		Expect(swag.StringValue(cluster.Status)).Should(Equal("insufficient"))
+		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
 		h1 := registerHost(clusterID)
 		generateHWPostStepReply(h1, hwInfo)
@@ -314,6 +326,7 @@ var _ = Describe("system-test cluster install", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
+		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
 		// Adding one known host and setting as master -> state must be ready
 		cluster, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -324,6 +337,8 @@ var _ = Describe("system-test cluster install", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("ready"))
+		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterReadyStateInfo))
+
 	})
 
 	It("install_cluster_states", func() {
@@ -337,6 +352,7 @@ var _ = Describe("system-test cluster install", func() {
 				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
 		}
 		Expect(swag.StringValue(cluster.Status)).Should(Equal("insufficient"))
+		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
 		wh1 := registerHost(clusterID)
 		generateHWPostStepReply(wh1, hwInfo)
@@ -363,6 +379,7 @@ var _ = Describe("system-test cluster install", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
+		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
 		// Only two masters -> state must be insufficient
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -374,6 +391,7 @@ var _ = Describe("system-test cluster install", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
+		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
 		// Three master hosts -> state must be ready
 		cluster, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -384,6 +402,7 @@ var _ = Describe("system-test cluster install", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("ready"))
+		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterReadyStateInfo))
 
 		// Back to two master hosts -> state must be insufficient
 		cluster, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -394,6 +413,7 @@ var _ = Describe("system-test cluster install", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
+		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
 		// Three master hosts -> state must be ready
 		cluster, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -404,6 +424,7 @@ var _ = Describe("system-test cluster install", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("ready"))
+		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterReadyStateInfo))
 
 		// Back to two master hosts -> state must be insufficient
 		cluster, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -414,6 +435,7 @@ var _ = Describe("system-test cluster install", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
+		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
 		_, err = bmclient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())

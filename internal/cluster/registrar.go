@@ -26,7 +26,7 @@ type registrar struct {
 
 func (r *registrar) RegisterCluster(ctx context.Context, cluster *models.Cluster) error {
 	cluster.Status = swag.String(clusterStatusInsufficient)
-	cluster.StatusInfo = swag.String(clusterStatusInsufficient)
+	cluster.StatusInfo = swag.String(statusInfoInsufficient)
 	tx := r.db.Begin()
 	defer func() {
 		if rec := recover(); rec != nil {

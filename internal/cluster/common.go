@@ -17,6 +17,13 @@ const (
 	clusterStatusError        = "error"
 )
 
+const (
+	statusInfoReady        = "Cluster ready to be installed"
+	statusInfoInsufficient = "cluster is insufficient, exactly 3 known master hosts are needed for installation"
+	statusInfoInstalling   = "Installation in progress"
+	statusInfoInstalled    = "installed"
+)
+
 type UpdateReply struct {
 	State     string
 	IsChanged bool
@@ -28,9 +35,10 @@ type baseState struct {
 	db  *gorm.DB           //nolint:structcheck
 }
 
-func updateState(state string, c *models.Cluster, db *gorm.DB, log logrus.FieldLogger) (*UpdateReply, error) {
+func updateState(state string, statusInfo string, c *models.Cluster, db *gorm.DB, log logrus.FieldLogger) (*UpdateReply, error) {
+	updates := map[string]interface{}{"status": state, "status_info": statusInfo}
 	dbReply := db.Model(&models.Cluster{}).Where("id = ? and status = ?",
-		c.ID.String(), swag.StringValue(c.Status)).Update("status", state)
+		c.ID.String(), swag.StringValue(c.Status)).Updates(updates)
 	if dbReply.Error != nil {
 		return nil, errors.Wrapf(dbReply.Error, "failed to update cluster %s state from %s to %s",
 			c.ID.String(), swag.StringValue(c.Status), state)

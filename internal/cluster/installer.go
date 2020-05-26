@@ -39,13 +39,12 @@ func (i *installer) Install(ctx context.Context, c *models.Cluster, db *gorm.DB)
 	case clusterStatusInstalled:
 		return errors.Errorf("cluster %s is already installed", c.ID)
 	case clusterStatusError:
-		//TODO add to the log error reason the cluster is in err state
 		return errors.Errorf("cluster %s has a error", c.ID)
 	default:
 		return errors.Errorf("cluster %s state is unclear - cluster state: %s", c.ID, swag.StringValue(c.Status))
 	}
 
-	_, err := updateState(clusterStatusInstalling, c, db, i.log)
+	_, err := updateState(clusterStatusInstalling, statusInfoInstalling, c, db, i.log)
 	if err != nil {
 		return err
 	}
