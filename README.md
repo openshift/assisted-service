@@ -52,7 +52,7 @@ Running the tests:
 
 if you are making changes and don't want to deploy everything once again you can simple run this command
 
-`skipper make update && kubectl get pod -o name | grep bm-inventory | xargs kubectl delete`
+`skipper make update && kubectl get pod --namespace assisted-installer -o name | grep bm-inventory | xargs kubectl delete --namespace assisted-installer`
 
 if will build and push a new image of the service to your docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.
 
