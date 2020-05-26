@@ -1081,7 +1081,8 @@ func init() {
         },
         "status_info": {
           "description": "Additional information pertaining to the status of the OpenShift cluster.",
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "updated_at": {
           "description": "The last time that this cluster was updated.",
@@ -1509,7 +1510,8 @@ func init() {
           ]
         },
         "status_info": {
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "updated_at": {
           "type": "string",
@@ -2920,7 +2922,8 @@ func init() {
         },
         "status_info": {
           "description": "Additional information pertaining to the status of the OpenShift cluster.",
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "updated_at": {
           "description": "The last time that this cluster was updated.",
@@ -3335,7 +3338,8 @@ func init() {
           ]
         },
         "status_info": {
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "updated_at": {
           "type": "string",

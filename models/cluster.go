@@ -97,7 +97,7 @@ type Cluster struct {
 
 	// Additional information pertaining to the status of the OpenShift cluster.
 	// Required: true
-	StatusInfo *string `json:"status_info"`
+	StatusInfo *string `json:"status_info" gorm:"type:varchar(2048)"`
 
 	// The last time that this cluster was updated.
 	// Format: date-time

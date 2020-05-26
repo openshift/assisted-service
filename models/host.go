@@ -64,7 +64,7 @@ type Host struct {
 
 	// status info
 	// Required: true
-	StatusInfo *string `json:"status_info"`
+	StatusInfo *string `json:"status_info" gorm:"type:varchar(2048)"`
 
 	// updated at
 	// Format: date-time
