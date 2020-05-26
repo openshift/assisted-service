@@ -655,6 +655,10 @@ definitions:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:datetime"
+      request_id:
+        type: string
+        format: uuid
+        description: Unique identifier for the request that caused this event to occure
 
   image-create-params:
     type: object

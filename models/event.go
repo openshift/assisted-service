@@ -30,6 +30,10 @@ type Event struct {
 	// message
 	// Required: true
 	Message *string `json:"message"`
+
+	// Unique identifier for the request that caused this event to occure
+	// Format: uuid
+	RequestID strfmt.UUID `json:"request_id,omitempty"`
 }
 
 // Validate validates this event
@@ -45,6 +49,10 @@ func (m *Event) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateMessage(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRequestID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -83,6 +91,19 @@ func (m *Event) validateEventTime(formats strfmt.Registry) error {
 func (m *Event) validateMessage(formats strfmt.Registry) error {
 
 	if err := validate.Required("message", "body", m.Message); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Event) validateRequestID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.RequestID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("request_id", "body", "uuid", m.RequestID.String(), formats); err != nil {
 		return err
 	}
 

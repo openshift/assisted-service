@@ -1488,6 +1488,11 @@ func init() {
         },
         "message": {
           "type": "string"
+        },
+        "request_id": {
+          "description": "Unique identifier for the request that caused this event to occure",
+          "type": "string",
+          "format": "uuid"
         }
       }
     },
@@ -3378,6 +3383,11 @@ func init() {
         },
         "message": {
           "type": "string"
+        },
+        "request_id": {
+          "description": "Unique identifier for the request that caused this event to occure",
+          "type": "string",
+          "format": "uuid"
         }
       }
     },
