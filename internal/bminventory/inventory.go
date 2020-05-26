@@ -941,11 +941,53 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 		defer resp.Body.Close()
 		b, _ := ioutil.ReadAll(resp.Body)
 		log.WithError(fmt.Errorf("%s", string(b))).
-			Errorf("Failed to get clusters %s kubeKonfig", params.ClusterID)
+			Errorf("Failed to get clusters %s %s", params.ClusterID, params.FileName)
 		return installer.NewDownloadClusterFilesConflict().
 			WithPayload(common.GenerateError(http.StatusConflict, errors.New(string(b))))
 	}
 	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(resp.Body), params.FileName)
+}
+
+func (b *bareMetalInventory) GetKubeadminPassword(ctx context.Context, params installer.GetKubeadminPasswordParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster models.Cluster
+
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return installer.NewGetKubeadminPasswordNotFound().
+				WithPayload(common.GenerateError(http.StatusNotFound, err))
+		} else {
+			return installer.NewGetKubeadminPasswordInternalServerError().
+				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+	}
+	clusterStatus := swag.StringValue(cluster.Status)
+	if clusterStatus != ClusterStatusInstalling && clusterStatus != ClusterStatusInstalled {
+		msg := fmt.Sprintf("Cluster %s is in %s state, kubeadmin password is available only in installing or installed state", params.ClusterID, clusterStatus)
+		log.Warn(msg)
+		return installer.NewGetKubeadminPasswordConflict().
+			WithPayload(common.GenerateError(http.StatusConflict, errors.New(msg)))
+	}
+	fileName := "kubeadmin-password"
+	filesUrl := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
+		fmt.Sprintf("%s/%s", params.ClusterID, fileName))
+	log.Info("File URL: ", filesUrl)
+	resp, err := http.Get(filesUrl)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get clusters %s %s file", params.ClusterID, fileName)
+		return installer.NewGetKubeadminPasswordInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+	defer resp.Body.Close()
+	password, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK || err != nil {
+		log.WithError(fmt.Errorf("%s", password)).
+			Errorf("Failed to get clusters %s %s", params.ClusterID, fileName)
+		return installer.NewGetKubeadminPasswordConflict().
+			WithPayload(common.GenerateError(http.StatusConflict, errors.New(string(password))))
+	}
+	return installer.NewGetKubeadminPasswordOK().WithPayload(string(password))
 }
 
 func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {
