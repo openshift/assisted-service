@@ -160,6 +160,22 @@ func (_m *MockInstallerAPI) GetHost(ctx context.Context, params installer.GetHos
 	return r0
 }
 
+// GetKubeadminPassword provides a mock function with given fields: ctx, params
+func (_m *MockInstallerAPI) GetKubeadminPassword(ctx context.Context, params installer.GetKubeadminPasswordParams) middleware.Responder {
+	ret := _m.Called(ctx, params)
+
+	var r0 middleware.Responder
+	if rf, ok := ret.Get(0).(func(context.Context, installer.GetKubeadminPasswordParams) middleware.Responder); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(middleware.Responder)
+		}
+	}
+
+	return r0
+}
+
 // GetNextSteps provides a mock function with given fields: ctx, params
 func (_m *MockInstallerAPI) GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder {
 	ret := _m.Called(ctx, params)

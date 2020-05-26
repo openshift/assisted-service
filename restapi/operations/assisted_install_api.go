@@ -72,6 +72,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetHostHandler: installer.GetHostHandlerFunc(func(params installer.GetHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetHost has not yet been implemented")
 		}),
+		InstallerGetKubeadminPasswordHandler: installer.GetKubeadminPasswordHandlerFunc(func(params installer.GetKubeadminPasswordParams) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetKubeadminPassword has not yet been implemented")
+		}),
 		InstallerGetNextStepsHandler: installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetNextSteps has not yet been implemented")
 		}),
@@ -159,6 +162,8 @@ type AssistedInstallAPI struct {
 	InstallerGetClusterHandler installer.GetClusterHandler
 	// InstallerGetHostHandler sets the operation handler for the get host operation
 	InstallerGetHostHandler installer.GetHostHandler
+	// InstallerGetKubeadminPasswordHandler sets the operation handler for the get kubeadmin password operation
+	InstallerGetKubeadminPasswordHandler installer.GetKubeadminPasswordHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
 	InstallerGetNextStepsHandler installer.GetNextStepsHandler
 	// InstallerInstallClusterHandler sets the operation handler for the install cluster operation
@@ -276,6 +281,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetHostHandler == nil {
 		unregistered = append(unregistered, "installer.GetHostHandler")
+	}
+	if o.InstallerGetKubeadminPasswordHandler == nil {
+		unregistered = append(unregistered, "installer.GetKubeadminPasswordHandler")
 	}
 	if o.InstallerGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.GetNextStepsHandler")
@@ -436,6 +444,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}"] = installer.NewGetHost(o.context, o.InstallerGetHostHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{cluster_id}/kubeadmin-password"] = installer.NewGetKubeadminPassword(o.context, o.InstallerGetKubeadminPasswordHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

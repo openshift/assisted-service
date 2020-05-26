@@ -42,6 +42,7 @@ type InstallerAPI interface {
 	GenerateClusterISO(ctx context.Context, params installer.GenerateClusterISOParams) middleware.Responder
 	GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder
 	GetHost(ctx context.Context, params installer.GetHostParams) middleware.Responder
+	GetKubeadminPassword(ctx context.Context, params installer.GetKubeadminPasswordParams) middleware.Responder
 	GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder
 	InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder
 	ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder
@@ -125,6 +126,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	api.InstallerGetHostHandler = installer.GetHostHandlerFunc(func(params installer.GetHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InstallerAPI.GetHost(ctx, params)
+	})
+	api.InstallerGetKubeadminPasswordHandler = installer.GetKubeadminPasswordHandlerFunc(func(params installer.GetKubeadminPasswordParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InstallerAPI.GetKubeadminPassword(ctx, params)
 	})
 	api.InstallerGetNextStepsHandler = installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

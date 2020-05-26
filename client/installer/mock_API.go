@@ -221,6 +221,29 @@ func (_m *MockAPI) GetHost(ctx context.Context, params *GetHostParams) (*GetHost
 	return r0, r1
 }
 
+// GetKubeadminPassword provides a mock function with given fields: ctx, params
+func (_m *MockAPI) GetKubeadminPassword(ctx context.Context, params *GetKubeadminPasswordParams) (*GetKubeadminPasswordOK, error) {
+	ret := _m.Called(ctx, params)
+
+	var r0 *GetKubeadminPasswordOK
+	if rf, ok := ret.Get(0).(func(context.Context, *GetKubeadminPasswordParams) *GetKubeadminPasswordOK); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*GetKubeadminPasswordOK)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *GetKubeadminPasswordParams) error); ok {
+		r1 = rf(ctx, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetNextSteps provides a mock function with given fields: ctx, params
 func (_m *MockAPI) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error) {
 	ret := _m.Called(ctx, params)
