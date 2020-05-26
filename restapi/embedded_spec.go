@@ -1630,7 +1630,8 @@ func init() {
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation",
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
         }
       }
     },
@@ -3538,7 +3539,8 @@ func init() {
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation",
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
         }
       }
     },

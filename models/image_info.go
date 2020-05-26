@@ -27,7 +27,7 @@ type ImageInfo struct {
 	ProxyURL string `json:"proxy_url,omitempty"`
 
 	// SSH public key for debugging the installation
-	SSHPublicKey string `json:"ssh_public_key,omitempty"`
+	SSHPublicKey string `json:"ssh_public_key,omitempty" gorm:"type:varchar(1024)"`
 }
 
 // Validate validates this image info
