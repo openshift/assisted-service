@@ -1,6 +1,8 @@
 package events
 
 import (
+	"context"
+	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"time"
 
 	"github.com/filanov/bm-inventory/models"
@@ -12,7 +14,12 @@ import (
 //go:generate mockgen -source=event.go -package=events -destination=mock_event.go
 
 type Handler interface {
-	AddEvent(entityID string, msg string, eventTime time.Time, otherEntities ...string)
+	// AddEvents and an event for and entityID.
+	// Since events, might relate to multiple entities, for example:
+	//     host added to cluster, we have the host-id as the main entityID and
+	//     the cluster-id as another ID that this event should be related to
+	// otherEntities arguments provides for specifying mor IDs that are relevant for this event
+	AddEvent(ctx context.Context, entityID string, msg string, eventTime time.Time, otherEntities ...string)
 	GetEvents(entityID string) ([]*Event, error)
 }
 
@@ -46,21 +53,19 @@ func addEventToDB(db *gorm.DB, id string, message string, t time.Time) error {
 		},
 	}
 
-	d := db.Create(&e)
-	er := d.GetErrors()
-	if len(er) > 0 {
-		logrus.WithError(er[0]).Error("Error adding event")
-		return er[0]
+	if err := db.Create(&e).Error; err != nil {
+		logrus.WithError(err).Error("Error adding event")
 	}
 	return nil
 }
 
-func (e *Events) AddEvent(entityID string, msg string, eventTime time.Time, otherEntities ...string) {
+func (e *Events) AddEvent(ctx context.Context, entityID string, msg string, eventTime time.Time, otherEntities ...string) {
+	log := logutil.FromContext(ctx, e.log)
 	var isSuccess bool = false
 	tx := e.db.Begin()
 	defer func() {
 		if !isSuccess {
-			logrus.Warn("Rolling back transaction")
+			log.Warn("Rolling back transaction")
 			tx.Rollback()
 		} else {
 			tx.Commit()
@@ -72,6 +77,8 @@ func (e *Events) AddEvent(entityID string, msg string, eventTime time.Time, othe
 		return
 	}
 
+	// Since we don't keep different tables to support multiple IDs for a single event,
+	// the workaround is to add to the DB a new event for every ID this event relates to
 	for _, entity := range otherEntities {
 		err := addEventToDB(tx, entity, msg, eventTime)
 		if err != nil {
@@ -83,9 +90,7 @@ func (e *Events) AddEvent(entityID string, msg string, eventTime time.Time, othe
 
 func (e Events) GetEvents(entityID string) ([]*Event, error) {
 	var evs []*Event
-	//if err := db.Where("event_time > ?", time.Now().Add(time.Duration(-40*time.Minute))).Order("event_time").Find(&evs, "entity_id = ?", "1").Error; err != nil {
 	if err := e.db.Order("event_time").Find(&evs, "entity_id = ?", entityID).Error; err != nil {
-		e.log.WithError(err).Errorf("failed to get list of events")
 		return nil, err
 	}
 
