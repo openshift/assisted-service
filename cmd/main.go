@@ -29,6 +29,9 @@ import (
 	"github.com/filanov/bm-inventory/pkg/requestid"
 	"github.com/filanov/bm-inventory/pkg/thread"
 	"github.com/filanov/bm-inventory/restapi"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
+	"github.com/slok/go-http-metrics/middleware"
 )
 
 func init() {
@@ -106,10 +109,28 @@ func main() {
 		EventsAPI:    events,
 		Logger:       log.Printf,
 	})
+	// Create our middleware.
+	metricsRecorder := middleware.New(middleware.Config{
+		Recorder: metrics.NewRecorder(metrics.Config{}),
+	})
+
+	h = withMetricsMiddleware(h)
+	h = metricsRecorder.Handler("", h)
+
 	h = requestid.Middleware(h)
 	if err != nil {
 		log.Fatal("Failed to init rest handler,", err)
 	}
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
+}
+
+func withMetricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/metrics" {
+			promhttp.Handler().ServeHTTP(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
