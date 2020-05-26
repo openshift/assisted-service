@@ -39,7 +39,7 @@ var Options struct {
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           host.InstructionConfig
-	clusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
+	ClusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 }
 
 func main() {
@@ -83,7 +83,7 @@ func main() {
 	clusterApi := cluster.NewManager(log.WithField("pkg", "cluster-state"), db)
 
 	clusterStateMonitor := thread.New(
-		log.WithField("pkg", "cluster-monitor"), "State Monitor", Options.clusterStateMonitorInterval, clusterApi.ClusterMonitoring)
+		log.WithField("pkg", "cluster-monitor"), "State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
 	clusterStateMonitor.Start()
 	defer clusterStateMonitor.Stop()
 
