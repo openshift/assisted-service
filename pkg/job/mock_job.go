@@ -76,7 +76,7 @@ func (m *MockAPI) Delete(ctx context.Context, name, namespace string) error {
 	return ret0
 }
 
-// Delete indicates an expected call of Delete
+// Delete indicates an expected call of Delete.
 func (mr *MockAPIMockRecorder) Delete(ctx, name, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockAPI)(nil).Delete), ctx, name, namespace)

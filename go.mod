@@ -18,8 +18,8 @@ require (
 	github.com/jinzhu/gorm v1.9.12
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/minio/minio-go/v6 v6.0.55
-	github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega v1.10.0
+	github.com/onsi/ginkgo v1.12.2
+	github.com/onsi/gomega v1.10.1
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.2.1
@@ -28,7 +28,8 @@ require (
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
-	gopkg.in/yaml.v2 v2.2.8
+	golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72
+	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.17.3
 	k8s.io/apimachinery v0.17.3
 	k8s.io/client-go v11.0.0+incompatible
