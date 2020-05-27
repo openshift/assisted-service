@@ -43,11 +43,11 @@ type API interface {
 	   GetCluster retrieves the details of the open shift bare metal cluster*/
 	GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error)
 	/*
+	   GetCredentials gets the the cluster admin credentials*/
+	GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error)
+	/*
 	   GetHost retrieves the details of the open shift bare metal host*/
 	GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error)
-	/*
-	   GetKubeadminPassword gets the password for the kubeadmin user*/
-	GetKubeadminPassword(ctx context.Context, params *GetKubeadminPasswordParams) (*GetKubeadminPasswordOK, error)
 	/*
 	   GetNextSteps retrieves the next operations that the host agent needs to perform*/
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
@@ -291,6 +291,30 @@ func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*Get
 }
 
 /*
+GetCredentials gets the the cluster admin credentials
+*/
+func (a *Client) GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetCredentials",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/credentials",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetCredentialsReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetCredentialsOK), nil
+
+}
+
+/*
 GetHost retrieves the details of the open shift bare metal host
 */
 func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error) {
@@ -311,30 +335,6 @@ func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK
 		return nil, err
 	}
 	return result.(*GetHostOK), nil
-
-}
-
-/*
-GetKubeadminPassword gets the password for the kubeadmin user
-*/
-func (a *Client) GetKubeadminPassword(ctx context.Context, params *GetKubeadminPasswordParams) (*GetKubeadminPasswordOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetKubeadminPassword",
-		Method:             "GET",
-		PathPattern:        "/clusters/{cluster_id}/kubeadmin-password",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetKubeadminPasswordReader{formats: a.formats},
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetKubeadminPasswordOK), nil
 
 }
 

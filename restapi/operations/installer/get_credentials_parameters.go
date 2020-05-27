@@ -14,18 +14,18 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// NewGetKubeadminPasswordParams creates a new GetKubeadminPasswordParams object
+// NewGetCredentialsParams creates a new GetCredentialsParams object
 // no default values defined in spec.
-func NewGetKubeadminPasswordParams() GetKubeadminPasswordParams {
+func NewGetCredentialsParams() GetCredentialsParams {
 
-	return GetKubeadminPasswordParams{}
+	return GetCredentialsParams{}
 }
 
-// GetKubeadminPasswordParams contains all the bound params for the get kubeadmin password operation
+// GetCredentialsParams contains all the bound params for the get credentials operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters GetKubeadminPassword
-type GetKubeadminPasswordParams struct {
+// swagger:parameters GetCredentials
+type GetCredentialsParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -40,8 +40,8 @@ type GetKubeadminPasswordParams struct {
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewGetKubeadminPasswordParams() beforehand.
-func (o *GetKubeadminPasswordParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewGetCredentialsParams() beforehand.
+func (o *GetCredentialsParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
@@ -58,7 +58,7 @@ func (o *GetKubeadminPasswordParams) BindRequest(r *http.Request, route *middlew
 }
 
 // bindClusterID binds and validates parameter ClusterID from path.
-func (o *GetKubeadminPasswordParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *GetCredentialsParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -82,7 +82,7 @@ func (o *GetKubeadminPasswordParams) bindClusterID(rawData []string, hasKey bool
 }
 
 // validateClusterID carries on validations for parameter ClusterID
-func (o *GetKubeadminPasswordParams) validateClusterID(formats strfmt.Registry) error {
+func (o *GetCredentialsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err

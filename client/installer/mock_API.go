@@ -198,6 +198,29 @@ func (_m *MockAPI) GetCluster(ctx context.Context, params *GetClusterParams) (*G
 	return r0, r1
 }
 
+// GetCredentials provides a mock function with given fields: ctx, params
+func (_m *MockAPI) GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error) {
+	ret := _m.Called(ctx, params)
+
+	var r0 *GetCredentialsOK
+	if rf, ok := ret.Get(0).(func(context.Context, *GetCredentialsParams) *GetCredentialsOK); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*GetCredentialsOK)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *GetCredentialsParams) error); ok {
+		r1 = rf(ctx, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetHost provides a mock function with given fields: ctx, params
 func (_m *MockAPI) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error) {
 	ret := _m.Called(ctx, params)
@@ -213,29 +236,6 @@ func (_m *MockAPI) GetHost(ctx context.Context, params *GetHostParams) (*GetHost
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *GetHostParams) error); ok {
-		r1 = rf(ctx, params)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetKubeadminPassword provides a mock function with given fields: ctx, params
-func (_m *MockAPI) GetKubeadminPassword(ctx context.Context, params *GetKubeadminPasswordParams) (*GetKubeadminPasswordOK, error) {
-	ret := _m.Called(ctx, params)
-
-	var r0 *GetKubeadminPasswordOK
-	if rf, ok := ret.Get(0).(func(context.Context, *GetKubeadminPasswordParams) *GetKubeadminPasswordOK); ok {
-		r0 = rf(ctx, params)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*GetKubeadminPasswordOK)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *GetKubeadminPasswordParams) error); ok {
 		r1 = rf(ctx, params)
 	} else {
 		r1 = ret.Error(1)

@@ -69,11 +69,11 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetClusterHandler: installer.GetClusterHandlerFunc(func(params installer.GetClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetCluster has not yet been implemented")
 		}),
+		InstallerGetCredentialsHandler: installer.GetCredentialsHandlerFunc(func(params installer.GetCredentialsParams) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetCredentials has not yet been implemented")
+		}),
 		InstallerGetHostHandler: installer.GetHostHandlerFunc(func(params installer.GetHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetHost has not yet been implemented")
-		}),
-		InstallerGetKubeadminPasswordHandler: installer.GetKubeadminPasswordHandlerFunc(func(params installer.GetKubeadminPasswordParams) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetKubeadminPassword has not yet been implemented")
 		}),
 		InstallerGetNextStepsHandler: installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetNextSteps has not yet been implemented")
@@ -160,10 +160,10 @@ type AssistedInstallAPI struct {
 	InstallerGenerateClusterISOHandler installer.GenerateClusterISOHandler
 	// InstallerGetClusterHandler sets the operation handler for the get cluster operation
 	InstallerGetClusterHandler installer.GetClusterHandler
+	// InstallerGetCredentialsHandler sets the operation handler for the get credentials operation
+	InstallerGetCredentialsHandler installer.GetCredentialsHandler
 	// InstallerGetHostHandler sets the operation handler for the get host operation
 	InstallerGetHostHandler installer.GetHostHandler
-	// InstallerGetKubeadminPasswordHandler sets the operation handler for the get kubeadmin password operation
-	InstallerGetKubeadminPasswordHandler installer.GetKubeadminPasswordHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
 	InstallerGetNextStepsHandler installer.GetNextStepsHandler
 	// InstallerInstallClusterHandler sets the operation handler for the install cluster operation
@@ -279,11 +279,11 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerGetClusterHandler == nil {
 		unregistered = append(unregistered, "installer.GetClusterHandler")
 	}
+	if o.InstallerGetCredentialsHandler == nil {
+		unregistered = append(unregistered, "installer.GetCredentialsHandler")
+	}
 	if o.InstallerGetHostHandler == nil {
 		unregistered = append(unregistered, "installer.GetHostHandler")
-	}
-	if o.InstallerGetKubeadminPasswordHandler == nil {
-		unregistered = append(unregistered, "installer.GetKubeadminPasswordHandler")
 	}
 	if o.InstallerGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.GetNextStepsHandler")
@@ -443,11 +443,11 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}"] = installer.NewGetHost(o.context, o.InstallerGetHostHandler)
+	o.handlers["GET"]["/clusters/{cluster_id}/credentials"] = installer.NewGetCredentials(o.context, o.InstallerGetCredentialsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/kubeadmin-password"] = installer.NewGetKubeadminPassword(o.context, o.InstallerGetKubeadminPasswordHandler)
+	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}"] = installer.NewGetHost(o.context, o.InstallerGetHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

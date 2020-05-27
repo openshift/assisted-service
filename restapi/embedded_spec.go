@@ -320,6 +320,50 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/credentials": {
+      "get": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Get the the cluster admin credentials.",
+        "operationId": "GetCredentials",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/credentials"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/downloads/files": {
       "get": {
         "produces": [
@@ -891,50 +935,6 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/kubeadmin-password": {
-      "get": {
-        "tags": [
-          "installer"
-        ],
-        "summary": "Get the password for the kubeadmin user.",
-        "operationId": "GetKubeadminPassword",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/events/{entity_id}": {
       "get": {
         "tags": [
@@ -1419,6 +1419,17 @@ func init() {
         },
         "threads_per_core": {
           "type": "integer"
+        }
+      }
+    },
+    "credentials": {
+      "type": "object",
+      "properties": {
+        "password": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
         }
       }
     },
@@ -2270,6 +2281,50 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/credentials": {
+      "get": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Get the the cluster admin credentials.",
+        "operationId": "GetCredentials",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/credentials"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/downloads/files": {
       "get": {
         "produces": [
@@ -2841,50 +2896,6 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/kubeadmin-password": {
-      "get": {
-        "tags": [
-          "installer"
-        ],
-        "summary": "Get the password for the kubeadmin user.",
-        "operationId": "GetKubeadminPassword",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/events/{entity_id}": {
       "get": {
         "tags": [
@@ -3372,6 +3383,17 @@ func init() {
         },
         "threads_per_core": {
           "type": "integer"
+        }
+      }
+    },
+    "credentials": {
+      "type": "object",
+      "properties": {
+        "password": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
         }
       }
     },
