@@ -15,6 +15,9 @@ import (
 // swagger:model credentials
 type Credentials struct {
 
+	// console url
+	ConsoleURL string `json:"console_url,omitempty"`
+
 	// password
 	Password string `json:"password,omitempty"`
 
