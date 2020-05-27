@@ -50,7 +50,7 @@ func prepareDB() *gorm.DB {
 	db, err := gorm.Open("sqlite3", ":memory:")
 	Expect(err).ShouldNot(HaveOccurred())
 	//db = db.Debug()
-	db.AutoMigrate(&models.Cluster{}, &models.Host{})
+	db.AutoMigrate(&common.Cluster{}, &models.Host{})
 	return db
 }
 
@@ -86,11 +86,11 @@ var _ = Describe("GenerateClusterISO", func() {
 		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, mockEvents, nil)
 	})
 
-	registerCluster := func() *models.Cluster {
+	registerCluster := func() *common.Cluster {
 		clusterId := strfmt.UUID(uuid.New().String())
-		cluster := models.Cluster{
+		cluster := common.Cluster{Cluster: models.Cluster{
 			ID: &clusterId,
-		}
+		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		return &cluster
 	}
@@ -328,7 +328,7 @@ var _ = Describe("cluster", func() {
 	}
 
 	updateMachineCidr := func(clusterID strfmt.UUID, machineCidr string, db *gorm.DB) {
-		Expect(db.Model(&models.Cluster{ID: &clusterID}).UpdateColumn("machine_network_cidr", machineCidr).Error).To(Not(HaveOccurred()))
+		Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("machine_network_cidr", machineCidr).Error).To(Not(HaveOccurred()))
 	}
 
 	getDisk := func() *models.Disk {
@@ -400,12 +400,12 @@ var _ = Describe("cluster", func() {
 		{
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&models.Cluster{
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
 					ID:                 &clusterID,
 					APIVip:             "10.11.12.13",
 					IngressVip:         "10.11.12.14",
 					MachineNetworkCidr: "10.11.0.0/16",
-				}).Error
+				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
 				addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
@@ -457,9 +457,9 @@ var _ = Describe("cluster", func() {
 	Context("Update", func() {
 		It("update_cluster_while_installing", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&models.Cluster{
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID: &clusterID,
-			}).Error
+			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
 			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(errors.Errorf("wrong state")).Times(1)
@@ -499,9 +499,9 @@ var _ = Describe("cluster", func() {
 		Context("Update Network", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&models.Cluster{
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
-				}).Error
+				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
 				addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
@@ -597,12 +597,12 @@ var _ = Describe("cluster", func() {
 	Context("Install", func() {
 		BeforeEach(func() {
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&models.Cluster{
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID:                 &clusterID,
 				APIVip:             "10.11.12.13",
 				IngressVip:         "10.11.20.50",
 				MachineNetworkCidr: "10.11.0.0/16",
-			}).Error
+			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
 			addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
@@ -724,7 +724,7 @@ var _ = Describe("KubeConfig download", func() {
 		ctrl         *gomock.Controller
 		mockS3Client *awsS3Client.MockS3Client
 		clusterID    strfmt.UUID
-		c            models.Cluster
+		c            common.Cluster
 		mockJob      *job.MockAPI
 		clusterApi   cluster.API
 	)
@@ -740,10 +740,10 @@ var _ = Describe("KubeConfig download", func() {
 
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client)
-		c = models.Cluster{
+		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
-		}
+		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -802,7 +802,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		ctrl                *gomock.Controller
 		mockS3Client        *awsS3Client.MockS3Client
 		clusterID           strfmt.UUID
-		c                   models.Cluster
+		c                   common.Cluster
 		ingressCa           models.IngressCertParams
 		kubeconfigFile      *os.File
 		kubeconfigNoingress string
@@ -832,10 +832,10 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		clusterApi = cluster.NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client)
-		c = models.Cluster{
+		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
-		}
+		}}
 		kubeconfigNoingress = fmt.Sprintf("%s/%s", clusterID, "kubeconfig-noingress")
 		kubeconfigObject = fmt.Sprintf("%s/%s", clusterID, kubeconfig)
 		err := db.Create(&c).Error

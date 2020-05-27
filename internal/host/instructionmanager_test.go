@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -36,7 +37,7 @@ var _ = Describe("instructionmanager", func() {
 		instMng = NewInstructionManager(getTestLog(), db, mockValidator, instructionConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		cluster := models.Cluster{ID: &clusterId}
+		cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		host = getTestHost(hostId, clusterId, "unknown invalid state")
 		host.Role = RoleMaster

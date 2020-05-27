@@ -23,7 +23,7 @@ const diskNameFilterRegex = "nvme"
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
-	IsSufficient(host *models.Host, cluster *models.Cluster) (*IsSufficientReply, error)
+	IsSufficient(host *models.Host, cluster *common.Cluster) (*IsSufficientReply, error)
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error)
 }
@@ -50,7 +50,7 @@ type validator struct {
 	log logrus.FieldLogger
 }
 
-func (v *validator) IsSufficient(host *models.Host, cluster *models.Cluster) (*IsSufficientReply, error) {
+func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*IsSufficientReply, error) {
 	var err error
 	var reason string
 	var isSufficient bool
@@ -153,7 +153,7 @@ func listValidDisks(inventory models.Inventory, minSizeRequiredInBytes int64) []
 	return disks
 }
 
-func (v *validator) isHostnameUnique(cluster *models.Cluster, host *models.Host, hostname string) bool {
+func (v *validator) isHostnameUnique(cluster *common.Cluster, host *models.Host, hostname string) bool {
 	var hwInfo models.Inventory
 	for _, chost := range cluster.Hosts {
 		if host.ID.String() == chost.ID.String() {

@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -20,7 +21,7 @@ var _ = Describe("installer", func() {
 		installerManager InstallationAPI
 		db               *gorm.DB
 		id               strfmt.UUID
-		cluster          models.Cluster
+		cluster          common.Cluster
 		hostsIds         []strfmt.UUID
 	)
 
@@ -29,10 +30,10 @@ var _ = Describe("installer", func() {
 		installerManager = NewInstaller(getTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
-		cluster = models.Cluster{
+		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
 			Status: swag.String(clusterStatusReady),
-		}
+		}}
 
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	})
@@ -97,7 +98,7 @@ var _ = Describe("installer", func() {
 	})
 })
 
-func updateClusterState(cluster models.Cluster, state string, db *gorm.DB) models.Cluster {
+func updateClusterState(cluster common.Cluster, state string, db *gorm.DB) common.Cluster {
 	cluster.Status = swag.String(state)
 	Expect(db.Model(&cluster).Update("status", state).Error).NotTo(HaveOccurred())
 	return cluster

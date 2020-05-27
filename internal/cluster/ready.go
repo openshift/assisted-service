@@ -5,8 +5,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	intenralhost "github.com/filanov/bm-inventory/internal/host"
-	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 
 	"github.com/jinzhu/gorm"
@@ -24,7 +24,7 @@ type readyState baseState
 
 var _ StateAPI = (*Manager)(nil)
 
-func (r *readyState) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error) {
+func (r *readyState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
 	log := logutil.FromContext(ctx, r.log)
 
 	if err := db.Preload("Hosts").First(&c, "id = ?", c.ID).Error; err != nil {

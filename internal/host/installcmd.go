@@ -10,6 +10,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 )
@@ -36,7 +37,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 	step.Command = "bash"
 
 	//get openshift version
-	var cluster models.Cluster
+	var cluster common.Cluster
 	if err := i.db.First(&cluster, "id = ?", host.ClusterID).Error; err != nil {
 		i.log.Errorf("failed to get cluster %s", host.ClusterID)
 		return nil, err

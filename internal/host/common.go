@@ -3,6 +3,8 @@ package host
 import (
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/common"
+
 	"github.com/go-openapi/strfmt"
 
 	"github.com/filanov/bm-inventory/internal/hardware"
@@ -109,8 +111,8 @@ func updateHwInfo(log logrus.FieldLogger, hwValidator hardware.Validator, h *mod
 	return updateStateWithParams(log, status, "", h, db, "hardware_info", h.HardwareInfo)
 }
 
-func getCluster(clusterID strfmt.UUID, db *gorm.DB) (*models.Cluster, error) {
-	var cluster models.Cluster
+func getCluster(clusterID strfmt.UUID, db *gorm.DB) (*common.Cluster, error) {
+	var cluster common.Cluster
 	if err := db.Preload("Hosts", "status <> ?", HostStatusDisabled).First(&cluster, "id = ?", clusterID).Error; err != nil {
 		return nil, err
 	}

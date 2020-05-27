@@ -6,11 +6,13 @@ package host
 
 import (
 	context "context"
+	reflect "reflect"
+
+	common "github.com/filanov/bm-inventory/internal/common"
 	hardware "github.com/filanov/bm-inventory/internal/hardware"
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
-	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface
@@ -180,7 +182,7 @@ func (mr *MockSpecificHardwareParamsMockRecorder) GetHostValidDisks(h interface{
 }
 
 // ValidateCurrentInventory mocks base method
-func (m *MockSpecificHardwareParams) ValidateCurrentInventory(host *models.Host, cluster *models.Cluster) (*hardware.IsSufficientReply, error) {
+func (m *MockSpecificHardwareParams) ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*hardware.IsSufficientReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateCurrentInventory", host, cluster)
 	ret0, _ := ret[0].(*hardware.IsSufficientReply)
@@ -381,7 +383,7 @@ func (mr *MockAPIMockRecorder) GetHostValidDisks(h interface{}) *gomock.Call {
 }
 
 // ValidateCurrentInventory mocks base method
-func (m *MockAPI) ValidateCurrentInventory(host *models.Host, cluster *models.Cluster) (*hardware.IsSufficientReply, error) {
+func (m *MockAPI) ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*hardware.IsSufficientReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateCurrentInventory", host, cluster)
 	ret0, _ := ret[0].(*hardware.IsSufficientReply)

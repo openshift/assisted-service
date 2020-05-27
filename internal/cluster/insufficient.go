@@ -3,10 +3,11 @@ package cluster
 import (
 	"context"
 
+	"github.com/filanov/bm-inventory/internal/common"
+
 	"github.com/sirupsen/logrus"
 
 	intenralhost "github.com/filanov/bm-inventory/internal/host"
-	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 
 	"github.com/jinzhu/gorm"
@@ -22,7 +23,7 @@ func NewInsufficientState(log logrus.FieldLogger, db *gorm.DB) *insufficientStat
 
 type insufficientState baseState
 
-func (i *insufficientState) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error) {
+func (i *insufficientState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
 
 	log := logutil.FromContext(ctx, i.log)
 

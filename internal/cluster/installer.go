@@ -5,13 +5,13 @@ import (
 
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/go-openapi/strfmt"
 
 	"github.com/pkg/errors"
 
 	"github.com/go-openapi/swag"
 
-	"github.com/filanov/bm-inventory/models"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 )
@@ -28,7 +28,7 @@ type installer struct {
 	db  *gorm.DB
 }
 
-func (i *installer) Install(ctx context.Context, c *models.Cluster, db *gorm.DB) error {
+func (i *installer) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, i.log)
 
 	switch swag.StringValue(c.Status) {
@@ -59,6 +59,6 @@ func (i *installer) Install(ctx context.Context, c *models.Cluster, db *gorm.DB)
 	return nil
 }
 
-func (i *installer) GetMasterNodesIds(ctx context.Context, cluster *models.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
+func (i *installer) GetMasterNodesIds(ctx context.Context, cluster *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
 	return getKnownMastersNodesIds(cluster, db)
 }

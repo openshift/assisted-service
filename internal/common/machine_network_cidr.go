@@ -16,7 +16,7 @@ import (
  * The goal of this function is to find the first network that one of the vips belongs to it.
  * This network is returned as a result.
  */
-func CalculateMachineNetworkCIDR(cluster *models.Cluster) (string, error) {
+func CalculateMachineNetworkCIDR(cluster *Cluster) (string, error) {
 	var ip string
 	if cluster.APIVip != "" {
 		ip = cluster.APIVip
@@ -62,21 +62,21 @@ func ipInCidr(ipStr, cidrStr string) bool {
 	return ipnet.Contains(ip)
 }
 
-func verifyVip(cluster *models.Cluster, vip string, vipName string, mustExist bool) error {
+func verifyVip(cluster *Cluster, vip string, vipName string, mustExist bool) error {
 	if !mustExist && vip == "" || ipInCidr(vip, cluster.MachineNetworkCidr) {
 		return nil
 	}
 	return fmt.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, cluster.MachineNetworkCidr)
 }
 
-func verifyDifferentVipAddresses(cluster *models.Cluster) error {
+func verifyDifferentVipAddresses(cluster *Cluster) error {
 	if cluster.APIVip == cluster.IngressVip && cluster.APIVip != "" {
 		return fmt.Errorf("api-vip and ingress-vip cannot have the same value: %s", cluster.APIVip)
 	}
 	return nil
 }
 
-func VerifyVips(cluster *models.Cluster, mustExist bool) error {
+func VerifyVips(cluster *Cluster, mustExist bool) error {
 	err := verifyVip(cluster, cluster.APIVip, "api-vip", mustExist)
 	if err == nil {
 		err = verifyVip(cluster, cluster.IngressVip, "ingress-vip", mustExist)
@@ -109,7 +109,7 @@ func belongsToNetwork(log logrus.FieldLogger, h *models.Host, machineIpnet *net.
 	return false
 }
 
-func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *models.Cluster) ([]*models.Host, error) {
+func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *Cluster) ([]*models.Host, error) {
 	if cluster.MachineNetworkCidr == "" {
 		return nil, errors.New("Machine network CIDR was not set in cluster")
 	}
@@ -126,7 +126,7 @@ func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *models.Cluster) ([]*mo
 	return ret, nil
 }
 
-func IsHostInMachineNetCidr(log logrus.FieldLogger, cluster *models.Cluster, host *models.Host) bool {
+func IsHostInMachineNetCidr(log logrus.FieldLogger, cluster *Cluster, host *models.Host) bool {
 	_, machineIpnet, err := net.ParseCIDR(cluster.MachineNetworkCidr)
 	if err != nil {
 		return false

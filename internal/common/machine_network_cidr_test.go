@@ -33,12 +33,12 @@ var _ = Describe("inventory", func() {
 		return ret
 	}
 
-	createCluster := func(apiVip string, machineCidr string, inventories ...string) *models.Cluster {
-		return &models.Cluster{
+	createCluster := func(apiVip string, machineCidr string, inventories ...string) *Cluster {
+		return &Cluster{Cluster: models.Cluster{
 			APIVip:             apiVip,
 			MachineNetworkCidr: machineCidr,
 			Hosts:              createHosts(inventories...),
-		}
+		}}
 	}
 	Context("CalculateMachineNetworkCIDR", func() {
 		It("happpy flow", func() {

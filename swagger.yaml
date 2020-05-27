@@ -1087,10 +1087,6 @@ definitions:
         type: string
         pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
         description: Virtual IP used for cluster ingress traffic.
-      pull_secret:
-        type: string
-        x-go-custom-tag: gorm:"type:varchar(4096)"
-        description: The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
       ssh_public_key:
         type: string
         x-go-custom-tag: gorm:"type:varchar(1024)"

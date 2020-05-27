@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -208,7 +209,7 @@ func prepareDB() *gorm.DB {
 	db, err := gorm.Open("sqlite3", ":memory:")
 	Expect(err).ShouldNot(HaveOccurred())
 	//db = db.Debug()
-	db.AutoMigrate(&models.Host{}, &models.Cluster{})
+	db.AutoMigrate(&models.Host{}, &common.Cluster{})
 	return db
 }
 

@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/filanov/bm-inventory/models"
+	"github.com/filanov/bm-inventory/internal/common"
+
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -66,7 +67,7 @@ type InstallerConfigBaremetal struct {
 	SSHKey     string   `yaml:"sshKey"`
 }
 
-func countHostsByRole(cluster *models.Cluster, role string) int {
+func countHostsByRole(cluster *common.Cluster, role string) int {
 	var count int
 	for _, host := range cluster.Hosts {
 		if host.Role == role {
@@ -76,7 +77,7 @@ func countHostsByRole(cluster *models.Cluster, role string) int {
 	return count
 }
 
-func getBasicInstallConfig(cluster *models.Cluster) *InstallerConfigBaremetal {
+func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
 	return &InstallerConfigBaremetal{
 		APIVersion: "v1",
 		BaseDomain: cluster.BaseDNSDomain,
@@ -139,7 +140,7 @@ func getDummyMAC(log logrus.FieldLogger, dummyMAC string, count int) (string, er
 	return hwMac.String(), nil
 }
 
-func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *models.Cluster, cfg *InstallerConfigBaremetal) error {
+func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster, cfg *InstallerConfigBaremetal) error {
 	// set hosts
 	numMasters := countHostsByRole(cluster, "master")
 	numWorkers := countHostsByRole(cluster, "worker")
@@ -188,7 +189,7 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *models.Cluster,
 	return nil
 }
 
-func GetInstallConfig(log logrus.FieldLogger, cluster *models.Cluster) ([]byte, error) {
+func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
 	cfg := getBasicInstallConfig(cluster)
 	err := setBMPlatformInstallconfig(log, cluster, cfg)
 	if err != nil {

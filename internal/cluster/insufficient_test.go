@@ -4,6 +4,8 @@ import (
 	context "context"
 
 	"github.com/filanov/bm-inventory/models"
+
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
@@ -21,7 +23,7 @@ var _ = Describe("insufficient_state", func() {
 		id           strfmt.UUID
 		updateReply  *UpdateReply
 		updateErr    error
-		cluster      models.Cluster
+		cluster      common.Cluster
 	)
 
 	BeforeEach(func() {
@@ -30,10 +32,10 @@ var _ = Describe("insufficient_state", func() {
 		registerManager := NewRegistrar(getTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
-		cluster = models.Cluster{
+		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
 			Status: swag.String(currentState),
-		}
+		}}
 
 		replyErr := registerManager.RegisterCluster(ctx, &cluster)
 		Expect(replyErr).Should(BeNil())

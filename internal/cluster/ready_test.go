@@ -3,6 +3,7 @@ package cluster
 import (
 	context "context"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -20,7 +21,7 @@ var _ = Describe("ready_state", func() {
 		id          strfmt.UUID
 		updateReply *UpdateReply
 		updateErr   error
-		cluster     models.Cluster
+		cluster     common.Cluster
 	)
 
 	BeforeEach(func() {
@@ -28,10 +29,10 @@ var _ = Describe("ready_state", func() {
 		state = &Manager{ready: NewReadyState(getTestLog(), db)}
 
 		id = strfmt.UUID(uuid.New().String())
-		cluster = models.Cluster{
+		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
 			Status: swag.String(clusterStatusReady),
-		}
+		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		addInstallationRequirements(id, db)
 

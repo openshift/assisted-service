@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"testing"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -21,7 +23,7 @@ var _ = Describe("installcmd", func() {
 	var (
 		ctx               = context.Background()
 		host              models.Host
-		cluster           models.Cluster
+		cluster           common.Cluster
 		db                *gorm.DB
 		installCmd        *installCmd
 		clusterId         strfmt.UUID
@@ -100,12 +102,12 @@ var _ = Describe("installcmd", func() {
 	})
 })
 
-func createClusterInDb(db *gorm.DB) models.Cluster {
+func createClusterInDb(db *gorm.DB) common.Cluster {
 	clusterId := strfmt.UUID(uuid.New().String())
-	cluster := models.Cluster{
+	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:               &clusterId,
 		OpenshiftVersion: "4.5",
-	}
+	}}
 	Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	return cluster
 }
@@ -145,4 +147,9 @@ func validateInstallCommand(reply *models.Step, role string, clusterId string, h
 		"--cluster-id %s --host 10.35.59.36 --port 30485 " +
 		"--boot-device /dev/sdb --host-id %s --openshift-version 4.5"
 	ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId, hostId)))
+}
+
+func TestEvents(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "installcmd test Suite")
 }

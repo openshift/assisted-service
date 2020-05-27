@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/thoas/go-funk"
 
 	"github.com/filanov/bm-inventory/internal/events"
@@ -15,8 +16,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
-
-	"github.com/filanov/bm-inventory/models"
 )
 
 const minHostsNeededForInstallation = 3
@@ -25,21 +24,21 @@ const minHostsNeededForInstallation = 3
 
 type StateAPI interface {
 	// Refresh state in case of hosts update7
-	RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error)
+	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error)
 }
 
 type RegistrationAPI interface {
 	// Register a new cluster
-	RegisterCluster(ctx context.Context, c *models.Cluster) error
+	RegisterCluster(ctx context.Context, c *common.Cluster) error
 	//deregister cluster
-	DeregisterCluster(ctx context.Context, c *models.Cluster) error
+	DeregisterCluster(ctx context.Context, c *common.Cluster) error
 }
 
 type InstallationAPI interface {
 	// Install cluster
-	Install(ctx context.Context, c *models.Cluster, db *gorm.DB) error
+	Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	// Get the cluster master nodes ID's
-	GetMasterNodesIds(ctx context.Context, c *models.Cluster, db *gorm.DB) ([]*strfmt.UUID, error)
+	GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error)
 }
 
 type API interface {
@@ -47,12 +46,12 @@ type API interface {
 	RegistrationAPI
 	InstallationAPI
 	ClusterMonitoring()
-	DownloadFiles(c *models.Cluster) (err error)
-	DownloadKubeconfig(c *models.Cluster) (err error)
-	GetCredentials(c *models.Cluster) (err error)
-	UploadIngressCert(c *models.Cluster) (err error)
-	VerifyClusterUpdatability(c *models.Cluster) (err error)
-	AcceptRegistration(c *models.Cluster) (err error)
+	DownloadFiles(c *common.Cluster) (err error)
+	DownloadKubeconfig(c *common.Cluster) (err error)
+	GetCredentials(c *common.Cluster) (err error)
+	UploadIngressCert(c *common.Cluster) (err error)
+	VerifyClusterUpdatability(c *common.Cluster) (err error)
+	AcceptRegistration(c *common.Cluster) (err error)
 }
 
 type Manager struct {
@@ -100,7 +99,7 @@ func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 	return nil, fmt.Errorf("not supported cluster status: %s", status)
 }
 
-func (m *Manager) RegisterCluster(ctx context.Context, c *models.Cluster) error {
+func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error {
 	err := m.registrationAPI.RegisterCluster(ctx, c)
 	var msg string
 	if err != nil {
@@ -112,7 +111,7 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *models.Cluster) error 
 	return err
 }
 
-func (m *Manager) DeregisterCluster(ctx context.Context, c *models.Cluster) error {
+func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
 	err := m.registrationAPI.DeregisterCluster(ctx, c)
 	var msg string
 	if err != nil {
@@ -124,7 +123,7 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *models.Cluster) erro
 	return err
 }
 
-func (m *Manager) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error) {
+func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
 	state, err := m.getCurrentState(swag.StringValue(c.Status))
 	if err != nil {
 		return nil, err
@@ -132,16 +131,16 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm
 	return state.RefreshStatus(ctx, c, db)
 }
 
-func (m *Manager) Install(ctx context.Context, c *models.Cluster, db *gorm.DB) error {
+func (m *Manager) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
 	return m.installationAPI.Install(ctx, c, db)
 }
 
-func (m *Manager) GetMasterNodesIds(ctx context.Context, c *models.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
+func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
 	return m.installationAPI.GetMasterNodesIds(ctx, c, db)
 }
 
 func (m *Manager) ClusterMonitoring() {
-	var clusters []*models.Cluster
+	var clusters []*common.Cluster
 
 	if err := m.db.Find(&clusters).Error; err != nil {
 		m.log.WithError(err).Errorf("failed to get clusters")
@@ -165,7 +164,7 @@ func (m *Manager) ClusterMonitoring() {
 	}
 }
 
-func (m *Manager) DownloadFiles(c *models.Cluster) (err error) {
+func (m *Manager) DownloadFiles(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{clusterStatusInstalling,
 		clusterStatusInstalled,
@@ -177,7 +176,7 @@ func (m *Manager) DownloadFiles(c *models.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) DownloadKubeconfig(c *models.Cluster) (err error) {
+func (m *Manager) DownloadKubeconfig(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	if clusterStatus != clusterStatusInstalled {
 		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only in installed state", c.ID, clusterStatus, "kubeconfig")
@@ -185,7 +184,7 @@ func (m *Manager) DownloadKubeconfig(c *models.Cluster) (err error) {
 
 	return err
 }
-func (m *Manager) GetCredentials(c *models.Cluster) (err error) {
+func (m *Manager) GetCredentials(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{clusterStatusInstalling, clusterStatusInstalled}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
@@ -195,7 +194,7 @@ func (m *Manager) GetCredentials(c *models.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) UploadIngressCert(c *models.Cluster) (err error) {
+func (m *Manager) UploadIngressCert(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	if clusterStatus != clusterStatusInstalled {
 		err = errors.Errorf("Cluster %s is in %s state, upload ingress ca can be done only in installed state", c.ID, clusterStatus)
@@ -204,7 +203,7 @@ func (m *Manager) UploadIngressCert(c *models.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) AcceptRegistration(c *models.Cluster) (err error) {
+func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{clusterStatusInsufficient, clusterStatusReady}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
@@ -213,7 +212,7 @@ func (m *Manager) AcceptRegistration(c *models.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) VerifyClusterUpdatability(c *models.Cluster) (err error) {
+func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{clusterStatusInsufficient, clusterStatusReady}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/filanov/bm-inventory/internal/common"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/alecthomas/units"
@@ -25,7 +27,7 @@ var _ = Describe("hardware_validator", func() {
 		hwvalidator      Validator
 		host             *models.Host
 		inventory        *models.Inventory
-		cluster          *models.Cluster
+		cluster          *common.Cluster
 		validDiskSize    = int64(128849018880)
 		notValidDiskSize = int64(108849018880)
 	)
@@ -50,10 +52,10 @@ var _ = Describe("hardware_validator", func() {
 				{DriveType: "ODD", Name: "loop0", SizeBytes: validDiskSize},
 				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
 		}
-		cluster = &models.Cluster{
+		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                 &clusterID,
 			MachineNetworkCidr: "1.2.3.0/24",
-		}
+		}}
 	})
 
 	It("sufficient_hw", func() {

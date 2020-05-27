@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/filanov/bm-inventory/internal/common"
+
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
@@ -36,7 +38,7 @@ type StateAPI interface {
 
 type SpecificHardwareParams interface {
 	GetHostValidDisks(h *models.Host) ([]*models.Disk, error)
-	ValidateCurrentInventory(host *models.Host, cluster *models.Cluster) (*hardware.IsSufficientReply, error)
+	ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*hardware.IsSufficientReply, error)
 }
 
 const (
@@ -224,7 +226,7 @@ func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
 	return m.hwValidator.GetHostValidDisks(host)
 }
 
-func (m *Manager) ValidateCurrentInventory(host *models.Host, cluster *models.Cluster) (*hardware.IsSufficientReply, error) {
+func (m *Manager) ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*hardware.IsSufficientReply, error) {
 	return m.hwValidator.IsSufficient(host, cluster)
 }
 

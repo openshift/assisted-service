@@ -4,13 +4,13 @@ import (
 	context "context"
 	"fmt"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	intenralhost "github.com/filanov/bm-inventory/internal/host"
 
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/filanov/bm-inventory/models"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -26,7 +26,7 @@ type installingState baseState
 
 var _ StateAPI = (*Manager)(nil)
 
-func (i *installingState) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error) {
+func (i *installingState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
 	log := logutil.FromContext(ctx, i.log)
 	installationState, StateInfo, err := i.getClusterInstallationState(ctx, c, db)
 	if err != nil {
@@ -47,7 +47,7 @@ func (i *installingState) RefreshStatus(ctx context.Context, c *models.Cluster, 
 	return nil, errors.Errorf("cluster % state transaction is not clear, installation state: %s ", c.ID, installationState)
 }
 
-func (i *installingState) getClusterInstallationState(ctx context.Context, c *models.Cluster, db *gorm.DB) (string, string, error) {
+func (i *installingState) getClusterInstallationState(ctx context.Context, c *common.Cluster, db *gorm.DB) (string, string, error) {
 	log := logutil.FromContext(ctx, i.log)
 
 	if err := db.Preload("Hosts").First(&c, "id = ?", c.ID).Error; err != nil {

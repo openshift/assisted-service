@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-openapi/swag"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
@@ -24,7 +25,7 @@ type registrar struct {
 	db  *gorm.DB
 }
 
-func (r *registrar) RegisterCluster(ctx context.Context, cluster *models.Cluster) error {
+func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster) error {
 	cluster.Status = swag.String(clusterStatusInsufficient)
 	cluster.StatusInfo = swag.String(statusInfoInsufficient)
 	tx := r.db.Begin()
@@ -52,7 +53,7 @@ func (r *registrar) RegisterCluster(ctx context.Context, cluster *models.Cluster
 	return nil
 }
 
-func (r *registrar) DeregisterCluster(ctx context.Context, cluster *models.Cluster) error {
+func (r *registrar) DeregisterCluster(ctx context.Context, cluster *common.Cluster) error {
 	var txErr error
 	tx := r.db.Begin()
 

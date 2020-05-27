@@ -3,6 +3,7 @@ package cluster
 import (
 	context "context"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -19,7 +20,7 @@ var _ = Describe("registrar", func() {
 		db              *gorm.DB
 		id              strfmt.UUID
 		updateErr       error
-		cluster         models.Cluster
+		cluster         common.Cluster
 		host            models.Host
 	)
 
@@ -28,10 +29,10 @@ var _ = Describe("registrar", func() {
 		registerManager = NewRegistrar(getTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
-		cluster = models.Cluster{
+		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
 			Status: swag.String(clusterStatusInsufficient),
-		}
+		}}
 
 		//register cluster
 		updateErr = registerManager.RegisterCluster(ctx, &cluster)
