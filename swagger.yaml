@@ -256,12 +256,12 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
-  /clusters/{cluster_id}/kubeadmin-password:
+  /clusters/{cluster_id}/credentials:
     get:
       tags:
         - installer
-      summary: Get the password for the kubeadmin user.
-      operationId: GetKubeadminPassword
+      summary: Get the the cluster admin credentials.
+      operationId: GetCredentials
       parameters:
         - in: path
           name: cluster_id
@@ -272,7 +272,7 @@ paths:
         200:
           description: Success.
           schema:
-            type: string
+            $ref: '#/definitions/credentials'
         404:
           description: Error.
           schema:
@@ -1390,3 +1390,11 @@ definitions:
         $ref: '#/definitions/memory'
       cpu:
         $ref: '#/definitions/cpu'
+
+  credentials:
+    type: object
+    properties:
+      username:
+        type: string
+      password:
+        type: string
