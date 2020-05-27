@@ -44,8 +44,8 @@ func (r *readyState) RefreshStatus(ctx context.Context, c *models.Cluster, db *g
 
 	// Cluster is insufficient
 	mastersInKnown := mappedMastersByRole[intenralhost.HostStatusKnown]
-	if len(mastersInKnown) < minHostsNeededForInstallation {
-		log.Infof("Cluster %s dos not have at least %d known master hosts, cluster is insufficient.", c.ID, minHostsNeededForInstallation)
+	if len(mastersInKnown) != minHostsNeededForInstallation {
+		log.Infof("Cluster %s dos not have exactly %d known master hosts, cluster is insufficient.", c.ID, minHostsNeededForInstallation)
 		return updateState(clusterStatusInsufficient, statusInfoInsufficient, c, db, log)
 
 		//cluster is still ready
