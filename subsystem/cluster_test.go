@@ -298,21 +298,22 @@ var _ = Describe("system-test cluster install", func() {
 			By("Test getting kubeadmin password for not found cluster")
 			{
 				missingClusterId := strfmt.UUID(uuid.New().String())
-				_, err := bmclient.Installer.GetKubeadminPassword(ctx, &installer.GetKubeadminPasswordParams{ClusterID: missingClusterId})
-				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetKubeadminPasswordNotFound())))
+				_, err := bmclient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: missingClusterId})
+				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetCredentialsNotFound())))
 			}
 			By("Test getting kubeadmin password in wrong state")
 			{
-				_, err := bmclient.Installer.GetKubeadminPassword(ctx, &installer.GetKubeadminPasswordParams{ClusterID: clusterID})
-				Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewGetKubeadminPasswordConflict())))
+				_, err := bmclient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
+				Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewGetCredentialsConflict())))
 			}
 			By("Test happy flow")
 			{
 				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				password, err := bmclient.Installer.GetKubeadminPassword(ctx, &installer.GetKubeadminPasswordParams{ClusterID: clusterID})
+				creds, err := bmclient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(len(password.GetPayload())).NotTo(Equal(0))
+				Expect(creds.GetPayload().Username).To(Equal("kubeadmin"))
+				Expect(len(creds.GetPayload().Password)).NotTo(Equal(0))
 			}
 		})
 	})
