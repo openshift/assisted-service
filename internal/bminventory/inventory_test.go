@@ -1,14 +1,19 @@
 package bminventory
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
 	"github.com/filanov/bm-inventory/internal/events"
+	"github.com/filanov/bm-inventory/pkg/filemiddleware"
+
+	awsS3Client "github.com/filanov/bm-inventory/pkg/s3Client"
 
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/host"
@@ -69,7 +74,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		db = prepareDB()
 		mockJob = job.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, mockEvents)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, mockEvents, nil)
 	})
 
 	registerCluster := func() *models.Cluster {
@@ -159,7 +164,7 @@ var _ = Describe("GetNextSteps", func() {
 		db = prepareDB()
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil)
 	})
 
 	It("get_next_steps_unknown_host", func() {
@@ -223,7 +228,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		db = prepareDB()
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil)
 	})
 
 	Context("host exists", func() {
@@ -349,8 +354,7 @@ var _ = Describe("cluster", func() {
 		mockClusterApi = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents)
-
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, nil)
 	})
 
 	Context("Install", func() {
@@ -441,5 +445,225 @@ var _ = Describe("cluster", func() {
 	AfterEach(func() {
 		ctrl.Finish()
 		db.Close()
+	})
+})
+
+var _ = Describe("KubeConfig download", func() {
+
+	var (
+		bm           *bareMetalInventory
+		cfg          Config
+		db           *gorm.DB
+		ctx          = context.Background()
+		ctrl         *gomock.Controller
+		mockS3Client *awsS3Client.MockS3Client
+		clusterID    strfmt.UUID
+		cluster      models.Cluster
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = prepareDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, mockS3Client)
+		cluster = models.Cluster{
+			ID:     &clusterID,
+			APIVip: "10.11.12.13",
+		}
+		err := db.Create(&cluster).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("kubeconfig download no cluster id", func() {
+		clusterId := strToUUID(uuid.New().String())
+		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
+			ClusterID: *clusterId,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewDownloadClusterKubeconfigNotFound()))
+	})
+	It("kubeconfig download cluster is not in installed state", func() {
+		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
+			ClusterID: clusterID,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewDownloadClusterKubeconfigConflict()))
+
+	})
+	It("kubeconfig download s3download failure", func() {
+		status := ClusterStatusInstalled
+		cluster.Status = &status
+		db.Save(&cluster)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(nil, errors.Errorf("dummy"))
+		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
+			ClusterID: clusterID,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewDownloadClusterKubeconfigInternalServerError()))
+	})
+	It("kubeconfig download happy flow", func() {
+		status := ClusterStatusInstalled
+		cluster.Status = &status
+		db.Save(&cluster)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(r, nil)
+		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
+			ClusterID: clusterID,
+		})
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(r), kubeconfig)))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		db.Close()
+	})
+})
+
+var _ = Describe("UploadClusterIngressCert test", func() {
+
+	var (
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		ctrl           *gomock.Controller
+		mockS3Client   *awsS3Client.MockS3Client
+		clusterID      strfmt.UUID
+		cluster        models.Cluster
+		ingressCa      models.IngressCertParams
+		kubeconfigFile *os.File
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = prepareDB()
+		ingressCa = "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+			"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
+			"wNTIzMTYwNTAwWjBhMQswCQYDVQQGEwJpczELMAkGA1UECAwCZGQxCzAJBgNVBAcMAmRkMQswCQYDVQQKDAJkZDELMAkGA1UECwwCZGQxCzAJBgNVBAMMAmRkMREwDwYJKoZIh" +
+			"vcNAQkBFgJkZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAML63CXkBb+lvrJKfdfYBHLDYfuaC6exCSqASUAosJWWrfyDiDMUbmfs06PLKyv7N8efDhza74ov0EQJ" +
+			"NRhMNaCE+A0ceq6ZXmmMswUYFdLAy8K2VMz5mroBFX8sj5PWVr6rDJ2ckBaFKWBB8NFmiK7MTWSIF9n8M107/9a0QURCvThUYu+sguzbsLODFtXUxG5rtTVKBVcPZvEfRky2Tkt4AySFS" +
+			"mkO6Kf4sBd7MC4mKWZm7K8k7HrZYz2usSpbrEtYGtr6MmN9hci+/ITDPE291DFkzIcDCF493v/3T+7XsnmQajh6kuI+bjIaACfo8N+twEoJf/N1PmphAQdEiC0CAwEAAaNTMFEwHQYDVR0O" +
+			"BBYEFNvmSprQQ2HUUtPxs6UOuxq9lKKpMB8GA1UdIwQYMBaAFNvmSprQQ2HUUtPxs6UOuxq9lKKpMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAJEWxnxtQV5IqPVRr2SM" +
+			"WNNxcJ7A/wyet39l5VhHjbrQGynk5WS80psn/riLUfIvtzYMWC0IR0pIMQuMDF5sNcKp4D8Xnrd+Bl/4/Iy/iTOoHlw+sPkKv+NL2XR3iO8bSDwjtjvd6L5NkUuzsRoSkQCG2fHASqqgFoyV9Ld" +
+			"RsQa1w9ZGebtEWLuGsrJtR7gaFECqJnDbb0aPUMixmpMHID8kt154TrLhVFmMEqGGC1GvZVlQ9Of3GP9y7X4vDpHshdlWotOnYKHaeu2d5cRVFHhEbrslkISgh/TRuyl7VIpnjOYUwMBpCiVH6M" +
+			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
+		clusterID = strfmt.UUID(uuid.New().String())
+		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, mockS3Client)
+		cluster = models.Cluster{
+			ID:     &clusterID,
+			APIVip: "10.11.12.13",
+		}
+		err := db.Create(&cluster).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		kubeconfigFile, err = os.Open("../../subsystem/test_kubeconfig")
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("UploadClusterIngressCert no cluster id", func() {
+		clusterId := strToUUID(uuid.New().String())
+		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+			ClusterID:         *clusterId,
+			IngressCertParams: ingressCa,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertNotFound()))
+	})
+	It("UploadClusterIngressCert cluster is not in installed state", func() {
+		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+			ClusterID:         clusterID,
+			IngressCertParams: ingressCa,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertBadRequest()))
+
+	})
+	It("UploadClusterIngressCert s3download failure", func() {
+		status := ClusterStatusInstalled
+		cluster.Status = &status
+		db.Save(&cluster)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(nil, errors.Errorf("dummy"))
+		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+			ClusterID:         clusterID,
+			IngressCertParams: ingressCa,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertInternalServerError()))
+	})
+	It("UploadClusterIngressCert bad kubeconfig, mergeIngressCaIntoKubeconfig failure", func() {
+		status := ClusterStatusInstalled
+		cluster.Status = &status
+		db.Save(&cluster)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(r, nil)
+		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+			ClusterID:         clusterID,
+			IngressCertParams: ingressCa,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertInternalServerError()))
+	})
+	It("UploadClusterIngressCert bad ingressCa, mergeIngressCaIntoKubeconfig failure", func() {
+		status := ClusterStatusInstalled
+		cluster.Status = &status
+		db.Save(&cluster)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(kubeconfigFile, nil)
+		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+			ClusterID:         clusterID,
+			IngressCertParams: "bad format",
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertInternalServerError()))
+	})
+
+	It("UploadClusterIngressCert push fails", func() {
+		status := ClusterStatusInstalled
+		cluster.Status = &status
+		db.Save(&cluster)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		data, err := os.Open("../../subsystem/test_kubeconfig")
+		Expect(err).ShouldNot(HaveOccurred())
+		kubeConfigAsBytes, err := ioutil.ReadAll(data)
+		Expect(err).ShouldNot(HaveOccurred())
+		log := logrus.New()
+		merged, err := mergeIngressCaIntoKubeconfig(kubeConfigAsBytes, []byte(ingressCa), log)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(merged).ShouldNot(Equal(kubeConfigAsBytes))
+		Expect(merged).ShouldNot(Equal([]byte(ingressCa)))
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(kubeconfigFile, nil)
+		mockS3Client.EXPECT().PushDataToS3(ctx, merged, fileName, "test").Return(errors.Errorf("Dummy"))
+		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+			ClusterID:         clusterID,
+			IngressCertParams: ingressCa,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertInternalServerError()))
+	})
+
+	It("UploadClusterIngressCert download happy flow", func() {
+		status := ClusterStatusInstalled
+		cluster.Status = &status
+		db.Save(&cluster)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		data, err := os.Open("../../subsystem/test_kubeconfig")
+		Expect(err).ShouldNot(HaveOccurred())
+		kubeConfigAsBytes, err := ioutil.ReadAll(data)
+		Expect(err).ShouldNot(HaveOccurred())
+		log := logrus.New()
+		merged, err := mergeIngressCaIntoKubeconfig(kubeConfigAsBytes, []byte(ingressCa), log)
+		Expect(err).ShouldNot(HaveOccurred())
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(kubeconfigFile, nil)
+		mockS3Client.EXPECT().PushDataToS3(ctx, merged, fileName, "test").Return(nil)
+		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
+			ClusterID:         clusterID,
+			IngressCertParams: ingressCa,
+		})
+		Expect(generateReply).Should(Equal(installer.NewUploadClusterIngressCertCreated()))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		db.Close()
+		kubeconfigFile.Close()
 	})
 })
