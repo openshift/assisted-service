@@ -57,6 +57,9 @@ update-expirer: build
 deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-service
 	echo "Deployment done"
 
+deploy-ui:
+	python3 ./tools/deploy_ui.py --target "$(TARGET)"
+
 deploy-namespace:
 	python3 ./tools/deploy_namespace.py
 

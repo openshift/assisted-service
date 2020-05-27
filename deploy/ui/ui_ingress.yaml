@@ -1,0 +1,13 @@
+kind: Ingress
+apiVersion: networking.k8s.io/v1beta1
+metadata:
+  name: assisted-installer-ui
+  namespace: assisted-installer
+spec:
+  rules:
+    - host: REPLACE_HOSTNAME
+      http:
+        paths:
+          - backend:
+              serviceName: ocp-metal-ui
+              servicePort: 80
