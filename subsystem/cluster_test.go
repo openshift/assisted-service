@@ -190,17 +190,6 @@ var _ = Describe("system-test cluster install", func() {
 			Expect(swag.StringValue(c.GetPayload().StatusInfo)).Should(Equal(clusterReadyStateInfo))
 		})
 
-		updateProgress := func(hostID strfmt.UUID, progress string) {
-			installProgress := models.HostInstallProgressParams(progress)
-			updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
-				ClusterID:                 clusterID,
-				HostInstallProgressParams: installProgress,
-				HostID:                    hostID,
-			})
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
-		}
-
 		Context("install cluster", func() {
 
 			It("install cluster", func() {
@@ -218,7 +207,7 @@ var _ = Describe("system-test cluster install", func() {
 				}
 
 				for _, host := range c.Hosts {
-					updateProgress(*host.ID, "Done")
+					updateProgress(*host.ID, clusterID, "Done")
 				}
 
 				waitForClusterState(ctx, clusterID, "installed")
@@ -236,7 +225,7 @@ var _ = Describe("system-test cluster install", func() {
 
 			By("progress_to_some_host", func() {
 				installProgress := "installation step 1"
-				updateProgress(*h.ID, installProgress)
+				updateProgress(*h.ID, clusterID, installProgress)
 				h = getHost(clusterID, *h.ID)
 				Expect(*h.Status).Should(Equal("installing-in-progress"))
 				Expect(*h.StatusInfo).Should(Equal(installProgress))
@@ -244,14 +233,14 @@ var _ = Describe("system-test cluster install", func() {
 
 			By("progress_to_some_host_again", func() {
 				installProgress := "installation step 2"
-				updateProgress(*h.ID, installProgress)
+				updateProgress(*h.ID, clusterID, installProgress)
 				h = getHost(clusterID, *h.ID)
 				Expect(*h.Status).Should(Equal("installing-in-progress"))
 				Expect(*h.StatusInfo).Should(Equal(installProgress))
 			})
 
 			By("report_done", func() {
-				updateProgress(*h.ID, "Done")
+				updateProgress(*h.ID, clusterID, "Done")
 				h = getHost(clusterID, *h.ID)
 				Expect(*h.Status).Should(Equal("installed"))
 				Expect(*h.StatusInfo).Should(Equal("installed"))
@@ -259,7 +248,7 @@ var _ = Describe("system-test cluster install", func() {
 
 			By("report failed on other host", func() {
 				h1 := c.GetPayload().Hosts[1]
-				updateProgress(*h1.ID, "Failed because some error")
+				updateProgress(*h1.ID, clusterID, "Failed because some error")
 				h1 = getHost(clusterID, *h1.ID)
 				Expect(*h1.Status).Should(Equal("error"))
 				Expect(*h1.StatusInfo).Should(Equal("Failed because some error"))
@@ -291,6 +280,7 @@ var _ = Describe("system-test cluster install", func() {
 			s, err := file.Stat()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(s.Size()).ShouldNot(Equal(0))
+
 		})
 		It("Get kubeadmin password", func() {
 			//Test happy flow
@@ -314,6 +304,62 @@ var _ = Describe("system-test cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creds.GetPayload().Username).To(Equal("kubeadmin"))
 				Expect(len(creds.GetPayload().Password)).NotTo(Equal(0))
+			}
+		})
+
+		It("Upload ingress ca and kubeconfig download", func() {
+			//Test happy flow
+
+			By("Upload ingress ca for not existent clusterid")
+			{
+				missingClusterId := strfmt.UUID(uuid.New().String())
+				_, err := bmclient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: missingClusterId, IngressCertParams: "dummy"})
+				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertNotFound())))
+			}
+			By("Test getting upload ingress ca in wrong state")
+			{
+				_, err := bmclient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: "dummy"})
+				Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertBadRequest())))
+			}
+			By("Test happy flow")
+			{
+				ingressCa := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+					"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+					"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
+					"wNTIzMTYwNTAwWjBhMQswCQYDVQQGEwJpczELMAkGA1UECAwCZGQxCzAJBgNVBAcMAmRkMQswCQYDVQQKDAJkZDELMAkGA1UECwwCZGQxCzAJBgNVBAMMAmRkMREwDwYJKoZIh" +
+					"vcNAQkBFgJkZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAML63CXkBb+lvrJKfdfYBHLDYfuaC6exCSqASUAosJWWrfyDiDMUbmfs06PLKyv7N8efDhza74ov0EQJ" +
+					"NRhMNaCE+A0ceq6ZXmmMswUYFdLAy8K2VMz5mroBFX8sj5PWVr6rDJ2ckBaFKWBB8NFmiK7MTWSIF9n8M107/9a0QURCvThUYu+sguzbsLODFtXUxG5rtTVKBVcPZvEfRky2Tkt4AySFS" +
+					"mkO6Kf4sBd7MC4mKWZm7K8k7HrZYz2usSpbrEtYGtr6MmN9hci+/ITDPE291DFkzIcDCF493v/3T+7XsnmQajh6kuI+bjIaACfo8N+twEoJf/N1PmphAQdEiC0CAwEAAaNTMFEwHQYDVR0O" +
+					"BBYEFNvmSprQQ2HUUtPxs6UOuxq9lKKpMB8GA1UdIwQYMBaAFNvmSprQQ2HUUtPxs6UOuxq9lKKpMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAJEWxnxtQV5IqPVRr2SM" +
+					"WNNxcJ7A/wyet39l5VhHjbrQGynk5WS80psn/riLUfIvtzYMWC0IR0pIMQuMDF5sNcKp4D8Xnrd+Bl/4/Iy/iTOoHlw+sPkKv+NL2XR3iO8bSDwjtjvd6L5NkUuzsRoSkQCG2fHASqqgFoyV9Ld" +
+					"RsQa1w9ZGebtEWLuGsrJtR7gaFECqJnDbb0aPUMixmpMHID8kt154TrLhVFmMEqGGC1GvZVlQ9Of3GP9y7X4vDpHshdlWotOnYKHaeu2d5cRVFHhEbrslkISgh/TRuyl7VIpnjOYUwMBpCiVH6M" +
+					"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
+				installCluster(clusterID)
+
+				// Download kubeconfig before uploading
+				kubeconfigNoIngress, err := ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = bmclient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "kubeconfig"}, kubeconfigNoIngress)
+				Expect(err).NotTo(HaveOccurred())
+				sni, err := kubeconfigNoIngress.Stat()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(sni.Size()).ShouldNot(Equal(0))
+
+				res, err := bmclient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
+
+				// Download kubeconfig after uploading
+				file, err := ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = bmclient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+				Expect(err).NotTo(HaveOccurred())
+				s, err := file.Stat()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(s.Size()).ShouldNot(Equal(0))
+
+				Expect(s.Size()).ShouldNot(Equal(sni.Size()))
+
 			}
 		})
 	})
@@ -521,4 +567,43 @@ func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state strin
 	Expect(err).NotTo(HaveOccurred())
 	c := rep.GetPayload()
 	Expect(swag.StringValue(c.Status)).Should(Equal(state))
+}
+
+func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, progress string) {
+	ctx := context.Background()
+	installProgress := models.HostInstallProgressParams(progress)
+	updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
+		ClusterID:                 clusterID,
+		HostInstallProgressParams: installProgress,
+		HostID:                    hostID,
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
+}
+
+func installCluster(clusterID strfmt.UUID) {
+	ctx := context.Background()
+	_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+
+	rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	c := rep.GetPayload()
+	Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+	Expect(len(c.Hosts)).Should(Equal(4))
+	for _, host := range c.Hosts {
+		Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+	}
+
+	for _, host := range c.Hosts {
+		updateProgress(*host.ID, clusterID, "Done")
+	}
+
+	waitForClusterState(ctx, clusterID, "installed")
+	rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	c = rep.GetPayload()
+	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("installed"))
+
 }
