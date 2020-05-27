@@ -57,7 +57,8 @@ const (
 	ResourceKindCluster = "Cluster"
 )
 
-const defaultUser = "kubeadmin"
+const DefaultUser = "kubeadmin"
+const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 
 type Config struct {
 	ImageBuilder        string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
@@ -1035,7 +1036,9 @@ func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installe
 			WithPayload(common.GenerateError(http.StatusConflict, errors.New(string(password))))
 	}
 	return installer.NewGetCredentialsOK().WithPayload(
-		&models.Credentials{Username: defaultUser, Password: string(password)})
+		&models.Credentials{Username: DefaultUser,
+			Password:   string(password),
+			ConsoleURL: fmt.Sprintf("%s.%s.%s", ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain)})
 }
 
 func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {

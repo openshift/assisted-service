@@ -3,10 +3,13 @@ package subsystem
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"time"
+
+	"github.com/filanov/bm-inventory/internal/bminventory"
 
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
@@ -282,9 +285,7 @@ var _ = Describe("system-test cluster install", func() {
 			Expect(s.Size()).ShouldNot(Equal(0))
 
 		})
-		It("Get kubeadmin password", func() {
-			//Test happy flow
-
+		It("Get credentials", func() {
 			By("Test getting kubeadmin password for not found cluster")
 			{
 				missingClusterId := strfmt.UUID(uuid.New().String())
@@ -302,7 +303,9 @@ var _ = Describe("system-test cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				creds, err := bmclient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(creds.GetPayload().Username).To(Equal("kubeadmin"))
+				Expect(creds.GetPayload().Username).To(Equal(bminventory.DefaultUser))
+				Expect(creds.GetPayload().ConsoleURL).To(Equal(
+					fmt.Sprintf("%s.%s.%s", bminventory.ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain)))
 				Expect(len(creds.GetPayload().Password)).NotTo(Equal(0))
 			}
 		})
