@@ -40,9 +40,8 @@ type Cluster struct {
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:datetime"`
 
-	// Virtual IP used internally by the cluster for automating internal DNS requirements.
-	// Format: ipv4
-	DNSVip strfmt.IPv4 `json:"dns_vip,omitempty"`
+	// List of host networks to be filled during query.
+	HostNetworks []*HostNetwork `json:"host_networks" gorm:"-"`
 
 	// Hosts that are associated with this cluster.
 	Hosts []*Host `json:"hosts" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
@@ -76,6 +75,10 @@ type Cluster struct {
 	// Required: true
 	// Enum: [Cluster]
 	Kind *string `json:"kind"`
+
+	// A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.
+	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
+	MachineNetworkCidr string `json:"machine_network_cidr,omitempty"`
 
 	// Name of the OpenShift cluster.
 	Name string `json:"name,omitempty"`
@@ -133,7 +136,7 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateDNSVip(formats); err != nil {
+	if err := m.validateHostNetworks(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -166,6 +169,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateKind(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateMachineNetworkCidr(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -255,14 +262,26 @@ func (m *Cluster) validateCreatedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Cluster) validateDNSVip(formats strfmt.Registry) error {
+func (m *Cluster) validateHostNetworks(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.DNSVip) { // not required
+	if swag.IsZero(m.HostNetworks) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("dns_vip", "body", "ipv4", m.DNSVip.String(), formats); err != nil {
-		return err
+	for i := 0; i < len(m.HostNetworks); i++ {
+		if swag.IsZero(m.HostNetworks[i]) { // not required
+			continue
+		}
+
+		if m.HostNetworks[i] != nil {
+			if err := m.HostNetworks[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("host_networks" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -406,6 +425,19 @@ func (m *Cluster) validateKind(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateKindEnum("kind", "body", *m.Kind); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateMachineNetworkCidr(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.MachineNetworkCidr) { // not required
+		return nil
+	}
+
+	if err := validate.Pattern("machine_network_cidr", "body", string(m.MachineNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
 		return err
 	}
 
