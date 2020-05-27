@@ -6,11 +6,10 @@ package host
 
 import (
 	context "context"
-	reflect "reflect"
-
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
+	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface
@@ -96,7 +95,6 @@ func (mr *MockStateAPIMockRecorder) RefreshStatus(ctx, h interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockStateAPI)(nil).RefreshStatus), ctx, h)
 }
 
-// Install mocks base method
 func (m *MockStateAPI) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Install", ctx, h, db)
@@ -276,7 +274,26 @@ func (mr *MockAPIMockRecorder) RefreshStatus(ctx, h interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, h)
 }
 
+<<<<<<< HEAD
 // Install mocks base method
+=======
+// RefreshState mocks base method.
+func (m *MockAPI) RefreshState(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshState", ctx, h, db)
+	ret0, _ := ret[0].(*UpdateReply)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshState indicates an expected call of RefreshState.
+func (mr *MockAPIMockRecorder) RefreshState(ctx, h, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshState", reflect.TypeOf((*MockAPI)(nil).RefreshState), ctx, h, db)
+}
+
+// Install mocks base method.
+>>>>>>> 502bd75... MGMT-911 Code changes
 func (m *MockAPI) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Install", ctx, h, db)

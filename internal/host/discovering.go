@@ -34,7 +34,17 @@ func (d *discoveringState) UpdateHwInfo(ctx context.Context, h *models.Host, hwI
 
 func (d *discoveringState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
 	h.Inventory = inventory
-	return updateInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
+	return updateStateFromInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
+}
+
+func (d *discoveringState) RefreshState(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	if h.Inventory == "" {
+		return defaultReply(h)
+	}
+	if db == nil {
+		db = d.db
+	}
+	return updateStateFromInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, db)
 }
 
 func (d *discoveringState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {

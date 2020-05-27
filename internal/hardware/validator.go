@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"sort"
 
+	"github.com/filanov/bm-inventory/internal/common"
+
 	"github.com/alecthomas/units"
 	"github.com/filanov/bm-inventory/models"
 )
@@ -19,7 +21,7 @@ const diskNameFilterRegex = "nvme"
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
-	IsSufficient(host *models.Host) (*IsSufficientReply, error)
+	IsSufficient(host *models.Host, cluster *models.Cluster) (*IsSufficientReply, error)
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error)
 }
@@ -42,7 +44,7 @@ type validator struct {
 	ValidatorCfg
 }
 
-func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) {
+func (v *validator) IsSufficient(host *models.Host, cluster *models.Cluster) (*IsSufficientReply, error) {
 	var err error
 	var reason string
 	var isSufficient bool
@@ -51,6 +53,8 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 	if err = json.Unmarshal([]byte(host.Inventory), &hwInfo); err != nil {
 		return nil, err
 	}
+
+	cluster.ID = &host.ClusterID
 
 	var minCpuCoresRequired int64 = v.MinCPUCores
 	var minRamRequired int64 = gibToBytes(v.MinRamGib)
@@ -79,6 +83,9 @@ func (v *validator) IsSufficient(host *models.Host) (*IsSufficientReply, error) 
 			"expected at least 1 not removable, not readonly disk of size more than <%d>", minDiskSizeRequired)
 	}
 
+	if !common.IsHostInMachineNetCidr(cluster, host) {
+		reason += fmt.Sprintf(", host %s does not belong to cluster machine network cidr %s", *host.ID, cluster.MachineNetworkCidr)
+	}
 	if len(reason) == 0 {
 		isSufficient = true
 	} else {

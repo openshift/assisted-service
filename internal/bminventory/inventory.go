@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -242,11 +243,9 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		ID:                       &id,
 		Href:                     swag.String(url.String()),
 		Kind:                     swag.String(ResourceKindCluster),
-		APIVip:                   params.NewClusterParams.APIVip,
 		BaseDNSDomain:            params.NewClusterParams.BaseDNSDomain,
 		ClusterNetworkCidr:       params.NewClusterParams.ClusterNetworkCidr,
 		ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
-		DNSVip:                   params.NewClusterParams.DNSVip,
 		IngressVip:               params.NewClusterParams.IngressVip,
 		Name:                     swag.StringValue(params.NewClusterParams.Name),
 		OpenshiftVersion:         swag.StringValue(params.NewClusterParams.OpenshiftVersion),
@@ -413,6 +412,11 @@ func getImageName(clusterID strfmt.UUID) string {
 	return fmt.Sprintf("discovery-image-%s", clusterID.String())
 }
 
+func logAndGenerateError(id int32, errStr string) *models.Error {
+	logrus.Error(errStr)
+	return common.GenerateError(id, errors.New(errStr))
+}
+
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
@@ -434,6 +438,54 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	if err = tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return installer.NewInstallClusterNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
+	}
+
+	cidr, err := common.CalculateMachineNetworkCIDR(&cluster)
+	if err != nil {
+		tx.Rollback()
+		return installer.NewInstallClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+	if cidr != cluster.MachineNetworkCidr {
+		tx.Rollback()
+		return installer.NewInstallClusterBadRequest().WithPayload(
+			logAndGenerateError(http.StatusBadRequest,
+				fmt.Sprintf("Cluster machine CIDR %s is different than the calculated CIDR %s", cluster.MachineNetworkCidr, cidr)))
+	}
+	if err = common.VerifyVips(&cluster); err != nil {
+		tx.Rollback()
+		return installer.NewInstallClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+	machineCidrHosts, err := common.GetMachineCIDRHosts(&cluster)
+	if err != nil {
+		tx.Rollback()
+		return installer.NewInstallClusterInternalServerError().WithPayload(
+			logAndGenerateError(http.StatusInternalServerError,
+				fmt.Sprintf("Could not get machine CIDR hosts for cluster %s", params.ClusterID)))
+	}
+	masterNodesIds, err := b.clusterApi.GetMasterNodesIds(ctx, &cluster, tx)
+	if err != nil {
+		tx.Rollback()
+		return installer.NewInstallClusterInternalServerError().WithPayload(
+			logAndGenerateError(http.StatusInternalServerError,
+				fmt.Sprintf("Could not get master node ids cluster %s: %s", params.ClusterID, err.Error())))
+	}
+	hostIDInCidrHosts := func(id strfmt.UUID, hosts []*models.Host) bool {
+		for _, h := range hosts {
+			if *h.ID == id {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, id := range masterNodesIds {
+		if !hostIDInCidrHosts(*id, machineCidrHosts) {
+			tx.Rollback()
+			return installer.NewInstallClusterBadRequest().WithPayload(
+				logAndGenerateError(http.StatusBadRequest,
+					fmt.Sprintf("Master id %s does not have an interface with IP belonging to machine CIDR %s",
+						*id, cluster.MachineNetworkCidr)))
+		}
 	}
 
 	if err = b.clusterApi.Install(ctx, &cluster, tx); err != nil {
@@ -522,6 +574,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
+	var err error
 	log.Info("update cluster ", params.ClusterID)
 
 	tx := b.db.Begin()
@@ -538,24 +591,54 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
 	}
 
-	if err := tx.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	if err = tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
 		tx.Rollback()
 		return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
+	updateIPv4 := func(target *strfmt.IPv4, source *strfmt.IPv4) {
+		if source != nil {
+			*target = *source
+		}
+	}
+	updateString := func(target *string, source *string) {
+		if source != nil {
+			*target = *source
+		}
+	}
 
-	cluster.Name = params.ClusterUpdateParams.Name
-	cluster.APIVip = params.ClusterUpdateParams.APIVip
-	cluster.BaseDNSDomain = params.ClusterUpdateParams.BaseDNSDomain
-	cluster.ClusterNetworkCidr = params.ClusterUpdateParams.ClusterNetworkCidr
-	cluster.ClusterNetworkHostPrefix = params.ClusterUpdateParams.ClusterNetworkHostPrefix
-	cluster.DNSVip = params.ClusterUpdateParams.DNSVip
-	cluster.IngressVip = params.ClusterUpdateParams.IngressVip
-	cluster.PullSecret = params.ClusterUpdateParams.PullSecret
-	cluster.ServiceNetworkCidr = params.ClusterUpdateParams.ServiceNetworkCidr
-	cluster.SSHPublicKey = params.ClusterUpdateParams.SSHPublicKey
+	updateString(&cluster.Name, params.ClusterUpdateParams.Name)
+	updateIPv4(&cluster.APIVip, params.ClusterUpdateParams.APIVip)
+	updateString(&cluster.BaseDNSDomain, params.ClusterUpdateParams.BaseDNSDomain)
+	updateString(&cluster.ClusterNetworkCidr, params.ClusterUpdateParams.ClusterNetworkCidr)
+	if params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
+		cluster.ClusterNetworkHostPrefix = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
+	}
+	updateIPv4(&cluster.IngressVip, params.ClusterUpdateParams.IngressVip)
+	updateString(&cluster.PullSecret, params.ClusterUpdateParams.PullSecret)
+	updateString(&cluster.ServiceNetworkCidr, params.ClusterUpdateParams.ServiceNetworkCidr)
+	updateString(&cluster.SSHPublicKey, params.ClusterUpdateParams.SSHPublicKey)
+	var machineCidr string
+	if machineCidr, err = common.CalculateMachineNetworkCIDR(&cluster); err != nil {
+		tx.Rollback()
+		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
+		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+	machineCidrUpdated := machineCidr != cluster.MachineNetworkCidr
+	cluster.MachineNetworkCidr = machineCidr
+	if cluster.APIVip != "" {
+		err = common.VerifyAPIVip(&cluster)
+	}
+	if err == nil && cluster.IngressVip != "" {
+		err = common.VerifyIngressVip(&cluster)
+	}
+	if err != nil {
+		tx.Rollback()
+		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
+		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
 
-	if err := tx.Model(&cluster).Update(cluster).Error; err != nil {
+	if err = tx.Model(&cluster).Update(cluster).Error; err != nil {
 		tx.Rollback()
 		log.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterInternalServerError().
@@ -566,14 +649,14 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		log.Infof("Update host %s to role: %s", params.ClusterUpdateParams.HostsRoles[i].ID,
 			params.ClusterUpdateParams.HostsRoles[i].Role)
 		var host models.Host
-		if err := tx.First(&host, "id = ? and cluster_id = ?",
+		if err = tx.First(&host, "id = ? and cluster_id = ?",
 			params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID).Error; err != nil {
 			tx.Rollback()
 			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID)
 			return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 		}
-		if _, err := b.hostApi.UpdateRole(ctx, &host, params.ClusterUpdateParams.HostsRoles[i].Role, tx); err != nil {
+		if _, err = b.hostApi.UpdateRole(ctx, &host, params.ClusterUpdateParams.HostsRoles[i].Role, tx); err != nil {
 			tx.Rollback()
 			log.WithError(err).Errorf("failed to set role <%s> host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsRoles[i].Role, params.ClusterUpdateParams.HostsRoles[i].ID,
@@ -582,7 +665,26 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		}
 	}
 
-	if _, err := b.clusterApi.RefreshStatus(ctx, &cluster, tx); err != nil {
+	if machineCidrUpdated {
+		for _, h := range cluster.Hosts {
+			var host models.Host
+			if err = tx.Take(&host, "id = ? and cluster_id = ?",
+				h.ID.String(), params.ClusterID).Error; err != nil {
+				tx.Rollback()
+				log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
+					h.ID.String(), params.ClusterID)
+				return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+			}
+			if _, err = b.hostApi.RefreshState(ctx, &host, tx); err != nil {
+				tx.Rollback()
+				log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, params.ClusterID)
+				return installer.NewRegisterClusterInternalServerError().
+					WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+			}
+		}
+	}
+
+	if _, err = b.clusterApi.RefreshStatus(ctx, &cluster, tx); err != nil {
 		tx.Rollback()
 		log.WithError(err).Errorf("failed to validate or update cluster %s state", params.ClusterID)
 		return installer.NewRegisterClusterInternalServerError().
@@ -604,6 +706,40 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	return installer.NewUpdateClusterCreated().WithPayload(&cluster)
 }
 
+func calculateHostNetworks(cluster *models.Cluster) []*models.HostNetwork {
+	cidrHostsMap := make(map[string][]strfmt.UUID)
+	for _, h := range cluster.Hosts {
+		if h.Inventory == "" {
+			continue
+		}
+		var inventory models.Inventory
+		err := json.Unmarshal([]byte(h.Inventory), &inventory)
+		if err != nil {
+			logrus.WithError(err).Warnf("Could not parse inventory of host %s", *h.ID)
+			continue
+		}
+		for _, intf := range inventory.Interfaces {
+			for _, ipv4Address := range intf.IPV4Addresses {
+				_, ipnet, err := net.ParseCIDR(ipv4Address)
+				if err != nil {
+					logrus.WithError(err).Warnf("Could not parse CIDR %s", ipv4Address)
+					continue
+				}
+				cidr := ipnet.String()
+				cidrHostsMap[cidr] = append(cidrHostsMap[cidr], *h.ID)
+			}
+		}
+	}
+	ret := make([]*models.HostNetwork, 0)
+	for k, v := range cidrHostsMap {
+		ret = append(ret, &models.HostNetwork{
+			Cidr:    k,
+			HostIds: v,
+		})
+	}
+	return ret
+}
+
 func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var clusters []*models.Cluster
@@ -623,6 +759,7 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.Ge
 		return installer.NewGetClusterNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
+	cluster.HostNetworks = calculateHostNetworks(&cluster)
 	return installer.NewGetClusterOK().WithPayload(&cluster)
 }
 

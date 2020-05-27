@@ -1,8 +1,6 @@
 package installcfg
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 
@@ -111,39 +109,7 @@ func countHostsByRole(cluster *models.Cluster, role string) int {
 	return count
 }
 
-func getMachineCIDR(cluster *models.Cluster) (string, error) {
-	parsedVipAddr := net.ParseIP(string(cluster.APIVip))
-	if parsedVipAddr == nil {
-		errStr := fmt.Sprintf("Could not parse VIP ip %s", cluster.APIVip)
-		logrus.Warn(errStr)
-		return "", errors.New(errStr)
-	}
-	for _, h := range cluster.Hosts {
-		var inventory models.Inventory
-		err := json.Unmarshal([]byte(h.Inventory), &inventory)
-		if err != nil {
-			logrus.WithError(err).Warnf("Error unmarshalling host inventory %s", h.Inventory)
-			continue
-		}
-		for _, intf := range inventory.Interfaces {
-			for _, ipv4addr := range intf.IPV4Addresses {
-				_, ipnet, err := net.ParseCIDR(ipv4addr)
-				if err != nil {
-					logrus.WithError(err).Warnf("Could not parse cidr %s", ipv4addr)
-					continue
-				}
-				if ipnet.Contains(parsedVipAddr) {
-					return ipnet.String(), nil
-				}
-			}
-		}
-	}
-	errStr := fmt.Sprintf("No suitable matching CIDR found for VIP %s", cluster.APIVip)
-	logrus.Warn(errStr)
-	return "", errors.New(errStr)
-}
-
-func getBasicInstallConfig(cluster *models.Cluster, machineCIDR string) *InstallerConfigBaremetal {
+func getBasicInstallConfig(cluster *models.Cluster) *InstallerConfigBaremetal {
 	return &InstallerConfigBaremetal{
 		APIVersion: "v1",
 		BaseDomain: cluster.BaseDNSDomain,
@@ -168,7 +134,7 @@ func getBasicInstallConfig(cluster *models.Cluster, machineCIDR string) *Install
 			MachineNetwork: []struct {
 				Cidr string `yaml:"cidr"`
 			}{
-				{Cidr: machineCIDR},
+				{Cidr: cluster.MachineNetworkCidr},
 			},
 			ServiceNetwork: []string{cluster.ServiceNetworkCidr},
 		},
@@ -256,12 +222,8 @@ func setPlatformInstallconfig(cluster *models.Cluster, cfg *InstallerConfigBarem
 }
 
 func GetInstallConfig(cluster *models.Cluster) ([]byte, error) {
-	machineCidr, err := getMachineCIDR(cluster)
-	if err != nil {
-		return nil, err
-	}
 	if cluster.OpenshiftVersion != models.ClusterOpenshiftVersionNr44 {
-		cfg := getBasicInstallConfig(cluster, machineCidr)
+		cfg := getBasicInstallConfig(cluster)
 		err = setPlatformInstallconfig(cluster, cfg)
 		if err != nil {
 			return nil, err

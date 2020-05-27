@@ -5,10 +5,9 @@
 package hardware
 
 import (
-	reflect "reflect"
-
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // MockValidator is a mock of Validator interface
@@ -34,19 +33,19 @@ func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 	return m.recorder
 }
 
-// IsSufficient mocks base method
-func (m *MockValidator) IsSufficient(host *models.Host) (*IsSufficientReply, error) {
+// IsSufficient mocks base method.
+func (m *MockValidator) IsSufficient(host *models.Host, cluster *models.Cluster) (*IsSufficientReply, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsSufficient", host)
+	ret := m.ctrl.Call(m, "IsSufficient", host, cluster)
 	ret0, _ := ret[0].(*IsSufficientReply)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// IsSufficient indicates an expected call of IsSufficient
-func (mr *MockValidatorMockRecorder) IsSufficient(host interface{}) *gomock.Call {
+// IsSufficient indicates an expected call of IsSufficient.
+func (mr *MockValidatorMockRecorder) IsSufficient(host, cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSufficient", reflect.TypeOf((*MockValidator)(nil).IsSufficient), host)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSufficient", reflect.TypeOf((*MockValidator)(nil).IsSufficient), host, cluster)
 }
 
 // GetHostValidDisks mocks base method

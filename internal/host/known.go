@@ -33,7 +33,17 @@ func (k *knownState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo st
 
 func (k *knownState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
 	h.Inventory = inventory
-	return updateInventory(logutil.FromContext(ctx, k.log), k.hwValidator, h, k.db)
+	return updateStateFromInventory(logutil.FromContext(ctx, k.log), k.hwValidator, h, k.db)
+}
+
+func (k *knownState) RefreshState(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	if h.Inventory == "" {
+		return defaultReply(h)
+	}
+	if db == nil {
+		db = k.db
+	}
+	return updateStateFromInventory(logutil.FromContext(ctx, k.log), k.hwValidator, h, db)
 }
 
 func (k *knownState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
@@ -42,8 +52,12 @@ func (k *knownState) UpdateRole(ctx context.Context, h *models.Host, role string
 	if db != nil {
 		cdb = db
 	}
+	cluster, err := getCluster(h.ClusterID, cdb)
+	if err != nil {
+		return nil, err
+	}
 	h.Role = role
-	reply, err := k.hwValidator.IsSufficient(h)
+	reply, err := k.hwValidator.IsSufficient(h, cluster)
 	if err != nil {
 		return nil, err
 	}

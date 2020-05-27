@@ -34,14 +34,18 @@ func updateState(log logrus.FieldLogger, state, stateInfo string, h *models.Host
 	return updateStateWithParams(log, state, stateInfo, h, db)
 }
 
-func updateByKeepAlive(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	if time.Since(time.Time(h.CheckedInAt)) > 3*time.Minute {
-		return updateState(log, HostStatusDisconnected, statusInfoDisconnected, h, db)
-	}
+func defaultReply(h *models.Host) (*UpdateReply, error) {
 	return &UpdateReply{
 		State:     swag.StringValue(h.Status),
 		IsChanged: false,
 	}, nil
+}
+
+func updateByKeepAlive(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	if time.Since(time.Time(h.UpdatedAt)) > 3*time.Minute {
+		return updateState(log, HostStatusDisconnected, statusInfoDisconnected, h, db)
+	}
+	return defaultReply(h)
 }
 
 func updateStateWithParams(log logrus.FieldLogger, status, statusInfo string, h *models.Host, db *gorm.DB, extra ...interface{}) (*UpdateReply, error) {
@@ -59,7 +63,7 @@ func updateStateWithParams(log logrus.FieldLogger, status, statusInfo string, h 
 		return nil, errors.Wrapf(dbReply.Error, "failed to update host %s from cluster %s state from %s to %s",
 			h.ID.String(), h.ClusterID, swag.StringValue(h.Status), status)
 	}
-	if dbReply.RowsAffected == 0 {
+	if dbReply.RowsAffected == 0 && swag.StringValue(h.Status) != status {
 		return nil, errors.Errorf("failed to update host %s from cluster %s state from %s to %s, nothing have changed",
 			h.ID.String(), h.ClusterID, swag.StringValue(h.Status), status)
 	}
@@ -105,8 +109,20 @@ func updateHwInfo(log logrus.FieldLogger, hwValidator hardware.Validator, h *mod
 	return updateStateWithParams(log, status, "", h, db, "hardware_info", h.HardwareInfo)
 }
 
-func updateInventory(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	reply, err := hwValidator.IsSufficient(h)
+func getCluster(clusterID strfmt.UUID, db *gorm.DB) (*models.Cluster, error) {
+	var cluster models.Cluster
+	if err := db.Take(&cluster, "id = ?", clusterID.String()).Error; err != nil {
+		return nil, err
+	}
+	return &cluster, nil
+}
+
+func updateStateFromInventory(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	cluster, err := getCluster(h.ClusterID, db)
+	if err != nil {
+		return nil, err
+	}
+	reply, err := hwValidator.IsSufficient(h, cluster)
 	if err != nil {
 		return nil, err
 	}
