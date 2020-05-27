@@ -3,6 +3,7 @@ package bminventory
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,6 +18,8 @@ import (
 	"github.com/filanov/bm-inventory/internal/common"
 
 	"github.com/filanov/bm-inventory/internal/events"
+
+	awsS3CLient "github.com/filanov/bm-inventory/pkg/s3Client"
 
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/host"
@@ -36,9 +39,11 @@ import (
 	batch "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const kubeconfigPrefix = "generate-kubeconfig"
+const kubeconfig = "kubeconfig"
 
 const (
 	ClusterStatusReady      = "ready"
@@ -101,6 +106,7 @@ type bareMetalInventory struct {
 	hostApi       host.API
 	clusterApi    cluster.API
 	eventsHandler events.Handler
+	s3Client      awsS3CLient.S3Client
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}
@@ -113,6 +119,7 @@ func NewBareMetalInventory(
 	cfg Config,
 	jobApi job.API,
 	eventsHandler events.Handler,
+	s3Client awsS3CLient.S3Client,
 ) *bareMetalInventory {
 
 	b := &bareMetalInventory{
@@ -124,8 +131,8 @@ func NewBareMetalInventory(
 		clusterApi:    clusterApi,
 		job:           jobApi,
 		eventsHandler: eventsHandler,
+		s3Client:      s3Client,
 	}
-
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
 	}
@@ -954,24 +961,43 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 			WithPayload(common.GenerateError(http.StatusConflict, errors.New(msg)))
 	}
 
-	filesUrl := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
-		fmt.Sprintf("%s/%s", params.ClusterID, params.FileName))
-	log.Info("File URL: ", filesUrl)
-	resp, err := http.Get(filesUrl)
+	respBody, err := b.s3Client.DownloadFileFromS3(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName), b.S3Bucket)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get clusters %s %s file", params.ClusterID, params.FileName)
 		return installer.NewDownloadClusterFilesInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
-		b, _ := ioutil.ReadAll(resp.Body)
-		log.WithError(fmt.Errorf("%s", string(b))).
-			Errorf("Failed to get clusters %s %s", params.ClusterID, params.FileName)
-		return installer.NewDownloadClusterFilesConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, errors.New(string(b))))
+	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName)
+}
+
+func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster models.Cluster
+
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return installer.NewDownloadClusterKubeconfigNotFound().
+				WithPayload(common.GenerateError(http.StatusNotFound, err))
+		} else {
+			return installer.NewDownloadClusterKubeconfigInternalServerError().
+				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
 	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(resp.Body), params.FileName)
+	clusterStatus := swag.StringValue(cluster.Status)
+	if clusterStatus != ClusterStatusInstalled {
+		msg := fmt.Sprintf("Cluster %s is in %s state, %s can be downloaded only in installed state", kubeconfig, params.ClusterID, clusterStatus)
+		log.Warn(msg)
+		return installer.NewDownloadClusterKubeconfigConflict().
+			WithPayload(common.GenerateError(http.StatusConflict, errors.New(msg)))
+	}
+
+	respBody, err := b.s3Client.DownloadFileFromS3(ctx, fmt.Sprintf("%s/%s", params.ClusterID, kubeconfig), b.S3Bucket)
+
+	if err != nil {
+		return installer.NewDownloadClusterKubeconfigInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig)
 }
 
 func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder {
@@ -1033,4 +1059,102 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 	msg := fmt.Sprintf("Host %s in cluster %s reached installation step %s", host.ID, host.ClusterID, params.HostInstallProgressParams)
 	b.eventsHandler.AddEvent(ctx, host.ID.String(), msg, time.Now(), host.ClusterID.String())
 	return installer.NewUpdateHostInstallProgressOK()
+}
+
+func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("UploadClusterIngressCert for cluster %s with params %s", params.ClusterID, params.IngressCertParams)
+	var cluster models.Cluster
+
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return installer.NewUploadClusterIngressCertNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+		} else {
+			return installer.NewUploadClusterIngressCertNotFound().
+				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+	}
+
+	clusterStatus := swag.StringValue(cluster.Status)
+	if clusterStatus != ClusterStatusInstalled {
+		msg := fmt.Sprintf("Cluster %s is in %s state, upload ingress ca can be done only in installed state", params.ClusterID, clusterStatus)
+		log.Warn(msg)
+		return installer.NewUploadClusterIngressCertBadRequest().
+			WithPayload(common.GenerateError(http.StatusConflict, errors.New(msg)))
+	}
+
+	// TODO add validation that kubeconfig doesn't exists already, return bad request if it does
+
+	// TODO change kubeconfig to kubeconfig-noingress while support for it will be integrated
+	fileName := fmt.Sprintf("%s/%s", cluster.ID, kubeconfig)
+	resp, err := b.s3Client.DownloadFileFromS3(ctx, fileName, b.S3Bucket)
+	if err != nil {
+		return installer.NewUploadClusterIngressCertInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	kubeconfigData, err := ioutil.ReadAll(resp)
+	if err != nil {
+		log.WithError(err).Infof("Failed to convert kubeconfig s3 response to io reader")
+		return installer.NewUploadClusterIngressCertInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	mergedKubeConfig, err := mergeIngressCaIntoKubeconfig(kubeconfigData, []byte(params.IngressCertParams), log)
+	if err != nil {
+		return installer.NewUploadClusterIngressCertInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	if err := b.s3Client.PushDataToS3(ctx, mergedKubeConfig, fileName, b.S3Bucket); err != nil {
+		return installer.NewUploadClusterIngressCertInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", fileName)))
+	}
+	return installer.NewUploadClusterIngressCertCreated()
+}
+
+// Merging given ingress ca certificate into kubeconfig
+// Code was taken from openshift installer
+func mergeIngressCaIntoKubeconfig(kubeconfigData []byte, ingressCa []byte, log logrus.FieldLogger) ([]byte, error) {
+
+	kconfig, err := clientcmd.Load(kubeconfigData)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to convert kubeconfig data")
+		return nil, err
+	}
+	if kconfig == nil || len(kconfig.Clusters) == 0 {
+		err = errors.Errorf("kubeconfig is missing expected data")
+		log.Error(err)
+		return nil, err
+	}
+
+	for _, c := range kconfig.Clusters {
+		clusterCABytes := c.CertificateAuthorityData
+		if len(clusterCABytes) == 0 {
+			err = errors.Errorf("kubeconfig CertificateAuthorityData not found")
+			log.Errorf("%e, data %s", err, c.CertificateAuthorityData)
+			return nil, err
+		}
+		certPool := x509.NewCertPool()
+		if !certPool.AppendCertsFromPEM(clusterCABytes) {
+			err = errors.Errorf("cluster CA found in kubeconfig not valid PEM format")
+			log.Errorf("%e, ca :%s", err, clusterCABytes)
+			return nil, err
+		}
+		if !certPool.AppendCertsFromPEM(ingressCa) {
+			err = errors.Errorf("given ingress-ca is not valid PEM format")
+			log.Errorf("%e %s", err, ingressCa)
+			return nil, err
+		}
+
+		newCA := append(ingressCa, clusterCABytes...)
+		c.CertificateAuthorityData = newCA
+	}
+
+	kconfigAsByteArray, err := clientcmd.Write(*kconfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert kubeconfig")
+	}
+	return kconfigAsByteArray, nil
 }

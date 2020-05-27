@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/filanov/bm-inventory/internal/events"
+	awsS3Client "github.com/filanov/bm-inventory/pkg/s3Client"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -90,8 +91,13 @@ func main() {
 	clusterStateMonitor.Start()
 	defer clusterStateMonitor.Stop()
 
+	s3Client, err := awsS3Client.NewS3Client(Options.BMConfig.S3EndpointURL, Options.BMConfig.AwsAccessKeyID, Options.BMConfig.AwsSecretAccessKey, log)
+	if err != nil {
+		log.Fatal("Failed to setup S3 client", err)
+	}
+
 	jobApi := job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
-	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, jobApi, eventsHandler)
+	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, jobApi, eventsHandler, s3Client)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
