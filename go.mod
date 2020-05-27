@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
+	github.com/aws/aws-sdk-go v1.31.4
 	github.com/filanov/stateswitch v0.0.0-20200513095115-051501b05b45
 	github.com/go-openapi/errors v0.19.3
 	github.com/go-openapi/loads v0.19.4
@@ -16,12 +17,13 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/jinzhu/gorm v1.9.12
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/minio/minio-go/v6 v6.0.55
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.10.0
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.6.0
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
