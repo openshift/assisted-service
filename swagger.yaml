@@ -1468,3 +1468,5 @@ definitions:
         type: string
       password:
         type: string
+      console_url:
+        type: string
