@@ -248,7 +248,7 @@ func setPlatformInstallconfig(cluster *models.Cluster, cfg *InstallerConfigBarem
 			ProvisioningNetworkInterface: "ethh0",
 			APIVIP:                       cluster.APIVip.String(),
 			IngressVIP:                   cluster.IngressVip.String(),
-			DNSVIP:                       cluster.DNSVip.String(),
+			DNSVIP:                       cluster.APIVip.String(),
 			Hosts:                        hosts,
 		},
 	}
