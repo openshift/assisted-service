@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/filanov/bm-inventory/internal/events"
@@ -285,6 +286,7 @@ var _ = Describe("cluster", func() {
 	masterHostId1 := strfmt.UUID(uuid.New().String())
 	masterHostId2 := strfmt.UUID(uuid.New().String())
 	masterHostId3 := strfmt.UUID(uuid.New().String())
+	masterHostId4 := strfmt.UUID(uuid.New().String())
 
 	var (
 		bm             *bareMetalInventory
@@ -310,6 +312,11 @@ var _ = Describe("cluster", func() {
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		return host
 	}
+
+	updateMachineCidr := func(clusterID strfmt.UUID, machineCidr string, db *gorm.DB) {
+		Expect(db.Model(&models.Cluster{ID: &clusterID}).UpdateColumn("machine_network_cidr", machineCidr).Error).To(Not(HaveOccurred()))
+	}
+
 	getDisk := func() *models.Disk {
 		disk := models.Disk{DriveType: "SSD", Name: "loop0", SizeBytes: 0}
 		return &disk
@@ -318,7 +325,10 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	}
 	setDefaultGetMasterNodesIds := func(mockClusterApi *cluster.MockAPI) {
-		mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil)
+		mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil).Times(2)
+	}
+	set4GetMasterNodesIds := func(mockClusterApi *cluster.MockAPI) {
+		mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3, &masterHostId4}, nil)
 	}
 	setDefaultJobCreate := func(mockJobApi *job.MockAPI) {
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -357,18 +367,143 @@ var _ = Describe("cluster", func() {
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, nil)
 	})
 
+	Context("Get", func() {
+		{
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&models.Cluster{
+					ID:                 &clusterID,
+					APIVip:             "10.11.12.13",
+					IngressVip:         "10.11.12.14",
+					MachineNetworkCidr: "10.11.0.0/16",
+				}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
+				addHost(masterHostId3, "master", "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
+			})
+
+			sortedHosts := func(arr []strfmt.UUID) []strfmt.UUID {
+				sort.Slice(arr, func(i, j int) bool { return arr[i] < arr[j] })
+				return arr
+			}
+
+			sortedNetworks := func(arr []*models.HostNetwork) []*models.HostNetwork {
+				sort.Slice(arr, func(i, j int) bool { return arr[i].Cidr < arr[j].Cidr })
+				return arr
+			}
+
+			It("GetCluster", func() {
+				reply := bm.GetCluster(ctx, installer.GetClusterParams{
+					ClusterID: clusterID,
+				})
+				actual, ok := reply.(*installer.GetClusterOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
+				Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
+				Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
+				expectedNetworks := sortedNetworks([]*models.HostNetwork{
+					{
+						Cidr: "1.2.3.0/24",
+						HostIds: sortedHosts([]strfmt.UUID{
+							masterHostId1,
+							masterHostId2,
+							masterHostId3,
+						}),
+					},
+					{
+						Cidr: "10.11.0.0/16",
+						HostIds: sortedHosts([]strfmt.UUID{
+							masterHostId1,
+							masterHostId2,
+						}),
+					},
+					{
+						Cidr: "7.8.9.0/24",
+						HostIds: []strfmt.UUID{
+							masterHostId3,
+						},
+					},
+				})
+				actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+				Expect(len(actualNetworks)).To(Equal(3))
+				actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+				actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+				actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+				Expect(actualNetworks).To(Equal(expectedNetworks))
+			})
+		}
+	})
+
+	Context("Update", func() {
+		BeforeEach(func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&models.Cluster{
+				ID: &clusterID,
+			}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
+			addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
+			addHost(masterHostId3, "master", "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
+		})
+		It("No machine network", func() {
+			apiVip := strfmt.IPv4("8.8.8.8")
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					APIVip: &apiVip,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
+		})
+		It("Api and ingress mismatch", func() {
+			apiVip := strfmt.IPv4("10.11.12.15")
+			ingressVip := strfmt.IPv4("1.2.3.20")
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					APIVip:     &apiVip,
+					IngressVip: &ingressVip,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
+		})
+		It("Update success", func() {
+			apiVip := strfmt.IPv4("10.11.12.15")
+			ingressVip := strfmt.IPv4("10.11.12.16")
+			mockHostApi.EXPECT().RefreshState(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(3)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					APIVip:     &apiVip,
+					IngressVip: &ingressVip,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			actual := reply.(*installer.UpdateClusterCreated)
+			Expect(actual.Payload.APIVip).To(Equal(apiVip))
+			Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+			Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
+		})
+	})
+
 	Context("Install", func() {
 		BeforeEach(func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&models.Cluster{
-				ID:     &clusterID,
-				APIVip: "10.11.12.13",
+				ID:                 &clusterID,
+				APIVip:             "10.11.12.13",
+				IngressVip:         "10.11.20.50",
+				MachineNetworkCidr: "10.11.0.0/16",
 			}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24"), db)
+			addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
 			addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
-			addHost(masterHostId3, "master", "known", clusterID, getInventoryStr(), db)
+			addHost(masterHostId3, "master", "known", clusterID, getInventoryStr("10.11.200.180/16"), db)
 		})
 
 		It("success", func() {
@@ -389,7 +524,31 @@ var _ = Describe("cluster", func() {
 
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
 		})
+		It("cidr calculate error", func() {
+			updateMachineCidr(clusterID, "", db)
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewInstallClusterBadRequest()))
+		})
+		It("cidr mismatch", func() {
+			updateMachineCidr(clusterID, "1.1.0.0/16", db)
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewInstallClusterBadRequest()))
+		})
+		It("Additional non matching master", func() {
+			addHost(masterHostId4, "master", "known", clusterID, getInventoryStr("10.12.200.180/16"), db)
+			set4GetMasterNodesIds(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewInstallClusterBadRequest()))
+		})
 		It("cluster failed to update", func() {
+			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil)
 			mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("cluster has a error"))
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
@@ -413,12 +572,8 @@ var _ = Describe("cluster", func() {
 		})
 		It("GetMasterNodesIds fails", func() {
 
-			setDefaultInstall(mockClusterApi)
 			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
-
-			setDefaultHostInstall(mockClusterApi)
-			setDefaultHostGetHostValidDisks(mockClusterApi)
 
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
@@ -428,12 +583,8 @@ var _ = Describe("cluster", func() {
 		})
 		It("GetMasterNodesIds returns empty list", func() {
 
-			setDefaultInstall(mockClusterApi)
 			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
-
-			setDefaultHostInstall(mockClusterApi)
-			setDefaultHostGetHostValidDisks(mockClusterApi)
 
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,

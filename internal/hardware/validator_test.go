@@ -23,6 +23,7 @@ var _ = Describe("hardware_validator", func() {
 		hwvalidator      Validator
 		host             *models.Host
 		inventory        *models.Inventory
+		cluster          *models.Cluster
 		validDiskSize    = int64(128849018880)
 		notValidDiskSize = int64(108849018880)
 	)
@@ -31,13 +32,25 @@ var _ = Describe("hardware_validator", func() {
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 		hwvalidator = NewValidator(cfg)
 		id := strfmt.UUID(uuid.New().String())
-		host = &models.Host{ID: &id, ClusterID: strfmt.UUID(uuid.New().String())}
+		clusterID := strfmt.UUID(uuid.New().String())
+		host = &models.Host{ID: &id, ClusterID: clusterID}
 		inventory = &models.Inventory{
 			CPU:    &models.CPU{Count: 16},
 			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
+			Interfaces: []*models.Interface{
+				{
+					IPV4Addresses: []string{
+						"1.2.3.4/24",
+					},
+				},
+			},
 			Disks: []*models.Disk{
 				{DriveType: "ODD", Name: "loop0", SizeBytes: validDiskSize},
 				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+		}
+		cluster = &models.Cluster{
+			ID:                 &clusterID,
+			MachineNetworkCidr: "1.2.3.0/24",
 		}
 	})
 
@@ -49,7 +62,7 @@ var _ = Describe("hardware_validator", func() {
 		roles := []string{"", "master", "worker"}
 		for _, role := range roles {
 			host.Role = role
-			sufficient(hwvalidator.IsSufficient(host))
+			sufficient(hwvalidator.IsSufficient(host, cluster))
 		}
 	})
 
@@ -63,7 +76,7 @@ var _ = Describe("hardware_validator", func() {
 		roles := []string{"", "master", "worker"}
 		for _, role := range roles {
 			host.Role = role
-			insufficient(hwvalidator.IsSufficient(host))
+			insufficient(hwvalidator.IsSufficient(host, cluster))
 		}
 	})
 
@@ -74,9 +87,9 @@ var _ = Describe("hardware_validator", func() {
 		Expect(err).NotTo(HaveOccurred())
 		host.Inventory = string(hw)
 		host.Role = "master"
-		insufficient(hwvalidator.IsSufficient(host))
+		insufficient(hwvalidator.IsSufficient(host, cluster))
 		host.Role = "worker"
-		sufficient(hwvalidator.IsSufficient(host))
+		sufficient(hwvalidator.IsSufficient(host, cluster))
 	})
 
 	It("insufficient_number_of_valid_disks", func() {
@@ -92,11 +105,50 @@ var _ = Describe("hardware_validator", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		host.Inventory = string(hw)
-		insufficient(hwvalidator.IsSufficient(host))
+		insufficient(hwvalidator.IsSufficient(host, cluster))
 
 		disks, err := hwvalidator.GetHostValidDisks(host)
 		Expect(err).To(HaveOccurred())
 		Expect(disks).To(BeNil())
+	})
+
+	It("insufficient network", func() {
+		cluster.MachineNetworkCidr = "10.11.0.0/16"
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host.Inventory = string(hw)
+
+		roles := []string{"", "master", "worker"}
+		for _, role := range roles {
+			host.Role = role
+			insufficient(hwvalidator.IsSufficient(host, cluster))
+		}
+	})
+
+	It("missing network", func() {
+		cluster.MachineNetworkCidr = ""
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host.Inventory = string(hw)
+
+		roles := []string{"", "master", "worker"}
+		for _, role := range roles {
+			host.Role = role
+			insufficient(hwvalidator.IsSufficient(host, cluster))
+		}
+	})
+
+	It("illegal network", func() {
+		cluster.MachineNetworkCidr = "blah"
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host.Inventory = string(hw)
+
+		roles := []string{"", "master", "worker"}
+		for _, role := range roles {
+			host.Role = role
+			insufficient(hwvalidator.IsSufficient(host, cluster))
+		}
 	})
 
 	It("validate_disk_list_return_order", func() {
@@ -124,7 +176,7 @@ var _ = Describe("hardware_validator", func() {
 		roles := []string{"", "master", "worker"}
 		for _, role := range roles {
 			host.Role = role
-			reply, err := hwvalidator.IsSufficient(host)
+			reply, err := hwvalidator.IsSufficient(host, cluster)
 			Expect(err).To(HaveOccurred())
 			Expect(reply).To(BeNil())
 		}

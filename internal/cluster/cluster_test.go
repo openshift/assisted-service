@@ -183,6 +183,14 @@ var _ = Describe("cluster monitor", func() {
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
 			})
+			It("insufficient -> insufficient", func() {
+				createHost(id, "known", db)
+				createHost(id, "known", db)
+				createHost(id, "known", db)
+				clusterApi.ClusterMonitoring()
+				c = geCluster(id, db)
+				Expect(c.Status).Should(Equal(swag.String("insufficient")))
+			})
 			It("insufficient -> ready", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
@@ -190,6 +198,7 @@ var _ = Describe("cluster monitor", func() {
 
 				shouldHaveUpdated = true
 				expectedState = "ready"
+				Expect(db.Model(&c).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.5"}).Error).To(Not(HaveOccurred()))
 			})
 			It("insufficient -> insufficient including hosts in discovering", func() {
 				createHost(id, "known", db)
@@ -328,4 +337,6 @@ func addInstallationRequirements(clusterId strfmt.UUID, db *gorm.DB) {
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 	}
+	Expect(db.Model(&models.Cluster{ID: &clusterId}).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.5"}).Error).To(Not(HaveOccurred()))
+
 }

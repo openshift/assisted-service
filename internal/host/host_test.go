@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"testing"
@@ -257,5 +258,32 @@ func getTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
 		ClusterID:    clusterID,
 		Status:       swag.String(state),
 		HardwareInfo: defaultHwInfo,
+		Inventory:    defaultInventory(),
 	}
+}
+
+func defaultInventory() string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func addTestCluster(clusterID strfmt.UUID, apiVip, ingressVip strfmt.IPv4, machineCidr string, db *gorm.DB) {
+	cluster := models.Cluster{
+		ID:                 &clusterID,
+		APIVip:             apiVip,
+		IngressVip:         ingressVip,
+		MachineNetworkCidr: machineCidr,
+	}
+	Expect(db.Create(&cluster).Error).To(Not(HaveOccurred()))
 }

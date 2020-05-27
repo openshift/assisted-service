@@ -84,7 +84,7 @@ var _ = Describe("Cluster tests", func() {
 
 		c, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
-				SSHPublicKey: publicKey,
+				SSHPublicKey: &publicKey,
 				HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 					{
 						ID:   *host1.ID,
@@ -123,7 +123,6 @@ var _ = Describe("system-test cluster install", func() {
 	BeforeEach(func() {
 		registerClusterReply, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				APIVip:                   "1.2.3.4",
 				BaseDNSDomain:            "example.com",
 				ClusterNetworkCidr:       "10.128.0.0/14",
 				ClusterNetworkHostPrefix: 23,
@@ -179,13 +178,18 @@ var _ = Describe("system-test cluster install", func() {
 			generateHWPostStepReply(h3, hwInfo)
 			h4 := registerHost(clusterID)
 			generateHWPostStepReply(h4, hwInfo)
+			apiVip := strfmt.IPv4("1.2.3.8")
+			ingressVip := strfmt.IPv4("1.2.3.9")
 			c, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 				ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 					{ID: *h1.ID, Role: "master"},
 					{ID: *h2.ID, Role: "master"},
 					{ID: *h3.ID, Role: "master"},
 					{ID: *h4.ID, Role: "worker"},
-				}},
+				},
+					APIVip:     &apiVip,
+					IngressVip: &ingressVip,
+				},
 				ClusterID: clusterID,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -376,6 +380,13 @@ var _ = Describe("system-test cluster install", func() {
 			Disks: []*models.Disk{
 				{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
 				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+			Interfaces: []*models.Interface{
+				{
+					IPV4Addresses: []string{
+						"1.2.3.4/24",
+					},
+				},
+			},
 		}
 		Expect(swag.StringValue(cluster.Status)).Should(Equal("insufficient"))
 		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
@@ -387,14 +398,18 @@ var _ = Describe("system-test cluster install", func() {
 		h3 := registerHost(clusterID)
 		generateHWPostStepReply(h3, hwInfo)
 		h4 := registerHost(clusterID)
-
+		apiVip := strfmt.IPv4("1.2.3.5")
+		ingressVip := strfmt.IPv4("1.2.3.6")
 		// All hosts are masters, one in discovering state  -> state must be insufficient
 		cluster, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *h1.ID, Role: "master"},
 				{ID: *h2.ID, Role: "master"},
 				{ID: *h4.ID, Role: "master"},
-			}},
+			},
+				APIVip:     &apiVip,
+				IngressVip: &ingressVip,
+			},
 			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -423,6 +438,13 @@ var _ = Describe("system-test cluster install", func() {
 			Disks: []*models.Disk{
 				{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
 				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+			Interfaces: []*models.Interface{
+				{
+					IPV4Addresses: []string{
+						"1.2.3.4/24",
+					},
+				},
+			},
 		}
 		Expect(swag.StringValue(cluster.Status)).Should(Equal("insufficient"))
 		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
@@ -441,18 +463,42 @@ var _ = Describe("system-test cluster install", func() {
 		mh3 := registerHost(clusterID)
 		generateHWPostStepReply(mh3, hwInfo)
 
+		apiVip := strfmt.IPv4("1.2.3.5")
+		ingressVip := strfmt.IPv4("1.2.3.6")
 		// All hosts are workers -> state must be insufficient
 		cluster, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *wh1.ID, Role: "worker"},
 				{ID: *wh2.ID, Role: "worker"},
 				{ID: *wh3.ID, Role: "worker"},
-			}},
+			},
+				APIVip:     &apiVip,
+				IngressVip: &ingressVip,
+			},
 			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
 		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+		clusterReply, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+			ClusterID: clusterID,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(clusterReply.Payload.APIVip).To(Equal(apiVip))
+		Expect(clusterReply.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
+		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
+		Expect(clusterReply.Payload.HostNetworks[0].Cidr).To(Equal("1.2.3.0/24"))
+		hids := make([]interface{}, 0)
+		for _, h := range clusterReply.Payload.HostNetworks[0].HostIds {
+			hids = append(hids, h)
+		}
+		Expect(len(hids)).To(Equal(6))
+		Expect(*wh1.ID).To(BeElementOf(hids...))
+		Expect(*wh2.ID).To(BeElementOf(hids...))
+		Expect(*wh3.ID).To(BeElementOf(hids...))
+		Expect(*mh1.ID).To(BeElementOf(hids...))
+		Expect(*mh2.ID).To(BeElementOf(hids...))
+		Expect(*mh3.ID).To(BeElementOf(hids...))
 
 		// Only two masters -> state must be insufficient
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -524,10 +570,28 @@ var _ = Describe("system-test cluster install", func() {
 			CPU:    &models.CPU{Count: 2},
 			Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB)},
 			Disks: []*models.Disk{
-				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
+			},
+			Interfaces: []*models.Interface{
+				{
+					IPV4Addresses: []string{
+						"1.2.3.4/24",
+					},
+				},
+			},
 		}
 		h1 := registerHost(clusterID)
 		generateHWPostStepReply(h1, hwInfo)
+		apiVip := strfmt.IPv4("1.2.3.8")
+		ingressVip := strfmt.IPv4("1.2.3.9")
+		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				APIVip:     &apiVip,
+				IngressVip: &ingressVip,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).To(Not(HaveOccurred()))
 		Expect(*getHost(clusterID, *h1.ID).Status).Should(Equal("known"))
 
 		hwInfo = &models.Inventory{
@@ -541,7 +605,7 @@ var _ = Describe("system-test cluster install", func() {
 		h4 := registerHost(clusterID)
 		generateHWPostStepReply(h4, hwInfo)
 
-		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *h1.ID, Role: "master"},
 				{ID: *h2.ID, Role: "master"},
