@@ -865,7 +865,8 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 
 func (b *bareMetalInventory) createKubeconfigJob(cluster *models.Cluster, jobName string, cfg []byte) *batch.Job {
 	id := cluster.ID
-	overrideImageName := "registry.svc.ci.openshift.org/ocp/release:4.5.0-0.nightly-2020-05-21-015458"
+	//overrideImageName := "registry.svc.ci.openshift.org/ocp/release:4.5.0-0.nightly-2020-05-21-015458"
+	overrideImageName := "registry.svc.ci.openshift.org/ocp/release:4.5.0-0.ci-2020-05-27-122953"
 	if cluster.OpenshiftVersion == models.ClusterOpenshiftVersionNr44 {
 		overrideImageName = "quay.io/openshift-release-dev/ocp-release:4.4.0-rc.7-x86_64"
 	}
