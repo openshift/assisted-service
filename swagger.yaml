@@ -777,6 +777,7 @@ definitions:
       - href
       - status
       - status_info
+      - status_updated_at
     properties:
       kind:
         type: string
@@ -810,6 +811,11 @@ definitions:
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
+      status_updated_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:datetime"
+        description: The last time that the host status has been updated
       connectivity:
         x-go-custom-tag: gorm:"type:text"
         type: string
@@ -1021,6 +1027,7 @@ definitions:
       - image_info
       - status
       - status_info
+      - status_updated_at
     properties:
       kind:
         type: string
@@ -1093,6 +1100,11 @@ definitions:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
         description: Additional information pertaining to the status of the OpenShift cluster.
+      status_updated_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:datetime"
+        description: The last time that the cluster status has been updated
       hosts:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;association_foreignkey:ID"
         type: array
