@@ -22,7 +22,9 @@ require (
 	github.com/onsi/gomega v1.10.0
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.2.1
 	github.com/sirupsen/logrus v1.6.0
+	github.com/slok/go-http-metrics v0.6.1
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72

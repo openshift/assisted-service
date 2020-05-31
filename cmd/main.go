@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/filanov/bm-inventory/pkg/app"
+
 	"github.com/filanov/bm-inventory/internal/events"
 	awsS3Client "github.com/filanov/bm-inventory/pkg/s3Client"
 
@@ -29,9 +31,6 @@ import (
 	"github.com/filanov/bm-inventory/pkg/requestid"
 	"github.com/filanov/bm-inventory/pkg/thread"
 	"github.com/filanov/bm-inventory/restapi"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
-	"github.com/slok/go-http-metrics/middleware"
 )
 
 func init() {
@@ -109,14 +108,9 @@ func main() {
 		EventsAPI:    events,
 		Logger:       log.Printf,
 	})
-	// Create our middleware.
-	metricsRecorder := middleware.New(middleware.Config{
-		Recorder: metrics.NewRecorder(metrics.Config{}),
-	})
-
-	h = withMetricsMiddleware(h)
-	h = metricsRecorder.Handler("", h)
-	h = withHealthMiddleware(h)
+	h = app.WithMetricsResponderMiddleware(h)
+	h = app.WithMetricsRecorderMiddleware(h)
+	h = app.WithHealthMiddleware(h)
 
 	h = requestid.Middleware(h)
 	if err != nil {
@@ -124,24 +118,4 @@ func main() {
 	}
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
-}
-
-func withMetricsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && r.URL.Path == "/metrics" {
-			promhttp.Handler().ServeHTTP(w, r)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func withHealthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && r.URL.Path == "/health" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
