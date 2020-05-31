@@ -170,6 +170,8 @@ func postValidation(expectedReply *expect, firstState string, db *gorm.DB, id, c
 				Expect(updateReply.IsChanged).Should(BeFalse())
 			} else {
 				Expect(updateReply.IsChanged).Should(BeTrue())
+				Expect(h.StatusInfo).ShouldNot(BeNil())
+				Expect(h.StatusUpdatedAt).ShouldNot(BeNil())
 			}
 			Expect(swag.StringValue(h.Status)).Should(Equal(expectedReply.expectedState))
 		}

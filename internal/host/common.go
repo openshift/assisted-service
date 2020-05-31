@@ -3,6 +3,8 @@ package host
 import (
 	"time"
 
+	"github.com/go-openapi/strfmt"
+
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/swag"
@@ -43,7 +45,7 @@ func updateByKeepAlive(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*Up
 }
 
 func updateStateWithParams(log logrus.FieldLogger, status, statusInfo string, h *models.Host, db *gorm.DB, extra ...interface{}) (*UpdateReply, error) {
-	updates := map[string]interface{}{"status": status, "status_info": statusInfo}
+	updates := map[string]interface{}{"status": status, "status_info": statusInfo, "status_updated_at": strfmt.DateTime(time.Now())}
 	if len(extra)%2 != 0 {
 		return nil, errors.Errorf("invalid update extra parameters %+v", extra)
 	}

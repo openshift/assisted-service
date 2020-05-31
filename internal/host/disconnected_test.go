@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"testing"
 	"time"
 
 	"github.com/filanov/bm-inventory/internal/hardware"
@@ -143,3 +144,8 @@ var _ = Describe("disconnected_state", func() {
 		updateErr = nil
 	})
 })
+
+func Test(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "disconnected host state tests")
+}

@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"time"
+
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -36,7 +38,7 @@ type baseState struct {
 }
 
 func updateState(state string, statusInfo string, c *models.Cluster, db *gorm.DB, log logrus.FieldLogger) (*UpdateReply, error) {
-	updates := map[string]interface{}{"status": state, "status_info": statusInfo}
+	updates := map[string]interface{}{"status": state, "status_info": statusInfo, "status_updated_at": strfmt.DateTime(time.Now())}
 	dbReply := db.Model(&models.Cluster{}).Where("id = ? and status = ?",
 		c.ID.String(), swag.StringValue(c.Status)).Updates(updates)
 	if dbReply.Error != nil {

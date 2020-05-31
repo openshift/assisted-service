@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -71,17 +72,21 @@ insufficient -> known
 var _ = Describe("cluster monitor", func() {
 	var (
 		//ctx        = context.Background()
-		db         *gorm.DB
-		c          models.Cluster
-		id         strfmt.UUID
-		err        error
-		clusterApi *Manager
+		db                *gorm.DB
+		c                 models.Cluster
+		id                strfmt.UUID
+		err               error
+		clusterApi        *Manager
+		shouldHaveUpdated bool
+		expectedState     string
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
 		id = strfmt.UUID(uuid.New().String())
 		clusterApi = NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		expectedState = ""
+		shouldHaveUpdated = false
 	})
 
 	Context("from installing state", func() {
@@ -100,72 +105,62 @@ var _ = Describe("cluster monitor", func() {
 			createHost(id, "installing", db)
 			createHost(id, "installing", db)
 			createHost(id, "installing", db)
-			clusterApi.ClusterMonitoring()
-			c = geCluster(id, db)
-			Expect(c.Status).Should(Equal(swag.String("installing")))
+			shouldHaveUpdated = false
+			expectedState = "installing"
 		})
 		It("installing -> installing (some hosts are installed)", func() {
 			createHost(id, "installing", db)
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
-
-			clusterApi.ClusterMonitoring()
-			c = geCluster(id, db)
-			Expect(c.Status).Should(Equal(swag.String("installing")))
+			shouldHaveUpdated = false
+			expectedState = "installing"
 		})
 		It("installing -> installing (including installing-in-progress)", func() {
 			createHost(id, "installing-in-progress", db)
 			createHost(id, "installing-in-progress", db)
 			createHost(id, "installing-in-progress", db)
 
-			clusterApi.ClusterMonitoring()
-			c = geCluster(id, db)
-			Expect(c.Status).Should(Equal(swag.String("installing")))
+			shouldHaveUpdated = false
+			expectedState = "installing"
 		})
 		It("installing -> installing (including installing-in-progress)", func() {
 			createHost(id, "installing-in-progress", db)
 			createHost(id, "installing-in-progress", db)
 			createHost(id, "installing", db)
 
-			clusterApi.ClusterMonitoring()
-			c = geCluster(id, db)
-			Expect(c.Status).Should(Equal(swag.String("installing")))
+			shouldHaveUpdated = false
+			expectedState = "installing"
 		})
 		It("installing -> installed", func() {
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
 
-			clusterApi.ClusterMonitoring()
-			c = geCluster(id, db)
-			Expect(c.Status).Should(Equal(swag.String("installed")))
+			shouldHaveUpdated = true
+			expectedState = "installed"
 		})
 		It("installing -> error", func() {
 			createHost(id, "error", db)
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
 
-			clusterApi.ClusterMonitoring()
-			c = geCluster(id, db)
-			Expect(c.Status).Should(Equal(swag.String("error")))
+			shouldHaveUpdated = true
+			expectedState = "error"
 		})
 		It("installing -> error", func() {
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
 
-			clusterApi.ClusterMonitoring()
-			c = geCluster(id, db)
-			Expect(c.Status).Should(Equal(swag.String("error")))
+			shouldHaveUpdated = true
+			expectedState = "error"
 		})
 		It("installing -> error insufficient hosts", func() {
 			createHost(id, "installing", db)
 			createHost(id, "installed", db)
+			shouldHaveUpdated = true
+			expectedState = "error"
 
-			clusterApi.ClusterMonitoring()
-			c = geCluster(id, db)
-			Expect(c.Status).Should(Equal(swag.String("error")))
 		})
-
 	})
 
 	Context("ghost hosts", func() {
@@ -184,33 +179,33 @@ var _ = Describe("cluster monitor", func() {
 
 			It("insufficient -> insufficient", func() {
 				createHost(id, "known", db)
-				clusterApi.ClusterMonitoring()
-				c = geCluster(id, db)
-				Expect(c.Status).Should(Equal(swag.String("insufficient")))
+
+				shouldHaveUpdated = false
+				expectedState = "insufficient"
 			})
 			It("insufficient -> ready", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "known", db)
-				clusterApi.ClusterMonitoring()
-				c = geCluster(id, db)
-				Expect(c.Status).Should(Equal(swag.String("ready")))
+
+				shouldHaveUpdated = true
+				expectedState = "ready"
 			})
 			It("insufficient -> insufficient including hosts in discovering", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "discovering", db)
-				clusterApi.ClusterMonitoring()
-				c = geCluster(id, db)
-				Expect(c.Status).Should(Equal(swag.String("insufficient")))
+
+				shouldHaveUpdated = false
+				expectedState = "insufficient"
 			})
 			It("insufficient -> insufficient including hosts in error", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "error", db)
-				clusterApi.ClusterMonitoring()
-				c = geCluster(id, db)
-				Expect(c.Status).Should(Equal(swag.String("insufficient")))
+
+				shouldHaveUpdated = false
+				expectedState = "insufficient"
 			})
 		})
 		Context("from ready state", func() {
@@ -229,38 +224,56 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "known", db)
-				clusterApi.ClusterMonitoring()
-				c = geCluster(id, db)
-				Expect(c.Status).Should(Equal(swag.String("ready")))
+
+				shouldHaveUpdated = false
+				expectedState = "ready"
 			})
 			It("ready -> insufficient", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
-				clusterApi.ClusterMonitoring()
-				c = geCluster(id, db)
-				Expect(c.Status).Should(Equal(swag.String("insufficient")))
+
+				shouldHaveUpdated = true
+				expectedState = "insufficient"
 			})
 			It("ready -> insufficient one host is discovering", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "discovering", db)
-				clusterApi.ClusterMonitoring()
-				c = geCluster(id, db)
-				Expect(c.Status).Should(Equal(swag.String("insufficient")))
+
+				shouldHaveUpdated = true
+				expectedState = "insufficient"
 			})
 			It("ready -> insufficient including hosts in error", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "error", db)
-				clusterApi.ClusterMonitoring()
-				c = geCluster(id, db)
-				Expect(c.Status).Should(Equal(swag.String("insufficient")))
+
+				shouldHaveUpdated = true
+				expectedState = "insufficient"
 			})
 		})
 
 	})
 
 	AfterEach(func() {
+		before := time.Now().Truncate(10 * time.Millisecond)
+		c = geCluster(id, db)
+		saveUpdatedTime := c.StatusUpdatedAt
+		saveStatusInfo := c.StatusInfo
+		clusterApi.ClusterMonitoring()
+		after := time.Now().Truncate(10 * time.Millisecond)
+		c = geCluster(id, db)
+		Expect(c.Status).Should(Equal(swag.String(expectedState)))
+		if shouldHaveUpdated {
+			Expect(c.StatusInfo).ShouldNot(BeNil())
+			updateTime := time.Time(*c.StatusUpdatedAt).Truncate(10 * time.Millisecond)
+			Expect(updateTime).Should(BeTemporally(">=", before))
+			Expect(updateTime).Should(BeTemporally("<=", after))
+		} else {
+			Expect(c.StatusUpdatedAt).Should(Equal(saveUpdatedTime))
+			Expect(c.StatusInfo).Should(Equal(saveStatusInfo))
+		}
+
 		db.Close()
 	})
 
