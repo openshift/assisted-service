@@ -81,6 +81,9 @@ var _ = Describe("discovering_state", func() {
 		})
 	})
 	Context("refresh status", func() {
+		BeforeEach(func() {
+			host.CheckedInAt = strfmt.DateTime(time.Now())
+		})
 		It("sufficient_hw", func() {
 			expectedReply.postCheck = nil
 			expectedReply.expectedState = "known"
@@ -139,16 +142,12 @@ var _ = Describe("discovering_state", func() {
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Minute))
+			host.Inventory = ""
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
 			expectedReply.expectedState = HostStatusDiscovering
 		})
 		It("keep_alive_timeout", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Hour))
-			host.Inventory = ""
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
-		})
-		It("keep_alive_timeout", func() {
-			host.UpdatedAt = strfmt.DateTime(time.Now().Add(-time.Hour))
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
 			expectedReply.expectedState = HostStatusDisconnected
 		})

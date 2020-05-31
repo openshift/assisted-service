@@ -33,7 +33,7 @@ func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 	return m.recorder
 }
 
-// IsSufficient mocks base method.
+// IsSufficient mocks base method
 func (m *MockValidator) IsSufficient(host *models.Host, cluster *models.Cluster) (*IsSufficientReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsSufficient", host, cluster)
@@ -42,7 +42,7 @@ func (m *MockValidator) IsSufficient(host *models.Host, cluster *models.Cluster)
 	return ret0, ret1
 }
 
-// IsSufficient indicates an expected call of IsSufficient.
+// IsSufficient indicates an expected call of IsSufficient
 func (mr *MockValidatorMockRecorder) IsSufficient(host, cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSufficient", reflect.TypeOf((*MockValidator)(nil).IsSufficient), host, cluster)

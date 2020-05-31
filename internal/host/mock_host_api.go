@@ -80,6 +80,22 @@ func (mr *MockStateAPIMockRecorder) UpdateRole(ctx, h, role, db interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRole", reflect.TypeOf((*MockStateAPI)(nil).UpdateRole), ctx, h, role, db)
 }
 
+// RefreshStatus mocks base method
+func (m *MockStateAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshStatus", ctx, h, db)
+	ret0, _ := ret[0].(*UpdateReply)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshStatus indicates an expected call of RefreshStatus
+func (mr *MockStateAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockStateAPI)(nil).RefreshStatus), ctx, h, db)
+}
+
+// Install mocks base method
 func (m *MockStateAPI) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Install", ctx, h, db)
@@ -244,13 +260,8 @@ func (mr *MockAPIMockRecorder) UpdateRole(ctx, h, role, db interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRole", reflect.TypeOf((*MockAPI)(nil).UpdateRole), ctx, h, role, db)
 }
 
-<<<<<<< HEAD
 // RefreshStatus mocks base method
-func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-=======
-// RefreshStatus mocks base method.
 func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
->>>>>>> 172970a... Fixed PR comments
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshStatus", ctx, h, db)
 	ret0, _ := ret[0].(*UpdateReply)
@@ -258,37 +269,13 @@ func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	return ret0, ret1
 }
 
-<<<<<<< HEAD
 // RefreshStatus indicates an expected call of RefreshStatus
-func (mr *MockAPIMockRecorder) RefreshStatus(ctx, h interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, h)
-}
-
-<<<<<<< HEAD
-// Install mocks base method
-=======
-// RefreshState mocks base method.
-func (m *MockAPI) RefreshState(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshState", ctx, h, db)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RefreshState indicates an expected call of RefreshState.
-func (mr *MockAPIMockRecorder) RefreshState(ctx, h, db interface{}) *gomock.Call {
-=======
-// RefreshStatus indicates an expected call of RefreshStatus.
 func (mr *MockAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomock.Call {
->>>>>>> 172970a... Fixed PR comments
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, h, db)
 }
 
-// Install mocks base method.
->>>>>>> 502bd75... MGMT-911 Code changes
+// Install mocks base method
 func (m *MockAPI) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Install", ctx, h, db)
@@ -405,13 +392,13 @@ func (mr *MockAPIMockRecorder) UpdateConnectivityReport(ctx, h, connectivityRepo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConnectivityReport", reflect.TypeOf((*MockAPI)(nil).UpdateConnectivityReport), ctx, h, connectivityReport)
 }
 
-// HostMonitoring mocks base method.
+// HostMonitoring mocks base method
 func (m *MockAPI) HostMonitoring() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "HostMonitoring")
 }
 
-// HostMonitoring indicates an expected call of HostMonitoring.
+// HostMonitoring indicates an expected call of HostMonitoring
 func (mr *MockAPIMockRecorder) HostMonitoring() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostMonitoring", reflect.TypeOf((*MockAPI)(nil).HostMonitoring))

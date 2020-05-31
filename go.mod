@@ -26,8 +26,6 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/slok/go-http-metrics v0.6.1
 	github.com/stretchr/testify v1.5.1
-	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
-	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.17.3

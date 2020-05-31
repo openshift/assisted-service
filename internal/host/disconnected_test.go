@@ -3,7 +3,6 @@ package host
 import (
 	"context"
 	"testing"
-	"fmt"
 	"time"
 
 	"github.com/filanov/bm-inventory/internal/hardware"

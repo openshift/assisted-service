@@ -187,9 +187,7 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "known", db)
-				clusterApi.ClusterMonitoring()
-				c = geCluster(id, db)
-				Expect(c.Status).Should(Equal(swag.String("insufficient")))
+				expectedState = "insufficient"
 			})
 			It("insufficient -> ready", func() {
 				createHost(id, "known", db)

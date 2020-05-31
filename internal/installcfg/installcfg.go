@@ -224,7 +224,7 @@ func setPlatformInstallconfig(cluster *models.Cluster, cfg *InstallerConfigBarem
 func GetInstallConfig(cluster *models.Cluster) ([]byte, error) {
 	if cluster.OpenshiftVersion != models.ClusterOpenshiftVersionNr44 {
 		cfg := getBasicInstallConfig(cluster)
-		err = setPlatformInstallconfig(cluster, cfg)
+		err := setPlatformInstallconfig(cluster, cfg)
 		if err != nil {
 			return nil, err
 		}

@@ -96,6 +96,9 @@ var _ = Describe("insufficient_state", func() {
 	})
 
 	Context("refresh state", func() {
+		BeforeEach(func() {
+			host.CheckedInAt = strfmt.DateTime(time.Now())
+		})
 		It("sufficient_hw", func() {
 			expectedReply.postCheck = nil
 			expectedReply.expectedState = "known"

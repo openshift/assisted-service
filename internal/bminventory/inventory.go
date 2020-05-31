@@ -779,10 +779,11 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
 	host = models.Host{
-		ID:        params.NewHostParams.HostID,
-		Href:      swag.String(url.String()),
-		Kind:      swag.String(ResourceKindHost),
-		ClusterID: params.ClusterID,
+		ID:          params.NewHostParams.HostID,
+		Href:        swag.String(url.String()),
+		Kind:        swag.String(ResourceKindHost),
+		ClusterID:   params.ClusterID,
+		CheckedInAt: strfmt.DateTime(time.Now()),
 	}
 
 	if err := b.hostApi.RegisterHost(ctx, &host); err != nil {
