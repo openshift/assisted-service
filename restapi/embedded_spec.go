@@ -1129,7 +1129,8 @@ func init() {
         "href",
         "image_info",
         "status",
-        "status_info"
+        "status_info",
+        "status_updated_at"
       ],
       "properties": {
         "api_vip": {
@@ -1252,6 +1253,12 @@ func init() {
           "description": "Additional information pertaining to the status of the OpenShift cluster.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+        },
+        "status_updated_at": {
+          "description": "The last time that the cluster status has been updated",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
         },
         "updated_at": {
           "description": "The last time that this cluster was updated.",
@@ -1660,7 +1667,8 @@ func init() {
         "id",
         "href",
         "status",
-        "status_info"
+        "status_info",
+        "status_updated_at"
       ],
       "properties": {
         "bootstrap": {
@@ -1731,6 +1739,12 @@ func init() {
         "status_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+        },
+        "status_updated_at": {
+          "description": "The last time that the host status has been updated",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
         },
         "updated_at": {
           "type": "string",
@@ -3211,7 +3225,8 @@ func init() {
         "href",
         "image_info",
         "status",
-        "status_info"
+        "status_info",
+        "status_updated_at"
       ],
       "properties": {
         "api_vip": {
@@ -3334,6 +3349,12 @@ func init() {
           "description": "Additional information pertaining to the status of the OpenShift cluster.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+        },
+        "status_updated_at": {
+          "description": "The last time that the cluster status has been updated",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
         },
         "updated_at": {
           "description": "The last time that this cluster was updated.",
@@ -3729,7 +3750,8 @@ func init() {
         "id",
         "href",
         "status",
-        "status_info"
+        "status_info",
+        "status_updated_at"
       ],
       "properties": {
         "bootstrap": {
@@ -3800,6 +3822,12 @@ func init() {
         "status_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+        },
+        "status_updated_at": {
+          "description": "The last time that the host status has been updated",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
         },
         "updated_at": {
           "type": "string",

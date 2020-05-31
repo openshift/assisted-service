@@ -103,6 +103,11 @@ type Cluster struct {
 	// Required: true
 	StatusInfo *string `json:"status_info" gorm:"type:varchar(2048)"`
 
+	// The last time that the cluster status has been updated
+	// Required: true
+	// Format: date-time
+	StatusUpdatedAt *strfmt.DateTime `json:"status_updated_at" gorm:"type:datetime"`
+
 	// The last time that this cluster was updated.
 	// Format: date-time
 	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:datetime"`
@@ -177,6 +182,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateStatusInfo(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStatusUpdatedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -514,6 +523,19 @@ func (m *Cluster) validateStatus(formats strfmt.Registry) error {
 func (m *Cluster) validateStatusInfo(formats strfmt.Registry) error {
 
 	if err := validate.Required("status_info", "body", m.StatusInfo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateStatusUpdatedAt(formats strfmt.Registry) error {
+
+	if err := validate.Required("status_updated_at", "body", m.StatusUpdatedAt); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("status_updated_at", "body", "date-time", m.StatusUpdatedAt.String(), formats); err != nil {
 		return err
 	}
 
