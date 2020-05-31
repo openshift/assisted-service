@@ -249,11 +249,11 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		IngressVip:               params.NewClusterParams.IngressVip,
 		Name:                     swag.StringValue(params.NewClusterParams.Name),
 		OpenshiftVersion:         swag.StringValue(params.NewClusterParams.OpenshiftVersion),
-		PullSecret:               params.NewClusterParams.PullSecret,
 		ServiceNetworkCidr:       params.NewClusterParams.ServiceNetworkCidr,
 		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
 		UpdatedAt:                strfmt.DateTime{},
 	}
+	setPullSecret(&cluster, params.NewClusterParams.PullSecret)
 
 	err := b.clusterApi.RegisterCluster(ctx, &cluster)
 	if err != nil {
@@ -630,7 +630,6 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		cluster.ClusterNetworkHostPrefix = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
 	}
 	updateIPv4(&cluster.IngressVip, params.ClusterUpdateParams.IngressVip)
-	updateString(&cluster.PullSecret, params.ClusterUpdateParams.PullSecret)
 	updateString(&cluster.ServiceNetworkCidr, params.ClusterUpdateParams.ServiceNetworkCidr)
 	updateString(&cluster.SSHPublicKey, params.ClusterUpdateParams.SSHPublicKey)
 	var machineCidr string
@@ -647,6 +646,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
+	setPullSecret(&cluster, swag.StringValue(params.ClusterUpdateParams.PullSecret))
 
 	if err = tx.Model(&cluster).Update(cluster).Error; err != nil {
 		tx.Rollback()
@@ -1327,4 +1327,13 @@ func mergeIngressCaIntoKubeconfig(kubeconfigData []byte, ingressCa []byte, log l
 		return nil, errors.Wrap(err, "failed to convert kubeconfig")
 	}
 	return kconfigAsByteArray, nil
+}
+
+func setPullSecret(cluster *models.Cluster, pullSecret string) {
+	cluster.PullSecret = pullSecret
+	if pullSecret != "" {
+		cluster.PullSecretSet = true
+	} else {
+		cluster.PullSecretSet = false
+	}
 }
