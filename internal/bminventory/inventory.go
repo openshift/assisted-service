@@ -60,18 +60,17 @@ const (
 const defaultUser = "kubeadmin"
 
 type Config struct {
-	ImageBuilder           string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
-	ImageBuilderCmd        string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
-	AgentDockerImg         string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/oamizur/agent:latest"`
-	KubeconfigGenerator    string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:stable"`
-	KubeconfigGenerator4_4 string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/oscohen/ignition-manifests-and-kubeconfig-generate"`
-	InventoryURL           string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
-	InventoryPort          string `envconfig:"INVENTORY_PORT" default:"30485"`
-	S3EndpointURL          string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
-	S3Bucket               string `envconfig:"S3_BUCKET" default:"test"`
-	AwsAccessKeyID         string `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
-	AwsSecretAccessKey     string `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
-	Namespace              string `envconfig:"NAMESPACE" default:"assisted-installer"`
+	ImageBuilder        string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
+	ImageBuilderCmd     string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
+	AgentDockerImg      string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/oamizur/agent:latest"`
+	KubeconfigGenerator string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:stable"`
+	InventoryURL        string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
+	InventoryPort       string `envconfig:"INVENTORY_PORT" default:"30485"`
+	S3EndpointURL       string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket            string `envconfig:"S3_BUCKET" default:"test"`
+	AwsAccessKeyID      string `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey  string `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	Namespace           string `envconfig:"NAMESPACE" default:"assisted-installer"`
 }
 
 const ignitionConfigFormat = `{
@@ -865,14 +864,10 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 
 func (b *bareMetalInventory) createKubeconfigJob(cluster *models.Cluster, jobName string, cfg []byte) *batch.Job {
 	id := cluster.ID
+	// [TODO] image name must be handled more
 	overrideImageName := "registry.svc.ci.openshift.org/ocp/release:4.5.0-0.ci-2020-05-29-203954"
-	if cluster.OpenshiftVersion == models.ClusterOpenshiftVersionNr44 {
-		overrideImageName = "quay.io/openshift-release-dev/ocp-release:4.4.0-rc.7-x86_64"
-	}
+	// [TODO] make sure that we can take install from the openshift release image, otherwise the KubeconfigGenerator image must be updated here per opnshift version
 	kubeConfigGeneratorImage := b.Config.KubeconfigGenerator
-	if cluster.OpenshiftVersion == models.ClusterOpenshiftVersionNr44 {
-		kubeConfigGeneratorImage = b.Config.KubeconfigGenerator4_4
-	}
 	return &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",

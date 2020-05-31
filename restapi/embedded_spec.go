@@ -984,38 +984,6 @@ func init() {
         }
       }
     },
-    "/events/{entity_id}": {
-      "get": {
-        "tags": [
-          "events"
-        ],
-        "summary": "Lists events for an entity_id",
-        "operationId": "ListEvents",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "entity_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/event-list"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "tags": [
@@ -1054,6 +1022,38 @@ func init() {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/events/{entity_id}": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Lists events for an entity_id",
+        "operationId": "ListEvents",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "entity_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/event-list"
             }
           },
           "500": {
@@ -1218,7 +1218,6 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4",
             "4.5"
           ]
         },
@@ -1306,7 +1305,6 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4",
             "4.5"
           ]
         },
@@ -3047,38 +3045,6 @@ func init() {
         }
       }
     },
-    "/events/{entity_id}": {
-      "get": {
-        "tags": [
-          "events"
-        ],
-        "summary": "Lists events for an entity_id",
-        "operationId": "ListEvents",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "entity_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/event-list"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "tags": [
@@ -3117,6 +3083,38 @@ func init() {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/events/{entity_id}": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Lists events for an entity_id",
+        "operationId": "ListEvents",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "entity_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/event-list"
             }
           },
           "500": {
@@ -3297,7 +3295,6 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4",
             "4.5"
           ]
         },
@@ -3385,7 +3382,6 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4",
             "4.5"
           ]
         },
