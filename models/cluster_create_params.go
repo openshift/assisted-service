@@ -24,7 +24,7 @@ type ClusterCreateParams struct {
 
 	// IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
-	ClusterNetworkCidr string `json:"cluster_network_cidr,omitempty"`
+	ClusterNetworkCidr *string `json:"cluster_network_cidr,omitempty"`
 
 	// The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.
 	// Maximum: 32
@@ -49,7 +49,7 @@ type ClusterCreateParams struct {
 
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
-	ServiceNetworkCidr string `json:"service_network_cidr,omitempty"`
+	ServiceNetworkCidr *string `json:"service_network_cidr,omitempty"`
 
 	// SSH public key for debugging OpenShift nodes.
 	SSHPublicKey string `json:"ssh_public_key,omitempty"`
@@ -95,7 +95,7 @@ func (m *ClusterCreateParams) validateClusterNetworkCidr(formats strfmt.Registry
 		return nil
 	}
 
-	if err := validate.Pattern("cluster_network_cidr", "body", string(m.ClusterNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+	if err := validate.Pattern("cluster_network_cidr", "body", string(*m.ClusterNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
 		return err
 	}
 
@@ -190,7 +190,7 @@ func (m *ClusterCreateParams) validateServiceNetworkCidr(formats strfmt.Registry
 		return nil
 	}
 
-	if err := validate.Pattern("service_network_cidr", "body", string(m.ServiceNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+	if err := validate.Pattern("service_network_cidr", "body", string(*m.ServiceNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
 		return err
 	}
 
