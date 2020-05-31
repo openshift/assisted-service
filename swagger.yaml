@@ -1141,6 +1141,9 @@ definitions:
           $ref: '#/definitions/host_network'
         x-go-custom-tag: gorm:"-"
         description: List of host networks to be filled during query.
+      pull_secret_set:
+        type: boolean
+        description: True if the pull-secret has been added to the cluster
 
   image_info:
     type: object
