@@ -109,11 +109,68 @@ var _ = Describe("Cluster tests", func() {
 	})
 })
 
+func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string) {
+	for start := time.Now(); time.Since(start) < 10*time.Second; {
+		rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		c := rep.GetPayload()
+		if swag.StringValue(c.Status) == state {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	c := rep.GetPayload()
+	Expect(swag.StringValue(c.Status)).Should(Equal(state))
+}
+
+func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, progress string) {
+	ctx := context.Background()
+	installProgress := models.HostInstallProgressParams(progress)
+	updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
+		ClusterID:                 clusterID,
+		HostInstallProgressParams: installProgress,
+		HostID:                    hostID,
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
+}
+
+func installCluster(clusterID strfmt.UUID) {
+	ctx := context.Background()
+	_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+
+	rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	c := rep.GetPayload()
+	Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+	Expect(len(c.Hosts)).Should(Equal(4))
+	for _, host := range c.Hosts {
+		Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+	}
+
+	for _, host := range c.Hosts {
+		updateProgress(*host.ID, clusterID, "Done")
+	}
+
+	waitForClusterState(ctx, clusterID, "installed")
+	rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	c = rep.GetPayload()
+	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("installed"))
+
+}
+
 var _ = Describe("system-test cluster install", func() {
 	var (
 		ctx           = context.Background()
 		cluster       *models.Cluster
 		validDiskSize = int64(128849018880)
+		clusterCIDR   = "10.128.0.0/14"
+		serviceCIDR   = "172.30.0.0/16"
 	)
 
 	AfterEach(func() {
@@ -124,12 +181,12 @@ var _ = Describe("system-test cluster install", func() {
 		registerClusterReply, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:            "example.com",
-				ClusterNetworkCidr:       "10.128.0.0/14",
+				ClusterNetworkCidr:       &clusterCIDR,
 				ClusterNetworkHostPrefix: 23,
 				Name:                     swag.String("test-cluster"),
 				OpenshiftVersion:         swag.String("4.4"),
 				PullSecret:               `{"auths":{"cloud.openshift.com":{"auth":""}}}`,
-				ServiceNetworkCidr:       "172.30.0.0/16",
+				ServiceNetworkCidr:       &serviceCIDR,
 				SSHPublicKey:             "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC50TuHS7aYci+U+5PLe/aW/I6maBi9PBDucLje6C6gtArfjy7udWA1DCSIQd+DkHhi57/s+PmvEjzfAfzqo+L+/8/O2l2seR1pPhHDxMR/rSyo/6rZP6KIL8HwFqXHHpDUM4tLXdgwKAe1LxBevLt/yNl8kOiHJESUSl+2QSf8z4SIbo/frDD8OwOvtfKBEG4WCb8zEsEuIPNF/Vo/UxPtS9pPTecEsWKDHR67yFjjamoyLvAzMAJotYgyMoxm8PTyCgEzHk3s3S4iO956d6KVOEJVXnTVhAxrtLuubjskd7N4hVN7h2s4Z584wYLKYhrIBL0EViihOMzY4mH3YE4KZusfIx6oMcggKX9b3NHm0la7cj2zg0r6zjUn6ZCP4gXM99e5q4auc0OEfoSfQwofGi3WmxkG3tEozCB8Zz0wGbi2CzR8zlcF+BNV5I2LESlLzjPY5B4dvv5zjxsYoz94p3rUhKnnPM2zTx1kkilDK5C5fC1k9l/I/r5Qk4ebLQU= oscohen@localhost.localdomain",
 			},
 		})
@@ -156,45 +213,7 @@ var _ = Describe("system-test cluster install", func() {
 		var clusterID strfmt.UUID
 		BeforeEach(func() {
 			clusterID = *cluster.ID
-
-			hwInfo := &models.Inventory{
-				CPU:    &models.CPU{Count: 16},
-				Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
-				Disks: []*models.Disk{
-					{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
-					{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
-				Interfaces: []*models.Interface{
-					{
-						IPV4Addresses: []string{"1.2.3.5/24"},
-					},
-				},
-			}
-
-			h1 := registerHost(clusterID)
-			generateHWPostStepReply(h1, hwInfo)
-			h2 := registerHost(clusterID)
-			generateHWPostStepReply(h2, hwInfo)
-			h3 := registerHost(clusterID)
-			generateHWPostStepReply(h3, hwInfo)
-			h4 := registerHost(clusterID)
-			generateHWPostStepReply(h4, hwInfo)
-			apiVip := strfmt.IPv4("1.2.3.8")
-			ingressVip := strfmt.IPv4("1.2.3.9")
-			c, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-					{ID: *h1.ID, Role: "master"},
-					{ID: *h2.ID, Role: "master"},
-					{ID: *h3.ID, Role: "master"},
-					{ID: *h4.ID, Role: "worker"},
-				},
-					APIVip:     &apiVip,
-					IngressVip: &ingressVip,
-				},
-				ClusterID: clusterID,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("ready"))
-			Expect(swag.StringValue(c.GetPayload().StatusInfo)).Should(Equal(clusterReadyStateInfo))
+			registerHostsAndSetRoles(clusterID, 4)
 		})
 
 		Context("install cluster", func() {
@@ -620,57 +639,118 @@ var _ = Describe("system-test cluster install", func() {
 	})
 })
 
-func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string) {
-	for start := time.Now(); time.Since(start) < 10*time.Second; {
+var _ = Describe("cluster install, with default network params", func() {
+	var (
+		ctx     = context.Background()
+		cluster *models.Cluster
+	)
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	BeforeEach(func() {
+		By("Register cluster")
+		registerClusterReply, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				BaseDNSDomain:    "example.com",
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String("4.4"),
+				PullSecret:       `{"auths":{"cloud.openshift.com":{"auth":""}}}`,
+				SSHPublicKey:     "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC50TuHS7aYci+U+5PLe/aW/I6maBi9PBDucLje6C6gtArfjy7udWA1DCSIQd+DkHhi57/s+PmvEjzfAfzqo+L+/8/O2l2seR1pPhHDxMR/rSyo/6rZP6KIL8HwFqXHHpDUM4tLXdgwKAe1LxBevLt/yNl8kOiHJESUSl+2QSf8z4SIbo/frDD8OwOvtfKBEG4WCb8zEsEuIPNF/Vo/UxPtS9pPTecEsWKDHR67yFjjamoyLvAzMAJotYgyMoxm8PTyCgEzHk3s3S4iO956d6KVOEJVXnTVhAxrtLuubjskd7N4hVN7h2s4Z584wYLKYhrIBL0EViihOMzY4mH3YE4KZusfIx6oMcggKX9b3NHm0la7cj2zg0r6zjUn6ZCP4gXM99e5q4auc0OEfoSfQwofGi3WmxkG3tEozCB8Zz0wGbi2CzR8zlcF+BNV5I2LESlLzjPY5B4dvv5zjxsYoz94p3rUhKnnPM2zTx1kkilDK5C5fC1k9l/I/r5Qk4ebLQU= oscohen@localhost.localdomain",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		cluster = registerClusterReply.GetPayload()
+	})
+
+	It("install cluster", func() {
+		clusterID := *cluster.ID
+		registerHostsAndSetRoles(clusterID, 3)
+		_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+
 		rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		c := rep.GetPayload()
-		if swag.StringValue(c.Status) == state {
-			break
+		Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+		Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+		Expect(len(c.Hosts)).Should(Equal(3))
+		for _, host := range c.Hosts {
+			Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
 		}
-		time.Sleep(time.Second)
-	}
-	rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-	Expect(err).NotTo(HaveOccurred())
-	c := rep.GetPayload()
-	Expect(swag.StringValue(c.Status)).Should(Equal(state))
-}
+		// fake installation completed
+		for _, host := range c.Hosts {
+			updateProgress(*host.ID, clusterID, "Done")
+		}
 
-func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, progress string) {
-	ctx := context.Background()
-	installProgress := models.HostInstallProgressParams(progress)
-	updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
-		ClusterID:                 clusterID,
-		HostInstallProgressParams: installProgress,
-		HostID:                    hostID,
+		waitForClusterState(ctx, clusterID, "installed")
+		rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		c = rep.GetPayload()
+		Expect(swag.StringValue(c.StatusInfo)).Should(Equal("installed"))
 	})
-	Expect(err).ShouldNot(HaveOccurred())
-	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
-}
+})
 
-func installCluster(clusterID strfmt.UUID) {
+func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) {
+	validDiskSize := int64(128849018880)
 	ctx := context.Background()
-	_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
-	Expect(err).NotTo(HaveOccurred())
 
-	rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-	Expect(err).NotTo(HaveOccurred())
-	c := rep.GetPayload()
-	Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
-	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
-	Expect(len(c.Hosts)).Should(Equal(4))
-	for _, host := range c.Hosts {
-		Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+	hwInfo := &models.Inventory{
+		CPU:    &models.CPU{Count: 16},
+		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
+		Disks: []*models.Disk{
+			{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
+			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+		Interfaces: []*models.Interface{
+			{
+				IPV4Addresses: []string{"1.2.3.5/24"},
+			},
+		},
 	}
-
-	for _, host := range c.Hosts {
-		updateProgress(*host.ID, clusterID, "Done")
+	generateHWPostStepReply := func(h *models.Host, hwInfo *models.Inventory) {
+		hw, err := json.Marshal(&hwInfo)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: h.ClusterID,
+			HostID:    *h.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   string(hw),
+				StepID:   string(models.StepTypeInventory),
+			},
+		})
+		Expect(err).ShouldNot(HaveOccurred())
 	}
+	for i := 0; i < numHosts; i++ {
+		host := registerHost(clusterID)
+		generateHWPostStepReply(host, hwInfo)
+		var role string
+		if i < 3 {
+			role = "master"
+		} else {
+			role = "worker"
+		}
+		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *host.ID, Role: role},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
 
-	waitForClusterState(ctx, clusterID, "installed")
-	rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	}
+	apiVip := strfmt.IPv4("1.2.3.8")
+	ingressVip := strfmt.IPv4("1.2.3.9")
+	c, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		ClusterUpdateParams: &models.ClusterUpdateParams{
+			APIVip:     &apiVip,
+			IngressVip: &ingressVip,
+		},
+		ClusterID: clusterID,
+	})
+
 	Expect(err).NotTo(HaveOccurred())
-	c = rep.GetPayload()
-	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("installed"))
-
+	Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("ready"))
+	Expect(swag.StringValue(c.GetPayload().StatusInfo)).Should(Equal(clusterReadyStateInfo))
 }
