@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/go-openapi/strfmt"
+
 	"github.com/filanov/bm-inventory/models"
 	"github.com/sirupsen/logrus"
 )
@@ -27,7 +29,7 @@ func CalculateMachineNetworkCIDR(cluster *models.Cluster) (string, error) {
 	}
 	parsedVipAddr := net.ParseIP(ip)
 	if parsedVipAddr == nil {
-		return "", fmt.Errorf("Could not parse VIP ip %s", cluster.APIVip)
+		return "", fmt.Errorf("Could not parse VIP ip %s", ip)
 	}
 	for _, h := range cluster.Hosts {
 		var inventory models.Inventory
@@ -62,24 +64,17 @@ func ipInCidr(ipStr, cidrStr string) bool {
 	return ipnet.Contains(ip)
 }
 
-func VerifyAPIVip(cluster *models.Cluster) error {
-	if !ipInCidr(cluster.APIVip.String(), cluster.MachineNetworkCidr) {
-		return fmt.Errorf("APIVip <%s> does not belong to machine-network-cidr <%s>", cluster.APIVip, cluster.MachineNetworkCidr)
+func verifyVip(cluster *models.Cluster, vip strfmt.IPv4, vipName string, mustExist bool) error {
+	if !mustExist && vip == "" || ipInCidr(vip.String(), cluster.MachineNetworkCidr) {
+		return nil
 	}
-	return nil
+	return fmt.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, cluster.MachineNetworkCidr)
 }
 
-func VerifyIngressVip(cluster *models.Cluster) error {
-	if !ipInCidr(cluster.IngressVip.String(), cluster.MachineNetworkCidr) {
-		return fmt.Errorf("IngressVip <%s> does not belong to machine-network-cidr <%s>", cluster.IngressVip, cluster.MachineNetworkCidr)
-	}
-	return nil
-}
-
-func VerifyVips(cluster *models.Cluster) error {
-	err := VerifyAPIVip(cluster)
+func VerifyVips(cluster *models.Cluster, mustExist bool) error {
+	err := verifyVip(cluster, cluster.APIVip, "api-vip", mustExist)
 	if err == nil {
-		err = VerifyIngressVip(cluster)
+		err = verifyVip(cluster, cluster.IngressVip, "ingress-vip", mustExist)
 	}
 	return err
 }

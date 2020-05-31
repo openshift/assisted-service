@@ -37,16 +37,6 @@ func (d *discoveringState) UpdateInventory(ctx context.Context, h *models.Host, 
 	return updateStateFromInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
 }
 
-func (d *discoveringState) RefreshState(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	if h.Inventory == "" {
-		return defaultReply(h)
-	}
-	if db == nil {
-		db = d.db
-	}
-	return updateStateFromInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, db)
-}
-
 func (d *discoveringState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	cdb := d.db
 	if db != nil {
@@ -55,8 +45,15 @@ func (d *discoveringState) UpdateRole(ctx context.Context, h *models.Host, role 
 	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDiscovering, statusInfoDiscovering, h, cdb, "role", role)
 }
 
-func (d *discoveringState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateByKeepAlive(logutil.FromContext(ctx, d.log), h, d.db)
+func (d *discoveringState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	if db == nil {
+		db = d.db
+	}
+	reply, err := updateByKeepAlive(logutil.FromContext(ctx, d.log), h, db)
+	if err != nil || reply.IsChanged || h.Inventory == "" {
+		return reply, err
+	}
+	return updateStateFromInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, db)
 }
 
 func (d *discoveringState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {

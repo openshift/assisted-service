@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-openapi/swag"
-
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -94,42 +92,6 @@ var _ = Describe("disconnected_state", func() {
 		})
 	})
 
-	Context("refresh state", func() {
-		It("sufficient_hw", func() {
-			expectedReply.postCheck = nil
-			expectedReply.expectedState = "known"
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
-			updateReply, updateErr = state.RefreshState(ctx, &host, db)
-			Expect(updateErr).To(Not(HaveOccurred()))
-			var h models.Host
-			Expect(db.Take(&h, "id = ?", *host.ID).Error).NotTo(HaveOccurred())
-			Expect(h.Status).To(Equal(swag.String("known")))
-		})
-		It("insufficient_hw", func() {
-			expectedReply.postCheck = nil
-			expectedReply.expectedState = "insufficient"
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(&hardware.IsSufficientReply{IsSufficient: false}, nil).Times(1)
-			updateReply, updateErr = state.RefreshState(ctx, &host, db)
-			Expect(updateErr).To(Not(HaveOccurred()))
-			var h models.Host
-			Expect(db.Take(&h, "id = ?", *host.ID).Error).NotTo(HaveOccurred())
-			Expect(h.Status).To(Equal(swag.String("insufficient")))
-		})
-		It("error", func() {
-			expectedReply.postCheck = nil
-			expectedReply.expectError = true
-			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-				Return(nil, fmt.Errorf("Blah")).Times(1)
-			updateReply, updateErr = state.RefreshState(ctx, &host, db)
-			Expect(updateErr).To(HaveOccurred())
-			var h models.Host
-			Expect(db.Take(&h, "id = ?", *host.ID).Error).NotTo(HaveOccurred())
-			Expect(h.Status).To(Equal(swag.String("disconnected")))
-		})
-	})
-
 	Context("update_role", func() {
 		It("master", func() {
 			updateReply, updateErr = state.UpdateRole(ctx, &host, "master", nil)
@@ -152,11 +114,11 @@ var _ = Describe("disconnected_state", func() {
 
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
-			updateReply, updateErr = state.RefreshStatus(ctx, &host)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 		It("keep_alive_timeout", func() {
 			host.UpdatedAt = strfmt.DateTime(time.Now().Add(-time.Hour))
-			updateReply, updateErr = state.RefreshStatus(ctx, &host)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 	})
 

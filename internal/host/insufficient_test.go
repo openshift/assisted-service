@@ -101,7 +101,7 @@ var _ = Describe("insufficient_state", func() {
 			expectedReply.expectedState = "known"
 			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
 				Return(&hardware.IsSufficientReply{IsSufficient: true}, nil).Times(1)
-			updateReply, updateErr = state.RefreshState(ctx, &host, db)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			Expect(updateErr).To(Not(HaveOccurred()))
 			var h models.Host
 			Expect(db.Take(&h, "id = ?", *host.ID).Error).NotTo(HaveOccurred())
@@ -112,7 +112,7 @@ var _ = Describe("insufficient_state", func() {
 			expectedReply.expectedState = "insufficient"
 			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
 				Return(&hardware.IsSufficientReply{IsSufficient: false}, nil).Times(1)
-			updateReply, updateErr = state.RefreshState(ctx, &host, db)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			Expect(updateErr).To(Not(HaveOccurred()))
 			var h models.Host
 			Expect(db.Take(&h, "id = ?", *host.ID).Error).NotTo(HaveOccurred())
@@ -123,7 +123,7 @@ var _ = Describe("insufficient_state", func() {
 			expectedReply.expectError = true
 			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
 				Return(nil, fmt.Errorf("Blah")).Times(1)
-			updateReply, updateErr = state.RefreshState(ctx, &host, db)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			Expect(updateErr).To(HaveOccurred())
 			var h models.Host
 			Expect(db.Take(&h, "id = ?", *host.ID).Error).NotTo(HaveOccurred())
@@ -179,12 +179,14 @@ var _ = Describe("insufficient_state", func() {
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Minute))
-			updateReply, updateErr = state.RefreshStatus(ctx, &host)
+			mockValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
+				Return(&hardware.IsSufficientReply{IsSufficient: false}, nil).Times(1)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 		It("keep_alive_timeout", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Hour))
 			expectedReply.expectedState = HostStatusDisconnected
-			updateReply, updateErr = state.RefreshStatus(ctx, &host)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 	})
 

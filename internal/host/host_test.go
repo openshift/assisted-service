@@ -68,7 +68,7 @@ var _ = Describe("statemachine", func() {
 		})
 
 		It("update_hw_info", func() {
-			stateReply, stateErr = state.RefreshStatus(ctx, &host)
+			stateReply, stateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 
 		AfterEach(func() {

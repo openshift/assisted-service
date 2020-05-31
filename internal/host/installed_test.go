@@ -50,11 +50,11 @@ var _ = Describe("installed_state", func() {
 
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
-			updateReply, updateErr = state.RefreshStatus(ctx, &host)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 		It("keep_alive_timeout", func() {
 			host.UpdatedAt = strfmt.DateTime(time.Now().Add(-time.Hour))
-			updateReply, updateErr = state.RefreshStatus(ctx, &host)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 	})
 

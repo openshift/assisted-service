@@ -37,16 +37,6 @@ func (d *insufficientState) UpdateInventory(ctx context.Context, h *models.Host,
 	return updateStateFromInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
 }
 
-func (d *insufficientState) RefreshState(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	if h.Inventory == "" {
-		return defaultReply(h)
-	}
-	if db == nil {
-		db = d.db
-	}
-	return updateStateFromInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, db)
-}
-
 func (i *insufficientState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	log := logutil.FromContext(ctx, i.log)
 	cdb := i.db
@@ -68,8 +58,15 @@ func (i *insufficientState) UpdateRole(ctx context.Context, h *models.Host, role
 	return updateStateWithParams(log, HostStatusKnown, "", h, cdb, "role", role)
 }
 
-func (i *insufficientState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateByKeepAlive(logutil.FromContext(ctx, i.log), h, i.db)
+func (i *insufficientState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	if db == nil {
+		db = i.db
+	}
+	reply, err := updateByKeepAlive(logutil.FromContext(ctx, i.log), h, db)
+	if err != nil || reply.IsChanged || h.Inventory == "" {
+		return reply, err
+	}
+	return updateStateFromInventory(logutil.FromContext(ctx, i.log), i.hwValidator, h, db)
 }
 
 func (i *insufficientState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {

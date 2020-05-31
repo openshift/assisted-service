@@ -473,7 +473,7 @@ var _ = Describe("cluster", func() {
 		It("Update success", func() {
 			apiVip := strfmt.IPv4("10.11.12.15")
 			ingressVip := strfmt.IPv4("10.11.12.16")
-			mockHostApi.EXPECT().RefreshState(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(3)
+			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(3)
 			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 				ClusterID: clusterID,

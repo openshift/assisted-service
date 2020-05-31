@@ -30,13 +30,6 @@ func (d *disabledState) UpdateInventory(ctx context.Context, h *models.Host, inv
 		h.ID, swag.StringValue(h.Status))
 }
 
-func (d *disabledState) RefreshState(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	return &UpdateReply{
-		State:     swag.StringValue(h.Status),
-		IsChanged: false,
-	}, nil
-}
-
 func (d *disabledState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	cdb := d.db
 	if db != nil {
@@ -46,7 +39,7 @@ func (d *disabledState) UpdateRole(ctx context.Context, h *models.Host, role str
 		"role", role)
 }
 
-func (d *disabledState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
+func (d *disabledState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	return defaultReply(h)
 }
 

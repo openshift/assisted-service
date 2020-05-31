@@ -38,16 +38,6 @@ func (d *disconnectedState) UpdateInventory(ctx context.Context, h *models.Host,
 	return updateStateFromInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
 }
 
-func (d *disconnectedState) RefreshState(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	if h.Inventory == "" {
-		return defaultReply(h)
-	}
-	if db == nil {
-		db = d.db
-	}
-	return updateStateFromInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, db)
-}
-
 func (d *disconnectedState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
 	cdb := d.db
 	if db != nil {
@@ -57,16 +47,13 @@ func (d *disconnectedState) UpdateRole(ctx context.Context, h *models.Host, role
 		swag.StringValue(h.StatusInfo), h, cdb, "role", role)
 }
 
-func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host) (*UpdateReply, error) {
+func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	log := logutil.FromContext(ctx, d.log)
 	if time.Since(time.Time(h.CheckedInAt)) < 3*time.Minute {
 		return updateState(log, HostStatusDiscovering, statusInfoDiscovering, h, d.db)
 	}
 	// Stay in the same state
-	return &UpdateReply{
-		State:     HostStatusDisconnected,
-		IsChanged: false,
-	}, nil
+	return defaultReply(h)
 }
 
 func (d *disconnectedState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {

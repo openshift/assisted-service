@@ -451,7 +451,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 			logAndGenerateError(http.StatusBadRequest,
 				fmt.Sprintf("Cluster machine CIDR %s is different than the calculated CIDR %s", cluster.MachineNetworkCidr, cidr)))
 	}
-	if err = common.VerifyVips(&cluster); err != nil {
+	if err = common.VerifyVips(&cluster, true); err != nil {
 		tx.Rollback()
 		return installer.NewInstallClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
@@ -571,6 +571,25 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	return nil
 }
 
+func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *models.Cluster, tx *gorm.DB, log logrus.FieldLogger) middleware.Responder {
+	for _, h := range cluster.Hosts {
+		var host models.Host
+		var err error
+		if err = tx.Take(&host, "id = ? and cluster_id = ?",
+			h.ID.String(), cluster.ID.String()).Error; err != nil {
+			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
+				h.ID.String(), cluster.ID.String())
+			return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+		}
+		if _, err = b.hostApi.RefreshStatus(ctx, &host, tx); err != nil {
+			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, cluster.ID.String())
+			return installer.NewInstallClusterInternalServerError().
+				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+	}
+	return nil
+}
+
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
@@ -626,12 +645,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}
 	machineCidrUpdated := machineCidr != cluster.MachineNetworkCidr
 	cluster.MachineNetworkCidr = machineCidr
-	if cluster.APIVip != "" {
-		err = common.VerifyAPIVip(&cluster)
-	}
-	if err == nil && cluster.IngressVip != "" {
-		err = common.VerifyIngressVip(&cluster)
-	}
+	err = common.VerifyVips(&cluster, false)
 	if err != nil {
 		tx.Rollback()
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
@@ -666,28 +680,17 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}
 
 	if machineCidrUpdated {
-		for _, h := range cluster.Hosts {
-			var host models.Host
-			if err = tx.Take(&host, "id = ? and cluster_id = ?",
-				h.ID.String(), params.ClusterID).Error; err != nil {
-				tx.Rollback()
-				log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
-					h.ID.String(), params.ClusterID)
-				return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
-			}
-			if _, err = b.hostApi.RefreshState(ctx, &host, tx); err != nil {
-				tx.Rollback()
-				log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, params.ClusterID)
-				return installer.NewRegisterClusterInternalServerError().
-					WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-			}
+		responder := b.refreshClusterHosts(ctx, &cluster, tx, log)
+		if responder != nil {
+			tx.Rollback()
+			return responder
 		}
 	}
 
 	if _, err = b.clusterApi.RefreshStatus(ctx, &cluster, tx); err != nil {
 		tx.Rollback()
 		log.WithError(err).Errorf("failed to validate or update cluster %s state", params.ClusterID)
-		return installer.NewRegisterClusterInternalServerError().
+		return installer.NewUpdateClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
