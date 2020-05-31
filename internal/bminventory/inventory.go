@@ -1267,7 +1267,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 		if gorm.IsRecordNotFoundError(err) {
 			return installer.NewUploadClusterIngressCertNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 		} else {
-			return installer.NewUploadClusterIngressCertNotFound().
+			return installer.NewUploadClusterIngressCertInternalServerError().
 				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 		}
 	}
@@ -1277,14 +1277,24 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 		msg := fmt.Sprintf("Cluster %s is in %s state, upload ingress ca can be done only in installed state", params.ClusterID, clusterStatus)
 		log.Warn(msg)
 		return installer.NewUploadClusterIngressCertBadRequest().
-			WithPayload(common.GenerateError(http.StatusConflict, errors.New(msg)))
+			WithPayload(common.GenerateError(http.StatusBadRequest, errors.New(msg)))
 	}
 
-	// TODO add validation that kubeconfig doesn't exists already, return bad request if it does
-
-	// TODO change kubeconfig to kubeconfig-noingress while support for it will be integrated
 	fileName := fmt.Sprintf("%s/%s", cluster.ID, kubeconfig)
-	resp, err := b.s3Client.DownloadFileFromS3(ctx, fileName, b.S3Bucket)
+	exists, err := b.s3Client.DoesObjectExists(ctx, fileName, b.S3Bucket)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to upload ingress ca")
+		return installer.NewUploadClusterIngressCertInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	if exists {
+		log.Infof("Ingress ca for cluster %s already exists", cluster.ID)
+		return installer.NewUploadClusterIngressCertCreated()
+	}
+
+	noigress := fmt.Sprintf("%s/%s-noingress", cluster.ID, kubeconfig)
+	resp, err := b.s3Client.DownloadFileFromS3(ctx, noigress, b.S3Bucket)
 	if err != nil {
 		return installer.NewUploadClusterIngressCertInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))

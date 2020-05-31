@@ -3,6 +3,7 @@ package s3Client
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 type S3Client interface {
 	PushDataToS3(ctx context.Context, data []byte, fileName string, s3Bucket string) error
 	DownloadFileFromS3(ctx context.Context, fileName string, s3Bucket string) (io.ReadCloser, error)
+	DoesObjectExists(ctx context.Context, fileName string, s3Bucket string) (bool, error)
 }
 
 type s3Client struct {
@@ -55,4 +57,18 @@ func (s s3Client) DownloadFileFromS3(ctx context.Context, fileName string, s3Buc
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (s s3Client) DoesObjectExists(ctx context.Context, objectName string, s3Bucket string) (bool, error) {
+	log := logutil.FromContext(ctx, s.log)
+	log.Infof("Verifying if %s exists in %s", objectName, s3Bucket)
+	_, err := s.client.StatObject(s3Bucket, objectName, minio.StatObjectOptions{})
+	if err != nil {
+		errResponse := minio.ToErrorResponse(err)
+		if errResponse.Code == "NoSuchKey" {
+			return false, nil
+		}
+		return false, errors.Wrap(err, fmt.Sprintf("failed to get %s from %s", objectName, s3Bucket))
+	}
+	return true, nil
 }
