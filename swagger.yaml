@@ -777,7 +777,6 @@ definitions:
       - href
       - status
       - status_info
-      - status_updated_at
     properties:
       kind:
         type: string
@@ -1030,7 +1029,6 @@ definitions:
       - image_info
       - status
       - status_info
-      - status_updated_at
     properties:
       kind:
         type: string
