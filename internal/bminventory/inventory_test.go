@@ -35,15 +35,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-
-	"github.com/filanov/bm-inventory/internal/cluster"
-	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/filanov/bm-inventory/internal/host"
-	"github.com/filanov/bm-inventory/models"
-	"github.com/filanov/bm-inventory/pkg/filemiddleware"
-	"github.com/filanov/bm-inventory/pkg/job"
-	awsS3Client "github.com/filanov/bm-inventory/pkg/s3Client"
-	"github.com/filanov/bm-inventory/restapi/operations/installer"
 )
 
 func TestValidator(t *testing.T) {

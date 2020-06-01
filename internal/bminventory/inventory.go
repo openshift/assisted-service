@@ -144,7 +144,7 @@ func NewBareMetalInventory(
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
 	}
-	//	Run first ISO dummy for image pull
+	//	Run first ISO dummy for image pull, this is done so that the image will be pulled and the api will take less time.
 	generateDummyISOImage(jobApi, b, log)
 	return b
 }
