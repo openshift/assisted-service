@@ -6,10 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
-	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/go-openapi/runtime/middleware"
 
 	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/pkg/filemiddleware"
@@ -529,14 +532,14 @@ var _ = Describe("cluster", func() {
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewInstallClusterBadRequest()))
+			verifyApiError(reply, http.StatusBadRequest)
 		})
 		It("cidr mismatch", func() {
 			updateMachineCidr(clusterID, "1.1.0.0/16", db)
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewInstallClusterBadRequest()))
+			verifyApiError(reply, http.StatusBadRequest)
 		})
 		It("Additional non matching master", func() {
 			addHost(masterHostId4, "master", "known", clusterID, getInventoryStr("10.12.200.180/16"), db)
@@ -545,7 +548,7 @@ var _ = Describe("cluster", func() {
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewInstallClusterBadRequest()))
+			verifyApiError(reply, http.StatusBadRequest)
 		})
 		It("cluster failed to update", func() {
 			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil)
@@ -553,7 +556,7 @@ var _ = Describe("cluster", func() {
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewInstallClusterConflict())))
+			verifyApiError(reply, http.StatusConflict)
 		})
 		It("host failed to install", func() {
 
@@ -567,8 +570,7 @@ var _ = Describe("cluster", func() {
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewInstallClusterConflict())))
-
+			verifyApiError(reply, http.StatusConflict)
 		})
 		It("GetMasterNodesIds fails", func() {
 
@@ -579,7 +581,7 @@ var _ = Describe("cluster", func() {
 				ClusterID: clusterID,
 			})
 
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewInstallClusterInternalServerError())))
+			verifyApiError(reply, http.StatusInternalServerError)
 		})
 		It("GetMasterNodesIds returns empty list", func() {
 
@@ -590,7 +592,7 @@ var _ = Describe("cluster", func() {
 				ClusterID: clusterID,
 			})
 
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewInstallClusterInternalServerError())))
+			verifyApiError(reply, http.StatusInternalServerError)
 		})
 	})
 	AfterEach(func() {
@@ -818,3 +820,9 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		kubeconfigFile.Close()
 	})
 })
+
+func verifyApiError(responder middleware.Responder, expectedHttpStatus int32) {
+	ExpectWithOffset(1, responder).To(BeAssignableToTypeOf(common.NewApiError(expectedHttpStatus, nil)))
+	conncreteError := responder.(*common.ApiErrorResponse)
+	ExpectWithOffset(1, conncreteError.StatusCode()).To(Equal(expectedHttpStatus))
+}
