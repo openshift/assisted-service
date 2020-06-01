@@ -110,19 +110,12 @@ var _ = Describe("Cluster tests", func() {
 })
 
 func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string) {
-	for start := time.Now(); time.Since(start) < 10*time.Second; {
+	Eventually(func() string {
 		rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		c := rep.GetPayload()
-		if swag.StringValue(c.Status) == state {
-			break
-		}
-		time.Sleep(time.Second)
-	}
-	rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-	Expect(err).NotTo(HaveOccurred())
-	c := rep.GetPayload()
-	Expect(swag.StringValue(c.Status)).Should(Equal(state))
+		return swag.StringValue(c.Status)
+	}, 10*time.Second, 1*time.Second).Should(Equal(state))
 }
 
 func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, progress string) {
