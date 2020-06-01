@@ -61,6 +61,12 @@ const (
 const DefaultUser = "kubeadmin"
 const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 
+var (
+	DefaultClusterNetworkCidr       = "10.128.0.0/14"
+	DefaultClusterNetworkHostPrefix = int64(23)
+	DefaultServiceNetworkCidr       = "172.30.0.0/16"
+)
+
 type Config struct {
 	ImageBuilder           string `envconfig:"IMAGE_BUILDER" default:"quay.io/oscohen/installer-image-build"`
 	ImageBuilderCmd        string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
@@ -239,17 +245,27 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
+	if params.NewClusterParams.ClusterNetworkCidr == nil {
+		params.NewClusterParams.ClusterNetworkCidr = &DefaultClusterNetworkCidr
+	}
+	if params.NewClusterParams.ClusterNetworkHostPrefix == 0 {
+		params.NewClusterParams.ClusterNetworkHostPrefix = DefaultClusterNetworkHostPrefix
+	}
+	if params.NewClusterParams.ServiceNetworkCidr == nil {
+		params.NewClusterParams.ServiceNetworkCidr = &DefaultServiceNetworkCidr
+	}
+
 	cluster := models.Cluster{
 		ID:                       &id,
 		Href:                     swag.String(url.String()),
 		Kind:                     swag.String(ResourceKindCluster),
 		BaseDNSDomain:            params.NewClusterParams.BaseDNSDomain,
-		ClusterNetworkCidr:       params.NewClusterParams.ClusterNetworkCidr,
+		ClusterNetworkCidr:       swag.StringValue(params.NewClusterParams.ClusterNetworkCidr),
 		ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
 		IngressVip:               params.NewClusterParams.IngressVip,
 		Name:                     swag.StringValue(params.NewClusterParams.Name),
 		OpenshiftVersion:         swag.StringValue(params.NewClusterParams.OpenshiftVersion),
-		ServiceNetworkCidr:       params.NewClusterParams.ServiceNetworkCidr,
+		ServiceNetworkCidr:       swag.StringValue(params.NewClusterParams.ServiceNetworkCidr),
 		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
 		UpdatedAt:                strfmt.DateTime{},
 	}
@@ -625,6 +641,16 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	updateString(&cluster.Name, params.ClusterUpdateParams.Name)
 	updateIPv4(&cluster.APIVip, params.ClusterUpdateParams.APIVip)
 	updateString(&cluster.BaseDNSDomain, params.ClusterUpdateParams.BaseDNSDomain)
+	if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
+		cluster.ClusterNetworkCidr = *params.ClusterUpdateParams.ClusterNetworkCidr
+	}
+	if params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
+		cluster.ClusterNetworkHostPrefix = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
+	}
+	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
+		cluster.ServiceNetworkCidr = *params.ClusterUpdateParams.ServiceNetworkCidr
+	}
+
 	updateString(&cluster.ClusterNetworkCidr, params.ClusterUpdateParams.ClusterNetworkCidr)
 	if params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
 		cluster.ClusterNetworkHostPrefix = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
