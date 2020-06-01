@@ -144,11 +144,22 @@ func NewBareMetalInventory(
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
 	}
+	//	Run first ISO dummy for image pull
+	generateDummyISOImage(jobApi, b, log)
 	return b
 }
 
+func generateDummyISOImage(jobApi job.API, b *bareMetalInventory, log logrus.FieldLogger) {
+	dummyId := "00000000-0000-0000-0000-000000000000"
+	jobName := fmt.Sprintf("dummyimage-%s-%s", dummyId, time.Now().Format("20060102150405"))
+	imgName := fmt.Sprintf("discovery-image-%s", dummyId)
+	if err := jobApi.Create(context.Background(), b.createImageJob(jobName, imgName, "Dummy")); err != nil {
+		log.WithError(err).Errorf("failed to generate dummy ISO image")
+	}
+}
+
 // create discovery image generation job, return job name and error
-func (b *bareMetalInventory) createImageJob(cluster *models.Cluster, jobName, imgName, ignitionConfig string) *batch.Job {
+func (b *bareMetalInventory) createImageJob(jobName, imgName, ignitionConfig string) *batch.Job {
 	return &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
@@ -408,7 +419,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	jobName := fmt.Sprintf("createimage-%s-%s", cluster.ID, now.Format("20060102150405"))
 	imgName := getImageName(params.ClusterID)
 	log.Info("Creating job %s", jobName)
-	if err := b.job.Create(ctx, b.createImageJob(&cluster, jobName, imgName, ignitionConfig)); err != nil {
+	if err := b.job.Create(ctx, b.createImageJob(jobName, imgName, ignitionConfig)); err != nil {
 		log.WithError(err).Error("failed to create image job")
 		return installer.NewGenerateClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
