@@ -273,7 +273,7 @@ var _ = Describe("cluster monitor", func() {
 		Expect(c.Status).Should(Equal(swag.String(expectedState)))
 		if shouldHaveUpdated {
 			Expect(c.StatusInfo).ShouldNot(BeNil())
-			updateTime := time.Time(*c.StatusUpdatedAt).Truncate(10 * time.Millisecond)
+			updateTime := time.Time(c.StatusUpdatedAt).Truncate(10 * time.Millisecond)
 			Expect(updateTime).Should(BeTemporally(">=", before))
 			Expect(updateTime).Should(BeTemporally("<=", after))
 		} else {

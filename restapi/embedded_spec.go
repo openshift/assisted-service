@@ -1129,8 +1129,7 @@ func init() {
         "href",
         "image_info",
         "status",
-        "status_info",
-        "status_updated_at"
+        "status_info"
       ],
       "properties": {
         "api_vip": {
@@ -1674,14 +1673,14 @@ func init() {
         "id",
         "href",
         "status",
-        "status_info",
-        "status_updated_at"
+        "status_info"
       ],
       "properties": {
         "bootstrap": {
           "type": "boolean"
         },
         "checked_in_at": {
+          "description": "The last time the host's agent communicated with the service.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:datetime\""
@@ -3252,8 +3251,7 @@ func init() {
         "href",
         "image_info",
         "status",
-        "status_info",
-        "status_updated_at"
+        "status_info"
       ],
       "properties": {
         "api_vip": {
@@ -3784,14 +3782,14 @@ func init() {
         "id",
         "href",
         "status",
-        "status_info",
-        "status_updated_at"
+        "status_info"
       ],
       "properties": {
         "bootstrap": {
           "type": "boolean"
         },
         "checked_in_at": {
+          "description": "The last time the host's agent communicated with the service.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:datetime\""

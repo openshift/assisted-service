@@ -22,7 +22,7 @@ type Host struct {
 	// bootstrap
 	Bootstrap bool `json:"bootstrap,omitempty"`
 
-	// checked in at
+	// The last time the host's agent communicated with the service.
 	// Format: date-time
 	CheckedInAt strfmt.DateTime `json:"checked_in_at,omitempty" gorm:"type:datetime"`
 
@@ -71,9 +71,8 @@ type Host struct {
 	StatusInfo *string `json:"status_info" gorm:"type:varchar(2048)"`
 
 	// The last time that the host status has been updated
-	// Required: true
 	// Format: date-time
-	StatusUpdatedAt *strfmt.DateTime `json:"status_updated_at" gorm:"type:datetime"`
+	StatusUpdatedAt strfmt.DateTime `json:"status_updated_at,omitempty" gorm:"type:datetime"`
 
 	// updated at
 	// Format: date-time
@@ -356,8 +355,8 @@ func (m *Host) validateStatusInfo(formats strfmt.Registry) error {
 
 func (m *Host) validateStatusUpdatedAt(formats strfmt.Registry) error {
 
-	if err := validate.Required("status_updated_at", "body", m.StatusUpdatedAt); err != nil {
-		return err
+	if swag.IsZero(m.StatusUpdatedAt) { // not required
+		return nil
 	}
 
 	if err := validate.FormatOf("status_updated_at", "body", "date-time", m.StatusUpdatedAt.String(), formats); err != nil {
