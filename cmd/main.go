@@ -17,6 +17,7 @@ import (
 	"github.com/filanov/bm-inventory/pkg/requestid"
 	awsS3Client "github.com/filanov/bm-inventory/pkg/s3Client"
 	"github.com/filanov/bm-inventory/pkg/s3wrapper"
+
 	"github.com/filanov/bm-inventory/pkg/thread"
 	"github.com/filanov/bm-inventory/restapi"
 	"github.com/go-openapi/strfmt"
@@ -96,12 +97,12 @@ func main() {
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
 	clusterStateMonitor.Start()
 	defer clusterStateMonitor.Stop()
-
-	hostStateMonitor := thread.New(
-		log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
-	hostStateMonitor.Start()
-	defer hostStateMonitor.Stop()
-
+	/*
+		hostStateMonitor := thread.New(
+			log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
+		hostStateMonitor.Start()
+		defer hostStateMonitor.Stop()
+	*/
 	s3Client, err := awsS3Client.NewS3Client(Options.BMConfig.S3EndpointURL, Options.BMConfig.AwsAccessKeyID, Options.BMConfig.AwsSecretAccessKey, log)
 	if err != nil {
 		log.Fatal("Failed to setup S3 client", err)
