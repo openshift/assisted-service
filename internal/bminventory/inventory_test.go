@@ -35,6 +35,15 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"github.com/filanov/bm-inventory/internal/cluster"
+	"github.com/filanov/bm-inventory/internal/events"
+	"github.com/filanov/bm-inventory/internal/host"
+	"github.com/filanov/bm-inventory/models"
+	"github.com/filanov/bm-inventory/pkg/filemiddleware"
+	"github.com/filanov/bm-inventory/pkg/job"
+	awsS3Client "github.com/filanov/bm-inventory/pkg/s3Client"
+	"github.com/filanov/bm-inventory/restapi/operations/installer"
 )
 
 func TestValidator(t *testing.T) {
@@ -76,8 +85,9 @@ var _ = Describe("GenerateClusterISO", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
 		db = prepareDB()
-		mockJob = job.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, mockEvents, nil)
 	})
 
@@ -159,6 +169,7 @@ var _ = Describe("GetNextSteps", func() {
 		ctx         = context.Background()
 		ctrl        *gomock.Controller
 		mockHostApi *host.MockAPI
+		mockJob     *job.MockAPI
 		mockEvents  *events.MockHandler
 	)
 
@@ -168,7 +179,9 @@ var _ = Describe("GetNextSteps", func() {
 		db = prepareDB()
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil)
 	})
 
 	It("get_next_steps_unknown_host", func() {
@@ -222,6 +235,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		db          *gorm.DB
 		ctx         = context.Background()
 		ctrl        *gomock.Controller
+		mockJob     *job.MockAPI
 		mockHostApi *host.MockAPI
 		mockEvents  *events.MockHandler
 	)
@@ -232,7 +246,9 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		db = prepareDB()
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil)
 	})
 
 	Context("host exists", func() {
@@ -363,10 +379,11 @@ var _ = Describe("cluster", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
 		db = prepareDB()
-		mockJob = job.NewMockAPI(ctrl)
 		mockClusterApi = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, nil)
 	})
 
@@ -612,6 +629,7 @@ var _ = Describe("KubeConfig download", func() {
 		mockS3Client *awsS3Client.MockS3Client
 		clusterID    strfmt.UUID
 		cluster      models.Cluster
+		mockJob      *job.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -620,7 +638,9 @@ var _ = Describe("KubeConfig download", func() {
 		db = prepareDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, mockS3Client)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, nil, mockS3Client)
 		cluster = models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -688,6 +708,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		kubeconfigFile      *os.File
 		kubeconfigNoingress string
 		kubeconfigObject    string
+		mockJob             *job.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -707,7 +728,9 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, mockS3Client)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, nil, mockS3Client)
 		cluster = models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
