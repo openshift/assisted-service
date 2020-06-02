@@ -931,7 +931,7 @@ definitions:
         description: Name of the OpenShift cluster.
       openshift_version:
         type: string
-        enum: ['4.4', '4.5']
+        enum: ['4.5']
         description: Version of the OpenShift cluster.
       base_dns_domain:
         type: string
@@ -1050,7 +1050,7 @@ definitions:
         description: Name of the OpenShift cluster.
       openshift_version:
         type: string
-        enum: ['4.4', '4.5']
+        enum: ['4.5']
         description: Version of the OpenShift cluster.
       image_info:
         $ref: '#/definitions/image_info'

@@ -33,7 +33,7 @@ var _ = Describe("system-test image tests", func() {
 		cluster, err = bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test cluster"),
-				OpenshiftVersion: swag.String("4.4"),
+				OpenshiftVersion: swag.String("4.5"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -101,7 +101,7 @@ var _ = Describe("image tests", func() {
 		cluster, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test cluster"),
-				OpenshiftVersion: swag.String("4.4"),
+				OpenshiftVersion: swag.String("4.5"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

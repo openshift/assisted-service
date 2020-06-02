@@ -40,7 +40,7 @@ var _ = Describe("Cluster tests", func() {
 		cluster, err = bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test cluster"),
-				OpenshiftVersion: swag.String("4.4"),
+				OpenshiftVersion: swag.String("4.5"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -137,33 +137,32 @@ func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, progress string) 
 	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
 }
 
-// TODO return after moving to 4.5
-//func installCluster(clusterID strfmt.UUID) {
-//	ctx := context.Background()
-//	_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
-//	Expect(err).NotTo(HaveOccurred())
-//
-//	rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-//	Expect(err).NotTo(HaveOccurred())
-//	c := rep.GetPayload()
-//	Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
-//	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
-//	Expect(len(c.Hosts)).Should(Equal(4))
-//	for _, host := range c.Hosts {
-//		Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
-//	}
-//
-//	for _, host := range c.Hosts {
-//		updateProgress(*host.ID, clusterID, "Done")
-//	}
-//
-//	waitForClusterState(ctx, clusterID, "installed")
-//	rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-//	Expect(err).NotTo(HaveOccurred())
-//	c = rep.GetPayload()
-//	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("installed"))
-//
-//}
+func installCluster(clusterID strfmt.UUID) {
+	ctx := context.Background()
+	_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+
+	rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	c := rep.GetPayload()
+	Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+	Expect(len(c.Hosts)).Should(Equal(4))
+	for _, host := range c.Hosts {
+		Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
+	}
+
+	for _, host := range c.Hosts {
+		updateProgress(*host.ID, clusterID, "Done")
+	}
+
+	waitForClusterState(ctx, clusterID, "installed")
+	rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	c = rep.GetPayload()
+	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("installed"))
+
+}
 
 var _ = Describe("system-test cluster install", func() {
 	var (
@@ -185,7 +184,7 @@ var _ = Describe("system-test cluster install", func() {
 				ClusterNetworkCidr:       &clusterCIDR,
 				ClusterNetworkHostPrefix: 23,
 				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String("4.4"),
+				OpenshiftVersion:         swag.String("4.5"),
 				PullSecret:               `{"auths":{"cloud.openshift.com":{"auth":""}}}`,
 				ServiceNetworkCidr:       &serviceCIDR,
 				SSHPublicKey:             "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC50TuHS7aYci+U+5PLe/aW/I6maBi9PBDucLje6C6gtArfjy7udWA1DCSIQd+DkHhi57/s+PmvEjzfAfzqo+L+/8/O2l2seR1pPhHDxMR/rSyo/6rZP6KIL8HwFqXHHpDUM4tLXdgwKAe1LxBevLt/yNl8kOiHJESUSl+2QSf8z4SIbo/frDD8OwOvtfKBEG4WCb8zEsEuIPNF/Vo/UxPtS9pPTecEsWKDHR67yFjjamoyLvAzMAJotYgyMoxm8PTyCgEzHk3s3S4iO956d6KVOEJVXnTVhAxrtLuubjskd7N4hVN7h2s4Z584wYLKYhrIBL0EViihOMzY4mH3YE4KZusfIx6oMcggKX9b3NHm0la7cj2zg0r6zjUn6ZCP4gXM99e5q4auc0OEfoSfQwofGi3WmxkG3tEozCB8Zz0wGbi2CzR8zlcF+BNV5I2LESlLzjPY5B4dvv5zjxsYoz94p3rUhKnnPM2zTx1kkilDK5C5fC1k9l/I/r5Qk4ebLQU= oscohen@localhost.localdomain",
@@ -335,18 +334,17 @@ var _ = Describe("system-test cluster install", func() {
 		})
 
 		It("Upload ingress ca and kubeconfig download", func() {
-			// TODO return test after moving to 4.5
-			//ingressCa := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
-			//	"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
-			//	"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
-			//	"wNTIzMTYwNTAwWjBhMQswCQYDVQQGEwJpczELMAkGA1UECAwCZGQxCzAJBgNVBAcMAmRkMQswCQYDVQQKDAJkZDELMAkGA1UECwwCZGQxCzAJBgNVBAMMAmRkMREwDwYJKoZIh" +
-			//	"vcNAQkBFgJkZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAML63CXkBb+lvrJKfdfYBHLDYfuaC6exCSqASUAosJWWrfyDiDMUbmfs06PLKyv7N8efDhza74ov0EQJ" +
-			//	"NRhMNaCE+A0ceq6ZXmmMswUYFdLAy8K2VMz5mroBFX8sj5PWVr6rDJ2ckBaFKWBB8NFmiK7MTWSIF9n8M107/9a0QURCvThUYu+sguzbsLODFtXUxG5rtTVKBVcPZvEfRky2Tkt4AySFS" +
-			//	"mkO6Kf4sBd7MC4mKWZm7K8k7HrZYz2usSpbrEtYGtr6MmN9hci+/ITDPE291DFkzIcDCF493v/3T+7XsnmQajh6kuI+bjIaACfo8N+twEoJf/N1PmphAQdEiC0CAwEAAaNTMFEwHQYDVR0O" +
-			//	"BBYEFNvmSprQQ2HUUtPxs6UOuxq9lKKpMB8GA1UdIwQYMBaAFNvmSprQQ2HUUtPxs6UOuxq9lKKpMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAJEWxnxtQV5IqPVRr2SM" +
-			//	"WNNxcJ7A/wyet39l5VhHjbrQGynk5WS80psn/riLUfIvtzYMWC0IR0pIMQuMDF5sNcKp4D8Xnrd+Bl/4/Iy/iTOoHlw+sPkKv+NL2XR3iO8bSDwjtjvd6L5NkUuzsRoSkQCG2fHASqqgFoyV9Ld" +
-			//	"RsQa1w9ZGebtEWLuGsrJtR7gaFECqJnDbb0aPUMixmpMHID8kt154TrLhVFmMEqGGC1GvZVlQ9Of3GP9y7X4vDpHshdlWotOnYKHaeu2d5cRVFHhEbrslkISgh/TRuyl7VIpnjOYUwMBpCiVH6M" +
-			//	"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
+			ingressCa := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+				"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
+				"wNTIzMTYwNTAwWjBhMQswCQYDVQQGEwJpczELMAkGA1UECAwCZGQxCzAJBgNVBAcMAmRkMQswCQYDVQQKDAJkZDELMAkGA1UECwwCZGQxCzAJBgNVBAMMAmRkMREwDwYJKoZIh" +
+				"vcNAQkBFgJkZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAML63CXkBb+lvrJKfdfYBHLDYfuaC6exCSqASUAosJWWrfyDiDMUbmfs06PLKyv7N8efDhza74ov0EQJ" +
+				"NRhMNaCE+A0ceq6ZXmmMswUYFdLAy8K2VMz5mroBFX8sj5PWVr6rDJ2ckBaFKWBB8NFmiK7MTWSIF9n8M107/9a0QURCvThUYu+sguzbsLODFtXUxG5rtTVKBVcPZvEfRky2Tkt4AySFS" +
+				"mkO6Kf4sBd7MC4mKWZm7K8k7HrZYz2usSpbrEtYGtr6MmN9hci+/ITDPE291DFkzIcDCF493v/3T+7XsnmQajh6kuI+bjIaACfo8N+twEoJf/N1PmphAQdEiC0CAwEAAaNTMFEwHQYDVR0O" +
+				"BBYEFNvmSprQQ2HUUtPxs6UOuxq9lKKpMB8GA1UdIwQYMBaAFNvmSprQQ2HUUtPxs6UOuxq9lKKpMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAJEWxnxtQV5IqPVRr2SM" +
+				"WNNxcJ7A/wyet39l5VhHjbrQGynk5WS80psn/riLUfIvtzYMWC0IR0pIMQuMDF5sNcKp4D8Xnrd+Bl/4/Iy/iTOoHlw+sPkKv+NL2XR3iO8bSDwjtjvd6L5NkUuzsRoSkQCG2fHASqqgFoyV9Ld" +
+				"RsQa1w9ZGebtEWLuGsrJtR7gaFECqJnDbb0aPUMixmpMHID8kt154TrLhVFmMEqGGC1GvZVlQ9Of3GP9y7X4vDpHshdlWotOnYKHaeu2d5cRVFHhEbrslkISgh/TRuyl7VIpnjOYUwMBpCiVH6M" +
+				"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
 			By("Upload ingress ca for not existent clusterid")
 			{
 				missingClusterId := strfmt.UUID(uuid.New().String())
@@ -358,41 +356,40 @@ var _ = Describe("system-test cluster install", func() {
 				_, err := bmclient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: "dummy"})
 				Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertBadRequest())))
 			}
-			// TODO return test after moving to 4.5
-			//By("Test happy flow")
-			//{
-			//
-			//	installCluster(clusterID)
-			//	// Download kubeconfig before uploading
-			//	kubeconfigNoIngress, err := ioutil.TempFile("", "tmp")
-			//	Expect(err).NotTo(HaveOccurred())
-			//	_, err = bmclient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "kubeconfig-noingress"}, kubeconfigNoIngress)
-			//	Expect(err).NotTo(HaveOccurred())
-			//	sni, err := kubeconfigNoIngress.Stat()
-			//	Expect(err).NotTo(HaveOccurred())
-			//	Expect(sni.Size()).ShouldNot(Equal(0))
-			//
-			//	res, err := bmclient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
-			//	Expect(err).NotTo(HaveOccurred())
-			//	Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
-			//
-			//	// Download kubeconfig after uploading
-			//	file, err := ioutil.TempFile("", "tmp")
-			//	Expect(err).NotTo(HaveOccurred())
-			//	_, err = bmclient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
-			//	Expect(err).NotTo(HaveOccurred())
-			//	s, err := file.Stat()
-			//	Expect(err).NotTo(HaveOccurred())
-			//	Expect(s.Size()).ShouldNot(Equal(0))
-			//	Expect(s.Size()).ShouldNot(Equal(sni.Size()))
-			//}
-			//By("Try to upload ingress ca second time, do nothing and return ok")
-			//{
-			//	// Try to upload ingress ca second time
-			//	res, err := bmclient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
-			//	Expect(err).NotTo(HaveOccurred())
-			//	Expect(reflect.TypeOf(res)).To(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
-			//}
+			By("Test happy flow")
+			{
+
+				installCluster(clusterID)
+				// Download kubeconfig before uploading
+				kubeconfigNoIngress, err := ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = bmclient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "kubeconfig-noingress"}, kubeconfigNoIngress)
+				Expect(err).NotTo(HaveOccurred())
+				sni, err := kubeconfigNoIngress.Stat()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(sni.Size()).ShouldNot(Equal(0))
+
+				res, err := bmclient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
+
+				// Download kubeconfig after uploading
+				file, err := ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = bmclient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+				Expect(err).NotTo(HaveOccurred())
+				s, err := file.Stat()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(s.Size()).ShouldNot(Equal(0))
+				Expect(s.Size()).ShouldNot(Equal(sni.Size()))
+			}
+			By("Try to upload ingress ca second time, do nothing and return ok")
+			{
+				// Try to upload ingress ca second time
+				res, err := bmclient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reflect.TypeOf(res)).To(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
+			}
 		})
 	})
 
@@ -661,7 +658,7 @@ var _ = Describe("cluster install, with default network params", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:    "example.com",
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String("4.4"),
+				OpenshiftVersion: swag.String("4.5"),
 				PullSecret:       `{"auths":{"cloud.openshift.com":{"auth":""}}}`,
 				SSHPublicKey:     "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC50TuHS7aYci+U+5PLe/aW/I6maBi9PBDucLje6C6gtArfjy7udWA1DCSIQd+DkHhi57/s+PmvEjzfAfzqo+L+/8/O2l2seR1pPhHDxMR/rSyo/6rZP6KIL8HwFqXHHpDUM4tLXdgwKAe1LxBevLt/yNl8kOiHJESUSl+2QSf8z4SIbo/frDD8OwOvtfKBEG4WCb8zEsEuIPNF/Vo/UxPtS9pPTecEsWKDHR67yFjjamoyLvAzMAJotYgyMoxm8PTyCgEzHk3s3S4iO956d6KVOEJVXnTVhAxrtLuubjskd7N4hVN7h2s4Z584wYLKYhrIBL0EViihOMzY4mH3YE4KZusfIx6oMcggKX9b3NHm0la7cj2zg0r6zjUn6ZCP4gXM99e5q4auc0OEfoSfQwofGi3WmxkG3tEozCB8Zz0wGbi2CzR8zlcF+BNV5I2LESlLzjPY5B4dvv5zjxsYoz94p3rUhKnnPM2zTx1kkilDK5C5fC1k9l/I/r5Qk4ebLQU= oscohen@localhost.localdomain",
 			},

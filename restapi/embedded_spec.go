@@ -1226,7 +1226,6 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4",
             "4.5"
           ]
         },
@@ -1316,7 +1315,6 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4",
             "4.5"
           ]
         },
@@ -3351,7 +3349,6 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4",
             "4.5"
           ]
         },
@@ -3441,7 +3438,6 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
           "enum": [
-            "4.4",
             "4.5"
           ]
         },

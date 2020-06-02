@@ -84,7 +84,7 @@ type Cluster struct {
 	Name string `json:"name,omitempty"`
 
 	// Version of the OpenShift cluster.
-	// Enum: [4.4 4.5]
+	// Enum: [4.5]
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
@@ -450,7 +450,7 @@ var clusterTypeOpenshiftVersionPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["4.4","4.5"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["4.5"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -459,9 +459,6 @@ func init() {
 }
 
 const (
-
-	// ClusterOpenshiftVersionNr44 captures enum value "4.4"
-	ClusterOpenshiftVersionNr44 string = "4.4"
 
 	// ClusterOpenshiftVersionNr45 captures enum value "4.5"
 	ClusterOpenshiftVersionNr45 string = "4.5"

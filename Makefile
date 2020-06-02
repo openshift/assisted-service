@@ -35,7 +35,7 @@ clean:
 	rm -rf build
 
 format:
-	goimports -w -l cmd/ internal/
+	goimports -w -l cmd/ internal/ subsystem/
 
 generate:
 	go generate $(shell go list ./...)
