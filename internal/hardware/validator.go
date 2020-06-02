@@ -84,12 +84,11 @@ func (v *validator) IsSufficient(host *models.Host, cluster *models.Cluster) (*I
 	}
 
 	if !common.IsHostInMachineNetCidr(cluster, host) {
-		reason += fmt.Sprintf(", host %s does not belong to cluster machine network cidr %s", *host.ID, cluster.MachineNetworkCidr)
+		reason += fmt.Sprintf(", host %s does not belong to cluster machine network %s, The machine network is set by configuring the API-VIP", *host.ID, cluster.MachineNetworkCidr)
 	}
 	if len(reason) == 0 {
 		isSufficient = true
 	} else {
-		reason = fmt.Sprintf("host has insufficient hardware%s", reason)
 		if host.Role != "" {
 			reason = fmt.Sprintf("%s %s", host.Role, reason)
 		}
