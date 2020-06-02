@@ -661,13 +661,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
 		cluster.ServiceNetworkCidr = *params.ClusterUpdateParams.ServiceNetworkCidr
 	}
-
-	updateString(&cluster.ClusterNetworkCidr, params.ClusterUpdateParams.ClusterNetworkCidr)
-	if params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
-		cluster.ClusterNetworkHostPrefix = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
-	}
 	updateIPv4(&cluster.IngressVip, params.ClusterUpdateParams.IngressVip)
-	updateString(&cluster.ServiceNetworkCidr, params.ClusterUpdateParams.ServiceNetworkCidr)
 	updateString(&cluster.SSHPublicKey, params.ClusterUpdateParams.SSHPublicKey)
 	var machineCidr string
 	if machineCidr, err = common.CalculateMachineNetworkCIDR(&cluster); err != nil {
