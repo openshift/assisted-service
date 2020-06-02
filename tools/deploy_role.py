@@ -1,17 +1,18 @@
 import os
 import utils
 
-SRC_FILE = os.path.join(os.getcwd(), "deploy/roles/role_binding.yaml")
-DST_FILE = os.path.join(os.getcwd(), "build/role_binding.yaml")
 
 def main():
-    with open(SRC_FILE, "r") as src:
-        with open(DST_FILE, "w+") as dst:
+    src_file = os.path.join(os.getcwd(), "deploy/roles/default_role.yaml")
+    dst_file = os.path.join(os.getcwd(), "build/default_role.yaml")
+
+    with open(src_file, "r") as src:
+        with open(dst_file, "w+") as dst:
             data = src.read()
-            print("Deploying {}".format(DST_FILE))
+            print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    utils.apply(DST_FILE)
+    utils.apply(dst_file)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,44 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: default
+  namespace: assisted-installer
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: default
+  namespace: assisted-installer
+rules:
+  - verbs:
+      - get
+      - watch
+      - list
+    apiGroups:
+      - ''
+    resources:
+      - pods
+  - verbs:
+      - get
+      - watch
+      - list
+      - delete
+      - create
+    apiGroups:
+      - batch
+    resources:
+      - jobs
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: default
+  namespace: assisted-installer
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: assisted-installer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: default
