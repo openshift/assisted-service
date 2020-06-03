@@ -694,15 +694,22 @@ var _ = Describe("cluster install, with default network params", func() {
 	It("install cluster", func() {
 		clusterID := *cluster.ID
 		registerHostsAndSetRoles(clusterID, 3)
-		_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
-		Expect(err).NotTo(HaveOccurred())
-
 		rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		c := rep.GetPayload()
+		startTimeInstalling := c.InstallStartedAt
+		startTimeInstalled := c.InstallCompletedAt
+
+		_, err = bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+
+		rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		c = rep.GetPayload()
 		Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
 		Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
 		Expect(len(c.Hosts)).Should(Equal(3))
+		Expect(c.InstallStartedAt).ShouldNot(Equal(startTimeInstalling))
 		for _, host := range c.Hosts {
 			Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
 		}
@@ -716,6 +723,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		Expect(err).NotTo(HaveOccurred())
 		c = rep.GetPayload()
 		Expect(swag.StringValue(c.StatusInfo)).Should(Equal("installed"))
+		Expect(c.InstallCompletedAt).ShouldNot(Equal(startTimeInstalled))
 	})
 })
 
