@@ -37,7 +37,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	batch "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,13 +45,6 @@ import (
 
 const kubeconfigPrefix = "generate-kubeconfig"
 const kubeconfig = "kubeconfig"
-
-const (
-	ClusterStatusReady      = "ready"
-	ClusterStatusInstalling = "installing"
-	ClusterStatusInstalled  = "installed"
-	ClusterStatusError      = "error"
-)
 
 const (
 	ResourceKindHost    = "Host"
@@ -1148,14 +1140,10 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 		}
 	}
-	clusterStatus := swag.StringValue(cluster.Status)
-	allowedStatuses := []string{ClusterStatusInstalling, ClusterStatusInstalled, ClusterStatusError}
-	if !funk.ContainsString(allowedStatuses, clusterStatus) {
-		msg := fmt.Sprintf("Cluster %s is in %s state, files can be downloaded only when status is one of: %s",
-			params.ClusterID, clusterStatus, allowedStatuses)
-		log.Warn(msg)
+	if err := b.clusterApi.DownloadFiles(&cluster); err != nil {
+		log.WithError(err).Errorf("failed to download cluster files %s", params.ClusterID)
 		return installer.NewDownloadClusterFilesConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, errors.New(msg)))
+			WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
 
 	respBody, err := b.s3Client.DownloadFileFromS3(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName), b.S3Bucket)
@@ -1180,12 +1168,9 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 		}
 	}
-	clusterStatus := swag.StringValue(cluster.Status)
-	if clusterStatus != ClusterStatusInstalled {
-		msg := fmt.Sprintf("Cluster %s is in %s state, %s can be downloaded only in installed state", kubeconfig, params.ClusterID, clusterStatus)
-		log.Warn(msg)
+	if err := b.clusterApi.DownloadKubeconfig(&cluster); err != nil {
 		return installer.NewDownloadClusterKubeconfigConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, errors.New(msg)))
+			WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
 
 	respBody, err := b.s3Client.DownloadFileFromS3(ctx, fmt.Sprintf("%s/%s", params.ClusterID, kubeconfig), b.S3Bucket)
@@ -1211,12 +1196,9 @@ func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installe
 				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 		}
 	}
-	clusterStatus := swag.StringValue(cluster.Status)
-	if clusterStatus != ClusterStatusInstalling && clusterStatus != ClusterStatusInstalled {
-		msg := fmt.Sprintf("Cluster %s is in %s state, credentials are available only in installing or installed state", params.ClusterID, clusterStatus)
-		log.Warn(msg)
+	if err := b.clusterApi.GetCredentials(&cluster); err != nil {
 		return installer.NewGetCredentialsConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, errors.New(msg)))
+			WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
 	fileName := "kubeadmin-password"
 	filesUrl := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
@@ -1275,12 +1257,9 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 		}
 	}
 
-	clusterStatus := swag.StringValue(cluster.Status)
-	if clusterStatus != ClusterStatusInstalled {
-		msg := fmt.Sprintf("Cluster %s is in %s state, upload ingress ca can be done only in installed state", params.ClusterID, clusterStatus)
-		log.Warn(msg)
+	if err := b.clusterApi.UploadIngressCert(&cluster); err != nil {
 		return installer.NewUploadClusterIngressCertBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, errors.New(msg)))
+			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
 	fileName := fmt.Sprintf("%s/%s", cluster.ID, kubeconfig)

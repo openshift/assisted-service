@@ -37,6 +37,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const ClusterStatusInstalled = "installed"
+
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "inventory_test")

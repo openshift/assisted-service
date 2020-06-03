@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/filanov/bm-inventory/internal/events"
 
 	"github.com/go-openapi/strfmt"
@@ -43,6 +45,10 @@ type API interface {
 	RegistrationAPI
 	InstallationAPI
 	ClusterMonitoring()
+	DownloadFiles(c *models.Cluster) (err error)
+	DownloadKubeconfig(c *models.Cluster) (err error)
+	GetCredentials(c *models.Cluster) (err error)
+	UploadIngressCert(c *models.Cluster) (err error)
 }
 
 type Manager struct {
@@ -153,4 +159,43 @@ func (m *Manager) ClusterMonitoring() {
 			m.log.Infof("cluster %s updated to state %s via monitor", cluster.ID, stateReply.State)
 		}
 	}
+}
+
+func (m *Manager) DownloadFiles(c *models.Cluster) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+	allowedStatuses := []string{clusterStatusInstalling,
+		clusterStatusInstalled,
+		clusterStatusError}
+	if !funk.ContainsString(allowedStatuses, clusterStatus) {
+		err = fmt.Errorf("cluster %s is in %s state, files can be downloaded only when status is one of: %s",
+			c.ID, clusterStatus, allowedStatuses)
+	}
+	return err
+}
+
+func (m *Manager) DownloadKubeconfig(c *models.Cluster) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+	if clusterStatus != clusterStatusInstalled {
+		err = fmt.Errorf("cluster %s is in %s state, %s can be downloaded only in installed state", c.ID, clusterStatus, "kubeconfig")
+	}
+
+	return err
+}
+func (m *Manager) GetCredentials(c *models.Cluster) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+	allowedStatuses := []string{clusterStatusInstalling, clusterStatusInstalled}
+	if !funk.ContainsString(allowedStatuses, clusterStatus) {
+		err = fmt.Errorf("Cluster %s is in %s state, credentials are available only in installing or installed state", c.ID, clusterStatus)
+	}
+
+	return err
+}
+
+func (m *Manager) UploadIngressCert(c *models.Cluster) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+	if clusterStatus != clusterStatusInstalled {
+		err = fmt.Errorf("Cluster %s is in %s state, upload ingress ca can be done only in installed state", c.ID, clusterStatus)
+	}
+
+	return err
 }
