@@ -291,7 +291,7 @@ var _ = Describe("system-test cluster install", func() {
 			_, err = bmclient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
 			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewDownloadClusterFilesConflict())))
 
-			_, err = bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 
 			missingClusterId := strfmt.UUID(uuid.New().String())
@@ -307,7 +307,45 @@ var _ = Describe("system-test cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(s.Size()).ShouldNot(Equal(0))
 
+			By("report failed on a host", func() {
+				h1 := c.GetPayload().Hosts[0]
+				updateProgress(*h1.ID, clusterID, "Failed because some error")
+				h1 = getHost(clusterID, *h1.ID)
+				Expect(*h1.Status).Should(Equal("error"))
+			})
+			ret, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			clusterStatus := ret.GetPayload().Status
+			Expect(clusterStatus).To(Equal(models.ClusterStatusError))
+
 		})
+		It("install download_config_files in error state", func() {
+			file, err := ioutil.TempFile("", "tmp")
+			Expect(err).NotTo(HaveOccurred())
+			defer os.Remove(file.Name())
+
+			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("report failed on a host", func() {
+				h1 := c.GetPayload().Hosts[0]
+				updateProgress(*h1.ID, clusterID, "Failed because some error")
+				h1 = getHost(clusterID, *h1.ID)
+				Expect(*h1.Status).Should(Equal("error"))
+			})
+			//make sure cluster is in error state
+			ret, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			clusterStatus := ret.GetPayload().Status
+			Expect(clusterStatus).To(Equal(models.ClusterStatusError))
+
+			_, err = bmclient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
+			Expect(err).NotTo(HaveOccurred())
+			s, err := file.Stat()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(s.Size()).ShouldNot(Equal(0))
+		})
+
 		It("Get credentials", func() {
 			By("Test getting kubeadmin password for not found cluster")
 			{

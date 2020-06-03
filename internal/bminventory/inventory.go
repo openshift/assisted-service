@@ -37,6 +37,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	batch "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1147,8 +1148,10 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 		}
 	}
 	clusterStatus := swag.StringValue(cluster.Status)
-	if clusterStatus != ClusterStatusInstalling && clusterStatus != ClusterStatusInstalled {
-		msg := fmt.Sprintf("Cluster %s is in %s state, files can be downloaded only in installing or installed state", params.ClusterID, clusterStatus)
+	allowedStatuses := []string{ClusterStatusInstalling, ClusterStatusInstalled, ClusterStatusError}
+	if !funk.ContainsString(allowedStatuses, clusterStatus) {
+		msg := fmt.Sprintf("Cluster %s is in %s state, files can be downloaded only when status is one of: %s",
+			params.ClusterID, clusterStatus, allowedStatuses)
 		log.Warn(msg)
 		return installer.NewDownloadClusterFilesConflict().
 			WithPayload(common.GenerateError(http.StatusConflict, errors.New(msg)))
