@@ -353,7 +353,7 @@ var _ = Describe("cluster", func() {
 		mockHostApi.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.Disk{getDisk()}, nil).AnyTimes()
 	}
 	setDefaultHostSetBootstrap := func(mockClusterApi *cluster.MockAPI) {
-		mockHostApi.EXPECT().SetBootstrap(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockHostApi.EXPECT().SetBootstrap(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
 
 	getInventoryStr := func(ipv4Addresses ...string) string {

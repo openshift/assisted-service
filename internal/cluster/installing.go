@@ -28,16 +28,16 @@ var _ StateAPI = (*Manager)(nil)
 
 func (i *installingState) RefreshStatus(ctx context.Context, c *models.Cluster, db *gorm.DB) (*UpdateReply, error) {
 	log := logutil.FromContext(ctx, i.log)
-	installationState, StateInfo, err := i.getClusterInstallationState(ctx, c)
+	installationState, StateInfo, err := i.getClusterInstallationState(ctx, c, db)
 	if err != nil {
 		return nil, errors.Errorf("couldn't determine cluster %s installation state", c.ID)
 	}
 
 	switch installationState {
 	case clusterStatusInstalled:
-		return updateState(clusterStatusInstalled, StateInfo, c, i.db, log)
+		return updateState(clusterStatusInstalled, StateInfo, c, db, log)
 	case clusterStatusError:
-		return updateState(clusterStatusError, StateInfo, c, i.db, log)
+		return updateState(clusterStatusError, StateInfo, c, db, log)
 	case clusterStatusInstalling:
 		return &UpdateReply{
 			State:     clusterStatusInstalling,
@@ -47,10 +47,10 @@ func (i *installingState) RefreshStatus(ctx context.Context, c *models.Cluster, 
 	return nil, errors.Errorf("cluster % state transaction is not clear, installation state: %s ", c.ID, installationState)
 }
 
-func (i *installingState) getClusterInstallationState(ctx context.Context, c *models.Cluster) (string, string, error) {
+func (i *installingState) getClusterInstallationState(ctx context.Context, c *models.Cluster, db *gorm.DB) (string, string, error) {
 	log := logutil.FromContext(ctx, i.log)
 
-	if err := i.db.Preload("Hosts").First(&c, "id = ?", c.ID).Error; err != nil {
+	if err := db.Preload("Hosts").First(&c, "id = ?", c.ID).Error; err != nil {
 		return "", "", errors.Errorf("cluster %s not found", c.ID)
 	}
 

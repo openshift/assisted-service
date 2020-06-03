@@ -72,6 +72,9 @@ func main() {
 		log.Fatal("Fail to connect to DB, ", err)
 	}
 	defer db.Close()
+	db.DB().SetMaxIdleConns(0)
+	db.DB().SetMaxOpenConns(0)
+	db.DB().SetConnMaxLifetime(0)
 
 	scheme := runtime.NewScheme()
 	if err = clientgoscheme.AddToScheme(scheme); err != nil {

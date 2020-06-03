@@ -68,7 +68,7 @@ type API interface {
 	InstructionApi
 	SpecificHardwareParams
 	UpdateInstallProgress(ctx context.Context, h *models.Host, progress string) error
-	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool) error
+	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
 }
@@ -239,9 +239,9 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	return err
 }
 
-func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool) error {
+func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error {
 	if h.Bootstrap != isbootstrap {
-		err := m.db.Model(h).Update("bootstrap", isbootstrap).Error
+		err := db.Model(h).Update("bootstrap", isbootstrap).Error
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}

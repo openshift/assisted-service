@@ -418,7 +418,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	// This job name is exactly 63 characters which is the maximum for a job - be careful if modifying
 	jobName := fmt.Sprintf("createimage-%s-%s", cluster.ID, now.Format("20060102150405"))
 	imgName := getImageName(params.ClusterID)
-	log.Info("Creating job %s", jobName)
+	log.Infof("Creating job %s", jobName)
 	if err := b.job.Create(ctx, b.createImageJob(jobName, imgName, ignitionConfig)); err != nil {
 		log.WithError(err).Error("failed to create image job")
 		return installer.NewGenerateClusterISOInternalServerError().
@@ -548,6 +548,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	if err = b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+	log.Infof("Successfully started cluster <%s> installation", params.ClusterID.String())
 	return installer.NewInstallClusterAccepted().WithPayload(&cluster)
 }
 
@@ -563,7 +564,7 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster model
 	log.Infof("Bootstrap ID is %s", bootstrapId)
 	for i := range cluster.Hosts {
 		if cluster.Hosts[i].ID.String() == bootstrapId.String() {
-			err = b.hostApi.SetBootstrap(ctx, cluster.Hosts[i], true)
+			err = b.hostApi.SetBootstrap(ctx, cluster.Hosts[i], true, db)
 			if err != nil {
 				log.WithError(err).Errorf("failed to update bootstrap host for cluster %s", cluster.ID)
 				return errors.Wrapf(err, "Failed to update bootstrap host for cluster %s", cluster.ID)
