@@ -6,11 +6,10 @@ package host
 
 import (
 	context "context"
-	reflect "reflect"
-
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
+	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface
@@ -366,17 +365,17 @@ func (mr *MockAPIMockRecorder) UpdateInstallProgress(ctx, h, progress interface{
 }
 
 // SetBootstrap mocks base method
-func (m *MockAPI) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool) error {
+func (m *MockAPI) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetBootstrap", ctx, h, isbootstrap)
+	ret := m.ctrl.Call(m, "SetBootstrap", ctx, h, isbootstrap, db)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetBootstrap indicates an expected call of SetBootstrap
-func (mr *MockAPIMockRecorder) SetBootstrap(ctx, h, isbootstrap interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) SetBootstrap(ctx, h, isbootstrap, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBootstrap", reflect.TypeOf((*MockAPI)(nil).SetBootstrap), ctx, h, isbootstrap)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBootstrap", reflect.TypeOf((*MockAPI)(nil).SetBootstrap), ctx, h, isbootstrap, db)
 }
 
 // UpdateConnectivityReport mocks base method
