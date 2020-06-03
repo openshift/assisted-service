@@ -366,6 +366,16 @@ var _ = Describe("cluster", func() {
 		return string(ret)
 	}
 
+	sortedHosts := func(arr []strfmt.UUID) []strfmt.UUID {
+		sort.Slice(arr, func(i, j int) bool { return arr[i] < arr[j] })
+		return arr
+	}
+
+	sortedNetworks := func(arr []*models.HostNetwork) []*models.HostNetwork {
+		sort.Slice(arr, func(i, j int) bool { return arr[i].Cidr < arr[j].Cidr })
+		return arr
+	}
+
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
@@ -394,16 +404,6 @@ var _ = Describe("cluster", func() {
 				addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
 				addHost(masterHostId3, "master", "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
 			})
-
-			sortedHosts := func(arr []strfmt.UUID) []strfmt.UUID {
-				sort.Slice(arr, func(i, j int) bool { return arr[i] < arr[j] })
-				return arr
-			}
-
-			sortedNetworks := func(arr []*models.HostNetwork) []*models.HostNetwork {
-				sort.Slice(arr, func(i, j int) bool { return arr[i].Cidr < arr[j].Cidr })
-				return arr
-			}
 
 			It("GetCluster", func() {
 				reply := bm.GetCluster(ctx, installer.GetClusterParams{
@@ -498,6 +498,35 @@ var _ = Describe("cluster", func() {
 			Expect(actual.Payload.APIVip).To(Equal(apiVip))
 			Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
 			Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
+			expectedNetworks := sortedNetworks([]*models.HostNetwork{
+				{
+					Cidr: "1.2.3.0/24",
+					HostIds: sortedHosts([]strfmt.UUID{
+						masterHostId1,
+						masterHostId2,
+						masterHostId3,
+					}),
+				},
+				{
+					Cidr: "10.11.0.0/16",
+					HostIds: sortedHosts([]strfmt.UUID{
+						masterHostId1,
+						masterHostId2,
+					}),
+				},
+				{
+					Cidr: "7.8.9.0/24",
+					HostIds: []strfmt.UUID{
+						masterHostId3,
+					},
+				},
+			})
+			actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+			Expect(len(actualNetworks)).To(Equal(3))
+			actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+			actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+			actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+			Expect(actualNetworks).To(Equal(expectedNetworks))
 		})
 	})
 

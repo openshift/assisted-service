@@ -733,6 +733,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
+	cluster.HostNetworks = calculateHostNetworks(&cluster)
 	return installer.NewUpdateClusterCreated().WithPayload(&cluster)
 }
 
