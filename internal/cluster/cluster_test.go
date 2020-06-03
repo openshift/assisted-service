@@ -353,7 +353,7 @@ func prepareDB() *gorm.DB {
 	return db
 }
 
-func Test(t *testing.T) {
+func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster state machine tests")
 }

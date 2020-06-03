@@ -461,6 +461,16 @@ var _ = Describe("cluster", func() {
 			addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
 			addHost(masterHostId3, "master", "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
 		})
+		It("Invalid pull-secret", func() {
+			pullSecret := "asdfasfda"
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					PullSecret: &pullSecret,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
+		})
 		It("No machine network", func() {
 			apiVip := strfmt.IPv4("8.8.8.8")
 			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{

@@ -14,6 +14,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/cluster/validations"
+
 	"github.com/filanov/bm-inventory/restapi"
 
 	"github.com/filanov/bm-inventory/internal/common"
@@ -272,7 +274,15 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
 		UpdatedAt:                strfmt.DateTime{},
 	}
-	setPullSecret(&cluster, params.NewClusterParams.PullSecret)
+	if params.NewClusterParams.PullSecret != "" {
+		err := validations.ValidatePullSecret(params.NewClusterParams.PullSecret)
+		if err != nil {
+			log.WithError(err).Errorf("Pull-secret for new cluster has invalid format")
+			return installer.NewRegisterClusterBadRequest().
+				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Pull-secret has invalid format")))
+		}
+		setPullSecret(&cluster, params.NewClusterParams.PullSecret)
+	}
 
 	err := b.clusterApi.RegisterCluster(ctx, &cluster)
 	if err != nil {
@@ -611,6 +621,15 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	var cluster models.Cluster
 	var err error
 	log.Info("update cluster ", params.ClusterID)
+
+	if params.ClusterUpdateParams.PullSecret != nil {
+		err = validations.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret)
+		if err != nil {
+			log.WithError(err).Errorf("Pull-secret for cluster %s, has invalid format", params.ClusterID)
+			return installer.NewUpdateClusterBadRequest().
+				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Pull-secret has invalid format")))
+		}
+	}
 
 	tx := b.db.Begin()
 	defer func() {
