@@ -260,3 +260,59 @@ func (mr *MockAPIMockRecorder) ClusterMonitoring() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterMonitoring", reflect.TypeOf((*MockAPI)(nil).ClusterMonitoring))
 }
+
+// DownloadFiles mocks base method
+func (m *MockAPI) DownloadFiles(c *models.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadFiles", c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DownloadFiles indicates an expected call of DownloadFiles
+func (mr *MockAPIMockRecorder) DownloadFiles(c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadFiles", reflect.TypeOf((*MockAPI)(nil).DownloadFiles), c)
+}
+
+// DownloadKubeconfig mocks base method
+func (m *MockAPI) DownloadKubeconfig(c *models.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadKubeconfig", c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DownloadKubeconfig indicates an expected call of DownloadKubeconfig
+func (mr *MockAPIMockRecorder) DownloadKubeconfig(c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadKubeconfig", reflect.TypeOf((*MockAPI)(nil).DownloadKubeconfig), c)
+}
+
+// GetCredentials mocks base method
+func (m *MockAPI) GetCredentials(c *models.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCredentials", c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetCredentials indicates an expected call of GetCredentials
+func (mr *MockAPIMockRecorder) GetCredentials(c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCredentials", reflect.TypeOf((*MockAPI)(nil).GetCredentials), c)
+}
+
+// UploadIngressCert mocks base method
+func (m *MockAPI) UploadIngressCert(c *models.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadIngressCert", c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UploadIngressCert indicates an expected call of UploadIngressCert
+func (mr *MockAPIMockRecorder) UploadIngressCert(c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadIngressCert", reflect.TypeOf((*MockAPI)(nil).UploadIngressCert), c)
+}
