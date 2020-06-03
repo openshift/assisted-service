@@ -7,7 +7,8 @@ metadata:
   namespace: assisted-installer
 spec:
   ports:
-    - port: 8090
+    - name: bm-inventory
+      port: 8090
       protocol: TCP
       targetPort: 8090
   selector:
