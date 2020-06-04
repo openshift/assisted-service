@@ -21,6 +21,6 @@ func (h *hwInfoCmd) GetStep(ctx context.Context, host *models.Host) (*models.Ste
 	step := &models.Step{}
 	step.StepType = models.StepTypeHardwareInfo
 	step.Command = "podman"
-	step.Args = strings.Split("run,--rm,--privileged,--quiet,--net=host,-v,/var/log:/var/log,quay.io/oamizur/hardware_info,/usr/bin/hardware_info", ",")
+	step.Args = strings.Split("run,--rm,--privileged,--quiet,--net=host,-v,/var/log:/var/log,quay.io/ocpmetal/hardware_info,/usr/bin/hardware_info", ",")
 	return step, nil
 }
