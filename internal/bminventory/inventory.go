@@ -891,8 +891,7 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 	}
 
 	host.CheckedInAt = strfmt.DateTime(time.Now())
-
-	if err := tx.Model(&host).Update(host).Error; err != nil {
+	if err := tx.Model(&host).Update("checked_in_at", host.CheckedInAt).Error; err != nil {
 		tx.Rollback()
 		log.WithError(err).Errorf("failed to update host: %s", params.ClusterID)
 		return installer.NewGetNextStepsInternalServerError()
