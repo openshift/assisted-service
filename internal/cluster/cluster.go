@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/thoas/go-funk"
 
 	"github.com/filanov/bm-inventory/internal/events"
@@ -49,6 +51,7 @@ type API interface {
 	DownloadKubeconfig(c *models.Cluster) (err error)
 	GetCredentials(c *models.Cluster) (err error)
 	UploadIngressCert(c *models.Cluster) (err error)
+	VerifyRegisterHost(c *models.Cluster) (err error)
 }
 
 type Manager struct {
@@ -197,5 +200,14 @@ func (m *Manager) UploadIngressCert(c *models.Cluster) (err error) {
 		err = fmt.Errorf("Cluster %s is in %s state, upload ingress ca can be done only in installed state", c.ID, clusterStatus)
 	}
 
+	return err
+}
+
+func (m *Manager) VerifyRegisterHost(c *models.Cluster) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+	allowedStatuses := []string{clusterStatusInsufficient, clusterStatusReady}
+	if !funk.ContainsString(allowedStatuses, clusterStatus) {
+		err = errors.Errorf("Cluster %s is in %s state, host can register only in one of %s", c.ID, clusterStatus, allowedStatuses)
+	}
 	return err
 }

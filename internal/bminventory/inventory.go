@@ -790,14 +790,20 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.Ge
 func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var host models.Host
+	var cluster models.Cluster
 	log.Infof("Register host: %+v", params)
 
-	if err := b.db.First(&models.Cluster{}, "id = ?", params.ClusterID.String()).Error; err != nil {
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID.String()).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID.String())
 		return installer.NewRegisterHostBadRequest().
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
-
+	if err := b.clusterApi.VerifyRegisterHost(&cluster); err != nil {
+		log.WithError(err).Errorf("failed to register host <%s> to cluster %s due to: %s",
+			params.NewHostParams.HostID, params.ClusterID.String(), err.Error())
+		return installer.NewRegisterHostBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
 	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
 	host = models.Host{
 		ID:          params.NewHostParams.HostID,
