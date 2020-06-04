@@ -5,6 +5,8 @@ metadata:
   namespace: assisted-installer
 spec:
   schedule: "@hourly"
+  successfulJobsHistoryLimit: 24
+  failedJobsHistoryLimit: 5
   jobTemplate:
     spec:
       template:
