@@ -650,8 +650,9 @@ var _ = Describe("KubeConfig download", func() {
 		ctrl         *gomock.Controller
 		mockS3Client *awsS3Client.MockS3Client
 		clusterID    strfmt.UUID
-		cluster      models.Cluster
+		c            models.Cluster
 		mockJob      *job.MockAPI
+		clusterApi   cluster.API
 	)
 
 	BeforeEach(func() {
@@ -661,13 +662,15 @@ var _ = Describe("KubeConfig download", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
+		clusterApi = cluster.NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, nil, mockS3Client)
-		cluster = models.Cluster{
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client)
+		c = models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
 		}
-		err := db.Create(&cluster).Error
+		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -687,8 +690,8 @@ var _ = Describe("KubeConfig download", func() {
 	})
 	It("kubeconfig download s3download failure", func() {
 		status := ClusterStatusInstalled
-		cluster.Status = &status
-		db.Save(&cluster)
+		c.Status = &status
+		db.Save(&c)
 		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
 		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(nil, errors.Errorf("dummy"))
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
@@ -698,8 +701,8 @@ var _ = Describe("KubeConfig download", func() {
 	})
 	It("kubeconfig download happy flow", func() {
 		status := ClusterStatusInstalled
-		cluster.Status = &status
-		db.Save(&cluster)
+		c.Status = &status
+		db.Save(&c)
 		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(r, nil)
@@ -725,12 +728,13 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		ctrl                *gomock.Controller
 		mockS3Client        *awsS3Client.MockS3Client
 		clusterID           strfmt.UUID
-		cluster             models.Cluster
+		c                   models.Cluster
 		ingressCa           models.IngressCertParams
 		kubeconfigFile      *os.File
 		kubeconfigNoingress string
 		kubeconfigObject    string
 		mockJob             *job.MockAPI
+		clusterApi          cluster.API
 	)
 
 	BeforeEach(func() {
@@ -751,15 +755,16 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
+		clusterApi = cluster.NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, nil, mockS3Client)
-		cluster = models.Cluster{
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client)
+		c = models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
 		}
 		kubeconfigNoingress = fmt.Sprintf("%s/%s", clusterID, "kubeconfig-noingress")
 		kubeconfigObject = fmt.Sprintf("%s/%s", clusterID, kubeconfig)
-		err := db.Create(&cluster).Error
+		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		kubeconfigFile, err = os.Open("../../subsystem/test_kubeconfig")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -788,8 +793,8 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 	})
 	It("UploadClusterIngressCert kubeconfig already exists, return ok", func() {
 		status := ClusterStatusInstalled
-		cluster.Status = &status
-		db.Save(&cluster)
+		c.Status = &status
+		db.Save(&c)
 		mockS3Client.EXPECT().DoesObjectExists(ctx, kubeconfigObject, "test").Return(true, nil).Times(1)
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
@@ -799,8 +804,8 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 	})
 	It("UploadClusterIngressCert DoesObjectExists fails ", func() {
 		status := ClusterStatusInstalled
-		cluster.Status = &status
-		db.Save(&cluster)
+		c.Status = &status
+		db.Save(&c)
 		mockS3Client.EXPECT().DoesObjectExists(ctx, kubeconfigObject, "test").Return(true, errors.Errorf("dummy")).Times(1)
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
@@ -810,8 +815,8 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 	})
 	It("UploadClusterIngressCert s3download failure", func() {
 		status := ClusterStatusInstalled
-		cluster.Status = &status
-		db.Save(&cluster)
+		c.Status = &status
+		db.Save(&c)
 		objectExists()
 		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(nil, errors.Errorf("dummy")).Times(1)
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
@@ -822,8 +827,8 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 	})
 	It("UploadClusterIngressCert bad kubeconfig, mergeIngressCaIntoKubeconfig failure", func() {
 		status := ClusterStatusInstalled
-		cluster.Status = &status
-		db.Save(&cluster)
+		c.Status = &status
+		db.Save(&c)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		objectExists()
 		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(r, nil).Times(1)
@@ -835,8 +840,8 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 	})
 	It("UploadClusterIngressCert bad ingressCa, mergeIngressCaIntoKubeconfig failure", func() {
 		status := ClusterStatusInstalled
-		cluster.Status = &status
-		db.Save(&cluster)
+		c.Status = &status
+		db.Save(&c)
 		objectExists()
 		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(kubeconfigFile, nil)
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
@@ -848,8 +853,8 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 
 	It("UploadClusterIngressCert push fails", func() {
 		status := ClusterStatusInstalled
-		cluster.Status = &status
-		db.Save(&cluster)
+		c.Status = &status
+		db.Save(&c)
 		data, err := os.Open("../../subsystem/test_kubeconfig")
 		Expect(err).ShouldNot(HaveOccurred())
 		kubeConfigAsBytes, err := ioutil.ReadAll(data)
@@ -871,8 +876,8 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 
 	It("UploadClusterIngressCert download happy flow", func() {
 		status := ClusterStatusInstalled
-		cluster.Status = &status
-		db.Save(&cluster)
+		c.Status = &status
+		db.Save(&c)
 		data, err := os.Open("../../subsystem/test_kubeconfig")
 		Expect(err).ShouldNot(HaveOccurred())
 		kubeConfigAsBytes, err := ioutil.ReadAll(data)
