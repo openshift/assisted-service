@@ -109,8 +109,8 @@ var _ = Describe("Cluster tests", func() {
 	})
 })
 
-func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string) {
-	for start := time.Now(); time.Since(start) < 10*time.Second; {
+func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string, timeout time.Duration) {
+	for start := time.Now(); time.Since(start) < timeout; {
 		rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		c := rep.GetPayload()
@@ -156,7 +156,7 @@ func installCluster(clusterID strfmt.UUID) {
 		updateProgress(*host.ID, clusterID, "Done")
 	}
 
-	waitForClusterState(ctx, clusterID, "installed")
+	waitForClusterState(ctx, clusterID, "installed", 10*time.Second)
 	rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 	c = rep.GetPayload()
@@ -236,7 +236,7 @@ var _ = Describe("system-test cluster install", func() {
 					updateProgress(*host.ID, clusterID, "Done")
 				}
 
-				waitForClusterState(ctx, clusterID, "installed")
+				waitForClusterState(ctx, clusterID, "installed", 10*time.Second)
 				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c = rep.GetPayload()
@@ -323,7 +323,7 @@ var _ = Describe("system-test cluster install", func() {
 				Expect(*h1.Status).Should(Equal("error"))
 			})
 			//Wait for cluster to get to error state
-			waitForClusterState(ctx, clusterID, models.ClusterStatusError)
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, 20*time.Second)
 
 			_, err = bmclient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
 			Expect(err).NotTo(HaveOccurred())
@@ -718,7 +718,7 @@ var _ = Describe("cluster install, with default network params", func() {
 			updateProgress(*host.ID, clusterID, "Done")
 		}
 
-		waitForClusterState(ctx, clusterID, "installed")
+		waitForClusterState(ctx, clusterID, "installed", 10*time.Second)
 		rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		c = rep.GetPayload()
