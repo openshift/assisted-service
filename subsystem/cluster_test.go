@@ -313,15 +313,7 @@ var _ = Describe("system-test cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			defer os.Remove(file.Name())
 
-			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("report failed on a host", func() {
-				h1 := c.GetPayload().Hosts[0]
-				updateProgress(*h1.ID, clusterID, "Failed because some error")
-				h1 = getHost(clusterID, *h1.ID)
-				Expect(*h1.Status).Should(Equal("error"))
-			})
+			FailMasterNode(ctx, clusterID)
 			//Wait for cluster to get to error state
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, 20*time.Second)
 
@@ -665,6 +657,22 @@ var _ = Describe("system-test cluster install", func() {
 		Expect(*h1.Status).Should(Equal("insufficient"))
 	})
 })
+
+func FailMasterNode(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
+	c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	var masterHostID strfmt.UUID
+	for _, host := range c.GetPayload().Hosts {
+		if host.Role == "master" {
+			masterHostID = *host.ID
+			break
+		}
+	}
+	updateProgress(masterHostID, clusterID, "Failed because some error")
+	masterHost := getHost(clusterID, masterHostID)
+	Expect(*masterHost.Status).Should(Equal("error"))
+	return masterHostID
+}
 
 var _ = Describe("cluster install, with default network params", func() {
 	var (
