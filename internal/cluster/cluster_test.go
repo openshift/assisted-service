@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
@@ -284,6 +286,52 @@ var _ = Describe("cluster monitor", func() {
 		db.Close()
 	})
 
+})
+
+var _ = Describe("VerifyRegisterHost", func() {
+	var (
+		db          *gorm.DB
+		id          strfmt.UUID
+		clusterApi  *Manager
+		errTemplate = "Cluster %s is in %s state, host can register only in one of [insufficient ready]"
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		id = strfmt.UUID(uuid.New().String())
+		clusterApi = NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+	})
+
+	checkVerifyRegisterHost := func(clusterStatus string, expectErr bool) {
+		cluster := models.Cluster{ID: &id, Status: swag.String(clusterStatus)}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		cluster = geCluster(id, db)
+		err := clusterApi.VerifyRegisterHost(&cluster)
+		if expectErr {
+			Expect(err.Error()).Should(Equal(errors.Errorf(errTemplate, id, clusterStatus).Error()))
+		} else {
+			Expect(err).Should(BeNil())
+		}
+	}
+	It("Register host while cluster in ready state", func() {
+		checkVerifyRegisterHost(clusterStatusReady, false)
+	})
+	It("Register host while cluster in ready state", func() {
+		checkVerifyRegisterHost(clusterStatusInsufficient, false)
+	})
+	It("Register host while cluster in installing state", func() {
+		checkVerifyRegisterHost(clusterStatusInstalling, true)
+	})
+	It("Register host while cluster in error state", func() {
+		checkVerifyRegisterHost(clusterStatusError, true)
+	})
+
+	It("Register host while cluster in installed state", func() {
+		checkVerifyRegisterHost(clusterStatusInstalled, true)
+	})
+	AfterEach(func() {
+		db.Close()
+	})
 })
 
 func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
