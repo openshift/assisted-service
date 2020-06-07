@@ -297,6 +297,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
+	log.Infof("Deregister cluster id %s", params.ClusterID)
 
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return installer.NewDeregisterClusterNotFound().
@@ -848,6 +849,9 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 }
 
 func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Deregister host: %s cluster %s", params.HostID, params.ClusterID)
+
 	if err := b.db.Where("id = ? and cluster_id = ?", params.HostID, params.ClusterID).
 		Delete(&models.Host{}).Error; err != nil {
 		// TODO: check error type
@@ -1159,6 +1163,7 @@ func (b *bareMetalInventory) createKubeconfigJob(cluster *models.Cluster, jobNam
 func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
+	log.Infof("Download cluster files: %s for cluster %s", params.FileName, params.ClusterID)
 
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
@@ -1187,6 +1192,7 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
+	log.Infof("Download cluster kubeconfig for cluster %s", params.ClusterID)
 
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
@@ -1268,6 +1274,7 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 		return installer.NewUpdateHostInstallProgressOK()
 	}
 	msg := fmt.Sprintf("Host %s in cluster %s reached installation step %s", host.ID, host.ClusterID, params.HostInstallProgressParams)
+	log.Info(msg)
 	b.eventsHandler.AddEvent(ctx, host.ID.String(), msg, time.Now(), host.ClusterID.String())
 	return installer.NewUpdateHostInstallProgressOK()
 }
