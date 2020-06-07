@@ -316,3 +316,17 @@ func (mr *MockAPIMockRecorder) UploadIngressCert(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadIngressCert", reflect.TypeOf((*MockAPI)(nil).UploadIngressCert), c)
 }
+
+// VerifyRegisterHost mocks base method
+func (m *MockAPI) VerifyRegisterHost(c *models.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VerifyRegisterHost", c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// VerifyRegisterHost indicates an expected call of VerifyRegisterHost
+func (mr *MockAPIMockRecorder) VerifyRegisterHost(c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyRegisterHost", reflect.TypeOf((*MockAPI)(nil).VerifyRegisterHost), c)
+}
