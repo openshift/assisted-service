@@ -58,10 +58,35 @@ if will build and push a new image of the service to your docker registry, then 
 
 ## Deployment
 
+### Deploy to minikube
+
 The deployment is a system deployment, it contains all the components the service need for all the operations to work (if implemented).
 S3 service (scality), DB and will use the image generator to create the images in the deployed S3 and create relevant bucket in S3.
 
 `skipper make deploy-all`
+
+### Deploy to Openshift
+
+Besides default minikube deployment, the service support deployment to Openshift cluster using ingress as the access point to the service.
+
+`skipper make deploy-all TARGET=oc-ingress`
+
+This deployment option have multiple optional parameters that should be used in case you are not the ADMIN of the cluster:
+1. `APPLY_NAMEPSACE` - True by default. Will try to deploy "assisted-installer" namespace, if you are not the admin of the cluster or maybe you don't have permissions for this operation you may skip namespace deployment.
+1. `INGRESS_DOMAIN` - by default deployment script will try to get the domain prefix from openshift ingress controller, if you don't access to it then you may specify the domain yourself for example: `apps.ocp.prod.psi.redhat.com`
+
+To set the parameters simply add the in the end of the command, for example
+`skipper make deploy-all TARGET=oc-ingress APPLY_NAMESPACE=False INGRESS_DOMAIN=apps.ocp.prod.psi.redhat.com`
+
+Note: All deployment configurations are under the `deploy` directory in case more detailed configuration is required.
+
+### Deploy UI
+
+This service support optional UI deployment.
+
+`skipper make deploy-ui`
+
+For OpenShift users, look at the service deployment options on OpenShift platform.
 
 ## Troubleshooting
 
