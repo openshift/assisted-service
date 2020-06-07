@@ -18,6 +18,7 @@ endif
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/bm-inventory:stable)
 OBJEXP := $(or ${OBJEXP},quay.io/ocpmetal/s3-object-expirer:stable)
 GIT_REVISION := $(shell git rev-parse HEAD)
+APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 
 all: build
 
@@ -57,11 +58,11 @@ update-expirer: build
 deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-service
 	echo "Deployment done"
 
-deploy-ui:
-	python3 ./tools/deploy_ui.py --target "$(TARGET)"
+deploy-ui: deploy-namespace
+	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)"
 
 deploy-namespace:
-	python3 ./tools/deploy_namespace.py
+	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE)
 
 deploy-s3-configmap:
 	python3 ./tools/deploy_scality_configmap.py
@@ -72,11 +73,11 @@ deploy-s3: deploy-namespace
 	make deploy-s3-configmap
 
 deploy-inventory-service-file: deploy-namespace
-	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)"
+	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)"
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)"
+	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)"
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py
@@ -106,4 +107,4 @@ subsystem-clean:
 	$(KUBECTL) get pod -o name | grep generate-kubeconfig | xargs $(KUBECTL) delete 1> /dev/null ; true
 
 clear-deployment:
-	python3 ./tools/clear_deployment.py
+	python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE)

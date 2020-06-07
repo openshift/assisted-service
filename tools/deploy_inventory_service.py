@@ -4,6 +4,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--target")
+parser.add_argument("--domain")
 
 args = parser.parse_args()
 
@@ -26,7 +27,8 @@ def main():
         with open(src_file, "r") as src:
             with open(dst_file, "w+") as dst:
                 data = src.read()
-                data = data.replace("REPLACE_HOSTNAME", utils.get_service_host("assisted-installer", args.target))
+                data = data.replace("REPLACE_HOSTNAME",
+                                    utils.get_service_host("assisted-installer", args.target, args.domain))
                 print("Deploying {}".format(dst_file))
                 dst.write(data)
         utils.apply(dst_file)

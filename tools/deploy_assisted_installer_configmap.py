@@ -4,6 +4,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--target")
+parser.add_argument("--domain")
 
 args = parser.parse_args()
 
@@ -15,11 +16,11 @@ SERVICE = "bm-inventory"
 def main():
     # TODO: delete once rename everything to assisted-installer
     if args.target == "oc-ingress":
-        service_host = "assisted-installer.{}".format(utils.get_domain())
+        service_host = "assisted-installer.{}".format(utils.get_domain(args.domain))
         service_port = "80"
     else:
         service_host = utils.get_service_host(SERVICE, args.target)
-        service_port = utils.get_service_port(SERVICE)
+        service_port = utils.get_service_port(SERVICE, args.target)
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:
             data = src.read()
