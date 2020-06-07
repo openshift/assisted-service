@@ -412,6 +412,10 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+        403:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
         500:
           description: Error.
           schema:
