@@ -826,7 +826,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	if err := b.clusterApi.VerifyRegisterHost(&cluster); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> to cluster %s due to: %s",
 			params.NewHostParams.HostID, params.ClusterID.String(), err.Error())
-		return installer.NewRegisterHostBadRequest().
+		return installer.NewRegisterHostForbidden().
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
