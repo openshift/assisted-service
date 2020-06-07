@@ -35,6 +35,12 @@ func (o *RegisterHostReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
+	case 403:
+		result := NewRegisterHostForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewRegisterHostInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -102,6 +108,39 @@ func (o *RegisterHostBadRequest) GetPayload() *models.Error {
 }
 
 func (o *RegisterHostBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewRegisterHostForbidden creates a RegisterHostForbidden with default headers values
+func NewRegisterHostForbidden() *RegisterHostForbidden {
+	return &RegisterHostForbidden{}
+}
+
+/*RegisterHostForbidden handles this case with default header values.
+
+Error.
+*/
+type RegisterHostForbidden struct {
+	Payload *models.Error
+}
+
+func (o *RegisterHostForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostForbidden  %+v", 403, o.Payload)
+}
+
+func (o *RegisterHostForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *RegisterHostForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

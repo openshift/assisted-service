@@ -101,6 +101,50 @@ func (o *RegisterHostBadRequest) WriteResponse(rw http.ResponseWriter, producer 
 	}
 }
 
+// RegisterHostForbiddenCode is the HTTP code returned for type RegisterHostForbidden
+const RegisterHostForbiddenCode int = 403
+
+/*RegisterHostForbidden Error.
+
+swagger:response registerHostForbidden
+*/
+type RegisterHostForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewRegisterHostForbidden creates RegisterHostForbidden with default headers values
+func NewRegisterHostForbidden() *RegisterHostForbidden {
+
+	return &RegisterHostForbidden{}
+}
+
+// WithPayload adds the payload to the register host forbidden response
+func (o *RegisterHostForbidden) WithPayload(payload *models.Error) *RegisterHostForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register host forbidden response
+func (o *RegisterHostForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterHostForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // RegisterHostInternalServerErrorCode is the HTTP code returned for type RegisterHostInternalServerError
 const RegisterHostInternalServerErrorCode int = 500
 

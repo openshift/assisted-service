@@ -642,6 +642,12 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "403": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -2744,6 +2750,12 @@ func init() {
             }
           },
           "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
