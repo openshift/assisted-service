@@ -25,6 +25,13 @@ spec:
           volumeMounts:
             - mountPath: /mnt/data
               name: scalityvol
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2000Mi
+            requests:
+              cpu: 300m
+              memory: 2000Mi
       volumes:
         - name: scalityvol
           persistentVolumeClaim:
