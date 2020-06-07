@@ -44,8 +44,7 @@ func (d *disabledState) RefreshStatus(ctx context.Context, h *models.Host, db *g
 }
 
 func (d *disabledState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to install host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
+	return defaultReply(h)
 }
 
 func (d *disabledState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {

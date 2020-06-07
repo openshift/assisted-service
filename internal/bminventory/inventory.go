@@ -487,12 +487,17 @@ func (c *clusterInstaller) verifyClusterNetworkConfig(cluster *models.Cluster, t
 }
 
 func (c *clusterInstaller) installHosts(cluster *models.Cluster, tx *gorm.DB) error {
-	// move hosts states to installing
+	success := true
+	err := errors.Errorf("Failed to install cluster <%s>", cluster.ID.String())
 	for i := range cluster.Hosts {
-		if _, err := c.b.hostApi.Install(c.ctx, cluster.Hosts[i], tx); err != nil {
-			return common.NewApiError(http.StatusConflict, errors.Wrapf(err, "failed to install hosts <%s> in cluster: %s",
-				cluster.Hosts[i].ID.String(), cluster.ID.String()))
+		if _, installErr := c.b.hostApi.Install(c.ctx, cluster.Hosts[i], tx); installErr != nil {
+			success = false
+			// collect multiple errors
+			err = errors.Wrap(installErr, err.Error())
 		}
+	}
+	if !success {
+		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
 }

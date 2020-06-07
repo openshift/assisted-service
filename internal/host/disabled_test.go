@@ -75,7 +75,6 @@ var _ = Describe("disabled_state", func() {
 
 	It("install", func() {
 		updateReply, updateErr = state.Install(ctx, &host, nil)
-		expectedReply.expectError = true
 	})
 
 	It("enable_host", func() {

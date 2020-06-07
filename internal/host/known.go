@@ -9,6 +9,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 func NewKnownState(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator) *knownState {
@@ -69,8 +70,8 @@ func (k *knownState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm
 }
 
 func (k *knownState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	if h.Role == "" {
-		return nil, errors.Errorf("unable to install host <%s> without a role", h.ID)
+	if !funk.ContainsString([]string{models.HostRoleMaster, models.HostRoleWorker}, h.Role) {
+		return nil, errors.Errorf("unable to install host <%s> without valid role", h.ID)
 	}
 	cdb := k.db
 	if db != nil {
