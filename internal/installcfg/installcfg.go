@@ -179,9 +179,9 @@ func setBMPlatformInstallconfig(cluster *models.Cluster, cfg *InstallerConfigBar
 	cfg.Platform = platform{
 		Baremetal: baremetal{
 			ProvisioningNetworkInterface: "ethh0",
-			APIVIP:                       cluster.APIVip.String(),
-			IngressVIP:                   cluster.IngressVip.String(),
-			DNSVIP:                       cluster.APIVip.String(),
+			APIVIP:                       cluster.APIVip,
+			IngressVIP:                   cluster.IngressVip,
+			DNSVIP:                       cluster.APIVip,
 			Hosts:                        hosts,
 		},
 	}

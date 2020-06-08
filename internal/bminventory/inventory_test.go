@@ -472,7 +472,7 @@ var _ = Describe("cluster", func() {
 			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
 		})
 		It("No machine network", func() {
-			apiVip := strfmt.IPv4("8.8.8.8")
+			apiVip := "8.8.8.8"
 			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 				ClusterID: clusterID,
 				ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -482,8 +482,8 @@ var _ = Describe("cluster", func() {
 			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
 		})
 		It("Api and ingress mismatch", func() {
-			apiVip := strfmt.IPv4("10.11.12.15")
-			ingressVip := strfmt.IPv4("1.2.3.20")
+			apiVip := "10.11.12.15"
+			ingressVip := "1.2.3.20"
 			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 				ClusterID: clusterID,
 				ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -494,8 +494,8 @@ var _ = Describe("cluster", func() {
 			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
 		})
 		It("Update success", func() {
-			apiVip := strfmt.IPv4("10.11.12.15")
-			ingressVip := strfmt.IPv4("10.11.12.16")
+			apiVip := "10.11.12.15"
+			ingressVip := "10.11.12.16"
 			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(3)
 			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{

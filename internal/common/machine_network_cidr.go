@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/go-openapi/strfmt"
-
 	"github.com/filanov/bm-inventory/models"
 	"github.com/sirupsen/logrus"
 )
@@ -21,9 +19,9 @@ import (
 func CalculateMachineNetworkCIDR(cluster *models.Cluster) (string, error) {
 	var ip string
 	if cluster.APIVip != "" {
-		ip = cluster.APIVip.String()
+		ip = cluster.APIVip
 	} else if cluster.IngressVip != "" {
-		ip = cluster.IngressVip.String()
+		ip = cluster.IngressVip
 	} else {
 		return "", nil
 	}
@@ -64,8 +62,8 @@ func ipInCidr(ipStr, cidrStr string) bool {
 	return ipnet.Contains(ip)
 }
 
-func verifyVip(cluster *models.Cluster, vip strfmt.IPv4, vipName string, mustExist bool) error {
-	if !mustExist && vip == "" || ipInCidr(vip.String(), cluster.MachineNetworkCidr) {
+func verifyVip(cluster *models.Cluster, vip string, vipName string, mustExist bool) error {
+	if !mustExist && vip == "" || ipInCidr(vip, cluster.MachineNetworkCidr) {
 		return nil
 	}
 	return fmt.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, cluster.MachineNetworkCidr)

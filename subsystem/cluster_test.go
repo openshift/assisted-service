@@ -487,8 +487,8 @@ var _ = Describe("cluster install", func() {
 		h3 := registerHost(clusterID)
 		generateHWPostStepReply(h3, validHwInfo)
 		h4 := registerHost(clusterID)
-		apiVip := strfmt.IPv4("1.2.3.5")
-		ingressVip := strfmt.IPv4("1.2.3.6")
+		apiVip := "1.2.3.5"
+		ingressVip := "1.2.3.6"
 		// All hosts are masters, one in discovering state  -> state must be insufficient
 		cluster, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
@@ -538,8 +538,8 @@ var _ = Describe("cluster install", func() {
 		mh3 := registerHost(clusterID)
 		generateHWPostStepReply(mh3, validHwInfo)
 
-		apiVip := strfmt.IPv4("1.2.3.5")
-		ingressVip := strfmt.IPv4("1.2.3.6")
+		apiVip := "1.2.3.5"
+		ingressVip := "1.2.3.6"
 
 		By("All hosts are workers -> state must be insufficient")
 		cluster, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -658,8 +658,8 @@ var _ = Describe("cluster install", func() {
 		}
 		h1 := registerHost(clusterID)
 		generateHWPostStepReply(h1, hwInfo)
-		apiVip := strfmt.IPv4("1.2.3.8")
-		ingressVip := strfmt.IPv4("1.2.3.9")
+		apiVip := "1.2.3.8"
+		ingressVip := "1.2.3.9"
 		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
 				APIVip:     &apiVip,
@@ -808,8 +808,19 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) {
 		Expect(err).NotTo(HaveOccurred())
 
 	}
-	apiVip := strfmt.IPv4("1.2.3.8")
-	ingressVip := strfmt.IPv4("1.2.3.9")
+	apiVip := ""
+	ingressVip := ""
+	_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		ClusterUpdateParams: &models.ClusterUpdateParams{
+			APIVip:     &apiVip,
+			IngressVip: &ingressVip,
+		},
+		ClusterID: clusterID,
+	})
+
+	Expect(err).NotTo(HaveOccurred())
+	apiVip = "1.2.3.8"
+	ingressVip = "1.2.3.9"
 	c, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 		ClusterUpdateParams: &models.ClusterUpdateParams{
 			APIVip:     &apiVip,

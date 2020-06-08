@@ -656,11 +656,6 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		tx.Rollback()
 		return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
-	updateIPv4 := func(target *strfmt.IPv4, source *strfmt.IPv4) {
-		if source != nil {
-			*target = *source
-		}
-	}
 	updateString := func(target *string, source *string) {
 		if source != nil {
 			*target = *source
@@ -668,7 +663,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}
 
 	updateString(&cluster.Name, params.ClusterUpdateParams.Name)
-	updateIPv4(&cluster.APIVip, params.ClusterUpdateParams.APIVip)
+	updateString(&cluster.APIVip, params.ClusterUpdateParams.APIVip)
 	updateString(&cluster.BaseDNSDomain, params.ClusterUpdateParams.BaseDNSDomain)
 	if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
 		cluster.ClusterNetworkCidr = *params.ClusterUpdateParams.ClusterNetworkCidr
@@ -679,7 +674,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
 		cluster.ServiceNetworkCidr = *params.ClusterUpdateParams.ServiceNetworkCidr
 	}
-	updateIPv4(&cluster.IngressVip, params.ClusterUpdateParams.IngressVip)
+	updateString(&cluster.IngressVip, params.ClusterUpdateParams.IngressVip)
 	updateString(&cluster.SSHPublicKey, params.ClusterUpdateParams.SSHPublicKey)
 	var machineCidr string
 	if machineCidr, err = common.CalculateMachineNetworkCIDR(&cluster); err != nil {

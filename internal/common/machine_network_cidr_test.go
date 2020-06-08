@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/filanov/bm-inventory/models"
-	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -33,7 +32,7 @@ var _ = Describe("inventory", func() {
 
 	createCluster := func(apiVip string, machineCidr string, inventories ...string) *models.Cluster {
 		return &models.Cluster{
-			APIVip:             strfmt.IPv4(apiVip),
+			APIVip:             apiVip,
 			MachineNetworkCidr: machineCidr,
 			Hosts:              createHosts(inventories...),
 		}

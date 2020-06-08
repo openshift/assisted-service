@@ -278,7 +278,7 @@ func defaultInventory() string {
 	return string(b)
 }
 
-func addTestCluster(clusterID strfmt.UUID, apiVip, ingressVip strfmt.IPv4, machineCidr string, db *gorm.DB) {
+func addTestCluster(clusterID strfmt.UUID, apiVip, ingressVip string, machineCidr string, db *gorm.DB) {
 	cluster := models.Cluster{
 		ID:                 &clusterID,
 		APIVip:             apiVip,
