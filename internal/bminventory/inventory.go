@@ -445,6 +445,7 @@ func getImageName(clusterID strfmt.UUID) string {
 type clusterInstaller struct {
 	ctx    context.Context
 	b      *bareMetalInventory
+	log    logrus.FieldLogger
 	params installer.InstallClusterParams
 }
 
@@ -460,7 +461,7 @@ func (c *clusterInstaller) verifyClusterNetworkConfig(cluster *models.Cluster, t
 	if err = common.VerifyVips(cluster, true); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	machineCidrHosts, err := common.GetMachineCIDRHosts(cluster)
+	machineCidrHosts, err := common.GetMachineCIDRHosts(c.log, cluster)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -546,6 +547,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	err = b.db.Transaction(clusterInstaller{
 		ctx:    ctx,
 		b:      b,
+		log:    log,
 		params: params,
 	}.install)
 
@@ -585,7 +587,7 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster model
 func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster models.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 
-	cfg, err := installcfg.GetInstallConfig(&cluster)
+	cfg, err := installcfg.GetInstallConfig(log, &cluster)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get install config for cluster %s", cluster.ID)
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
@@ -746,11 +748,11 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	cluster.HostNetworks = calculateHostNetworks(&cluster)
+	cluster.HostNetworks = calculateHostNetworks(log, &cluster)
 	return installer.NewUpdateClusterCreated().WithPayload(&cluster)
 }
 
-func calculateHostNetworks(cluster *models.Cluster) []*models.HostNetwork {
+func calculateHostNetworks(log logrus.FieldLogger, cluster *models.Cluster) []*models.HostNetwork {
 	cidrHostsMap := make(map[string][]strfmt.UUID)
 	for _, h := range cluster.Hosts {
 		if h.Inventory == "" {
@@ -759,14 +761,14 @@ func calculateHostNetworks(cluster *models.Cluster) []*models.HostNetwork {
 		var inventory models.Inventory
 		err := json.Unmarshal([]byte(h.Inventory), &inventory)
 		if err != nil {
-			logrus.WithError(err).Warnf("Could not parse inventory of host %s", *h.ID)
+			log.WithError(err).Warnf("Could not parse inventory of host %s", *h.ID)
 			continue
 		}
 		for _, intf := range inventory.Interfaces {
 			for _, ipv4Address := range intf.IPV4Addresses {
 				_, ipnet, err := net.ParseCIDR(ipv4Address)
 				if err != nil {
-					logrus.WithError(err).Warnf("Could not parse CIDR %s", ipv4Address)
+					log.WithError(err).Warnf("Could not parse CIDR %s", ipv4Address)
 					continue
 				}
 				cidr := ipnet.String()
@@ -797,13 +799,14 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 }
 
 func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	var cluster models.Cluster
 	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		// TODO: check for the right error
 		return installer.NewGetClusterNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
-	cluster.HostNetworks = calculateHostNetworks(&cluster)
+	cluster.HostNetworks = calculateHostNetworks(log, &cluster)
 	return installer.NewGetClusterOK().WithPayload(&cluster)
 }
 

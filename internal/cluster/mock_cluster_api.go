@@ -6,11 +6,12 @@ package cluster
 
 import (
 	context "context"
+	reflect "reflect"
+
 	models "github.com/filanov/bm-inventory/models"
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
-	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface

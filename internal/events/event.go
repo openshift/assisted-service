@@ -44,7 +44,7 @@ func New(db *gorm.DB, log logrus.FieldLogger) *Events {
 	}
 }
 
-func addEventToDB(db *gorm.DB, id string, message string, t time.Time, requestID string) error {
+func addEventToDB(log logrus.FieldLogger, db *gorm.DB, id string, message string, t time.Time, requestID string) error {
 	tt := strfmt.DateTime(t)
 	uid := strfmt.UUID(id)
 	rid := strfmt.UUID(requestID)
@@ -58,7 +58,7 @@ func addEventToDB(db *gorm.DB, id string, message string, t time.Time, requestID
 	}
 
 	if err := db.Create(&e).Error; err != nil {
-		logrus.WithError(err).Error("Error adding event")
+		log.WithError(err).Error("Error adding event")
 	}
 	return nil
 }
@@ -77,7 +77,7 @@ func (e *Events) AddEvent(ctx context.Context, entityID string, msg string, even
 	}()
 
 	requestID := requestid.FromContext(ctx)
-	err := addEventToDB(tx, entityID, msg, eventTime, requestID)
+	err := addEventToDB(log, tx, entityID, msg, eventTime, requestID)
 	if err != nil {
 		return
 	}
@@ -85,7 +85,7 @@ func (e *Events) AddEvent(ctx context.Context, entityID string, msg string, even
 	// Since we don't keep different tables to support multiple IDs for a single event,
 	// the workaround is to add to the DB a new event for every ID this event relates to
 	for _, entity := range otherEntities {
-		err := addEventToDB(tx, entity, msg, eventTime, requestID)
+		err := addEventToDB(log, tx, entity, msg, eventTime, requestID)
 		if err != nil {
 			return
 		}

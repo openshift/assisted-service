@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"sort"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/filanov/bm-inventory/internal/common"
 
 	"github.com/alecthomas/units"
@@ -26,8 +28,11 @@ type Validator interface {
 	GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error)
 }
 
-func NewValidator(cfg ValidatorCfg) Validator {
-	return &validator{ValidatorCfg: cfg}
+func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg) Validator {
+	return &validator{
+		ValidatorCfg: cfg,
+		log:          log,
+	}
 }
 
 type ValidatorCfg struct {
@@ -42,6 +47,7 @@ type ValidatorCfg struct {
 
 type validator struct {
 	ValidatorCfg
+	log logrus.FieldLogger
 }
 
 func (v *validator) IsSufficient(host *models.Host, cluster *models.Cluster) (*IsSufficientReply, error) {
@@ -83,7 +89,7 @@ func (v *validator) IsSufficient(host *models.Host, cluster *models.Cluster) (*I
 			"expected at least 1 not removable, not readonly disk of size more than <%d>", minDiskSizeRequired)
 	}
 
-	if !common.IsHostInMachineNetCidr(cluster, host) {
+	if !common.IsHostInMachineNetCidr(v.log, cluster, host) {
 		reason += fmt.Sprintf(", host %s does not belong to cluster machine network %s, The machine network is set by configuring the API-VIP", *host.ID, cluster.MachineNetworkCidr)
 	}
 	if len(reason) == 0 {

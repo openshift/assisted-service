@@ -3,6 +3,8 @@ package cluster
 import (
 	context "context"
 
+	logutil "github.com/filanov/bm-inventory/pkg/log"
+
 	"github.com/go-openapi/strfmt"
 
 	"github.com/pkg/errors"
@@ -27,11 +29,12 @@ type installer struct {
 }
 
 func (i *installer) Install(ctx context.Context, c *models.Cluster, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, i.log)
 
 	switch swag.StringValue(c.Status) {
 	case "":
 	case clusterStatusReady:
-		logrus.Infof("cluster %s is starting installation", c.ID)
+		log.Infof("cluster %s is starting installation", c.ID)
 	case clusterStatusInsufficient:
 		return errors.Errorf("cluster %s is missing the resources to be installed", c.ID)
 	case clusterStatusInstalling:

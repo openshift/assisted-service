@@ -77,18 +77,18 @@ func VerifyVips(cluster *models.Cluster, mustExist bool) error {
 	return err
 }
 
-func belongsToNetwork(h *models.Host, machineIpnet *net.IPNet) bool {
+func belongsToNetwork(log logrus.FieldLogger, h *models.Host, machineIpnet *net.IPNet) bool {
 	var inventory models.Inventory
 	err := json.Unmarshal([]byte(h.Inventory), &inventory)
 	if err != nil {
-		logrus.WithError(err).Warnf("Error unmarshalling host %s inventory %s", h.ID, h.Inventory)
+		log.WithError(err).Warnf("Error unmarshalling host %s inventory %s", h.ID, h.Inventory)
 		return false
 	}
 	for _, intf := range inventory.Interfaces {
 		for _, ipv4addr := range intf.IPV4Addresses {
 			ip, _, err := net.ParseCIDR(ipv4addr)
 			if err != nil {
-				logrus.WithError(err).Warnf("Could not parse cidr %s", ipv4addr)
+				log.WithError(err).Warnf("Could not parse cidr %s", ipv4addr)
 				continue
 			}
 			if machineIpnet.Contains(ip) {
@@ -99,7 +99,7 @@ func belongsToNetwork(h *models.Host, machineIpnet *net.IPNet) bool {
 	return false
 }
 
-func GetMachineCIDRHosts(cluster *models.Cluster) ([]*models.Host, error) {
+func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *models.Cluster) ([]*models.Host, error) {
 	if cluster.MachineNetworkCidr == "" {
 		return nil, errors.New("Machine network CIDR was not set in cluster")
 	}
@@ -109,17 +109,17 @@ func GetMachineCIDRHosts(cluster *models.Cluster) ([]*models.Host, error) {
 	}
 	ret := make([]*models.Host, 0)
 	for _, h := range cluster.Hosts {
-		if belongsToNetwork(h, machineIpnet) {
+		if belongsToNetwork(log, h, machineIpnet) {
 			ret = append(ret, h)
 		}
 	}
 	return ret, nil
 }
 
-func IsHostInMachineNetCidr(cluster *models.Cluster, host *models.Host) bool {
+func IsHostInMachineNetCidr(log logrus.FieldLogger, cluster *models.Cluster, host *models.Host) bool {
 	_, machineIpnet, err := net.ParseCIDR(cluster.MachineNetworkCidr)
 	if err != nil {
 		return false
 	}
-	return belongsToNetwork(host, machineIpnet)
+	return belongsToNetwork(log, host, machineIpnet)
 }

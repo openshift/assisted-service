@@ -129,17 +129,17 @@ func getBasicInstallConfig(cluster *models.Cluster) *InstallerConfigBaremetal {
 }
 
 // [TODO] - remove once we decide to use specific values from the hosts of the cluster
-func getDummyMAC(dummyMAC string, count int) (string, error) {
+func getDummyMAC(log logrus.FieldLogger, dummyMAC string, count int) (string, error) {
 	hwMac, err := net.ParseMAC(dummyMAC)
 	if err != nil {
-		logrus.Warn("Failed to parse dummyMac")
+		log.Warn("Failed to parse dummyMac")
 		return "", err
 	}
 	hwMac[len(hwMac)-1] = hwMac[len(hwMac)-1] + byte(count)
 	return hwMac.String(), nil
 }
 
-func setBMPlatformInstallconfig(cluster *models.Cluster, cfg *InstallerConfigBaremetal) error {
+func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *models.Cluster, cfg *InstallerConfigBaremetal) error {
 	// set hosts
 	numMasters := countHostsByRole(cluster, "master")
 	numWorkers := countHostsByRole(cluster, "worker")
@@ -152,7 +152,7 @@ func setBMPlatformInstallconfig(cluster *models.Cluster, cfg *InstallerConfigBar
 	dummyPort := 6230
 
 	for i := range hosts {
-		logrus.Infof("Setting master, host %d, master count %d", i, masterCount)
+		log.Infof("Setting master, host %d, master count %d", i, masterCount)
 		if i >= numMasters {
 			hosts[i].Name = fmt.Sprintf("openshift-worker-%d", workerCount)
 			hosts[i].Role = "worker"
@@ -167,9 +167,9 @@ func setBMPlatformInstallconfig(cluster *models.Cluster, cfg *InstallerConfigBar
 			Username: "admin",
 			Password: "rackattack",
 		}
-		hwMac, err := getDummyMAC(dummyMAC, i)
+		hwMac, err := getDummyMAC(log, dummyMAC, i)
 		if err != nil {
-			logrus.Warn("Failed to parse dummyMac")
+			log.Warn("Failed to parse dummyMac")
 			return err
 		}
 		hosts[i].BootMACAddress = hwMac
@@ -188,9 +188,9 @@ func setBMPlatformInstallconfig(cluster *models.Cluster, cfg *InstallerConfigBar
 	return nil
 }
 
-func GetInstallConfig(cluster *models.Cluster) ([]byte, error) {
+func GetInstallConfig(log logrus.FieldLogger, cluster *models.Cluster) ([]byte, error) {
 	cfg := getBasicInstallConfig(cluster)
-	err := setBMPlatformInstallconfig(cluster, cfg)
+	err := setBMPlatformInstallconfig(log, cluster, cfg)
 	if err != nil {
 		return nil, err
 	}

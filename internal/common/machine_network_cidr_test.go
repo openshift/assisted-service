@@ -2,6 +2,9 @@ package common
 
 import (
 	"encoding/json"
+	"testing"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/filanov/bm-inventory/models"
 	. "github.com/onsi/ginkgo"
@@ -79,14 +82,14 @@ var _ = Describe("inventory", func() {
 			cluster := createCluster("1.2.5.6", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			_, err := GetMachineCIDRHosts(cluster)
+			_, err := GetMachineCIDRHosts(logrus.New(), cluster)
 			Expect(err).To(HaveOccurred())
 		})
 		It("No matching Machine CIDR", func() {
 			cluster := createCluster("1.2.5.6", "1.1.0.0/16",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			hosts, err := GetMachineCIDRHosts(cluster)
+			hosts, err := GetMachineCIDRHosts(logrus.New(), cluster)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(hosts).To(BeEmpty())
 		})
@@ -95,7 +98,7 @@ var _ = Describe("inventory", func() {
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")),
 				createInventory(createInterface("1.2.4.79/23")))
-			hosts, err := GetMachineCIDRHosts(cluster)
+			hosts, err := GetMachineCIDRHosts(logrus.New(), cluster)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(hosts).To(Equal([]*models.Host{
 				cluster.Hosts[0],
@@ -105,3 +108,8 @@ var _ = Describe("inventory", func() {
 		})
 	})
 })
+
+func TestMachineNetworkCidr(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Machine network cider Suite")
+}

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/alecthomas/units"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -15,7 +17,7 @@ import (
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Subsystem Suite")
+	RunSpecs(t, "Validator tests Suite")
 }
 
 var _ = Describe("hardware_validator", func() {
@@ -30,7 +32,7 @@ var _ = Describe("hardware_validator", func() {
 	BeforeEach(func() {
 		var cfg ValidatorCfg
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
-		hwvalidator = NewValidator(cfg)
+		hwvalidator = NewValidator(logrus.New(), cfg)
 		id := strfmt.UUID(uuid.New().String())
 		clusterID := strfmt.UUID(uuid.New().String())
 		host = &models.Host{ID: &id, ClusterID: clusterID}
