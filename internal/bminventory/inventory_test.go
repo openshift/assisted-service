@@ -707,7 +707,7 @@ var _ = Describe("KubeConfig download", func() {
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: clusterID,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewDownloadClusterKubeconfigInternalServerError()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewDownloadClusterKubeconfigConflict()))
 	})
 	It("kubeconfig download happy flow", func() {
 		status := ClusterStatusInstalled

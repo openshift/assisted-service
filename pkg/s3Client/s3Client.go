@@ -51,11 +51,21 @@ func (s s3Client) PushDataToS3(ctx context.Context, data []byte, fileName string
 func (s s3Client) DownloadFileFromS3(ctx context.Context, fileName string, s3Bucket string) (io.ReadCloser, error) {
 	log := logutil.FromContext(ctx, s.log)
 	log.Infof("Downloading %s from bucket %s", fileName, s3Bucket)
+	exists, err := s.DoesObjectExists(ctx, fileName, s3Bucket)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		log.Warnf("%s doesn't exists in bucket %s", fileName, s3Bucket)
+		return nil, errors.Errorf("%s doesn't exist", fileName)
+	}
+
 	resp, err := s.client.GetObject(s3Bucket, fileName, minio.GetObjectOptions{})
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get %s file", fileName)
 		return nil, err
 	}
+
 	return resp, nil
 }
 

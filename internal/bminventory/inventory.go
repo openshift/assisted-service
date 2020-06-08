@@ -1207,8 +1207,8 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 	respBody, err := b.s3Client.DownloadFileFromS3(ctx, fmt.Sprintf("%s/%s", params.ClusterID, kubeconfig), b.S3Bucket)
 
 	if err != nil {
-		return installer.NewDownloadClusterKubeconfigInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		return installer.NewDownloadClusterKubeconfigConflict().
+			WithPayload(common.GenerateError(http.StatusConflict, errors.Wrap(err, "failed to download kubeconfig")))
 	}
 	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig)
 }

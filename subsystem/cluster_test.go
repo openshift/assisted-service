@@ -450,12 +450,20 @@ var _ = Describe("cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(sni.Size()).ShouldNot(Equal(0))
 
+				By("Trying to download kubeconfig file before it exists")
+				file, err := ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = bmclient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
+				Expect(err).Should(HaveOccurred())
+				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterKubeconfigConflict())))
+
+				By("Upload ingress ca")
 				res, err := bmclient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(reflect.TypeOf(res)).Should(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
 
 				// Download kubeconfig after uploading
-				file, err := ioutil.TempFile("", "tmp")
+				file, err = ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = bmclient.Installer.DownloadClusterKubeconfig(ctx, &installer.DownloadClusterKubeconfigParams{ClusterID: clusterID}, file)
 				Expect(err).NotTo(HaveOccurred())
