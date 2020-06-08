@@ -958,7 +958,7 @@ definitions:
         default: "172.30.0.0/16"
       ingress_vip:
         type: string
-        format: ipv4
+        pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
         description: Virtual IP used for cluster ingress traffic.
       pull_secret:
         type: string
@@ -996,12 +996,12 @@ definitions:
         x-nullable: true
       api_vip:
         type: string
-        format: ipv4
+        pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
         description: Virtual IP used to reach the OpenShift cluster API.
         x-nullable: true
       ingress_vip:
         type: string
-        format: ipv4
+        pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
         description: Virtual IP used for cluster ingress traffic.
         x-nullable: true
       pull_secret:
@@ -1077,7 +1077,7 @@ definitions:
         pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
       api_vip:
         type: string
-        format: ipv4
+        pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
         description: Virtual IP used to reach the OpenShift cluster API.
       machine_network_cidr:
         type: string
@@ -1085,7 +1085,7 @@ definitions:
         pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
       ingress_vip:
         type: string
-        format: ipv4
+        pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
         description: Virtual IP used for cluster ingress traffic.
       pull_secret:
         type: string
