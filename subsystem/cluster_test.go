@@ -148,6 +148,22 @@ func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state strin
 	Expect(swag.StringValue(c.Status)).Should(Equal(state))
 }
 
+func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUID, state string, timeout time.Duration) {
+	for start := time.Now(); time.Since(start) < timeout; {
+		rep, err := bmclient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
+		Expect(err).NotTo(HaveOccurred())
+		c := rep.GetPayload()
+		if swag.StringValue(c.Status) == state {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	rep, err := bmclient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
+	Expect(err).NotTo(HaveOccurred())
+	c := rep.GetPayload()
+	Expect(swag.StringValue(c.Status)).Should(Equal(state))
+}
+
 func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, progress string) {
 	ctx := context.Background()
 	installProgress := models.HostInstallProgressParams(progress)
@@ -217,7 +233,8 @@ var _ = Describe("cluster install", func() {
 		cluster = registerClusterReply.GetPayload()
 	})
 
-	generateHWPostStepReply := func(h *models.Host, hwInfo *models.Inventory) {
+	generateHWPostStepReply := func(h *models.Host, hwInfo *models.Inventory, hostname string) {
+		hwInfo.Hostname = hostname
 		hw, err := json.Marshal(&hwInfo)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
@@ -230,6 +247,28 @@ var _ = Describe("cluster install", func() {
 			},
 		})
 		Expect(err).ShouldNot(HaveOccurred())
+	}
+
+	register3nodes := func(clusterID strfmt.UUID) []*models.Host {
+		h1 := registerHost(clusterID)
+		generateHWPostStepReply(h1, validHwInfo, "h1")
+		h2 := registerHost(clusterID)
+		generateHWPostStepReply(h2, validHwInfo, "h2")
+		h3 := registerHost(clusterID)
+		generateHWPostStepReply(h3, validHwInfo, "h3")
+
+		apiVip := "1.2.3.5"
+		ingressVip := "1.2.3.6"
+		// All hosts are masters, one in discovering state  -> state must be insufficient
+		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				APIVip:     &apiVip,
+				IngressVip: &ingressVip,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		return []*models.Host{h1, h2, h3}
 	}
 
 	Context("install cluster cases", func() {
@@ -297,7 +336,7 @@ var _ = Describe("cluster install", func() {
 		It("installation_conflicts", func() {
 			By("try to install host with host without a role")
 			host := registerHost(clusterID)
-			generateHWPostStepReply(host, validHwInfo)
+			generateHWPostStepReply(host, validHwInfo, "host")
 			_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewInstallClusterConflict())))
 			By("install after disabling host without a role")
@@ -488,24 +527,17 @@ var _ = Describe("cluster install", func() {
 		Expect(swag.StringValue(cluster.Status)).Should(Equal("insufficient"))
 		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
-		h1 := registerHost(clusterID)
-		generateHWPostStepReply(h1, validHwInfo)
-		h2 := registerHost(clusterID)
-		generateHWPostStepReply(h2, validHwInfo)
-		h3 := registerHost(clusterID)
-		generateHWPostStepReply(h3, validHwInfo)
+		hosts := register3nodes(clusterID)
+
 		h4 := registerHost(clusterID)
-		apiVip := "1.2.3.5"
-		ingressVip := "1.2.3.6"
+
 		// All hosts are masters, one in discovering state  -> state must be insufficient
 		cluster, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h1.ID, Role: "master"},
-				{ID: *h2.ID, Role: "master"},
+				{ID: *hosts[0].ID, Role: "master"},
+				{ID: *hosts[1].ID, Role: "master"},
 				{ID: *h4.ID, Role: "master"},
 			},
-				APIVip:     &apiVip,
-				IngressVip: &ingressVip,
 			},
 			ClusterID: clusterID,
 		})
@@ -516,7 +548,7 @@ var _ = Describe("cluster install", func() {
 		// Adding one known host and setting as master -> state must be ready
 		cluster, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h3.ID, Role: "master"},
+				{ID: *hosts[2].ID, Role: "master"},
 			}},
 			ClusterID: clusterID,
 		})
@@ -533,18 +565,18 @@ var _ = Describe("cluster install", func() {
 		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
 		wh1 := registerHost(clusterID)
-		generateHWPostStepReply(wh1, validHwInfo)
+		generateHWPostStepReply(wh1, validHwInfo, "wh1")
 		wh2 := registerHost(clusterID)
-		generateHWPostStepReply(wh2, validHwInfo)
+		generateHWPostStepReply(wh2, validHwInfo, "wh2")
 		wh3 := registerHost(clusterID)
-		generateHWPostStepReply(wh3, validHwInfo)
+		generateHWPostStepReply(wh3, validHwInfo, "wh3")
 
 		mh1 := registerHost(clusterID)
-		generateHWPostStepReply(mh1, validHwInfo)
+		generateHWPostStepReply(mh1, validHwInfo, "mh1")
 		mh2 := registerHost(clusterID)
-		generateHWPostStepReply(mh2, validHwInfo)
+		generateHWPostStepReply(mh2, validHwInfo, "mh2")
 		mh3 := registerHost(clusterID)
-		generateHWPostStepReply(mh3, validHwInfo)
+		generateHWPostStepReply(mh3, validHwInfo, "mh3")
 
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
@@ -665,7 +697,7 @@ var _ = Describe("cluster install", func() {
 			},
 		}
 		h1 := registerHost(clusterID)
-		generateHWPostStepReply(h1, hwInfo)
+		generateHWPostStepReply(h1, hwInfo, "h1")
 		apiVip := "1.2.3.8"
 		ingressVip := "1.2.3.9"
 		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -683,11 +715,11 @@ var _ = Describe("cluster install", func() {
 			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
 		}
 		h2 := registerHost(clusterID)
-		generateHWPostStepReply(h2, hwInfo)
+		generateHWPostStepReply(h2, hwInfo, "h2")
 		h3 := registerHost(clusterID)
-		generateHWPostStepReply(h3, hwInfo)
+		generateHWPostStepReply(h3, hwInfo, "h3")
 		h4 := registerHost(clusterID)
-		generateHWPostStepReply(h4, hwInfo)
+		generateHWPostStepReply(h4, hwInfo, "h4")
 
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
@@ -701,6 +733,41 @@ var _ = Describe("cluster install", func() {
 		Expect(err).NotTo(HaveOccurred())
 		h1 = getHost(clusterID, *h1.ID)
 		Expect(*h1.Status).Should(Equal("insufficient"))
+
+	})
+	It("unique hostname validation", func() {
+		clusterID := *cluster.ID
+		hosts := register3nodes(clusterID)
+		h1 := getHost(clusterID, *hosts[0].ID)
+		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
+
+		By("Registering host with same hostname")
+		h4 := registerHost(clusterID)
+		generateHWPostStepReply(h4, validHwInfo, "h1")
+		h4 = getHost(clusterID, *h4.ID)
+		Expect(*h4.Status).Should(Equal("insufficient"))
+		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
+		h1 = getHost(clusterID, *h1.ID)
+		Expect(*h1.Status).Should(Equal("insufficient"))
+
+		By("Verifying install command")
+		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *h1.ID, Role: "master"},
+				{ID: *hosts[1].ID, Role: "master"},
+				{ID: *hosts[2].ID, Role: "master"},
+				{ID: *h4.ID, Role: "worker"},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		Expect(err).Should(HaveOccurred())
+
+		By("Changing hostname, verify hosts are known now")
+		generateHWPostStepReply(h4, validHwInfo, "h4")
+		waitForHostState(ctx, clusterID, *h4.ID, "known", 60*time.Second)
+		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
 	})
 })
 
@@ -784,8 +851,9 @@ var _ = Describe("cluster install, with default network params", func() {
 func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) {
 	ctx := context.Background()
 
-	generateHWPostStepReply := func(h *models.Host, hwInfo *models.Inventory) {
-		hw, err := json.Marshal(hwInfo)
+	generateHWPostStepReply := func(h *models.Host, hwInfo *models.Inventory, hostname string) {
+		hwInfo.Hostname = hostname
+		hw, err := json.Marshal(&hwInfo)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: h.ClusterID,
@@ -799,8 +867,9 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) {
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 	for i := 0; i < numHosts; i++ {
+		hostname := fmt.Sprintf("h%d", i)
 		host := registerHost(clusterID)
-		generateHWPostStepReply(host, validHwInfo)
+		generateHWPostStepReply(host, validHwInfo, hostname)
 		var role string
 		if i < 3 {
 			role = "master"
