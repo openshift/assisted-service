@@ -50,6 +50,8 @@ var Options struct {
 
 func main() {
 	log := logrus.New()
+	log.SetReportCaller(true)
+
 	err := envconfig.Process("myapp", &Options)
 	if err != nil {
 		log.Fatal(err.Error())
