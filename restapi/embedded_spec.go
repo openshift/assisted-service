@@ -1141,7 +1141,7 @@ func init() {
         "api_vip": {
           "description": "Virtual IP used to reach the OpenShift cluster API.",
           "type": "string",
-          "format": "ipv4"
+          "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
@@ -1198,7 +1198,7 @@ func init() {
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
-          "format": "ipv4"
+          "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
         "install_completed_at": {
           "description": "The time that this cluster completed installation.",
@@ -1311,7 +1311,7 @@ func init() {
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
-          "format": "ipv4"
+          "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
         "name": {
           "description": "Name of the OpenShift cluster.",
@@ -1352,7 +1352,7 @@ func init() {
         "api_vip": {
           "description": "Virtual IP used to reach the OpenShift cluster API.",
           "type": "string",
-          "format": "ipv4",
+          "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
         },
         "base_dns_domain": {
@@ -1398,7 +1398,7 @@ func init() {
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
-          "format": "ipv4",
+          "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
         },
         "name": {
@@ -3270,7 +3270,7 @@ func init() {
         "api_vip": {
           "description": "Virtual IP used to reach the OpenShift cluster API.",
           "type": "string",
-          "format": "ipv4"
+          "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
@@ -3327,7 +3327,7 @@ func init() {
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
-          "format": "ipv4"
+          "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
         "install_completed_at": {
           "description": "The time that this cluster completed installation.",
@@ -3440,7 +3440,7 @@ func init() {
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
-          "format": "ipv4"
+          "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
         "name": {
           "description": "Name of the OpenShift cluster.",
@@ -3481,7 +3481,7 @@ func init() {
         "api_vip": {
           "description": "Virtual IP used to reach the OpenShift cluster API.",
           "type": "string",
-          "format": "ipv4",
+          "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
         },
         "base_dns_domain": {
@@ -3514,7 +3514,7 @@ func init() {
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
-          "format": "ipv4",
+          "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
         },
         "name": {

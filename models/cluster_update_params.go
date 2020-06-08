@@ -21,8 +21,8 @@ import (
 type ClusterUpdateParams struct {
 
 	// Virtual IP used to reach the OpenShift cluster API.
-	// Format: ipv4
-	APIVip *strfmt.IPv4 `json:"api_vip,omitempty"`
+	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
+	APIVip *string `json:"api_vip,omitempty"`
 
 	// Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
 	BaseDNSDomain *string `json:"base_dns_domain,omitempty"`
@@ -40,8 +40,8 @@ type ClusterUpdateParams struct {
 	HostsRoles []*ClusterUpdateParamsHostsRolesItems0 `json:"hosts_roles" gorm:"type:varchar(64)[]"`
 
 	// Virtual IP used for cluster ingress traffic.
-	// Format: ipv4
-	IngressVip *strfmt.IPv4 `json:"ingress_vip,omitempty"`
+	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
+	IngressVip *string `json:"ingress_vip,omitempty"`
 
 	// OpenShift cluster name
 	Name *string `json:"name,omitempty"`
@@ -97,7 +97,7 @@ func (m *ClusterUpdateParams) validateAPIVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.FormatOf("api_vip", "body", "ipv4", m.APIVip.String(), formats); err != nil {
+	if err := validate.Pattern("api_vip", "body", string(*m.APIVip), `^(([0-9]{1,3}\.){3}[0-9]{1,3})?$`); err != nil {
 		return err
 	}
 
@@ -165,7 +165,7 @@ func (m *ClusterUpdateParams) validateIngressVip(formats strfmt.Registry) error 
 		return nil
 	}
 
-	if err := validate.FormatOf("ingress_vip", "body", "ipv4", m.IngressVip.String(), formats); err != nil {
+	if err := validate.Pattern("ingress_vip", "body", string(*m.IngressVip), `^(([0-9]{1,3}\.){3}[0-9]{1,3})?$`); err != nil {
 		return err
 	}
 

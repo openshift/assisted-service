@@ -32,8 +32,8 @@ type ClusterCreateParams struct {
 	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
 
 	// Virtual IP used for cluster ingress traffic.
-	// Format: ipv4
-	IngressVip strfmt.IPv4 `json:"ingress_vip,omitempty"`
+	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
+	IngressVip string `json:"ingress_vip,omitempty"`
 
 	// Name of the OpenShift cluster.
 	// Required: true
@@ -125,7 +125,7 @@ func (m *ClusterCreateParams) validateIngressVip(formats strfmt.Registry) error 
 		return nil
 	}
 
-	if err := validate.FormatOf("ingress_vip", "body", "ipv4", m.IngressVip.String(), formats); err != nil {
+	if err := validate.Pattern("ingress_vip", "body", string(m.IngressVip), `^(([0-9]{1,3}\.){3}[0-9]{1,3})?$`); err != nil {
 		return err
 	}
 
