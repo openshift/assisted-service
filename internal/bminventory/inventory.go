@@ -507,6 +507,24 @@ func (c *clusterInstaller) installHosts(cluster *models.Cluster, tx *gorm.DB) er
 	return nil
 }
 
+func (c clusterInstaller) validateHostsInventory(cluster *models.Cluster) error {
+	for _, chost := range cluster.Hosts {
+		sufficient, err := c.b.hostApi.ValidateCurrentInventory(chost, cluster)
+		if err != nil {
+			msg := fmt.Sprintf("failed to validate host <%s> in cluster: %s", chost.ID.String(), cluster.ID.String())
+			c.b.log.WithError(err).Warn(msg)
+			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, msg))
+		}
+		if !sufficient.IsSufficient {
+			msg := fmt.Sprintf("host <%s>  failed to pass hardware validation in cluster: %s. Reason %s",
+				chost.ID.String(), cluster.ID.String(), sufficient.Reason)
+			c.b.log.Warn(msg)
+			return common.NewApiError(http.StatusConflict, errors.Errorf(msg))
+		}
+	}
+	return nil
+}
+
 func (c clusterInstaller) install(tx *gorm.DB) error {
 	var cluster models.Cluster
 	var err error
@@ -547,13 +565,21 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 			log.Error("update cluster failed")
 		}
 	}()
-	err = b.db.Transaction(clusterInstaller{
+
+	cInstaller := clusterInstaller{
 		ctx:    ctx,
 		b:      b,
 		log:    log,
 		params: params,
-	}.install)
+	}
+	if err = b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+	if err = cInstaller.validateHostsInventory(&cluster); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 
+	err = b.db.Transaction(cInstaller.install)
 	if err != nil {
 		log.WithError(err).Warn("Cluster install")
 		return common.GenerateErrorResponder(err)

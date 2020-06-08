@@ -36,6 +36,7 @@ type StateAPI interface {
 
 type SpecificHardwareParams interface {
 	GetHostValidDisks(h *models.Host) ([]*models.Disk, error)
+	ValidateCurrentInventory(host *models.Host, cluster *models.Cluster) (*hardware.IsSufficientReply, error)
 }
 
 const (
@@ -213,6 +214,10 @@ func (m *Manager) GetNextSteps(ctx context.Context, host *models.Host) (models.S
 
 func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
 	return m.hwValidator.GetHostValidDisks(host)
+}
+
+func (m *Manager) ValidateCurrentInventory(host *models.Host, cluster *models.Cluster) (*hardware.IsSufficientReply, error) {
+	return m.hwValidator.IsSufficient(host, cluster)
 }
 
 func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress string) error {
