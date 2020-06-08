@@ -6,11 +6,11 @@ package host
 
 import (
 	context "context"
-	reflect "reflect"
-
+	hardware "github.com/filanov/bm-inventory/internal/hardware"
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
+	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface
@@ -177,6 +177,21 @@ func (m *MockSpecificHardwareParams) GetHostValidDisks(h *models.Host) ([]*model
 func (mr *MockSpecificHardwareParamsMockRecorder) GetHostValidDisks(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockSpecificHardwareParams)(nil).GetHostValidDisks), h)
+}
+
+// ValidateCurrentInventory mocks base method
+func (m *MockSpecificHardwareParams) ValidateCurrentInventory(host *models.Host, cluster *models.Cluster) (*hardware.IsSufficientReply, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateCurrentInventory", host, cluster)
+	ret0, _ := ret[0].(*hardware.IsSufficientReply)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateCurrentInventory indicates an expected call of ValidateCurrentInventory
+func (mr *MockSpecificHardwareParamsMockRecorder) ValidateCurrentInventory(host, cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCurrentInventory", reflect.TypeOf((*MockSpecificHardwareParams)(nil).ValidateCurrentInventory), host, cluster)
 }
 
 // MockAPI is a mock of API interface
@@ -349,6 +364,21 @@ func (m *MockAPI) GetHostValidDisks(h *models.Host) ([]*models.Disk, error) {
 func (mr *MockAPIMockRecorder) GetHostValidDisks(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockAPI)(nil).GetHostValidDisks), h)
+}
+
+// ValidateCurrentInventory mocks base method
+func (m *MockAPI) ValidateCurrentInventory(host *models.Host, cluster *models.Cluster) (*hardware.IsSufficientReply, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateCurrentInventory", host, cluster)
+	ret0, _ := ret[0].(*hardware.IsSufficientReply)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateCurrentInventory indicates an expected call of ValidateCurrentInventory
+func (mr *MockAPIMockRecorder) ValidateCurrentInventory(host, cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCurrentInventory", reflect.TypeOf((*MockAPI)(nil).ValidateCurrentInventory), host, cluster)
 }
 
 // UpdateInstallProgress mocks base method
