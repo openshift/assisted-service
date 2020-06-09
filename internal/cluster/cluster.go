@@ -51,8 +51,8 @@ type API interface {
 	DownloadKubeconfig(c *models.Cluster) (err error)
 	GetCredentials(c *models.Cluster) (err error)
 	UploadIngressCert(c *models.Cluster) (err error)
-	VerifyRegisterHost(c *models.Cluster) (err error)
 	VerifyClusterUpdatability(c *models.Cluster) (err error)
+	AcceptRegistration(c *models.Cluster) (err error)
 }
 
 type Manager struct {
@@ -204,7 +204,7 @@ func (m *Manager) UploadIngressCert(c *models.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) VerifyRegisterHost(c *models.Cluster) (err error) {
+func (m *Manager) AcceptRegistration(c *models.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{clusterStatusInsufficient, clusterStatusReady}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {

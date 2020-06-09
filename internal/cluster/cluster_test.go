@@ -306,7 +306,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 		cluster := models.Cluster{ID: &id, Status: swag.String(clusterStatus)}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		cluster = geCluster(id, db)
-		err := clusterApi.VerifyRegisterHost(&cluster)
+		err := clusterApi.AcceptRegistration(&cluster)
 		if expectErr {
 			Expect(err.Error()).Should(Equal(errors.Errorf(errTemplate, id, clusterStatus).Error()))
 		} else {
@@ -316,7 +316,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 	It("Register host while cluster in ready state", func() {
 		checkVerifyRegisterHost(clusterStatusReady, false)
 	})
-	It("Register host while cluster in ready state", func() {
+	It("Register host while cluster in insufficient state", func() {
 		checkVerifyRegisterHost(clusterStatusInsufficient, false)
 	})
 	It("Register host while cluster in installing state", func() {

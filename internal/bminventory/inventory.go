@@ -864,11 +864,12 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	// In case host doesn't exists check if the cluster accept new hosts registration
 	if err != nil && gorm.IsRecordNotFoundError(err) {
-		if err := b.clusterApi.VerifyRegisterHost(&cluster); err != nil {
+
+		if err := b.clusterApi.AcceptRegistration(&cluster); err != nil {
 			log.WithError(err).Errorf("failed to register host <%s> to cluster %s due to: %s",
 				params.NewHostParams.HostID, params.ClusterID.String(), err.Error())
 			return installer.NewRegisterHostForbidden().
-				WithPayload(common.GenerateError(http.StatusBadRequest, err))
+				WithPayload(common.GenerateError(http.StatusForbidden, err))
 		}
 	}
 
