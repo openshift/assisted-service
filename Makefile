@@ -55,7 +55,7 @@ update-expirer: build
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.s3-object-expirer . -t $(OBJEXP)
 	docker push $(OBJEXP)
 
-deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-service
+deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-service deploy-expirer
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
