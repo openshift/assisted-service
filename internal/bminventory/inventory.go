@@ -353,8 +353,13 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	log.Infof("prepare image for cluster %s", params.ClusterID)
 	var cluster models.Cluster
 
+	txSuccess := false
 	tx := b.db.Begin()
 	defer func() {
+		if !txSuccess {
+			log.Error("generate cluster ISO failed")
+			tx.Rollback()
+		}
 		if r := recover(); r != nil {
 			log.Error("generate cluster ISO failed")
 			tx.Rollback()
@@ -369,7 +374,6 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 
 	if err := tx.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
-		tx.Rollback()
 		return installer.NewGenerateClusterISONotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
@@ -382,7 +386,6 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	previousCreatedAt := time.Time(cluster.ImageInfo.CreatedAt)
 	if previousCreatedAt.Add(10 * time.Second).After(now) {
 		log.Error("request came too soon after previous request")
-		tx.Rollback()
 		return installer.NewGenerateClusterISOConflict()
 	}
 
@@ -391,15 +394,15 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	cluster.ImageInfo.CreatedAt = strfmt.DateTime(now)
 
 	if err := tx.Model(&cluster).Update(cluster).Error; err != nil {
-		tx.Rollback()
 		log.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
 		return installer.NewGenerateClusterISOInternalServerError()
 	}
 
-	if tx.Commit().Error != nil {
-		tx.Rollback()
+	if err := tx.Commit().Error; err != nil {
+		log.Error(err)
 		return installer.NewGenerateClusterISOInternalServerError()
 	}
+	txSuccess = true
 
 	// Kill the previous job in case it's still running
 	prevJobName := fmt.Sprintf("createimage-%s-%s", cluster.ID, previousCreatedAt.Format("20060102150405"))
@@ -639,8 +642,13 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		}
 	}
 
+	txSuccess := false
 	tx := b.db.Begin()
 	defer func() {
+		if !txSuccess {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
 		if r := recover(); r != nil {
 			log.Error("update cluster failed")
 			tx.Rollback()
@@ -655,7 +663,6 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 
 	if err = tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
-		tx.Rollback()
 		return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 	updateString := func(target *string, source *string) {
@@ -680,7 +687,6 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	updateString(&cluster.SSHPublicKey, params.ClusterUpdateParams.SSHPublicKey)
 	var machineCidr string
 	if machineCidr, err = common.CalculateMachineNetworkCIDR(&cluster); err != nil {
-		tx.Rollback()
 		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
@@ -688,14 +694,12 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	cluster.MachineNetworkCidr = machineCidr
 	err = common.VerifyVips(&cluster, false)
 	if err != nil {
-		tx.Rollback()
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 	setPullSecret(&cluster, swag.StringValue(params.ClusterUpdateParams.PullSecret))
 
 	if err = tx.Model(&cluster).Update(cluster).Error; err != nil {
-		tx.Rollback()
 		log.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
@@ -707,13 +711,11 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		var host models.Host
 		if err = tx.First(&host, "id = ? and cluster_id = ?",
 			params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID).Error; err != nil {
-			tx.Rollback()
 			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID)
 			return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 		}
 		if _, err = b.hostApi.UpdateRole(ctx, &host, params.ClusterUpdateParams.HostsRoles[i].Role, tx); err != nil {
-			tx.Rollback()
 			log.WithError(err).Errorf("failed to set role <%s> host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsRoles[i].Role, params.ClusterUpdateParams.HostsRoles[i].ID,
 				params.ClusterID)
@@ -724,23 +726,22 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	if machineCidrUpdated {
 		responder := b.refreshClusterHosts(ctx, &cluster, tx, log)
 		if responder != nil {
-			tx.Rollback()
 			return responder
 		}
 	}
 
 	if _, err = b.clusterApi.RefreshStatus(ctx, &cluster, tx); err != nil {
-		tx.Rollback()
 		log.WithError(err).Errorf("failed to validate or update cluster %s state", params.ClusterID)
 		return installer.NewUpdateClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	if tx.Commit().Error != nil {
-		tx.Rollback()
+	if err := tx.Commit().Error; err != nil {
+		log.Error(err)
 		return installer.NewUpdateClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit")))
 	}
+	txSuccess = true
 
 	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
@@ -892,8 +893,13 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 	var steps models.Steps
 	var host models.Host
 
+	txSuccess := false
 	tx := b.db.Begin()
 	defer func() {
+		if !txSuccess {
+			log.Error("get next steps failed")
+			tx.Rollback()
+		}
 		if r := recover(); r != nil {
 			log.Error("get next steps failed")
 			tx.Rollback()
@@ -909,22 +915,21 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 	//TODO check the error type
 	if err := tx.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find host: %s", params.HostID)
-		tx.Rollback()
 		return installer.NewGetNextStepsNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 
 	host.CheckedInAt = strfmt.DateTime(time.Now())
 	if err := tx.Model(&host).Update("checked_in_at", host.CheckedInAt).Error; err != nil {
-		tx.Rollback()
 		log.WithError(err).Errorf("failed to update host: %s", params.ClusterID)
 		return installer.NewGetNextStepsInternalServerError()
 	}
 
-	if tx.Commit().Error != nil {
-		tx.Rollback()
+	if err := tx.Commit().Error; err != nil {
+		log.Error(err)
 		return installer.NewGetNextStepsInternalServerError()
 	}
+	txSuccess = true
 
 	var err error
 	steps, err = b.hostApi.GetNextSteps(ctx, &host)
