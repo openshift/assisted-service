@@ -36,7 +36,11 @@ func (i *installer) Install(ctx context.Context, c *models.Cluster, db *gorm.DB)
 	case clusterStatusReady:
 		log.Infof("cluster %s is starting installation", c.ID)
 	case clusterStatusInsufficient:
-		return errors.Errorf("cluster %s is missing the resources to be installed", c.ID)
+		masterKnownHosts, err := i.GetMasterNodesIds(ctx, c, db)
+		if err != nil {
+			return err
+		}
+		return errors.Errorf("cluster %s is expected to have exactly %d known master to be installed, got %d", c.ID, minHostsNeededForInstallation, len(masterKnownHosts))
 	case clusterStatusInstalling:
 		return errors.Errorf("cluster %s is already installing", c.ID)
 	case clusterStatusInstalled:

@@ -41,7 +41,7 @@ var _ = Describe("installer", func() {
 		It("cluster is insufficient", func() {
 			cluster = updateClusterState(cluster, clusterStatusInsufficient, db)
 			err := installerManager.Install(ctx, &cluster, db)
-			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is missing the resources to be installed", cluster.ID).Error()))
+			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is expected to have exactly 3 known master to be installed, got 0", cluster.ID).Error()))
 		})
 		It("cluster is installing", func() {
 			cluster = updateClusterState(cluster, clusterStatusInstalling, db)
