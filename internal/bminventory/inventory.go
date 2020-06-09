@@ -691,6 +691,12 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
+
+	if err = b.clusterApi.VerifyClusterUpdatability(&cluster); err != nil {
+		log.WithError(err).Errorf("cluster %s can't be updated in current state", params.ClusterID)
+		return installer.NewUpdateClusterConflict().WithPayload(common.GenerateError(http.StatusConflict, err))
+	}
+
 	updateString := func(target *string, source *string) {
 		if source != nil {
 			*target = *source

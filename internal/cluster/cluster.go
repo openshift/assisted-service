@@ -52,6 +52,7 @@ type API interface {
 	GetCredentials(c *models.Cluster) (err error)
 	UploadIngressCert(c *models.Cluster) (err error)
 	VerifyRegisterHost(c *models.Cluster) (err error)
+	VerifyClusterUpdatability(c *models.Cluster) (err error)
 }
 
 type Manager struct {
@@ -208,6 +209,15 @@ func (m *Manager) VerifyRegisterHost(c *models.Cluster) (err error) {
 	allowedStatuses := []string{clusterStatusInsufficient, clusterStatusReady}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("Cluster %s is in %s state, host can register only in one of %s", c.ID, clusterStatus, allowedStatuses)
+	}
+	return err
+}
+
+func (m *Manager) VerifyClusterUpdatability(c *models.Cluster) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+	allowedStatuses := []string{clusterStatusInsufficient, clusterStatusReady}
+	if !funk.ContainsString(allowedStatuses, clusterStatus) {
+		err = errors.Errorf("Cluster %s is in %s state, cluster can be updated only in one of %s", c.ID, clusterStatus, allowedStatuses)
 	}
 	return err
 }
