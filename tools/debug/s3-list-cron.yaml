@@ -1,0 +1,23 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: s3-list
+  namespace: assisted-installer
+spec:
+  schedule: "*/15 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: s3-list
+            image: amazon/aws-cli
+            env:
+            - name: AWS_ACCESS_KEY_ID
+              value: "accessKey1"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "verySecretKey1"
+            command: ["aws"]
+            args: ["--endpoint-url", "http://cloudserver-front:8000", "s3api", "list-objects", "--bucket", "test"]
+          restartPolicy: OnFailure
+      backoffLimit: 3
