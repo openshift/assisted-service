@@ -139,7 +139,8 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 }
 
 func validateInstallCommand(reply *models.Step, role string, clusterId string, hostId string) {
-	installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host --net=host " +
+	installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host " +
+		"--net=host -v /var/log:/var/log:rw " +
 		"--name assisted-installer quay.io/ocpmetal/assisted-installer:stable --role %s " +
 		"--cluster-id %s --host 10.35.59.36 --port 30485 " +
 		"--boot-device /dev/sdb --host-id %s --openshift-version 4.5"
