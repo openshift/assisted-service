@@ -231,6 +231,20 @@ func (mr *MockAPIMockRecorder) RegisterHost(ctx, h interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterHost", reflect.TypeOf((*MockAPI)(nil).RegisterHost), ctx, h)
 }
 
+// HandleInstallationFailure mocks base method
+func (m *MockAPI) HandleInstallationFailure(ctx context.Context, h *models.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HandleInstallationFailure", ctx, h)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// HandleInstallationFailure indicates an expected call of HandleInstallationFailure
+func (mr *MockAPIMockRecorder) HandleInstallationFailure(ctx, h interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleInstallationFailure", reflect.TypeOf((*MockAPI)(nil).HandleInstallationFailure), ctx, h)
+}
+
 // UpdateHwInfo mocks base method
 func (m *MockAPI) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
 	m.ctrl.T.Helper()

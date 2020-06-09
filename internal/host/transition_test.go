@@ -179,5 +179,35 @@ var _ = Describe("RegisterHost", func() {
 	AfterEach(func() {
 		db.Close()
 	})
+})
 
+var _ = Describe("HostInstallationFailed", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		hapi = NewManager(getTestLog(), db, nil, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+		host = getTestHost(hostId, clusterId, "")
+		host.Status = swag.String(HostStatusInstalling)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+	})
+
+	It("handle_installation_error", func() {
+		Expect(hapi.HandleInstallationFailure(ctx, &host)).ShouldNot(HaveOccurred())
+		h := getHost(hostId, clusterId, db)
+		Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusError))
+		Expect(swag.StringValue(h.StatusInfo)).Should(Equal("installation command failed"))
+	})
+
+	AfterEach(func() {
+		db.Close()
+	})
 })

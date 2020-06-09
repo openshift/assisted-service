@@ -3,7 +3,8 @@ package host
 import "github.com/filanov/stateswitch"
 
 const (
-	TransitionTypeRegisterHost = "RegisterHost"
+	TransitionTypeRegisterHost          = "RegisterHost"
+	TransitionTypeHostInstallaionFailed = "HostInstallationFailed"
 )
 
 func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -27,6 +28,13 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates:     []stateswitch.State{HostStatusInstalling, HostStatusInstallingInProgress},
 		DestinationState: HostStatusError,
 		PostTransition:   th.PostRegisterDuringInstallation,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeHostInstallaionFailed,
+		SourceStates:     []stateswitch.State{HostStatusInstalling, HostStatusInstallingInProgress},
+		DestinationState: HostStatusError,
+		PostTransition:   th.PostHostInstallationFailed,
 	})
 
 	return sm
