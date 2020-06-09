@@ -277,35 +277,50 @@ var _ = Describe("cluster install", func() {
 			clusterID = *cluster.ID
 			registerHostsAndSetRoles(clusterID, 4)
 		})
-		Context("register hosts", func() {
-			It("register host while installing", func() {
-				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
-				Expect(err).NotTo(HaveOccurred())
-				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-				Expect(err).NotTo(HaveOccurred())
-				c := rep.GetPayload()
-				Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
-				_, err = bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
-					ClusterID: clusterID,
-					NewHostParams: &models.HostCreateParams{
-						HostID: strToUUID(uuid.New().String()),
-					},
-				})
-				Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostForbidden()))
+		It("register host while installing", func() {
+			_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			c := rep.GetPayload()
+			Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+			_, err = bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+				ClusterID: clusterID,
+				NewHostParams: &models.HostCreateParams{
+					HostID: strToUUID(uuid.New().String()),
+				},
 			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostForbidden()))
+		})
 
-			It("register host while cluster in error state", func() {
-				FailMasterNode(ctx, clusterID)
-				//Wait for cluster to get to error state
-				waitForClusterState(ctx, clusterID, models.ClusterStatusError, 20*time.Second)
-				_, err := bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
-					ClusterID: clusterID,
-					NewHostParams: &models.HostCreateParams{
-						HostID: strToUUID(uuid.New().String()),
-					},
-				})
-				Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostForbidden()))
+		It("register host while cluster in error state", func() {
+			FailCluster(ctx, clusterID)
+			//Wait for cluster to get to error state
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, 20*time.Second)
+			_, err := bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+				ClusterID: clusterID,
+				NewHostParams: &models.HostCreateParams{
+					HostID: strToUUID(uuid.New().String()),
+				},
 			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostForbidden()))
+		})
+
+		It("register existing host while cluster in installing state", func() {
+			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			hostID := c.GetPayload().Hosts[0].ID
+			Expect(err).NotTo(HaveOccurred())
+			_, err = bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+				ClusterID: clusterID,
+				NewHostParams: &models.HostCreateParams{
+					HostID: hostID,
+				},
+			})
+			Expect(err).To(BeNil())
+			host := getHost(clusterID, *hostID)
+			Expect(*host.Status).To(Equal("error"))
+
 		})
 
 		It("install cluster", func() {
@@ -417,7 +432,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			defer os.Remove(file.Name())
 
-			FailMasterNode(ctx, clusterID)
+			FailCluster(ctx, clusterID)
 			//Wait for cluster to get to error state
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, 20*time.Second)
 
@@ -771,7 +786,7 @@ var _ = Describe("cluster install", func() {
 	})
 })
 
-func FailMasterNode(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
+func FailCluster(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
 	c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 	var masterHostID strfmt.UUID
@@ -894,7 +909,6 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) {
 		},
 		ClusterID: clusterID,
 	})
-
 	Expect(err).NotTo(HaveOccurred())
 	apiVip = "1.2.3.8"
 	ingressVip = "1.2.3.9"

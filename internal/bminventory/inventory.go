@@ -848,12 +848,24 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		return installer.NewRegisterHostBadRequest().
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
-	if err := b.clusterApi.VerifyRegisterHost(&cluster); err != nil {
-		log.WithError(err).Errorf("failed to register host <%s> to cluster %s due to: %s",
-			params.NewHostParams.HostID, params.ClusterID.String(), err.Error())
-		return installer.NewRegisterHostForbidden().
-			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	err := b.db.First(&host, "id = ? and cluster_id = ?", *params.NewHostParams.HostID, params.ClusterID).Error
+	if err != nil && !gorm.IsRecordNotFoundError(err) {
+		log.WithError(err).Errorf("failed to get host %s in cluster: %s",
+			*params.NewHostParams.HostID, params.ClusterID.String())
+		return installer.NewRegisterHostInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
+
+	// In case host doesn't exists check if the cluster accept new hosts registration
+	if err != nil && gorm.IsRecordNotFoundError(err) {
+		if err := b.clusterApi.VerifyRegisterHost(&cluster); err != nil {
+			log.WithError(err).Errorf("failed to register host <%s> to cluster %s due to: %s",
+				params.NewHostParams.HostID, params.ClusterID.String(), err.Error())
+			return installer.NewRegisterHostForbidden().
+				WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		}
+	}
+
 	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
 	host = models.Host{
 		ID:          params.NewHostParams.HostID,
