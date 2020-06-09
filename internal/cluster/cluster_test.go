@@ -334,6 +334,52 @@ var _ = Describe("VerifyRegisterHost", func() {
 	})
 })
 
+var _ = Describe("VerifyClusterUpdatability", func() {
+	var (
+		db          *gorm.DB
+		id          strfmt.UUID
+		clusterApi  *Manager
+		errTemplate = "Cluster %s is in %s state, cluster can be updated only in one of [insufficient ready]"
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		id = strfmt.UUID(uuid.New().String())
+		clusterApi = NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+	})
+
+	checkVerifyClusterUpdatability := func(clusterStatus string, expectErr bool) {
+		cluster := models.Cluster{ID: &id, Status: swag.String(clusterStatus)}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		cluster = geCluster(id, db)
+		err := clusterApi.VerifyClusterUpdatability(&cluster)
+		if expectErr {
+			Expect(err.Error()).Should(Equal(errors.Errorf(errTemplate, id, clusterStatus).Error()))
+		} else {
+			Expect(err).Should(BeNil())
+		}
+	}
+	It("Update cluster while insufficient", func() {
+		checkVerifyClusterUpdatability(clusterStatusInsufficient, false)
+	})
+	It("Update cluster while ready", func() {
+		checkVerifyClusterUpdatability(clusterStatusReady, false)
+	})
+	It("Update cluster while installing", func() {
+		checkVerifyClusterUpdatability(clusterStatusInstalling, true)
+	})
+	It("Update cluster while installed", func() {
+		checkVerifyClusterUpdatability(clusterStatusInstalled, true)
+	})
+	It("Update cluster while error", func() {
+		checkVerifyClusterUpdatability(clusterStatusError, true)
+	})
+
+	AfterEach(func() {
+		db.Close()
+	})
+})
+
 func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 	hostId := strfmt.UUID(uuid.New().String())
 	host := models.Host{
