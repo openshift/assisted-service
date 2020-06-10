@@ -159,7 +159,7 @@ func (v *validator) isHostnameUnique(cluster *models.Cluster, host *models.Host,
 		if host.ID.String() == chost.ID.String() {
 			continue
 		}
-		if chost.Inventory == "" {
+		if chost.Inventory == "" || *chost.Status == models.HostStatusDisabled {
 			continue
 		}
 		if err := json.Unmarshal([]byte(chost.Inventory), &hwInfo); err != nil {

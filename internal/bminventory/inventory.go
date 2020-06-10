@@ -572,7 +572,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		log:    log,
 		params: params,
 	}
-	if err = b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 	if err = cInstaller.validateHostsInventory(&cluster); err != nil {
