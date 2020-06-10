@@ -521,6 +521,18 @@ var _ = Describe("cluster", func() {
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
 			})
+			It("Same api and ingress", func() {
+				apiVip := "10.11.12.15"
+				ingressVip := apiVip
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						APIVip:     &apiVip,
+						IngressVip: &ingressVip,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
+			})
 			It("Update success", func() {
 				apiVip := "10.11.12.15"
 				ingressVip := "10.11.12.16"

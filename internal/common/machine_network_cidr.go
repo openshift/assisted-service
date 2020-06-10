@@ -69,10 +69,20 @@ func verifyVip(cluster *models.Cluster, vip string, vipName string, mustExist bo
 	return fmt.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, cluster.MachineNetworkCidr)
 }
 
+func verifyDifferentVipAddresses(cluster *models.Cluster) error {
+	if cluster.APIVip == cluster.IngressVip && cluster.APIVip != "" {
+		return fmt.Errorf("api-vip and ingress-vip cannot have the same value: %s", cluster.APIVip)
+	}
+	return nil
+}
+
 func VerifyVips(cluster *models.Cluster, mustExist bool) error {
 	err := verifyVip(cluster, cluster.APIVip, "api-vip", mustExist)
 	if err == nil {
 		err = verifyVip(cluster, cluster.IngressVip, "ingress-vip", mustExist)
+	}
+	if err == nil {
+		err = verifyDifferentVipAddresses(cluster)
 	}
 	return err
 }

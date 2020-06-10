@@ -107,6 +107,26 @@ var _ = Describe("inventory", func() {
 
 		})
 	})
+	Context("VerifyVips", func() {
+		It("Same vips", func() {
+			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+				createInventory(createInterface("1.2.5.7/23")))
+			cluster.IngressVip = cluster.APIVip
+			err := VerifyVips(cluster, false)
+			Expect(err).To(HaveOccurred())
+			err = VerifyVips(cluster, true)
+			Expect(err).To(HaveOccurred())
+		})
+		It("Different vips", func() {
+			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+				createInventory(createInterface("1.2.5.7/23")))
+			cluster.IngressVip = "1.2.5.8"
+			err := VerifyVips(cluster, false)
+			Expect(err).ToNot(HaveOccurred())
+			err = VerifyVips(cluster, true)
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
 })
 
 func TestMachineNetworkCidr(t *testing.T) {
