@@ -9,38 +9,6 @@ on:
       - master
 
 jobs:
-  remove-label:
-    runs-on: ubuntu-latest
-    steps:
-    - name: remove label
-      uses: actions/github-script@0.9.0
-      if: github.event_name == 'pull_request'
-      with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
-        script: |
-
-          // Fetch the list of labels attached to the issue that
-          // triggered the workflow
-          const opts = github.issues.listLabelsOnIssue.endpoint.merge({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-          });
-          const labels = await github.paginate(opts);
-
-          for (const label of labels) {
-            // If the issue has a label named 'tests-passed', remove it
-            if (label.name === 'tests-passed') {
-              await github.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                name: 'tests-passed'
-              })
-              return;
-            }
-          }
-
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -73,15 +41,3 @@ jobs:
     - name: test
       run: |
         skipper make build
-    - name: apply label
-      uses: actions/github-script@0.9.0
-      if: github.event_name == 'pull_request'
-      with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
-        script: |
-          github.issues.addLabels({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            labels: ['tests-passed']
-          })
