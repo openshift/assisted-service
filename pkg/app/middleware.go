@@ -4,16 +4,7 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
-	"github.com/slok/go-http-metrics/middleware"
 )
-
-// WithMetricsRecorderMiddleware returns middleware which records the API metrics
-func WithMetricsRecorderMiddleware(next http.Handler) http.Handler {
-	return middleware.New(middleware.Config{
-		Recorder: metrics.NewRecorder(metrics.Config{}),
-	}).Handler("", next)
-}
 
 // WithMetricsResponderMiddleware Returns middleware which responds to /metrics endpoint with the prometheus metrics
 // of the service

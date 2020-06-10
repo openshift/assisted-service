@@ -9,6 +9,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/bminventory"
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/filanov/bm-inventory/internal/metrics"
 
 	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/internal/hardware"
@@ -121,12 +122,12 @@ func main() {
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
 	h, err := restapi.Handler(restapi.Config{
-		InstallerAPI: bm,
-		EventsAPI:    events,
-		Logger:       log.Printf,
+		InstallerAPI:    bm,
+		EventsAPI:       events,
+		Logger:          log.Printf,
+		InnerMiddleware: metrics.WithMatchedRoute(log.WithField("pkg", "matched-h")),
 	})
 	h = app.WithMetricsResponderMiddleware(h)
-	h = app.WithMetricsRecorderMiddleware(h)
 	h = app.WithHealthMiddleware(h)
 
 	h = requestid.Middleware(h)
