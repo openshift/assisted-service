@@ -87,6 +87,26 @@ var _ = Describe("Host tests", func() {
 		Expect(ok).Should(Equal(true))
 	})
 
+	It("installation_error_reply", func() {
+		host := registerHost(clusterID)
+		Expect(db.Model(host).Update("status", "installing").Error).NotTo(HaveOccurred())
+
+		_, err := bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: 137,
+				Output:   "Failed to install",
+				StepID:   string(models.StepTypeExecute),
+			},
+		})
+		Expect(err).Should(HaveOccurred())
+		host = getHost(clusterID, *host.ID)
+		Expect(*host.Status).Should(Equal("error"))
+		Expect(*host.StatusInfo).Should(Equal("installation command failed"))
+
+	})
+
 	It("hardware_info_store_only_relevant_hw_reply", func() {
 		host := registerHost(clusterID)
 

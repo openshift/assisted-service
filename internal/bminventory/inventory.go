@@ -1000,6 +1000,8 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder {
 	var err error
 	log := logutil.FromContext(ctx, b.log)
+	msg := fmt.Sprintf("Received step reply <%s> from cluster <%s> host <%s>  exit-code <%d> stdout <%s> stderr <%s>", params.Reply.StepID, params.ClusterID,
+		params.HostID, params.Reply.ExitCode, params.Reply.Output, params.Reply.Error)
 
 	var host models.Host
 	if err = b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
@@ -1011,20 +1013,17 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 
 	//check the output exit code
 	if params.Reply.ExitCode != 0 {
-		err = fmt.Errorf("Exit code is %d reply error is %s for %s reply for host %s cluster %s",
-			params.Reply.ExitCode, params.Reply.Error, params.Reply.StepID, params.HostID, params.ClusterID)
-		log.WithError(err).Errorf("Exit code is <%d> , reply error is <%s> for <%s> reply for host <%s> cluster <%s>",
-			params.Reply.ExitCode, params.Reply.Error, params.Reply.StepID, params.HostID, params.ClusterID)
+		err = fmt.Errorf(msg)
+		log.WithError(err).Errorf("Exit code is <%d> ", params.Reply.ExitCode)
 		handlingError := handleReplyError(params, b, ctx, &host)
 		if handlingError != nil {
-			log.WithError(err).Errorf("Failed handling reply error for host <%s> cluster <%s>", params.HostID, params.ClusterID)
+			log.WithError(handlingError).Errorf("Failed handling reply error for host <%s> cluster <%s>", params.HostID, params.ClusterID)
 		}
 		return installer.NewPostStepReplyBadRequest().
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
-	log.Infof("Received step reply <%s> from cluster <%s> host <%s>  exit-code <%d> stdout <%s> stderr <%s>", params.Reply.StepID, params.ClusterID,
-		params.HostID, params.Reply.ExitCode, params.Reply.Output, params.Reply.Error)
+	log.Infof(msg)
 
 	var stepReply string
 	stepReply, err = filterReplyByType(params)
