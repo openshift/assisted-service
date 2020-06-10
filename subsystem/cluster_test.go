@@ -779,10 +779,40 @@ var _ = Describe("cluster install", func() {
 		_, err = bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 		Expect(err).Should(HaveOccurred())
 
-		By("Changing hostname, verify hosts are known now")
+		By("Registering one more host with same hostname")
+		disabledHost := registerHost(clusterID)
+		generateHWPostStepReply(disabledHost, validHwInfo, "h1")
+		disabledHost = getHost(clusterID, *disabledHost.ID)
+		Expect(*disabledHost.Status).Should(Equal("insufficient"))
+		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *disabledHost.ID, Role: "worker"},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Changing hostname, verify host is known now")
 		generateHWPostStepReply(h4, validHwInfo, "h4")
 		waitForHostState(ctx, clusterID, *h4.ID, "known", 60*time.Second)
+
+		By("Disable host with the same hostname and verify h1 is known")
+		_, err = bmclient.Installer.DisableHost(ctx, &installer.DisableHostParams{
+			ClusterID: clusterID,
+			HostID:    *disabledHost.ID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		disabledHost = getHost(clusterID, *disabledHost.ID)
+		Expect(*disabledHost.Status).Should(Equal("disabled"))
 		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
+
+		By("waiting for cluster to be in ready state")
+		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second)
+
+		By("Verify install after disabling the host with same hostname")
+		_, err = bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+
 	})
 })
 
