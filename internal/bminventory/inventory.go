@@ -1050,11 +1050,11 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 	return installer.NewPostStepReplyNoContent()
 }
 
-func handleReplyError(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host *models.Host) error {
+func handleReplyError(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, h *models.Host) error {
 
-	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeExecute)) {
+	if strings.HasPrefix(params.Reply.StepID, host.InstallCmdStep) {
 		//if it's install step - need to move host to error
-		return b.hostApi.HandleInstallationFailure(ctx, host)
+		return b.hostApi.HandleInstallationFailure(ctx, h)
 	}
 	return nil
 }

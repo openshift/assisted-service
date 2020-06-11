@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/gorm"
@@ -35,6 +36,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 	step := &models.Step{}
 	step.StepType = models.StepTypeExecute
 	step.Command = "bash"
+	step.StepID = fmt.Sprintf("%s-%s-%s", InstallCmdStep, models.StepTypeExecute, uuid.New().String()[:8])
 
 	//get openshift version
 	var cluster common.Cluster

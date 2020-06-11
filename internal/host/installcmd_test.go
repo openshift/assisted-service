@@ -147,6 +147,7 @@ func validateInstallCommand(reply *models.Step, role string, clusterId string, h
 		"--cluster-id %s --host 10.35.59.36 --port 30485 " +
 		"--boot-device /dev/sdb --host-id %s --openshift-version 4.5"
 	ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId, hostId)))
+	Expect(strings.Contains(reply.StepID, "installCmd")).To(Equal(true))
 }
 
 func TestEvents(t *testing.T) {

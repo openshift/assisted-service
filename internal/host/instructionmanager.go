@@ -71,7 +71,9 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 			if err != nil {
 				return returnSteps, err
 			}
-			step.StepID = createStepID(step.StepType)
+			if step.StepID == "" {
+				step.StepID = createStepID(step.StepType)
+			}
 			returnSteps = append(returnSteps, step)
 		}
 	}
