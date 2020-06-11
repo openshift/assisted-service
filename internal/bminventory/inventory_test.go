@@ -485,6 +485,17 @@ var _ = Describe("cluster", func() {
 			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
 		})
 
+		It("empty pull-secret", func() {
+			pullSecret := ""
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					PullSecret: &pullSecret,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterNotFound()))
+		})
+
 		Context("Update Network", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())

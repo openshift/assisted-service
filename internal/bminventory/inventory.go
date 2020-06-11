@@ -659,7 +659,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	var err error
 	log.Info("update cluster ", params.ClusterID)
 
-	if params.ClusterUpdateParams.PullSecret != nil {
+	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
 		err = validations.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret)
 		if err != nil {
 			log.WithError(err).Errorf("Pull-secret for cluster %s, has invalid format", params.ClusterID)
