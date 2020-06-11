@@ -87,9 +87,6 @@ type Cluster struct {
 	// Enum: [4.5]
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
-	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
-	PullSecret string `json:"pull_secret,omitempty" gorm:"type:varchar(4096)"`
-
 	// True if the pull-secret has been added to the cluster
 	PullSecretSet bool `json:"pull_secret_set,omitempty"`
 

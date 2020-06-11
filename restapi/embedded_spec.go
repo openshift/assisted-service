@@ -1235,11 +1235,6 @@ func init() {
             "4.5"
           ]
         },
-        "pull_secret": {
-          "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.",
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
-        },
         "pull_secret_set": {
           "description": "True if the pull-secret has been added to the cluster",
           "type": "boolean"
@@ -3363,11 +3358,6 @@ func init() {
           "enum": [
             "4.5"
           ]
-        },
-        "pull_secret": {
-          "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.",
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
         },
         "pull_secret_set": {
           "description": "True if the pull-secret has been added to the cluster",
