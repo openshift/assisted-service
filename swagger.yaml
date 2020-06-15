@@ -700,6 +700,18 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /component_versions:
+    get:
+      tags:
+        - versions
+      summary: List of componenets versions
+      operationId: ListComponentVersions
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/list-versions'
+
   /events/{entity_id}:
     get:
       tags:
@@ -724,6 +736,11 @@ paths:
 
 
 definitions:
+  list-versions:
+    type: object
+    additionalProperties:
+      type: string
+
   event-list:
     type: array
     items:
@@ -772,6 +789,8 @@ definitions:
       host_id:
         type: string
         format: uuid
+      discovery_agent_version:
+        type: string
 
   host:
     type: object
@@ -833,6 +852,9 @@ definitions:
         enum: ['undefined', 'master', 'worker']
       bootstrap:
         type: boolean
+      installer_version:
+        type: string
+        description: Installer version
       updated_at:
         type: string
         format: date-time
@@ -846,6 +868,8 @@ definitions:
         format: date-time
         x-go-custom-tag: gorm:"type:datetime"
         description: The last time the host's agent communicated with the service.
+      discovery_agent_version:
+        type: string
 
   steps:
     type: array
@@ -1148,6 +1172,8 @@ definitions:
       pull_secret_set:
         type: boolean
         description: True if the pull-secret has been added to the cluster
+      ignition_generator_version:
+        type: string
 
   image_info:
     type: object
@@ -1161,6 +1187,9 @@ definitions:
         type: string
         x-go-custom-tag: gorm:"type:varchar(1024)"
         description: SSH public key for debugging the installation
+      generator_version:
+        type: string
+        description: Image generator version
       created_at:
         type: string
         format: date-time
