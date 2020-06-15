@@ -2079,6 +2079,9 @@ func init() {
         },
         "step_id": {
           "type": "string"
+        },
+        "step_type": {
+          "$ref": "#/definitions/step-type"
         }
       }
     },
@@ -2088,7 +2091,8 @@ func init() {
         "hardware-info",
         "connectivity-check",
         "execute",
-        "inventory"
+        "inventory",
+        "install"
       ]
     },
     "steps": {
@@ -4190,6 +4194,9 @@ func init() {
         },
         "step_id": {
           "type": "string"
+        },
+        "step_type": {
+          "$ref": "#/definitions/step-type"
         }
       }
     },
@@ -4199,7 +4206,8 @@ func init() {
         "hardware-info",
         "connectivity-check",
         "execute",
-        "inventory"
+        "inventory",
+        "install"
       ]
     },
     "steps": {
