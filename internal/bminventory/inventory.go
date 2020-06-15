@@ -87,7 +87,7 @@ const ignitionConfigFormat = `{
 "units": [{
 "name": "agent.service",
 "enabled": true,
-"contents": "[Service]\nType=simple\nRestart=always\nEnvironment=HTTPS_PROXY={{.ProxyURL}}\nEnvironment=HTTP_PROXY={{.ProxyURL}}\nEnvironment=http_proxy={{.ProxyURL}}\nEnvironment=https_proxy={{.ProxyURL}}\nExecStartPre=docker run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}}\n\n[Install]\nWantedBy=multi-user.target"
+"contents": "[Service]\nType=simple\nRestart=always\nEnvironment=HTTPS_PROXY={{.ProxyURL}}\nEnvironment=HTTP_PROXY={{.ProxyURL}}\nEnvironment=http_proxy={{.ProxyURL}}\nEnvironment=https_proxy={{.ProxyURL}}\nExecStartPre=docker run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}}\n\n[Install]\nWantedBy=multi-user.target"
 }]
 }
 }`
@@ -393,6 +393,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	cluster.ImageInfo.ProxyURL = params.ImageCreateParams.ProxyURL
 	cluster.ImageInfo.SSHPublicKey = params.ImageCreateParams.SSHPublicKey
 	cluster.ImageInfo.CreatedAt = strfmt.DateTime(now)
+	cluster.ImageInfo.GeneratorVersion = b.Config.ImageBuilder
 
 	if err := tx.Model(&cluster).Update(cluster).Error; err != nil {
 		log.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
@@ -550,7 +551,7 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 		return err
 	}
 
-	if err = c.b.generateClusterInstallConfig(c.ctx, cluster); err != nil {
+	if err = c.b.generateClusterInstallConfig(c.ctx, cluster, tx); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return nil
@@ -614,7 +615,7 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 	return nil
 }
 
-func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster) error {
+func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster, tx *gorm.DB) error {
 	log := logutil.FromContext(ctx, b.log)
 
 	cfg, err := installcfg.GetInstallConfig(log, &cluster)
@@ -632,7 +633,8 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		log.WithError(err).Errorf("Generating kubeconfig files %s failed for cluster %s", jobName, cluster.ID)
 		return errors.Wrapf(err, "Generating kubeconfig files %s failed for cluster %s", jobName, cluster.ID)
 	}
-	return nil
+
+	return b.clusterApi.SetGeneratorVersion(&cluster, b.Config.KubeconfigGenerator, tx)
 }
 
 func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) middleware.Responder {
@@ -880,11 +882,12 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
 	host = models.Host{
-		ID:          params.NewHostParams.HostID,
-		Href:        swag.String(url.String()),
-		Kind:        swag.String(ResourceKindHost),
-		ClusterID:   params.ClusterID,
-		CheckedInAt: strfmt.DateTime(time.Now()),
+		ID:                    params.NewHostParams.HostID,
+		Href:                  swag.String(url.String()),
+		Kind:                  swag.String(ResourceKindHost),
+		ClusterID:             params.ClusterID,
+		CheckedInAt:           strfmt.DateTime(time.Now()),
+		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
 	}
 
 	if err := b.hostApi.RegisterHost(ctx, &host); err != nil {

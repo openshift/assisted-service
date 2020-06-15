@@ -151,7 +151,8 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host) error {
 	}
 
 	return m.sm.Run(TransitionTypeRegisterHost, newStateHost(pHost), &TransitionArgsRegisterHost{
-		ctx: ctx,
+		ctx:                   ctx,
+		discoveryAgentVersion: h.DiscoveryAgentVersion,
 	})
 }
 

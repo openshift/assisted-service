@@ -381,6 +381,26 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 	})
 })
 
+var _ = Describe("SetGeneratorVersion", func() {
+	var (
+		db         *gorm.DB
+		id         strfmt.UUID
+		clusterApi *Manager
+	)
+
+	It("set generator version", func() {
+		db = prepareDB()
+		id = strfmt.UUID(uuid.New().String())
+		clusterApi = NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		cluster := common.Cluster{Cluster: models.Cluster{ID: &id, Status: swag.String(clusterStatusReady)}}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		cluster = geCluster(id, db)
+		Expect(clusterApi.SetGeneratorVersion(&cluster, "v1", db)).ShouldNot(HaveOccurred())
+		cluster = geCluster(id, db)
+		Expect(cluster.IgnitionGeneratorVersion).To(Equal("v1"))
+	})
+})
+
 func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 	hostId := strfmt.UUID(uuid.New().String())
 	host := models.Host{

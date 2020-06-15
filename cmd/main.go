@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/versions"
+
 	"github.com/filanov/bm-inventory/internal/bminventory"
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/common"
@@ -49,6 +51,7 @@ var Options struct {
 	ClusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	S3Config                    s3wrapper.Config
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"30s"`
+	Versions                    versions.Versions
 }
 
 func main() {
@@ -95,6 +98,7 @@ func main() {
 		log.Fatal("failed to auto migrate, ", err)
 	}
 
+	versionHandler := versions.NewHandler(Options.Versions)
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	instructionApi := host.NewInstructionManager(log, db, hwValidator, Options.InstructionConfig)
@@ -125,6 +129,7 @@ func main() {
 		InstallerAPI:    bm,
 		EventsAPI:       events,
 		Logger:          log.Printf,
+		VersionsAPI:     versionHandler,
 		InnerMiddleware: metrics.WithMatchedRoute(log.WithField("pkg", "matched-h")),
 	})
 	h = app.WithMetricsResponderMiddleware(h)

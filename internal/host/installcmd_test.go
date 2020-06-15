@@ -74,6 +74,8 @@ var _ = Describe("installcmd", func() {
 		stepReply, stepErr = installCmd.GetStep(ctx, &host)
 		postvalidation(false, false, stepReply, stepErr, RoleMaster)
 		validateInstallCommand(stepReply, RoleMaster, string(clusterId), string(*host.ID))
+		Expect(getHost(*host.ID, clusterId, db).InstallerVersion).
+			To(Equal("quay.io/ocpmetal/assisted-installer:latest"))
 	})
 
 	It("get_step_three_master_success", func() {

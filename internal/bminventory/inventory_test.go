@@ -105,6 +105,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			ImageCreateParams: &models.ImageCreateParams{},
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+		Expect(getReply.Payload.ImageInfo.GeneratorVersion).To(Equal("quay.io/ocpmetal/installer-image-build:stable"))
 	})
 
 	It("success with proxy", func() {
@@ -363,6 +365,9 @@ var _ = Describe("cluster", func() {
 	setDefaultHostSetBootstrap := func(mockClusterApi *cluster.MockAPI) {
 		mockHostApi.EXPECT().SetBootstrap(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
+	setIgnitionGeneratorVersionSuccess := func(mockClusterApi *cluster.MockAPI) {
+		mockClusterApi.EXPECT().SetGeneratorVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	}
 
 	getInventoryStr := func(ipv4Addresses ...string) string {
 		inventory := models.Inventory{Interfaces: []*models.Interface{
@@ -614,6 +619,7 @@ var _ = Describe("cluster", func() {
 
 			setDefaultInstall(mockClusterApi)
 			setDefaultGetMasterNodesIds(mockClusterApi)
+			setIgnitionGeneratorVersionSuccess(mockClusterApi)
 
 			setDefaultJobCreate(mockJob)
 			setDefaultJobMonitor(mockJob)

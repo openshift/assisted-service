@@ -27,7 +27,8 @@ type transitionHandler struct {
 ////////////////////////////////////////////////////////////////////////////
 
 type TransitionArgsRegisterHost struct {
-	ctx context.Context
+	ctx                   context.Context
+	discoveryAgentVersion string
 }
 
 func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -48,7 +49,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		currentState := swag.StringValue(host.Status)
 		host.Status = sHost.host.Status
 		return updateHostStateWithParams(log, currentState, statusInfoDiscovering, &host, th.db,
-			"hardware_info", "", "role", "")
+			"hardware_info", "", "role", "", "discovery_agent_version", params.discoveryAgentVersion)
 	}
 
 	sHost.host.StatusUpdatedAt = strfmt.DateTime(time.Now())

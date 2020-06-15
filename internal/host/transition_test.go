@@ -31,9 +31,10 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	It("register_new", func() {
-		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: clusterId})).ShouldNot(HaveOccurred())
+		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: clusterId, DiscoveryAgentVersion: "v1.0.1"})).ShouldNot(HaveOccurred())
 		h := getHost(hostId, clusterId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusDiscovering))
+		Expect(h.DiscoveryAgentVersion).To(Equal("v1.0.1"))
 	})
 
 	Context("register during installation put host in error", func() {
@@ -80,6 +81,7 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	Context("host already exists register success", func() {
+		discoveryAgentVersion := "v2.0.5"
 		tests := []struct {
 			name     string
 			srcState string
@@ -107,6 +109,7 @@ var _ = Describe("RegisterHost", func() {
 			Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusDiscovering))
 			Expect(h.Role).Should(Equal(""))
 			Expect(h.HardwareInfo).Should(Equal(""))
+			Expect(h.DiscoveryAgentVersion).To(Equal(discoveryAgentVersion))
 		})
 
 		for i := range tests {
@@ -122,9 +125,10 @@ var _ = Describe("RegisterHost", func() {
 				}).Error).ShouldNot(HaveOccurred())
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
-					ID:        &hostId,
-					ClusterID: clusterId,
-					Status:    swag.String(t.srcState),
+					ID:                    &hostId,
+					ClusterID:             clusterId,
+					Status:                swag.String(t.srcState),
+					DiscoveryAgentVersion: discoveryAgentVersion,
 				})).ShouldNot(HaveOccurred())
 			})
 		}
