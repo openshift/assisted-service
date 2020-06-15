@@ -88,6 +88,17 @@ This service support optional UI deployment.
 
 For OpenShift users, look at the service deployment options on OpenShift platform.
 
+### Deploy by tag
+
+This feature is for internal usage and not recommended to use by external users.
+
+`skipper make deploy-all DEPLOY_TAG=<tag>`
+
+This option will select the required tag that will be used for all dependencies.
+So all dependencies should have the same tag.
+The tag is not validated, so you need to make sure it actually exists.
+If deploy-all use a new tag the update will be done automatically and there is no need to reboot/rollout any deployment.
+
 ## Troubleshooting
 
 A document that can assist troubleshooting: [link](https://docs.google.com/document/d/1WDc5LQjNnqpznM9YFTGb9Bg1kqPVckgGepS4KBxGSqw)

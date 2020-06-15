@@ -59,7 +59,7 @@ deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-se
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
-	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)"
+	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --deploy-tag "$(DEPLOY_TAG)"
 
 deploy-namespace:
 	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE)
@@ -77,10 +77,10 @@ deploy-inventory-service-file: deploy-namespace
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)"
+	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --deploy-tag "$(DEPLOY_TAG)"
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
-	python3 ./tools/deploy_assisted_installer.py
+	python3 ./tools/deploy_assisted_installer.py --deploy-tag "$(DEPLOY_TAG)"
 
 deploy-expirer: deploy-role
 	python3 ./tools/deploy_s3_object_expirer.py
