@@ -22,7 +22,7 @@ var _ = Describe("connectivitycheckcmd", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		connectivityCheckCmd = NewConnectivityCheckCmd(getTestLog(), db, nil)
+		connectivityCheckCmd = NewConnectivityCheckCmd(getTestLog(), db, nil, "quay.io/ocpmetal/connectivity_check:latest")
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
