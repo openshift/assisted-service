@@ -1,0 +1,8 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: monitoring-operators
+  namespace: assisted-installer
+spec:
+  targetNamespaces:
+   - assisted-installer

@@ -1,0 +1,52 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: assisted-installer-prometheus
+  labels:
+    prometheus: assisted-installer-prometheus
+  namespace: assisted-installer
+spec:
+  replicas: 1
+  version: v2.8.0
+  serviceAccountName: prometheus-k8s
+  resources:
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+    requests:
+      cpu: "100m"
+      memory: "100Mi"
+  serviceMonitorSelector:
+    matchLabels:
+      app: assisted-installer-monitor
+  containers:
+  - args:
+    - -provider=openshift
+    - -https-address=:9091
+    - -http-address=
+    - -email-domain=*
+    - -upstream=http://localhost:9090
+    - -openshift-service-account=prometheus-k8s
+    - -openshift-ca=/etc/proxy/custom-ca/ca.crt
+    - -openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    - '-openshift-sar={"resource":"namespaces","resourceName":"assisted-installer","namespace":"assisted-installer","verb":"get"}'
+    - -tls-cert=/etc/tls/private/tls.crt
+    - -tls-key=/etc/tls/private/tls.key
+    - -cookie-secret-file=/etc/proxy/secrets/session_secret
+    - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
+    image: quay.io/openshift/origin-oauth-proxy:4.7
+    name: oauth-proxy
+    ports:
+    - containerPort: 9091
+      name: web-proxy
+    volumeMounts:
+    - mountPath: /etc/tls/private
+      name: secret-prometheus-k8s-tls
+    - mountPath: /etc/proxy/secrets
+      name: secret-prometheus-k8s-proxy
+    - mountPath: /etc/proxy/custom-ca
+      name: secret-openshift-custom-ca
+  secrets:
+    - prometheus-k8s-tls
+    - prometheus-k8s-proxy
+    - openshift-custom-ca

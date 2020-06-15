@@ -1,0 +1,11 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: prometheus
+  namespace: assisted-installer
+spec:
+  channel: beta
+  installPlanApproval: Automatic
+  name: prometheus
+  source: CAT_SRC
+  sourceNamespace: OLM_NAMESPACE

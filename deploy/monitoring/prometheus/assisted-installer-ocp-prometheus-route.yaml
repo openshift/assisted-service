@@ -1,0 +1,20 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    prometheus: assisted-installer-prometheus
+  name: prometheus-assisted
+  namespace: assisted-installer
+spec:
+  host: monitoring-assisted-installer.INGRESS_DOMAIN
+  port:
+    targetPort: proxy
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: reencrypt
+  to:
+    kind: Service
+    name: prometheus-k8s
+    weight: 100
+  wildcardPolicy: None
+

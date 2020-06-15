@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    prometheus: assisted-installer-prometheus
+  name: prometheus-k8s
+spec:
+  ports:
+  - name: web
+    port: 9090
+    protocol: TCP
+    targetPort: web
+  selector:
+    app: prometheus
+    prometheus: assisted-installer-prometheus
+  type: ClusterIP

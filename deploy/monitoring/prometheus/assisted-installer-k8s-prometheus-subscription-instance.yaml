@@ -1,0 +1,13 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: assisted-installer-prometheus
+  labels:
+    prometheus: assisted-installer-prometheus
+  namespace: assisted-installer
+spec:
+  replicas: 1
+  version: v2.8.0
+  serviceMonitorSelector:
+    matchLabels:
+      app: assisted-installer-monitor

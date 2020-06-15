@@ -70,7 +70,7 @@ deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-se
 deploy-ui: deploy-namespace
 	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --deploy-tag "$(DEPLOY_TAG)"
 
-deploy-namespace:
+deploy-namespace: create-build-dir
 	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE)
 
 deploy-s3-configmap:
@@ -116,6 +116,17 @@ test:
 		DB_HOST=$(shell $(call get_service,mariadb) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
 		DB_PORT=$(shell $(call get_service,mariadb) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
 		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v
+
+deploy-olm: deploy-namespace
+	python3 ./tools/deploy_olm.py --target $(TARGET)
+
+deploy-prometheus: create-build-dir deploy-namespace 
+	python3 ./tools/deploy_prometheus.py --target $(TARGET)
+
+deploy-grafana: create-build-dir
+	python3 ./tools/deploy_grafana.py --target $(TARGET)
+
+deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
 unit-test:
 	go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) -cover

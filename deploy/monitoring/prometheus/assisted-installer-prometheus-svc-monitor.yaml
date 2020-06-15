@@ -1,0 +1,23 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: assisted-installer-monitor
+  name: assisted-installer
+  namespace: assisted-installer
+spec:
+  endpoints:
+  - interval: 30s
+    scrapeTimeout: 30s
+    port: bm-inventory
+    path: /metrics
+    params:
+      'match[]': 
+        - '{__name__=~".+"}'
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - assisted-installer
+  selector:
+    matchLabels:
+      app: "bm-inventory"

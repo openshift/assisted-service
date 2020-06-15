@@ -110,6 +110,33 @@ This service support optional UI deployment.
 
 For OpenShift users, look at the service deployment options on OpenShift platform.
 
+### Deploy Monitoring
+
+This will allow you to deploy Prometheus and Grafana already integrated with Assisted installer:
+
+- On Minikube
+
+    ~~~sh
+    ## Step by step
+    make deploy-olm
+    make deploy-prometheus
+    make deploy-grafana
+
+    ## Or just all-in
+    make deploy-monitoring
+    ~~~
+
+- On Openshift
+
+    ~~~sh
+    ## Step by step
+    make deploy-prometheus TARGET=oc-ingress
+    make deploy-grafana TARGET=oc-ingress
+
+    ## Or just all-in
+    make deploy-monitoring TARGET=oc-ingress
+    ~~~
+
 ### Deploy by tag
 
 This feature is for internal usage and not recommended to use by external users.
