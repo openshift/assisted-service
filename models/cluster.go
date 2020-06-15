@@ -55,6 +55,9 @@ type Cluster struct {
 	// Format: uuid
 	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
 
+	// ignition generator version
+	IgnitionGeneratorVersion string `json:"ignition_generator_version,omitempty"`
+
 	// image info
 	// Required: true
 	ImageInfo *ImageInfo `json:"image_info" gorm:"embedded;embedded_prefix:image_"`

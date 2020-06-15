@@ -16,6 +16,7 @@ import (
 	"github.com/filanov/bm-inventory/restapi/operations"
 	"github.com/filanov/bm-inventory/restapi/operations/events"
 	"github.com/filanov/bm-inventory/restapi/operations/installer"
+	"github.com/filanov/bm-inventory/restapi/operations/versions"
 )
 
 type contextKey string
@@ -57,10 +58,18 @@ type InstallerAPI interface {
 	UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder
 }
 
+//go:generate mockery -name VersionsAPI -inpkg
+
+// VersionsAPI
+type VersionsAPI interface {
+	ListComponentVersions(ctx context.Context, params versions.ListComponentVersionsParams) middleware.Responder
+}
+
 // Config is configuration for Handler
 type Config struct {
 	EventsAPI
 	InstallerAPI
+	VersionsAPI
 	Logger func(string, ...interface{})
 	// InnerMiddleware is for the handler executors. These do not apply to the swagger.json document.
 	// The middleware executes after routing but before authentication, binding and validation
@@ -148,6 +157,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	api.InstallerListClustersHandler = installer.ListClustersHandlerFunc(func(params installer.ListClustersParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InstallerAPI.ListClusters(ctx, params)
+	})
+	api.VersionsListComponentVersionsHandler = versions.ListComponentVersionsHandlerFunc(func(params versions.ListComponentVersionsParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.VersionsAPI.ListComponentVersions(ctx, params)
 	})
 	api.EventsListEventsHandler = events.ListEventsHandlerFunc(func(params events.ListEventsParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

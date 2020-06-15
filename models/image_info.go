@@ -21,6 +21,9 @@ type ImageInfo struct {
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:datetime"`
 
+	// Image generator version
+	GeneratorVersion string `json:"generator_version,omitempty"`
+
 	// The URL of the HTTP/S proxy that agents should use to access the discovery service
 	// http://\<user\>:\<password\>@\<server\>:\<port\>/
 	//

@@ -17,6 +17,9 @@ import (
 // swagger:model host-create-params
 type HostCreateParams struct {
 
+	// discovery agent version
+	DiscoveryAgentVersion string `json:"discovery_agent_version,omitempty"`
+
 	// host id
 	// Required: true
 	// Format: uuid

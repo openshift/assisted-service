@@ -21,6 +21,7 @@ import (
 
 	"github.com/filanov/bm-inventory/restapi/operations/events"
 	"github.com/filanov/bm-inventory/restapi/operations/installer"
+	"github.com/filanov/bm-inventory/restapi/operations/versions"
 )
 
 // NewAssistedInstallAPI creates a new AssistedInstall instance
@@ -86,6 +87,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerListClustersHandler: installer.ListClustersHandlerFunc(func(params installer.ListClustersParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListClusters has not yet been implemented")
+		}),
+		VersionsListComponentVersionsHandler: versions.ListComponentVersionsHandlerFunc(func(params versions.ListComponentVersionsParams) middleware.Responder {
+			return middleware.NotImplemented("operation versions.ListComponentVersions has not yet been implemented")
 		}),
 		EventsListEventsHandler: events.ListEventsHandlerFunc(func(params events.ListEventsParams) middleware.Responder {
 			return middleware.NotImplemented("operation events.ListEvents has not yet been implemented")
@@ -178,6 +182,8 @@ type AssistedInstallAPI struct {
 	InstallerInstallClusterHandler installer.InstallClusterHandler
 	// InstallerListClustersHandler sets the operation handler for the list clusters operation
 	InstallerListClustersHandler installer.ListClustersHandler
+	// VersionsListComponentVersionsHandler sets the operation handler for the list component versions operation
+	VersionsListComponentVersionsHandler versions.ListComponentVersionsHandler
 	// EventsListEventsHandler sets the operation handler for the list events operation
 	EventsListEventsHandler events.ListEventsHandler
 	// InstallerListHostsHandler sets the operation handler for the list hosts operation
@@ -306,6 +312,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerListClustersHandler == nil {
 		unregistered = append(unregistered, "installer.ListClustersHandler")
+	}
+	if o.VersionsListComponentVersionsHandler == nil {
+		unregistered = append(unregistered, "versions.ListComponentVersionsHandler")
 	}
 	if o.EventsListEventsHandler == nil {
 		unregistered = append(unregistered, "events.ListEventsHandler")
@@ -480,6 +489,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters"] = installer.NewListClusters(o.context, o.InstallerListClustersHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/component_versions"] = versions.NewListComponentVersions(o.context, o.VersionsListComponentVersionsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

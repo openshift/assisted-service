@@ -1039,6 +1039,23 @@ func init() {
         }
       }
     },
+    "/component_versions": {
+      "get": {
+        "tags": [
+          "versions"
+        ],
+        "summary": "List of componenets versions",
+        "operationId": "ListComponentVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/list-versions"
+            }
+          }
+        }
+      }
+    },
     "/events/{entity_id}": {
       "get": {
         "tags": [
@@ -1190,6 +1207,9 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "ignition_generator_version": {
+          "type": "string"
         },
         "image_info": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
@@ -1702,6 +1722,9 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:datetime\""
         },
+        "discovery_agent_version": {
+          "type": "string"
+        },
         "hardware_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
@@ -1715,6 +1738,10 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "installer_version": {
+          "description": "Installer version",
+          "type": "string"
         },
         "inventory": {
           "type": "string",
@@ -1772,6 +1799,9 @@ func init() {
         "host_id"
       ],
       "properties": {
+        "discovery_agent_version": {
+          "type": "string"
+        },
         "host_id": {
           "type": "string",
           "format": "uuid"
@@ -1822,6 +1852,10 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:datetime\""
+        },
+        "generator_version": {
+          "description": "Image generator version",
+          "type": "string"
         },
         "proxy_url": {
           "description": "The URL of the HTTP/S proxy that agents should use to access the discovery service\nhttp://\\\u003cuser\\\u003e:\\\u003cpassword\\\u003e@\\\u003cserver\\\u003e:\\\u003cport\\\u003e/\n",
@@ -1983,6 +2017,12 @@ func init() {
         "successful": {
           "type": "boolean"
         }
+      }
+    },
+    "list-versions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
       }
     },
     "memory": {
@@ -3151,6 +3191,23 @@ func init() {
         }
       }
     },
+    "/component_versions": {
+      "get": {
+        "tags": [
+          "versions"
+        ],
+        "summary": "List of componenets versions",
+        "operationId": "ListComponentVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/list-versions"
+            }
+          }
+        }
+      }
+    },
     "/events/{entity_id}": {
       "get": {
         "tags": [
@@ -3318,6 +3375,9 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "ignition_generator_version": {
+          "type": "string"
         },
         "image_info": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
@@ -3817,6 +3877,9 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:datetime\""
         },
+        "discovery_agent_version": {
+          "type": "string"
+        },
         "hardware_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
@@ -3830,6 +3893,10 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "installer_version": {
+          "description": "Installer version",
+          "type": "string"
         },
         "inventory": {
           "type": "string",
@@ -3887,6 +3954,9 @@ func init() {
         "host_id"
       ],
       "properties": {
+        "discovery_agent_version": {
+          "type": "string"
+        },
         "host_id": {
           "type": "string",
           "format": "uuid"
@@ -3937,6 +4007,10 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:datetime\""
+        },
+        "generator_version": {
+          "description": "Image generator version",
+          "type": "string"
         },
         "proxy_url": {
           "description": "The URL of the HTTP/S proxy that agents should use to access the discovery service\nhttp://\\\u003cuser\\\u003e:\\\u003cpassword\\\u003e@\\\u003cserver\\\u003e:\\\u003cport\\\u003e/\n",
@@ -4098,6 +4172,12 @@ func init() {
         "successful": {
           "type": "boolean"
         }
+      }
+    },
+    "list-versions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
       }
     },
     "memory": {

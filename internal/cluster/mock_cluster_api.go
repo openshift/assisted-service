@@ -6,12 +6,11 @@ package cluster
 
 import (
 	context "context"
-	reflect "reflect"
-
 	common "github.com/filanov/bm-inventory/internal/common"
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
+	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface
@@ -344,4 +343,18 @@ func (m *MockAPI) AcceptRegistration(c *common.Cluster) error {
 func (mr *MockAPIMockRecorder) AcceptRegistration(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AcceptRegistration", reflect.TypeOf((*MockAPI)(nil).AcceptRegistration), c)
+}
+
+// SetGeneratorVersion mocks base method
+func (m *MockAPI) SetGeneratorVersion(c *common.Cluster, version string, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetGeneratorVersion", c, version, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetGeneratorVersion indicates an expected call of SetGeneratorVersion
+func (mr *MockAPIMockRecorder) SetGeneratorVersion(c, version, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGeneratorVersion", reflect.TypeOf((*MockAPI)(nil).SetGeneratorVersion), c, version, db)
 }

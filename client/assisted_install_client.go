@@ -15,6 +15,7 @@ import (
 
 	"github.com/filanov/bm-inventory/client/events"
 	"github.com/filanov/bm-inventory/client/installer"
+	"github.com/filanov/bm-inventory/client/versions"
 )
 
 const (
@@ -61,6 +62,7 @@ func New(c Config) *AssistedInstall {
 	cli.Transport = transport
 	cli.Events = events.New(transport, strfmt.Default, c.AuthInfo)
 	cli.Installer = installer.New(transport, strfmt.Default, c.AuthInfo)
+	cli.Versions = versions.New(transport, strfmt.Default, c.AuthInfo)
 	return cli
 }
 
@@ -68,5 +70,6 @@ func New(c Config) *AssistedInstall {
 type AssistedInstall struct {
 	Events    *events.Client
 	Installer *installer.Client
+	Versions  *versions.Client
 	Transport runtime.ClientTransport
 }

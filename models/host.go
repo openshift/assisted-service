@@ -37,6 +37,9 @@ type Host struct {
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:datetime"`
 
+	// discovery agent version
+	DiscoveryAgentVersion string `json:"discovery_agent_version,omitempty"`
+
 	// hardware info
 	HardwareInfo string `json:"hardware_info,omitempty" gorm:"type:text"`
 
@@ -48,6 +51,9 @@ type Host struct {
 	// Required: true
 	// Format: uuid
 	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
+
+	// Installer version
+	InstallerVersion string `json:"installer_version,omitempty"`
 
 	// inventory
 	Inventory string `json:"inventory,omitempty" gorm:"type:text"`
