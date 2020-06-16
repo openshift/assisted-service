@@ -14,6 +14,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/network"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/filanov/bm-inventory/internal/cluster"
@@ -475,7 +476,7 @@ type clusterInstaller struct {
 }
 
 func (c *clusterInstaller) verifyClusterNetworkConfig(cluster *common.Cluster, tx *gorm.DB) error {
-	cidr, err := common.CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+	cidr, err := network.CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -483,10 +484,10 @@ func (c *clusterInstaller) verifyClusterNetworkConfig(cluster *common.Cluster, t
 		return common.NewApiError(http.StatusBadRequest,
 			fmt.Errorf("Cluster machine CIDR %s is different than the calculated CIDR %s", cluster.MachineNetworkCidr, cidr))
 	}
-	if err = common.VerifyVips(cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true); err != nil {
+	if err = network.VerifyVips(cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	machineCidrHosts, err := common.GetMachineCIDRHosts(c.log, cluster)
+	machineCidrHosts, err := network.GetMachineCIDRHosts(c.log, cluster)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -751,14 +752,15 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}
 
 	var machineCidr string
-	if machineCidr, err = common.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts); err != nil {
+
+	if machineCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts); err != nil {
 		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 	machineCidrUpdated := machineCidr != cluster.MachineNetworkCidr
 	updates["machine_network_cidr"] = machineCidr
 
-	err = common.VerifyVips(machineCidr, apiVip, ingressVip, false)
+	err = network.VerifyVips(machineCidr, apiVip, ingressVip, false)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))

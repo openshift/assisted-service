@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/filanov/bm-inventory/internal/connectivity"
+
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 )
 
-func convertHostsToConnectivityCheckParams(currentHostId *strfmt.UUID, hosts []*models.Host, hwValidator hardware.Validator) (string, error) {
+func convertHostsToConnectivityCheckParams(currentHostId *strfmt.UUID, hosts []*models.Host, connectivityValidator connectivity.Validator) (string, error) {
 	var connectivityCheckHosts models.ConnectivityCheckParams
 	for i := range hosts {
 		if hosts[i].ID.String() != currentHostId.String() {
-			interfaces, err := hwValidator.GetHostValidInterfaces(hosts[i])
+			interfaces, err := connectivityValidator.GetHostValidInterfaces(hosts[i])
 			if err != nil {
 				return "", err
 			}

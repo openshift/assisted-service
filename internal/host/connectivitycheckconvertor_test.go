@@ -3,7 +3,8 @@ package host
 import (
 	"strings"
 
-	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/filanov/bm-inventory/internal/connectivity"
+
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
@@ -15,7 +16,7 @@ import (
 var _ = Describe("connectivitycheckconvertor", func() {
 	var (
 		ctrl                                       *gomock.Controller
-		mockValidator                              *hardware.MockValidator
+		mockValidator                              *connectivity.MockValidator
 		currentHostId, hostId2, hostId3, clusterId strfmt.UUID
 		hosts                                      []*models.Host
 		interfaces                                 []*models.Interface
@@ -24,7 +25,7 @@ var _ = Describe("connectivitycheckconvertor", func() {
 	BeforeEach(func() {
 
 		ctrl = gomock.NewController(GinkgoT())
-		mockValidator = hardware.NewMockValidator(ctrl)
+		mockValidator = connectivity.NewMockValidator(ctrl)
 
 		clusterId = strfmt.UUID(uuid.New().String())
 		currentHostId = strfmt.UUID(uuid.New().String())

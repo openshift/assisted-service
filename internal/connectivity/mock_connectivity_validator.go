@@ -5,10 +5,12 @@
 package connectivity
 
 import (
+	reflect "reflect"
+
 	common "github.com/filanov/bm-inventory/internal/common"
+	"github.com/filanov/bm-inventory/internal/validators"
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockValidator is a mock of Validator interface
@@ -35,10 +37,10 @@ func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 }
 
 // IsSufficient mocks base method
-func (m *MockValidator) IsSufficient(host *models.Host, cluster *common.Cluster) (*common.IsSufficientReply, error) {
+func (m *MockValidator) IsSufficient(host *models.Host, cluster *common.Cluster) (*validators.IsSufficientReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsSufficient", host, cluster)
-	ret0, _ := ret[0].(*common.IsSufficientReply)
+	ret0, _ := ret[0].(*validators.IsSufficientReply)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -47,4 +49,19 @@ func (m *MockValidator) IsSufficient(host *models.Host, cluster *common.Cluster)
 func (mr *MockValidatorMockRecorder) IsSufficient(host, cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSufficient", reflect.TypeOf((*MockValidator)(nil).IsSufficient), host, cluster)
+}
+
+// GetHostValidInterfaces mocks base method
+func (m *MockValidator) GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostValidInterfaces", host)
+	ret0, _ := ret[0].([]*models.Interface)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHostValidInterfaces indicates an expected call of GetHostValidInterfaces
+func (mr *MockValidatorMockRecorder) GetHostValidInterfaces(host interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidInterfaces", reflect.TypeOf((*MockValidator)(nil).GetHostValidInterfaces), host)
 }

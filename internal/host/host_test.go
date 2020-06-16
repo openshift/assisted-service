@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/validators"
+
 	"github.com/filanov/bm-inventory/internal/connectivity"
 	"github.com/pkg/errors"
 
@@ -270,38 +272,38 @@ func getTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
 	}
 }
 
-func mockConnectivityAndHwValidators(mockHWValidator *hardware.MockValidator, mockConnectivityValidator *connectivity.MockValidator, hwError, sufficientHw, sufficientConnectivity bool) string {
+func mockConnectivityAndHwValidators(h *models.Host, mockHWValidator *hardware.MockValidator, mockConnectivityValidator *connectivity.MockValidator, hwError, sufficientHw, sufficientConnectivity bool) string {
 	var statusInfoDetails = make(map[string]string)
-	statusInfoDetails["role"] = ""
+	roleReply := isSufficientRole(h)
+	statusInfoDetails[roleReply.Type] = roleReply.Reason
 	if hwError {
 		mockHWValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
 			Return(nil, errors.New("error")).AnyTimes()
 		statusInfoDetails["hardware"] = "parsing error"
 	} else if sufficientHw {
 		mockHWValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-			Return(&common.IsSufficientReply{Type: "hardware", IsSufficient: true}, nil).AnyTimes()
+			Return(&validators.IsSufficientReply{Type: "hardware", IsSufficient: true}, nil).AnyTimes()
 		statusInfoDetails["hardware"] = ""
 	} else {
 		//insufficient hw
 		mockHWValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-			Return(&common.IsSufficientReply{Type: "hardware", IsSufficient: false, Reason: "failed reason"}, nil).AnyTimes()
+			Return(&validators.IsSufficientReply{Type: "hardware", IsSufficient: false, Reason: "failed reason"}, nil).AnyTimes()
 		statusInfoDetails["hardware"] = "failed reason"
 	}
 	if sufficientConnectivity {
 		mockConnectivityValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-			Return(&common.IsSufficientReply{Type: "connectivity", IsSufficient: true}, nil).AnyTimes()
+			Return(&validators.IsSufficientReply{Type: "connectivity", IsSufficient: true}, nil).AnyTimes()
 		statusInfoDetails["connectivity"] = ""
 	} else {
 		//insufficient connectivity
 		mockConnectivityValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-			Return(&common.IsSufficientReply{Type: "connectivity", IsSufficient: false, Reason: "failed reason"}, nil).AnyTimes()
+			Return(&validators.IsSufficientReply{Type: "connectivity", IsSufficient: false, Reason: "failed reason"}, nil).AnyTimes()
 		statusInfoDetails["connectivity"] = "failed reason"
 	}
 
-	if !hwError && sufficientHw && sufficientConnectivity {
+	if !hwError && sufficientHw && sufficientConnectivity && roleReply.IsSufficient {
 		return ""
 	}
-
 	statusInfo, err := json.Marshal(statusInfoDetails)
 	if err != nil {
 		return ""

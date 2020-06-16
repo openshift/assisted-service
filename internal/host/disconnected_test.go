@@ -45,6 +45,7 @@ var _ = Describe("disconnected_state", func() {
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, currentState)
+		host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Hour))
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		expectedReply = &expect{expectedState: currentState}
 		addTestCluster(clusterId, "1.2.3.5", "1.2.3.6", "1.2.3.0/24", db)
@@ -52,59 +53,62 @@ var _ = Describe("disconnected_state", func() {
 
 	Context("update hw info", func() {
 		It("update", func() {
+			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
-			expectedReply.expectedState = HostStatusDisconnected
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Inventory).Should(Equal(defaultInventory()))
 				Expect(h.HardwareInfo).Should(Equal("some hw info"))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
 			}
 		})
 	})
 
 	Context("update inventory", func() {
 		It("sufficient_hw", func() {
-			mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
+			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			expectedReply.expectedState = HostStatusDiscovering
+			expectedReply.expectedState = HostStatusDisconnected
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Inventory).Should(Equal("some hw info"))
-				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(statusInfoDiscovering))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
 			}
 		})
 		It("insufficient_hw", func() {
-			mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, false, true)
+			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, false, true)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			expectedReply.expectedState = HostStatusDiscovering
+			expectedReply.expectedState = HostStatusDisconnected
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Inventory).Should(Equal("some hw info"))
-				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(statusInfoDiscovering))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(""))
 			}
 		})
 		It("hw_validation_error", func() {
-			mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, true, false, true)
+			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, true, false, true)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			expectedReply.expectedState = HostStatusDiscovering
+			expectedReply.expectedState = HostStatusDisconnected
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Inventory).Should(Equal(defaultInventory()))
-				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(statusInfoDiscovering))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(""))
 			}
 		})
 		It("sufficient_hw_insufficient_connectivity", func() {
-			mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, false)
+			host.Role = ""
+			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, false)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			expectedReply.expectedState = HostStatusDiscovering
+			expectedReply.expectedState = HostStatusDisconnected
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Inventory).Should(Equal("some hw info"))
-				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(statusInfoDiscovering))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(""))
 			}
 		})
 	})
@@ -133,13 +137,13 @@ var _ = Describe("disconnected_state", func() {
 		It("keep_alive", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			host.Inventory = ""
-			mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
+			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusDiscovering
 		})
 		It("keep_alive_timeout", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Hour))
-			mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
+			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusDisconnected
 		})

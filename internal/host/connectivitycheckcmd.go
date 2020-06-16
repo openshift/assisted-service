@@ -3,7 +3,7 @@ package host
 import (
 	"context"
 
-	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/filanov/bm-inventory/internal/connectivity"
 
 	"github.com/sirupsen/logrus"
 
@@ -15,15 +15,15 @@ import (
 type connectivityCheckCmd struct {
 	baseCmd
 	db                     *gorm.DB
-	hwValidator            hardware.Validator
+	connectivityValidator  connectivity.Validator
 	connectivityCheckImage string
 }
 
-func NewConnectivityCheckCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, connectivityCheckImage string) *connectivityCheckCmd {
+func NewConnectivityCheckCmd(log logrus.FieldLogger, db *gorm.DB, connectivityValidator connectivity.Validator, connectivityCheckImage string) *connectivityCheckCmd {
 	return &connectivityCheckCmd{
 		baseCmd:                baseCmd{log: log},
 		db:                     db,
-		hwValidator:            hwValidator,
+		connectivityValidator:  connectivityValidator,
 		connectivityCheckImage: connectivityCheckImage,
 	}
 }
@@ -36,7 +36,7 @@ func (c *connectivityCheckCmd) GetStep(ctx context.Context, host *models.Host) (
 		return nil, err
 	}
 
-	hostsData, err := convertHostsToConnectivityCheckParams(host.ID, hosts, c.hwValidator)
+	hostsData, err := convertHostsToConnectivityCheckParams(host.ID, hosts, c.connectivityValidator)
 	if err != nil {
 		c.log.Errorf("failed to convert hosts to connectivity params for host %s cluster %s", host.ID, host.ClusterID)
 		return nil, err

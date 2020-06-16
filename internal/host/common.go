@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/validators"
+
 	"github.com/filanov/bm-inventory/internal/connectivity"
 
 	"github.com/filanov/bm-inventory/internal/common"
-
 	"github.com/go-openapi/strfmt"
 
 	"github.com/filanov/bm-inventory/internal/hardware"
@@ -107,6 +108,12 @@ func updateHostStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo str
 }
 
 func updateHwInfo(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	status, statusInfo := getDefaultStatusAndStatusInfo(h)
+	return updateStateWithParams(log, status, statusInfo, h, db, "hardware_info", h.HardwareInfo)
+
+}
+
+func getDefaultStatusAndStatusInfo(h *models.Host) (string, string) {
 	status, statusInfo := "", ""
 	if h.Status != nil {
 		status = *h.Status
@@ -114,7 +121,7 @@ func updateHwInfo(log logrus.FieldLogger, hwValidator hardware.Validator, h *mod
 	if h.StatusInfo != nil {
 		statusInfo = *h.StatusInfo
 	}
-	return updateStateWithParams(log, status, statusInfo, h, db, "hardware_info", h.HardwareInfo)
+	return status, statusInfo
 }
 
 func getCluster(clusterID strfmt.UUID, db *gorm.DB) (*common.Cluster, error) {
@@ -131,31 +138,21 @@ func updateInventory(log logrus.FieldLogger, hwValidator hardware.Validator, h *
 		return nil, err
 	}
 	_, err = hwValidator.IsSufficient(h, cluster)
+	// Only in case there is a parsing error for the inventory data - we don't want to change the data in DB
 	if err != nil {
 		return nil, err
 	}
-	status, statusInfo := "", ""
-	if h.Status != nil {
-		status = *h.Status
-	}
-	if h.StatusInfo != nil {
-		statusInfo = *h.StatusInfo
-	}
+	status, statusInfo := getDefaultStatusAndStatusInfo(h)
+
 	return updateStateWithParams(log, status, statusInfo, h, db, "inventory", h.Inventory)
 }
 
 func updateRole(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	status, statusInfo := "", ""
-	if h.Status != nil {
-		status = *h.Status
-	}
-	if h.StatusInfo != nil {
-		statusInfo = *h.StatusInfo
-	}
+	status, statusInfo := getDefaultStatusAndStatusInfo(h)
 	return updateStateWithParams(log, status, statusInfo, h, db, "role", h.Role)
 }
 
-func isSufficientRole(h *models.Host) *common.IsSufficientReply {
+func isSufficientRole(h *models.Host) *validators.IsSufficientReply {
 	var reason string
 	isSufficient := true
 
@@ -164,14 +161,14 @@ func isSufficientRole(h *models.Host) *common.IsSufficientReply {
 		reason = "No role selected"
 	}
 
-	return &common.IsSufficientReply{
+	return &validators.IsSufficientReply{
 		Type:         "role",
 		IsSufficient: isSufficient,
 		Reason:       reason,
 	}
 }
 
-func isSufficientHost(log logrus.FieldLogger, h *models.Host, db *gorm.DB, hwValidator hardware.Validator, connectivityValidator connectivity.Validator) (*UpdateReply, error) {
+func checkAndUpdateSufficientHost(log logrus.FieldLogger, h *models.Host, db *gorm.DB, hwValidator hardware.Validator, connectivityValidator connectivity.Validator) (*UpdateReply, error) {
 	//checking if need to change state to disconnect
 	stateReply, err := updateByKeepAlive(log, h, db)
 	if err != nil || stateReply.IsChanged {
@@ -183,17 +180,20 @@ func isSufficientHost(log logrus.FieldLogger, h *models.Host, db *gorm.DB, hwVal
 	if err != nil {
 		return nil, err
 	}
-	inventoryReply, _ := hwValidator.IsSufficient(h, cluster)
-	if inventoryReply != nil {
-		statusInfoDetails[inventoryReply.Type] = inventoryReply.Reason
-	} else {
+	inventoryReply, err := hwValidator.IsSufficient(h, cluster)
+	if err != nil {
 		statusInfoDetails["hardware"] = "parsing error"
+	} else {
+		statusInfoDetails[inventoryReply.Type] = inventoryReply.Reason
 	}
 
 	//checking connectivity isSufficient
-	connectivityReply, _ := connectivityValidator.IsSufficient(h, cluster)
-	statusInfoDetails[connectivityReply.Type] = connectivityReply.Reason
-
+	connectivityReply, err := connectivityValidator.IsSufficient(h, cluster)
+	if err != nil {
+		statusInfoDetails["connectivity"] = "unknown error"
+	} else {
+		statusInfoDetails[connectivityReply.Type] = connectivityReply.Reason
+	}
 	//checking role isSufficient
 	roleReply := isSufficientRole(h)
 	statusInfoDetails[roleReply.Type] = roleReply.Reason

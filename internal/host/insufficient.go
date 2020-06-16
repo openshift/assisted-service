@@ -51,7 +51,7 @@ func (d *insufficientState) UpdateRole(ctx context.Context, h *models.Host, role
 }
 
 func (i *insufficientState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	return isSufficientHost(logutil.FromContext(ctx, i.log), h, db, i.hwValidator, i.connectivityValidator)
+	return checkAndUpdateSufficientHost(logutil.FromContext(ctx, i.log), h, db, i.hwValidator, i.connectivityValidator)
 }
 
 func (i *insufficientState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {

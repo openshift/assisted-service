@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strings"
+
+	"github.com/filanov/bm-inventory/internal/validators"
 
 	"github.com/sirupsen/logrus"
 
@@ -18,9 +21,8 @@ const diskNameFilterRegex = "nvme"
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
-	IsSufficient(host *models.Host, cluster *common.Cluster) (*common.IsSufficientReply, error)
+	IsSufficient(host *models.Host, cluster *common.Cluster) (*validators.IsSufficientReply, error)
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
-	GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error)
 }
 
 func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg) Validator {
@@ -45,9 +47,9 @@ type validator struct {
 	log logrus.FieldLogger
 }
 
-func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*common.IsSufficientReply, error) {
+func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*validators.IsSufficientReply, error) {
 	var err error
-	var reason string
+	var reasons []string
 	var isSufficient bool
 	var hwInfo models.Inventory
 
@@ -71,32 +73,34 @@ func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*c
 	}
 
 	if hwInfo.CPU.Count < minCpuCoresRequired {
-		reason += fmt.Sprintf(", insufficient CPU cores, expected: <%d> got <%d>", minCpuCoresRequired, hwInfo.CPU.Count)
+		reasons = append(reasons, fmt.Sprintf("insufficient CPU cores, expected: <%d> got <%d>", minCpuCoresRequired, hwInfo.CPU.Count))
 	}
 
 	if hwInfo.Memory.PhysicalBytes < minRamRequired {
-		reason += fmt.Sprintf(", insufficient RAM requirements, expected: <%s> got <%s>",
-			units.Base2Bytes(minRamRequired), units.Base2Bytes(hwInfo.Memory.PhysicalBytes))
+		reasons = append(reasons, fmt.Sprintf("insufficient RAM requirements, expected: <%s> got <%s>",
+			units.Base2Bytes(minRamRequired), units.Base2Bytes(hwInfo.Memory.PhysicalBytes)))
 	}
 
 	if disks := listValidDisks(hwInfo, minDiskSizeRequired); len(disks) < 1 {
-		reason += fmt.Sprintf(", insufficient number of disks with required size, "+
-			"expected at least 1 not removable, not readonly disk of size more than <%d>", minDiskSizeRequired)
+		reasons = append(reasons, fmt.Sprintf("insufficient number of disks with required size, "+
+			"expected at least 1 not removable, not readonly disk of size more than <%d>", minDiskSizeRequired))
 	}
 
 	if !v.isHostnameUnique(cluster, host, hwInfo.Hostname) {
-		reason += fmt.Sprintf(", host with hostname \"%s\" already exists.", hwInfo.Hostname)
+		reasons = append(reasons, fmt.Sprintf("host with hostname \"%s\" already exists.", hwInfo.Hostname))
 	}
 
-	if len(reason) == 0 {
+	var reason string
+	if len(reasons) == 0 {
 		isSufficient = true
 	} else {
+		reason = strings.Join(reasons[:], ",")
 		if host.Role != "" {
 			reason = fmt.Sprintf("%s %s", host.Role, reason)
 		}
 	}
 
-	return &common.IsSufficientReply{
+	return &validators.IsSufficientReply{
 		Type:         "hardware",
 		IsSufficient: isSufficient,
 		Reason:       reason,
@@ -113,17 +117,6 @@ func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 		return nil, fmt.Errorf("host %s doesn't have valid disks", host.ID)
 	}
 	return disks, nil
-}
-
-func (v *validator) GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error) {
-	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
-		return nil, err
-	}
-	if len(inventory.Interfaces) == 0 {
-		return nil, fmt.Errorf("host %s doesn't have interfaces", host.ID)
-	}
-	return inventory.Interfaces, nil
 }
 
 func gibToBytes(gib int64) int64 {

@@ -49,7 +49,7 @@ var _ = Describe("known_state", func() {
 
 	Context("update hw info", func() {
 		It("update", func() {
-			expectedStatusInfo := mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
+			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusKnown
@@ -64,7 +64,7 @@ var _ = Describe("known_state", func() {
 
 	Context("update inventory", func() {
 		It("sufficient_hw", func() {
-			expectedStatusInfo := mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
+			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusKnown
@@ -75,7 +75,7 @@ var _ = Describe("known_state", func() {
 			}
 		})
 		It("insufficient_hw", func() {
-			expectedStatusInfo := mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, false, true)
+			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, false, true)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusInsufficient
@@ -86,7 +86,7 @@ var _ = Describe("known_state", func() {
 			}
 		})
 		It("hw_validation_error", func() {
-			expectedStatusInfo := mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, true, false, true)
+			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, true, false, true)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusInsufficient
@@ -97,13 +97,23 @@ var _ = Describe("known_state", func() {
 			}
 		})
 		It("sufficient_hw_insufficient_connectivity", func() {
-			expectedStatusInfo := mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, false)
+			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, false)
 			updateReply, updateErr = state.UpdateInventory(ctx, &host, "some hw info")
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusInsufficient
 			expectedReply.postCheck = func() {
 				h := getHost(id, clusterId, db)
 				Expect(h.Inventory).Should(Equal("some hw info"))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
+			}
+		})
+		It("sufficient_hw_sufficient_connectivity_insufficient_role", func() {
+			host.Role = ""
+			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
+			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
+			expectedReply.expectedState = HostStatusInsufficient
+			expectedReply.postCheck = func() {
+				h := getHost(id, clusterId, db)
 				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
 			}
 		})
@@ -133,13 +143,13 @@ var _ = Describe("known_state", func() {
 		It("keep_alive", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			host.Inventory = ""
-			mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
+			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusKnown
 		})
 		It("keep_alive_timeout", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Hour))
-			mockConnectivityAndHwValidators(mockHWValidator, mockConnectivityValidator, false, true, true)
+			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
 			expectedReply.expectedState = HostStatusDisconnected
 		})

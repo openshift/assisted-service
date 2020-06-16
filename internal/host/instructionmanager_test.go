@@ -26,15 +26,15 @@ var _ = Describe("instructionmanager", func() {
 		stepsErr          error
 		instMng           *InstructionManager
 		ctrl              *gomock.Controller
-		mockValidator     *hardware.MockValidator
+		hwValidator       *hardware.MockValidator
 		instructionConfig InstructionConfig
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
-		mockValidator = hardware.NewMockValidator(ctrl)
-		instMng = NewInstructionManager(getTestLog(), db, mockValidator, instructionConfig)
+		hwValidator = hardware.NewMockValidator(ctrl)
+		instMng = NewInstructionManager(getTestLog(), db, hwValidator, instructionConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId}}
@@ -51,27 +51,28 @@ var _ = Describe("instructionmanager", func() {
 			Expect(stepsErr).Should(BeNil())
 		})
 		It("discovering", func() {
-			checkStepsByState(HostStatusDiscovering, &host, db, instMng, mockValidator, ctx,
+			checkStepsByState(HostStatusDiscovering, &host, db, instMng, hwValidator, ctx,
 				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck})
 		})
 		It("known", func() {
-			checkStepsByState(HostStatusKnown, &host, db, instMng, mockValidator, ctx,
+
+			checkStepsByState(HostStatusKnown, &host, db, instMng, hwValidator, ctx,
 				[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
 		})
 		It("disconnected", func() {
-			checkStepsByState(HostStatusDisconnected, &host, db, instMng, mockValidator, ctx,
+			checkStepsByState(HostStatusDisconnected, &host, db, instMng, hwValidator, ctx,
 				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck})
 		})
 		It("insufficient", func() {
-			checkStepsByState(HostStatusInsufficient, &host, db, instMng, mockValidator, ctx,
+			checkStepsByState(HostStatusInsufficient, &host, db, instMng, hwValidator, ctx,
 				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
 		})
 		It("error", func() {
-			checkStepsByState(HostStatusError, &host, db, instMng, mockValidator, ctx,
+			checkStepsByState(HostStatusError, &host, db, instMng, hwValidator, ctx,
 				[]models.StepType{})
 		})
 		It("installing", func() {
-			checkStepsByState(HostStatusInstalling, &host, db, instMng, mockValidator, ctx,
+			checkStepsByState(HostStatusInstalling, &host, db, instMng, hwValidator, ctx,
 				[]models.StepType{models.StepTypeInstall})
 		})
 
