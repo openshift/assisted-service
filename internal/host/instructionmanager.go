@@ -30,7 +30,7 @@ type InstructionManager struct {
 type InstructionConfig struct {
 	InventoryURL   string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
 	InventoryPort  string `envconfig:"INVENTORY_PORT" default:"30485"`
-	InstallerImage string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:stable"`
+	InstallerImage string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig) *InstructionManager {
