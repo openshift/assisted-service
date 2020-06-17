@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -9,11 +10,15 @@ import (
 	"github.com/filanov/bm-inventory/models"
 )
 
-type hwInfoCmd baseCmd
+type hwInfoCmd struct {
+	baseCmd
+	hardwareInfoImage string
+}
 
-func NewHwInfoCmd(log logrus.FieldLogger) *hwInfoCmd {
+func NewHwInfoCmd(log logrus.FieldLogger, hardwareInfoImage string) *hwInfoCmd {
 	return &hwInfoCmd{
-		log: log,
+		baseCmd:           baseCmd{log: log},
+		hardwareInfoImage: hardwareInfoImage,
 	}
 }
 
@@ -21,6 +26,6 @@ func (h *hwInfoCmd) GetStep(ctx context.Context, host *models.Host) (*models.Ste
 	step := &models.Step{}
 	step.StepType = models.StepTypeHardwareInfo
 	step.Command = "podman"
-	step.Args = strings.Split("run,--rm,--privileged,--quiet,--net=host,-v,/var/log:/var/log,quay.io/ocpmetal/hardware_info:latest,/usr/bin/hardware_info", ",")
+	step.Args = strings.Split(fmt.Sprintf("run,--rm,--privileged,--quiet,--net=host,-v,/var/log:/var/log,%s,/usr/bin/hardware_info", h.hardwareInfoImage), ",")
 	return step, nil
 }
