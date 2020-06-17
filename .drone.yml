@@ -1,0 +1,33 @@
+kind: pipeline
+name: default
+
+steps:
+  - name: mariadb
+    image: mariadb
+    commands:
+      - sleep 40
+      - mysql -u admin -h database -padmin --execute="SELECT VERSION();"
+
+  - name: build
+    image: golang
+    commands:
+      - CGO_ENABLED=0 go build -o build/bm-inventory cmd/main.go
+      - ./build/bm-inventory &
+      - sleep 10
+      - go test -v ./subsystem/... -count=1 -ginkgo.skip=only_k8s -ginkgo.v
+    environment:
+      INVENTORY: build:8090
+      DB_HOST: database
+      DB_PORT: 3306
+      USE_K8S: false
+
+services:
+  - name: database
+    image: mariadb
+    environment:
+      MYSQL_DATABASE: installer
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_RANDOM_ROOT_PASSWORD: admin

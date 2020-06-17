@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+
 	"github.com/filanov/bm-inventory/internal/versions"
 
 	"github.com/filanov/bm-inventory/internal/bminventory"
@@ -23,8 +26,6 @@ import (
 	awsS3Client "github.com/filanov/bm-inventory/pkg/s3Client"
 	"github.com/filanov/bm-inventory/pkg/s3wrapper"
 
-	"github.com/filanov/bm-inventory/pkg/thread"
-	"github.com/filanov/bm-inventory/restapi"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -33,8 +34,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	"github.com/filanov/bm-inventory/pkg/thread"
+	"github.com/filanov/bm-inventory/restapi"
 )
 
 func init() {
@@ -52,6 +54,7 @@ var Options struct {
 	S3Config                    s3wrapper.Config
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"30s"`
 	Versions                    versions.Versions
+	UseK8s                      bool `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
 }
 
 func main() {
@@ -68,8 +71,25 @@ func main() {
 
 	log.Println("Starting bm service")
 
-	if err = s3wrapper.CreateBucket(&Options.S3Config); err != nil {
-		log.Fatal(err)
+	var kclient client.Client
+	if Options.UseK8s {
+		if err = s3wrapper.CreateBucket(&Options.S3Config); err != nil {
+			log.Fatal(err)
+		}
+
+		scheme := runtime.NewScheme()
+		if err = clientgoscheme.AddToScheme(scheme); err != nil {
+			log.Fatal("Failed to add K8S scheme", err)
+		}
+
+		kclient, err = client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
+		if err != nil && Options.UseK8s {
+			log.Fatal("failed to create client:", err)
+		}
+
+	} else {
+		log.Println("running drone test, skipping S3")
+		kclient = nil
 	}
 
 	db, err := gorm.Open("mysql",
@@ -83,16 +103,6 @@ func main() {
 	db.DB().SetMaxIdleConns(0)
 	db.DB().SetMaxOpenConns(0)
 	db.DB().SetConnMaxLifetime(0)
-
-	scheme := runtime.NewScheme()
-	if err = clientgoscheme.AddToScheme(scheme); err != nil {
-		log.Fatal("Failed to add K8S scheme", err)
-	}
-
-	kclient, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
-	if err != nil {
-		log.Fatal("failed to create client:", err)
-	}
 
 	if err = db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{}).Error; err != nil {
 		log.Fatal("failed to auto migrate, ", err)

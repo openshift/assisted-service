@@ -278,7 +278,7 @@ var _ = Describe("cluster install", func() {
 			clusterID = *cluster.ID
 			registerHostsAndSetRoles(clusterID, 4)
 		})
-		It("register host while installing", func() {
+		It("[only_k8s]register host while installing", func() {
 			_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
@@ -294,7 +294,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostForbidden()))
 		})
 
-		It("register host while cluster in error state", func() {
+		It("[only_k8s]register host while cluster in error state", func() {
 			FailCluster(ctx, clusterID)
 			//Wait for cluster to get to error state
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, 20*time.Second)
@@ -307,7 +307,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostForbidden()))
 		})
 
-		It("register existing host while cluster in installing state", func() {
+		It("[only_k8s]register existing host while cluster in installing state", func() {
 			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			hostID := c.GetPayload().Hosts[0].ID
@@ -324,7 +324,7 @@ var _ = Describe("cluster install", func() {
 
 		})
 
-		It("install cluster", func() {
+		It("[only_k8s]install cluster", func() {
 			_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -363,7 +363,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("report_progress", func() {
+		It("[only_k8s]report_progress", func() {
 			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -401,7 +401,7 @@ var _ = Describe("cluster install", func() {
 			})
 		})
 
-		It("install download_config_files", func() {
+		It("[only_k8s]install download_config_files", func() {
 
 			//Test downloading kubeconfig files in worng state
 			file, err := ioutil.TempFile("", "tmp")
@@ -428,7 +428,7 @@ var _ = Describe("cluster install", func() {
 			Expect(s.Size()).ShouldNot(Equal(0))
 		})
 
-		It("download_config_files in error state", func() {
+		It("[only_k8s]download_config_files in error state", func() {
 			file, err := ioutil.TempFile("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
 			defer os.Remove(file.Name())
@@ -444,7 +444,7 @@ var _ = Describe("cluster install", func() {
 			Expect(s.Size()).ShouldNot(Equal(0))
 		})
 
-		It("Get credentials", func() {
+		It("[only_k8s]Get credentials", func() {
 			By("Test getting kubeadmin password for not found cluster")
 			{
 				missingClusterId := strfmt.UUID(uuid.New().String())
@@ -469,7 +469,7 @@ var _ = Describe("cluster install", func() {
 			}
 		})
 
-		It("Upload ingress ca and kubeconfig download", func() {
+		It("[only_k8s]Upload ingress ca and kubeconfig download", func() {
 			ingressCa := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 				"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
@@ -858,7 +858,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		cluster = registerClusterReply.GetPayload()
 	})
 
-	It("install cluster", func() {
+	It("[only_k8s]install cluster", func() {
 		clusterID := *cluster.ID
 		registerHostsAndSetRoles(clusterID, 3)
 		rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
