@@ -859,7 +859,6 @@ definitions:
       - connectivity-check
       - execute
       - inventory
-      - install
 
   step:
     type: object
@@ -883,8 +882,6 @@ definitions:
   step-reply:
     type: object
     properties:
-      step_type:
-        $ref: '#/definitions/step-type'
       step_id:
         type: string
       exit_code:
