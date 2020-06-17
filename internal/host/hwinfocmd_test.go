@@ -22,9 +22,7 @@ var _ = Describe("hwinfocmd", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-
 		hwCmd = NewHwInfoCmd(getTestLog(), "quay.io/ocpmetal/hardware_info:latest")
-
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, HostStatusDiscovering)

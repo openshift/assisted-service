@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/gorm"
@@ -34,9 +33,8 @@ func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Val
 
 func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
 	step := &models.Step{}
-	step.StepType = models.StepTypeExecute
+	step.StepType = models.StepTypeInstall
 	step.Command = "bash"
-	step.StepID = fmt.Sprintf("%s-%s-%s", InstallCmdStep, models.StepTypeExecute, uuid.New().String()[:8])
 
 	//get openshift version
 	var cluster common.Cluster

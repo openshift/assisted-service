@@ -64,10 +64,6 @@ const (
 	progressFailed = "Failed"
 )
 
-const (
-	InstallCmdStep = "installCmd"
-)
-
 type API interface {
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host) error

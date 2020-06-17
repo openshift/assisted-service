@@ -242,6 +242,7 @@ var _ = Describe("cluster install", func() {
 			HostID:    *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
+				StepType: models.StepTypeInventory,
 				Output:   string(hw),
 				StepID:   string(models.StepTypeInventory),
 			},
@@ -907,6 +908,7 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) {
 				ExitCode: 0,
 				Output:   string(hw),
 				StepID:   string(models.StepTypeInventory),
+				StepType: models.StepTypeInventory,
 			},
 		})
 		Expect(err).ShouldNot(HaveOccurred())
