@@ -22,7 +22,7 @@ var _ = Describe("inventory", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		invCmd = NewInventoryCmd(getTestLog(), "quay.io/ocpmetal/inventory:latest")
+		invCmd = NewInventoryCmd(getTestLog())
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())

@@ -8,31 +8,16 @@ import (
 	"github.com/filanov/bm-inventory/models"
 )
 
-type inventoryCmd struct {
-	baseCmd
-	inventoryImage string
-}
+type inventoryCmd baseCmd
 
-func NewInventoryCmd(log logrus.FieldLogger, inventoryImage string) *inventoryCmd {
+func NewInventoryCmd(log logrus.FieldLogger) *inventoryCmd {
 	return &inventoryCmd{
-		baseCmd:        baseCmd{log: log},
-		inventoryImage: inventoryImage,
+		log: log,
 	}
 }
 
 func (h *inventoryCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
-	step := &models.Step{
-		StepType: models.StepTypeInventory,
-		Command:  "podman",
-		Args: []string{
-			"run", "--privileged", "--net=host", "--rm", "--quiet",
-			"-v", "/var/log:/var/log",
-			"-v", "/run/udev:/run/udev",
-			"-v", "/dev/disk:/dev/disk",
-			"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-			h.inventoryImage,
-			"inventory",
-		},
-	}
+	step := &models.Step{}
+	step.StepType = models.StepTypeInventory
 	return step, nil
 }

@@ -1052,7 +1052,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 
 func handleReplyError(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, h *models.Host) error {
 
-	if params.Reply.StepType == models.StepTypeInstall {
+	if strings.HasPrefix(params.Reply.StepID, host.InstallCmdStep) {
 		//if it's install step - need to move host to error
 		return b.hostApi.HandleInstallationFailure(ctx, h)
 	}
@@ -1061,13 +1061,14 @@ func handleReplyError(params installer.PostStepReplyParams, b *bareMetalInventor
 
 func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {
 	var err error
-	switch params.Reply.StepType {
-	case models.StepTypeHardwareInfo:
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeHardwareInfo)) {
 		_, err = b.hostApi.UpdateHwInfo(ctx, &host, stepReply)
-	case models.StepTypeInventory:
-		_, err = b.hostApi.UpdateInventory(ctx, &host, stepReply)
-	case models.StepTypeConnectivityCheck:
+	}
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeConnectivityCheck)) {
 		err = b.hostApi.UpdateConnectivityReport(ctx, &host, stepReply)
+	}
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeInventory)) {
+		_, err = b.hostApi.UpdateInventory(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -1075,15 +1076,17 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 	var stepReply string
 	var err error
-
 	// To make sure we store only information defined in swagger we unmarshal and marshal the stepReplyParams.
-	switch params.Reply.StepType {
-	case models.StepTypeHardwareInfo:
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeHardwareInfo)) {
 		stepReply, err = filterReply(&models.Introspection{}, params.Reply.Output)
-	case models.StepTypeInventory:
-		stepReply, err = filterReply(&models.Inventory{}, params.Reply.Output)
-	case models.StepTypeConnectivityCheck:
+	}
+
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeConnectivityCheck)) {
 		stepReply, err = filterReply(&models.ConnectivityReport{}, params.Reply.Output)
+	}
+
+	if strings.HasPrefix(params.Reply.StepID, string(models.StepTypeInventory)) {
+		stepReply, err = filterReply(&models.Inventory{}, params.Reply.Output)
 	}
 	return stepReply, err
 }

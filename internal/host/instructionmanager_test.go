@@ -72,7 +72,7 @@ var _ = Describe("instructionmanager", func() {
 		})
 		It("installing", func() {
 			checkStepsByState(HostStatusInstalling, &host, db, instMng, mockValidator, ctx,
-				[]models.StepType{models.StepTypeInstall})
+				[]models.StepType{models.StepTypeExecute})
 		})
 
 	})

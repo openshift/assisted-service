@@ -14,21 +14,21 @@ import (
 
 type connectivityCheckCmd struct {
 	baseCmd
-	db                     *gorm.DB
-	hwValidator            hardware.Validator
-	connectivityCheckImage string
+	db          *gorm.DB
+	hwValidator hardware.Validator
 }
 
-func NewConnectivityCheckCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, connectivityCheckImage string) *connectivityCheckCmd {
+func NewConnectivityCheckCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator) *connectivityCheckCmd {
 	return &connectivityCheckCmd{
-		baseCmd:                baseCmd{log: log},
-		db:                     db,
-		hwValidator:            hwValidator,
-		connectivityCheckImage: connectivityCheckImage,
+		baseCmd:     baseCmd{log: log},
+		db:          db,
+		hwValidator: hwValidator,
 	}
 }
 
 func (c *connectivityCheckCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
+	step := &models.Step{}
+	step.StepType = models.StepTypeConnectivityCheck
 
 	var hosts []*models.Host
 	if err := c.db.Find(&hosts, "cluster_id = ?", host.ClusterID).Error; err != nil {
@@ -42,17 +42,6 @@ func (c *connectivityCheckCmd) GetStep(ctx context.Context, host *models.Host) (
 		return nil, err
 	}
 
-	step := &models.Step{
-		StepType: models.StepTypeConnectivityCheck,
-		Command:  "podman",
-		Args: []string{
-			"run", "--privileged", "--net=host", "--rm", "--quiet",
-			"-v", "/var/log:/var/log",
-			"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-			c.connectivityCheckImage,
-			"connectivity_check",
-			hostsData,
-		},
-	}
+	step.Args = append(step.Args, hostsData)
 	return step, nil
 }

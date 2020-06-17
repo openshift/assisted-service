@@ -28,19 +28,17 @@ type InstructionManager struct {
 	stateToSteps stateToStepsMap
 }
 type InstructionConfig struct {
-	InventoryURL           string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
-	InventoryPort          string `envconfig:"INVENTORY_PORT" default:"30485"`
-	InstallerImage         string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
-	ConnectivityCheckImage string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/connectivity_check:latest"`
-	InventoryImage         string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/inventory:latest"`
-	HardwareInfoImage      string `envconfig:"HARDWARE_INFO_IMAGE" default:"quay.io/ocpmetal/hardware_info:latest"`
+	InventoryURL      string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
+	InventoryPort     string `envconfig:"INVENTORY_PORT" default:"30485"`
+	InstallerImage    string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
+	HardwareInfoImage string `envconfig:"HARDWARE_INFO_IMAGE" default:"quay.io/ocpmetal/hardware_info:latest"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig) *InstructionManager {
-	connectivityCmd := NewConnectivityCheckCmd(log, db, hwValidator, instructionConfig.ConnectivityCheckImage)
+	connectivityCmd := NewConnectivityCheckCmd(log, db, hwValidator)
 	installCmd := NewInstallCmd(log, db, hwValidator, instructionConfig)
 	hwCmd := NewHwInfoCmd(log, instructionConfig.HardwareInfoImage)
-	inventoryCmd := NewInventoryCmd(log, instructionConfig.InventoryImage)
+	inventoryCmd := NewInventoryCmd(log)
 
 	return &InstructionManager{
 		log: log,
@@ -53,6 +51,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			HostStatusInstalling:   {installCmd},
 		},
 	}
+
 }
 
 func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error) {

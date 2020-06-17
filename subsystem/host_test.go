@@ -111,7 +111,6 @@ var _ = Describe("Host tests", func() {
 			Reply: &models.StepReply{
 				ExitCode: 137,
 				Output:   "Failed to install",
-				StepType: models.StepTypeInstall,
 				StepID:   "installCmd-" + string(models.StepTypeExecute),
 			},
 		})
@@ -135,7 +134,6 @@ var _ = Describe("Host tests", func() {
 				ExitCode: 0,
 				Output:   extraHwInfo,
 				StepID:   string(models.StepTypeHardwareInfo),
-				StepType: models.StepTypeHardwareInfo,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -149,7 +147,6 @@ var _ = Describe("Host tests", func() {
 				ExitCode: 0,
 				Output:   "not a json",
 				StepID:   string(models.StepTypeHardwareInfo),
-				StepType: models.StepTypeHardwareInfo,
 			},
 		})
 		Expect(err).To(HaveOccurred())
@@ -170,7 +167,6 @@ var _ = Describe("Host tests", func() {
 				ExitCode: 0,
 				Output:   extraConnectivity,
 				StepID:   string(models.StepTypeConnectivityCheck),
-				StepType: models.StepTypeConnectivityCheck,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -184,7 +180,6 @@ var _ = Describe("Host tests", func() {
 				ExitCode: 0,
 				Output:   "not a json",
 				StepID:   string(models.StepTypeConnectivityCheck),
-				StepType: models.StepTypeConnectivityCheck,
 			},
 		})
 		Expect(err).To(HaveOccurred())

@@ -2,6 +2,8 @@ package host
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 
@@ -24,11 +26,6 @@ func (h *hwInfoCmd) GetStep(ctx context.Context, host *models.Host) (*models.Ste
 	step := &models.Step{}
 	step.StepType = models.StepTypeHardwareInfo
 	step.Command = "podman"
-	step.Args = []string{
-		"run", "--privileged", "--net=host", "--rm", "--quiet",
-		"-v", "/var/log:/var/log",
-		"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-		h.hardwareInfoImage,
-	}
+	step.Args = strings.Split(fmt.Sprintf("run,--rm,--privileged,--quiet,--net=host,-v,/var/log:/var/log,%s,/usr/bin/hardware_info", h.hardwareInfoImage), ",")
 	return step, nil
 }
