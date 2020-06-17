@@ -38,10 +38,15 @@ def main():
                             "INSTALLER_IMAGE": "quay.io/ocpmetal/assisted-installer:",
                             "CONNECTIVITY_CHECK_IMAGE": "quay.io/ocpmetal/connectivity_check:",
                             "INVENTORY_IMAGE": "quay.io/ocpmetal/inventory:",
-                            "HARDWARE_INFO_IMAGE": "quay.io/ocpmetal/hardware_info:"}
+                            "HARDWARE_INFO_IMAGE": "quay.io/ocpmetal/hardware_info:",
+                            "SELF_VERSION": "quay.io/ocpmetal/installer-image-build:"}
                 versions = {k: v + args.deploy_tag for k, v in versions.items()}
                 y = yaml.load(data)
                 y['data'].update(versions)
+                data = yaml.dump(y)
+            else:
+                y = yaml.load(data)
+                y['data'].update({"SELF_VERSION": os.environ.get("SERVICE")})
                 data = yaml.dump(y)
             dst.write(data)
 
