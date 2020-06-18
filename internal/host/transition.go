@@ -2,7 +2,9 @@ package host
 
 import (
 	"context"
+	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
 	"github.com/filanov/bm-inventory/models"
@@ -49,6 +51,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 			"hardware_info", "", "role", "")
 	}
 
+	sHost.host.StatusUpdatedAt = strfmt.DateTime(time.Now())
 	log.Infof("Register new host %s cluster %s", sHost.host.ID.String(), sHost.host.ClusterID)
 	return th.db.Create(sHost.host).Error
 }

@@ -2,9 +2,11 @@ package cluster
 
 import (
 	context "context"
+	"time"
 
 	"github.com/pkg/errors"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
 	"github.com/filanov/bm-inventory/internal/common"
@@ -28,6 +30,7 @@ type registrar struct {
 func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster) error {
 	cluster.Status = swag.String(clusterStatusInsufficient)
 	cluster.StatusInfo = swag.String(statusInfoInsufficient)
+	cluster.StatusUpdatedAt = strfmt.DateTime(time.Now())
 	tx := r.db.Begin()
 	defer func() {
 		if rec := recover(); rec != nil {
