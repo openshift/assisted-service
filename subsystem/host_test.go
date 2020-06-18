@@ -2,6 +2,7 @@ package subsystem
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -41,6 +42,7 @@ var _ = Describe("Host tests", func() {
 		host := registerHost(clusterID)
 		host = getHost(clusterID, *host.ID)
 		Expect(*host.Status).Should(Equal("discovering"))
+		Expect(host.StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 
 		list, err := bmclient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
