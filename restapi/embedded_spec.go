@@ -1688,6 +1688,35 @@ func init() {
         "$ref": "#/definitions/event"
       }
     },
+    "free_addresses_request": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
+      }
+    },
+    "free_network_addresses": {
+      "type": "object",
+      "properties": {
+        "free_addresses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "ipv4"
+          }
+        },
+        "network": {
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
+        }
+      }
+    },
+    "free_networks_addresses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/free_network_addresses"
+      }
+    },
     "host": {
       "type": "object",
       "required": [
@@ -2132,7 +2161,8 @@ func init() {
         "connectivity-check",
         "execute",
         "inventory",
-        "install"
+        "install",
+        "free-network-addresses"
       ]
     },
     "steps": {
@@ -3843,6 +3873,35 @@ func init() {
         "$ref": "#/definitions/event"
       }
     },
+    "free_addresses_request": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
+      }
+    },
+    "free_network_addresses": {
+      "type": "object",
+      "properties": {
+        "free_addresses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "ipv4"
+          }
+        },
+        "network": {
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
+        }
+      }
+    },
+    "free_networks_addresses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/free_network_addresses"
+      }
+    },
     "host": {
       "type": "object",
       "required": [
@@ -4287,7 +4346,8 @@ func init() {
         "connectivity-check",
         "execute",
         "inventory",
-        "install"
+        "install",
+        "free-network-addresses"
       ]
     },
     "steps": {
