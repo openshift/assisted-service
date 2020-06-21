@@ -459,7 +459,7 @@ type clusterInstaller struct {
 }
 
 func (c *clusterInstaller) verifyClusterNetworkConfig(cluster *common.Cluster, tx *gorm.DB) error {
-	cidr, err := common.CalculateMachineNetworkCIDR(cluster)
+	cidr, err := common.CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -467,7 +467,7 @@ func (c *clusterInstaller) verifyClusterNetworkConfig(cluster *common.Cluster, t
 		return common.NewApiError(http.StatusBadRequest,
 			fmt.Errorf("Cluster machine CIDR %s is different than the calculated CIDR %s", cluster.MachineNetworkCidr, cidr))
 	}
-	if err = common.VerifyVips(cluster, true); err != nil {
+	if err = common.VerifyVips(cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	machineCidrHosts, err := common.GetMachineCIDRHosts(c.log, cluster)
@@ -704,41 +704,62 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		return installer.NewUpdateClusterConflict().WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
 
-	updateString := func(target *string, source *string) {
-		if source != nil {
-			*target = *source
-		}
+	updates := map[string]interface{}{}
+	apiVip := cluster.APIVip
+	ingressVip := cluster.IngressVip
+	if params.ClusterUpdateParams.Name != nil {
+		updates["name"] = *params.ClusterUpdateParams.Name
 	}
-
-	updateString(&cluster.Name, params.ClusterUpdateParams.Name)
-	updateString(&cluster.APIVip, params.ClusterUpdateParams.APIVip)
-	updateString(&cluster.BaseDNSDomain, params.ClusterUpdateParams.BaseDNSDomain)
+	if params.ClusterUpdateParams.APIVip != nil {
+		updates["api_vip"] = *params.ClusterUpdateParams.APIVip
+		apiVip = *params.ClusterUpdateParams.APIVip
+	}
+	if params.ClusterUpdateParams.BaseDNSDomain != nil {
+		updates["base_dns_domain"] = *params.ClusterUpdateParams.BaseDNSDomain
+	}
 	if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
-		cluster.ClusterNetworkCidr = *params.ClusterUpdateParams.ClusterNetworkCidr
+		updates["cluster_network_cidr"] = *params.ClusterUpdateParams.ClusterNetworkCidr
 	}
 	if params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
-		cluster.ClusterNetworkHostPrefix = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
+		updates["cluster_network_host_prefix"] = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
 	}
 	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
-		cluster.ServiceNetworkCidr = *params.ClusterUpdateParams.ServiceNetworkCidr
+		updates["service_network_cidr"] = *params.ClusterUpdateParams.ServiceNetworkCidr
 	}
-	updateString(&cluster.IngressVip, params.ClusterUpdateParams.IngressVip)
-	updateString(&cluster.SSHPublicKey, params.ClusterUpdateParams.SSHPublicKey)
+	if params.ClusterUpdateParams.IngressVip != nil {
+		updates["ingress_vip"] = *params.ClusterUpdateParams.IngressVip
+		ingressVip = *params.ClusterUpdateParams.IngressVip
+	}
+	if params.ClusterUpdateParams.SSHPublicKey != nil {
+		updates["ssh_public_key"] = *params.ClusterUpdateParams.SSHPublicKey
+	}
+
 	var machineCidr string
-	if machineCidr, err = common.CalculateMachineNetworkCIDR(&cluster); err != nil {
+	if machineCidr, err = common.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts); err != nil {
 		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 	machineCidrUpdated := machineCidr != cluster.MachineNetworkCidr
-	cluster.MachineNetworkCidr = machineCidr
-	err = common.VerifyVips(&cluster, false)
+	updates["machine_network_cidr"] = machineCidr
+
+	err = common.VerifyVips(machineCidr, apiVip, ingressVip, false)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
-	setPullSecret(&cluster, swag.StringValue(params.ClusterUpdateParams.PullSecret))
 
-	if err = tx.Model(&cluster).Update(cluster).Error; err != nil {
+	if params.ClusterUpdateParams.PullSecret != nil {
+		cluster.PullSecret = *params.ClusterUpdateParams.PullSecret
+		updates["pull_secret"] = *params.ClusterUpdateParams.PullSecret
+		if cluster.PullSecret != "" {
+			updates["pull_secret_set"] = true
+		} else {
+			updates["pull_secret_set"] = false
+		}
+	}
+
+	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
+	if dbReply.Error != nil {
 		log.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))

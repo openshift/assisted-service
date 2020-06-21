@@ -16,12 +16,12 @@ import (
  * The goal of this function is to find the first network that one of the vips belongs to it.
  * This network is returned as a result.
  */
-func CalculateMachineNetworkCIDR(cluster *Cluster) (string, error) {
+func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*models.Host) (string, error) {
 	var ip string
-	if cluster.APIVip != "" {
-		ip = cluster.APIVip
-	} else if cluster.IngressVip != "" {
-		ip = cluster.IngressVip
+	if apiVip != "" {
+		ip = apiVip
+	} else if ingressVip != "" {
+		ip = ingressVip
 	} else {
 		return "", nil
 	}
@@ -29,7 +29,7 @@ func CalculateMachineNetworkCIDR(cluster *Cluster) (string, error) {
 	if parsedVipAddr == nil {
 		return "", fmt.Errorf("Could not parse VIP ip %s", ip)
 	}
-	for _, h := range cluster.Hosts {
+	for _, h := range hosts {
 		var inventory models.Inventory
 		err := json.Unmarshal([]byte(h.Inventory), &inventory)
 		if err != nil {
@@ -62,27 +62,27 @@ func ipInCidr(ipStr, cidrStr string) bool {
 	return ipnet.Contains(ip)
 }
 
-func verifyVip(cluster *Cluster, vip string, vipName string, mustExist bool) error {
-	if !mustExist && vip == "" || ipInCidr(vip, cluster.MachineNetworkCidr) {
+func verifyVip(machineNetworkCidr string, vip string, vipName string, mustExist bool) error {
+	if !mustExist && vip == "" || ipInCidr(vip, machineNetworkCidr) {
 		return nil
 	}
-	return fmt.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, cluster.MachineNetworkCidr)
+	return fmt.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
 }
 
-func verifyDifferentVipAddresses(cluster *Cluster) error {
-	if cluster.APIVip == cluster.IngressVip && cluster.APIVip != "" {
-		return fmt.Errorf("api-vip and ingress-vip cannot have the same value: %s", cluster.APIVip)
+func verifyDifferentVipAddresses(apiVip string, ingressVip string) error {
+	if apiVip == ingressVip && apiVip != "" {
+		return fmt.Errorf("api-vip and ingress-vip cannot have the same value: %s", apiVip)
 	}
 	return nil
 }
 
-func VerifyVips(cluster *Cluster, mustExist bool) error {
-	err := verifyVip(cluster, cluster.APIVip, "api-vip", mustExist)
+func VerifyVips(machineNetworkCidr string, apiVip string, ingressVip string, mustExist bool) error {
+	err := verifyVip(machineNetworkCidr, apiVip, "api-vip", mustExist)
 	if err == nil {
-		err = verifyVip(cluster, cluster.IngressVip, "ingress-vip", mustExist)
+		err = verifyVip(machineNetworkCidr, ingressVip, "ingress-vip", mustExist)
 	}
 	if err == nil {
-		err = verifyDifferentVipAddresses(cluster)
+		err = verifyDifferentVipAddresses(apiVip, ingressVip)
 	}
 	return err
 }
