@@ -14,23 +14,20 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/cluster/validations"
-
-	"github.com/filanov/bm-inventory/restapi"
-
-	"github.com/filanov/bm-inventory/internal/common"
-
-	"github.com/filanov/bm-inventory/internal/events"
-
-	awsS3CLient "github.com/filanov/bm-inventory/pkg/s3Client"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/filanov/bm-inventory/internal/cluster"
+	"github.com/filanov/bm-inventory/internal/cluster/validations"
+	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/internal/installcfg"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/filemiddleware"
 	"github.com/filanov/bm-inventory/pkg/job"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
+	awsS3CLient "github.com/filanov/bm-inventory/pkg/s3Client"
+	"github.com/filanov/bm-inventory/restapi"
 	"github.com/filanov/bm-inventory/restapi/operations/installer"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -75,6 +72,10 @@ type Config struct {
 	AwsSecretAccessKey  string `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
 	Namespace           string `envconfig:"NAMESPACE" default:"assisted-installer"`
 	UseK8s              bool   `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
+	JobCPULimit         string `envconfig:"JOB_CPU_LIMIT" default:"500m"`
+	JobMemoryLimit      string `envconfig:"JOB_MEMORY_LIMIT" default:"1000Mi"`
+	JobCPURequests      string `envconfig:"JOB_CPU_REQUESTS" default:"300m"`
+	JobMemoryRequests   string `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
 }
 
 const ignitionConfigFormat = `{
@@ -156,6 +157,11 @@ func generateDummyISOImage(jobApi job.API, b *bareMetalInventory, log logrus.Fie
 	}
 }
 
+func getQuantity(s string) resource.Quantity {
+	reply, _ := resource.ParseQuantity(s)
+	return reply
+}
+
 // create discovery image generation job, return job name and error
 func (b *bareMetalInventory) createImageJob(jobName, imgName, ignitionConfig string) *batch.Job {
 	return &batch.Job{
@@ -177,6 +183,16 @@ func (b *bareMetalInventory) createImageJob(jobName, imgName, ignitionConfig str
 				Spec: core.PodSpec{
 					Containers: []core.Container{
 						{
+							Resources: core.ResourceRequirements{
+								Limits: core.ResourceList{
+									"cpu":    getQuantity(b.JobCPULimit),
+									"memory": getQuantity(b.JobMemoryLimit),
+								},
+								Requests: core.ResourceList{
+									"cpu":    getQuantity(b.JobCPURequests),
+									"memory": getQuantity(b.JobMemoryRequests),
+								},
+							},
 							Name:            "image-creator",
 							Image:           b.Config.ImageBuilder,
 							Command:         b.imageBuildCmd,
@@ -1274,6 +1290,16 @@ func (b *bareMetalInventory) createKubeconfigJob(cluster *common.Cluster, jobNam
 								{
 									Name:  "aws_secret_access_key",
 									Value: b.AwsSecretAccessKey,
+								},
+							},
+							Resources: core.ResourceRequirements{
+								Limits: core.ResourceList{
+									"cpu":    getQuantity(b.JobCPULimit),
+									"memory": getQuantity(b.JobMemoryLimit),
+								},
+								Requests: core.ResourceList{
+									"cpu":    getQuantity(b.JobCPURequests),
+									"memory": getQuantity(b.JobMemoryRequests),
 								},
 							},
 						},
