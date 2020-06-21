@@ -31,12 +31,8 @@ func (d *disabledState) UpdateInventory(ctx context.Context, h *models.Host, inv
 }
 
 func (d *disabledState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
-	cdb := d.db
-	if db != nil {
-		cdb = db
-	}
-	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDisabled, statusInfoDisabled, h, cdb,
-		"role", role)
+	return nil, errors.Errorf("unable to update role to host <%s> in <%s> status",
+		h.ID, swag.StringValue(h.Status))
 }
 
 func (d *disabledState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {

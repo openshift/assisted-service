@@ -190,6 +190,7 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "known", db)
+				shouldHaveUpdated = false
 				expectedState = "insufficient"
 			})
 			It("insufficient -> ready", func() {
@@ -213,6 +214,14 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "error", db)
+
+				shouldHaveUpdated = false
+				expectedState = "insufficient"
+			})
+			It("insufficient -> insufficient including hosts in disabled", func() {
+				createHost(id, "known", db)
+				createHost(id, "known", db)
+				createHost(id, "disabled", db)
 
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
@@ -257,6 +266,14 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "error", db)
+
+				shouldHaveUpdated = true
+				expectedState = "insufficient"
+			})
+			It("ready -> insufficient including hosts in disabled", func() {
+				createHost(id, "known", db)
+				createHost(id, "known", db)
+				createHost(id, "disabled", db)
 
 				shouldHaveUpdated = true
 				expectedState = "insufficient"

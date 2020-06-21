@@ -100,7 +100,7 @@ test:
 		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v
 
 unit-test:
-	go test -v $(shell go list ./... | grep -v subsystem) -cover
+	go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) -cover
 
 subsystem-clean:
 	$(KUBECTL) get pod -o name | grep create-image | xargs $(KUBECTL) delete 1> /dev/null ; true
