@@ -17,7 +17,7 @@ import (
 // it relies on the MatchedRoute to provide more information about the route
 func Handler(log logrus.FieldLogger, m goMiddleware.Middleware, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Info("Request: %s", *r)
+		log.Debugf("Request: %v", *r)
 		wi := &responseWriterInterceptor{
 			statusCode:     http.StatusOK,
 			ResponseWriter: w,
