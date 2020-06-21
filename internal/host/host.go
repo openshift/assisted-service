@@ -162,7 +162,8 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host) error {
 func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host) error {
 
 	return m.sm.Run(TransitionTypeHostInstallaionFailed, newStateHost(h), &TransitionArgsHostInstallationFailed{
-		ctx: ctx,
+		ctx:    ctx,
+		reason: "installation command failed",
 	})
 }
 
