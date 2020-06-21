@@ -2,6 +2,7 @@ package subsystem
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -64,17 +65,44 @@ var _ = Describe("Host tests", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 
+	var defaultInventory = func() string {
+		inventory := models.Inventory{
+			Interfaces: []*models.Interface{
+				{
+					Name: "eth0",
+					IPV4Addresses: []string{
+						"1.2.3.4/24",
+					},
+				},
+			},
+		}
+		b, err := json.Marshal(&inventory)
+		Expect(err).To(Not(HaveOccurred()))
+		return string(b)
+	}
+
 	It("next step", func() {
 		host := registerHost(clusterID)
 		steps := getNextSteps(clusterID, *host.ID)
 		_, ok := getStepInList(steps, models.StepTypeHardwareInfo)
 		Expect(ok).Should(Equal(true))
+		_, ok = getStepInList(steps, models.StepTypeInventory)
+		Expect(ok).Should(Equal(true))
 		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
 		Expect(ok).Should(Equal(true))
 		host = getHost(clusterID, *host.ID)
+		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
+		steps = getNextSteps(clusterID, *host.ID)
+		_, ok = getStepInList(steps, models.StepTypeInventory)
+		Expect(ok).Should(Equal(true))
+		_, ok = getStepInList(steps, models.StepTypeFreeNetworkAddresses)
+		Expect(ok).Should(Equal(true))
 		Expect(db.Model(host).Update("status", "known").Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
 		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
+		Expect(ok).Should(Equal(true))
+		_, ok = getStepInList(steps, models.StepTypeFreeNetworkAddresses)
 		Expect(ok).Should(Equal(true))
 		Expect(db.Model(host).Update("status", "disabled").Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
@@ -208,6 +236,55 @@ var _ = Describe("Host tests", func() {
 		host = getHost(clusterID, *host.ID)
 		Expect(host.Connectivity).Should(Equal(connectivity))
 
+	})
+
+	It("free addresses report", func() {
+		host := registerHost(clusterID)
+
+		free_addresses_report := "[{\"free_addresses\":[\"10.0.0.0\",\"10.0.0.1\"],\"network\":\"10.0.0.0/24\"},{\"free_addresses\":[\"10.0.1.0\"],\"network\":\"10.0.1.0/24\"}]"
+
+		_, err := bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   free_addresses_report,
+				StepID:   string(models.StepTypeFreeNetworkAddresses),
+				StepType: models.StepTypeFreeNetworkAddresses,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		host = getHost(clusterID, *host.ID)
+		Expect(host.FreeAddresses).Should(Equal(free_addresses_report))
+
+		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   "not a json",
+				StepID:   string(models.StepTypeFreeNetworkAddresses),
+				StepType: models.StepTypeFreeNetworkAddresses,
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		host = getHost(clusterID, *host.ID)
+		Expect(host.FreeAddresses).Should(Equal(free_addresses_report))
+
+		//exit code is not 0
+		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: -1,
+				Error:    "some error",
+				Output:   "not a json",
+				StepID:   string(models.StepTypeFreeNetworkAddresses),
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		host = getHost(clusterID, *host.ID)
+		Expect(host.FreeAddresses).Should(Equal(free_addresses_report))
 	})
 
 	It("disable enable", func() {

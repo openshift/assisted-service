@@ -225,6 +225,96 @@ var _ = Describe("GetNextSteps", func() {
 	})
 })
 
+var _ = Describe("PostStepReply", func() {
+	var (
+		bm          *bareMetalInventory
+		cfg         Config
+		db          *gorm.DB
+		ctx         = context.Background()
+		ctrl        *gomock.Controller
+		mockHostApi *host.MockAPI
+		mockJob     *job.MockAPI
+		mockEvents  *events.MockHandler
+	)
+
+	var makeFreeAddresses = func(network string, ips ...strfmt.IPv4) *models.FreeNetworkAddresses {
+		return &models.FreeNetworkAddresses{
+			FreeAddresses: ips,
+			Network:       network,
+		}
+	}
+
+	var makeFreeNetworksAddresses = func(elems ...*models.FreeNetworkAddresses) models.FreeNetworksAddresses {
+		return models.FreeNetworksAddresses(elems)
+	}
+
+	var makeStepReply = func(clusterID, hostID strfmt.UUID, freeAddresses models.FreeNetworksAddresses) installer.PostStepReplyParams {
+		b, _ := json.Marshal(&freeAddresses)
+		return installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    hostID,
+			Reply: &models.StepReply{
+				Output:   string(b),
+				StepType: models.StepTypeFreeNetworkAddresses,
+			},
+		}
+	}
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = prepareDB()
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil)
+	})
+
+	It("free addresses success", func() {
+		clusterId := strToUUID(uuid.New().String())
+		hostId := strToUUID(uuid.New().String())
+		host := models.Host{
+			ID:        hostId,
+			ClusterID: *clusterId,
+			Status:    swag.String("discovering"),
+		}
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		toMarshal := makeFreeNetworksAddresses(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1"))
+		params := makeStepReply(*clusterId, *hostId, toMarshal)
+		reply := bm.PostStepReply(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		var h models.Host
+		Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+		var f models.FreeNetworksAddresses
+		Expect(json.Unmarshal([]byte(h.FreeAddresses), &f)).ToNot(HaveOccurred())
+		Expect(&f).To(Equal(&toMarshal))
+	})
+
+	It("free addresses empty", func() {
+		clusterId := strToUUID(uuid.New().String())
+		hostId := strToUUID(uuid.New().String())
+		host := models.Host{
+			ID:        hostId,
+			ClusterID: *clusterId,
+			Status:    swag.String("discovering"),
+		}
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		toMarshal := makeFreeNetworksAddresses()
+		params := makeStepReply(*clusterId, *hostId, toMarshal)
+		reply := bm.PostStepReply(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+		var h models.Host
+		Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+		Expect(h.FreeAddresses).To(BeEmpty())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		db.Close()
+	})
+})
+
 var _ = Describe("UpdateHostInstallProgress", func() {
 	var (
 		bm          *bareMetalInventory

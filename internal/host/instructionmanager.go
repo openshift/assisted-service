@@ -34,6 +34,7 @@ type InstructionConfig struct {
 	ConnectivityCheckImage string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/connectivity_check:latest"`
 	InventoryImage         string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/inventory:latest"`
 	HardwareInfoImage      string `envconfig:"HARDWARE_INFO_IMAGE" default:"quay.io/ocpmetal/hardware_info:latest"`
+	FreeAddressesImage     string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/free_addresses:latest"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig) *InstructionManager {
@@ -41,13 +42,14 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	installCmd := NewInstallCmd(log, db, hwValidator, instructionConfig)
 	hwCmd := NewHwInfoCmd(log, instructionConfig.HardwareInfoImage)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.InventoryImage)
+	freeAddressesCmd := NewFreeAddressesCmd(log, instructionConfig.FreeAddressesImage)
 
 	return &InstructionManager{
 		log: log,
 		db:  db,
 		stateToSteps: stateToStepsMap{
-			HostStatusKnown:        {connectivityCmd},
-			HostStatusInsufficient: {hwCmd, inventoryCmd, connectivityCmd},
+			HostStatusKnown:        {connectivityCmd, freeAddressesCmd},
+			HostStatusInsufficient: {hwCmd, inventoryCmd, connectivityCmd, freeAddressesCmd},
 			HostStatusDisconnected: {hwCmd, inventoryCmd, connectivityCmd},
 			HostStatusDiscovering:  {hwCmd, inventoryCmd, connectivityCmd},
 			HostStatusInstalling:   {installCmd},

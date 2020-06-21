@@ -1087,6 +1087,36 @@ func handleReplyError(params installer.PostStepReplyParams, b *bareMetalInventor
 	return nil
 }
 
+func (b *bareMetalInventory) updateFreeAddressesReport(ctx context.Context, host *models.Host, freeAddressesReport string) error {
+	var (
+		err           error
+		freeAddresses models.FreeNetworksAddresses
+	)
+	log := logutil.FromContext(ctx, b.log)
+	if err = json.Unmarshal([]byte(freeAddressesReport), &freeAddresses); err != nil {
+		log.WithError(err).Warnf("Json unmarshal free addresses of host %s", host.ID.String())
+		return err
+	}
+	if len(freeAddresses) == 0 {
+		err = fmt.Errorf("Free addresses for host %s is empty", host.ID.String())
+		log.WithError(err).Warn("Update free addresses")
+		return err
+	}
+	result := b.db.Model(&models.Host{}).Where("id = ? and cluster_id = ?", host.ID.String(),
+		host.ClusterID.String()).Updates(map[string]interface{}{"free_addresses": freeAddressesReport})
+	err = result.Error
+	if err != nil {
+		log.WithError(err).Warnf("Update free addresses of host %s", host.ID.String())
+		return err
+	}
+	if result.RowsAffected != 1 {
+		err = fmt.Errorf("Update free_addresses of host %s: %d affected rows", host.ID.String(), result.RowsAffected)
+		log.WithError(err).Warn("Update free addresses")
+		return err
+	}
+	return nil
+}
+
 func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {
 	var err error
 	switch params.Reply.StepType {
@@ -1096,6 +1126,8 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		_, err = b.hostApi.UpdateInventory(ctx, &host, stepReply)
 	case models.StepTypeConnectivityCheck:
 		err = b.hostApi.UpdateConnectivityReport(ctx, &host, stepReply)
+	case models.StepTypeFreeNetworkAddresses:
+		err = b.updateFreeAddressesReport(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -1112,6 +1144,8 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.Inventory{}, params.Reply.Output)
 	case models.StepTypeConnectivityCheck:
 		stepReply, err = filterReply(&models.ConnectivityReport{}, params.Reply.Output)
+	case models.StepTypeFreeNetworkAddresses:
+		stepReply, err = filterReply(&models.FreeNetworksAddresses{}, params.Reply.Output)
 	}
 	return stepReply, err
 }

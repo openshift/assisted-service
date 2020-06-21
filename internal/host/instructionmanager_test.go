@@ -56,7 +56,7 @@ var _ = Describe("instructionmanager", func() {
 		})
 		It("known", func() {
 			checkStepsByState(HostStatusKnown, &host, db, instMng, mockValidator, ctx,
-				[]models.StepType{models.StepTypeConnectivityCheck})
+				[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
 		})
 		It("disconnected", func() {
 			checkStepsByState(HostStatusDisconnected, &host, db, instMng, mockValidator, ctx,
@@ -64,7 +64,7 @@ var _ = Describe("instructionmanager", func() {
 		})
 		It("insufficient", func() {
 			checkStepsByState(HostStatusInsufficient, &host, db, instMng, mockValidator, ctx,
-				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck})
+				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
 		})
 		It("error", func() {
 			checkStepsByState(HostStatusError, &host, db, instMng, mockValidator, ctx,
