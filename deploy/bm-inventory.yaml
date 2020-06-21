@@ -15,6 +15,13 @@ spec:
     spec:
       containers:
         - name: bm-inventory
+          resources:
+            limits:
+              cpu: 200m
+              memory: 500Mi
+            requests:
+              cpu: 100m
+              memory: 400Mi
           image: REPLACE_IMAGE
           imagePullPolicy: Always
           ports:
