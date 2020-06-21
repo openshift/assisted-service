@@ -847,6 +847,9 @@ definitions:
       inventory:
         x-go-custom-tag: gorm:"type:text"
         type: string
+      free_addresses:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
       role:
         type: string
         enum: ['undefined', 'master', 'worker']
