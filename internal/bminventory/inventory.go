@@ -1022,12 +1022,12 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 		step.StepID = cmd.stepID
 		step.Command = "bash"
 		step.Args = []string{"-c", cmd.cmd}
-		steps = append(steps, step)
+		steps.Instructions = append(steps.Instructions, step)
 		delete(b.debugCmdMap, params.HostID)
 	}
 	b.debugCmdMux.Unlock()
 
-	return installer.NewGetNextStepsOK().WithPayload(steps)
+	return installer.NewGetNextStepsOK().WithPayload(&steps)
 }
 
 func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder {

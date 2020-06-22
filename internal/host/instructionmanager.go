@@ -20,7 +20,17 @@ type InstructionApi interface {
 	GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error)
 }
 
-type stateToStepsMap map[string][]CommandGetter
+const (
+	defaultNextInstructionInSec      = int64(60)
+	defaultBackedOffInstructionInSec = int64(120)
+)
+
+type StepsStruct struct {
+	Commands      []CommandGetter
+	NextStepInSec int64
+}
+
+type stateToStepsMap map[string]StepsStruct
 
 type InstructionManager struct {
 	log          logrus.FieldLogger
@@ -48,11 +58,12 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 		log: log,
 		db:  db,
 		stateToSteps: stateToStepsMap{
-			HostStatusKnown:        {connectivityCmd, freeAddressesCmd},
-			HostStatusInsufficient: {hwCmd, inventoryCmd, connectivityCmd, freeAddressesCmd},
-			HostStatusDisconnected: {hwCmd, inventoryCmd, connectivityCmd},
-			HostStatusDiscovering:  {hwCmd, inventoryCmd, connectivityCmd},
-			HostStatusInstalling:   {installCmd},
+			HostStatusKnown:        {[]CommandGetter{connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
+			HostStatusInsufficient: {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
+			HostStatusDisconnected: {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd}, defaultBackedOffInstructionInSec},
+			HostStatusDiscovering:  {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
+			HostStatusInstalling:   {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec},
+			HostStatusDisabled:     {[]CommandGetter{}, defaultBackedOffInstructionInSec},
 		},
 	}
 }
@@ -63,14 +74,14 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 	ClusterID := host.ClusterID
 	HostID := host.ID
 	HostStatus := swag.StringValue(host.Status)
-
 	log.Infof("GetNextSteps cluster: ,<%s> host: <%s>, host status: <%s>", ClusterID, HostID, HostStatus)
 
 	returnSteps := models.Steps{}
 
 	if cmdsMap, ok := i.stateToSteps[HostStatus]; ok {
 		//need to add the step id
-		for _, cmd := range cmdsMap {
+		returnSteps.NextInstructionSeconds = cmdsMap.NextStepInSec
+		for _, cmd := range cmdsMap.Commands {
 			step, err := cmd.GetStep(ctx, host)
 			if err != nil {
 				return returnSteps, err
@@ -78,8 +89,10 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 			if step.StepID == "" {
 				step.StepID = createStepID(step.StepType)
 			}
-			returnSteps = append(returnSteps, step)
+			returnSteps.Instructions = append(returnSteps.Instructions, step)
 		}
+	} else {
+		returnSteps.NextInstructionSeconds = defaultNextInstructionInSec
 	}
 	logSteps(returnSteps, ClusterID, HostID, log)
 	return returnSteps, nil
@@ -90,10 +103,10 @@ func createStepID(stepType models.StepType) string {
 }
 
 func logSteps(steps models.Steps, clusterId strfmt.UUID, hostId *strfmt.UUID, log logrus.FieldLogger) {
-	if len(steps) == 0 {
+	if len(steps.Instructions) == 0 {
 		log.Infof("No steps required for cluster <%s> host <%s>", clusterId, hostId)
 	}
-	for _, step := range steps {
+	for _, step := range steps.Instructions {
 		log.Infof("Submitting step <%s> id <%s> to cluster <%s> host <%s> Command: <%s> Arguments: <%+v>", step.StepType, step.StepID, clusterId, hostId,
 			step.Command, step.Args)
 	}

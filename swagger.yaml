@@ -875,9 +875,15 @@ definitions:
         type: string
 
   steps:
-    type: array
-    items:
-      $ref: '#/definitions/step'
+    type: object
+    properties:
+      next_instruction_seconds:
+        type: integer
+      instructions:
+        type: array
+        items:
+          $ref: '#/definitions/step'
+
 
   step-type:
     type: string
