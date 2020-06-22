@@ -161,7 +161,7 @@ const (
 
 // prop value enum
 func (m *ClusterCreateParams) validateOpenshiftVersionEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, clusterCreateParamsTypeOpenshiftVersionPropEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, clusterCreateParamsTypeOpenshiftVersionPropEnum, true); err != nil {
 		return err
 	}
 	return nil

@@ -65,7 +65,7 @@ func (o *RegisterHostParams) BindRequest(r *http.Request, route *middleware.Matc
 		var body models.HostCreateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("newHostParams", "body"))
+				res = append(res, errors.Required("newHostParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("newHostParams", "body", "", err))
 			}
@@ -80,7 +80,7 @@ func (o *RegisterHostParams) BindRequest(r *http.Request, route *middleware.Matc
 			}
 		}
 	} else {
-		res = append(res, errors.Required("newHostParams", "body"))
+		res = append(res, errors.Required("newHostParams", "body", ""))
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

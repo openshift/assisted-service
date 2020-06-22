@@ -75,7 +75,7 @@ func (o *SetDebugStepParams) BindRequest(r *http.Request, route *middleware.Matc
 		var body models.DebugStep
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("step", "body"))
+				res = append(res, errors.Required("step", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("step", "body", "", err))
 			}
@@ -90,7 +90,7 @@ func (o *SetDebugStepParams) BindRequest(r *http.Request, route *middleware.Matc
 			}
 		}
 	} else {
-		res = append(res, errors.Required("step", "body"))
+		res = append(res, errors.Required("step", "body", ""))
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

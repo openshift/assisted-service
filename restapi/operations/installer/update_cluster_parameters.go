@@ -60,7 +60,7 @@ func (o *UpdateClusterParams) BindRequest(r *http.Request, route *middleware.Mat
 		var body models.ClusterUpdateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("clusterUpdateParams", "body"))
+				res = append(res, errors.Required("clusterUpdateParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("clusterUpdateParams", "body", "", err))
 			}
@@ -75,7 +75,7 @@ func (o *UpdateClusterParams) BindRequest(r *http.Request, route *middleware.Mat
 			}
 		}
 	} else {
-		res = append(res, errors.Required("clusterUpdateParams", "body"))
+		res = append(res, errors.Required("clusterUpdateParams", "body", ""))
 	}
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {

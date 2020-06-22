@@ -65,7 +65,7 @@ func (o *GenerateClusterISOParams) BindRequest(r *http.Request, route *middlewar
 		var body models.ImageCreateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("imageCreateParams", "body"))
+				res = append(res, errors.Required("imageCreateParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("imageCreateParams", "body", "", err))
 			}
@@ -80,7 +80,7 @@ func (o *GenerateClusterISOParams) BindRequest(r *http.Request, route *middlewar
 			}
 		}
 	} else {
-		res = append(res, errors.Required("imageCreateParams", "body"))
+		res = append(res, errors.Required("imageCreateParams", "body", ""))
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

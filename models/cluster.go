@@ -413,7 +413,7 @@ const (
 
 // prop value enum
 func (m *Cluster) validateKindEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, clusterTypeKindPropEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, clusterTypeKindPropEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -466,7 +466,7 @@ const (
 
 // prop value enum
 func (m *Cluster) validateOpenshiftVersionEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, clusterTypeOpenshiftVersionPropEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, clusterTypeOpenshiftVersionPropEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -531,7 +531,7 @@ const (
 
 // prop value enum
 func (m *Cluster) validateStatusEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, clusterTypeStatusPropEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, clusterTypeStatusPropEnum, true); err != nil {
 		return err
 	}
 	return nil

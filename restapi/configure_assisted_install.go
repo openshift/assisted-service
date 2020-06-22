@@ -25,43 +25,88 @@ const AuthKey contextKey = "Auth"
 
 //go:generate mockery -name EventsAPI -inpkg
 
-// EventsAPI
+/* EventsAPI  */
 type EventsAPI interface {
+	/* ListEvents Lists events for an entity_id */
 	ListEvents(ctx context.Context, params events.ListEventsParams) middleware.Responder
 }
 
 //go:generate mockery -name InstallerAPI -inpkg
 
-// InstallerAPI
+/* InstallerAPI  */
 type InstallerAPI interface {
+	/* DeregisterCluster Deletes an OpenShift bare metal cluster definition. */
 	DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder
+
+	/* DeregisterHost Deregisters an OpenShift bare metal host. */
 	DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder
+
+	/* DisableHost Disables a host for inclusion in the cluster. */
 	DisableHost(ctx context.Context, params installer.DisableHostParams) middleware.Responder
+
+	/* DownloadClusterFiles Downloads files relating to the installed/installing cluster. */
 	DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder
+
+	/* DownloadClusterISO Downloads the OpenShift per-cluster discovery ISO. */
 	DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder
+
+	/* DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster. */
 	DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder
+
+	/* EnableHost Enables a host for inclusion in the cluster. */
 	EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder
+
+	/* GenerateClusterISO Creates a new OpenShift per-cluster discovery ISO. */
 	GenerateClusterISO(ctx context.Context, params installer.GenerateClusterISOParams) middleware.Responder
+
+	/* GetCluster Retrieves the details of the OpenShift bare metal cluster. */
 	GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder
+
+	/* GetCredentials Get the the cluster admin credentials. */
 	GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder
+
+	/* GetHost Retrieves the details of the OpenShift bare metal host. */
 	GetHost(ctx context.Context, params installer.GetHostParams) middleware.Responder
+
+	/* GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder
+
+	/* InstallCluster Installs the OpenShift bare metal cluster. */
 	InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder
+
+	/* ListClusters Retrieves the list of OpenShift bare metal clusters. */
 	ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder
+
+	/* ListHosts Retrieves the list of OpenShift bare metal hosts. */
 	ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder
+
+	/* PostStepReply Posts the result of the operations from the host agent. */
 	PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder
+
+	/* RegisterCluster Creates a new OpenShift bare metal cluster definition. */
 	RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder
+
+	/* RegisterHost Registers a new OpenShift bare metal host. */
 	RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder
+
+	/* SetDebugStep Sets a single shot debug step that will be sent next time the host agent will ask for a command. */
 	SetDebugStep(ctx context.Context, params installer.SetDebugStepParams) middleware.Responder
+
+	/* UpdateCluster Updates an OpenShift bare metal cluster definition. */
 	UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder
+
+	/* UpdateHostInstallProgress Update installation progress */
 	UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder
+
+	/* UploadClusterIngressCert Transfer the ingress certificate for the cluster. */
 	UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder
 }
 
 //go:generate mockery -name VersionsAPI -inpkg
 
-// VersionsAPI
+/* VersionsAPI  */
 type VersionsAPI interface {
+	/* ListComponentVersions List of componenets versions */
 	ListComponentVersions(ctx context.Context, params versions.ListComponentVersionsParams) middleware.Responder
 }
 

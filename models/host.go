@@ -220,7 +220,7 @@ const (
 
 // prop value enum
 func (m *Host) validateKindEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, hostTypeKindPropEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, hostTypeKindPropEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -266,7 +266,7 @@ const (
 
 // prop value enum
 func (m *Host) validateRoleEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, hostTypeRolePropEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, hostTypeRolePropEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -330,7 +330,7 @@ const (
 
 // prop value enum
 func (m *Host) validateStatusEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, hostTypeStatusPropEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, hostTypeStatusPropEnum, true); err != nil {
 		return err
 	}
 	return nil

@@ -53,7 +53,7 @@ func (o *RegisterClusterParams) BindRequest(r *http.Request, route *middleware.M
 		var body models.ClusterCreateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("newClusterParams", "body"))
+				res = append(res, errors.Required("newClusterParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("newClusterParams", "body", "", err))
 			}
@@ -68,7 +68,7 @@ func (o *RegisterClusterParams) BindRequest(r *http.Request, route *middleware.M
 			}
 		}
 	} else {
-		res = append(res, errors.Required("newClusterParams", "body"))
+		res = append(res, errors.Required("newClusterParams", "body", ""))
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

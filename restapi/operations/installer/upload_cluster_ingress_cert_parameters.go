@@ -65,7 +65,7 @@ func (o *UploadClusterIngressCertParams) BindRequest(r *http.Request, route *mid
 		var body models.IngressCertParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("ingressCertParams", "body"))
+				res = append(res, errors.Required("ingressCertParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("ingressCertParams", "body", "", err))
 			}
@@ -80,7 +80,7 @@ func (o *UploadClusterIngressCertParams) BindRequest(r *http.Request, route *mid
 			}
 		}
 	} else {
-		res = append(res, errors.Required("ingressCertParams", "body"))
+		res = append(res, errors.Required("ingressCertParams", "body", ""))
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

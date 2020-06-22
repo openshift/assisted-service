@@ -50,7 +50,7 @@ func init() {
 }
 
 func (m StepType) validateStepTypeEnum(path, location string, value StepType) error {
-	if err := validate.Enum(path, location, value, stepTypeEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, stepTypeEnum, true); err != nil {
 		return err
 	}
 	return nil

@@ -70,7 +70,7 @@ func (o *UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *mi
 		var body models.HostInstallProgressParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("hostInstallProgressParams", "body"))
+				res = append(res, errors.Required("hostInstallProgressParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("hostInstallProgressParams", "body", "", err))
 			}
@@ -85,7 +85,7 @@ func (o *UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *mi
 			}
 		}
 	} else {
-		res = append(res, errors.Required("hostInstallProgressParams", "body"))
+		res = append(res, errors.Required("hostInstallProgressParams", "body", ""))
 	}
 	rHostID, rhkHostID, _ := route.Params.GetOK("hostId")
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {
