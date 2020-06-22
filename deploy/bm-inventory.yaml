@@ -34,3 +34,12 @@ spec:
           env:
             - name: IMAGE_BUILDER_CMD
               value: ""
+          volumeMounts:
+            - name: route53-creds
+              mountPath: "/.aws"
+              readOnly: true
+      volumes:
+        - name: route53-creds
+          secret:
+            secretName: route53-creds
+            optional: true

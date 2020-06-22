@@ -9,20 +9,20 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"text/template"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/network"
-	"k8s.io/apimachinery/pkg/api/resource"
-
+	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/cluster/validations"
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/internal/installcfg"
+	"github.com/filanov/bm-inventory/internal/network"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/filemiddleware"
 	"github.com/filanov/bm-inventory/pkg/job"
@@ -39,6 +39,7 @@ import (
 	"github.com/sirupsen/logrus"
 	batch "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -61,22 +62,23 @@ var (
 )
 
 type Config struct {
-	ImageBuilder        string `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/installer-image-build:latest"`
-	ImageBuilderCmd     string `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
-	AgentDockerImg      string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/agent:latest"`
-	KubeconfigGenerator string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:latest"`
-	InventoryURL        string `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
-	InventoryPort       string `envconfig:"INVENTORY_PORT" default:"30485"`
-	S3EndpointURL       string `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
-	S3Bucket            string `envconfig:"S3_BUCKET" default:"test"`
-	AwsAccessKeyID      string `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
-	AwsSecretAccessKey  string `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
-	Namespace           string `envconfig:"NAMESPACE" default:"assisted-installer"`
-	UseK8s              bool   `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
-	JobCPULimit         string `envconfig:"JOB_CPU_LIMIT" default:"500m"`
-	JobMemoryLimit      string `envconfig:"JOB_MEMORY_LIMIT" default:"1000Mi"`
-	JobCPURequests      string `envconfig:"JOB_CPU_REQUESTS" default:"300m"`
-	JobMemoryRequests   string `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
+	ImageBuilder        string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/installer-image-build:latest"`
+	ImageBuilderCmd     string            `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
+	AgentDockerImg      string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/agent:latest"`
+	KubeconfigGenerator string            `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:stable"` // TODO: update the latest once the repository has git workflow
+	InventoryURL        string            `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
+	InventoryPort       string            `envconfig:"INVENTORY_PORT" default:"30485"`
+	S3EndpointURL       string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket            string            `envconfig:"S3_BUCKET" default:"test"`
+	AwsAccessKeyID      string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey  string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	Namespace           string            `envconfig:"NAMESPACE" default:"assisted-installer"`
+	UseK8s              bool              `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
+	BaseDNSDomains      map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
+	JobCPULimit         string            `envconfig:"JOB_CPU_LIMIT" default:"500m"`
+	JobMemoryLimit      string            `envconfig:"JOB_MEMORY_LIMIT" default:"1000Mi"`
+	JobCPURequests      string            `envconfig:"JOB_CPU_REQUESTS" default:"300m"`
+	JobMemoryRequests   string            `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
 }
 
 const ignitionConfigFormat = `{
@@ -327,6 +329,10 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params insta
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 
+	if err := b.deleteDNSRecordSets(ctx, cluster); err != nil {
+		log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
+	}
+
 	err := b.clusterApi.DeregisterCluster(ctx, &cluster)
 	if err != nil {
 		log.WithError(err).Errorf("failed to deregister cluster cluster %s", params.ClusterID)
@@ -567,6 +573,11 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 		return err
 	}
 
+	if err = c.b.createDNSRecordSets(c.ctx, cluster); err != nil {
+		return common.NewApiError(http.StatusInternalServerError,
+			fmt.Errorf("failed to create DNS record sets for base domain: %s", cluster.BaseDNSDomain))
+	}
+
 	if err = c.b.clusterApi.Install(c.ctx, &cluster, tx); err != nil {
 		return common.NewApiError(http.StatusConflict, errors.Wrapf(err, "failed to install cluster %s", cluster.ID.String()))
 	}
@@ -614,6 +625,9 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	err = b.db.Transaction(cInstaller.install)
 	if err != nil {
 		log.WithError(err).Warn("Cluster install")
+		if errDelete := b.deleteDNSRecordSets(ctx, cluster); errDelete != nil {
+			log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
+		}
 		return common.GenerateErrorResponder(err)
 	}
 	if err = b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
@@ -735,6 +749,10 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	if err = b.clusterApi.VerifyClusterUpdatability(&cluster); err != nil {
 		log.WithError(err).Errorf("cluster %s can't be updated in current state", params.ClusterID)
 		return installer.NewUpdateClusterConflict().WithPayload(common.GenerateError(http.StatusConflict, err))
+	}
+
+	if updateClusterConflict := b.validateDNSDomain(params, log); updateClusterConflict != nil {
+		return updateClusterConflict
 	}
 
 	updates := map[string]interface{}{}
@@ -1661,4 +1679,130 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 	txSuccess = true
 
 	return installer.NewResetClusterAccepted()
+}
+
+func (b *bareMetalInventory) createDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
+	return b.changeDNSRecordSets(ctx, cluster, false)
+}
+
+func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
+	return b.changeDNSRecordSets(ctx, cluster, true)
+}
+
+func (b *bareMetalInventory) changeDNSRecordSets(ctx context.Context, cluster common.Cluster, delete bool) error {
+	log := logutil.FromContext(ctx, b.log)
+
+	domain, err := b.getDNSDomain(cluster.Name, cluster.BaseDNSDomain)
+	if err != nil {
+		return err
+	}
+	if domain == nil {
+		// No supported base DNS domain specified
+		return nil
+	}
+
+	switch domain.Provider {
+	case "route53":
+		var dnsProvider dnsproviders.Provider = dnsproviders.Route53{
+			RecordSet: dnsproviders.RecordSet{
+				RecordSetType: "A",
+				TTL:           60,
+			},
+			HostedZoneID: domain.ID,
+			SharedCreds:  true,
+		}
+
+		dnsRecordSetFunc := dnsProvider.CreateRecordSet
+		if delete {
+			dnsRecordSetFunc = dnsProvider.DeleteRecordSet
+		}
+
+		// Create/Delete A record for API Virtual IP
+		_, err := dnsRecordSetFunc(domain.APIDomainName, cluster.APIVip)
+		if err != nil {
+			log.WithError(err).Errorf("failed to update DNS record: (%s, %s)",
+				domain.APIDomainName, cluster.APIVip)
+			return err
+		}
+		// Create/Delete A record for Ingress Virtual IP
+		_, err = dnsRecordSetFunc(domain.IngressDomainName, cluster.IngressVip)
+		if err != nil {
+			log.WithError(err).Errorf("failed to update DNS record: (%s, %s)",
+				domain.IngressDomainName, cluster.IngressVip)
+			return err
+		}
+		log.Infof("Successfully created DNS records for base domain: %s", cluster.BaseDNSDomain)
+	}
+	return nil
+}
+
+type dnsDomain struct {
+	Name              string
+	ID                string
+	Provider          string
+	APIDomainName     string
+	IngressDomainName string
+}
+
+func (b *bareMetalInventory) getDNSDomain(clusterName, baseDNSDomainName string) (*dnsDomain, error) {
+	var dnsDomainID string
+	var dnsProvider string
+
+	// Parse base domains from config
+	if val, ok := b.Config.BaseDNSDomains[baseDNSDomainName]; ok {
+		re := regexp.MustCompile("/")
+		if !re.MatchString(val) {
+			return nil, errors.New(fmt.Sprintf("Invalid DNS domain: %s", val))
+		}
+		s := re.Split(val, 2)
+		dnsDomainID = s[0]
+		dnsProvider = s[1]
+	} else {
+		// No base domains defined in config
+		return nil, nil
+	}
+
+	if dnsDomainID == "" || dnsProvider == "" {
+		// Specified domain is not defined in config
+		return nil, nil
+	}
+
+	return &dnsDomain{
+		Name:              baseDNSDomainName,
+		ID:                dnsDomainID,
+		Provider:          dnsProvider,
+		APIDomainName:     fmt.Sprintf("%s.%s.%s", "api", clusterName, baseDNSDomainName),
+		IngressDomainName: fmt.Sprintf("*.%s.%s.%s", "apps", clusterName, baseDNSDomainName),
+	}, nil
+}
+
+func (b *bareMetalInventory) validateDNSDomain(params installer.UpdateClusterParams, log logrus.FieldLogger) *installer.UpdateClusterConflict {
+	clusterName := swag.StringValue(params.ClusterUpdateParams.Name)
+	clusterBaseDomain := swag.StringValue(params.ClusterUpdateParams.BaseDNSDomain)
+	dnsDomain, err := b.getDNSDomain(clusterName, clusterBaseDomain)
+	if err == nil && dnsDomain != nil {
+		// Cluster's baseDNSDomain is defined in config (BaseDNSDomains map)
+		if err = b.validateBaseDNS(clusterName, dnsDomain); err != nil {
+			log.WithError(err).Errorf("Invalid base DNS domain: %s", clusterBaseDomain)
+			return installer.NewUpdateClusterConflict().
+				WithPayload(common.GenerateError(http.StatusConflict,
+					errors.New("Base DNS domain isn't configured properly")))
+		}
+		if err = b.validateDNSRecords(clusterName, dnsDomain); err != nil {
+			log.WithError(err).Errorf("DNS records already exist for cluster: %s", params.ClusterID)
+			return installer.NewUpdateClusterConflict().
+				WithPayload(common.GenerateError(http.StatusConflict,
+					errors.New("DNS records already exist for cluster - please change 'Cluster Name'")))
+		}
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) validateBaseDNS(clusterName string, domain *dnsDomain) error {
+	return validations.ValidateBaseDNS(domain.Name, domain.ID, domain.Provider)
+}
+
+func (b *bareMetalInventory) validateDNSRecords(clusterName string, domain *dnsDomain) error {
+	vipAddresses := []string{domain.APIDomainName, domain.IngressDomainName}
+	return validations.CheckDNSRecordsExistence(vipAddresses, domain.ID, domain.Provider)
 }

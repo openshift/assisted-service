@@ -826,6 +826,29 @@ var _ = Describe("cluster", func() {
 
 			verifyApiError(reply, http.StatusInternalServerError)
 		})
+		It("get DNS domain success", func() {
+			bm.Config.BaseDNSDomains = map[string]string{
+				"dns.example.com": "abc/route53",
+			}
+			dnsDomain, err := bm.getDNSDomain("test-cluster", "dns.example.com")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dnsDomain.ID).Should(Equal("abc"))
+			Expect(dnsDomain.Provider).Should(Equal("route53"))
+			Expect(dnsDomain.APIDomainName).Should(Equal("api.test-cluster.dns.example.com"))
+			Expect(dnsDomain.IngressDomainName).Should(Equal("*.apps.test-cluster.dns.example.com"))
+		})
+		It("get DNS domain invalid", func() {
+			bm.Config.BaseDNSDomains = map[string]string{
+				"dns.example.com": "abc",
+			}
+			_, err := bm.getDNSDomain("test-cluster", "dns.example.com")
+			Expect(err).To(HaveOccurred())
+		})
+		It("get DNS domain undefined", func() {
+			dnsDomain, err := bm.getDNSDomain("test-cluster", "dns.example.com")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dnsDomain).Should(BeNil())
+		})
 
 		Context("CancelInstallation", func() {
 			It("cancel installation success", func() {

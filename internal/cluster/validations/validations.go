@@ -5,6 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 )
 
 type imagePullSecret struct {
@@ -83,5 +87,69 @@ func ValidatePullSecret(secret string) error {
 			return err
 		}
 	*/
+	return nil
+}
+
+// ValidateBaseDNS validates the specified base domain name
+func ValidateBaseDNS(dnsDomainName, dnsDomainID, dnsProviderType string) error {
+	var dnsProvider dnsproviders.Provider
+	switch dnsProviderType {
+	case "route53":
+		dnsProvider = dnsproviders.Route53{
+			HostedZoneID: dnsDomainID,
+			SharedCreds:  true,
+		}
+	default:
+		return nil
+	}
+	return validateBaseDNS(dnsDomainName, dnsDomainID, dnsProvider)
+}
+
+func validateBaseDNS(dnsDomainName, dnsDomainID string, dnsProvider dnsproviders.Provider) error {
+	dnsNameFromService, err := dnsProvider.GetDomainName()
+	if err != nil {
+		return fmt.Errorf("Can't validate base DNS domain: %v", err)
+	}
+
+	dnsNameFromCluster := strings.TrimSuffix(dnsDomainName, ".")
+	if dnsNameFromService == dnsNameFromCluster {
+		// Valid domain
+		return nil
+	}
+	if matched, _ := regexp.MatchString(".*\\."+dnsNameFromService, dnsNameFromCluster); !matched {
+		return fmt.Errorf("Domain name isn't correlated properly to DNS service")
+	}
+
+	return nil
+}
+
+// CheckDNSRecordsExistence checks whether that specified record-set names already exist in the DNS service
+func CheckDNSRecordsExistence(names []string, dnsDomainID, dnsProviderType string) error {
+	var dnsProvider dnsproviders.Provider
+	switch dnsProviderType {
+	case "route53":
+		dnsProvider = dnsproviders.Route53{
+			RecordSet: dnsproviders.RecordSet{
+				RecordSetType: "A",
+			},
+			HostedZoneID: dnsDomainID,
+			SharedCreds:  true,
+		}
+	default:
+		return nil
+	}
+	return checkDNSRecordsExistence(names, dnsProvider)
+}
+
+func checkDNSRecordsExistence(names []string, dnsProvider dnsproviders.Provider) error {
+	for _, name := range names {
+		res, err := dnsProvider.GetRecordSet(name)
+		if err != nil {
+			return fmt.Errorf("Can't verify DNS record set existence: %v", err)
+		}
+		if res != "" {
+			return fmt.Errorf("DNS domain already exists")
+		}
+	}
 	return nil
 }

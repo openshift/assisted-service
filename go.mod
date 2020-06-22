@@ -4,7 +4,8 @@ go 1.13
 
 require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
-	github.com/aws/aws-sdk-go v1.31.5
+	github.com/aws/aws-sdk-go v1.32.6
+	github.com/danielerez/go-dns-client v0.0.0-20200629124827-e4a32ed16a29
 	github.com/filanov/stateswitch v0.0.0-20200513095115-051501b05b45
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/loads v0.19.5
