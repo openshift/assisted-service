@@ -83,7 +83,7 @@ deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py --deploy-tag "$(DEPLOY_TAG)"
 
 deploy-expirer: deploy-role
-	python3 ./tools/deploy_s3_object_expirer.py
+	python3 ./tools/deploy_s3_object_expirer.py --deploy-tag "$(DEPLOY_TAG)"
 
 deploy-role: deploy-namespace
 	python3 ./tools/deploy_role.py
