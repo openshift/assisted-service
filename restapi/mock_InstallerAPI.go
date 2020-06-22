@@ -16,6 +16,22 @@ type MockInstallerAPI struct {
 	mock.Mock
 }
 
+// CancelInstallation provides a mock function with given fields: ctx, params
+func (_m *MockInstallerAPI) CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
+	ret := _m.Called(ctx, params)
+
+	var r0 middleware.Responder
+	if rf, ok := ret.Get(0).(func(context.Context, installer.CancelInstallationParams) middleware.Responder); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(middleware.Responder)
+		}
+	}
+
+	return r0
+}
+
 // DeregisterCluster provides a mock function with given fields: ctx, params
 func (_m *MockInstallerAPI) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
 	ret := _m.Called(ctx, params)
