@@ -82,6 +82,9 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py --deploy-tag "$(DEPLOY_TAG)"
 
+deploy-service-test-mode: deploy-namespace deploy-service-requirements deploy-role
+	python3 ./tools/deploy_assisted_installer.py --deploy-tag "$(DEPLOY_TAG)" --subsystem-test
+
 deploy-expirer: deploy-role
 	python3 ./tools/deploy_s3_object_expirer.py --deploy-tag "$(DEPLOY_TAG)"
 
@@ -90,6 +93,10 @@ deploy-role: deploy-namespace
 
 deploy-mariadb: deploy-namespace
 	python3 ./tools/deploy_mariadb.py
+
+subsystem-deployment: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-service-test-mode deploy-expirer
+	python3 tools/wait_for_pod.py --app=bm-inventory --state=running
+	make test
 
 subsystem-run: test subsystem-clean
 
