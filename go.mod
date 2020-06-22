@@ -6,13 +6,13 @@ require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
 	github.com/aws/aws-sdk-go v1.31.5
 	github.com/filanov/stateswitch v0.0.0-20200513095115-051501b05b45
-	github.com/go-openapi/errors v0.19.3
-	github.com/go-openapi/loads v0.19.4
-	github.com/go-openapi/runtime v0.19.11
-	github.com/go-openapi/spec v0.19.6
-	github.com/go-openapi/strfmt v0.19.4
+	github.com/go-openapi/errors v0.19.6
+	github.com/go-openapi/loads v0.19.5
+	github.com/go-openapi/runtime v0.19.19
+	github.com/go-openapi/spec v0.19.8
+	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/swag v0.19.9
-	github.com/go-openapi/validate v0.19.5
+	github.com/go-openapi/validate v0.19.10
 	github.com/golang/mock v1.2.0
 	github.com/google/uuid v1.1.1
 	github.com/jinzhu/gorm v1.9.12
@@ -25,7 +25,7 @@ require (
 	github.com/prometheus/client_golang v1.6.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/slok/go-http-metrics v0.8.0
-	github.com/stretchr/testify v1.6.0
+	github.com/stretchr/testify v1.6.1
 	github.com/thoas/go-funk v0.6.0
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.17.3
