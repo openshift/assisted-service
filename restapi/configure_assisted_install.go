@@ -35,6 +35,9 @@ type EventsAPI interface {
 
 /* InstallerAPI  */
 type InstallerAPI interface {
+	/* CancelInstallation Cancels an ongoing installation. */
+	CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder
+
 	/* DeregisterCluster Deletes an OpenShift bare metal cluster definition. */
 	DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder
 
@@ -147,6 +150,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	api.JSONConsumer = runtime.JSONConsumer()
 	api.BinProducer = runtime.ByteStreamProducer()
 	api.JSONProducer = runtime.JSONProducer()
+	api.InstallerCancelInstallationHandler = installer.CancelInstallationHandlerFunc(func(params installer.CancelInstallationParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InstallerAPI.CancelInstallation(ctx, params)
+	})
 	api.InstallerDeregisterClusterHandler = installer.DeregisterClusterHandlerFunc(func(params installer.DeregisterClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InstallerAPI.DeregisterCluster(ctx, params)
