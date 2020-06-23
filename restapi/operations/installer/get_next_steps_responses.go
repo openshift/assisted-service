@@ -25,7 +25,7 @@ type GetNextStepsOK struct {
 	/*
 	  In: Body
 	*/
-	Payload models.Steps `json:"body,omitempty"`
+	Payload *models.Steps `json:"body,omitempty"`
 }
 
 // NewGetNextStepsOK creates GetNextStepsOK with default headers values
@@ -35,13 +35,13 @@ func NewGetNextStepsOK() *GetNextStepsOK {
 }
 
 // WithPayload adds the payload to the get next steps o k response
-func (o *GetNextStepsOK) WithPayload(payload models.Steps) *GetNextStepsOK {
+func (o *GetNextStepsOK) WithPayload(payload *models.Steps) *GetNextStepsOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get next steps o k response
-func (o *GetNextStepsOK) SetPayload(payload models.Steps) {
+func (o *GetNextStepsOK) SetPayload(payload *models.Steps) {
 	o.Payload = payload
 }
 
@@ -49,14 +49,11 @@ func (o *GetNextStepsOK) SetPayload(payload models.Steps) {
 func (o *GetNextStepsOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
-	payload := o.Payload
-	if payload == nil {
-		// return empty array
-		payload = models.Steps{}
-	}
-
-	if err := producer.Produce(rw, payload); err != nil {
-		panic(err) // let the recovery middleware deal with this
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
 	}
 }
 

@@ -2170,9 +2170,17 @@ func init() {
       ]
     },
     "steps": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/step"
+      "type": "object",
+      "properties": {
+        "instructions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/step"
+          }
+        },
+        "next_instruction_seconds": {
+          "type": "integer"
+        }
       }
     },
     "steps-reply": {
@@ -4359,9 +4367,17 @@ func init() {
       ]
     },
     "steps": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/step"
+      "type": "object",
+      "properties": {
+        "instructions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/step"
+          }
+        },
+        "next_instruction_seconds": {
+          "type": "integer"
+        }
       }
     },
     "steps-reply": {

@@ -57,21 +57,23 @@ func NewGetNextStepsOK() *GetNextStepsOK {
 Success.
 */
 type GetNextStepsOK struct {
-	Payload models.Steps
+	Payload *models.Steps
 }
 
 func (o *GetNextStepsOK) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsOK  %+v", 200, o.Payload)
 }
 
-func (o *GetNextStepsOK) GetPayload() models.Steps {
+func (o *GetNextStepsOK) GetPayload() *models.Steps {
 	return o.Payload
 }
 
 func (o *GetNextStepsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
+	o.Payload = new(models.Steps)
+
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
