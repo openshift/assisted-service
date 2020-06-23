@@ -32,7 +32,7 @@ def get_service_port(service, target=None):
 
 
 def apply(file):
-    check_output("kubectl apply -f {}".format(file))
+    print(check_output("kubectl apply -f {}".format(file)))
 
 
 def get_domain(domain=""):
