@@ -40,15 +40,35 @@ After every change in the API (`swagger.yaml`) the code should be generated and 
 
 `skipper make generate-from-swagger`
 
-## Tests
-Pre-configuration
-1. Run minikube on your system.
-2. Deploy service, DB and other requirements `skipper make deploy-all`.
-3. Wait for all the pods to be up.
+## Test
 
-Running the tests:
+#### Pre-configuration
+  - Run minikube on your system.
+  - Deploy services `skipper make deploy-test`
 
-`skipper make subsystem-run`
+### Run system tests
+
+```shell script
+skipper make test
+```
+
+### Run system tests with regex
+
+```shell script
+skipper make test FOCUS=versions
+```
+
+### Run only unit tests
+
+```shell script
+skipper make unit-test
+```
+
+### Run unit tests for specific package
+
+```shell script
+skipper make unit-test TEST=./internal/host
+```
 
 ### Update service for the subsystem tests
 
