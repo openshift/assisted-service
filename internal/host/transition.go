@@ -44,12 +44,15 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 	host := models.Host{}
 	log := logutil.FromContext(params.ctx, th.log)
 
-	// if already exists, reset role and hw info
+	// If host already exists
 	if err := th.db.First(&host, "id = ? and cluster_id = ?", sHost.host.ID, sHost.host.ClusterID).Error; err == nil {
 		currentState := swag.StringValue(host.Status)
 		host.Status = sHost.host.Status
+
+		// The reason for the double register is unknown (HW might have changed) -
+		// so we reset the hw info and start the discovery process again.
 		return updateHostStateWithParams(log, currentState, statusInfoDiscovering, &host, th.db,
-			"hardware_info", "", "role", "", "discovery_agent_version", params.discoveryAgentVersion)
+			"hardware_info", "", "discovery_agent_version", params.discoveryAgentVersion)
 	}
 
 	sHost.host.StatusUpdatedAt = strfmt.DateTime(time.Now())

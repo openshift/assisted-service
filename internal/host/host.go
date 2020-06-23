@@ -24,7 +24,7 @@ type StateAPI interface {
 	UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error)
 	// Set a new inventory information
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error)
-	// Set host state
+	// Set host role
 	UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error)
 	// check keep alive
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error)

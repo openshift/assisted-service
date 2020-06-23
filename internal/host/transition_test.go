@@ -107,7 +107,7 @@ var _ = Describe("RegisterHost", func() {
 		AfterEach(func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusDiscovering))
-			Expect(h.Role).Should(Equal(""))
+			Expect(h.Role).Should(Equal(RoleMaster))
 			Expect(h.HardwareInfo).Should(Equal(""))
 			Expect(h.DiscoveryAgentVersion).To(Equal(discoveryAgentVersion))
 		})
