@@ -21,6 +21,13 @@ steps:
       DB_PORT: 3306
       USE_K8S: false
 
+trigger:
+  branch:
+    - master
+  event:
+    - pull_request
+    - push
+
 services:
   - name: database
     image: mariadb
