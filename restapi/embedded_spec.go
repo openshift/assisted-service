@@ -1673,7 +1673,8 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:datetime\""
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
         },
         "request_id": {
           "description": "Unique identifier for the request that caused this event to occure",
@@ -3870,7 +3871,8 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:datetime\""
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
         },
         "request_id": {
           "description": "Unique identifier for the request that caused this event to occure",

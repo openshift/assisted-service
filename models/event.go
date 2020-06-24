@@ -29,7 +29,7 @@ type Event struct {
 
 	// message
 	// Required: true
-	Message *string `json:"message"`
+	Message *string `json:"message" gorm:"type:varchar(4096)"`
 
 	// Unique identifier for the request that caused this event to occure
 	// Format: uuid
