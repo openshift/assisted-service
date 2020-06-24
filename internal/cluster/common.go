@@ -62,6 +62,30 @@ func updateState(state string, statusInfo string, c *common.Cluster, db *gorm.DB
 	}, nil
 }
 
+func updateClusterStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo string, c *common.Cluster, db *gorm.DB,
+	extra ...interface{}) error {
+
+	updates := map[string]interface{}{"status": swag.StringValue(c.Status), "status_info": statusInfo}
+	if len(extra)%2 != 0 {
+		return errors.Errorf("invalid update extra parameters %+v", extra)
+	}
+	for i := 0; i < len(extra); i += 2 {
+		updates[extra[i].(string)] = extra[i+1]
+	}
+	dbReply := db.Model(&models.Cluster{}).Where("id = ? and status = ?", c.ID.String(), srcStatus).Updates(updates)
+	if dbReply.Error != nil {
+		return errors.Wrapf(dbReply.Error, "failed to update cluster %s state from %s to %s",
+			c.ID.String(), srcStatus, swag.StringValue(c.Status))
+	}
+	if dbReply.RowsAffected == 0 && swag.StringValue(c.Status) != srcStatus {
+		return errors.Errorf("failed to update cluster %s state from %s to %s, nothing have changed",
+			c.ID.String(), srcStatus, swag.StringValue(c.Status))
+	}
+	log.Infof("Updated cluster <%s> status from <%s> to <%s> with fields: %s",
+		c.ID.String(), srcStatus, swag.StringValue(c.Status), updates)
+	return nil
+}
+
 func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
 
 	var cluster common.Cluster
