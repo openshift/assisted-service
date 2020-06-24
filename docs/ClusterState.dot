@@ -12,7 +12,7 @@ digraph ClusterStateMachine {
     start -> insufficient [label = "cluster\ncreated", color=lightpink3, fontcolor=lightpink3];
     insufficient -> ready [label = "min reqs\nmet", color=cadetblue4, fontcolor=cadetblue4];
     ready -> insufficient [label = "min reqs\nnot met", color=lightpink3, fontcolor=lightpink3];
-    ready -> insufficient [style=invis];
+    error -> insufficient [label = "reset", color=lightpink3, fontcolor=lightpink3];
     ready -> installing [label = "installation started", color=darkolivegreen4, fontcolor=darkolivegreen4];
     installing -> installed [label = "installation\ncompleted", color=chartreuse4, fontcolor=chartreuse4];
     installing -> error [label = "installation\nerror\nor canceled", color=crimson, fontcolor=crimson];

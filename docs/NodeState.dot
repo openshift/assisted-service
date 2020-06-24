@@ -1,4 +1,4 @@
-digraph NodeStateMachine {
+digraph HostStateMachine {
     graph [nodesep = "1.0", ranksep = "1.0"];
     node [style = filled];
     compound = true;
@@ -15,17 +15,16 @@ digraph NodeStateMachine {
     installing [color = darkolivegreen3];
     installed [shape = doublecircle, color = chartreuse];
     error [shape = doublecircle, color = crimson];
+    resetting [color = aquamarine3]
 
-    start -> discovering [label = "node\nregistered", color=goldenrod, fontcolor=goldenrod];
+    start -> discovering [label = "host\nregistered", color=goldenrod, fontcolor=goldenrod];
 
     discovering -> disconnected [label = "no ping\n3 minutes", color=plum3, fontcolor=plum3, ltail = cluster_level1];
     discovering -> known [label = "received\nall info", color=cadetblue4, fontcolor=cadetblue4];
     discovering -> insufficient [label = "minimum\nrequirements\nnot satisfied", color=lightpink3, fontcolor=lightpink3];
     discovering -> disabled [label = "user\ndisables", color=grey29, fontcolor=grey29, ltail = cluster_level1];
 
-    //known -> disconnected [label = "no ping\n3 minutes", color=plum3, fontcolor=plum3];
     known -> installing [label = "installation\nstarted", color=darkolivegreen4, fontcolor=darkolivegreen4];
-    //known -> disabled [label = "user\ndisables", color=grey29, fontcolor=grey29];
     known -> insufficient [label = "insufficient\nfor role", color=lightpink3, fontcolor=lightpink3];
 
     disconnected -> discovering [label = "received\nping", color=goldenrod, fontcolor=goldenrod];
@@ -33,11 +32,14 @@ digraph NodeStateMachine {
 
     disabled -> discovering [label = "user\nenables", color=goldenrod, fontcolor=goldenrod];
 
-    //insufficient -> disabled [label = "user\ndisables", color=grey29, fontcolor=grey29];
     insufficient -> known [label = "sufficient\nfor role", color=cadetblue4, fontcolor=cadetblue4];
 
     installing -> installed [label = "installation\ncompleted", color=chartreuse4, fontcolor=chartreuse4];
     installing -> error [label = "installation\nerror", color=crimson, fontcolor=crimson];
+
+    error -> resetting [label = "reset", color=aquamarine4, fontcolor=aquamarine4];
+
+    resetting -> discovering [label = "host\nregistered", color=goldenrod, fontcolor=goldenrod];
 
     {rank=max; installed}
     {rank=same; known; disconnected; disabled}
