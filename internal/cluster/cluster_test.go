@@ -418,6 +418,53 @@ var _ = Describe("SetGeneratorVersion", func() {
 	})
 })
 
+var _ = Describe("CancelInstallation", func() {
+	var (
+		ctx   = context.Background()
+		db    *gorm.DB
+		state API
+		c     common.Cluster
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		state = NewManager(getTestLog(), db, nil)
+		id := strfmt.UUID(uuid.New().String())
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &id,
+			Status: swag.String(clusterStatusInsufficient),
+		}}
+	})
+
+	Context("cancel_installation", func() {
+		It("cancel_installation", func() {
+			c.Status = swag.String(clusterStatusInstalling)
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
+		})
+		It("cancel_failed_installation", func() {
+			c.Status = swag.String(clusterStatusError)
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			db.First(&c, "id = ?", c.ID)
+			Expect(*c.Status).Should(Equal(clusterStatusError))
+		})
+	})
+
+	Context("invalid_cancel_installation", func() {
+		It("nothing_to_cancel", func() {
+			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).Should(HaveOccurred())
+		})
+	})
+
+	AfterEach(func() {
+		db.Close()
+	})
+})
+
 func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 	hostId := strfmt.UUID(uuid.New().String())
 	host := models.Host{
