@@ -1553,3 +1553,56 @@ func setPullSecret(cluster *common.Cluster, pullSecret string) {
 		cluster.PullSecretSet = false
 	}
 }
+
+func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("canceling installation for cluster %s", params.ClusterID)
+
+	var c common.Cluster
+
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("cancel installation failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("cancel installation failed")
+			tx.Rollback()
+		}
+	}()
+
+	if tx.Error != nil {
+		log.WithError(tx.Error).Errorf("failed to start db transaction")
+		return installer.NewCancelInstallationInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
+	}
+
+	if err := tx.Preload("Hosts").First(&c, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return installer.NewCancelInstallationNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+		}
+		return installer.NewCancelInstallationInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	// cancellation is made by setting the cluster and and hosts states to error.
+	if err := b.clusterApi.CancelInstallation(ctx, &c, "installation was canceled by user", tx); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	for _, h := range c.Hosts {
+		if err := b.hostApi.CancelInstallation(ctx, h, "installation was canceled by user", tx); err != nil {
+			return common.GenerateErrorResponder(err)
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Error(err)
+		return installer.NewCancelInstallationInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction")))
+	}
+	txSuccess = true
+
+	return installer.NewCancelInstallationAccepted()
+}
