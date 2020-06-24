@@ -760,6 +760,7 @@ definitions:
         x-go-custom-tag: gorm:"index"
       message:
         type: string
+        x-go-custom-tag: gorm:"type:varchar(4096)"
       event_time:
         type: string
         format: date-time
