@@ -6,12 +6,11 @@ package cluster
 
 import (
 	context "context"
-	reflect "reflect"
-
 	common "github.com/filanov/bm-inventory/internal/common"
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
+	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface
@@ -358,4 +357,18 @@ func (m *MockAPI) SetGeneratorVersion(c *common.Cluster, version string, db *gor
 func (mr *MockAPIMockRecorder) SetGeneratorVersion(c, version, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGeneratorVersion", reflect.TypeOf((*MockAPI)(nil).SetGeneratorVersion), c, version, db)
+}
+
+// CancelInstallation mocks base method
+func (m *MockAPI) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelInstallation", ctx, c, reason, db)
+	ret0, _ := ret[0].(*common.ApiErrorResponse)
+	return ret0
+}
+
+// CancelInstallation indicates an expected call of CancelInstallation
+func (mr *MockAPIMockRecorder) CancelInstallation(ctx, c, reason, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInstallation", reflect.TypeOf((*MockAPI)(nil).CancelInstallation), ctx, c, reason, db)
 }
