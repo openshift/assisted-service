@@ -79,6 +79,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetCredentialsHandler: installer.GetCredentialsHandlerFunc(func(params installer.GetCredentialsParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetCredentials has not yet been implemented")
 		}),
+		InstallerGetFreeAddressesHandler: installer.GetFreeAddressesHandlerFunc(func(params installer.GetFreeAddressesParams) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetFreeAddresses has not yet been implemented")
+		}),
 		InstallerGetHostHandler: installer.GetHostHandlerFunc(func(params installer.GetHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetHost has not yet been implemented")
 		}),
@@ -182,6 +185,8 @@ type AssistedInstallAPI struct {
 	InstallerGetClusterHandler installer.GetClusterHandler
 	// InstallerGetCredentialsHandler sets the operation handler for the get credentials operation
 	InstallerGetCredentialsHandler installer.GetCredentialsHandler
+	// InstallerGetFreeAddressesHandler sets the operation handler for the get free addresses operation
+	InstallerGetFreeAddressesHandler installer.GetFreeAddressesHandler
 	// InstallerGetHostHandler sets the operation handler for the get host operation
 	InstallerGetHostHandler installer.GetHostHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
@@ -313,6 +318,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetCredentialsHandler == nil {
 		unregistered = append(unregistered, "installer.GetCredentialsHandler")
+	}
+	if o.InstallerGetFreeAddressesHandler == nil {
+		unregistered = append(unregistered, "installer.GetFreeAddressesHandler")
 	}
 	if o.InstallerGetHostHandler == nil {
 		unregistered = append(unregistered, "installer.GetHostHandler")
@@ -493,6 +501,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/credentials"] = installer.NewGetCredentials(o.context, o.InstallerGetCredentialsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{cluster_id}/free_addresses"] = installer.NewGetFreeAddresses(o.context, o.InstallerGetFreeAddressesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

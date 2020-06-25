@@ -267,6 +267,29 @@ func (_m *MockAPI) GetCredentials(ctx context.Context, params *GetCredentialsPar
 	return r0, r1
 }
 
+// GetFreeAddresses provides a mock function with given fields: ctx, params
+func (_m *MockAPI) GetFreeAddresses(ctx context.Context, params *GetFreeAddressesParams) (*GetFreeAddressesOK, error) {
+	ret := _m.Called(ctx, params)
+
+	var r0 *GetFreeAddressesOK
+	if rf, ok := ret.Get(0).(func(context.Context, *GetFreeAddressesParams) *GetFreeAddressesOK); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*GetFreeAddressesOK)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *GetFreeAddressesParams) error); ok {
+		r1 = rf(ctx, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetHost provides a mock function with given fields: ctx, params
 func (_m *MockAPI) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error) {
 	ret := _m.Called(ctx, params)

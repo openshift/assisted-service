@@ -52,6 +52,9 @@ type API interface {
 	   GetCredentials gets the the cluster admin credentials*/
 	GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error)
 	/*
+	   GetFreeAddresses retrieves the free address list for a network*/
+	GetFreeAddresses(ctx context.Context, params *GetFreeAddressesParams) (*GetFreeAddressesOK, error)
+	/*
 	   GetHost retrieves the details of the open shift bare metal host*/
 	GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error)
 	/*
@@ -371,6 +374,30 @@ func (a *Client) GetCredentials(ctx context.Context, params *GetCredentialsParam
 		return nil, err
 	}
 	return result.(*GetCredentialsOK), nil
+
+}
+
+/*
+GetFreeAddresses retrieves the free address list for a network
+*/
+func (a *Client) GetFreeAddresses(ctx context.Context, params *GetFreeAddressesParams) (*GetFreeAddressesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetFreeAddresses",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/free_addresses",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetFreeAddressesReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetFreeAddressesOK), nil
 
 }
 

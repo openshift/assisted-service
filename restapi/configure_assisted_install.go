@@ -68,6 +68,9 @@ type InstallerAPI interface {
 	/* GetCredentials Get the the cluster admin credentials. */
 	GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder
 
+	/* GetFreeAddresses Retrieves the free address list for a network. */
+	GetFreeAddresses(ctx context.Context, params installer.GetFreeAddressesParams) middleware.Responder
+
 	/* GetHost Retrieves the details of the OpenShift bare metal host. */
 	GetHost(ctx context.Context, params installer.GetHostParams) middleware.Responder
 
@@ -196,6 +199,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	api.InstallerGetCredentialsHandler = installer.GetCredentialsHandlerFunc(func(params installer.GetCredentialsParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InstallerAPI.GetCredentials(ctx, params)
+	})
+	api.InstallerGetFreeAddressesHandler = installer.GetFreeAddressesHandlerFunc(func(params installer.GetFreeAddressesParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InstallerAPI.GetFreeAddresses(ctx, params)
 	})
 	api.InstallerGetHostHandler = installer.GetHostHandlerFunc(func(params installer.GetHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
