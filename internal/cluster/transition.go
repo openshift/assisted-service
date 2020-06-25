@@ -43,3 +43,26 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 	return updateClusterStateWithParams(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
 		params.reason, sCluster.cluster, params.db)
 }
+
+////////////////////////////////////////////////////////////////////////////
+// ResetCluster
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsResetCluster struct {
+	ctx    context.Context
+	reason string
+	db     *gorm.DB
+}
+
+func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return errors.New("PostResetCluster incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsResetCluster)
+	if !ok {
+		return errors.New("PostResetCluster invalid argument")
+	}
+	return updateClusterStateWithParams(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
+		params.reason, sCluster.cluster, params.db)
+}

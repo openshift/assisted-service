@@ -6,6 +6,7 @@ import (
 
 const (
 	TransitionTypeCancelInstallation = "CancelInstallation"
+	TransitionTypeResetCluster       = "ResetCluster"
 )
 
 func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -19,6 +20,15 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		DestinationState: clusterStatusError,
 		PostTransition:   th.PostCancelInstallation,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeResetCluster,
+		SourceStates: []stateswitch.State{
+			clusterStatusError,
+		},
+		DestinationState: clusterStatusInsufficient,
+		PostTransition:   th.PostResetCluster,
 	})
 
 	return sm

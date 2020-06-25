@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"io/ioutil"
+	"net/http"
 	"testing"
 	"time"
 
@@ -458,6 +459,47 @@ var _ = Describe("CancelInstallation", func() {
 		It("nothing_to_cancel", func() {
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).Should(HaveOccurred())
 		})
+	})
+
+	AfterEach(func() {
+		db.Close()
+	})
+})
+
+var _ = Describe("ResetCluster", func() {
+	var (
+		ctx   = context.Background()
+		db    *gorm.DB
+		state API
+		c     common.Cluster
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		state = NewManager(getTestLog(), db, nil)
+	})
+
+	It("reset_cluster", func() {
+		id := strfmt.UUID(uuid.New().String())
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &id,
+			Status: swag.String(clusterStatusError),
+		}}
+		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+		Expect(state.ResetCluster(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
+		db.First(&c, "id = ?", c.ID)
+		Expect(*c.Status).Should(Equal(clusterStatusInsufficient))
+	})
+
+	It("reset cluster conflict", func() {
+		id := strfmt.UUID(uuid.New().String())
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &id,
+			Status: swag.String(clusterStatusReady),
+		}}
+		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+		reply := state.ResetCluster(ctx, &c, "some reason", db)
+		Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
 	})
 
 	AfterEach(func() {
