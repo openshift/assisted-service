@@ -1610,3 +1610,55 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 
 	return installer.NewCancelInstallationAccepted()
 }
+
+func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("resetting cluster %s", params.ClusterID)
+
+	var c common.Cluster
+
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("reset cluster failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("reset cluster failed")
+			tx.Rollback()
+		}
+	}()
+
+	if tx.Error != nil {
+		log.WithError(tx.Error).Errorf("failed to start db transaction")
+		return installer.NewResetClusterInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
+	}
+
+	if err := tx.Preload("Hosts").First(&c, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return installer.NewResetClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+		}
+		return installer.NewResetClusterInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	if err := b.clusterApi.ResetCluster(ctx, &c, "cluster was reset by user", tx); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	for _, h := range c.Hosts {
+		if err := b.hostApi.ResetHost(ctx, h, "cluster was reset by user", tx); err != nil {
+			return common.GenerateErrorResponder(err)
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Error(err)
+		return installer.NewResetClusterInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction")))
+	}
+	txSuccess = true
+
+	return installer.NewResetClusterAccepted()
+}

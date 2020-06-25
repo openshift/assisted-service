@@ -471,6 +471,16 @@ var _ = Describe("cluster", func() {
 	setCancelInstallationInternalServerError := func() {
 		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
 	}
+	setResetClusterSuccess := func() {
+		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	}
+	setResetClusterConflict := func() {
+		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusConflict, nil)).Times(1)
+	}
+	setResetClusterInternalServerError := func() {
+		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
+	}
 	getInventoryStr := func(ipv4Addresses ...string) string {
 		inventory := models.Inventory{Interfaces: []*models.Interface{
 			{
@@ -839,6 +849,35 @@ var _ = Describe("cluster", func() {
 				setCancelInstallationInternalServerError()
 
 				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
+					ClusterID: clusterID,
+				})
+
+				verifyApiError(cancelReply, http.StatusInternalServerError)
+			})
+		})
+
+		Context("reset cluster", func() {
+			It("cancel installation success", func() {
+				setResetClusterSuccess()
+
+				cancelReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
+					ClusterID: clusterID,
+				})
+				Expect(cancelReply).Should(BeAssignableToTypeOf(installer.NewResetClusterAccepted()))
+			})
+			It("reset cluster conflict", func() {
+				setResetClusterConflict()
+
+				cancelReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
+					ClusterID: clusterID,
+				})
+
+				verifyApiError(cancelReply, http.StatusConflict)
+			})
+			It("reset cluster internal error", func() {
+				setResetClusterInternalServerError()
+
+				cancelReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
 					ClusterID: clusterID,
 				})
 
