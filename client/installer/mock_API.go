@@ -451,6 +451,29 @@ func (_m *MockAPI) RegisterHost(ctx context.Context, params *RegisterHostParams)
 	return r0, r1
 }
 
+// ResetCluster provides a mock function with given fields: ctx, params
+func (_m *MockAPI) ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error) {
+	ret := _m.Called(ctx, params)
+
+	var r0 *ResetClusterAccepted
+	if rf, ok := ret.Get(0).(func(context.Context, *ResetClusterParams) *ResetClusterAccepted); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*ResetClusterAccepted)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *ResetClusterParams) error); ok {
+		r1 = rf(ctx, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SetDebugStep provides a mock function with given fields: ctx, params
 func (_m *MockAPI) SetDebugStep(ctx context.Context, params *SetDebugStepParams) (*SetDebugStepNoContent, error) {
 	ret := _m.Called(ctx, params)

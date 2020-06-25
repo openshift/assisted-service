@@ -76,6 +76,9 @@ type API interface {
 	   RegisterHost registers a new open shift bare metal host*/
 	RegisterHost(ctx context.Context, params *RegisterHostParams) (*RegisterHostCreated, error)
 	/*
+	   ResetCluster resets a failed installation*/
+	ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error)
+	/*
 	   SetDebugStep sets a single shot debug step that will be sent next time the host agent will ask for a command*/
 	SetDebugStep(ctx context.Context, params *SetDebugStepParams) (*SetDebugStepNoContent, error)
 	/*
@@ -560,6 +563,30 @@ func (a *Client) RegisterHost(ctx context.Context, params *RegisterHostParams) (
 		return nil, err
 	}
 	return result.(*RegisterHostCreated), nil
+
+}
+
+/*
+ResetCluster resets a failed installation
+*/
+func (a *Client) ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ResetCluster",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/actions/reset",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ResetClusterReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResetClusterAccepted), nil
 
 }
 

@@ -320,6 +320,22 @@ func (_m *MockInstallerAPI) RegisterHost(ctx context.Context, params installer.R
 	return r0
 }
 
+// ResetCluster provides a mock function with given fields: ctx, params
+func (_m *MockInstallerAPI) ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder {
+	ret := _m.Called(ctx, params)
+
+	var r0 middleware.Responder
+	if rf, ok := ret.Get(0).(func(context.Context, installer.ResetClusterParams) middleware.Responder); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(middleware.Responder)
+		}
+	}
+
+	return r0
+}
+
 // SetDebugStep provides a mock function with given fields: ctx, params
 func (_m *MockInstallerAPI) SetDebugStep(ctx context.Context, params installer.SetDebugStepParams) middleware.Responder {
 	ret := _m.Called(ctx, params)

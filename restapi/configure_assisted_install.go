@@ -92,6 +92,9 @@ type InstallerAPI interface {
 	/* RegisterHost Registers a new OpenShift bare metal host. */
 	RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder
 
+	/* ResetCluster Resets a failed installation. */
+	ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder
+
 	/* SetDebugStep Sets a single shot debug step that will be sent next time the host agent will ask for a command. */
 	SetDebugStep(ctx context.Context, params installer.SetDebugStepParams) middleware.Responder
 
@@ -233,6 +236,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	api.InstallerRegisterHostHandler = installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InstallerAPI.RegisterHost(ctx, params)
+	})
+	api.InstallerResetClusterHandler = installer.ResetClusterHandlerFunc(func(params installer.ResetClusterParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InstallerAPI.ResetCluster(ctx, params)
 	})
 	api.InstallerSetDebugStepHandler = installer.SetDebugStepHandlerFunc(func(params installer.SetDebugStepParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

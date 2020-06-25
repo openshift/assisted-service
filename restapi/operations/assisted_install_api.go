@@ -109,6 +109,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerRegisterHostHandler: installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterHost has not yet been implemented")
 		}),
+		InstallerResetClusterHandler: installer.ResetClusterHandlerFunc(func(params installer.ResetClusterParams) middleware.Responder {
+			return middleware.NotImplemented("operation installer.ResetCluster has not yet been implemented")
+		}),
 		InstallerSetDebugStepHandler: installer.SetDebugStepHandlerFunc(func(params installer.SetDebugStepParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.SetDebugStep has not yet been implemented")
 		}),
@@ -199,6 +202,8 @@ type AssistedInstallAPI struct {
 	InstallerRegisterClusterHandler installer.RegisterClusterHandler
 	// InstallerRegisterHostHandler sets the operation handler for the register host operation
 	InstallerRegisterHostHandler installer.RegisterHostHandler
+	// InstallerResetClusterHandler sets the operation handler for the reset cluster operation
+	InstallerResetClusterHandler installer.ResetClusterHandler
 	// InstallerSetDebugStepHandler sets the operation handler for the set debug step operation
 	InstallerSetDebugStepHandler installer.SetDebugStepHandler
 	// InstallerUpdateClusterHandler sets the operation handler for the update cluster operation
@@ -338,6 +343,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerRegisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterHostHandler")
+	}
+	if o.InstallerResetClusterHandler == nil {
+		unregistered = append(unregistered, "installer.ResetClusterHandler")
 	}
 	if o.InstallerSetDebugStepHandler == nil {
 		unregistered = append(unregistered, "installer.SetDebugStepHandler")
@@ -525,6 +533,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/hosts"] = installer.NewRegisterHost(o.context, o.InstallerRegisterHostHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/actions/reset"] = installer.NewResetCluster(o.context, o.InstallerResetClusterHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
