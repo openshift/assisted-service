@@ -78,8 +78,7 @@ func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.State
 ////////////////////////////////////////////////////////////////////////////
 
 type TransitionArgsHostInstallationFailed struct {
-	ctx    context.Context
-	reason string
+	ctx context.Context
 }
 
 func (th *transitionHandler) PostHostInstallationFailed(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -92,5 +91,5 @@ func (th *transitionHandler) PostHostInstallationFailed(sw stateswitch.StateSwit
 		return errors.New("HostInstallationFailed invalid argument")
 	}
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
-		params.reason, sHost.host, th.db)
+		"installation command failed", sHost.host, th.db)
 }
