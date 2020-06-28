@@ -252,7 +252,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		return "", err
 	}
 	buf := &bytes.Buffer{}
-	if err := tmpl.Execute(buf, ignitionParams); err != nil {
+	if err = tmpl.Execute(buf, ignitionParams); err != nil {
 		return "", err
 	}
 	return buf.String(), nil
@@ -500,7 +500,7 @@ type clusterInstaller struct {
 	params installer.InstallClusterParams
 }
 
-func (c *clusterInstaller) verifyClusterNetworkConfig(cluster *common.Cluster, tx *gorm.DB) error {
+func (b *bareMetalInventory) verifyClusterNetworkConfig(ctx context.Context, cluster *common.Cluster) error {
 	cidr, err := network.CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -509,14 +509,15 @@ func (c *clusterInstaller) verifyClusterNetworkConfig(cluster *common.Cluster, t
 		return common.NewApiError(http.StatusBadRequest,
 			fmt.Errorf("Cluster machine CIDR %s is different than the calculated CIDR %s", cluster.MachineNetworkCidr, cidr))
 	}
-	if err = network.VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, c.log); err != nil {
+	if err = network.VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip,
+		true, b.log); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	machineCidrHosts, err := network.GetMachineCIDRHosts(c.log, cluster)
+	machineCidrHosts, err := network.GetMachineCIDRHosts(b.log, cluster)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	masterNodesIds, err := c.b.clusterApi.GetMasterNodesIds(c.ctx, cluster, tx)
+	masterNodesIds, err := b.clusterApi.GetMasterNodesIds(ctx, cluster, b.db)
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -555,18 +556,18 @@ func (c *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) er
 	return nil
 }
 
-func (c clusterInstaller) validateHostsInventory(cluster *common.Cluster) error {
+func (b *bareMetalInventory) validateHostsInventory(cluster *common.Cluster) error {
 	for _, chost := range cluster.Hosts {
-		sufficient, err := c.b.hostApi.ValidateCurrentInventory(chost, cluster)
+		sufficient, err := b.hostApi.ValidateCurrentInventory(chost, cluster)
 		if err != nil {
 			msg := fmt.Sprintf("failed to validate host <%s> in cluster: %s", chost.ID.String(), cluster.ID.String())
-			c.b.log.WithError(err).Warn(msg)
+			b.log.WithError(err).Warn(msg)
 			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, msg))
 		}
 		if !sufficient.IsSufficient {
 			msg := fmt.Sprintf("host <%s>  failed to pass hardware validation in cluster: %s. Reason %s",
 				chost.ID.String(), cluster.ID.String(), sufficient.Reason)
-			c.b.log.Warn(msg)
+			b.log.Warn(msg)
 			return common.NewApiError(http.StatusConflict, errors.Errorf(msg))
 		}
 	}
@@ -578,9 +579,6 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 	var err error
 	if err = tx.Preload("Hosts").First(&cluster, "id = ?", c.params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
-	}
-	if err = c.verifyClusterNetworkConfig(&cluster, tx); err != nil {
-		return err
 	}
 
 	if err = c.b.createDNSRecordSets(c.ctx, cluster); err != nil {
@@ -619,31 +617,42 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		}
 	}()
 
-	cInstaller := clusterInstaller{
-		ctx:    ctx,
-		b:      b,
-		log:    log,
-		params: params,
-	}
 	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
-	if err = cInstaller.validateHostsInventory(&cluster); err != nil {
+	if err = b.validateHostsInventory(&cluster); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
-	err = b.db.Transaction(cInstaller.install)
-	if err != nil {
-		log.WithError(err).Warn("Cluster install")
-		if errDelete := b.deleteDNSRecordSets(ctx, cluster); errDelete != nil {
-			log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
-		}
+	if err = b.verifyClusterNetworkConfig(ctx, &cluster); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+
+	// Update cluster status and return
+	if err = b.clusterApi.PrepareForInstallation(ctx, &cluster); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
 	if err = b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	log.Infof("Successfully started cluster <%s> installation", params.ClusterID.String())
+
+	go func() {
+		cInstaller := clusterInstaller{
+			ctx:    context.Background(), // Need a new context for async part
+			b:      b,
+			log:    log,
+			params: params,
+		}
+		err := b.db.Transaction(cInstaller.install)
+		if err != nil {
+			log.WithError(err).Warn("Cluster install")
+			// TODO: set cluster in retryable error state
+			b.clusterApi.HandlePreInstallError(context.Background(), &cluster, err)
+		}
+	}()
+
+	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
 	return installer.NewInstallClusterAccepted().WithPayload(&cluster.Cluster)
 }
 

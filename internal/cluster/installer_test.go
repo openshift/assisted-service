@@ -66,6 +66,10 @@ var _ = Describe("installer", func() {
 		})
 		It("cluster is ready", func() {
 			cluster = updateClusterState(cluster, clusterStatusReady, db)
+			Expect(installerManager.Install(ctx, &cluster, db)).Should(HaveOccurred())
+		})
+		It("cluster is ready", func() {
+			cluster = updateClusterState(cluster, clusterStatusPrepareForInstallation, db)
 			err := installerManager.Install(ctx, &cluster, db)
 			Expect(err).Should(BeNil())
 
