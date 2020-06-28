@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/filanov/bm-inventory/internal/validators"
@@ -78,6 +79,7 @@ type API interface {
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
+	CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 }
 
 type Manager struct {
@@ -275,6 +277,18 @@ func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, 
 		if err != nil {
 			return errors.Wrapf(err, "failed to set connectivity to host %s", h.ID.String())
 		}
+	}
+	return nil
+}
+
+func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	err := m.sm.Run(TransitionTypeCancelInstallation, newStateHost(h), &TransitionArgsCancelInstallation{
+		ctx:    ctx,
+		reason: reason,
+		db:     db,
+	})
+	if err != nil {
+		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
 }

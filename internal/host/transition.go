@@ -94,3 +94,29 @@ func (th *transitionHandler) PostHostInstallationFailed(sw stateswitch.StateSwit
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
 		params.reason, sHost.host, th.db)
 }
+
+////////////////////////////////////////////////////////////////////////////
+// Cancel Installation
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsCancelInstallation struct {
+	ctx    context.Context
+	reason string
+	db     *gorm.DB
+}
+
+func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostCancelInstallation incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsCancelInstallation)
+	if !ok {
+		return errors.New("PostCancelInstallation invalid argument")
+	}
+	if sHost.srcState == HostStatusError {
+		return nil
+	}
+	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
+		params.reason, sHost.host, params.db)
+}
