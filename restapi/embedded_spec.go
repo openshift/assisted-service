@@ -270,50 +270,6 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/cancel": {
-      "post": {
-        "tags": [
-          "installer"
-        ],
-        "summary": "Cancels an ongoing installation.",
-        "operationId": "CancelInstallation",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/cluster"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/clusters/{cluster_id}/actions/install": {
       "post": {
         "tags": [
@@ -2486,50 +2442,6 @@ func init() {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/clusters/{cluster_id}/actions/cancel": {
-      "post": {
-        "tags": [
-          "installer"
-        ],
-        "summary": "Cancels an ongoing installation.",
-        "operationId": "CancelInstallation",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/cluster"
             }
           },
           "404": {

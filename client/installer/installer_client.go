@@ -19,9 +19,6 @@ import (
 // API is the interface of the installer client
 type API interface {
 	/*
-	   CancelInstallation cancels an ongoing installation*/
-	CancelInstallation(ctx context.Context, params *CancelInstallationParams) (*CancelInstallationAccepted, error)
-	/*
 	   DeregisterCluster deletes an open shift bare metal cluster definition*/
 	DeregisterCluster(ctx context.Context, params *DeregisterClusterParams) (*DeregisterClusterNoContent, error)
 	/*
@@ -105,30 +102,6 @@ type Client struct {
 	transport runtime.ClientTransport
 	formats   strfmt.Registry
 	authInfo  runtime.ClientAuthInfoWriter
-}
-
-/*
-CancelInstallation cancels an ongoing installation
-*/
-func (a *Client) CancelInstallation(ctx context.Context, params *CancelInstallationParams) (*CancelInstallationAccepted, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CancelInstallation",
-		Method:             "POST",
-		PathPattern:        "/clusters/{cluster_id}/actions/cancel",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &CancelInstallationReader{formats: a.formats},
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*CancelInstallationAccepted), nil
-
 }
 
 /*
