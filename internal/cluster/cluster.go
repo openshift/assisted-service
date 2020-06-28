@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/filanov/stateswitch"
@@ -56,7 +55,6 @@ type API interface {
 	VerifyClusterUpdatability(c *common.Cluster) (err error)
 	AcceptRegistration(c *common.Cluster) (err error)
 	SetGeneratorVersion(c *common.Cluster, version string, db *gorm.DB) error
-	CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
 }
 
 type Manager struct {
@@ -235,16 +233,4 @@ func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
 func (m *Manager) SetGeneratorVersion(c *common.Cluster, version string, db *gorm.DB) error {
 	return db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
 		Update("ignition_generator_version", version).Error
-}
-
-func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
-	err := m.sm.Run(TransitionTypeCancelInstallation, newStateCluster(c), &TransitionArgsCancelInstallation{
-		ctx:    ctx,
-		reason: reason,
-		db:     db,
-	})
-	if err != nil {
-		return common.NewApiError(http.StatusConflict, err)
-	}
-	return nil
 }
