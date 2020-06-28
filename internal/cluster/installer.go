@@ -33,7 +33,7 @@ func (i *installer) Install(ctx context.Context, c *common.Cluster, db *gorm.DB)
 
 	switch swag.StringValue(c.Status) {
 	case "":
-	case clusterStatusReady:
+	case clusterStatusPrepareForInstallation:
 		log.Infof("cluster %s is starting installation", c.ID)
 	case clusterStatusInsufficient:
 		masterKnownHosts, err := i.GetMasterNodesIds(ctx, c, db)
@@ -41,6 +41,8 @@ func (i *installer) Install(ctx context.Context, c *common.Cluster, db *gorm.DB)
 			return err
 		}
 		return errors.Errorf("cluster %s is expected to have exactly %d known master to be installed, got %d", c.ID, minHostsNeededForInstallation, len(masterKnownHosts))
+	case clusterStatusReady:
+		return errors.Errorf("cluster %s is ready expected %s", c.ID, clusterStatusPrepareForInstallation)
 	case clusterStatusInstalling:
 		return errors.Errorf("cluster %s is already installing", c.ID)
 	case clusterStatusInstalled:
