@@ -1452,7 +1452,8 @@ func init() {
             "ready",
             "error",
             "installing",
-            "installed"
+            "installed",
+            "preparing-for-installation"
           ]
         },
         "status_info": {
@@ -3902,7 +3903,8 @@ func init() {
             "ready",
             "error",
             "installing",
-            "installed"
+            "installed",
+            "preparing-for-installation"
           ]
         },
         "status_info": {
