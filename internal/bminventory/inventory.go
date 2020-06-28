@@ -360,7 +360,8 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 			Errorf("Failed to get ISO: %s", imgName)
 		if resp.StatusCode == http.StatusNotFound {
 			return installer.NewDownloadClusterISONotFound().
-				WithPayload(common.GenerateError(http.StatusNotFound, errors.New(string(b))))
+				WithPayload(common.GenerateError(http.StatusNotFound, errors.New("The image was not found "+
+					"(perhaps it expired) - please generate a new one and try again")))
 		}
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New(string(b))))
