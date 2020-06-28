@@ -460,17 +460,7 @@ var _ = Describe("cluster", func() {
 	setIgnitionGeneratorVersionSuccess := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().SetGeneratorVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
-	setCancelInstallationSuccess := func() {
-		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockHostApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	}
-	setCancelInstallationHostConflict := func() {
-		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockHostApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusConflict, nil)).Times(1)
-	}
-	setCancelInstallationInternalServerError := func() {
-		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
-	}
+
 	getInventoryStr := func(ipv4Addresses ...string) string {
 		inventory := models.Inventory{Interfaces: []*models.Interface{
 			{
@@ -814,35 +804,6 @@ var _ = Describe("cluster", func() {
 			})
 
 			verifyApiError(reply, http.StatusInternalServerError)
-		})
-
-		Context("CancelInstallation", func() {
-			It("cancel installation success", func() {
-				setCancelInstallationSuccess()
-
-				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
-					ClusterID: clusterID,
-				})
-				Expect(cancelReply).Should(BeAssignableToTypeOf(installer.NewCancelInstallationAccepted()))
-			})
-			It("cancel installation conflict", func() {
-				setCancelInstallationHostConflict()
-
-				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
-					ClusterID: clusterID,
-				})
-
-				verifyApiError(cancelReply, http.StatusConflict)
-			})
-			It("cancel installation internal error", func() {
-				setCancelInstallationInternalServerError()
-
-				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
-					ClusterID: clusterID,
-				})
-
-				verifyApiError(cancelReply, http.StatusInternalServerError)
-			})
 		})
 	})
 	AfterEach(func() {
