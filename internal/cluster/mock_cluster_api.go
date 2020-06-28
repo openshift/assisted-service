@@ -386,3 +386,29 @@ func (mr *MockAPIMockRecorder) ResetCluster(ctx, c, reason, db interface{}) *gom
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetCluster", reflect.TypeOf((*MockAPI)(nil).ResetCluster), ctx, c, reason, db)
 }
+
+// PrepareForInstallation mocks base method
+func (m *MockAPI) PrepareForInstallation(ctx context.Context, c *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PrepareForInstallation", ctx, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PrepareForInstallation indicates an expected call of PrepareForInstallation
+func (mr *MockAPIMockRecorder) PrepareForInstallation(ctx, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareForInstallation", reflect.TypeOf((*MockAPI)(nil).PrepareForInstallation), ctx, c)
+}
+
+// HandlePreInstallError mocks base method
+func (m *MockAPI) HandlePreInstallError(ctx context.Context, c *common.Cluster, err error) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "HandlePreInstallError", ctx, c, err)
+}
+
+// HandlePreInstallError indicates an expected call of HandlePreInstallError
+func (mr *MockAPIMockRecorder) HandlePreInstallError(ctx, c, err interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandlePreInstallError", reflect.TypeOf((*MockAPI)(nil).HandlePreInstallError), ctx, c, err)
+}
