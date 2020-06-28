@@ -201,52 +201,6 @@ var _ = Describe("monitor_disconnection", func() {
 	})
 })
 
-var _ = Describe("cancel_installation", func() {
-	var (
-		ctx   = context.Background()
-		db    *gorm.DB
-		state API
-		h     models.Host
-	)
-
-	BeforeEach(func() {
-		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil, nil)
-		id := strfmt.UUID(uuid.New().String())
-		clusterId := strfmt.UUID(uuid.New().String())
-		h = getTestHost(id, clusterId, HostStatusDiscovering)
-	})
-
-	Context("cancel_installation", func() {
-		It("cancel_installation", func() {
-			h.Status = swag.String(HostStatusInstalling)
-			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-		})
-
-		It("cancel_failed_installation", func() {
-			h.Status = swag.String(HostStatusError)
-			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
-			Expect(*h.Status).Should(Equal(HostStatusError))
-		})
-	})
-
-	Context("invalid_cancel_installation", func() {
-		It("nothing_to_cancel", func() {
-			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).Should(HaveOccurred())
-		})
-	})
-
-	AfterEach(func() {
-		db.Close()
-	})
-})
-
 func TestSubsystem(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "host state machine tests")

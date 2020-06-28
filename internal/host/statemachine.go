@@ -5,7 +5,6 @@ import "github.com/filanov/stateswitch"
 const (
 	TransitionTypeRegisterHost           = "RegisterHost"
 	TransitionTypeHostInstallationFailed = "HostInstallationFailed"
-	TransitionTypeCancelInstallation     = "CancelInstallation"
 )
 
 func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -36,13 +35,6 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates:     []stateswitch.State{HostStatusInstalling, HostStatusInstallingInProgress},
 		DestinationState: HostStatusError,
 		PostTransition:   th.PostHostInstallationFailed,
-	})
-
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType:   TransitionTypeCancelInstallation,
-		SourceStates:     []stateswitch.State{HostStatusInstalling, HostStatusInstallingInProgress, HostStatusError},
-		DestinationState: HostStatusError,
-		PostTransition:   th.PostCancelInstallation,
 	})
 
 	return sm
