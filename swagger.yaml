@@ -1290,6 +1290,7 @@ definitions:
           - error
           - installing
           - installed
+          - preparing-for-installation
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
