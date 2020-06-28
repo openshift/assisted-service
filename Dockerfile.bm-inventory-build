@@ -9,7 +9,7 @@ RUN go get -u github.com/onsi/ginkgo/ginkgo@v1.12.2 \
               golang.org/x/tools/cmd/goimports@v0.0.0-20200520220537-cf2d1e09c845 \
               github.com/golang/mock/mockgen@v1.4.3 \
               github.com/vektra/mockery/.../@v1.1.2
-RUN pip3 install boto3==1.13.14
+RUN pip3 install boto3==1.13.14 waiting==1.4.1
 RUN curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.10.1/minikube-linux-amd64 \
   && chmod +x minikube && mkdir -p /usr/local/bin/ && install minikube /usr/local/bin/
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
