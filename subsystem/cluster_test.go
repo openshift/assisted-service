@@ -531,6 +531,81 @@ var _ = Describe("cluster install", func() {
 				Expect(reflect.TypeOf(res)).To(Equal(reflect.TypeOf(installer.NewUploadClusterIngressCertCreated())))
 			}
 		})
+
+		Context("cancel installation", func() {
+			It("[only_k8s]cancel running installation", func() {
+				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				waitForClusterState(ctx, clusterID, models.ClusterStatusInstalling, 10*time.Second, "some info")
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling, 10*time.Second)
+				}
+				_, err = bmclient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c = rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				for _, host := range c.Hosts {
+					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusError))
+				}
+			})
+			It("[only_k8s]cancel installation conflicts", func() {
+				_, err := bmclient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewCancelInstallationConflict())))
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusReady))
+			})
+			It("[only_k8s]cancel failed cluster", func() {
+				FailCluster(ctx, clusterID)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusError, 10*time.Second, "some info")
+				_, err := bmclient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).ShouldNot(HaveOccurred())
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).ShouldNot(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).ShouldNot(HaveOccurred())
+				c = rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				for _, host := range c.Hosts {
+					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusError))
+				}
+			})
+			It("[only_k8s]cancel failed cluster with various hosts stats", func() {
+				FailCluster(ctx, clusterID)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusError, 10*time.Second, "some info")
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				Expect(len(c.Hosts)).Should(Equal(4))
+
+				checkHostsStatuses := func() {
+					h1 := getHost(clusterID, *c.Hosts[0].ID)
+					Expect(*h1.Status).Should(Equal(models.HostStatusError))
+					h2 := getHost(clusterID, *c.Hosts[2].ID)
+					Expect(*h2.Status).Should(Equal(models.HostStatusInstallingInProgress))
+					h3 := getHost(clusterID, *c.Hosts[1].ID)
+					Expect(*h3.Status).Should(Equal(models.HostStatusInstalled))
+				}
+
+				updateProgress(*c.Hosts[0].ID, clusterID, "Error")
+				updateProgress(*c.Hosts[1].ID, clusterID, "Installing")
+				updateProgress(*c.Hosts[2].ID, clusterID, "Done")
+				checkHostsStatuses()
+
+				_, err = bmclient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewCancelInstallationConflict())))
+				checkHostsStatuses()
+			})
+		})
 	})
 
 	It("install cluster requirement", func() {
