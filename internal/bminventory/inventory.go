@@ -366,6 +366,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New(string(b))))
 	}
+	b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), "Started image download", time.Now())
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(resp.Body),
 		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()))
