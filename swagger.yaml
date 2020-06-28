@@ -386,36 +386,6 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/actions/cancel:
-    post:
-      tags:
-        - installer
-      summary: Cancels an ongoing installation.
-      operationId: CancelInstallation
-      parameters:
-        - in: path
-          name: cluster_id
-          type: string
-          format: uuid
-          required: true
-      responses:
-        202:
-          description: Success.
-          schema:
-            $ref: '#/definitions/cluster'
-        404:
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-        409:
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-        500:
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-
   /clusters/{cluster_id}/hosts:
     post:
       tags:

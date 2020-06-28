@@ -15,11 +15,8 @@ digraph ClusterStateMachine {
     ready -> insufficient [style=invis];
     ready -> installing [label = "installation started", color=darkolivegreen4, fontcolor=darkolivegreen4];
     installing -> installed [label = "installation\ncompleted", color=chartreuse4, fontcolor=chartreuse4];
-    installing -> error [label = "installation\nerror\nor canceled", color=crimson, fontcolor=crimson];
+    installing -> error [label = "installation\nerror", color=crimson, fontcolor=crimson];
 
-    {rank=min; start}
     {rank=max; installed}
-    {rank=same; start; insufficient}
-    {rank=same; ready; installing; error}
-    {rank=same; installed}
+    {rank=same; start; ready; installing}
 }
