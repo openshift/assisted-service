@@ -120,3 +120,26 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
 		params.reason, sHost.host, params.db)
 }
+
+////////////////////////////////////////////////////////////////////////////
+// Reset Host
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsResetHost struct {
+	ctx    context.Context
+	reason string
+	db     *gorm.DB
+}
+
+func (th *transitionHandler) PostResetHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostResetHost incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsResetHost)
+	if !ok {
+		return errors.New("PostResetHost invalid argument")
+	}
+	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
+		params.reason, sHost.host, params.db)
+}

@@ -6,6 +6,7 @@ const (
 	TransitionTypeRegisterHost           = "RegisterHost"
 	TransitionTypeHostInstallationFailed = "HostInstallationFailed"
 	TransitionTypeCancelInstallation     = "CancelInstallation"
+	TransitionTypeResetHost              = "ResetHost"
 )
 
 func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -44,6 +45,13 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates:     []stateswitch.State{HostStatusInstalling, HostStatusInstallingInProgress, HostStatusError},
 		DestinationState: HostStatusError,
 		PostTransition:   th.PostCancelInstallation,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeResetHost,
+		SourceStates:     []stateswitch.State{HostStatusError},
+		DestinationState: HostStatusResetting,
+		PostTransition:   th.PostResetHost,
 	})
 
 	return sm

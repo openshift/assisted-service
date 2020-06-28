@@ -79,6 +79,7 @@ type API interface {
 	HostMonitoring()
 	UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) error
 	CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
+	ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 }
 
 type Manager struct {
@@ -295,6 +296,18 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role string, d
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	err := m.sm.Run(TransitionTypeCancelInstallation, newStateHost(h), &TransitionArgsCancelInstallation{
+		ctx:    ctx,
+		reason: reason,
+		db:     db,
+	})
+	if err != nil {
+		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
+}
+
+func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	err := m.sm.Run(TransitionTypeResetHost, newStateHost(h), &TransitionArgsResetHost{
 		ctx:    ctx,
 		reason: reason,
 		db:     db,

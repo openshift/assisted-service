@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"testing"
 	"time"
 
@@ -361,6 +362,56 @@ var _ = Describe("cancel_installation", func() {
 	Context("invalid_cancel_installation", func() {
 		It("nothing_to_cancel", func() {
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).Should(HaveOccurred())
+		})
+	})
+
+	AfterEach(func() {
+		db.Close()
+	})
+})
+
+var _ = Describe("reset_host", func() {
+	var (
+		ctx   = context.Background()
+		db    *gorm.DB
+		state API
+		h     models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		state = NewManager(getTestLog(), db, nil, nil, nil)
+	})
+
+	Context("cancel_installation", func() {
+		It("cancel_installation", func() {
+			id := strfmt.UUID(uuid.New().String())
+			clusterId := strfmt.UUID(uuid.New().String())
+			h = getTestHost(id, clusterId, HostStatusError)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
+			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
+			Expect(*h.Status).Should(Equal(HostStatusResetting))
+		})
+
+		It("register resetting host", func() {
+			id := strfmt.UUID(uuid.New().String())
+			clusterId := strfmt.UUID(uuid.New().String())
+			h = getTestHost(id, clusterId, HostStatusResetting)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
+			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
+			Expect(*h.Status).Should(Equal(HostStatusDiscovering))
+		})
+	})
+
+	Context("invalid_reset_installation", func() {
+		It("nothing_to_reset", func() {
+			id := strfmt.UUID(uuid.New().String())
+			clusterId := strfmt.UUID(uuid.New().String())
+			h = getTestHost(id, clusterId, HostStatusDiscovering)
+			reply := state.ResetHost(ctx, &h, "some reason", db)
+			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
 		})
 	})
 
