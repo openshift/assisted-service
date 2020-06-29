@@ -460,6 +460,7 @@ func (m *MockAPI) ResetHost(ctx context.Context, h *models.Host, reason string, 
 func (mr *MockAPIMockRecorder) ResetHost(ctx, h, reason, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetHost", reflect.TypeOf((*MockAPI)(nil).ResetHost), ctx, h, reason, db)
+}
 
 // GetHostname mocks base method
 func (m *MockAPI) GetHostname(host *models.Host) string {

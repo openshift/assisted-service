@@ -12,6 +12,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/validators"
 
 	"github.com/filanov/bm-inventory/internal/connectivity"
+	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/pkg/errors"
 
 	"github.com/filanov/bm-inventory/internal/common"
@@ -41,6 +42,7 @@ var _ = Describe("statemachine", func() {
 		host                      models.Host
 		stateReply                *UpdateReply
 		stateErr                  error
+		mockEvents                *events.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -48,7 +50,8 @@ var _ = Describe("statemachine", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockConnectivityValidator = connectivity.NewMockValidator(ctrl)
-		state = NewManager(getTestLog(), db, mockHwValidator, nil, mockConnectivityValidator)
+		mockEvents = events.NewMockHandler(ctrl)
+		state = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, mockConnectivityValidator)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, "unknown invalid state")
@@ -99,7 +102,7 @@ var _ = Describe("update_role", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil, nil)
+		state = NewManager(getTestLog(), db, nil, nil, nil, nil)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
@@ -216,15 +219,19 @@ var _ = Describe("update_role", func() {
 
 var _ = Describe("update_progress", func() {
 	var (
-		ctx   = context.Background()
-		db    *gorm.DB
-		state API
-		host  models.Host
+		ctx        = context.Background()
+		db         *gorm.DB
+		state      API
+		host       models.Host
+		ctrl       *gomock.Controller
+		mockEvents *events.MockHandler
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil, nil)
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		state = NewManager(getTestLog(), db, mockEvents, nil, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, "")
@@ -264,15 +271,19 @@ var _ = Describe("update_progress", func() {
 
 var _ = Describe("monitor_disconnection", func() {
 	var (
-		ctx   = context.Background()
-		db    *gorm.DB
-		state API
-		host  models.Host
+		ctx        = context.Background()
+		db         *gorm.DB
+		state      API
+		host       models.Host
+		ctrl       *gomock.Controller
+		mockEvents *events.MockHandler
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil, nil)
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		state = NewManager(getTestLog(), db, mockEvents, nil, nil, nil)
 		host = getTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), HostStatusDiscovering)
 		err := state.RegisterHost(ctx, &host)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -326,15 +337,19 @@ var _ = Describe("monitor_disconnection", func() {
 
 var _ = Describe("cancel_installation", func() {
 	var (
-		ctx   = context.Background()
-		db    *gorm.DB
-		state API
-		h     models.Host
+		ctx        = context.Background()
+		db         *gorm.DB
+		state      API
+		h          models.Host
+		ctrl       *gomock.Controller
+		mockEvents *events.MockHandler
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil, nil)
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		state = NewManager(getTestLog(), db, mockEvents, nil, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		h = getTestHost(id, clusterId, HostStatusDiscovering)
@@ -380,7 +395,7 @@ var _ = Describe("reset_host", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil, nil)
+		state = NewManager(getTestLog(), db, nil, nil, nil, nil)
 	})
 
 	Context("cancel_installation", func() {

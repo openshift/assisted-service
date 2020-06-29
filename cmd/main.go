@@ -114,7 +114,7 @@ func main() {
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, Options.InstructionConfig, connectivityValidator)
-	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, hwValidator, instructionApi, connectivityValidator)
+	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator, instructionApi, connectivityValidator)
 	clusterApi := cluster.NewManager(log.WithField("pkg", "cluster-state"), db, eventsHandler)
 
 	clusterStateMonitor := thread.New(

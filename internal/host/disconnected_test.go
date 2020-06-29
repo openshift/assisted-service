@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-openapi/swag"
 
+	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -33,6 +34,7 @@ var _ = Describe("disconnected_state", func() {
 		ctrl                      *gomock.Controller
 		mockHWValidator           *hardware.MockValidator
 		mockConnectivityValidator *connectivity.MockValidator
+		mockEvents                *events.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -40,7 +42,8 @@ var _ = Describe("disconnected_state", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockHWValidator = hardware.NewMockValidator(ctrl)
 		mockConnectivityValidator = connectivity.NewMockValidator(ctrl)
-		state = &Manager{disconnected: NewDisconnectedState(getTestLog(), db, mockHWValidator)}
+		mockEvents = events.NewMockHandler(ctrl)
+		state = &Manager{eventsHandler: mockEvents, disconnected: NewDisconnectedState(getTestLog(), db, mockHWValidator)}
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -115,6 +118,7 @@ var _ = Describe("disconnected_state", func() {
 
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
+			mockEvents.EXPECT().AddEvent(gomock.Any(), string(id), gomock.Any(), gomock.Any(), string(clusterId))
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			host.Inventory = ""
 			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
