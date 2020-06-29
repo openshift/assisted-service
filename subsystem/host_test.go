@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/filanov/stateswitch/examples/host/host"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 
@@ -248,13 +250,13 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("free addresses report", func() {
-		host := registerHost(clusterID)
+		h := registerHost(clusterID)
 
 		free_addresses_report := "[{\"free_addresses\":[\"10.0.0.0\",\"10.0.0.1\"],\"network\":\"10.0.0.0/24\"},{\"free_addresses\":[\"10.0.1.0\"],\"network\":\"10.0.1.0/24\"}]"
 
 		_, err := bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
-			HostID:    *host.ID,
+			HostID:    *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
 				Output:   free_addresses_report,
@@ -263,12 +265,37 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		host = getHost(clusterID, *host.ID)
-		Expect(host.FreeAddresses).Should(Equal(free_addresses_report))
+		Expect(db.Model(h).UpdateColumn("status", host.StateInsufficient).Error).NotTo(HaveOccurred())
+		h = getHost(clusterID, *h.ID)
+		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
+
+		freeAddressesReply, err := bmclient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
+			ClusterID: clusterID,
+			Network:   "10.0.0.0/24",
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(freeAddressesReply.Payload).To(HaveLen(2))
+		Expect(freeAddressesReply.Payload[0]).To(Equal(strfmt.IPv4("10.0.0.0")))
+		Expect(freeAddressesReply.Payload[1]).To(Equal(strfmt.IPv4("10.0.0.1")))
+
+		freeAddressesReply, err = bmclient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
+			ClusterID: clusterID,
+			Network:   "10.0.1.0/24",
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(freeAddressesReply.Payload).To(HaveLen(1))
+		Expect(freeAddressesReply.Payload[0]).To(Equal(strfmt.IPv4("10.0.1.0")))
+
+		freeAddressesReply, err = bmclient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
+			ClusterID: clusterID,
+			Network:   "10.0.2.0/24",
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(freeAddressesReply.Payload).To(BeEmpty())
 
 		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
-			HostID:    *host.ID,
+			HostID:    *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: 0,
 				Output:   "not a json",
@@ -277,13 +304,13 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).To(HaveOccurred())
-		host = getHost(clusterID, *host.ID)
-		Expect(host.FreeAddresses).Should(Equal(free_addresses_report))
+		h = getHost(clusterID, *h.ID)
+		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
 
 		//exit code is not 0
 		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
-			HostID:    *host.ID,
+			HostID:    *h.ID,
 			Reply: &models.StepReply{
 				ExitCode: -1,
 				Error:    "some error",
@@ -292,8 +319,8 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).To(HaveOccurred())
-		host = getHost(clusterID, *host.ID)
-		Expect(host.FreeAddresses).Should(Equal(free_addresses_report))
+		h = getHost(clusterID, *h.ID)
+		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
 	})
 
 	It("disable enable", func() {

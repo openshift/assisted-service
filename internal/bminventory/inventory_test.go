@@ -230,6 +230,24 @@ var _ = Describe("GetNextSteps", func() {
 	})
 })
 
+func makeFreeAddresses(network string, ips ...strfmt.IPv4) *models.FreeNetworkAddresses {
+	return &models.FreeNetworkAddresses{
+		FreeAddresses: ips,
+		Network:       network,
+	}
+}
+
+func makeFreeNetworksAddresses(elems ...*models.FreeNetworkAddresses) models.FreeNetworksAddresses {
+	return models.FreeNetworksAddresses(elems)
+}
+
+func makeFreeNetworksAddressesStr(elems ...*models.FreeNetworkAddresses) string {
+	toMarshal := models.FreeNetworksAddresses(elems)
+	b, err := json.Marshal(&toMarshal)
+	Expect(err).ToNot(HaveOccurred())
+	return string(b)
+}
+
 var _ = Describe("PostStepReply", func() {
 	var (
 		bm          *bareMetalInventory
@@ -241,17 +259,6 @@ var _ = Describe("PostStepReply", func() {
 		mockJob     *job.MockAPI
 		mockEvents  *events.MockHandler
 	)
-
-	var makeFreeAddresses = func(network string, ips ...strfmt.IPv4) *models.FreeNetworkAddresses {
-		return &models.FreeNetworkAddresses{
-			FreeAddresses: ips,
-			Network:       network,
-		}
-	}
-
-	var makeFreeNetworksAddresses = func(elems ...*models.FreeNetworkAddresses) models.FreeNetworksAddresses {
-		return models.FreeNetworksAddresses(elems)
-	}
 
 	var makeStepReply = func(clusterID, hostID strfmt.UUID, freeAddresses models.FreeNetworksAddresses) installer.PostStepReplyParams {
 		b, _ := json.Marshal(&freeAddresses)
@@ -312,6 +319,154 @@ var _ = Describe("PostStepReply", func() {
 		var h models.Host
 		Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 		Expect(h.FreeAddresses).To(BeEmpty())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		db.Close()
+	})
+})
+
+var _ = Describe("GetFreeAddresses", func() {
+	var (
+		bm          *bareMetalInventory
+		cfg         Config
+		db          *gorm.DB
+		ctx         = context.Background()
+		ctrl        *gomock.Controller
+		mockHostApi *host.MockAPI
+		mockJob     *job.MockAPI
+		mockEvents  *events.MockHandler
+	)
+
+	var makeHost = func(clusterId *strfmt.UUID, freeAddresses, status string) *models.Host {
+		hostId := strToUUID(uuid.New().String())
+		ret := models.Host{
+			ID:            hostId,
+			ClusterID:     *clusterId,
+			FreeAddresses: freeAddresses,
+			Status:        &status,
+		}
+		Expect(db.Create(&ret).Error).ToNot(HaveOccurred())
+		return &ret
+	}
+
+	var makeGetFreeAddressesParams = func(clusterID strfmt.UUID, network string) installer.GetFreeAddressesParams {
+		return installer.GetFreeAddressesParams{
+			ClusterID: clusterID,
+			Network:   network,
+		}
+	}
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = prepareDB()
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil)
+	})
+
+	It("success", func() {
+		clusterId := strToUUID(uuid.New().String())
+
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250")), host.HostStatusInsufficient)
+		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/16")
+		reply := bm.GetFreeAddresses(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
+		actualReply := reply.(*installer.GetFreeAddressesOK)
+		Expect(len(actualReply.Payload)).To(Equal(3))
+		Expect(actualReply.Payload[0]).To(Equal(strfmt.IPv4("10.0.9.250")))
+		Expect(actualReply.Payload[1]).To(Equal(strfmt.IPv4("10.0.10.1")))
+		Expect(actualReply.Payload[2]).To(Equal(strfmt.IPv4("10.0.20.0")))
+	})
+
+	It("success with limit", func() {
+		clusterId := strToUUID(uuid.New().String())
+
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250")), host.HostStatusInsufficient)
+		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/16")
+		params.Limit = swag.Int64(2)
+		reply := bm.GetFreeAddresses(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
+		actualReply := reply.(*installer.GetFreeAddressesOK)
+		Expect(len(actualReply.Payload)).To(Equal(2))
+		Expect(actualReply.Payload[0]).To(Equal(strfmt.IPv4("10.0.9.250")))
+		Expect(actualReply.Payload[1]).To(Equal(strfmt.IPv4("10.0.10.1")))
+	})
+
+	It("success with limit and prefix", func() {
+		clusterId := strToUUID(uuid.New().String())
+
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250", "10.0.1.0")), host.HostStatusInsufficient)
+		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/16")
+		params.Limit = swag.Int64(2)
+		params.Prefix = swag.String("10.0.1")
+		reply := bm.GetFreeAddresses(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
+		actualReply := reply.(*installer.GetFreeAddressesOK)
+		Expect(len(actualReply.Payload)).To(Equal(2))
+		Expect(actualReply.Payload[0]).To(Equal(strfmt.IPv4("10.0.1.0")))
+		Expect(actualReply.Payload[1]).To(Equal(strfmt.IPv4("10.0.10.1")))
+	})
+
+	It("one disconnected", func() {
+		clusterId := strToUUID(uuid.New().String())
+
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2")), host.HostStatusKnown)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24")), host.HostStatusDisconnected)
+		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
+		reply := bm.GetFreeAddresses(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
+		actualReply := reply.(*installer.GetFreeAddressesOK)
+		Expect(len(actualReply.Payload)).To(Equal(1))
+		Expect(actualReply.Payload).To(ContainElement(strfmt.IPv4("10.0.0.0")))
+	})
+
+	It("empty result", func() {
+		clusterId := strToUUID(uuid.New().String())
+
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("192.168.0.0/24"),
+			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2"),
+			makeFreeAddresses("192.168.0.0/24")), host.HostStatusKnown)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.1", "10.0.0.2")), host.HostStatusInsufficient)
+		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
+		reply := bm.GetFreeAddresses(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
+		actualReply := reply.(*installer.GetFreeAddressesOK)
+		Expect(actualReply.Payload).To(BeEmpty())
+	})
+
+	It("malformed", func() {
+		clusterId := strToUUID(uuid.New().String())
+
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("192.168.0.0/24"),
+			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2"),
+			makeFreeAddresses("192.168.0.0/24")), host.HostStatusKnown)
+		_ = makeHost(clusterId, "blah ", host.HostStatusInsufficient)
+		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
+		reply := bm.GetFreeAddresses(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
+		actualReply := reply.(*installer.GetFreeAddressesOK)
+		Expect(len(actualReply.Payload)).To(Equal(1))
+		Expect(actualReply.Payload).To(ContainElement(strfmt.IPv4("10.0.0.0")))
+	})
+
+	It("no matching  hosts", func() {
+		clusterId := strToUUID(uuid.New().String())
+
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("192.168.0.0/24"),
+			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusDisconnected)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2"),
+			makeFreeAddresses("192.168.0.0/24")), host.HostStatusDiscovering)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.1/24", "10.0.0.0", "10.0.0.2")), host.HostStatusInstalling)
+		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
+		verifyApiError(bm.GetFreeAddresses(ctx, params), http.StatusNotFound)
 	})
 
 	AfterEach(func() {
@@ -624,10 +779,12 @@ var _ = Describe("cluster", func() {
 					ID: &clusterID,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
-
 				addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
 				addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
 				addHost(masterHostId3, "master", "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
+				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
+				Expect(err).ToNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 			})
 
@@ -729,6 +886,9 @@ var _ = Describe("cluster", func() {
 			addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
 			addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
 			addHost(masterHostId3, "master", "known", clusterID, getInventoryStr("10.11.200.180/16"), db)
+			err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+				makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("success", func() {

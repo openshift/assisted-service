@@ -51,6 +51,17 @@ var (
 			},
 		},
 	}
+	validFreeAddresses = models.FreeNetworksAddresses{
+		{
+			Network: "1.2.3.0/24",
+			FreeAddresses: []strfmt.IPv4{
+				"1.2.3.8",
+				"1.2.3.9",
+				"1.2.3.5",
+				"1.2.3.6",
+			},
+		},
+	}
 )
 
 var _ = Describe("Cluster tests", func() {
@@ -252,9 +263,26 @@ var _ = Describe("cluster install", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 
+	generateFAPostStepReply := func(h *models.Host, freeAddresses models.FreeNetworksAddresses) {
+		fa, err := json.Marshal(&freeAddresses)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: h.ClusterID,
+			HostID:    *h.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   string(fa),
+				StepID:   string(models.StepTypeFreeNetworkAddresses),
+				StepType: models.StepTypeFreeNetworkAddresses,
+			},
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+	}
+
 	register3nodes := func(clusterID strfmt.UUID) []*models.Host {
 		h1 := registerHost(clusterID)
 		generateHWPostStepReply(h1, validHwInfo, "h1")
+		generateFAPostStepReply(h1, validFreeAddresses)
 		h2 := registerHost(clusterID)
 		generateHWPostStepReply(h2, validHwInfo, "h2")
 		h3 := registerHost(clusterID)
@@ -767,6 +795,7 @@ var _ = Describe("cluster install", func() {
 
 		mh1 := registerHost(clusterID)
 		generateHWPostStepReply(mh1, validHwInfo, "mh1")
+		generateFAPostStepReply(mh1, validFreeAddresses)
 		mh2 := registerHost(clusterID)
 		generateHWPostStepReply(mh2, validHwInfo, "mh2")
 		mh3 := registerHost(clusterID)
@@ -894,6 +923,7 @@ var _ = Describe("cluster install", func() {
 		}
 		h1 := registerHost(clusterID)
 		generateHWPostStepReply(h1, hwInfo, "h1")
+		generateFAPostStepReply(h1, validFreeAddresses)
 		apiVip := "1.2.3.8"
 		ingressVip := "1.2.3.9"
 		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -1099,10 +1129,26 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) {
 		})
 		Expect(err).ShouldNot(HaveOccurred())
 	}
+	generateFAPostStepReply := func(h *models.Host, freeAddresses models.FreeNetworksAddresses) {
+		fa, err := json.Marshal(&freeAddresses)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: h.ClusterID,
+			HostID:    *h.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   string(fa),
+				StepID:   string(models.StepTypeFreeNetworkAddresses),
+				StepType: models.StepTypeFreeNetworkAddresses,
+			},
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+	}
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
 		host := registerHost(clusterID)
 		generateHWPostStepReply(host, validHwInfo, hostname)
+		generateFAPostStepReply(host, validFreeAddresses)
 		var role string
 		if i < 3 {
 			role = "master"

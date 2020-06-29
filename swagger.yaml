@@ -760,6 +760,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  # The following API call should be admin only
   /clusters/{cluster_id}/free_addresses:
     get:
       tags:

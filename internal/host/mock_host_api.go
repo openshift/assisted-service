@@ -463,15 +463,15 @@ func (mr *MockAPIMockRecorder) ResetHost(ctx, h, reason, db interface{}) *gomock
 }
 
 // GetHostname mocks base method
-func (m *MockAPI) GetHostname(host *models.Host) string {
+func (m *MockAPI) GetHostname(h *models.Host) string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostname", host)
+	ret := m.ctrl.Call(m, "GetHostname", h)
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
 // GetHostname indicates an expected call of GetHostname
-func (mr *MockAPIMockRecorder) GetHostname(host interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GetHostname(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostname", reflect.TypeOf((*MockAPI)(nil).GetHostname), host)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostname", reflect.TypeOf((*MockAPI)(nil).GetHostname), h)
 }

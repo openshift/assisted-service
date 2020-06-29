@@ -2,9 +2,12 @@ package network
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
+	"strings"
+
+	"github.com/go-openapi/strfmt"
+	"github.com/pkg/errors"
 
 	"github.com/filanov/bm-inventory/internal/common"
 
@@ -64,11 +67,17 @@ func ipInCidr(ipStr, cidrStr string) bool {
 	return ipnet.Contains(ip)
 }
 
-func verifyVip(machineNetworkCidr string, vip string, vipName string, mustExist bool) error {
-	if !mustExist && vip == "" || ipInCidr(vip, machineNetworkCidr) {
+func verifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, mustExist bool, log logrus.FieldLogger) error {
+	if !mustExist && vip == "" {
 		return nil
 	}
-	return fmt.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
+	if !ipInCidr(vip, machineNetworkCidr) {
+		return fmt.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
+	}
+	if !IpInFreeList(hosts, vip, machineNetworkCidr, log) {
+		return fmt.Errorf("%s <%s> is already in use in cidr %s", vipName, vip, machineNetworkCidr)
+	}
+	return nil
 }
 
 func verifyDifferentVipAddresses(apiVip string, ingressVip string) error {
@@ -78,10 +87,10 @@ func verifyDifferentVipAddresses(apiVip string, ingressVip string) error {
 	return nil
 }
 
-func VerifyVips(machineNetworkCidr string, apiVip string, ingressVip string, mustExist bool) error {
-	err := verifyVip(machineNetworkCidr, apiVip, "api-vip", mustExist)
+func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, mustExist bool, log logrus.FieldLogger) error {
+	err := verifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", mustExist, log)
 	if err == nil {
-		err = verifyVip(machineNetworkCidr, ingressVip, "ingress-vip", mustExist)
+		err = verifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", mustExist, log)
 	}
 	if err == nil {
 		err = verifyDifferentVipAddresses(apiVip, ingressVip)
@@ -134,4 +143,86 @@ func IsHostInMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, hos
 		return false
 	}
 	return belongsToNetwork(log, host, machineIpnet)
+}
+
+type IPSet map[strfmt.IPv4]struct{}
+
+func (s IPSet) Add(str strfmt.IPv4) {
+	s[str] = struct{}{}
+}
+
+func (s IPSet) Intersect(other IPSet) IPSet {
+	ret := make(IPSet)
+	for k := range s {
+		if v, ok := other[k]; ok {
+			ret[k] = v
+		}
+	}
+	return ret
+}
+
+func freeAddressesUnmarshal(network, freeAddressesStr string, prefix *string) (IPSet, error) {
+	var unmarshaled models.FreeNetworksAddresses
+	err := json.Unmarshal([]byte(freeAddressesStr), &unmarshaled)
+	if err != nil {
+		return nil, err
+	}
+	for _, f := range unmarshaled {
+		if f.Network == network {
+			ret := make(IPSet)
+			for _, a := range f.FreeAddresses {
+				if prefix == nil || strings.HasPrefix(a.String(), *prefix) {
+					ret.Add(a)
+				}
+			}
+			return ret, nil
+		}
+	}
+	return nil, errors.Errorf("No network %s found", network)
+}
+
+func MakeFreeAddressesSet(hosts []*models.Host, network string, prefix *string, log logrus.FieldLogger) IPSet {
+	var (
+		availableFreeAddresses []string
+		sets                   = make([]IPSet, 0)
+		resultingSet           = make(IPSet)
+	)
+	for _, h := range hosts {
+		if h.FreeAddresses != "" {
+			availableFreeAddresses = append(availableFreeAddresses, h.FreeAddresses)
+		}
+	}
+	if len(availableFreeAddresses) == 0 {
+		return resultingSet
+	}
+	// Create IP sets from each of the hosts free-addresses
+	for _, a := range availableFreeAddresses {
+		s, err := freeAddressesUnmarshal(network, a, prefix)
+		if err != nil {
+			log.WithError(err).Warnf("Unmarshal free addresses for network %s", network)
+			continue
+		}
+		// TODO: Have to decide if we want to filter empty sets
+		sets = append(sets, s)
+	}
+	if len(sets) == 0 {
+		return resultingSet
+	}
+
+	// Perform set intersection between all valid sets
+	resultingSet = sets[0]
+	for _, s := range sets[1:] {
+		resultingSet = resultingSet.Intersect(s)
+	}
+	return resultingSet
+}
+
+// This is best effort validation.  Therefore, validation will be done only if there are IPs in free list
+func IpInFreeList(hosts []*models.Host, vipIPStr, network string, log logrus.FieldLogger) bool {
+	isFree := true
+	freeSet := MakeFreeAddressesSet(hosts, network, nil, log)
+	if len(freeSet) > 0 {
+		_, isFree = freeSet[strfmt.IPv4(vipIPStr)]
+	}
+	return isFree
 }

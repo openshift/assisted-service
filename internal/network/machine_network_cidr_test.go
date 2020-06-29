@@ -110,22 +110,65 @@ var _ = Describe("inventory", func() {
 		})
 	})
 	Context("VerifyVips", func() {
+		var log logrus.FieldLogger
+
+		BeforeEach(func() {
+			log = logrus.New()
+		})
 		It("Same vips", func() {
 			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
 				createInventory(createInterface("1.2.5.7/23")))
+			cluster.Hosts = []*models.Host{
+				{
+					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\"]}]",
+				},
+			}
 			cluster.IngressVip = cluster.APIVip
-			err := VerifyVips(cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false)
+			err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
 			Expect(err).To(HaveOccurred())
-			err = VerifyVips(cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true)
+			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).To(HaveOccurred())
 		})
 		It("Different vips", func() {
 			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
 				createInventory(createInterface("1.2.5.7/23")))
 			cluster.IngressVip = "1.2.5.8"
-			err := VerifyVips(cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false)
+			cluster.Hosts = []*models.Host{
+				{
+					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\"]}]",
+				},
+			}
+			err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
 			Expect(err).ToNot(HaveOccurred())
-			err = VerifyVips(cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true)
+			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("Not free", func() {
+			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+				createInventory(createInterface("1.2.5.7/23")))
+			cluster.IngressVip = "1.2.5.8"
+			cluster.Hosts = []*models.Host{
+				{
+					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.9\"]}]",
+				},
+			}
+			err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+			Expect(err).To(HaveOccurred())
+			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+			Expect(err).To(HaveOccurred())
+		})
+		It("Empty", func() {
+			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
+				createInventory(createInterface("1.2.5.7/23")))
+			cluster.IngressVip = "1.2.5.8"
+			cluster.Hosts = []*models.Host{
+				{
+					FreeAddresses: "",
+				},
+			}
+			err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+			Expect(err).ToNot(HaveOccurred())
+			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
