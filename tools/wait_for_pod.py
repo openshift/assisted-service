@@ -5,7 +5,7 @@ import json
 import sys
 import waiting
 
-TIMEOUT = 60 * 3
+TIMEOUT = 60 * 5
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--app", help='App to wait for app state', type=str)
