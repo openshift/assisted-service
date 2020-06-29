@@ -1,4 +1,7 @@
 [![Actions Status](https://github.com/filanov/bm-inventory/workflows/unit-test/badge.svg)](https://github.com/filanov/bm-inventory/actions)
+
+
+[![Actions Status](https://raw.githubusercontent.com/swagger-api/swagger-ui/master/src/img/logo_small.png)](https://filanov.github.io/bm-inventory/)
 # bm-inventory
 
 ## Prerequisites
