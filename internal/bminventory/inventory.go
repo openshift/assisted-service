@@ -1452,8 +1452,8 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 		// host have nothing to do with the error so we just log it
 		return installer.NewUpdateHostInstallProgressOK()
 	}
-	msg := fmt.Sprintf("Host %s in cluster %s reached installation step %s", host.ID, host.ClusterID, params.HostInstallProgressParams)
-	log.Info(msg)
+	log.Infof("Host %s in cluster %s reached installation step %s", host.ID, host.ClusterID, params.HostInstallProgressParams)
+	msg := fmt.Sprintf("Host %s reached installation step %s", b.hostApi.GetHostname(&host), params.HostInstallProgressParams)
 	b.eventsHandler.AddEvent(ctx, host.ID.String(), msg, time.Now(), host.ClusterID.String())
 	return installer.NewUpdateHostInstallProgressOK()
 }

@@ -115,9 +115,9 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error 
 	err := m.registrationAPI.RegisterCluster(ctx, c)
 	var msg string
 	if err != nil {
-		msg = fmt.Sprintf("Registration of cluster %s failed. Error: %s", c.ID, err.Error())
+		msg = fmt.Sprintf("Failed to register cluster. Error: %s", err.Error())
 	} else {
-		msg = fmt.Sprintf("Registered cluster %s", c.ID)
+		msg = "Registered cluster"
 	}
 	m.eventsHandler.AddEvent(ctx, c.ID.String(), msg, time.Now())
 	return err
@@ -127,9 +127,9 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 	err := m.registrationAPI.DeregisterCluster(ctx, c)
 	var msg string
 	if err != nil {
-		msg = fmt.Sprintf("Deregistration of cluster %s failed. Error: %s", c.ID, err.Error())
+		msg = fmt.Sprintf("Failed to deregister cluster. Error: %s", err.Error())
 	} else {
-		msg = fmt.Sprintf("Deregistered cluster %s", c.ID)
+		msg = "Deregistered cluster"
 	}
 	m.eventsHandler.AddEvent(ctx, c.ID.String(), msg, time.Now())
 	return err
