@@ -621,6 +621,85 @@ var _ = Describe("cluster install", func() {
 				checkHostsStatuses()
 			})
 		})
+		Context("reset installation", func() {
+			It("[only_k8s]reset cluster and register hosts", func() {
+				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				waitForClusterState(ctx, clusterID, models.ClusterStatusInstalling, 20*time.Second, installationInfo)
+				_, err = bmclient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				_, err = bmclient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
+				for _, host := range c.Hosts {
+					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+					_, err = bmclient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
+						ClusterID: clusterID,
+						NewHostParams: &models.HostCreateParams{
+							HostID: host.ID,
+						},
+					})
+					Expect(err).NotTo(HaveOccurred())
+				}
+			})
+			It("[only_k8s]reset ready/installing cluster", func() {
+				_, err := bmclient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewResetClusterConflict())))
+				_, err = bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				waitForClusterState(ctx, clusterID, models.ClusterStatusInstalling, 10*time.Second, installationInfo)
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling, 10*time.Second)
+				}
+				_, err = bmclient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewResetClusterConflict())))
+			})
+			It("[only_k8s]reset failed cluster with various hosts states", func() {
+				masterHostID := FailCluster(ctx, clusterID)
+				stateInfo := fmt.Sprintf(clusterErrorInfo, clusterID.String(), 1)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusError, 10*time.Second, stateInfo)
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				Expect(len(c.Hosts)).Should(Equal(4))
+
+				hosts := make([]models.Host, 0)
+				for _, h := range c.Hosts {
+					if *h.ID == masterHostID {
+						continue
+					}
+					hosts = append(hosts, *h)
+					if len(hosts) == 2 {
+						break
+					}
+				}
+				Expect(len(hosts)).Should(Equal(2))
+
+				checkHostsStatuses := func() {
+					h1 := getHost(clusterID, masterHostID)
+					Expect(*h1.Status).Should(Equal(models.HostStatusError))
+					h2 := getHost(clusterID, *hosts[0].ID)
+					Expect(*h2.Status).Should(Equal(models.HostStatusInstallingInProgress))
+					h3 := getHost(clusterID, *hosts[1].ID)
+					Expect(*h3.Status).Should(Equal(models.HostStatusInstalled))
+				}
+
+				updateProgress(*hosts[0].ID, clusterID, "Installing")
+				updateProgress(*hosts[1].ID, clusterID, "Done")
+				checkHostsStatuses()
+
+				_, err = bmclient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewResetClusterConflict())))
+				checkHostsStatuses()
+			})
+		})
 	})
 
 	It("install cluster requirement", func() {
