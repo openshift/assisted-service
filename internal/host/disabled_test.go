@@ -43,11 +43,6 @@ var _ = Describe("disabled_state", func() {
 		}
 	})
 
-	It("update_role", func() {
-		updateReply, updateErr = state.UpdateRole(ctx, &host, "master", nil)
-		expectedReply.expectError = true
-	})
-
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)

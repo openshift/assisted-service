@@ -29,11 +29,6 @@ func (i *installedState) UpdateInventory(ctx context.Context, h *models.Host, in
 		h.ID, swag.StringValue(h.Status))
 }
 
-func (i *installedState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to set role host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
-}
-
 func (i *installedState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{

@@ -795,11 +795,11 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 				params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID)
 			return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 		}
-		if _, err = b.hostApi.UpdateRole(ctx, &host, params.ClusterUpdateParams.HostsRoles[i].Role, tx); err != nil {
+		if err = b.hostApi.UpdateRole(ctx, &host, params.ClusterUpdateParams.HostsRoles[i].Role, tx); err != nil {
 			log.WithError(err).Errorf("failed to set role <%s> host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsRoles[i].Role, params.ClusterUpdateParams.HostsRoles[i].ID,
 				params.ClusterID)
-			return installer.NewUpdateClusterConflict().WithPayload(common.GenerateError(http.StatusConflict, err))
+			return common.GenerateErrorResponder(err)
 		}
 	}
 

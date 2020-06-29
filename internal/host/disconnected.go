@@ -38,15 +38,6 @@ func (d *disconnectedState) UpdateInventory(ctx context.Context, h *models.Host,
 	return updateInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
 }
 
-func (d *disconnectedState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
-	h.Role = role
-	cdb := d.db
-	if db != nil {
-		cdb = db
-	}
-	return updateRole(logutil.FromContext(ctx, d.log), h, cdb)
-}
-
 func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	log := logutil.FromContext(ctx, d.log)
 	if time.Since(time.Time(h.CheckedInAt)) < 3*time.Minute {

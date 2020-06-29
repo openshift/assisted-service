@@ -121,26 +121,6 @@ var _ = Describe("discovering_state", func() {
 		})
 	})
 
-	Context("update_role", func() {
-		It("master", func() {
-			updateReply, updateErr = state.UpdateRole(ctx, &host, "master", nil)
-			expectedReply.postCheck = func() {
-				h := getHost(id, clusterId, db)
-				Expect(h.Role).Should(Equal("master"))
-			}
-		})
-		It("master_with_tx", func() {
-			tx := db.Begin()
-			Expect(tx.Error).ShouldNot(HaveOccurred())
-			updateReply, updateErr = state.UpdateRole(ctx, &host, "master", tx)
-			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
-			expectedReply.postCheck = func() {
-				h := getHost(id, clusterId, db)
-				Expect(h.Role).Should(Equal("worker"))
-			}
-		})
-	})
-
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Minute))

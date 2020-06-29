@@ -3,14 +3,13 @@ package host
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
-
-	"github.com/filanov/bm-inventory/internal/validators"
 
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/connectivity"
-
 	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/filanov/bm-inventory/internal/validators"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/stateswitch"
@@ -18,6 +17,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 //go:generate mockgen -source=host.go -package=host -aux_files=github.com/filanov/bm-inventory/internal/host=instructionmanager.go -destination=mock_host_api.go
@@ -27,8 +27,6 @@ type StateAPI interface {
 	UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error)
 	// Set a new inventory information
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error)
-	// Set host role
-	UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error)
 	// check keep alive
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error)
 	// Install host - db is optional, for transactions
@@ -78,6 +76,8 @@ type API interface {
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
+	// Set host role
+	UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -182,14 +182,6 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 	return state.UpdateInventory(ctx, h, inventory)
 }
 
-func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
-	state, err := m.getCurrentState(swag.StringValue(h.Status))
-	if err != nil {
-		return nil, err
-	}
-	return state.UpdateRole(ctx, h, role, db)
-}
-
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	state, err := m.getCurrentState(swag.StringValue(h.Status))
 	if err != nil {
@@ -276,4 +268,21 @@ func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, 
 		}
 	}
 	return nil
+}
+
+func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) error {
+	hostStatus := swag.StringValue(h.Status)
+	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient}
+	if !funk.ContainsString(allowedStatuses, hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, host role can be set only in one of %s states",
+				hostStatus, allowedStatuses))
+	}
+
+	h.Role = role
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+	return cdb.Model(h).Update("role", role).Error
 }

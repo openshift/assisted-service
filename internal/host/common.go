@@ -147,11 +147,6 @@ func updateInventory(log logrus.FieldLogger, hwValidator hardware.Validator, h *
 	return updateStateWithParams(log, status, statusInfo, h, db, "inventory", h.Inventory)
 }
 
-func updateRole(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	status, statusInfo := getDefaultStatusAndStatusInfo(h)
-	return updateStateWithParams(log, status, statusInfo, h, db, "role", h.Role)
-}
-
 func isSufficientRole(h *models.Host) *validators.IsSufficientReply {
 	var reason string
 	isSufficient := true

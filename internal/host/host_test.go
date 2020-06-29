@@ -63,10 +63,6 @@ var _ = Describe("statemachine", func() {
 			stateReply, stateErr = state.DisableHost(ctx, &host)
 		})
 
-		It("update role", func() {
-			stateReply, stateErr = state.UpdateRole(ctx, &host, "master", nil)
-		})
-
 		It("install", func() {
 			stateReply, stateErr = state.Install(ctx, &host, nil)
 		})
@@ -88,6 +84,132 @@ var _ = Describe("statemachine", func() {
 	AfterEach(func() {
 		ctrl.Finish()
 		db.Close()
+	})
+})
+
+var _ = Describe("update_role", func() {
+	var (
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		host          models.Host
+		id, clusterID strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		state = NewManager(getTestLog(), db, nil, nil, nil)
+		id = strfmt.UUID(uuid.New().String())
+		clusterID = strfmt.UUID(uuid.New().String())
+	})
+
+	Context("update role by src state", func() {
+		success := func(srcState string) {
+			host = getTestHost(id, clusterID, srcState)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			Expect(state.UpdateRole(ctx, &host, RoleMaster, nil)).ShouldNot(HaveOccurred())
+			h := getHost(id, clusterID, db)
+			Expect(h.Role).To(Equal(RoleMaster))
+		}
+
+		failure := func(srcState string) {
+			host = getTestHost(id, clusterID, srcState)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			Expect(state.UpdateRole(ctx, &host, RoleMaster, nil)).To(HaveOccurred())
+			h := getHost(id, clusterID, db)
+			Expect(h.Role).To(Equal(RoleWorker))
+		}
+
+		tests := []struct {
+			name     string
+			srcState string
+			testFunc func(srcState string)
+		}{
+			{
+				name:     "discovering",
+				srcState: HostStatusDiscovering,
+				testFunc: success,
+			},
+			{
+				name:     "known",
+				srcState: HostStatusKnown,
+				testFunc: success,
+			},
+			{
+				name:     "disconnected",
+				srcState: HostStatusDisconnected,
+				testFunc: success,
+			},
+			{
+				name:     "insufficient",
+				srcState: HostStatusInsufficient,
+				testFunc: success,
+			},
+			{
+				name:     "disabled",
+				srcState: HostStatusDisabled,
+				testFunc: failure,
+			},
+			{
+				name:     "error",
+				srcState: HostStatusError,
+				testFunc: failure,
+			},
+			{
+				name:     "installing",
+				srcState: HostStatusInstalling,
+				testFunc: failure,
+			},
+			{
+				name:     "installed",
+				srcState: HostStatusInstalled,
+				testFunc: failure,
+			},
+			{
+				name:     "installing-in-progress",
+				srcState: HostStatusInstallingInProgress,
+				testFunc: failure,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				t.testFunc(t.srcState)
+			})
+		}
+	})
+
+	It("update role with transaction", func() {
+		host = getTestHost(id, clusterID, HostStatusKnown)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		By("rollback transaction", func() {
+			tx := db.Begin()
+			Expect(tx.Error).ShouldNot(HaveOccurred())
+			Expect(state.UpdateRole(ctx, &host, RoleMaster, tx)).NotTo(HaveOccurred())
+			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
+			h := getHost(id, clusterID, db)
+			Expect(h.Role).Should(Equal(RoleWorker))
+		})
+		By("commit transaction", func() {
+			tx := db.Begin()
+			Expect(tx.Error).ShouldNot(HaveOccurred())
+			Expect(state.UpdateRole(ctx, &host, RoleMaster, tx)).NotTo(HaveOccurred())
+			Expect(tx.Commit().Error).ShouldNot(HaveOccurred())
+			h := getHost(id, clusterID, db)
+			Expect(h.Role).Should(Equal(RoleMaster))
+		})
+	})
+
+	It("update role master to worker", func() {
+		host = getTestHost(id, clusterID, HostStatusKnown)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		Expect(state.UpdateRole(ctx, &host, RoleMaster, nil)).NotTo(HaveOccurred())
+		h := getHost(id, clusterID, db)
+		Expect(h.Role).To(Equal(RoleMaster))
+		Expect(state.UpdateRole(ctx, &host, RoleWorker, nil)).NotTo(HaveOccurred())
+		h = getHost(id, clusterID, db)
+		Expect(h.Role).To(Equal(RoleWorker))
 	})
 })
 
@@ -201,7 +323,7 @@ var _ = Describe("monitor_disconnection", func() {
 	})
 })
 
-func TestSubsystem(t *testing.T) {
+func TestHost(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "host state machine tests")
 }

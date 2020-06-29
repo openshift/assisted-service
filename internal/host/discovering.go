@@ -41,15 +41,6 @@ func (d *discoveringState) UpdateInventory(ctx context.Context, h *models.Host, 
 	return updateInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
 }
 
-func (d *discoveringState) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
-	h.Role = role
-	cdb := d.db
-	if db != nil {
-		cdb = db
-	}
-	return updateRole(logutil.FromContext(ctx, d.log), h, cdb)
-}
-
 func (d *discoveringState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	return checkAndUpdateSufficientHost(logutil.FromContext(ctx, d.log), h, db, d.hwValidator, d.connectivityValidator)
 }
