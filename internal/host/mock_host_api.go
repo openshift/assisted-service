@@ -6,13 +6,12 @@ package host
 
 import (
 	context "context"
-	reflect "reflect"
-
 	common "github.com/filanov/bm-inventory/internal/common"
-	"github.com/filanov/bm-inventory/internal/validators"
+	validators "github.com/filanov/bm-inventory/internal/validators"
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
+	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface
@@ -66,21 +65,6 @@ func (m *MockStateAPI) UpdateInventory(ctx context.Context, h *models.Host, inve
 func (mr *MockStateAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockStateAPI)(nil).UpdateInventory), ctx, h, inventory)
-}
-
-// UpdateRole mocks base method
-func (m *MockStateAPI) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateRole", ctx, h, role, db)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateRole indicates an expected call of UpdateRole
-func (mr *MockStateAPIMockRecorder) UpdateRole(ctx, h, role, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRole", reflect.TypeOf((*MockStateAPI)(nil).UpdateRole), ctx, h, role, db)
 }
 
 // RefreshStatus mocks base method
@@ -277,21 +261,6 @@ func (mr *MockAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockAPI)(nil).UpdateInventory), ctx, h, inventory)
 }
 
-// UpdateRole mocks base method
-func (m *MockAPI) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateRole", ctx, h, role, db)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateRole indicates an expected call of UpdateRole
-func (mr *MockAPIMockRecorder) UpdateRole(ctx, h, role, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRole", reflect.TypeOf((*MockAPI)(nil).UpdateRole), ctx, h, role, db)
-}
-
 // RefreshStatus mocks base method
 func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	m.ctrl.T.Helper()
@@ -449,4 +418,18 @@ func (m *MockAPI) HostMonitoring() {
 func (mr *MockAPIMockRecorder) HostMonitoring() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostMonitoring", reflect.TypeOf((*MockAPI)(nil).HostMonitoring))
+}
+
+// UpdateRole mocks base method
+func (m *MockAPI) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateRole", ctx, h, role, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateRole indicates an expected call of UpdateRole
+func (mr *MockAPIMockRecorder) UpdateRole(ctx, h, role, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRole", reflect.TypeOf((*MockAPI)(nil).UpdateRole), ctx, h, role, db)
 }
