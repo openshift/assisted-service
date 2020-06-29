@@ -447,3 +447,17 @@ func (mr *MockAPIMockRecorder) CancelInstallation(ctx, h, reason, db interface{}
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInstallation", reflect.TypeOf((*MockAPI)(nil).CancelInstallation), ctx, h, reason, db)
 }
+
+// ResetHost mocks base method
+func (m *MockAPI) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetHost", ctx, h, reason, db)
+	ret0, _ := ret[0].(*common.ApiErrorResponse)
+	return ret0
+}
+
+// ResetHost indicates an expected call of ResetHost
+func (mr *MockAPIMockRecorder) ResetHost(ctx, h, reason, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetHost", reflect.TypeOf((*MockAPI)(nil).ResetHost), ctx, h, reason, db)
+}

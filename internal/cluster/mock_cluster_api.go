@@ -372,3 +372,17 @@ func (mr *MockAPIMockRecorder) CancelInstallation(ctx, c, reason, db interface{}
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInstallation", reflect.TypeOf((*MockAPI)(nil).CancelInstallation), ctx, c, reason, db)
 }
+
+// ResetCluster mocks base method
+func (m *MockAPI) ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetCluster", ctx, c, reason, db)
+	ret0, _ := ret[0].(*common.ApiErrorResponse)
+	return ret0
+}
+
+// ResetCluster indicates an expected call of ResetCluster
+func (mr *MockAPIMockRecorder) ResetCluster(ctx, c, reason, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetCluster", reflect.TypeOf((*MockAPI)(nil).ResetCluster), ctx, c, reason, db)
+}
