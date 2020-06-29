@@ -79,7 +79,7 @@ func (mr *MockS3ClientMockRecorder) DoesObjectExist(ctx, fileName, s3Bucket inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoesObjectExist", reflect.TypeOf((*MockS3Client)(nil).DoesObjectExist), ctx, fileName, s3Bucket)
 }
 
-// DoesObjectExist mocks base method
+// UpdateObjectTag mocks base method
 func (m *MockS3Client) UpdateObjectTag(ctx context.Context, objectName, s3Bucket, key, value string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateObjectTag", ctx, objectName, s3Bucket, key, value)

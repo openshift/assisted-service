@@ -71,7 +71,7 @@ type UpdateHostInstallProgressParams struct {
 	  New progress value
 
 	*/
-	HostInstallProgressParams models.HostInstallProgressParams
+	HostInstallProgressParams *models.HostInstallProgressParams
 	/*HostID
 	  The ID of the host to retrieve
 
@@ -128,13 +128,13 @@ func (o *UpdateHostInstallProgressParams) SetClusterID(clusterID strfmt.UUID) {
 }
 
 // WithHostInstallProgressParams adds the hostInstallProgressParams to the update host install progress params
-func (o *UpdateHostInstallProgressParams) WithHostInstallProgressParams(hostInstallProgressParams models.HostInstallProgressParams) *UpdateHostInstallProgressParams {
+func (o *UpdateHostInstallProgressParams) WithHostInstallProgressParams(hostInstallProgressParams *models.HostInstallProgressParams) *UpdateHostInstallProgressParams {
 	o.SetHostInstallProgressParams(hostInstallProgressParams)
 	return o
 }
 
 // SetHostInstallProgressParams adds the hostInstallProgressParams to the update host install progress params
-func (o *UpdateHostInstallProgressParams) SetHostInstallProgressParams(hostInstallProgressParams models.HostInstallProgressParams) {
+func (o *UpdateHostInstallProgressParams) SetHostInstallProgressParams(hostInstallProgressParams *models.HostInstallProgressParams) {
 	o.HostInstallProgressParams = hostInstallProgressParams
 }
 
@@ -157,17 +157,19 @@ func (o *UpdateHostInstallProgressParams) WriteToRequest(r runtime.ClientRequest
 	}
 	var res []error
 
-	// path param clusterId
-	if err := r.SetPathParam("clusterId", o.ClusterID.String()); err != nil {
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
 	}
 
-	if err := r.SetBodyParam(o.HostInstallProgressParams); err != nil {
-		return err
+	if o.HostInstallProgressParams != nil {
+		if err := r.SetBodyParam(o.HostInstallProgressParams); err != nil {
+			return err
+		}
 	}
 
-	// path param hostId
-	if err := r.SetPathParam("hostId", o.HostID.String()); err != nil {
+	// path param host_id
+	if err := r.SetPathParam("host_id", o.HostID.String()); err != nil {
 		return err
 	}
 

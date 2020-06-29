@@ -7,6 +7,8 @@ containers:
     s3-object-expirer: Dockerfile.s3-object-expirer
 volumes:
     - $HOME/.cache/go-build:/go/pkg/mod
+    - $HOME/.cache/golangci-lint:$HOME/.cache/golangci-lint
+    - $HOME/.docker/config.json:$HOME/.docker/config.json
     - $HOME/.minikube:$HOME/.minikube
     - $HOME/.kube/:$HOME/.kube
     - /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock

@@ -45,7 +45,7 @@ type UpdateHostInstallProgressOK struct {
 }
 
 func (o *UpdateHostInstallProgressOK) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{clusterId}/hosts/{hostId}/progress][%d] updateHostInstallProgressOK ", 200)
+	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressOK ", 200)
 }
 
 func (o *UpdateHostInstallProgressOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
