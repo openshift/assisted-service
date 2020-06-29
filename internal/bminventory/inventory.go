@@ -413,13 +413,14 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		return installer.NewGenerateClusterISOConflict()
 	}
 
-	cluster.ImageInfo.ProxyURL = params.ImageCreateParams.ProxyURL
-	cluster.ImageInfo.SSHPublicKey = params.ImageCreateParams.SSHPublicKey
-	cluster.ImageInfo.CreatedAt = strfmt.DateTime(now)
-	cluster.ImageInfo.GeneratorVersion = b.Config.ImageBuilder
-
-	if err := tx.Model(&cluster).Update(cluster).Error; err != nil {
-		log.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
+	updates := map[string]interface{}{}
+	updates["image_proxy_url"] = params.ImageCreateParams.ProxyURL
+	updates["image_ssh_public_key"] = params.ImageCreateParams.SSHPublicKey
+	updates["image_created_at"] = strfmt.DateTime(now)
+	updates["image_generator_version"] = b.Config.ImageBuilder
+	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
+	if dbReply.Error != nil {
+		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
 		return installer.NewGenerateClusterISOInternalServerError()
 	}
 
@@ -428,6 +429,11 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		return installer.NewGenerateClusterISOInternalServerError()
 	}
 	txSuccess = true
+	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
+		return installer.NewUpdateClusterInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
 
 	// Kill the previous job in case it's still running
 	prevJobName := fmt.Sprintf("createimage-%s-%s", cluster.ID, previousCreatedAt.Format("20060102150405"))
@@ -780,9 +786,9 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 
 	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
-		log.WithError(err).Errorf("failed to update cluster: %s", params.ClusterID)
+		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+			WithPayload(common.GenerateError(http.StatusInternalServerError, dbReply.Error))
 	}
 
 	for i := range params.ClusterUpdateParams.HostsRoles {

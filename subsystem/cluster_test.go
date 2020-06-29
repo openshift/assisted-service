@@ -947,7 +947,7 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) {
 	Expect(err).NotTo(HaveOccurred())
 	apiVip = "1.2.3.8"
 	ingressVip = "1.2.3.9"
-	c, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+	_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 		ClusterUpdateParams: &models.ClusterUpdateParams{
 			APIVip:     &apiVip,
 			IngressVip: &ingressVip,
@@ -956,6 +956,5 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) {
 	})
 
 	Expect(err).NotTo(HaveOccurred())
-	Expect(swag.StringValue(c.GetPayload().Status)).Should(Equal("ready"))
-	Expect(swag.StringValue(c.GetPayload().StatusInfo)).Should(Equal(clusterReadyStateInfo))
+	waitForClusterState(ctx, clusterID, "ready", 60*time.Second, clusterReadyStateInfo)
 }
