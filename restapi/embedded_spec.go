@@ -1895,7 +1895,8 @@ func init() {
             "installing",
             "installing-in-progress",
             "installed",
-            "error"
+            "error",
+            "resetting"
           ]
         },
         "status_info": {
@@ -4181,7 +4182,8 @@ func init() {
             "installing",
             "installing-in-progress",
             "installed",
-            "error"
+            "error",
+            "resetting"
           ]
         },
         "status_info": {
