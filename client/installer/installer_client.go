@@ -673,7 +673,7 @@ func (a *Client) UpdateHostInstallProgress(ctx context.Context, params *UpdateHo
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "UpdateHostInstallProgress",
 		Method:             "PUT",
-		PathPattern:        "/clusters/{clusterId}/hosts/{hostId}/progress",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/progress",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},

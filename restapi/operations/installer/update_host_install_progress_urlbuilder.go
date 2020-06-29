@@ -43,18 +43,18 @@ func (o *UpdateHostInstallProgressURL) SetBasePath(bp string) {
 func (o *UpdateHostInstallProgressURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{clusterId}/hosts/{hostId}/progress"
+	var _path = "/clusters/{cluster_id}/hosts/{host_id}/progress"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
-		_path = strings.Replace(_path, "{clusterId}", clusterID, -1)
+		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
 	} else {
 		return nil, errors.New("clusterId is required on UpdateHostInstallProgressURL")
 	}
 
 	hostID := o.HostID.String()
 	if hostID != "" {
-		_path = strings.Replace(_path, "{hostId}", hostID, -1)
+		_path = strings.Replace(_path, "{host_id}", hostID, -1)
 	} else {
 		return nil, errors.New("hostId is required on UpdateHostInstallProgressURL")
 	}

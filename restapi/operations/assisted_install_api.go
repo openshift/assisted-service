@@ -573,7 +573,7 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
-	o.handlers["PUT"]["/clusters/{clusterId}/hosts/{hostId}/progress"] = installer.NewUpdateHostInstallProgress(o.context, o.InstallerUpdateHostInstallProgressHandler)
+	o.handlers["PUT"]["/clusters/{cluster_id}/hosts/{host_id}/progress"] = installer.NewUpdateHostInstallProgress(o.context, o.InstallerUpdateHostInstallProgressHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

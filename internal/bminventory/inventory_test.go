@@ -478,14 +478,15 @@ var _ = Describe("GetFreeAddresses", func() {
 
 var _ = Describe("UpdateHostInstallProgress", func() {
 	var (
-		bm          *bareMetalInventory
-		cfg         Config
-		db          *gorm.DB
-		ctx         = context.Background()
-		ctrl        *gomock.Controller
-		mockJob     *job.MockAPI
-		mockHostApi *host.MockAPI
-		mockEvents  *events.MockHandler
+		bm                    *bareMetalInventory
+		cfg                   Config
+		db                    *gorm.DB
+		ctx                   = context.Background()
+		ctrl                  *gomock.Controller
+		mockJob               *job.MockAPI
+		mockHostApi           *host.MockAPI
+		mockEvents            *events.MockHandler
+		defaultProgressStatus string
 	)
 
 	BeforeEach(func() {
@@ -497,13 +498,23 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		mockJob = job.NewMockAPI(ctrl)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil)
+		defaultProgressStatus = "some progress"
 	})
 
 	Context("host exists", func() {
-		var hostID, clusterID strfmt.UUID
+		var (
+			hostID         strfmt.UUID
+			clusterID      strfmt.UUID
+			progressParams *models.HostInstallProgressParams
+		)
+
 		BeforeEach(func() {
 			hostID = strfmt.UUID(uuid.New().String())
 			clusterID = strfmt.UUID(uuid.New().String())
+			progressParams = &models.HostInstallProgressParams{
+				ProgressStatus: &defaultProgressStatus,
+			}
+
 			err := db.Create(&models.Host{
 				ID:        &hostID,
 				ClusterID: clusterID,
@@ -518,7 +529,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 			mockHostApi.EXPECT().GetHostname(gomock.Any())
 			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 				ClusterID:                 clusterID,
-				HostInstallProgressParams: "some progress",
+				HostInstallProgressParams: progressParams,
 				HostID:                    hostID,
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
@@ -528,7 +539,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error"))
 			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 				ClusterID:                 clusterID,
-				HostInstallProgressParams: "some progress",
+				HostInstallProgressParams: progressParams,
 				HostID:                    hostID,
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
@@ -537,9 +548,11 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 
 	It("host_dont_exist", func() {
 		reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
-			ClusterID:                 strfmt.UUID(uuid.New().String()),
-			HostInstallProgressParams: "some progress",
-			HostID:                    strfmt.UUID(uuid.New().String()),
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostInstallProgressParams: &models.HostInstallProgressParams{
+				ProgressStatus: &defaultProgressStatus,
+			},
+			HostID: strfmt.UUID(uuid.New().String()),
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
 	})

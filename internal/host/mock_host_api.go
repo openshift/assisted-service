@@ -217,7 +217,7 @@ func (mr *MockAPIMockRecorder) ValidateCurrentInventory(host, cluster interface{
 }
 
 // UpdateInstallProgress mocks base method
-func (m *MockAPI) UpdateInstallProgress(ctx context.Context, h *models.Host, progress string) error {
+func (m *MockAPI) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostInstallProgressParams) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateInstallProgress", ctx, h, progress)
 	ret0, _ := ret[0].(error)

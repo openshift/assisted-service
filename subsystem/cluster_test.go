@@ -184,8 +184,16 @@ func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.
 }
 
 func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, progress string) {
+	updateProgressWithInfo(hostID, clusterID, progress, "")
+}
+
+func updateProgressWithInfo(hostID strfmt.UUID, clusterID strfmt.UUID, progress string, info string) {
 	ctx := context.Background()
-	installProgress := models.HostInstallProgressParams(progress)
+
+	installProgress := &models.HostInstallProgressParams{
+		ProgressStatus: &progress,
+		ProgressInfo:   info,
+	}
 	updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
 		ClusterID:                 clusterID,
 		HostInstallProgressParams: installProgress,
@@ -215,7 +223,7 @@ func installCluster(clusterID strfmt.UUID) {
 	}
 
 	for _, host := range c.Hosts {
-		updateProgress(*host.ID, clusterID, "Done")
+		updateProgress(*host.ID, clusterID, models.HostInstallProgressParamsProgressStatusDone)
 	}
 
 	waitForClusterState(ctx, clusterID, "installed", defaultWaitForClusterStateTimeout, "installed")
@@ -379,7 +387,7 @@ var _ = Describe("cluster install", func() {
 			}
 
 			for _, host := range c.Hosts {
-				updateProgress(*host.ID, clusterID, "Done")
+				updateProgress(*host.ID, clusterID, models.HostInstallProgressParamsProgressStatusDone)
 			}
 
 			waitForClusterState(ctx, clusterID, "installed", defaultWaitForClusterStateTimeout, "installed")
@@ -409,7 +417,7 @@ var _ = Describe("cluster install", func() {
 			h := c.GetPayload().Hosts[0]
 
 			By("progress_to_some_host", func() {
-				installProgress := "installation step 1"
+				installProgress := models.HostInstallProgressParamsProgressStatusWritingImageToDisk
 				updateProgress(*h.ID, clusterID, installProgress)
 				h = getHost(clusterID, *h.ID)
 				Expect(*h.Status).Should(Equal("installing-in-progress"))
@@ -417,7 +425,7 @@ var _ = Describe("cluster install", func() {
 			})
 
 			By("progress_to_some_host_again", func() {
-				installProgress := "installation step 2"
+				installProgress := models.HostInstallProgressParamsProgressStatusWritingImageToDisk
 				updateProgress(*h.ID, clusterID, installProgress)
 				h = getHost(clusterID, *h.ID)
 				Expect(*h.Status).Should(Equal("installing-in-progress"))
@@ -425,18 +433,38 @@ var _ = Describe("cluster install", func() {
 			})
 
 			By("report_done", func() {
-				updateProgress(*h.ID, clusterID, "Done")
+				installProgress := models.HostInstallProgressParamsProgressStatusDone
+				updateProgress(*h.ID, clusterID, installProgress)
 				h = getHost(clusterID, *h.ID)
 				Expect(*h.Status).Should(Equal("installed"))
-				Expect(*h.StatusInfo).Should(Equal("installed"))
+				Expect(*h.StatusInfo).Should(Equal(installProgress))
 			})
 
-			By("report failed on other host", func() {
+			By("report_failed_on_other_host", func() {
+				installProgress := models.HostInstallProgressParamsProgressStatusFailed
+				installInfo := "because some error"
 				h1 := c.GetPayload().Hosts[1]
-				updateProgress(*h1.ID, clusterID, "Failed because some error")
+				updateProgressWithInfo(*h1.ID, clusterID, installProgress, installInfo)
 				h1 = getHost(clusterID, *h1.ID)
 				Expect(*h1.Status).Should(Equal("error"))
-				Expect(*h1.StatusInfo).Should(Equal("Failed because some error"))
+				Expect(*h1.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", installProgress, installInfo)))
+			})
+
+			By("invalid_report", func() {
+				progress := "INVALID REPORT"
+				h1 := c.GetPayload().Hosts[1]
+
+				installProgress := &models.HostInstallProgressParams{
+					ProgressStatus: &progress,
+				}
+
+				_, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
+					ClusterID:                 clusterID,
+					HostInstallProgressParams: installProgress,
+					HostID:                    *h1.ID,
+				})
+
+				Expect(err).Should(HaveOccurred())
 			})
 		})
 
@@ -1151,9 +1179,14 @@ func FailCluster(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
 			break
 		}
 	}
-	updateProgress(masterHostID, clusterID, "Failed because some error")
+
+	installProgress := models.HostInstallProgressParamsProgressStatusFailed
+	installInfo := "because some error"
+
+	updateProgressWithInfo(masterHostID, clusterID, installProgress, installInfo)
 	masterHost := getHost(clusterID, masterHostID)
 	Expect(*masterHost.Status).Should(Equal("error"))
+	Expect(*masterHost.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", installProgress, installInfo)))
 	return masterHostID
 }
 
@@ -1205,7 +1238,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		}
 		// fake installation completed
 		for _, host := range c.Hosts {
-			updateProgress(*host.ID, clusterID, "Done")
+			updateProgress(*host.ID, clusterID, models.HostInstallProgressParamsProgressStatusDone)
 		}
 
 		waitForClusterState(ctx, clusterID, "installed", defaultWaitForClusterStateTimeout, "installed")

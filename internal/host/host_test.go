@@ -30,8 +30,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var defaultHwInfo = "default hw info"       // invalid hw info used only for tests
-var defaultInventoryS = "default inventory" // invalid inventory info used only for tests
+var defaultHwInfo = "default hw info"                 // invalid hw info used only for tests
+var defaultInventoryS = "default inventory"           // invalid inventory info used only for tests
+var defaultProgressStatus = "default progress status" // invalid progress status used only for tests
 
 var _ = Describe("statemachine", func() {
 	var (
@@ -222,36 +223,70 @@ var _ = Describe("update_progress", func() {
 		clusterId := strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, "")
 	})
+
 	Context("installaing host", func() {
+		var (
+			status   string
+			progress *models.HostInstallProgressParams
+		)
+
 		BeforeEach(func() {
+			progress = &models.HostInstallProgressParams{}
 			host.Status = swag.String(HostStatusInstalling)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		})
+
 		It("some_progress", func() {
-			Expect(state.UpdateInstallProgress(ctx, &host, "some progress")).ShouldNot(HaveOccurred())
+			progress.ProgressStatus = &defaultProgressStatus
+			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusInstallingInProgress))
-			Expect(*h.StatusInfo).Should(Equal("some progress"))
+			Expect(*h.StatusInfo).Should(Equal(defaultProgressStatus))
+		})
+
+		It("writing to disk", func() {
+			status = models.HostInstallProgressParamsProgressStatusWritingImageToDisk
+			progress.ProgressStatus = &status
+			progress.ProgressInfo = "20%"
+			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
+			h := getHost(*host.ID, host.ClusterID, db)
+			Expect(*h.Status).Should(Equal(HostStatusInstallingInProgress))
+			Expect(*h.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", status, progress.ProgressInfo)))
 		})
 
 		It("done", func() {
-			Expect(state.UpdateInstallProgress(ctx, &host, progressDone)).ShouldNot(HaveOccurred())
+			status = models.HostInstallProgressParamsProgressStatusDone
+			progress.ProgressStatus = &status
+			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusInstalled))
-			Expect(*h.StatusInfo).Should(Equal(HostStatusInstalled))
+			Expect(*h.StatusInfo).Should(Equal(status))
 		})
 
 		It("progress_failed", func() {
-			failedProgress := fmt.Sprintf("%s because of something", progressFailed)
-			Expect(state.UpdateInstallProgress(ctx, &host, failedProgress)).ShouldNot(HaveOccurred())
+			status = models.HostInstallProgressParamsProgressStatusFailed
+			progress.ProgressStatus = &status
+			progress.ProgressInfo = "reason"
+			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusError))
-			Expect(*h.StatusInfo).Should(Equal(failedProgress))
+			Expect(*h.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", status, progress.ProgressInfo)))
+		})
+
+		It("progress_failed_empty_reason", func() {
+			status = models.HostInstallProgressParamsProgressStatusFailed
+			progress.ProgressStatus = &status
+			progress.ProgressInfo = ""
+			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
+			h := getHost(*host.ID, host.ClusterID, db)
+			Expect(*h.Status).Should(Equal(HostStatusError))
+			Expect(*h.StatusInfo).Should(Equal(status))
 		})
 	})
 
 	It("invalid state", func() {
-		Expect(state.UpdateInstallProgress(ctx, &host, "don't care")).Should(HaveOccurred())
+		Expect(state.UpdateInstallProgress(ctx, &host,
+			&models.HostInstallProgressParams{ProgressStatus: &defaultProgressStatus})).Should(HaveOccurred())
 	})
 })
 
