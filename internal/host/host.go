@@ -76,8 +76,8 @@ type API interface {
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
-	// Set host role
 	UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) error
+	CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 }
 
 type Manager struct {
@@ -286,4 +286,16 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role string, d
 		cdb = db
 	}
 	return cdb.Model(h).Update("role", role).Error
+}
+
+func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	err := m.sm.Run(TransitionTypeCancelInstallation, newStateHost(h), &TransitionArgsCancelInstallation{
+		ctx:    ctx,
+		reason: reason,
+		db:     db,
+	})
+	if err != nil {
+		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
 }
