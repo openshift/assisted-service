@@ -17,7 +17,7 @@ import (
 //go:generate mockgen -source=s3Client.go -package=s3Client -destination=mock_s3client.go
 type S3Client interface {
 	PushDataToS3(ctx context.Context, data []byte, fileName string, s3Bucket string) error
-	DownloadFileFromS3(ctx context.Context, fileName string, s3Bucket string) (io.ReadCloser, error)
+	DownloadFileFromS3(ctx context.Context, fileName string, s3Bucket string) (io.ReadCloser, int64, error)
 	DoesObjectExists(ctx context.Context, fileName string, s3Bucket string) (bool, error)
 }
 
@@ -48,25 +48,27 @@ func (s s3Client) PushDataToS3(ctx context.Context, data []byte, fileName string
 	return nil
 }
 
-func (s s3Client) DownloadFileFromS3(ctx context.Context, fileName string, s3Bucket string) (io.ReadCloser, error) {
+func (s s3Client) DownloadFileFromS3(ctx context.Context, fileName string, s3Bucket string) (io.ReadCloser, int64, error) {
 	log := logutil.FromContext(ctx, s.log)
 	log.Infof("Downloading %s from bucket %s", fileName, s3Bucket)
-	exists, err := s.DoesObjectExists(ctx, fileName, s3Bucket)
+	stat, err := s.client.StatObject(s3Bucket, fileName, minio.StatObjectOptions{})
 	if err != nil {
-		return nil, err
+		errResponse := minio.ToErrorResponse(err)
+		if errResponse.Code == "NoSuchKey" {
+			log.Warnf("%s doesn't exists in bucket %s", fileName, s3Bucket)
+			return nil, 0, errors.Errorf("%s doesn't exist", fileName)
+		}
+		return nil, 0, err
 	}
-	if !exists {
-		log.Warnf("%s doesn't exists in bucket %s", fileName, s3Bucket)
-		return nil, errors.Errorf("%s doesn't exist", fileName)
-	}
+	contentLength := stat.Size
 
 	resp, err := s.client.GetObject(s3Bucket, fileName, minio.GetObjectOptions{})
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get %s file", fileName)
-		return nil, err
+		return nil, 0, err
 	}
 
-	return resp, nil
+	return resp, contentLength, nil
 }
 
 func (s s3Client) DoesObjectExists(ctx context.Context, objectName string, s3Bucket string) (bool, error) {

@@ -49,12 +49,13 @@ func (mr *MockS3ClientMockRecorder) PushDataToS3(ctx, data, fileName, s3Bucket i
 }
 
 // DownloadFileFromS3 mocks base method
-func (m *MockS3Client) DownloadFileFromS3(ctx context.Context, fileName, s3Bucket string) (io.ReadCloser, error) {
+func (m *MockS3Client) DownloadFileFromS3(ctx context.Context, fileName, s3Bucket string) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DownloadFileFromS3", ctx, fileName, s3Bucket)
 	ret0, _ := ret[0].(io.ReadCloser)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(int64)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // DownloadFileFromS3 indicates an expected call of DownloadFileFromS3

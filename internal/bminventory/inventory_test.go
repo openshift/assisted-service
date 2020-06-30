@@ -970,7 +970,7 @@ var _ = Describe("KubeConfig download", func() {
 		c.Status = &status
 		db.Save(&c)
 		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
-		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(nil, errors.Errorf("dummy"))
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(nil, int64(0), errors.Errorf("dummy"))
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: clusterID,
 		})
@@ -982,11 +982,11 @@ var _ = Describe("KubeConfig download", func() {
 		db.Save(&c)
 		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
-		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(r, nil)
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, fileName, "test").Return(r, int64(4), nil)
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: clusterID,
 		})
-		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(r), kubeconfig)))
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(r), kubeconfig, 4)))
 	})
 
 	AfterEach(func() {
@@ -1095,7 +1095,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		c.Status = &status
 		db.Save(&c)
 		objectExists()
-		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(nil, errors.Errorf("dummy")).Times(1)
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(nil, int64(0), errors.Errorf("dummy")).Times(1)
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
@@ -1108,7 +1108,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		db.Save(&c)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		objectExists()
-		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(r, nil).Times(1)
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(r, int64(0), nil).Times(1)
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
@@ -1120,7 +1120,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		c.Status = &status
 		db.Save(&c)
 		objectExists()
-		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(kubeconfigFile, nil)
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(kubeconfigFile, int64(0), nil)
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: "bad format",
@@ -1142,7 +1142,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		Expect(merged).ShouldNot(Equal(kubeConfigAsBytes))
 		Expect(merged).ShouldNot(Equal([]byte(ingressCa)))
 		objectExists()
-		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(kubeconfigFile, nil).Times(1)
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(kubeconfigFile, int64(0), nil).Times(1)
 		mockS3Client.EXPECT().PushDataToS3(ctx, merged, kubeconfigObject, "test").Return(errors.Errorf("Dummy"))
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
@@ -1163,7 +1163,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		merged, err := mergeIngressCaIntoKubeconfig(kubeConfigAsBytes, []byte(ingressCa), log)
 		Expect(err).ShouldNot(HaveOccurred())
 		objectExists()
-		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(kubeconfigFile, nil).Times(1)
+		mockS3Client.EXPECT().DownloadFileFromS3(ctx, kubeconfigNoingress, "test").Return(kubeconfigFile, int64(0), nil).Times(1)
 		mockS3Client.EXPECT().PushDataToS3(ctx, merged, kubeconfigObject, "test").Return(nil)
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
 			ClusterID:         clusterID,

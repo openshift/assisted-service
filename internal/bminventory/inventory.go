@@ -376,7 +376,8 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 	b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), "Started image download", time.Now())
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(resp.Body),
-		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()))
+		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()),
+		resp.ContentLength)
 }
 
 func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params installer.GenerateClusterISOParams) middleware.Responder {
@@ -1367,12 +1368,12 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 			WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
 
-	respBody, err := b.s3Client.DownloadFileFromS3(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName), b.S3Bucket)
+	respBody, contentLength, err := b.s3Client.DownloadFileFromS3(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName), b.S3Bucket)
 	if err != nil {
 		return installer.NewDownloadClusterFilesInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName)
+	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
@@ -1395,13 +1396,13 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 			WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
 
-	respBody, err := b.s3Client.DownloadFileFromS3(ctx, fmt.Sprintf("%s/%s", params.ClusterID, kubeconfig), b.S3Bucket)
+	respBody, contentLength, err := b.s3Client.DownloadFileFromS3(ctx, fmt.Sprintf("%s/%s", params.ClusterID, kubeconfig), b.S3Bucket)
 
 	if err != nil {
 		return installer.NewDownloadClusterKubeconfigConflict().
 			WithPayload(common.GenerateError(http.StatusConflict, errors.Wrap(err, "failed to download kubeconfig")))
 	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig)
+	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig, contentLength)
 }
 
 func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder {
@@ -1499,7 +1500,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 	}
 
 	noigress := fmt.Sprintf("%s/%s-noingress", cluster.ID, kubeconfig)
-	resp, err := b.s3Client.DownloadFileFromS3(ctx, noigress, b.S3Bucket)
+	resp, _, err := b.s3Client.DownloadFileFromS3(ctx, noigress, b.S3Bucket)
 	if err != nil {
 		return installer.NewUploadClusterIngressCertInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
