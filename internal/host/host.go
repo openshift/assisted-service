@@ -52,6 +52,7 @@ const (
 	HostStatusInstallingInProgress = "installing-in-progress"
 	HostStatusInstalled            = "installed"
 	HostStatusError                = "error"
+	HostStatusResetting            = "resetting"
 )
 
 const (
@@ -91,6 +92,7 @@ type Manager struct {
 	installing     StateAPI
 	installed      StateAPI
 	error          StateAPI
+	resetting      StateAPI
 	instructionApi InstructionApi
 	hwValidator    hardware.Validator
 	sm             stateswitch.StateMachine
@@ -112,6 +114,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Valida
 		installing:     NewInstallingState(log, db),
 		installed:      NewInstalledState(log, db),
 		error:          NewErrorState(log, db),
+		resetting:      NewResettingState(log, db),
 		instructionApi: instructionApi,
 		hwValidator:    hwValidator,
 		sm:             NewHostStateMachine(th),
@@ -137,6 +140,8 @@ func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 		return m.installed, nil
 	case HostStatusError:
 		return m.error, nil
+	case HostStatusResetting:
+		return m.resetting, nil
 	}
 	return nil, fmt.Errorf("not supported host status: %s", status)
 }

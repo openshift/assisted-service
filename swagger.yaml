@@ -891,6 +891,7 @@ definitions:
           - installing-in-progress
           - installed
           - error
+          - resetting
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"

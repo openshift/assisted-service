@@ -19,6 +19,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			HostStatusKnown,
 			HostStatusDisconnected,
 			HostStatusInsufficient,
+			HostStatusResetting,
 		},
 		DestinationState: HostStatusDiscovering,
 		PostTransition:   th.PostRegisterHost,
