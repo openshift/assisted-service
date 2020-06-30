@@ -49,7 +49,7 @@ generate-from-swagger:
 # Update #
 ##########
 
-update: build
+update: build create-python-client
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.bm-inventory . -t $(SERVICE)
 	docker push $(SERVICE)
 
@@ -60,6 +60,22 @@ update-minikube: build
 update-expirer: build
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.s3-object-expirer . -t $(OBJEXP)
 	docker push $(OBJEXP)
+
+create-python-client: build/bm-inventory-client-${GIT_REVISION}.tar.gz
+
+build/bm-inventory-client/setup.py: create-build-dir swagger.yaml
+	cp swagger.yaml build/
+	echo '{"packageName" : "bm_inventory_client", "packageVersion": "${GIT_REVISION}"}' > build/code-gen-config.json
+	sed -i '/pattern:/d' $(PWD)/build/swagger.yaml
+	docker run -it --rm -u $(shell id -u $(USER)) -v $(PWD)/build:/swagger-api/out \
+		-v $(PWD)/build/swagger.yaml:/swagger.yaml:ro,Z -v $(PWD)/build/code-gen-config.json:/config.json:ro,Z \
+		jimschubert/swagger-codegen-cli:2.3.1 generate --lang python --config /config.json --output ./bm-inventory-client/ --input-spec /swagger.yaml
+	rm -f $(PWD)/build/swagger.yaml
+
+build/bm-inventory-client-%.tar.gz: build/bm-inventory-client/setup.py
+	rm -rf $@
+	cd build/bm-inventory-client/ && python3 setup.py sdist --dist-dir $(PWD)/build/
+	rm -rf bm-inventory-client/bm-inventory-client.egg-info
 
 ##########
 # Deploy #
