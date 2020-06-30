@@ -511,7 +511,6 @@ var _ = Describe("cluster", func() {
 		mockJob = job.NewMockAPI(ctrl)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, nil)
-		bm.testMode = true
 	})
 
 	Context("Get", func() {

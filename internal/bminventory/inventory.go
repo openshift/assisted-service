@@ -28,6 +28,7 @@ import (
 	"github.com/filanov/bm-inventory/pkg/job"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	awsS3CLient "github.com/filanov/bm-inventory/pkg/s3Client"
+	"github.com/filanov/bm-inventory/pkg/transaction"
 	"github.com/filanov/bm-inventory/restapi"
 	"github.com/filanov/bm-inventory/restapi/operations/installer"
 	"github.com/go-openapi/runtime/middleware"
@@ -114,7 +115,6 @@ type bareMetalInventory struct {
 	clusterApi    cluster.API
 	eventsHandler events.Handler
 	s3Client      awsS3CLient.S3Client
-	testMode      bool
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}
@@ -728,18 +728,14 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		}
 	}()
 
-	// This hack is needed because sqlite3 don't support FOR UPDATE option
-	// testMode will be set only in unit tests
-	if !b.testMode {
-		// in case host monitor already updated the state we need to use FOR UPDATE option
-		tx = tx.Set("gorm:query_option", "FOR UPDATE")
-	}
-
 	if tx.Error != nil {
 		log.WithError(tx.Error).Errorf("failed to start db transaction")
 		return installer.NewUpdateClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
 	}
+
+	// in case host monitor already updated the state we need to use FOR UPDATE option
+	transaction.AddForUpdateQueryOption(tx)
 
 	if err = tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
