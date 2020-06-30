@@ -19,6 +19,7 @@ SERVICE := $(or ${SERVICE},quay.io/ocpmetal/bm-inventory:latest)
 OBJEXP := $(or ${OBJEXP},quay.io/ocpmetal/s3-object-expirer:latest)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
+ROUTE53_SECRET := ${ROUTE53_SECRET}
 
 all: build
 
@@ -64,7 +65,7 @@ update-expirer: build
 # Deploy #
 ##########
 
-deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-service deploy-expirer
+deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-route53 deploy-service deploy-expirer
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
@@ -80,6 +81,9 @@ deploy-s3: deploy-namespace
 	python3 ./tools/deploy_s3.py
 	sleep 5;  # wait for service to get an address
 	make deploy-s3-configmap
+
+deploy-route53: deploy-namespace
+	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)"
 
 deploy-inventory-service-file: deploy-namespace
 	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)"
