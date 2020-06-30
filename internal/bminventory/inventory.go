@@ -112,6 +112,7 @@ type bareMetalInventory struct {
 	clusterApi    cluster.API
 	eventsHandler events.Handler
 	s3Client      awsS3CLient.S3Client
+	testMode      bool
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}
@@ -713,6 +714,13 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		}
 	}()
 
+	// This hack is needed because sqlite3 don't support FOR UPDATE option
+	// testMode will be set only in unit tests
+	if !b.testMode {
+		// in case host monitor already updated the state we need to use FOR UPDATE option
+		tx = tx.Set("gorm:query_option", "FOR UPDATE")
+	}
+
 	if tx.Error != nil {
 		log.WithError(tx.Error).Errorf("failed to start db transaction")
 		return installer.NewUpdateClusterInternalServerError().
@@ -765,7 +773,6 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
 		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
-	machineCidrUpdated := machineCidr != cluster.MachineNetworkCidr
 	updates["machine_network_cidr"] = machineCidr
 
 	err = network.VerifyVips(machineCidr, apiVip, ingressVip, false)
@@ -809,11 +816,8 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		}
 	}
 
-	if machineCidrUpdated {
-		responder := b.refreshClusterHosts(ctx, &cluster, tx, log)
-		if responder != nil {
-			return responder
-		}
+	if responder := b.refreshClusterHosts(ctx, &cluster, tx, log); responder != nil {
+		return responder
 	}
 
 	if _, err = b.clusterApi.RefreshStatus(ctx, &cluster, tx); err != nil {
