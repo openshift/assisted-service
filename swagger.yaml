@@ -798,11 +798,22 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+  
+  /domains:
+    get:
+      tags:
+        - managed_domains
+      summary: List of managed DNS domains
+      operationId: ListManagedDomains
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/list-managed-domains'
         500:
           description: Error.
           schema:
             $ref: '#/definitions/error'
-
 
   /component_versions:
     get:
@@ -840,6 +851,20 @@ paths:
 
 
 definitions:
+  list-managed-domains:
+    type: array
+    items:
+      $ref: '#/definitions/managed-domain'
+
+  managed-domain:
+    type: object
+    properties:
+      domain:
+        type: string
+      provider:
+        type: string
+        enum: ['route53']
+
   list-versions:
     type: object
     additionalProperties:
