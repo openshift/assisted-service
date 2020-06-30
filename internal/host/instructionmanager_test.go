@@ -75,7 +75,10 @@ var _ = Describe("instructionmanager", func() {
 			checkStepsByState(HostStatusInstalling, &host, db, instMng, hwValidator, ctx,
 				[]models.StepType{models.StepTypeInstall})
 		})
-
+		It("reset", func() {
+			checkStepsByState(HostStatusResetting, &host, db, instMng, hwValidator, ctx,
+				[]models.StepType{models.StepTypeResetAgent})
+		})
 	})
 
 	AfterEach(func() {
