@@ -956,6 +956,7 @@ definitions:
       - inventory
       - install
       - free-network-addresses
+      - reset-agent
 
   step:
     type: object

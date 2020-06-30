@@ -2256,7 +2256,8 @@ func init() {
         "execute",
         "inventory",
         "install",
-        "free-network-addresses"
+        "free-network-addresses",
+        "reset-agent"
       ]
     },
     "steps": {
@@ -4543,7 +4544,8 @@ func init() {
         "execute",
         "inventory",
         "install",
-        "free-network-addresses"
+        "free-network-addresses",
+        "reset-agent"
       ]
     },
     "steps": {
