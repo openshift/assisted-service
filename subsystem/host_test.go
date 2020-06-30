@@ -405,21 +405,3 @@ var _ = Describe("Host tests", func() {
 		Expect(swag.StringValue(h.Status)).Should(Equal("discovering"))
 	})
 })
-
-func getStepInList(steps models.Steps, sType models.StepType) (*models.Step, bool) {
-	for _, step := range steps.Instructions {
-		if step.StepType == sType {
-			return step, true
-		}
-	}
-	return nil, false
-}
-
-func getNextSteps(clusterID, hostID strfmt.UUID) models.Steps {
-	steps, err := bmclient.Installer.GetNextSteps(context.Background(), &installer.GetNextStepsParams{
-		ClusterID: clusterID,
-		HostID:    hostID,
-	})
-	Expect(err).NotTo(HaveOccurred())
-	return *steps.GetPayload()
-}
