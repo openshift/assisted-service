@@ -636,13 +636,16 @@ var _ = Describe("cluster install", func() {
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 				for _, host := range c.Hosts {
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+					_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetAgent)
+					Expect(ok).Should(Equal(true))
 					_, err = bmclient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
 						ClusterID: clusterID,
 						NewHostParams: &models.HostCreateParams{
 							HostID: host.ID,
 						},
 					})
-					Expect(err).NotTo(HaveOccurred())
+					Expect(err).ShouldNot(HaveOccurred())
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering, 10*time.Second)
 				}
 			})
 			It("[only_k8s]reset ready/installing cluster", func() {

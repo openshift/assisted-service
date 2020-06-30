@@ -120,6 +120,10 @@ var _ = Describe("Host tests", func() {
 		steps = getNextSteps(clusterID, *host.ID)
 		Expect(steps.NextInstructionSeconds).Should(Equal(int64(60)))
 		Expect(len(steps.Instructions)).Should(Equal(0))
+		Expect(db.Model(host).Update("status", models.HostStatusResetting).Error).NotTo(HaveOccurred())
+		steps = getNextSteps(clusterID, *host.ID)
+		_, ok = getStepInList(steps, models.StepTypeResetAgent)
+		Expect(ok).Should(Equal(true))
 	})
 
 	It("installation_error_reply", func() {
