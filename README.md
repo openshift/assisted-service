@@ -137,6 +137,20 @@ This will allow you to deploy Prometheus and Grafana already integrated with Ass
     make deploy-monitoring TARGET=oc-ingress
     ~~~
 
+NOTE: To expose the monitoring UI's on your local environment you could follow these steps
+
+    ~~~sh
+    kubectl config set-context $(kubectl config current-context) --namespace assisted-installer
+
+    # To expose Prometheus
+    kubectl port-forward svc/prometheus-k8s 9090:9090
+
+    # To expose Grafana
+    kubectl port-forward svc/grafana 3000:3000
+    ~~~
+
+Now you just need to access [http://127.0.0.1:3000](http://127.0.0.1:3000) to access to your Grafana deployment or [http://127.0.0.1:9090](http://127.0.0.1:9090) for Prometheus.
+
 ### Deploy by tag
 
 This feature is for internal usage and not recommended to use by external users.

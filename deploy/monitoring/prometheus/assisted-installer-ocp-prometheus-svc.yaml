@@ -6,6 +6,7 @@ metadata:
   labels:
     prometheus: assisted-installer-prometheus
   name: prometheus-k8s
+  namespace: assisted-installer
 spec:
   ports:
   - name: proxy
