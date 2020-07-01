@@ -478,15 +478,15 @@ var _ = Describe("GetFreeAddresses", func() {
 
 var _ = Describe("UpdateHostInstallProgress", func() {
 	var (
-		bm                    *bareMetalInventory
-		cfg                   Config
-		db                    *gorm.DB
-		ctx                   = context.Background()
-		ctrl                  *gomock.Controller
-		mockJob               *job.MockAPI
-		mockHostApi           *host.MockAPI
-		mockEvents            *events.MockHandler
-		defaultProgressStatus string
+		bm                   *bareMetalInventory
+		cfg                  Config
+		db                   *gorm.DB
+		ctx                  = context.Background()
+		ctrl                 *gomock.Controller
+		mockJob              *job.MockAPI
+		mockHostApi          *host.MockAPI
+		mockEvents           *events.MockHandler
+		defaultProgressStage models.HostStage
 	)
 
 	BeforeEach(func() {
@@ -498,7 +498,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		mockJob = job.NewMockAPI(ctrl)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil)
-		defaultProgressStatus = "some progress"
+		defaultProgressStage = "some progress"
 	})
 
 	Context("host exists", func() {
@@ -512,7 +512,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 			hostID = strfmt.UUID(uuid.New().String())
 			clusterID = strfmt.UUID(uuid.New().String())
 			progressParams = &models.HostInstallProgressParams{
-				ProgressStatus: &defaultProgressStatus,
+				CurrentStage: defaultProgressStage,
 			}
 
 			err := db.Create(&models.Host{
@@ -550,7 +550,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 			HostInstallProgressParams: &models.HostInstallProgressParams{
-				ProgressStatus: &defaultProgressStatus,
+				CurrentStage: defaultProgressStage,
 			},
 			HostID: strfmt.UUID(uuid.New().String()),
 		})

@@ -183,16 +183,16 @@ func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.
 	Expect(swag.StringValue(c.Status)).Should(Equal(state))
 }
 
-func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, progress string) {
-	updateProgressWithInfo(hostID, clusterID, progress, "")
+func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, current_step models.HostStage) {
+	updateProgressWithInfo(hostID, clusterID, current_step, "")
 }
 
-func updateProgressWithInfo(hostID strfmt.UUID, clusterID strfmt.UUID, progress string, info string) {
+func updateProgressWithInfo(hostID strfmt.UUID, clusterID strfmt.UUID, current_step models.HostStage, info string) {
 	ctx := context.Background()
 
 	installProgress := &models.HostInstallProgressParams{
-		ProgressStatus: &progress,
-		ProgressInfo:   info,
+		CurrentStage: current_step,
+		ProgressInfo: info,
 	}
 	updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
 		ClusterID:                 clusterID,
@@ -223,7 +223,7 @@ func installCluster(clusterID strfmt.UUID) {
 	}
 
 	for _, host := range c.Hosts {
-		updateProgress(*host.ID, clusterID, models.HostInstallProgressParamsProgressStatusDone)
+		updateProgress(*host.ID, clusterID, models.HostStageDone)
 	}
 
 	waitForClusterState(ctx, clusterID, "installed", defaultWaitForClusterStateTimeout, "installed")
@@ -387,7 +387,7 @@ var _ = Describe("cluster install", func() {
 			}
 
 			for _, host := range c.Hosts {
-				updateProgress(*host.ID, clusterID, models.HostInstallProgressParamsProgressStatusDone)
+				updateProgress(*host.ID, clusterID, models.HostStageDone)
 			}
 
 			waitForClusterState(ctx, clusterID, "installed", defaultWaitForClusterStateTimeout, "installed")
@@ -410,52 +410,66 @@ var _ = Describe("cluster install", func() {
 		//})
 
 		It("[only_k8s]report_progress", func() {
+
 			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			waitForClusterInstallationToStart(clusterID)
 
 			h := c.GetPayload().Hosts[0]
+			var hostProgress models.HostProgress
 
 			By("progress_to_some_host", func() {
-				installProgress := models.HostInstallProgressParamsProgressStatusWritingImageToDisk
+				installProgress := models.HostStageWritingImageToDisk
 				updateProgress(*h.ID, clusterID, installProgress)
 				h = getHost(clusterID, *h.ID)
+
 				Expect(*h.Status).Should(Equal("installing-in-progress"))
-				Expect(*h.StatusInfo).Should(Equal(installProgress))
+				Expect(*h.StatusInfo).Should(Equal(string(installProgress)))
+				Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).ToNot(HaveOccurred())
+				Expect(hostProgress.CurrentStage).Should(Equal(installProgress))
 			})
 
 			By("progress_to_some_host_again", func() {
-				installProgress := models.HostInstallProgressParamsProgressStatusWritingImageToDisk
+				installProgress := models.HostStageWritingImageToDisk
 				updateProgress(*h.ID, clusterID, installProgress)
 				h = getHost(clusterID, *h.ID)
+
 				Expect(*h.Status).Should(Equal("installing-in-progress"))
-				Expect(*h.StatusInfo).Should(Equal(installProgress))
+				Expect(*h.StatusInfo).Should(Equal(string(installProgress)))
+				Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).ToNot(HaveOccurred())
+				Expect(hostProgress.CurrentStage).Should(Equal(installProgress))
 			})
 
 			By("report_done", func() {
-				installProgress := models.HostInstallProgressParamsProgressStatusDone
+				installProgress := models.HostStageDone
 				updateProgress(*h.ID, clusterID, installProgress)
 				h = getHost(clusterID, *h.ID)
+
 				Expect(*h.Status).Should(Equal("installed"))
-				Expect(*h.StatusInfo).Should(Equal(installProgress))
+				Expect(*h.StatusInfo).Should(Equal(string(installProgress)))
+				Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).ToNot(HaveOccurred())
+				Expect(hostProgress.CurrentStage).Should(Equal(installProgress))
 			})
 
 			By("report_failed_on_other_host", func() {
-				installProgress := models.HostInstallProgressParamsProgressStatusFailed
+				installProgress := models.HostStageFailed
 				installInfo := "because some error"
 				h1 := c.GetPayload().Hosts[1]
 				updateProgressWithInfo(*h1.ID, clusterID, installProgress, installInfo)
 				h1 = getHost(clusterID, *h1.ID)
+
 				Expect(*h1.Status).Should(Equal("error"))
 				Expect(*h1.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", installProgress, installInfo)))
+				Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).ToNot(HaveOccurred())
+				Expect(hostProgress.CurrentStage).Should(Equal(models.HostStageDone)) // Last stage
 			})
 
 			By("invalid_report", func() {
-				progress := "INVALID REPORT"
+				step := models.HostStage("INVALID REPORT")
 				h1 := c.GetPayload().Hosts[1]
 
 				installProgress := &models.HostInstallProgressParams{
-					ProgressStatus: &progress,
+					CurrentStage: step,
 				}
 
 				_, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
@@ -1180,13 +1194,13 @@ func FailCluster(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
 		}
 	}
 
-	installProgress := models.HostInstallProgressParamsProgressStatusFailed
+	installStep := models.HostStageFailed
 	installInfo := "because some error"
 
-	updateProgressWithInfo(masterHostID, clusterID, installProgress, installInfo)
+	updateProgressWithInfo(masterHostID, clusterID, installStep, installInfo)
 	masterHost := getHost(clusterID, masterHostID)
 	Expect(*masterHost.Status).Should(Equal("error"))
-	Expect(*masterHost.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", installProgress, installInfo)))
+	Expect(*masterHost.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", installStep, installInfo)))
 	return masterHostID
 }
 
@@ -1238,7 +1252,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		}
 		// fake installation completed
 		for _, host := range c.Hosts {
-			updateProgress(*host.ID, clusterID, models.HostInstallProgressParamsProgressStatusDone)
+			updateProgress(*host.ID, clusterID, models.HostStageDone)
 		}
 
 		waitForClusterState(ctx, clusterID, "installed", defaultWaitForClusterStateTimeout, "installed")

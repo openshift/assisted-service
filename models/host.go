@@ -66,6 +66,9 @@ type Host struct {
 	// Enum: [Host]
 	Kind *string `json:"kind"`
 
+	// progress
+	Progress string `json:"progress,omitempty" gorm:"type:text"`
+
 	// requested hostname
 	RequestedHostname string `json:"requested_hostname,omitempty"`
 

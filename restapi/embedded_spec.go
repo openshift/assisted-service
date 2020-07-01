@@ -1985,6 +1985,10 @@ func init() {
             "Host"
           ]
         },
+        "progress": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "requested_hostname": {
           "type": "string"
         },
@@ -2041,26 +2045,16 @@ func init() {
     "host-install-progress-params": {
       "type": "object",
       "required": [
-        "progress_status"
+        "current_stage"
       ],
       "properties": {
+        "current_stage": {
+          "type": "string",
+          "$ref": "#/definitions/host-stage"
+        },
         "progress_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
-        },
-        "progress_status": {
-          "type": "string",
-          "enum": [
-            "Starting installation",
-            "Installing",
-            "Bootstrapping installation",
-            "Waiting for control plane",
-            "Writing image to disk",
-            "Rebooting",
-            "Joined",
-            "Done",
-            "Failed"
-          ]
         }
       }
     },
@@ -2068,6 +2062,20 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/host"
+      }
+    },
+    "host-progress": {
+      "type": "object",
+      "properties": {
+        "current_stage": {
+          "$ref": "#/definitions/host-stage"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host-stage"
+          }
+        }
       }
     },
     "host-role": {
@@ -2083,6 +2091,20 @@ func init() {
       "enum": [
         "master",
         "worker"
+      ]
+    },
+    "host-stage": {
+      "type": "string",
+      "enum": [
+        "Starting installation",
+        "Start Waiting for control plane",
+        "Installing",
+        "Writing image to disk",
+        "Finish Waiting for control plane",
+        "Rebooting",
+        "Joined",
+        "Done",
+        "Failed"
       ]
     },
     "host_network": {
@@ -4452,6 +4474,10 @@ func init() {
             "Host"
           ]
         },
+        "progress": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "requested_hostname": {
           "type": "string"
         },
@@ -4508,26 +4534,16 @@ func init() {
     "host-install-progress-params": {
       "type": "object",
       "required": [
-        "progress_status"
+        "current_stage"
       ],
       "properties": {
+        "current_stage": {
+          "type": "string",
+          "$ref": "#/definitions/host-stage"
+        },
         "progress_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
-        },
-        "progress_status": {
-          "type": "string",
-          "enum": [
-            "Starting installation",
-            "Installing",
-            "Bootstrapping installation",
-            "Waiting for control plane",
-            "Writing image to disk",
-            "Rebooting",
-            "Joined",
-            "Done",
-            "Failed"
-          ]
         }
       }
     },
@@ -4535,6 +4551,20 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/host"
+      }
+    },
+    "host-progress": {
+      "type": "object",
+      "properties": {
+        "current_stage": {
+          "$ref": "#/definitions/host-stage"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host-stage"
+          }
+        }
       }
     },
     "host-role": {
@@ -4550,6 +4580,20 @@ func init() {
       "enum": [
         "master",
         "worker"
+      ]
+    },
+    "host-stage": {
+      "type": "string",
+      "enum": [
+        "Starting installation",
+        "Start Waiting for control plane",
+        "Installing",
+        "Writing image to disk",
+        "Finish Waiting for control plane",
+        "Rebooting",
+        "Joined",
+        "Done",
+        "Failed"
       ]
     },
     "host_network": {

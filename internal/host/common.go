@@ -56,12 +56,16 @@ func updateByKeepAlive(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*Up
 
 func updateStateWithParams(log logrus.FieldLogger, status, statusInfo string, h *models.Host, db *gorm.DB, extra ...interface{}) (*UpdateReply, error) {
 	updates := map[string]interface{}{"status": status, "status_info": statusInfo, "status_updated_at": strfmt.DateTime(time.Now())}
+
 	if len(extra)%2 != 0 {
 		return nil, errors.Errorf("invalid update extra parameters %+v", extra)
 	}
 	for i := 0; i < len(extra); i += 2 {
 		updates[extra[i].(string)] = extra[i+1]
 	}
+
+	// Query by <host-id, cluster-id, status>
+	// Status is queried as well to avoid races between different components.
 	dbReply := db.Model(&models.Host{}).Where("id = ? and cluster_id = ? and status = ?",
 		h.ID.String(), h.ClusterID.String(), swag.StringValue(h.Status)).
 		Updates(updates)

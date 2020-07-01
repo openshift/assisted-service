@@ -1549,14 +1549,14 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 		return installer.NewUpdateHostInstallProgressOK()
 	}
 
-	event := fmt.Sprintf("reached installation step %s", host.ID, host.ClusterID, params.HostInstallProgressParams.ProgressInfo)
+	event := fmt.Sprintf("reached installation stage %s", params.HostInstallProgressParams.CurrentStage)
 
 	if params.HostInstallProgressParams.ProgressInfo != "" {
 		event += fmt.Sprintf(": %s", params.HostInstallProgressParams.ProgressInfo)
 	}
 
 	log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-	msg := fmt.Sprint("Host %s: %s", b.hostApi.GetHostname(&host), event)
+	msg := fmt.Sprintf("Host %s: %s", b.hostApi.GetHostname(&host), event)
 
 	b.eventsHandler.AddEvent(ctx, host.ID.String(), msg, time.Now(), host.ClusterID.String())
 	return installer.NewUpdateHostInstallProgressOK()

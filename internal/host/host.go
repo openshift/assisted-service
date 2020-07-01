@@ -247,21 +247,28 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		return fmt.Errorf("can't set progress to host in status <%s>", swag.StringValue(h.Status))
 	}
 
-	statusInfo := *progress.ProgressStatus
+	progressJson, err := json.Marshal(models.HostProgress{CurrentStage: progress.CurrentStage})
+	if err != nil {
+		return err
+	}
 
+	statusInfo := string(progress.CurrentStage)
 	if progress.ProgressInfo != "" {
 		statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 	}
 
-	switch *progress.ProgressStatus {
-	case models.HostInstallProgressParamsProgressStatusDone:
-		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusInstalled, statusInfo, h, m.db)
+	switch progress.CurrentStage {
+	case models.HostStageDone:
+		_, err = updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusInstalled, statusInfo, h, m.db,
+			"progress", progressJson)
 		return err
-	case models.HostInstallProgressParamsProgressStatusFailed:
-		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusError, statusInfo, h, m.db)
+	case models.HostStageFailed:
+		// Keeps the last progress
+		_, err = updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusError, statusInfo, h, m.db)
 		return err
 	default:
-		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusInstallingInProgress, statusInfo, h, m.db)
+		_, err = updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusInstallingInProgress, statusInfo, h, m.db,
+			"progress", progressJson)
 		return err
 	}
 }
