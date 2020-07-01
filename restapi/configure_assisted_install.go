@@ -16,6 +16,7 @@ import (
 	"github.com/filanov/bm-inventory/restapi/operations"
 	"github.com/filanov/bm-inventory/restapi/operations/events"
 	"github.com/filanov/bm-inventory/restapi/operations/installer"
+	"github.com/filanov/bm-inventory/restapi/operations/managed_domains"
 	"github.com/filanov/bm-inventory/restapi/operations/versions"
 )
 
@@ -111,6 +112,14 @@ type InstallerAPI interface {
 	UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder
 }
 
+//go:generate mockery -name ManagedDomainsAPI -inpkg
+
+/* ManagedDomainsAPI  */
+type ManagedDomainsAPI interface {
+	/* ListManagedDomains List of managed DNS domains */
+	ListManagedDomains(ctx context.Context, params managed_domains.ListManagedDomainsParams) middleware.Responder
+}
+
 //go:generate mockery -name VersionsAPI -inpkg
 
 /* VersionsAPI  */
@@ -123,6 +132,7 @@ type VersionsAPI interface {
 type Config struct {
 	EventsAPI
 	InstallerAPI
+	ManagedDomainsAPI
 	VersionsAPI
 	Logger func(string, ...interface{})
 	// InnerMiddleware is for the handler executors. These do not apply to the swagger.json document.
@@ -231,6 +241,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	api.InstallerListHostsHandler = installer.ListHostsHandlerFunc(func(params installer.ListHostsParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InstallerAPI.ListHosts(ctx, params)
+	})
+	api.ManagedDomainsListManagedDomainsHandler = managed_domains.ListManagedDomainsHandlerFunc(func(params managed_domains.ListManagedDomainsParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.ManagedDomainsAPI.ListManagedDomains(ctx, params)
 	})
 	api.InstallerPostStepReplyHandler = installer.PostStepReplyHandlerFunc(func(params installer.PostStepReplyParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
