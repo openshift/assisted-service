@@ -2,12 +2,18 @@ package subsystem
 
 import (
 	"context"
+	"time"
 
 	"github.com/filanov/bm-inventory/client/installer"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/gomega"
+)
+
+const (
+	defaultWaitForHostStateTimeout    = 20 * time.Second
+	defaultWaitForClusterStateTimeout = 30 * time.Second
 )
 
 func clearDB() {
