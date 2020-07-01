@@ -66,6 +66,9 @@ type Host struct {
 	// Enum: [Host]
 	Kind *string `json:"kind"`
 
+	// requested hostname
+	RequestedHostname string `json:"requested_hostname,omitempty"`
+
 	// role
 	// Enum: [undefined master worker]
 	Role string `json:"role,omitempty"`

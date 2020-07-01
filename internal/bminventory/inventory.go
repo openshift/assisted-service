@@ -691,7 +691,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	return b.clusterApi.SetGeneratorVersion(&cluster, b.Config.KubeconfigGenerator, tx)
 }
 
-func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) middleware.Responder {
+func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) error {
 	for _, h := range cluster.Hosts {
 		var host models.Host
 		var err error
@@ -699,12 +699,11 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 			h.ID.String(), cluster.ID.String()).Error; err != nil {
 			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
 				h.ID.String(), cluster.ID.String())
-			return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+			return common.NewApiError(http.StatusNotFound, err)
 		}
 		if _, err = b.hostApi.RefreshStatus(ctx, &host, tx); err != nil {
 			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, cluster.ID.String())
-			return installer.NewInstallClusterInternalServerError().
-				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
 	return nil
@@ -761,6 +760,37 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		return updateClusterConflict
 	}
 
+	err = b.updateClusterData(ctx, &cluster, params, tx, log)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	err = b.updateHostsData(ctx, params, tx, log)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	err = b.updateHostsAndClusterStatus(ctx, &cluster, tx, log)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Error(err)
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, fmt.Errorf("DB error, failed to commit")))
+	}
+	txSuccess = true
+
+	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+	}
+
+	cluster.HostNetworks = calculateHostNetworks(log, &cluster)
+	return installer.NewUpdateClusterCreated().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	updates := map[string]interface{}{}
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
@@ -793,16 +823,17 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 
 	var machineCidr string
 
-	if machineCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts); err != nil {
+	machineCidr, err := network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts)
+	if err != nil {
 		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
-		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	updates["machine_network_cidr"] = machineCidr
 
 	err = network.VerifyVips(cluster.Hosts, machineCidr, apiVip, ingressVip, false, log)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
-		return installer.NewUpdateClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if params.ClusterUpdateParams.PullSecret != nil {
@@ -815,56 +846,72 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		}
 	}
 
-	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
+	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
-		return installer.NewUpdateClusterInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, dbReply.Error))
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostsData(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	for i := range params.ClusterUpdateParams.HostsRoles {
 		log.Infof("Update host %s to role: %s", params.ClusterUpdateParams.HostsRoles[i].ID,
 			params.ClusterUpdateParams.HostsRoles[i].Role)
 		var host models.Host
-		if err = tx.First(&host, "id = ? and cluster_id = ?",
-			params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID).Error; err != nil {
+		err := db.First(&host, "id = ? and cluster_id = ?",
+			params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID).Error
+		if err != nil {
 			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID)
-			return installer.NewUpdateClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+			return common.NewApiError(http.StatusNotFound, err)
 		}
-		if err = b.hostApi.UpdateRole(ctx, &host, params.ClusterUpdateParams.HostsRoles[i].Role, tx); err != nil {
+		err = b.hostApi.UpdateRole(ctx, &host, params.ClusterUpdateParams.HostsRoles[i].Role, db)
+		if err != nil {
 			log.WithError(err).Errorf("failed to set role <%s> host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsRoles[i].Role, params.ClusterUpdateParams.HostsRoles[i].ID,
 				params.ClusterID)
-			return common.GenerateErrorResponder(err)
+			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
 
-	if responder := b.refreshClusterHosts(ctx, &cluster, tx, log); responder != nil {
-		return responder
+	for i := range params.ClusterUpdateParams.HostsNames {
+		log.Infof("Update host %s to request hostname %s", params.ClusterUpdateParams.HostsNames[i].ID,
+			params.ClusterUpdateParams.HostsNames[i].Hostname)
+		var host models.Host
+		err := db.First(&host, "id = ? and cluster_id = ?",
+			params.ClusterUpdateParams.HostsNames[i].ID, params.ClusterID).Error
+		if err != nil {
+			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
+				params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID)
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		err = b.hostApi.UpdateHostname(ctx, &host, params.ClusterUpdateParams.HostsNames[i].Hostname, db)
+		if err != nil {
+			log.WithError(err).Errorf("failed to set hostname <%s> host <%s> in cluster <%s>",
+				params.ClusterUpdateParams.HostsNames[i].Hostname, params.ClusterUpdateParams.HostsNames[i].ID,
+				params.ClusterID)
+			return common.NewApiError(http.StatusConflict, err)
+		}
 	}
 
-	if _, err = b.clusterApi.RefreshStatus(ctx, &cluster, tx); err != nil {
-		log.WithError(err).Errorf("failed to validate or update cluster %s state", params.ClusterID)
-		return installer.NewUpdateClusterInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cluster *common.Cluster, db *gorm.DB, log logrus.FieldLogger) error {
+	err := b.refreshClusterHosts(ctx, cluster, db, log)
+	if err != nil {
+		return err
 	}
 
-	if err := tx.Commit().Error; err != nil {
-		log.Error(err)
-		return installer.NewUpdateClusterInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit")))
-	}
-	txSuccess = true
-
-	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
-		return installer.NewUpdateClusterInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	_, err = b.clusterApi.RefreshStatus(ctx, cluster, db)
+	if err != nil {
+		log.WithError(err).Errorf("failed to validate or update cluster %s state", cluster.ID)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	cluster.HostNetworks = calculateHostNetworks(log, &cluster)
-	return installer.NewUpdateClusterCreated().WithPayload(&cluster.Cluster)
+	return nil
 }
 
 func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*models.HostNetwork {

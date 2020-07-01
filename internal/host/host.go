@@ -79,6 +79,7 @@ type API interface {
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
 	UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) error
+	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
 	CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	GetHostname(h *models.Host) string
@@ -306,6 +307,23 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role string, d
 		cdb = db
 	}
 	return cdb.Model(h).Update("role", role).Error
+}
+
+func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
+	hostStatus := swag.StringValue(h.Status)
+	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient}
+	if !funk.ContainsString(allowedStatuses, hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, host name can be set only in one of %s states",
+				hostStatus, allowedStatuses))
+	}
+
+	h.RequestedHostname = hostname
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+	return cdb.Model(h).Update("requested_hostname", hostname).Error
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
