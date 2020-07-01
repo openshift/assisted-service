@@ -6,12 +6,9 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // HostInstallProgressParams host install progress params
@@ -19,20 +16,19 @@ import (
 // swagger:model host-install-progress-params
 type HostInstallProgressParams struct {
 
+	// current stage
+	// Required: true
+	CurrentStage HostStage `json:"current_stage"`
+
 	// progress info
 	ProgressInfo string `json:"progress_info,omitempty" gorm:"type:varchar(2048)"`
-
-	// progress status
-	// Required: true
-	// Enum: [Starting installation Installing Bootstrapping installation Waiting for control plane Writing image to disk Rebooting Joined Done Failed]
-	ProgressStatus *string `json:"progress_status"`
 }
 
 // Validate validates this host install progress params
 func (m *HostInstallProgressParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateProgressStatus(formats); err != nil {
+	if err := m.validateCurrentStage(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -42,64 +38,12 @@ func (m *HostInstallProgressParams) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var hostInstallProgressParamsTypeProgressStatusPropEnum []interface{}
+func (m *HostInstallProgressParams) validateCurrentStage(formats strfmt.Registry) error {
 
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["Starting installation","Installing","Bootstrapping installation","Waiting for control plane","Writing image to disk","Rebooting","Joined","Done","Failed"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		hostInstallProgressParamsTypeProgressStatusPropEnum = append(hostInstallProgressParamsTypeProgressStatusPropEnum, v)
-	}
-}
-
-const (
-
-	// HostInstallProgressParamsProgressStatusStartingInstallation captures enum value "Starting installation"
-	HostInstallProgressParamsProgressStatusStartingInstallation string = "Starting installation"
-
-	// HostInstallProgressParamsProgressStatusInstalling captures enum value "Installing"
-	HostInstallProgressParamsProgressStatusInstalling string = "Installing"
-
-	// HostInstallProgressParamsProgressStatusBootstrappingInstallation captures enum value "Bootstrapping installation"
-	HostInstallProgressParamsProgressStatusBootstrappingInstallation string = "Bootstrapping installation"
-
-	// HostInstallProgressParamsProgressStatusWaitingForControlPlane captures enum value "Waiting for control plane"
-	HostInstallProgressParamsProgressStatusWaitingForControlPlane string = "Waiting for control plane"
-
-	// HostInstallProgressParamsProgressStatusWritingImageToDisk captures enum value "Writing image to disk"
-	HostInstallProgressParamsProgressStatusWritingImageToDisk string = "Writing image to disk"
-
-	// HostInstallProgressParamsProgressStatusRebooting captures enum value "Rebooting"
-	HostInstallProgressParamsProgressStatusRebooting string = "Rebooting"
-
-	// HostInstallProgressParamsProgressStatusJoined captures enum value "Joined"
-	HostInstallProgressParamsProgressStatusJoined string = "Joined"
-
-	// HostInstallProgressParamsProgressStatusDone captures enum value "Done"
-	HostInstallProgressParamsProgressStatusDone string = "Done"
-
-	// HostInstallProgressParamsProgressStatusFailed captures enum value "Failed"
-	HostInstallProgressParamsProgressStatusFailed string = "Failed"
-)
-
-// prop value enum
-func (m *HostInstallProgressParams) validateProgressStatusEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, hostInstallProgressParamsTypeProgressStatusPropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *HostInstallProgressParams) validateProgressStatus(formats strfmt.Registry) error {
-
-	if err := validate.Required("progress_status", "body", m.ProgressStatus); err != nil {
-		return err
-	}
-
-	// value enum
-	if err := m.validateProgressStatusEnum("progress_status", "body", *m.ProgressStatus); err != nil {
+	if err := m.CurrentStage.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("current_stage")
+		}
 		return err
 	}
 

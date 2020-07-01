@@ -30,9 +30,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var defaultHwInfo = "default hw info"                 // invalid hw info used only for tests
-var defaultInventoryS = "default inventory"           // invalid inventory info used only for tests
-var defaultProgressStatus = "default progress status" // invalid progress status used only for tests
+var defaultHwInfo = "default hw info"                                 // invalid hw info used only for tests
+var defaultInventoryS = "default inventory"                           // invalid inventory info used only for tests
+var defaultProgressStage = models.HostStage("default progress stage") // invalid progress stage used only for tests
 
 var _ = Describe("statemachine", func() {
 	var (
@@ -226,8 +226,9 @@ var _ = Describe("update_progress", func() {
 
 	Context("installaing host", func() {
 		var (
-			status   string
-			progress *models.HostInstallProgressParams
+			stage        models.HostStage
+			hostProgress models.HostProgress
+			progress     *models.HostInstallProgressParams
 		)
 
 		BeforeEach(func() {
@@ -237,56 +238,93 @@ var _ = Describe("update_progress", func() {
 		})
 
 		It("some_progress", func() {
-			progress.ProgressStatus = &defaultProgressStatus
+			progress.CurrentStage = defaultProgressStage
 			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusInstallingInProgress))
-			Expect(*h.StatusInfo).Should(Equal(defaultProgressStatus))
+			Expect(*h.StatusInfo).Should(Equal(string(defaultProgressStage)))
+
+			Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).ToNot(HaveOccurred())
+			Expect(hostProgress.CurrentStage).Should(Equal(defaultProgressStage))
 		})
 
 		It("writing to disk", func() {
-			status = models.HostInstallProgressParamsProgressStatusWritingImageToDisk
-			progress.ProgressStatus = &status
+			stage = models.HostStageWritingImageToDisk
+			progress.CurrentStage = stage
 			progress.ProgressInfo = "20%"
 			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusInstallingInProgress))
-			Expect(*h.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", status, progress.ProgressInfo)))
+			Expect(*h.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", stage, progress.ProgressInfo)))
+
+			Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).ToNot(HaveOccurred())
+			Expect(hostProgress.CurrentStage).Should(Equal(stage))
 		})
 
 		It("done", func() {
-			status = models.HostInstallProgressParamsProgressStatusDone
-			progress.ProgressStatus = &status
+			stage = models.HostStageDone
+			progress.CurrentStage = stage
 			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusInstalled))
-			Expect(*h.StatusInfo).Should(Equal(status))
+			Expect(*h.StatusInfo).Should(Equal(string(stage)))
+
+			Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).ToNot(HaveOccurred())
+			Expect(hostProgress.CurrentStage).Should(Equal(stage))
 		})
 
 		It("progress_failed", func() {
-			status = models.HostInstallProgressParamsProgressStatusFailed
-			progress.ProgressStatus = &status
+			stage = models.HostStageFailed
+			progress.CurrentStage = stage
 			progress.ProgressInfo = "reason"
 			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusError))
-			Expect(*h.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", status, progress.ProgressInfo)))
+			Expect(*h.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", stage, progress.ProgressInfo)))
+			Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).To(HaveOccurred())
 		})
 
 		It("progress_failed_empty_reason", func() {
-			status = models.HostInstallProgressParamsProgressStatusFailed
-			progress.ProgressStatus = &status
+			stage = models.HostStageFailed
+			progress.CurrentStage = stage
 			progress.ProgressInfo = ""
 			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(*h.Status).Should(Equal(HostStatusError))
-			Expect(*h.StatusInfo).Should(Equal(status))
+			Expect(*h.StatusInfo).Should(Equal(string(stage)))
+			Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).To(HaveOccurred())
+		})
+
+		It("progress_failed_after_a_stage", func() {
+			// Some stage
+			stage = models.HostStageWritingImageToDisk
+			progress.CurrentStage = stage
+			progress.ProgressInfo = "20%"
+			Expect(state.UpdateInstallProgress(ctx, &host, progress)).ShouldNot(HaveOccurred())
+			h := getHost(*host.ID, host.ClusterID, db)
+			Expect(*h.Status).Should(Equal(HostStatusInstallingInProgress))
+			Expect(*h.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", stage, progress.ProgressInfo)))
+
+			Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).ToNot(HaveOccurred())
+			Expect(hostProgress.CurrentStage).Should(Equal(stage))
+
+			// Failed
+			stage = models.HostStageFailed
+			progress.CurrentStage = stage
+			progress.ProgressInfo = "reason"
+			Expect(state.UpdateInstallProgress(ctx, h, progress)).ShouldNot(HaveOccurred())
+			h = getHost(*h.ID, h.ClusterID, db)
+			Expect(*h.Status).Should(Equal(HostStatusError))
+			Expect(*h.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", stage, progress.ProgressInfo)))
+
+			Expect(json.Unmarshal([]byte(h.Progress), &hostProgress)).ToNot(HaveOccurred())
+			Expect(hostProgress.CurrentStage).ShouldNot(Equal(defaultProgressStage))
 		})
 	})
 
 	It("invalid state", func() {
 		Expect(state.UpdateInstallProgress(ctx, &host,
-			&models.HostInstallProgressParams{ProgressStatus: &defaultProgressStatus})).Should(HaveOccurred())
+			&models.HostInstallProgressParams{CurrentStage: defaultProgressStage})).Should(HaveOccurred())
 	})
 })
 
@@ -470,7 +508,7 @@ func getHost(hostId, clusterId strfmt.UUID, db *gorm.DB) *models.Host {
 func prepareDB() *gorm.DB {
 	db, err := gorm.Open("sqlite3", ":memory:")
 	Expect(err).ShouldNot(HaveOccurred())
-	//db = db.Debug()
+	// db = db.Debug()
 	db.AutoMigrate(&models.Host{}, &common.Cluster{})
 	return db
 }
