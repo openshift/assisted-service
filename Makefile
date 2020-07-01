@@ -81,12 +81,21 @@ build/bm-inventory-client-%.tar.gz: build/bm-inventory-client/setup.py
 ##########
 # Deploy #
 ##########
+ifdef DEPLOY_TAG
+  DEPLOY_TAG_OPTION = --deploy-tag "$(DEPLOY_TAG)"
+else ifdef DEPLOY_MANIFEST_PATH
+  DEPLOY_TAG_OPTION = --deploy-manifest-path "$(DEPLOY_MANIFEST_PATH)"
+else ifdef DEPLOY_MANIFEST_TAG
+  DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
+else
+  DEPLOY_TAG_OPTION = ''
+endif
 
 deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-route53 deploy-service deploy-expirer
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
-	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --deploy-tag "$(DEPLOY_TAG)"
+	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" $(DEPLOY_TAG_OPTION)
 
 deploy-namespace: create-build-dir
 	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE)
@@ -107,14 +116,14 @@ deploy-inventory-service-file: deploy-namespace
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --deploy-tag "$(DEPLOY_TAG)"
+	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" $(DEPLOY_TAG_OPTION)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
-	python3 ./tools/deploy_assisted_installer.py --deploy-tag "$(DEPLOY_TAG)" $(TEST_FLAGS)
+	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) $(TEST_FLAGS)
 	python3 ./tools/wait_for_pod.py --app=bm-inventory --state=running
 
 deploy-expirer: deploy-role
-	python3 ./tools/deploy_s3_object_expirer.py --deploy-tag "$(DEPLOY_TAG)"
+	python3 ./tools/deploy_s3_object_expirer.py $(DEPLOY_TAG_OPTION)
 
 deploy-role: deploy-namespace
 	python3 ./tools/deploy_role.py
