@@ -6,12 +6,13 @@ package host
 
 import (
 	context "context"
+	reflect "reflect"
+
 	common "github.com/filanov/bm-inventory/internal/common"
 	validators "github.com/filanov/bm-inventory/internal/validators"
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
-	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface
@@ -402,6 +403,20 @@ func (m *MockAPI) UpdateRole(ctx context.Context, h *models.Host, role string, d
 func (mr *MockAPIMockRecorder) UpdateRole(ctx, h, role, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRole", reflect.TypeOf((*MockAPI)(nil).UpdateRole), ctx, h, role, db)
+}
+
+// UpdateHostname mocks base method
+func (m *MockAPI) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHostname", ctx, h, hostname, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateHostname indicates an expected call of UpdateHostname
+func (mr *MockAPIMockRecorder) UpdateHostname(ctx, h, hostname, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostname", reflect.TypeOf((*MockAPI)(nil).UpdateHostname), ctx, h, hostname, db)
 }
 
 // CancelInstallation mocks base method

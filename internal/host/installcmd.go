@@ -48,13 +48,9 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		role = RoleBootstrap
 	}
 
-	const cmdArgsTmpl = "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host --net=host " +
+	cmdArgsTmpl := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host --net=host " +
 		"-v /var/log:/var/log:rw --name assisted-installer {{.INSTALLER}} --role {{.ROLE}} --cluster-id {{.CLUSTER_ID}} --host {{.HOST}} " +
 		"--port {{.PORT}} --boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}}"
-	t, err := template.New("cmd").Parse(cmdArgsTmpl)
-	if err != nil {
-		return nil, err
-	}
 
 	data := map[string]string{
 		"HOST":              i.instructionConfig.InventoryURL,
@@ -66,11 +62,23 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"BOOT_DEVICE":       "",
 		"OPENSHIFT_VERSION": cluster.OpenshiftVersion,
 	}
+
+	if host.RequestedHostname != "" {
+		cmdArgsTmpl = cmdArgsTmpl + " --host-name {{.HOST_NAME}}"
+		data["HOST_NAME"] = host.RequestedHostname
+	}
+
 	bootdevice, err := getBootDevice(i.log, i.hwValidator, *host)
 	if err != nil {
 		return nil, err
 	}
 	data["BOOT_DEVICE"] = bootdevice
+
+	t, err := template.New("cmd").Parse(cmdArgsTmpl)
+	if err != nil {
+		return nil, err
+	}
+
 	buf := &bytes.Buffer{}
 	if err := t.Execute(buf, data); err != nil {
 		return nil, err

@@ -796,7 +796,8 @@ var _ = Describe("cluster", func() {
 						APIVip: &apiVip,
 					},
 				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
+				Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 			})
 			It("Api and ingress mismatch", func() {
 				apiVip := "10.11.12.15"
@@ -808,7 +809,8 @@ var _ = Describe("cluster", func() {
 						IngressVip: &ingressVip,
 					},
 				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
+				Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 			})
 			It("Same api and ingress", func() {
 				apiVip := "10.11.12.15"
@@ -820,7 +822,8 @@ var _ = Describe("cluster", func() {
 						IngressVip: &ingressVip,
 					},
 				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
+				Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 			})
 			It("Update success", func() {
 				apiVip := "10.11.12.15"
