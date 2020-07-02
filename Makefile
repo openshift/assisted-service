@@ -1,5 +1,6 @@
 PWD = $(shell pwd)
 UID = $(shell id -u)
+BUILD_FOLDER = $(PWD)/build
 
 TARGET := $(or ${TARGET},minikube)
 KUBECTL=kubectl -n assisted-installer
@@ -28,10 +29,10 @@ lint:
 
 .PHONY: build
 build: create-build-dir lint unit-test
-	CGO_ENABLED=0 go build -o build/bm-inventory cmd/main.go
+	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/bm-inventory cmd/main.go
 
 create-build-dir:
-	mkdir -p build
+	mkdir -p $(BUILD_FOLDER)
 
 format:
 	goimports -w -l cmd/ internal/ subsystem/
@@ -60,6 +61,22 @@ update-minikube: build
 update-expirer: build
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.s3-object-expirer . -t $(OBJEXP)
 	docker push $(OBJEXP)
+
+create-python-client: build/bm-inventory-client-${GIT_REVISION}.tar.gz
+
+build/bm-inventory-client/setup.py: swagger.yaml
+	cp swagger.yaml $(BUILD_FOLDER)
+	echo '{"packageName" : "bm_inventory_client", "packageVersion": "1.0.0"}' > $(BUILD_FOLDER)/code-gen-config.json
+	sed -i '/pattern:/d' $(BUILD_FOLDER)/swagger.yaml
+	docker run -it --rm -u $(shell id -u $(USER)) -v $(BUILD_FOLDER):/swagger-api/out \
+		-v $(BUILD_FOLDER)/swagger.yaml:/swagger.yaml:ro,Z -v $(BUILD_FOLDER)/code-gen-config.json:/config.json:ro,Z \
+		jimschubert/swagger-codegen-cli:2.3.1 generate --lang python --config /config.json --output ./bm-inventory-client/ --input-spec /swagger.yaml
+	rm -f $(BUILD_FOLDER)/swagger.yaml
+
+build/bm-inventory-client-%.tar.gz: build/bm-inventory-client/setup.py
+	rm -rf $@
+	cd $(BUILD_FOLDER)/bm-inventory-client/ && python3 setup.py sdist --dist-dir $(BUILD_FOLDER)
+	rm -rf bm-inventory-client/bm-inventory-client.egg-info
 
 ##########
 # Deploy #
@@ -142,7 +159,7 @@ unit-test:
 clear-all: clean subsystem-clean clear-deployment
 
 clean:
-	rm -rf build
+	rm -rf $(BUILD_FOLDER)
 
 subsystem-clean:
 	$(KUBECTL) get pod -o name | grep create-image | xargs $(KUBECTL) delete 1> /dev/null ; true
