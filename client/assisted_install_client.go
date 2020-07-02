@@ -15,6 +15,7 @@ import (
 
 	"github.com/filanov/bm-inventory/client/events"
 	"github.com/filanov/bm-inventory/client/installer"
+	"github.com/filanov/bm-inventory/client/managed_domains"
 	"github.com/filanov/bm-inventory/client/versions"
 )
 
@@ -62,14 +63,16 @@ func New(c Config) *AssistedInstall {
 	cli.Transport = transport
 	cli.Events = events.New(transport, strfmt.Default, c.AuthInfo)
 	cli.Installer = installer.New(transport, strfmt.Default, c.AuthInfo)
+	cli.ManagedDomains = managed_domains.New(transport, strfmt.Default, c.AuthInfo)
 	cli.Versions = versions.New(transport, strfmt.Default, c.AuthInfo)
 	return cli
 }
 
 // AssistedInstall is a client for assisted install
 type AssistedInstall struct {
-	Events    *events.Client
-	Installer *installer.Client
-	Versions  *versions.Client
-	Transport runtime.ClientTransport
+	Events         *events.Client
+	Installer      *installer.Client
+	ManagedDomains *managed_domains.Client
+	Versions       *versions.Client
+	Transport      runtime.ClientTransport
 }
