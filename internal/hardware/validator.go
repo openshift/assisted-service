@@ -83,7 +83,7 @@ func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*v
 
 	if disks := listValidDisks(hwInfo, minDiskSizeRequired); len(disks) < 1 {
 		reasons = append(reasons, fmt.Sprintf("insufficient number of disks with required size, "+
-			"expected at least 1 not removable, not readonly disk of size more than <%d>", minDiskSizeRequired))
+			"expected at least 1 not removable, not readonly disk of size more than %d  bytes", minDiskSizeRequired))
 	}
 
 	if !v.isHostnameUnique(cluster, host, hwInfo.Hostname) {
