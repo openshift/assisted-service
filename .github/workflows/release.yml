@@ -25,6 +25,9 @@ jobs:
     - name: build
       run: |
         skipper make build
+    - name: create python client
+      run: |
+        skipper make create-python-client
     - name: Get release version
       id: get_version
       run: echo ::set-env name=GIT_REVISION::$(echo ${GITHUB_SHA})
