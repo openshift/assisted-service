@@ -77,6 +77,22 @@ var _ = Describe("Host tests", func() {
 					},
 				},
 			},
+
+			// CPU, Disks, and Memory were added here to prevent the case that bm-inventory crashes in case the monitor starts
+			// working in the middle of the test and this inventory is in the database.
+			CPU: &models.CPU{
+				Count: 4,
+			},
+			Disks: []*models.Disk{
+				{
+					Name:      "sda1",
+					DriveType: "HDD",
+					SizeBytes: int64(120) * (int64(1) << 30),
+				},
+			},
+			Memory: &models.Memory{
+				PhysicalBytes: int64(16) * (int64(1) << 30),
+			},
 		}
 		b, err := json.Marshal(&inventory)
 		Expect(err).To(Not(HaveOccurred()))
