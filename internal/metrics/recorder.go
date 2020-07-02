@@ -48,10 +48,6 @@ func (c *Config) defaults() {
 		c.SizeBuckets = prometheus.ExponentialBuckets(100, 10, 8)
 	}
 
-	if c.Registry == nil {
-		c.Registry = prometheus.DefaultRegisterer
-	}
-
 	if c.HandlerIDLabel == "" {
 		c.HandlerIDLabel = "handler"
 	}
