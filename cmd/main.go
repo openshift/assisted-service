@@ -10,6 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	"github.com/filanov/bm-inventory/internal/connectivity"
+	"github.com/filanov/bm-inventory/internal/domains"
 	"github.com/filanov/bm-inventory/internal/versions"
 
 	"github.com/filanov/bm-inventory/internal/bminventory"
@@ -110,6 +111,7 @@ func main() {
 	}
 
 	versionHandler := versions.NewHandler(Options.Versions)
+	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
@@ -138,11 +140,12 @@ func main() {
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
 	h, err := restapi.Handler(restapi.Config{
-		InstallerAPI:    bm,
-		EventsAPI:       events,
-		Logger:          log.Printf,
-		VersionsAPI:     versionHandler,
-		InnerMiddleware: metrics.WithMatchedRoute(log.WithField("pkg", "matched-h")),
+		InstallerAPI:      bm,
+		EventsAPI:         events,
+		Logger:            log.Printf,
+		VersionsAPI:       versionHandler,
+		ManagedDomainsAPI: domainHandler,
+		InnerMiddleware:   metrics.WithMatchedRoute(log.WithField("pkg", "matched-h")),
 	})
 	h = app.WithMetricsResponderMiddleware(h)
 	h = app.WithHealthMiddleware(h)
