@@ -21,6 +21,8 @@ import (
 	"github.com/vincent-petithory/dataurl"
 
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
+	"github.com/filanov/bm-inventory/internal/metrics"
+
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/cluster/validations"
 	"github.com/filanov/bm-inventory/internal/common"
@@ -138,6 +140,7 @@ type bareMetalInventory struct {
 	clusterApi    cluster.API
 	eventsHandler events.Handler
 	s3Client      awsS3CLient.S3Client
+	metricApi     metrics.API
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}
@@ -151,6 +154,7 @@ func NewBareMetalInventory(
 	jobApi job.API,
 	eventsHandler events.Handler,
 	s3Client awsS3CLient.S3Client,
+	metricApi metrics.API,
 ) *bareMetalInventory {
 
 	b := &bareMetalInventory{
@@ -163,6 +167,7 @@ func NewBareMetalInventory(
 		job:           jobApi,
 		eventsHandler: eventsHandler,
 		s3Client:      s3Client,
+		metricApi:     metricApi,
 	}
 	if cfg.ImageBuilderCmd != "" {
 		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
@@ -343,6 +348,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
+	b.metricApi.RegisterCluster(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
 	return installer.NewRegisterClusterCreated().WithPayload(&cluster.Cluster)
 }
 
