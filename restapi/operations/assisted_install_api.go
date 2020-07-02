@@ -21,7 +21,6 @@ import (
 
 	"github.com/filanov/bm-inventory/restapi/operations/events"
 	"github.com/filanov/bm-inventory/restapi/operations/installer"
-	"github.com/filanov/bm-inventory/restapi/operations/managed_domains"
 	"github.com/filanov/bm-inventory/restapi/operations/versions"
 )
 
@@ -103,9 +102,6 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerListHostsHandler: installer.ListHostsHandlerFunc(func(params installer.ListHostsParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListHosts has not yet been implemented")
-		}),
-		ManagedDomainsListManagedDomainsHandler: managed_domains.ListManagedDomainsHandlerFunc(func(params managed_domains.ListManagedDomainsParams) middleware.Responder {
-			return middleware.NotImplemented("operation managed_domains.ListManagedDomains has not yet been implemented")
 		}),
 		InstallerPostStepReplyHandler: installer.PostStepReplyHandlerFunc(func(params installer.PostStepReplyParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.PostStepReply has not yet been implemented")
@@ -205,8 +201,6 @@ type AssistedInstallAPI struct {
 	EventsListEventsHandler events.ListEventsHandler
 	// InstallerListHostsHandler sets the operation handler for the list hosts operation
 	InstallerListHostsHandler installer.ListHostsHandler
-	// ManagedDomainsListManagedDomainsHandler sets the operation handler for the list managed domains operation
-	ManagedDomainsListManagedDomainsHandler managed_domains.ListManagedDomainsHandler
 	// InstallerPostStepReplyHandler sets the operation handler for the post step reply operation
 	InstallerPostStepReplyHandler installer.PostStepReplyHandler
 	// InstallerRegisterClusterHandler sets the operation handler for the register cluster operation
@@ -348,9 +342,6 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerListHostsHandler == nil {
 		unregistered = append(unregistered, "installer.ListHostsHandler")
-	}
-	if o.ManagedDomainsListManagedDomainsHandler == nil {
-		unregistered = append(unregistered, "managed_domains.ListManagedDomainsHandler")
 	}
 	if o.InstallerPostStepReplyHandler == nil {
 		unregistered = append(unregistered, "installer.PostStepReplyHandler")
@@ -542,10 +533,6 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts"] = installer.NewListHosts(o.context, o.InstallerListHostsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/domains"] = managed_domains.NewListManagedDomains(o.context, o.ManagedDomainsListManagedDomainsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

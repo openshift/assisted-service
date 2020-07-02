@@ -1202,29 +1202,6 @@ func init() {
         }
       }
     },
-    "/domains": {
-      "get": {
-        "tags": [
-          "managed_domains"
-        ],
-        "summary": "List of managed DNS domains",
-        "operationId": "ListManagedDomains",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/list-managed-domains"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/events/{entity_id}": {
       "get": {
         "tags": [
@@ -2230,30 +2207,10 @@ func init() {
         }
       }
     },
-    "list-managed-domains": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/managed-domain"
-      }
-    },
     "list-versions": {
       "type": "object",
       "additionalProperties": {
         "type": "string"
-      }
-    },
-    "managed-domain": {
-      "type": "object",
-      "properties": {
-        "domain": {
-          "type": "string"
-        },
-        "provider": {
-          "type": "string",
-          "enum": [
-            "route53"
-          ]
-        }
       }
     },
     "memory": {
@@ -3595,29 +3552,6 @@ func init() {
         }
       }
     },
-    "/domains": {
-      "get": {
-        "tags": [
-          "managed_domains"
-        ],
-        "summary": "List of managed DNS domains",
-        "operationId": "ListManagedDomains",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/list-managed-domains"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/events/{entity_id}": {
       "get": {
         "tags": [
@@ -4626,30 +4560,10 @@ func init() {
         }
       }
     },
-    "list-managed-domains": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/managed-domain"
-      }
-    },
     "list-versions": {
       "type": "object",
       "additionalProperties": {
         "type": "string"
-      }
-    },
-    "managed-domain": {
-      "type": "object",
-      "properties": {
-        "domain": {
-          "type": "string"
-        },
-        "provider": {
-          "type": "string",
-          "enum": [
-            "route53"
-          ]
-        }
       }
     },
     "memory": {
