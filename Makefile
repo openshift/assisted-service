@@ -1,5 +1,6 @@
 PWD = $(shell pwd)
 UID = $(shell id -u)
+BUILD_FOLDER = $(PWD)/build
 
 TARGET := $(or ${TARGET},minikube)
 KUBECTL=kubectl -n assisted-installer
@@ -64,13 +65,13 @@ update-expirer: build
 create-python-client: build/bm-inventory-client-${GIT_REVISION}.tar.gz
 
 build/bm-inventory-client/setup.py: create-build-dir swagger.yaml
-	cp swagger.yaml build/
-	echo '{"packageName" : "bm_inventory_client", "packageVersion": "${GIT_REVISION}"}' > build/code-gen-config.json
-	sed -i '/pattern:/d' $(PWD)/build/swagger.yaml
-	docker run -it --rm -u $(shell id -u $(USER)) -v $(PWD)/build:/swagger-api/out \
-		-v $(PWD)/build/swagger.yaml:/swagger.yaml:ro,Z -v $(PWD)/build/code-gen-config.json:/config.json:ro,Z \
+	cp swagger.yaml $(BUILD_FOLDER)
+	echo '{"packageName" : "bm_inventory_client", "packageVersion": "${GIT_REVISION}"}' > $(BUILD_FOLDER)/code-gen-config.json
+	sed -i '/pattern:/d' $(BUILD_FOLDER)/swagger.yaml
+	docker run -it --rm -u $(shell id -u $(USER)) -v $(BUILD_FOLDER):/swagger-api/out \
+		-v $(BUILD_FOLDER)/swagger.yaml:/swagger.yaml:ro,Z -v $(BUILD_FOLDER)/code-gen-config.json:/config.json:ro,Z \
 		jimschubert/swagger-codegen-cli:2.3.1 generate --lang python --config /config.json --output ./bm-inventory-client/ --input-spec /swagger.yaml
-	rm -f $(PWD)/build/swagger.yaml
+	rm -f $(BUILD_FOLDER)/swagger.yaml
 
 build/bm-inventory-client-%.tar.gz: build/bm-inventory-client/setup.py
 	rm -rf $@
