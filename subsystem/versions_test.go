@@ -13,6 +13,6 @@ var _ = Describe("test versions", func() {
 		reply, err := bmclient.Versions.ListComponentVersions(context.Background(),
 			&versions.ListComponentVersionsParams{})
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(len(reply.GetPayload())).To(Equal(5))
+		Expect(len(reply.GetPayload().Versions)).To(Equal(5))
 	})
 })

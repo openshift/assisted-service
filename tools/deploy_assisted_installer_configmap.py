@@ -10,6 +10,13 @@ DST_FILE = os.path.join(os.getcwd(), "build/bm-inventory-configmap.yaml")
 SERVICE = "bm-inventory"
 
 
+def get_deployment_tag(args):
+    if args.deploy_manifest_tag:
+        return args.deploy_manifest_tag
+    if args.deploy_tag:
+        return args.deploy_tag
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--target")
@@ -40,6 +47,10 @@ def main():
                 image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
                 versions[env_var_name] = image_fqdn
             versions["SELF_VERSION"] = deployment_options.get_image_override(deploy_options, "bm-inventory", "SERVICE")
+            deploy_tag = get_deployment_tag(deploy_options)
+            if deploy_tag:
+                versions["RELEASE_TAG"] = deploy_tag
+
             y = yaml.load(data)
             y['data'].update(versions)
             data = yaml.dump(y)
