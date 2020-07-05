@@ -32,8 +32,6 @@ type StateAPI interface {
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error)
 	// check keep alive
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error)
-	// Install host - db is optional, for transactions
-	Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error)
 	// Enable host to get requests (disabled by default)
 	EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error)
 	// Disable host from getting any requests
@@ -84,6 +82,8 @@ type API interface {
 	CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	GetHostname(h *models.Host) string
+	// Install host - db is optional, for transactions
+	Install(ctx context.Context, h *models.Host, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -208,12 +208,15 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	return ret, err
 }
 
-func (m *Manager) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	state, err := m.getCurrentState(swag.StringValue(h.Status))
-	if err != nil {
-		return nil, err
+func (m *Manager) Install(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	cdb := m.db
+	if db != nil {
+		cdb = db
 	}
-	return state.Install(ctx, h, db)
+	return m.sm.Run(TransitionTypeInstallHost, newStateHost(h), &TransitionArgsInstallHost{
+		ctx: ctx,
+		db:  cdb,
+	})
 }
 
 func (m *Manager) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {

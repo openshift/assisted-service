@@ -9,9 +9,7 @@ import (
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
 
 func NewKnownState(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, connectivityValidator connectivity.Validator) *knownState {
@@ -43,17 +41,6 @@ func (k *knownState) UpdateInventory(ctx context.Context, h *models.Host, invent
 
 func (k *knownState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	return checkAndUpdateSufficientHost(logutil.FromContext(ctx, k.log), h, db, k.hwValidator, k.connectivityValidator)
-}
-
-func (k *knownState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	if !funk.ContainsString([]string{models.HostRoleMaster, models.HostRoleWorker}, h.Role) {
-		return nil, errors.Errorf("unable to install host <%s> without valid role", h.ID)
-	}
-	cdb := k.db
-	if db != nil {
-		cdb = db
-	}
-	return updateState(logutil.FromContext(ctx, k.log), HostStatusInstalling, statusInfoInstalling, h, cdb)
 }
 
 func (k *knownState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {

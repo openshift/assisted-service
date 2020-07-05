@@ -2,19 +2,19 @@ package host
 
 import (
 	"context"
+	"net/http"
 	"time"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
-
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/filanov/stateswitch"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type transitionHandler struct {
@@ -142,4 +142,40 @@ func (th *transitionHandler) PostResetHost(sw stateswitch.StateSwitch, args stat
 	}
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
 		params.reason, sHost.host, params.db)
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Install host
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsInstallHost struct {
+	ctx context.Context
+	db  *gorm.DB
+}
+
+func (th *transitionHandler) IsValidRoleForInstallation(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("IsValidRoleForInstallation incompatible type of StateSwitch")
+	}
+	validRoles := []string{models.HostRoleMaster, models.HostRoleWorker}
+	if !funk.ContainsString(validRoles, sHost.host.Role) {
+		return false, common.NewApiError(http.StatusConflict,
+			errors.Errorf("Can't install host %s doe to invalid host role: %s, should be one of %s",
+				sHost.host.ID.String(), sHost.host.Role, validRoles))
+	}
+	return true, nil
+}
+
+func (th *transitionHandler) PostInstallHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostInstallHost incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsInstallHost)
+	if !ok {
+		return errors.New("PostInstallHost invalid argument")
+	}
+	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState, statusInfoInstalling,
+		sHost.host, params.db)
 }

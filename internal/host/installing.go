@@ -37,12 +37,6 @@ func (i *installingState) RefreshStatus(ctx context.Context, h *models.Host, db 
 	}, nil
 }
 
-func (i *installingState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	// TODO: maybe need to jump to the next sub installation state
-	return nil, errors.Errorf("unable to install host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
-}
-
 func (i *installingState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	// State in the same state
 	return &UpdateReply{

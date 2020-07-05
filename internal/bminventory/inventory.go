@@ -543,7 +543,7 @@ func (c *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) er
 	success := true
 	err := errors.Errorf("Failed to install cluster <%s>", cluster.ID.String())
 	for i := range cluster.Hosts {
-		if _, installErr := c.b.hostApi.Install(c.ctx, cluster.Hosts[i], tx); installErr != nil {
+		if installErr := c.b.hostApi.Install(c.ctx, cluster.Hosts[i], tx); installErr != nil {
 			success = false
 			// collect multiple errors
 			err = errors.Wrap(installErr, err.Error())

@@ -143,29 +143,6 @@ var _ = Describe("known_state", func() {
 		})
 	})
 
-	Context("install", func() {
-		It("no_role", func() {
-			host.Role = ""
-			updateReply, updateErr = state.Install(ctx, &host, nil)
-			expectedReply.expectError = true
-		})
-		It("with_role", func() {
-			host.Role = "master"
-			updateReply, updateErr = state.Install(ctx, &host, nil)
-			expectedReply.expectedState = HostStatusInstalling
-		})
-		It("with_role_and_transaction", func() {
-			tx := db.Begin()
-			Expect(tx.Error).ShouldNot(HaveOccurred())
-			host.Role = "master"
-			updateReply, updateErr = state.Install(ctx, &host, tx)
-			expectedReply = nil
-			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
-			h := getHost(id, clusterId, db)
-			Expect(swag.StringValue(h.Status)).Should(Equal(currentState))
-		})
-	})
-
 	It("enable_host", func() {
 		updateReply, updateErr = state.EnableHost(ctx, &host)
 	})

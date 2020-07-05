@@ -181,7 +181,7 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	AfterEach(func() {
-		db.Close()
+		_ = db.Close()
 	})
 })
 
@@ -212,6 +212,164 @@ var _ = Describe("HostInstallationFailed", func() {
 	})
 
 	AfterEach(func() {
-		db.Close()
+		_ = db.Close()
+	})
+})
+
+var _ = Describe("Install", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	Context("install host", func() {
+		success := func(reply error) {
+			Expect(reply).To(BeNil())
+			h := getHost(hostId, clusterId, db)
+			Expect(*h.Status).Should(Equal(HostStatusInstalling))
+			Expect(*h.StatusInfo).Should(Equal(statusInfoInstalling))
+		}
+
+		failure := func(reply error) {
+			Expect(reply).To(HaveOccurred())
+		}
+
+		noChange := func(reply error) {
+			Expect(reply).To(BeNil())
+			h := getHost(hostId, clusterId, db)
+			Expect(*h.Status).Should(Equal(HostStatusDisabled))
+		}
+
+		tests := []struct {
+			name       string
+			srcState   string
+			role       string
+			validation func(error)
+		}{
+			{
+				name:       "known with role worker",
+				srcState:   HostStatusKnown,
+				role:       RoleWorker,
+				validation: success,
+			},
+			{
+				name:       "known with role master",
+				srcState:   HostStatusKnown,
+				role:       RoleMaster,
+				validation: success,
+			},
+			{
+				name:       "known without role",
+				srcState:   HostStatusKnown,
+				validation: failure,
+			},
+			{
+				name:       "disabled nothing change",
+				srcState:   HostStatusDisabled,
+				role:       RoleMaster,
+				validation: noChange,
+			},
+			{
+				name:       "disconnected",
+				srcState:   HostStatusDisconnected,
+				role:       RoleMaster,
+				validation: failure,
+			},
+			{
+				name:       "discovering",
+				srcState:   HostStatusDiscovering,
+				role:       RoleMaster,
+				validation: failure,
+			},
+			{
+				name:       "error",
+				srcState:   HostStatusError,
+				role:       RoleMaster,
+				validation: failure,
+			},
+			{
+				name:       "installed",
+				srcState:   HostStatusInstalled,
+				role:       RoleMaster,
+				validation: failure,
+			},
+			{
+				name:       "installing",
+				srcState:   HostStatusInstalling,
+				role:       RoleMaster,
+				validation: failure,
+			},
+			{
+				name:       "in-progress",
+				srcState:   HostStatusInstallingInProgress,
+				role:       RoleMaster,
+				validation: failure,
+			},
+			{
+				name:       "insufficient",
+				srcState:   HostStatusInsufficient,
+				role:       RoleMaster,
+				validation: failure,
+			},
+			{
+				name:       "resetting",
+				srcState:   HostStatusResetting,
+				role:       RoleMaster,
+				validation: failure,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				host = getTestHost(hostId, clusterId, t.srcState)
+				host.Role = t.role
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				t.validation(hapi.Install(ctx, &host, nil))
+			})
+		}
+	})
+
+	Context("install with transaction", func() {
+		BeforeEach(func() {
+			host = getTestHost(hostId, clusterId, HostStatusKnown)
+			host.Role = RoleMaster
+			host.StatusInfo = swag.String("known")
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
+
+		It("success", func() {
+			tx := db.Begin()
+			Expect(tx.Error).To(BeNil())
+			Expect(hapi.Install(ctx, &host, tx)).ShouldNot(HaveOccurred())
+			Expect(tx.Commit().Error).ShouldNot(HaveOccurred())
+			h := getHost(hostId, clusterId, db)
+			Expect(*h.Status).Should(Equal(HostStatusInstalling))
+			Expect(*h.StatusInfo).Should(Equal(statusInfoInstalling))
+		})
+
+		It("rollback transition", func() {
+			tx := db.Begin()
+			Expect(tx.Error).To(BeNil())
+			Expect(hapi.Install(ctx, &host, tx)).ShouldNot(HaveOccurred())
+			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
+			h := getHost(hostId, clusterId, db)
+			Expect(*h.Status).Should(Equal(HostStatusKnown))
+			Expect(*h.StatusInfo).Should(Equal("known"))
+		})
+	})
+
+	AfterEach(func() {
+		_ = db.Close()
 	})
 })

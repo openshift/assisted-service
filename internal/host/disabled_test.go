@@ -53,10 +53,6 @@ var _ = Describe("disabled_state", func() {
 		})
 	})
 
-	It("install", func() {
-		updateReply, updateErr = state.Install(ctx, &host, nil)
-	})
-
 	It("enable_host", func() {
 		updateReply, updateErr = state.EnableHost(ctx, &host)
 		expectedReply.expectedState = HostStatusDiscovering

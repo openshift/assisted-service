@@ -8,9 +8,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
-	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,11 +41,6 @@ func (d *discoveringState) UpdateInventory(ctx context.Context, h *models.Host, 
 
 func (d *discoveringState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	return checkAndUpdateSufficientHost(logutil.FromContext(ctx, d.log), h, db, d.hwValidator, d.connectivityValidator)
-}
-
-func (d *discoveringState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to install host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
 }
 
 func (d *discoveringState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {

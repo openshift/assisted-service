@@ -604,7 +604,7 @@ var _ = Describe("cluster", func() {
 		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 	setDefaultHostInstall := func(mockClusterApi *cluster.MockAPI) {
-		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
 	validateHostInventory := func(mockClusterApi *cluster.MockAPI) {
 		sufficient := validators.IsSufficientReply{IsSufficient: true}
@@ -958,7 +958,8 @@ var _ = Describe("cluster", func() {
 			setDefaultInstall(mockClusterApi)
 			setDefaultGetMasterNodesIds(mockClusterApi)
 
-			mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("host has a error")).AnyTimes()
+			mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(errors.Errorf("host has a error")).AnyTimes()
 			setDefaultHostGetHostValidDisks(mockClusterApi)
 			setDefaultHostSetBootstrap(mockClusterApi)
 

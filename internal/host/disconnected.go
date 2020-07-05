@@ -7,9 +7,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/hardware"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
-	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,11 +43,6 @@ func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host, d
 	}
 	// Stay in the same state
 	return defaultReply(h)
-}
-
-func (d *disconnectedState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to install host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
 }
 
 func (d *disconnectedState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
