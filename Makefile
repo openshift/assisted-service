@@ -68,7 +68,7 @@ build/bm-inventory-client/setup.py: swagger.yaml
 	cp swagger.yaml $(BUILD_FOLDER)
 	echo '{"packageName" : "bm_inventory_client", "packageVersion": "1.0.0"}' > $(BUILD_FOLDER)/code-gen-config.json
 	sed -i '/pattern:/d' $(BUILD_FOLDER)/swagger.yaml
-	docker run -it --rm -u $(shell id -u $(USER)) -v $(BUILD_FOLDER):/swagger-api/out \
+	docker run --rm -u $(shell id -u $(USER)) -v $(BUILD_FOLDER):/swagger-api/out \
 		-v $(BUILD_FOLDER)/swagger.yaml:/swagger.yaml:ro,Z -v $(BUILD_FOLDER)/code-gen-config.json:/config.json:ro,Z \
 		jimschubert/swagger-codegen-cli:2.3.1 generate --lang python --config /config.json --output ./bm-inventory-client/ --input-spec /swagger.yaml
 	rm -f $(BUILD_FOLDER)/swagger.yaml
