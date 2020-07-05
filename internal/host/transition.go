@@ -70,7 +70,7 @@ func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.State
 		return errors.New("PostRegisterDuringInstallation invalid argument")
 	}
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
-		"Tried to register during installation", sHost.host, th.db)
+		"The host unexpectedly restarted during the installation.", sHost.host, th.db)
 }
 
 ////////////////////////////////////////////////////////////////////////////
