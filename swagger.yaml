@@ -798,7 +798,11 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
-  
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /domains:
     get:
       tags:
