@@ -81,6 +81,7 @@ func updateClusterStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo 
 		return errors.Errorf("failed to update cluster %s state from %s to %s, nothing have changed",
 			c.ID.String(), srcStatus, swag.StringValue(c.Status))
 	}
+	c.StatusInfo = &statusInfo
 	log.Infof("Updated cluster <%s> status from <%s> to <%s> with fields: %s",
 		c.ID.String(), srcStatus, swag.StringValue(c.Status), updates)
 	return nil
