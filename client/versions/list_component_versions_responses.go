@@ -45,21 +45,23 @@ func NewListComponentVersionsOK() *ListComponentVersionsOK {
 Success.
 */
 type ListComponentVersionsOK struct {
-	Payload models.ListVersions
+	Payload *models.ListVersions
 }
 
 func (o *ListComponentVersionsOK) Error() string {
 	return fmt.Sprintf("[GET /component_versions][%d] listComponentVersionsOK  %+v", 200, o.Payload)
 }
 
-func (o *ListComponentVersionsOK) GetPayload() models.ListVersions {
+func (o *ListComponentVersionsOK) GetPayload() *models.ListVersions {
 	return o.Payload
 }
 
 func (o *ListComponentVersionsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
+	o.Payload = new(models.ListVersions)
+
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

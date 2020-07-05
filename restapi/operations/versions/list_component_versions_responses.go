@@ -25,7 +25,7 @@ type ListComponentVersionsOK struct {
 	/*
 	  In: Body
 	*/
-	Payload models.ListVersions `json:"body,omitempty"`
+	Payload *models.ListVersions `json:"body,omitempty"`
 }
 
 // NewListComponentVersionsOK creates ListComponentVersionsOK with default headers values
@@ -35,13 +35,13 @@ func NewListComponentVersionsOK() *ListComponentVersionsOK {
 }
 
 // WithPayload adds the payload to the list component versions o k response
-func (o *ListComponentVersionsOK) WithPayload(payload models.ListVersions) *ListComponentVersionsOK {
+func (o *ListComponentVersionsOK) WithPayload(payload *models.ListVersions) *ListComponentVersionsOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the list component versions o k response
-func (o *ListComponentVersionsOK) SetPayload(payload models.ListVersions) {
+func (o *ListComponentVersionsOK) SetPayload(payload *models.ListVersions) {
 	o.Payload = payload
 }
 
@@ -49,13 +49,10 @@ func (o *ListComponentVersionsOK) SetPayload(payload models.ListVersions) {
 func (o *ListComponentVersionsOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
-	payload := o.Payload
-	if payload == nil {
-		// return empty map
-		payload = models.ListVersions{}
-	}
-
-	if err := producer.Produce(rw, payload); err != nil {
-		panic(err) // let the recovery middleware deal with this
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
 	}
 }
