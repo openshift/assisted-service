@@ -6,13 +6,12 @@ package host
 
 import (
 	context "context"
-	reflect "reflect"
-
 	common "github.com/filanov/bm-inventory/internal/common"
 	validators "github.com/filanov/bm-inventory/internal/validators"
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
+	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface
@@ -81,36 +80,6 @@ func (m *MockStateAPI) RefreshStatus(ctx context.Context, h *models.Host, db *go
 func (mr *MockStateAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockStateAPI)(nil).RefreshStatus), ctx, h, db)
-}
-
-// EnableHost mocks base method
-func (m *MockStateAPI) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnableHost", ctx, h)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// EnableHost indicates an expected call of EnableHost
-func (mr *MockStateAPIMockRecorder) EnableHost(ctx, h interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableHost", reflect.TypeOf((*MockStateAPI)(nil).EnableHost), ctx, h)
-}
-
-// DisableHost mocks base method
-func (m *MockStateAPI) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DisableHost", ctx, h)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DisableHost indicates an expected call of DisableHost
-func (mr *MockStateAPIMockRecorder) DisableHost(ctx, h interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableHost", reflect.TypeOf((*MockStateAPI)(nil).DisableHost), ctx, h)
 }
 
 // MockSpecificHardwareParams is a mock of SpecificHardwareParams interface
@@ -260,36 +229,6 @@ func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 func (mr *MockAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, h, db)
-}
-
-// EnableHost mocks base method
-func (m *MockAPI) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnableHost", ctx, h)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// EnableHost indicates an expected call of EnableHost
-func (mr *MockAPIMockRecorder) EnableHost(ctx, h interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableHost", reflect.TypeOf((*MockAPI)(nil).EnableHost), ctx, h)
-}
-
-// DisableHost mocks base method
-func (m *MockAPI) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DisableHost", ctx, h)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DisableHost indicates an expected call of DisableHost
-func (mr *MockAPIMockRecorder) DisableHost(ctx, h interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableHost", reflect.TypeOf((*MockAPI)(nil).DisableHost), ctx, h)
 }
 
 // GetNextSteps mocks base method
@@ -459,6 +398,34 @@ func (m *MockAPI) GetHostname(h *models.Host) string {
 func (mr *MockAPIMockRecorder) GetHostname(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostname", reflect.TypeOf((*MockAPI)(nil).GetHostname), h)
+}
+
+// DisableHost mocks base method
+func (m *MockAPI) DisableHost(ctx context.Context, h *models.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisableHost", ctx, h)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DisableHost indicates an expected call of DisableHost
+func (mr *MockAPIMockRecorder) DisableHost(ctx, h interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableHost", reflect.TypeOf((*MockAPI)(nil).DisableHost), ctx, h)
+}
+
+// EnableHost mocks base method
+func (m *MockAPI) EnableHost(ctx context.Context, h *models.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableHost", ctx, h)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EnableHost indicates an expected call of EnableHost
+func (mr *MockAPIMockRecorder) EnableHost(ctx, h interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableHost", reflect.TypeOf((*MockAPI)(nil).EnableHost), ctx, h)
 }
 
 // Install mocks base method
