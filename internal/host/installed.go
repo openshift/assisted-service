@@ -36,16 +36,3 @@ func (i *installedState) RefreshStatus(ctx context.Context, h *models.Host, db *
 		IsChanged: false,
 	}, nil
 }
-
-func (i *installedState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	// State in the same state
-	return &UpdateReply{
-		State:     HostStatusInstalled,
-		IsChanged: false,
-	}, nil
-}
-
-func (i *installedState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to disable host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
-}

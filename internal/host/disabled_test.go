@@ -53,20 +53,6 @@ var _ = Describe("disabled_state", func() {
 		})
 	})
 
-	It("enable_host", func() {
-		updateReply, updateErr = state.EnableHost(ctx, &host)
-		expectedReply.expectedState = HostStatusDiscovering
-		expectedReply.postCheck = func() {
-			h := getHost(id, clusterId, db)
-			Expect(h.HardwareInfo).Should(Equal(""))
-			Expect(*h.StatusInfo).Should(Equal(""))
-		}
-	})
-
-	It("disable_host", func() {
-		updateReply, updateErr = state.DisableHost(ctx, &host)
-	})
-
 	AfterEach(func() {
 		postValidation(expectedReply, currentState, db, id, clusterId, updateReply, updateErr)
 		// cleanup

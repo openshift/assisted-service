@@ -373,3 +373,214 @@ var _ = Describe("Install", func() {
 		_ = db.Close()
 	})
 })
+
+var _ = Describe("Disable", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	Context("disable host", func() {
+		var srcState string
+		success := func(reply error) {
+			Expect(reply).To(BeNil())
+			h := getHost(hostId, clusterId, db)
+			Expect(*h.Status).Should(Equal(HostStatusDisabled))
+			Expect(*h.StatusInfo).Should(Equal(statusInfoDisabled))
+		}
+
+		failure := func(reply error) {
+			Expect(reply).To(HaveOccurred())
+			h := getHost(hostId, clusterId, db)
+			Expect(*h.Status).Should(Equal(srcState))
+		}
+
+		tests := []struct {
+			name       string
+			srcState   string
+			validation func(error)
+		}{
+			{
+				name:       "known",
+				srcState:   HostStatusKnown,
+				validation: success,
+			},
+			{
+				name:       "disabled nothing change",
+				srcState:   HostStatusDisabled,
+				validation: failure,
+			},
+			{
+				name:       "disconnected",
+				srcState:   HostStatusDisconnected,
+				validation: success,
+			},
+			{
+				name:       "discovering",
+				srcState:   HostStatusDiscovering,
+				validation: success,
+			},
+			{
+				name:       "error",
+				srcState:   HostStatusError,
+				validation: failure,
+			},
+			{
+				name:       "installed",
+				srcState:   HostStatusInstalled,
+				validation: failure,
+			},
+			{
+				name:       "installing",
+				srcState:   HostStatusInstalling,
+				validation: failure,
+			},
+			{
+				name:       "in-progress",
+				srcState:   HostStatusInstallingInProgress,
+				validation: failure,
+			},
+			{
+				name:       "insufficient",
+				srcState:   HostStatusInsufficient,
+				validation: success,
+			},
+			{
+				name:       "resetting",
+				srcState:   HostStatusResetting,
+				validation: failure,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				srcState = t.srcState
+				host = getTestHost(hostId, clusterId, srcState)
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				t.validation(hapi.DisableHost(ctx, &host))
+			})
+		}
+	})
+
+	AfterEach(func() {
+		_ = db.Close()
+	})
+})
+
+var _ = Describe("Enable", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	Context("enable host", func() {
+		var srcState string
+		success := func(reply error) {
+			Expect(reply).To(BeNil())
+			h := getHost(hostId, clusterId, db)
+			Expect(*h.Status).Should(Equal(HostStatusDiscovering))
+			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
+			Expect(h.HardwareInfo).Should(Equal(""))
+		}
+
+		failure := func(reply error) {
+			Expect(reply).Should(HaveOccurred())
+			h := getHost(hostId, clusterId, db)
+			Expect(*h.Status).Should(Equal(srcState))
+			Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+		}
+
+		tests := []struct {
+			name       string
+			srcState   string
+			validation func(error)
+		}{
+			{
+				name:       "known",
+				srcState:   HostStatusKnown,
+				validation: failure,
+			},
+			{
+				name:       "disabled to enable",
+				srcState:   HostStatusDisabled,
+				validation: success,
+			},
+			{
+				name:       "disconnected",
+				srcState:   HostStatusDisconnected,
+				validation: failure,
+			},
+			{
+				name:       "discovering",
+				srcState:   HostStatusDiscovering,
+				validation: failure,
+			},
+			{
+				name:       "error",
+				srcState:   HostStatusError,
+				validation: failure,
+			},
+			{
+				name:       "installed",
+				srcState:   HostStatusInstalled,
+				validation: failure,
+			},
+			{
+				name:       "installing",
+				srcState:   HostStatusInstalling,
+				validation: failure,
+			},
+			{
+				name:       "in-progress",
+				srcState:   HostStatusInstallingInProgress,
+				validation: failure,
+			},
+			{
+				name:       "insufficient",
+				srcState:   HostStatusInsufficient,
+				validation: failure,
+			},
+			{
+				name:       "resetting",
+				srcState:   HostStatusResetting,
+				validation: failure,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				srcState = t.srcState
+				host = getTestHost(hostId, clusterId, srcState)
+				host.HardwareInfo = defaultHwInfo
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				t.validation(hapi.EnableHost(ctx, &host))
+			})
+		}
+	})
+
+	AfterEach(func() {
+		_ = db.Close()
+	})
+})

@@ -35,15 +35,3 @@ func (r *resettingState) RefreshStatus(ctx context.Context, h *models.Host, db *
 		IsChanged: false,
 	}, nil
 }
-
-func (r *resettingState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return &UpdateReply{
-		State:     HostStatusResetting,
-		IsChanged: false,
-	}, nil
-}
-
-func (r *resettingState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to disable host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
-}

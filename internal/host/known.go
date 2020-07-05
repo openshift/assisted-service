@@ -42,15 +42,3 @@ func (k *knownState) UpdateInventory(ctx context.Context, h *models.Host, invent
 func (k *knownState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	return checkAndUpdateSufficientHost(logutil.FromContext(ctx, k.log), h, db, k.hwValidator, k.connectivityValidator)
 }
-
-func (k *knownState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	// State in the same state
-	return &UpdateReply{
-		State:     HostStatusKnown,
-		IsChanged: false,
-	}, nil
-}
-
-func (k *knownState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateState(logutil.FromContext(ctx, k.log), HostStatusDisabled, statusInfoDisabled, h, k.db)
-}

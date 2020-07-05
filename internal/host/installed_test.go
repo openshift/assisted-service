@@ -53,15 +53,6 @@ var _ = Describe("installed_state", func() {
 		})
 	})
 
-	It("enable_host", func() {
-		updateReply, updateErr = state.EnableHost(ctx, &host)
-	})
-
-	It("disable_host", func() {
-		updateReply, updateErr = state.DisableHost(ctx, &host)
-		expectedReply.expectError = true
-	})
-
 	AfterEach(func() {
 		postValidation(expectedReply, currentState, db, id, clusterId, updateReply, updateErr)
 		// cleanup

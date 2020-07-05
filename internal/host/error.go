@@ -36,16 +36,3 @@ func (e *errorState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm
 		IsChanged: false,
 	}, nil
 }
-
-func (e *errorState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	// State in the same state
-	return &UpdateReply{
-		State:     HostStatusError,
-		IsChanged: false,
-	}, nil
-}
-
-func (e *errorState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to disable host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
-}
