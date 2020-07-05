@@ -38,6 +38,9 @@ const (
 	// HostStageRebooting captures enum value "Rebooting"
 	HostStageRebooting HostStage = "Rebooting"
 
+	// HostStageConfiguring captures enum value "Configuring"
+	HostStageConfiguring HostStage = "Configuring"
+
 	// HostStageJoined captures enum value "Joined"
 	HostStageJoined HostStage = "Joined"
 
@@ -53,7 +56,7 @@ var hostStageEnum []interface{}
 
 func init() {
 	var res []HostStage
-	if err := json.Unmarshal([]byte(`["Starting installation","Start Waiting for control plane","Installing","Writing image to disk","Finish Waiting for control plane","Rebooting","Joined","Done","Failed"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Starting installation","Start Waiting for control plane","Installing","Writing image to disk","Finish Waiting for control plane","Rebooting","Configuring","Joined","Done","Failed"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

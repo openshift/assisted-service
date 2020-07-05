@@ -2102,6 +2102,7 @@ func init() {
         "Writing image to disk",
         "Finish Waiting for control plane",
         "Rebooting",
+        "Configuring",
         "Joined",
         "Done",
         "Failed"
@@ -4591,6 +4592,7 @@ func init() {
         "Writing image to disk",
         "Finish Waiting for control plane",
         "Rebooting",
+        "Configuring",
         "Joined",
         "Done",
         "Failed"
