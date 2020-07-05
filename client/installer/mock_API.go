@@ -84,15 +84,15 @@ func (_m *MockAPI) DeregisterHost(ctx context.Context, params *DeregisterHostPar
 }
 
 // DisableHost provides a mock function with given fields: ctx, params
-func (_m *MockAPI) DisableHost(ctx context.Context, params *DisableHostParams) (*DisableHostNoContent, error) {
+func (_m *MockAPI) DisableHost(ctx context.Context, params *DisableHostParams) (*DisableHostOK, error) {
 	ret := _m.Called(ctx, params)
 
-	var r0 *DisableHostNoContent
-	if rf, ok := ret.Get(0).(func(context.Context, *DisableHostParams) *DisableHostNoContent); ok {
+	var r0 *DisableHostOK
+	if rf, ok := ret.Get(0).(func(context.Context, *DisableHostParams) *DisableHostOK); ok {
 		r0 = rf(ctx, params)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*DisableHostNoContent)
+			r0 = ret.Get(0).(*DisableHostOK)
 		}
 	}
 
@@ -176,15 +176,15 @@ func (_m *MockAPI) DownloadClusterKubeconfig(ctx context.Context, params *Downlo
 }
 
 // EnableHost provides a mock function with given fields: ctx, params
-func (_m *MockAPI) EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostNoContent, error) {
+func (_m *MockAPI) EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostOK, error) {
 	ret := _m.Called(ctx, params)
 
-	var r0 *EnableHostNoContent
-	if rf, ok := ret.Get(0).(func(context.Context, *EnableHostParams) *EnableHostNoContent); ok {
+	var r0 *EnableHostOK
+	if rf, ok := ret.Get(0).(func(context.Context, *EnableHostParams) *EnableHostOK); ok {
 		r0 = rf(ctx, params)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*EnableHostNoContent)
+			r0 = ret.Get(0).(*EnableHostOK)
 		}
 	}
 

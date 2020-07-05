@@ -23,8 +23,8 @@ type DisableHostReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DisableHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 204:
-		result := NewDisableHostNoContent()
+	case 200:
+		result := NewDisableHostOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -53,23 +53,35 @@ func (o *DisableHostReader) ReadResponse(response runtime.ClientResponse, consum
 	}
 }
 
-// NewDisableHostNoContent creates a DisableHostNoContent with default headers values
-func NewDisableHostNoContent() *DisableHostNoContent {
-	return &DisableHostNoContent{}
+// NewDisableHostOK creates a DisableHostOK with default headers values
+func NewDisableHostOK() *DisableHostOK {
+	return &DisableHostOK{}
 }
 
-/*DisableHostNoContent handles this case with default header values.
+/*DisableHostOK handles this case with default header values.
 
 Success.
 */
-type DisableHostNoContent struct {
+type DisableHostOK struct {
+	Payload *models.Host
 }
 
-func (o *DisableHostNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostNoContent ", 204)
+func (o *DisableHostOK) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostOK  %+v", 200, o.Payload)
 }
 
-func (o *DisableHostNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *DisableHostOK) GetPayload() *models.Host {
+	return o.Payload
+}
+
+func (o *DisableHostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Host)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
