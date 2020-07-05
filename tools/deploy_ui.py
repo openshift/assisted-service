@@ -14,7 +14,7 @@ def main():
 
     dst_file = os.path.join(os.getcwd(), "build/deploy_ui.yaml")
     image_fqdn = deployment_options.get_image_override(deploy_options, "ocp-metal-ui", "UI_IMAGE")
-    cmd = 'docker run {image} /deploy/deploy_config.sh -i {image}'.format(image=image_fqdn)
+    cmd = '{command} run {image} /deploy/deploy_config.sh -i {image}'.format(command=utils.get_runtime_command(), image=image_fqdn)
     cmd += ' > {}'.format(dst_file)
     utils.check_output(cmd)
     print("Deploying {}".format(dst_file))
