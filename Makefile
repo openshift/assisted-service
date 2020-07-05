@@ -87,8 +87,6 @@ else ifdef DEPLOY_MANIFEST_PATH
   DEPLOY_TAG_OPTION = --deploy-manifest-path "$(DEPLOY_MANIFEST_PATH)"
 else ifdef DEPLOY_MANIFEST_TAG
   DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
-else
-  DEPLOY_TAG_OPTION = ''
 endif
 
 deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-route53 deploy-service deploy-expirer
