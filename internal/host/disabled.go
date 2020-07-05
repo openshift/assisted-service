@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/filanov/bm-inventory/models"
-	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -32,17 +31,4 @@ func (d *disabledState) UpdateInventory(ctx context.Context, h *models.Host, inv
 
 func (d *disabledState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	return defaultReply(h)
-}
-
-func (d *disabledState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDiscovering, "", h, d.db,
-		"hardware_info", "")
-}
-
-func (d *disabledState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	// State in the same state
-	return &UpdateReply{
-		State:     HostStatusDisabled,
-		IsChanged: false,
-	}, nil
 }

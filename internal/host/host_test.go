@@ -59,14 +59,6 @@ var _ = Describe("statemachine", func() {
 
 	Context("unknown_host_state", func() {
 
-		It("enable_host", func() {
-			stateReply, stateErr = state.EnableHost(ctx, &host)
-		})
-
-		It("disable_host", func() {
-			stateReply, stateErr = state.DisableHost(ctx, &host)
-		})
-
 		It("update_hw_info", func() {
 			stateReply, stateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
 		})

@@ -148,15 +148,6 @@ var _ = Describe("discovering_state", func() {
 		})
 	})
 
-	It("enable_host", func() {
-		updateReply, updateErr = state.EnableHost(ctx, &host)
-	})
-
-	It("disable_host", func() {
-		updateReply, updateErr = state.DisableHost(ctx, &host)
-		expectedReply.expectedState = HostStatusDisabled
-	})
-
 	AfterEach(func() {
 		ctrl.Finish()
 		postValidation(expectedReply, currentState, db, id, clusterId, updateReply, updateErr)

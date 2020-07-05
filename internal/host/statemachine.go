@@ -8,6 +8,8 @@ const (
 	TransitionTypeCancelInstallation     = "CancelInstallation"
 	TransitionTypeResetHost              = "ResetHost"
 	TransitionTypeInstallHost            = "InstallHost"
+	TransitionTypeDisableHost            = "DisableHost"
+	TransitionTypeEnableHost             = "EnableHost"
 )
 
 func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -73,6 +75,29 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		TransitionType:   TransitionTypeInstallHost,
 		SourceStates:     []stateswitch.State{HostStatusDisabled},
 		DestinationState: HostStatusDisabled,
+	})
+
+	// Disable host
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeDisableHost,
+		SourceStates: []stateswitch.State{
+			HostStatusDisconnected,
+			HostStatusDiscovering,
+			HostStatusInsufficient,
+			HostStatusKnown,
+		},
+		DestinationState: HostStatusDisabled,
+		PostTransition:   th.PostDisableHost,
+	})
+
+	// Enable host
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeEnableHost,
+		SourceStates: []stateswitch.State{
+			HostStatusDisabled,
+		},
+		DestinationState: HostStatusDiscovering,
+		PostTransition:   th.PostEnableHost,
 	})
 
 	return sm

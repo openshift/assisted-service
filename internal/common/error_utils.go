@@ -65,3 +65,12 @@ func GenerateErrorResponder(err error) middleware.Responder {
 		return NewApiError(http.StatusInternalServerError, err)
 	}
 }
+
+func GenerateErrorResponderWithDefault(err error, defaultCode int32) middleware.Responder {
+	switch errValue := err.(type) {
+	case *ApiErrorResponse:
+		return errValue
+	default:
+		return NewApiError(defaultCode, err)
+	}
+}

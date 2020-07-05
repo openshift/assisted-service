@@ -1283,14 +1283,17 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 	log.Info("disabling host: ", params.HostID)
 
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
-		return installer.NewDisableHostNotFound().
-			WithPayload(common.GenerateError(http.StatusNotFound, err))
+		if gorm.IsRecordNotFoundError(err) {
+			log.WithError(err).Errorf("host %s not found", params.HostID)
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		log.WithError(err).Errorf("failed to get host %s", params.HostID)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if _, err := b.hostApi.DisableHost(ctx, &host); err != nil {
+	if err := b.hostApi.DisableHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		return installer.NewDisableHostConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, err))
+		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
 	return installer.NewDisableHostOK().WithPayload(&host)
 }
@@ -1301,14 +1304,17 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 	log.Info("enable host: ", params.HostID)
 
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
-		return installer.NewEnableHostNotFound().
-			WithPayload(common.GenerateError(http.StatusNotFound, err))
+		if gorm.IsRecordNotFoundError(err) {
+			log.WithError(err).Errorf("host %s not found", params.HostID)
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		log.WithError(err).Errorf("failed to get host %s", params.HostID)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if _, err := b.hostApi.EnableHost(ctx, &host); err != nil {
+	if err := b.hostApi.EnableHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to enable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		return installer.NewEnableHostConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, err))
+		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
 	return installer.NewEnableHostOK().WithPayload(&host)
 }

@@ -44,15 +44,3 @@ func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host, d
 	// Stay in the same state
 	return defaultReply(h)
 }
-
-func (d *disconnectedState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	// State in the same state
-	return &UpdateReply{
-		State:     HostStatusDisconnected,
-		IsChanged: false,
-	}, nil
-}
-
-func (d *disconnectedState) DisableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
-	return updateState(logutil.FromContext(ctx, d.log), HostStatusDisabled, statusInfoDisabled, h, d.db)
-}

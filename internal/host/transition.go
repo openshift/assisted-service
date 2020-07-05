@@ -161,7 +161,7 @@ func (th *transitionHandler) IsValidRoleForInstallation(sw stateswitch.StateSwit
 	validRoles := []string{models.HostRoleMaster, models.HostRoleWorker}
 	if !funk.ContainsString(validRoles, sHost.host.Role) {
 		return false, common.NewApiError(http.StatusConflict,
-			errors.Errorf("Can't install host %s doe to invalid host role: %s, should be one of %s",
+			errors.Errorf("Can't install host %s due to invalid host role: %s, should be one of %s",
 				sHost.host.ID.String(), sHost.host.Role, validRoles))
 	}
 	return true, nil
@@ -178,4 +178,46 @@ func (th *transitionHandler) PostInstallHost(sw stateswitch.StateSwitch, args st
 	}
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState, statusInfoInstalling,
 		sHost.host, params.db)
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Disable host
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsDisableHost struct {
+	ctx context.Context
+}
+
+func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostDisableHost incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsDisableHost)
+	if !ok {
+		return errors.New("PostDisableHost invalid argument")
+	}
+	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState, statusInfoDisabled,
+		sHost.host, th.db)
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Enable host
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsEnableHost struct {
+	ctx context.Context
+}
+
+func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostEnableHost incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsEnableHost)
+	if !ok {
+		return errors.New("PostEnableHost invalid argument")
+	}
+	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState, statusInfoDiscovering,
+		sHost.host, th.db, "hardware_info", "")
 }
