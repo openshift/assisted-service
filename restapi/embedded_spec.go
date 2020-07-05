@@ -711,12 +711,6 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
           }
         }
       }
@@ -968,8 +962,11 @@ func init() {
           }
         ],
         "responses": {
-          "204": {
-            "description": "Success."
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
           },
           "404": {
             "description": "Error.",
@@ -1014,8 +1011,11 @@ func init() {
           }
         ],
         "responses": {
-          "204": {
-            "description": "Success."
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
           },
           "404": {
             "description": "Error.",
@@ -3125,12 +3125,6 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
           }
         }
       }
@@ -3382,8 +3376,11 @@ func init() {
           }
         ],
         "responses": {
-          "204": {
-            "description": "Success."
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
           },
           "404": {
             "description": "Error.",
@@ -3428,8 +3425,11 @@ func init() {
           }
         ],
         "responses": {
-          "204": {
-            "description": "Success."
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
           },
           "404": {
             "description": "Error.",

@@ -13,28 +13,48 @@ import (
 	"github.com/filanov/bm-inventory/models"
 )
 
-// EnableHostNoContentCode is the HTTP code returned for type EnableHostNoContent
-const EnableHostNoContentCode int = 204
+// EnableHostOKCode is the HTTP code returned for type EnableHostOK
+const EnableHostOKCode int = 200
 
-/*EnableHostNoContent Success.
+/*EnableHostOK Success.
 
-swagger:response enableHostNoContent
+swagger:response enableHostOK
 */
-type EnableHostNoContent struct {
+type EnableHostOK struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Host `json:"body,omitempty"`
 }
 
-// NewEnableHostNoContent creates EnableHostNoContent with default headers values
-func NewEnableHostNoContent() *EnableHostNoContent {
+// NewEnableHostOK creates EnableHostOK with default headers values
+func NewEnableHostOK() *EnableHostOK {
 
-	return &EnableHostNoContent{}
+	return &EnableHostOK{}
+}
+
+// WithPayload adds the payload to the enable host o k response
+func (o *EnableHostOK) WithPayload(payload *models.Host) *EnableHostOK {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the enable host o k response
+func (o *EnableHostOK) SetPayload(payload *models.Host) {
+	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *EnableHostNoContent) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *EnableHostOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(204)
+	rw.WriteHeader(200)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 // EnableHostNotFoundCode is the HTTP code returned for type EnableHostNotFound
