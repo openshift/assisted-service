@@ -28,6 +28,9 @@ jobs:
     - name: Get release version
       id: get_version
       run: echo ::set-env name=GIT_REVISION::$(echo ${GITHUB_SHA})
+    - name: create python client
+      run: |
+        skipper make create-python-client
     - name: Publish bm-inventory to Registry
       uses: elgohr/Publish-Docker-Github-Action@2.15
       with:
