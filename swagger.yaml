@@ -875,6 +875,14 @@ definitions:
 
   list-versions:
     type: object
+    properties:
+      versions:
+        $ref: '#/definitions/versions'
+      release_tag:
+        type: string
+
+  versions:
+    type: object
     additionalProperties:
       type: string
 
