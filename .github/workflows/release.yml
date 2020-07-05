@@ -1,4 +1,4 @@
-name: image-push
+name: release
 
 on:
   push:
