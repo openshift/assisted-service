@@ -34,10 +34,6 @@ func (d *disabledState) RefreshStatus(ctx context.Context, h *models.Host, db *g
 	return defaultReply(h)
 }
 
-func (d *disabledState) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	return defaultReply(h)
-}
-
 func (d *disabledState) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	return updateStateWithParams(logutil.FromContext(ctx, d.log), HostStatusDiscovering, "", h, d.db,
 		"hardware_info", "")

@@ -67,10 +67,6 @@ var _ = Describe("statemachine", func() {
 			stateReply, stateErr = state.DisableHost(ctx, &host)
 		})
 
-		It("install", func() {
-			stateReply, stateErr = state.Install(ctx, &host, nil)
-		})
-
 		It("update_hw_info", func() {
 			stateReply, stateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
 		})
