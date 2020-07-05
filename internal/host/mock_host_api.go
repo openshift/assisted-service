@@ -82,21 +82,6 @@ func (mr *MockStateAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockStateAPI)(nil).RefreshStatus), ctx, h, db)
 }
 
-// Install mocks base method
-func (m *MockStateAPI) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Install", ctx, h, db)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Install indicates an expected call of Install
-func (mr *MockStateAPIMockRecorder) Install(ctx, h, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockStateAPI)(nil).Install), ctx, h, db)
-}
-
 // EnableHost mocks base method
 func (m *MockStateAPI) EnableHost(ctx context.Context, h *models.Host) (*UpdateReply, error) {
 	m.ctrl.T.Helper()
@@ -274,21 +259,6 @@ func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 func (mr *MockAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, h, db)
-}
-
-// Install mocks base method
-func (m *MockAPI) Install(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Install", ctx, h, db)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Install indicates an expected call of Install
-func (mr *MockAPIMockRecorder) Install(ctx, h, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockAPI)(nil).Install), ctx, h, db)
 }
 
 // EnableHost mocks base method
@@ -474,4 +444,18 @@ func (m *MockAPI) GetHostname(h *models.Host) string {
 func (mr *MockAPIMockRecorder) GetHostname(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostname", reflect.TypeOf((*MockAPI)(nil).GetHostname), h)
+}
+
+// Install mocks base method
+func (m *MockAPI) Install(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Install", ctx, h, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Install indicates an expected call of Install
+func (mr *MockAPIMockRecorder) Install(ctx, h, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockAPI)(nil).Install), ctx, h, db)
 }
