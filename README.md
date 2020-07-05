@@ -111,6 +111,9 @@ This service support optional UI deployment.
 
 `skipper make deploy-ui`
 
+* In case you are using podman run the above command without skipper.
+
+
 For OpenShift users, look at the service deployment options on OpenShift platform.
 
 ### Deploy Monitoring
