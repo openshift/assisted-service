@@ -75,9 +75,12 @@ func updateStateWithParams(log logrus.FieldLogger, status, statusInfo string, h 
 	}
 	log.Infof("Updated host <%s> status from <%s> to <%s> with fields: %s",
 		h.ID.String(), swag.StringValue(h.Status), status, updates)
+	isChanged := status != swag.StringValue(h.Status)
+	h.Status = &status
+	h.StatusInfo = &statusInfo
 	return &UpdateReply{
 		State:     status,
-		IsChanged: status != swag.StringValue(h.Status),
+		IsChanged: isChanged,
 	}, nil
 }
 

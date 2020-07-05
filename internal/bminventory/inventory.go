@@ -1292,7 +1292,7 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 		return installer.NewDisableHostConflict().
 			WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
-	return installer.NewDisableHostNoContent()
+	return installer.NewDisableHostOK().WithPayload(&host)
 }
 
 func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder {
@@ -1310,7 +1310,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 		return installer.NewEnableHostConflict().
 			WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
-	return installer.NewEnableHostNoContent()
+	return installer.NewEnableHostOK().WithPayload(&host)
 }
 
 func (b *bareMetalInventory) createKubeconfigJob(cluster *common.Cluster, jobName string, cfg []byte) *batch.Job {
@@ -1679,7 +1679,7 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 	}
 	txSuccess = true
 
-	return installer.NewCancelInstallationAccepted()
+	return installer.NewCancelInstallationAccepted().WithPayload(&c.Cluster)
 }
 
 func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder {
@@ -1731,7 +1731,7 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 	}
 	txSuccess = true
 
-	return installer.NewResetClusterAccepted()
+	return installer.NewResetClusterAccepted().WithPayload(&c.Cluster)
 }
 
 func (b *bareMetalInventory) createDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
