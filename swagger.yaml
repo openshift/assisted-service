@@ -646,8 +646,10 @@ paths:
           format: uuid
           required: true
       responses:
-        204:
+        200:
           description: Success.
+          schema:
+            $ref: '#/definitions/host'
         404:
           description: Error.
           schema:
@@ -678,8 +680,10 @@ paths:
           format: uuid
           required: true
       responses:
-        204:
+        200:
           description: Success.
+          schema:
+            $ref: '#/definitions/host'
         404:
           description: Error.
           schema:
