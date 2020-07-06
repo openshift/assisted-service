@@ -158,6 +158,7 @@ deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
 unit-test:
 	go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) -cover
+	python3 ./tools/expirer_test.py
 
 #########
 # Clean #

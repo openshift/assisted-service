@@ -64,17 +64,32 @@ func (mr *MockS3ClientMockRecorder) DownloadFileFromS3(ctx, fileName, s3Bucket i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadFileFromS3", reflect.TypeOf((*MockS3Client)(nil).DownloadFileFromS3), ctx, fileName, s3Bucket)
 }
 
-// DoesObjectExists mocks base method
-func (m *MockS3Client) DoesObjectExists(ctx context.Context, fileName, s3Bucket string) (bool, error) {
+// DoesObjectExist mocks base method
+func (m *MockS3Client) DoesObjectExist(ctx context.Context, fileName, s3Bucket string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoesObjectExists", ctx, fileName, s3Bucket)
+	ret := m.ctrl.Call(m, "DoesObjectExist", ctx, fileName, s3Bucket)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// DoesObjectExists indicates an expected call of DoesObjectExists
-func (mr *MockS3ClientMockRecorder) DoesObjectExists(ctx, fileName, s3Bucket interface{}) *gomock.Call {
+// DoesObjectExist indicates an expected call of DoesObjectExist
+func (mr *MockS3ClientMockRecorder) DoesObjectExist(ctx, fileName, s3Bucket interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoesObjectExists", reflect.TypeOf((*MockS3Client)(nil).DoesObjectExists), ctx, fileName, s3Bucket)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoesObjectExist", reflect.TypeOf((*MockS3Client)(nil).DoesObjectExist), ctx, fileName, s3Bucket)
+}
+
+// DoesObjectExist mocks base method
+func (m *MockS3Client) UpdateObjectTag(ctx context.Context, objectName, s3Bucket, key, value string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateObjectTag", ctx, objectName, s3Bucket, key, value)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateObjectTag indicates an expected call of UpdateObjectTag
+func (mr *MockS3ClientMockRecorder) UpdateObjectTag(ctx, objectName, s3Bucket, key, value interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateObjectTag", reflect.TypeOf((*MockS3Client)(nil).UpdateObjectTag), ctx, objectName, s3Bucket, key, value)
 }

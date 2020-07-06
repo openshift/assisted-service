@@ -18,7 +18,8 @@ import (
 type S3Client interface {
 	PushDataToS3(ctx context.Context, data []byte, fileName string, s3Bucket string) error
 	DownloadFileFromS3(ctx context.Context, fileName string, s3Bucket string) (io.ReadCloser, int64, error)
-	DoesObjectExists(ctx context.Context, fileName string, s3Bucket string) (bool, error)
+	DoesObjectExist(ctx context.Context, fileName string, s3Bucket string) (bool, error)
+	UpdateObjectTag(ctx context.Context, objectName, s3Bucket, key, value string) (bool, error)
 }
 
 type s3Client struct {
@@ -71,7 +72,7 @@ func (s s3Client) DownloadFileFromS3(ctx context.Context, fileName string, s3Buc
 	return resp, contentLength, nil
 }
 
-func (s s3Client) DoesObjectExists(ctx context.Context, objectName string, s3Bucket string) (bool, error) {
+func (s s3Client) DoesObjectExist(ctx context.Context, objectName string, s3Bucket string) (bool, error) {
 	log := logutil.FromContext(ctx, s.log)
 	log.Infof("Verifying if %s exists in %s", objectName, s3Bucket)
 	_, err := s.client.StatObject(s3Bucket, objectName, minio.StatObjectOptions{})
@@ -81,6 +82,22 @@ func (s s3Client) DoesObjectExists(ctx context.Context, objectName string, s3Buc
 			return false, nil
 		}
 		return false, errors.Wrap(err, fmt.Sprintf("failed to get %s from %s", objectName, s3Bucket))
+	}
+	return true, nil
+}
+
+func (s s3Client) UpdateObjectTag(ctx context.Context, objectName, s3Bucket, key, value string) (bool, error) {
+	log := logutil.FromContext(ctx, s.log)
+	log.Infof("Adding tag: %s - %s", key, value)
+	tags := map[string]string{key: value}
+	err := s.client.PutObjectTagging(s3Bucket, objectName, tags)
+	if err != nil {
+		errResponse := minio.ToErrorResponse(err)
+		if errResponse.Code == "NoSuchKey" {
+			return false, nil
+		}
+		log.Errorf("Updating object tag failed: %s", errResponse.Code)
+		return false, errors.Wrap(err, fmt.Sprintf("failed to update tags on %s/%s", s3Bucket, objectName))
 	}
 	return true, nil
 }
