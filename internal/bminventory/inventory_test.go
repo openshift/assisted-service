@@ -1274,7 +1274,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 	})
 
 	objectExists := func() {
-		mockS3Client.EXPECT().DoesObjectExists(ctx, kubeconfigObject, "test").Return(false, nil).Times(1)
+		mockS3Client.EXPECT().DoesObjectExist(ctx, kubeconfigObject, "test").Return(false, nil).Times(1)
 	}
 
 	It("UploadClusterIngressCert no cluster id", func() {
@@ -1297,18 +1297,18 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		status := ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
-		mockS3Client.EXPECT().DoesObjectExists(ctx, kubeconfigObject, "test").Return(true, nil).Times(1)
+		mockS3Client.EXPECT().DoesObjectExist(ctx, kubeconfigObject, "test").Return(true, nil).Times(1)
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewUploadClusterIngressCertCreated()))
 	})
-	It("UploadClusterIngressCert DoesObjectExists fails ", func() {
+	It("UploadClusterIngressCert DoesObjectExist fails ", func() {
 		status := ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
-		mockS3Client.EXPECT().DoesObjectExists(ctx, kubeconfigObject, "test").Return(true, errors.Errorf("dummy")).Times(1)
+		mockS3Client.EXPECT().DoesObjectExist(ctx, kubeconfigObject, "test").Return(true, errors.Errorf("dummy")).Times(1)
 		generateReply := bm.UploadClusterIngressCert(ctx, installer.UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,

@@ -423,6 +423,23 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		return installer.NewGenerateClusterISOConflict()
 	}
 
+	/* If the request has the same parameters as the previous request and the image is still in S3,
+	just refresh the timestamp.
+	*/
+	var imageExists bool
+	if cluster.ImageInfo.ProxyURL == params.ImageCreateParams.ProxyURL &&
+		cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
+		cluster.ImageInfo.GeneratorVersion == b.Config.ImageBuilder {
+		var err error
+		imgName := getImageName(params.ClusterID)
+		imageExists, err = b.s3Client.UpdateObjectTag(ctx, imgName, b.S3Bucket, "create_sec_since_epoch", strconv.FormatInt(now.Unix(), 10))
+		if err != nil {
+			log.WithError(tx.Error).Errorf("failed to contact storage backend")
+			return installer.NewInstallClusterInternalServerError().
+				WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("failed to contact storage backend")))
+		}
+	}
+
 	updates := map[string]interface{}{}
 	updates["image_proxy_url"] = params.ImageCreateParams.ProxyURL
 	updates["image_ssh_public_key"] = params.ImageCreateParams.SSHPublicKey
@@ -443,6 +460,12 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
 		return installer.NewUpdateClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	if imageExists {
+		log.Infof("Re-used existing cluster <%s> image", params.ClusterID)
+		b.eventsHandler.AddEvent(ctx, cluster.ID.String(), "Re-used existing image rather than generating a new one", time.Now())
+		return installer.NewGenerateClusterISOCreated().WithPayload(&cluster.Cluster)
 	}
 
 	// Kill the previous job in case it's still running
@@ -1552,7 +1575,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 	}
 
 	fileName := fmt.Sprintf("%s/%s", cluster.ID, kubeconfig)
-	exists, err := b.s3Client.DoesObjectExists(ctx, fileName, b.S3Bucket)
+	exists, err := b.s3Client.DoesObjectExist(ctx, fileName, b.S3Bucket)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload ingress ca")
 		return installer.NewUploadClusterIngressCertInternalServerError().
