@@ -79,11 +79,11 @@ var _ = Describe("installer", func() {
 		It("test getting master ids", func() {
 
 			for i := 0; i < 3; i++ {
-				hostsIds = append(hostsIds, addHost("master", host.HostStatusKnown, id, db))
+				hostsIds = append(hostsIds, addHost(models.HostRoleMaster, host.HostStatusKnown, id, db))
 			}
 			masterKnownIds := hostsIds
-			hostsIds = append(hostsIds, addHost("worker", host.HostStatusKnown, id, db))
-			hostsIds = append(hostsIds, addHost("master", host.HostStatusDiscovering, id, db))
+			hostsIds = append(hostsIds, addHost(models.HostRoleWorker, host.HostStatusKnown, id, db))
+			hostsIds = append(hostsIds, addHost(models.HostRoleMaster, host.HostStatusDiscovering, id, db))
 
 			replyMasterNodesIds, err := installerManager.GetMasterNodesIds(ctx, &cluster, db)
 			Expect(err).Should(BeNil())
@@ -104,7 +104,7 @@ func updateClusterState(cluster common.Cluster, state string, db *gorm.DB) commo
 	return cluster
 }
 
-func addHost(role string, state string, clusterId strfmt.UUID, db *gorm.DB) strfmt.UUID {
+func addHost(role models.HostRole, state string, clusterId strfmt.UUID, db *gorm.DB) strfmt.UUID {
 
 	hostId := strfmt.UUID(uuid.New().String())
 	host := models.Host{

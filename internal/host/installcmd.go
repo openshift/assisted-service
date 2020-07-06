@@ -45,7 +45,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 
 	var role = host.Role
 	if host.Bootstrap {
-		role = RoleBootstrap
+		role = models.HostRoleBootstrap
 	}
 
 	cmdArgsTmpl := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host --net=host " +
@@ -57,7 +57,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"PORT":              i.instructionConfig.InventoryPort,
 		"CLUSTER_ID":        string(host.ClusterID),
 		"HOST_ID":           string(*host.ID),
-		"ROLE":              role,
+		"ROLE":              string(role),
 		"INSTALLER":         i.instructionConfig.InstallerImage,
 		"BOOT_DEVICE":       "",
 		"OPENSHIFT_VERSION": cluster.OpenshiftVersion,

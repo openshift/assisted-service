@@ -126,11 +126,11 @@ var _ = Describe("Cluster tests", func() {
 				HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 					{
 						ID:   *host1.ID,
-						Role: "master",
+						Role: models.HostRoleUpdateParamsMaster,
 					},
 					{
 						ID:   *host2.ID,
-						Role: "worker",
+						Role: models.HostRoleUpdateParamsWorker,
 					},
 				},
 			},
@@ -140,10 +140,10 @@ var _ = Describe("Cluster tests", func() {
 		Expect(c.GetPayload().SSHPublicKey).Should(Equal(publicKey))
 
 		h := getHost(clusterID, *host1.ID)
-		Expect(h.Role).Should(Equal("master"))
+		Expect(h.Role).Should(Equal(models.HostRole(models.HostRoleUpdateParamsMaster)))
 
 		h = getHost(clusterID, *host2.ID)
-		Expect(h.Role).Should(Equal("worker"))
+		Expect(h.Role).Should(Equal(models.HostRole(models.HostRoleUpdateParamsWorker)))
 	})
 })
 
@@ -757,9 +757,9 @@ var _ = Describe("cluster install", func() {
 		// All hosts are masters, one in discovering state  -> state must be insufficient
 		cluster, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *hosts[0].ID, Role: "master"},
-				{ID: *hosts[1].ID, Role: "master"},
-				{ID: *h4.ID, Role: "master"},
+				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *hosts[1].ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h4.ID, Role: models.HostRoleUpdateParamsMaster},
 			},
 			},
 			ClusterID: clusterID,
@@ -771,7 +771,7 @@ var _ = Describe("cluster install", func() {
 		// Adding one known host and setting as master -> state must be ready
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *hosts[2].ID, Role: "master"},
+				{ID: *hosts[2].ID, Role: models.HostRoleUpdateParamsMaster},
 			}},
 			ClusterID: clusterID,
 		})
@@ -807,9 +807,9 @@ var _ = Describe("cluster install", func() {
 		By("All hosts are workers -> state must be insufficient")
 		cluster, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *wh1.ID, Role: "worker"},
-				{ID: *wh2.ID, Role: "worker"},
-				{ID: *wh3.ID, Role: "worker"},
+				{ID: *wh1.ID, Role: models.HostRoleUpdateParamsWorker},
+				{ID: *wh2.ID, Role: models.HostRoleUpdateParamsWorker},
+				{ID: *wh3.ID, Role: models.HostRoleUpdateParamsWorker},
 			},
 				APIVip:     &apiVip,
 				IngressVip: &ingressVip,
@@ -842,8 +842,8 @@ var _ = Describe("cluster install", func() {
 		By("Only two masters -> state must be insufficient")
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *mh1.ID, Role: "master"},
-				{ID: *mh2.ID, Role: "master"},
+				{ID: *mh1.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *mh2.ID, Role: models.HostRoleUpdateParamsMaster},
 			}},
 			ClusterID: clusterID,
 		})
@@ -854,7 +854,7 @@ var _ = Describe("cluster install", func() {
 		By("Three master hosts -> state must be ready")
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *mh3.ID, Role: "master"},
+				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsMaster},
 			}},
 			ClusterID: clusterID,
 		})
@@ -866,7 +866,7 @@ var _ = Describe("cluster install", func() {
 		By("Back to two master hosts -> state must be insufficient")
 		cluster, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *mh3.ID, Role: "worker"},
+				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsWorker},
 			}},
 			ClusterID: clusterID,
 		})
@@ -877,7 +877,7 @@ var _ = Describe("cluster install", func() {
 		By("Three master hosts -> state must be ready")
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *mh3.ID, Role: "master"},
+				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsMaster},
 			}},
 			ClusterID: clusterID,
 		})
@@ -889,7 +889,7 @@ var _ = Describe("cluster install", func() {
 		By("Back to two master hosts -> state must be insufficient")
 		cluster, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *mh3.ID, Role: "worker"},
+				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsWorker},
 			}},
 			ClusterID: clusterID,
 		})
@@ -949,10 +949,10 @@ var _ = Describe("cluster install", func() {
 
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h1.ID, Role: "master"},
-				{ID: *h2.ID, Role: "master"},
-				{ID: *h3.ID, Role: "master"},
-				{ID: *h4.ID, Role: "worker"},
+				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h2.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h3.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
 			}},
 			ClusterID: clusterID,
 		})
@@ -966,7 +966,7 @@ var _ = Describe("cluster install", func() {
 		hosts := register3nodes(clusterID)
 		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *hosts[0].ID, Role: "master"},
+				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
 			}},
 			ClusterID: clusterID,
 		})
@@ -986,10 +986,10 @@ var _ = Describe("cluster install", func() {
 		By("Verifying install command")
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *h1.ID, Role: "master"},
-				{ID: *hosts[1].ID, Role: "master"},
-				{ID: *hosts[2].ID, Role: "master"},
-				{ID: *h4.ID, Role: "worker"},
+				{ID: *h1.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *hosts[1].ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *hosts[2].ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
 			}},
 			ClusterID: clusterID,
 		})
@@ -1004,7 +1004,7 @@ var _ = Describe("cluster install", func() {
 		waitForHostState(ctx, clusterID, *disabledHost.ID, "insufficient", 60*time.Second)
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *disabledHost.ID, Role: "worker"},
+				{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
 			}},
 			ClusterID: clusterID,
 		})
@@ -1039,7 +1039,7 @@ func FailCluster(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
 	Expect(err).NotTo(HaveOccurred())
 	var masterHostID strfmt.UUID
 	for _, host := range c.GetPayload().Hosts {
-		if host.Role == "master" {
+		if host.Role == models.HostRoleMaster {
 			masterHostID = *host.ID
 			break
 		}
@@ -1149,11 +1149,11 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) {
 		host := registerHost(clusterID)
 		generateHWPostStepReply(host, validHwInfo, hostname)
 		generateFAPostStepReply(host, validFreeAddresses)
-		var role string
+		var role models.HostRoleUpdateParams
 		if i < 3 {
-			role = "master"
+			role = models.HostRoleUpdateParamsMaster
 		} else {
-			role = "worker"
+			role = models.HostRoleUpdateParamsWorker
 		}
 		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{

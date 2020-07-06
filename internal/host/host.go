@@ -53,12 +53,6 @@ const (
 )
 
 const (
-	RoleMaster    = "master"
-	RoleBootstrap = "bootstrap"
-	RoleWorker    = "worker"
-)
-
-const (
 	progressDone   = "Done"
 	progressFailed = "Failed"
 )
@@ -74,7 +68,7 @@ type API interface {
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
-	UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) error
+	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
 	CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
@@ -270,7 +264,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error {
 	if h.Bootstrap != isbootstrap {
-		err := db.Model(h).Update("bootstrap", isbootstrap).Error
+		err := db.Model(h).Update(models.HostRoleBootstrap, isbootstrap).Error
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
@@ -288,7 +282,7 @@ func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, 
 	return nil
 }
 
-func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) error {
+func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error {
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient}
 	if !funk.ContainsString(allowedStatuses, hostStatus) {

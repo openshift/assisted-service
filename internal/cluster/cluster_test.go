@@ -512,7 +512,7 @@ func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 	host := models.Host{
 		ID:        &hostId,
 		ClusterID: clusterId,
-		Role:      "master",
+		Role:      models.HostRoleMaster,
 		Status:    swag.String(state),
 	}
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -550,7 +550,7 @@ func addInstallationRequirements(clusterId strfmt.UUID, db *gorm.DB) {
 		host = models.Host{
 			ID:        &hostId,
 			ClusterID: clusterId,
-			Role:      "master",
+			Role:      models.HostRoleMaster,
 			Status:    swag.String("known"),
 		}
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())

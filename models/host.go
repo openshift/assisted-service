@@ -70,8 +70,7 @@ type Host struct {
 	RequestedHostname string `json:"requested_hostname,omitempty"`
 
 	// role
-	// Enum: [undefined master worker]
-	Role string `json:"role,omitempty"`
+	Role HostRole `json:"role,omitempty"`
 
 	// status
 	// Required: true
@@ -246,46 +245,16 @@ func (m *Host) validateKind(formats strfmt.Registry) error {
 	return nil
 }
 
-var hostTypeRolePropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["undefined","master","worker"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		hostTypeRolePropEnum = append(hostTypeRolePropEnum, v)
-	}
-}
-
-const (
-
-	// HostRoleUndefined captures enum value "undefined"
-	HostRoleUndefined string = "undefined"
-
-	// HostRoleMaster captures enum value "master"
-	HostRoleMaster string = "master"
-
-	// HostRoleWorker captures enum value "worker"
-	HostRoleWorker string = "worker"
-)
-
-// prop value enum
-func (m *Host) validateRoleEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, hostTypeRolePropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (m *Host) validateRole(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Role) { // not required
 		return nil
 	}
 
-	// value enum
-	if err := m.validateRoleEnum("role", "body", m.Role); err != nil {
+	if err := m.Role.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("role")
+		}
 		return err
 	}
 

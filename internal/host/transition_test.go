@@ -55,7 +55,7 @@ var _ = Describe("RegisterHost", func() {
 		AfterEach(func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusError))
-			Expect(h.Role).Should(Equal(RoleMaster))
+			Expect(h.Role).Should(Equal(models.HostRoleMaster))
 			Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
 		})
 
@@ -66,7 +66,7 @@ var _ = Describe("RegisterHost", func() {
 				Expect(db.Create(&models.Host{
 					ID:           &hostId,
 					ClusterID:    clusterId,
-					Role:         RoleMaster,
+					Role:         models.HostRoleMaster,
 					HardwareInfo: defaultHwInfo,
 					Status:       swag.String(t.srcState),
 				}).Error).ShouldNot(HaveOccurred())
@@ -107,7 +107,7 @@ var _ = Describe("RegisterHost", func() {
 		AfterEach(func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusDiscovering))
-			Expect(h.Role).Should(Equal(RoleMaster))
+			Expect(h.Role).Should(Equal(models.HostRoleMaster))
 			Expect(h.HardwareInfo).Should(Equal(""))
 			Expect(h.DiscoveryAgentVersion).To(Equal(discoveryAgentVersion))
 		})
@@ -119,7 +119,7 @@ var _ = Describe("RegisterHost", func() {
 				Expect(db.Create(&models.Host{
 					ID:           &hostId,
 					ClusterID:    clusterId,
-					Role:         RoleMaster,
+					Role:         models.HostRoleMaster,
 					HardwareInfo: defaultHwInfo,
 					Status:       swag.String(t.srcState),
 				}).Error).ShouldNot(HaveOccurred())
@@ -161,7 +161,7 @@ var _ = Describe("RegisterHost", func() {
 				Expect(db.Create(&models.Host{
 					ID:           &hostId,
 					ClusterID:    clusterId,
-					Role:         RoleMaster,
+					Role:         models.HostRoleMaster,
 					HardwareInfo: defaultHwInfo,
 					Status:       swag.String(t.srcState),
 				}).Error).ShouldNot(HaveOccurred())
@@ -174,7 +174,7 @@ var _ = Describe("RegisterHost", func() {
 
 				h := getHost(hostId, clusterId, db)
 				Expect(swag.StringValue(h.Status)).Should(Equal(t.srcState))
-				Expect(h.Role).Should(Equal(RoleMaster))
+				Expect(h.Role).Should(Equal(models.HostRoleMaster))
 				Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
 			})
 		}
@@ -253,19 +253,19 @@ var _ = Describe("Install", func() {
 		tests := []struct {
 			name       string
 			srcState   string
-			role       string
+			role       models.HostRole
 			validation func(error)
 		}{
 			{
 				name:       "known with role worker",
 				srcState:   HostStatusKnown,
-				role:       RoleWorker,
+				role:       models.HostRoleWorker,
 				validation: success,
 			},
 			{
 				name:       "known with role master",
 				srcState:   HostStatusKnown,
-				role:       RoleMaster,
+				role:       models.HostRoleMaster,
 				validation: success,
 			},
 			{
@@ -276,55 +276,55 @@ var _ = Describe("Install", func() {
 			{
 				name:       "disabled nothing change",
 				srcState:   HostStatusDisabled,
-				role:       RoleMaster,
+				role:       models.HostRoleMaster,
 				validation: noChange,
 			},
 			{
 				name:       "disconnected",
 				srcState:   HostStatusDisconnected,
-				role:       RoleMaster,
+				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "discovering",
 				srcState:   HostStatusDiscovering,
-				role:       RoleMaster,
+				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "error",
 				srcState:   HostStatusError,
-				role:       RoleMaster,
+				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "installed",
 				srcState:   HostStatusInstalled,
-				role:       RoleMaster,
+				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "installing",
 				srcState:   HostStatusInstalling,
-				role:       RoleMaster,
+				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "in-progress",
 				srcState:   HostStatusInstallingInProgress,
-				role:       RoleMaster,
+				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "insufficient",
 				srcState:   HostStatusInsufficient,
-				role:       RoleMaster,
+				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "resetting",
 				srcState:   HostStatusResetting,
-				role:       RoleMaster,
+				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 		}
@@ -343,7 +343,7 @@ var _ = Describe("Install", func() {
 	Context("install with transaction", func() {
 		BeforeEach(func() {
 			host = getTestHost(hostId, clusterId, HostStatusKnown)
-			host.Role = RoleMaster
+			host.Role = models.HostRoleMaster
 			host.StatusInfo = swag.String("known")
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		})

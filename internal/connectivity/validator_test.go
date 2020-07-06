@@ -60,7 +60,7 @@ var _ = Describe("connectivity_validator", func() {
 		cluster.MachineNetworkCidr = "10.11.0.0/16"
 		host.Inventory = ""
 
-		roles := []string{"", "master", "worker"}
+		roles := []models.HostRole{"", models.HostRoleMaster, models.HostRoleWorker}
 		for _, role := range roles {
 			host.Role = role
 			insufficient(connectivityValidator.IsSufficient(host, cluster))
@@ -73,7 +73,7 @@ var _ = Describe("connectivity_validator", func() {
 		Expect(err).NotTo(HaveOccurred())
 		host.Inventory = string(hw)
 
-		roles := []string{"", "master", "worker"}
+		roles := []models.HostRole{"", models.HostRoleMaster, models.HostRoleWorker}
 		for _, role := range roles {
 			host.Role = role
 			insufficient(connectivityValidator.IsSufficient(host, cluster))
@@ -86,7 +86,7 @@ var _ = Describe("connectivity_validator", func() {
 		Expect(err).NotTo(HaveOccurred())
 		host.Inventory = string(hw)
 
-		roles := []string{"", "master", "worker"}
+		roles := []models.HostRole{"", models.HostRoleMaster, models.HostRoleWorker}
 		for _, role := range roles {
 			host.Role = role
 			insufficient(connectivityValidator.IsSufficient(host, cluster))
@@ -99,7 +99,7 @@ var _ = Describe("connectivity_validator", func() {
 		Expect(err).NotTo(HaveOccurred())
 		host.Inventory = string(hw)
 
-		roles := []string{"", "master", "worker"}
+		roles := []models.HostRole{"", models.HostRoleMaster, models.HostRoleWorker}
 		for _, role := range roles {
 			host.Role = role
 			insufficient(connectivityValidator.IsSufficient(host, cluster))

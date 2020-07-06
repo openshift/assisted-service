@@ -158,8 +158,8 @@ func (th *transitionHandler) IsValidRoleForInstallation(sw stateswitch.StateSwit
 	if !ok {
 		return false, errors.New("IsValidRoleForInstallation incompatible type of StateSwitch")
 	}
-	validRoles := []string{models.HostRoleMaster, models.HostRoleWorker}
-	if !funk.ContainsString(validRoles, sHost.host.Role) {
+	validRoles := []string{string(models.HostRoleMaster), string(models.HostRoleWorker)}
+	if !funk.ContainsString(validRoles, string(sHost.host.Role)) {
 		return false, common.NewApiError(http.StatusConflict,
 			errors.Errorf("Can't install host %s due to invalid host role: %s, should be one of %s",
 				sHost.host.ID.String(), sHost.host.Role, validRoles))

@@ -46,7 +46,7 @@ var _ = Describe("installcmd", func() {
 		installCmd = NewInstallCmd(getTestLog(), db, mockValidator, instructionConfig)
 		cluster = createClusterInDb(db)
 		clusterId = *cluster.ID
-		host = createHostInDb(db, clusterId, RoleMaster, false)
+		host = createHostInDb(db, clusterId, models.HostRoleMaster, false)
 		validDiskSize := int64(128849018880)
 		disks = []*models.Disk{
 			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
@@ -72,26 +72,26 @@ var _ = Describe("installcmd", func() {
 	It("get_step_one_master_success", func() {
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		stepReply, stepErr = installCmd.GetStep(ctx, &host)
-		postvalidation(false, false, stepReply, stepErr, RoleMaster)
-		validateInstallCommand(stepReply, RoleMaster, string(clusterId), string(*host.ID))
+		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
+		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID))
 		Expect(getHost(*host.ID, clusterId, db).InstallerVersion).
 			To(Equal("quay.io/ocpmetal/assisted-installer:latest"))
 	})
 
 	It("get_step_three_master_success", func() {
 
-		host2 := createHostInDb(db, clusterId, RoleMaster, false)
-		host3 := createHostInDb(db, clusterId, RoleMaster, true)
+		host2 := createHostInDb(db, clusterId, models.HostRoleMaster, false)
+		host3 := createHostInDb(db, clusterId, models.HostRoleMaster, true)
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(3)
 		stepReply, stepErr = installCmd.GetStep(ctx, &host)
-		postvalidation(false, false, stepReply, stepErr, RoleMaster)
-		validateInstallCommand(stepReply, RoleMaster, string(clusterId), string(*host.ID))
+		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
+		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID))
 		stepReply, stepErr = installCmd.GetStep(ctx, &host2)
-		postvalidation(false, false, stepReply, stepErr, RoleMaster)
-		validateInstallCommand(stepReply, RoleMaster, string(clusterId), string(*host2.ID))
+		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
+		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host2.ID))
 		stepReply, stepErr = installCmd.GetStep(ctx, &host3)
-		postvalidation(false, false, stepReply, stepErr, RoleBootstrap)
-		validateInstallCommand(stepReply, RoleBootstrap, string(clusterId), string(*host3.ID))
+		postvalidation(false, false, stepReply, stepErr, models.HostRoleBootstrap)
+		validateInstallCommand(stepReply, models.HostRoleBootstrap, string(clusterId), string(*host3.ID))
 	})
 
 	AfterEach(func() {
@@ -114,7 +114,7 @@ func createClusterInDb(db *gorm.DB) common.Cluster {
 	return cluster
 }
 
-func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role string, bootstrap bool) models.Host {
+func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role models.HostRole, bootstrap bool) models.Host {
 	id := strfmt.UUID(uuid.New().String())
 	host := models.Host{
 		ID:           &id,
@@ -128,7 +128,7 @@ func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role string, bootstrap b
 	return host
 }
 
-func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *models.Step, expectedsteperr error, expectedrole string) {
+func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *models.Step, expectedsteperr error, expectedrole models.HostRole) {
 	if issteperrnil {
 		ExpectWithOffset(1, expectedsteperr).Should(HaveOccurred())
 	} else {
@@ -138,11 +138,11 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 		ExpectWithOffset(1, expectedstepreply).Should(BeNil())
 	} else {
 		ExpectWithOffset(1, expectedstepreply.StepType).To(Equal(models.StepTypeInstall))
-		ExpectWithOffset(1, strings.Contains(expectedstepreply.Args[1], expectedrole)).To(Equal(true))
+		ExpectWithOffset(1, strings.Contains(expectedstepreply.Args[1], string(expectedrole))).To(Equal(true))
 	}
 }
 
-func validateInstallCommand(reply *models.Step, role string, clusterId string, hostId string) {
+func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId string, hostId string) {
 	installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host " +
 		"--net=host -v /var/log:/var/log:rw " +
 		"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +

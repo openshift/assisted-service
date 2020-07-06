@@ -75,7 +75,7 @@ var _ = Describe("hardware_validator", func() {
 		Expect(err).NotTo(HaveOccurred())
 		host1.Inventory = string(hw)
 
-		roles := []string{"", "master", "worker"}
+		roles := []models.HostRole{"", models.HostRoleMaster, models.HostRoleWorker}
 		for _, role := range roles {
 			host1.Role = role
 			sufficient(hwvalidator.IsSufficient(host1, cluster))
@@ -89,7 +89,7 @@ var _ = Describe("hardware_validator", func() {
 		Expect(err).NotTo(HaveOccurred())
 		host1.Inventory = string(hw)
 
-		roles := []string{"", "master", "worker"}
+		roles := []models.HostRole{"", models.HostRoleMaster, models.HostRoleWorker}
 		for _, role := range roles {
 			host1.Role = role
 			insufficient(hwvalidator.IsSufficient(host1, cluster))
@@ -102,9 +102,9 @@ var _ = Describe("hardware_validator", func() {
 		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host1.Inventory = string(hw)
-		host1.Role = "master"
+		host1.Role = models.HostRoleMaster
 		insufficient(hwvalidator.IsSufficient(host1, cluster))
-		host1.Role = "worker"
+		host1.Role = models.HostRoleWorker
 		sufficient(hwvalidator.IsSufficient(host1, cluster))
 	})
 
@@ -150,7 +150,7 @@ var _ = Describe("hardware_validator", func() {
 
 	It("invalid_hw_info", func() {
 		host1.Inventory = "not a valid json"
-		roles := []string{"", "master", "worker"}
+		roles := []models.HostRole{"", models.HostRoleMaster, models.HostRoleWorker}
 		for _, role := range roles {
 			host1.Role = role
 			reply, err := hwvalidator.IsSufficient(host1, cluster)
