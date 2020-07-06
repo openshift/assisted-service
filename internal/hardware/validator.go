@@ -53,6 +53,14 @@ func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*v
 	var isSufficient bool
 	var hwInfo models.Inventory
 
+	if host.Inventory == "" {
+		return &validators.IsSufficientReply{
+			Type:         "hardware",
+			IsSufficient: false,
+			Reason:       "Waiting to receive inventory information",
+		}, nil
+	}
+
 	if err = json.Unmarshal([]byte(host.Inventory), &hwInfo); err != nil {
 		return nil, err
 	}

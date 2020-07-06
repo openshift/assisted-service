@@ -195,6 +195,11 @@ var _ = Describe("hardware_validator", func() {
 		insufficient(hwvalidator.IsSufficient(host1, cluster))
 	})
 
+	It("no_hw_info", func() {
+		host1.Inventory = ""
+		insufficient(hwvalidator.IsSufficient(host1, cluster))
+	})
+
 })
 
 func sufficient(reply *validators.IsSufficientReply, err error) {
