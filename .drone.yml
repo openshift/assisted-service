@@ -5,7 +5,7 @@ steps:
   - name: mariadb
     image: mariadb
     commands:
-      - sleep 60
+      - until mysql -u admin -h database -padmin --execute="SELECT VERSION();"; do sleep 5; done
       - mysql -u admin -h database -padmin --execute="SELECT VERSION();"
 
   - name: build
