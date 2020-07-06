@@ -1325,6 +1325,10 @@ definitions:
       name:
         type: string
         description: Name of the OpenShift cluster.
+      user_id:
+        type: string
+      org_id:
+        type: string
       openshift_version:
         type: string
         enum: ['4.5']
