@@ -26,11 +26,6 @@ type disconnectedState struct {
 	hwValidator hardware.Validator
 }
 
-func (d *disconnectedState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
-	h.HardwareInfo = hwInfo
-	return updateHwInfo(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
-}
-
 func (d *disconnectedState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
 	h.Inventory = inventory
 	return updateInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)

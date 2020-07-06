@@ -19,11 +19,6 @@ func NewDisabledState(log logrus.FieldLogger, db *gorm.DB) *disabledState {
 
 type disabledState baseState
 
-func (d *disabledState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to update hardware info to host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
-}
-
 func (d *disabledState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
 	return nil, errors.Errorf("unable to update inventory to host <%s> in <%s> status",
 		h.ID, swag.StringValue(h.Status))

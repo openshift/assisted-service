@@ -1222,7 +1222,7 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 	var err error
 	switch params.Reply.StepType {
 	case models.StepTypeHardwareInfo:
-		_, err = b.hostApi.UpdateHwInfo(ctx, &host, stepReply)
+		err = b.hostApi.UpdateHwInfo(ctx, &host, stepReply)
 	case models.StepTypeInventory:
 		_, err = b.hostApi.UpdateInventory(ctx, &host, stepReply)
 	case models.StepTypeConnectivityCheck:

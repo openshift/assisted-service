@@ -60,10 +60,6 @@ var _ = Describe("statemachine", func() {
 	Context("unknown_host_state", func() {
 
 		It("update_hw_info", func() {
-			stateReply, stateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
-		})
-
-		It("update_hw_info", func() {
 			stateReply, stateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 
@@ -558,3 +554,106 @@ func addTestCluster(clusterID strfmt.UUID, apiVip, ingressVip string, machineCid
 	}
 	Expect(db.Create(&cluster).Error).To(Not(HaveOccurred()))
 }
+
+var _ = Describe("UpdateHwInfo", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	Context("enable host", func() {
+		newHWInfo := "new hardware info"
+		success := func(reply error) {
+			Expect(reply).To(BeNil())
+			h := getHost(hostId, clusterId, db)
+			Expect(h.HardwareInfo).To(Equal(newHWInfo))
+		}
+
+		failure := func(reply error) {
+			Expect(reply).To(HaveOccurred())
+			h := getHost(hostId, clusterId, db)
+			Expect(h.HardwareInfo).To(Equal(defaultHwInfo))
+		}
+
+		tests := []struct {
+			name       string
+			srcState   string
+			validation func(error)
+		}{
+			{
+				name:       models.HostStatusKnown,
+				srcState:   models.HostStatusKnown,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDisabled,
+				srcState:   models.HostStatusDisabled,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusDisconnected,
+				srcState:   models.HostStatusDisconnected,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDiscovering,
+				srcState:   models.HostStatusDiscovering,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusError,
+				srcState:   models.HostStatusError,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstalled,
+				srcState:   models.HostStatusInstalled,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstalling,
+				srcState:   models.HostStatusInstalling,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstallingInProgress,
+				srcState:   models.HostStatusInstallingInProgress,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInsufficient,
+				srcState:   models.HostStatusInsufficient,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusResetting,
+				srcState:   models.HostStatusResetting,
+				validation: failure,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				host = getTestHost(hostId, clusterId, t.srcState)
+				host.HardwareInfo = defaultHwInfo
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				t.validation(hapi.UpdateHwInfo(ctx, &host, newHWInfo))
+			})
+		}
+	})
+
+	AfterEach(func() {
+		_ = db.Close()
+	})
+})

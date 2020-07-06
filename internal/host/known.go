@@ -29,11 +29,6 @@ type knownState struct {
 	connectivityValidator connectivity.Validator
 }
 
-func (k *knownState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
-	h.HardwareInfo = hwInfo
-	return updateHwInfo(logutil.FromContext(ctx, k.log), k.hwValidator, h, k.db)
-}
-
 func (k *knownState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
 	h.Inventory = inventory
 	return updateInventory(logutil.FromContext(ctx, k.log), k.hwValidator, h, k.db)

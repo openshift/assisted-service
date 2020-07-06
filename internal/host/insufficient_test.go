@@ -51,22 +51,6 @@ var _ = Describe("insufficient_state", func() {
 		addTestCluster(clusterId, "1.2.3.5", "1.2.3.6", "1.2.3.0/24", db)
 	})
 
-	Context("update hw info", func() {
-		It("update", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), string(id), gomock.Any(), gomock.Any(), string(clusterId))
-			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
-			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			expectedReply.expectedState = HostStatusKnown
-			expectedReply.postCheck = func() {
-				h := getHost(id, clusterId, db)
-				Expect(h.Inventory).Should(Equal(defaultInventory()))
-				Expect(h.HardwareInfo).Should(Equal("some hw info"))
-				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
-			}
-		})
-	})
-
 	Context("update inventory", func() {
 		It("sufficient_hw", func() {
 			mockEvents.EXPECT().AddEvent(gomock.Any(), string(id), gomock.Any(), gomock.Any(), string(clusterId))
