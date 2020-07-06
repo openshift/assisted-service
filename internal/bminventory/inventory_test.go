@@ -568,7 +568,7 @@ var _ = Describe("cluster", func() {
 		mockEvents     *events.MockHandler
 	)
 
-	addHost := func(hostId strfmt.UUID, role string, state string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
+	addHost := func(hostId strfmt.UUID, role models.HostRole, state string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
 		host := models.Host{
 			ID:        &hostId,
 			ClusterID: clusterId,
@@ -684,9 +684,9 @@ var _ = Describe("cluster", func() {
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
-				addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-				addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
-				addHost(masterHostId3, "master", "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
+				addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
+				addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
 			})
 
 			It("GetCluster", func() {
@@ -779,9 +779,9 @@ var _ = Describe("cluster", func() {
 					ID: &clusterID,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
-				addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-				addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
-				addHost(masterHostId3, "master", "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
+				addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
+				addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
 				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 				Expect(err).ToNot(HaveOccurred())
@@ -886,9 +886,9 @@ var _ = Describe("cluster", func() {
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			addHost(masterHostId1, "master", "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-			addHost(masterHostId2, "master", "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
-			addHost(masterHostId3, "master", "known", clusterID, getInventoryStr("10.11.200.180/16"), db)
+			addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
+			addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
+			addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("10.11.200.180/16"), db)
 			err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
 				makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
 			Expect(err).ToNot(HaveOccurred())
@@ -931,7 +931,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("Additional non matching master", func() {
 			validateHostInventory(mockClusterApi)
-			addHost(masterHostId4, "master", "known", clusterID, getInventoryStr("10.12.200.180/16"), db)
+			addHost(masterHostId4, models.HostRoleMaster, "known", clusterID, getInventoryStr("10.12.200.180/16"), db)
 			set4GetMasterNodesIds(mockClusterApi)
 
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{

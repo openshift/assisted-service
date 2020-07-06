@@ -867,7 +867,7 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 				params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID)
 			return common.NewApiError(http.StatusNotFound, err)
 		}
-		err = b.hostApi.UpdateRole(ctx, &host, params.ClusterUpdateParams.HostsRoles[i].Role, db)
+		err = b.hostApi.UpdateRole(ctx, &host, models.HostRole(params.ClusterUpdateParams.HostsRoles[i].Role), db)
 		if err != nil {
 			log.WithError(err).Errorf("failed to set role <%s> host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsRoles[i].Role, params.ClusterUpdateParams.HostsRoles[i].ID,

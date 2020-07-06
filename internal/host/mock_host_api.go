@@ -331,7 +331,7 @@ func (mr *MockAPIMockRecorder) HostMonitoring() *gomock.Call {
 }
 
 // UpdateRole mocks base method
-func (m *MockAPI) UpdateRole(ctx context.Context, h *models.Host, role string, db *gorm.DB) error {
+func (m *MockAPI) UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateRole", ctx, h, role, db)
 	ret0, _ := ret[0].(error)

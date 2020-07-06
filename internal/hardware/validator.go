@@ -64,10 +64,10 @@ func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*v
 	var minDiskSizeRequired int64 = gibToBytes(v.MinDiskSizeGib)
 
 	switch host.Role {
-	case "master":
+	case models.HostRoleMaster:
 		minCpuCoresRequired = v.MinCPUCoresMaster
 		minRamRequired = gibToBytes(v.MinRamGibMaster)
-	case "worker":
+	case models.HostRoleWorker:
 		minCpuCoresRequired = v.MinCPUCoresWorker
 		minRamRequired = gibToBytes(v.MinRamGibWorker)
 	}

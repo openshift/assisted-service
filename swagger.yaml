@@ -990,8 +990,7 @@ definitions:
         x-go-custom-tag: gorm:"type:text"
         type: string
       role:
-        type: string
-        enum: ['undefined', 'master', 'worker']
+        $ref: '#/definitions/host-role'
       bootstrap:
         type: boolean
       installer_version:
@@ -1203,8 +1202,7 @@ definitions:
               type: string
               format: uuid
             role:
-              type: string
-              enum: ['master', 'worker']
+              $ref: '#/definitions/host-role-update-params'
       hosts_names:
         type: array
         x-go-custom-tag: gorm:"type:varchar(64)[]"
@@ -1732,3 +1730,16 @@ definitions:
         type: string
       console_url:
         type: string
+
+  host-role-update-params:
+    type: string
+    enum:
+      - 'master'
+      - 'worker'
+
+  host-role:
+    type: string
+    enum:
+      - 'master'
+      - 'worker'
+      - 'bootstrap'

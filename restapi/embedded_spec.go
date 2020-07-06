@@ -711,6 +711,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       }
@@ -1586,11 +1592,7 @@ func init() {
                 "format": "uuid"
               },
               "role": {
-                "type": "string",
-                "enum": [
-                  "master",
-                  "worker"
-                ]
+                "$ref": "#/definitions/host-role-update-params"
               }
             }
           },
@@ -1986,12 +1988,7 @@ func init() {
           "type": "string"
         },
         "role": {
-          "type": "string",
-          "enum": [
-            "undefined",
-            "master",
-            "worker"
-          ]
+          "$ref": "#/definitions/host-role"
         },
         "status": {
           "type": "string",
@@ -2048,6 +2045,21 @@ func init() {
       "items": {
         "$ref": "#/definitions/host"
       }
+    },
+    "host-role": {
+      "type": "string",
+      "enum": [
+        "master",
+        "worker",
+        "bootstrap"
+      ]
+    },
+    "host-role-update-params": {
+      "type": "string",
+      "enum": [
+        "master",
+        "worker"
+      ]
     },
     "host_network": {
       "type": "object",
@@ -3125,6 +3137,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       }
@@ -3693,11 +3711,7 @@ func init() {
           "format": "uuid"
         },
         "role": {
-          "type": "string",
-          "enum": [
-            "master",
-            "worker"
-          ]
+          "$ref": "#/definitions/host-role-update-params"
         }
       }
     },
@@ -4406,12 +4420,7 @@ func init() {
           "type": "string"
         },
         "role": {
-          "type": "string",
-          "enum": [
-            "undefined",
-            "master",
-            "worker"
-          ]
+          "$ref": "#/definitions/host-role"
         },
         "status": {
           "type": "string",
@@ -4468,6 +4477,21 @@ func init() {
       "items": {
         "$ref": "#/definitions/host"
       }
+    },
+    "host-role": {
+      "type": "string",
+      "enum": [
+        "master",
+        "worker",
+        "bootstrap"
+      ]
+    },
+    "host-role-update-params": {
+      "type": "string",
+      "enum": [
+        "master",
+        "worker"
+      ]
     },
     "host_network": {
       "type": "object",

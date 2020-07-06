@@ -103,3 +103,47 @@ func (o *GetFreeAddressesNotFound) WriteResponse(rw http.ResponseWriter, produce
 		}
 	}
 }
+
+// GetFreeAddressesInternalServerErrorCode is the HTTP code returned for type GetFreeAddressesInternalServerError
+const GetFreeAddressesInternalServerErrorCode int = 500
+
+/*GetFreeAddressesInternalServerError Error.
+
+swagger:response getFreeAddressesInternalServerError
+*/
+type GetFreeAddressesInternalServerError struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetFreeAddressesInternalServerError creates GetFreeAddressesInternalServerError with default headers values
+func NewGetFreeAddressesInternalServerError() *GetFreeAddressesInternalServerError {
+
+	return &GetFreeAddressesInternalServerError{}
+}
+
+// WithPayload adds the payload to the get free addresses internal server error response
+func (o *GetFreeAddressesInternalServerError) WithPayload(payload *models.Error) *GetFreeAddressesInternalServerError {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get free addresses internal server error response
+func (o *GetFreeAddressesInternalServerError) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetFreeAddressesInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(500)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

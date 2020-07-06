@@ -6,7 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -303,8 +302,7 @@ type ClusterUpdateParamsHostsRolesItems0 struct {
 	ID strfmt.UUID `json:"id,omitempty"`
 
 	// role
-	// Enum: [master worker]
-	Role string `json:"role,omitempty"`
+	Role HostRoleUpdateParams `json:"role,omitempty"`
 }
 
 // Validate validates this cluster update params hosts roles items0
@@ -338,43 +336,16 @@ func (m *ClusterUpdateParamsHostsRolesItems0) validateID(formats strfmt.Registry
 	return nil
 }
 
-var clusterUpdateParamsHostsRolesItems0TypeRolePropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["master","worker"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		clusterUpdateParamsHostsRolesItems0TypeRolePropEnum = append(clusterUpdateParamsHostsRolesItems0TypeRolePropEnum, v)
-	}
-}
-
-const (
-
-	// ClusterUpdateParamsHostsRolesItems0RoleMaster captures enum value "master"
-	ClusterUpdateParamsHostsRolesItems0RoleMaster string = "master"
-
-	// ClusterUpdateParamsHostsRolesItems0RoleWorker captures enum value "worker"
-	ClusterUpdateParamsHostsRolesItems0RoleWorker string = "worker"
-)
-
-// prop value enum
-func (m *ClusterUpdateParamsHostsRolesItems0) validateRoleEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, clusterUpdateParamsHostsRolesItems0TypeRolePropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (m *ClusterUpdateParamsHostsRolesItems0) validateRole(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Role) { // not required
 		return nil
 	}
 
-	// value enum
-	if err := m.validateRoleEnum("role", "body", m.Role); err != nil {
+	if err := m.Role.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("role")
+		}
 		return err
 	}
 

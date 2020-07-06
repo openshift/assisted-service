@@ -40,7 +40,7 @@ var _ = Describe("instructionmanager", func() {
 		cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		host = getTestHost(hostId, clusterId, "unknown invalid state")
-		host.Role = RoleMaster
+		host.Role = models.HostRoleMaster
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 

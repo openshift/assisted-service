@@ -154,7 +154,7 @@ func isSufficientRole(h *models.Host) *validators.IsSufficientReply {
 	var reason string
 	isSufficient := true
 
-	if h.Role == "undefined" || h.Role == "" {
+	if h.Role == "" {
 		isSufficient = false
 		reason = "No role selected"
 	}

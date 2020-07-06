@@ -99,17 +99,17 @@ var _ = Describe("update_role", func() {
 		success := func(srcState string) {
 			host = getTestHost(id, clusterID, srcState)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			Expect(state.UpdateRole(ctx, &host, RoleMaster, nil)).ShouldNot(HaveOccurred())
+			Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, nil)).ShouldNot(HaveOccurred())
 			h := getHost(id, clusterID, db)
-			Expect(h.Role).To(Equal(RoleMaster))
+			Expect(h.Role).To(Equal(models.HostRoleMaster))
 		}
 
 		failure := func(srcState string) {
 			host = getTestHost(id, clusterID, srcState)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			Expect(state.UpdateRole(ctx, &host, RoleMaster, nil)).To(HaveOccurred())
+			Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, nil)).To(HaveOccurred())
 			h := getHost(id, clusterID, db)
-			Expect(h.Role).To(Equal(RoleWorker))
+			Expect(h.Role).To(Equal(models.HostRoleWorker))
 		}
 
 		tests := []struct {
@@ -178,30 +178,30 @@ var _ = Describe("update_role", func() {
 		By("rollback transaction", func() {
 			tx := db.Begin()
 			Expect(tx.Error).ShouldNot(HaveOccurred())
-			Expect(state.UpdateRole(ctx, &host, RoleMaster, tx)).NotTo(HaveOccurred())
+			Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, tx)).NotTo(HaveOccurred())
 			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
 			h := getHost(id, clusterID, db)
-			Expect(h.Role).Should(Equal(RoleWorker))
+			Expect(h.Role).Should(Equal(models.HostRoleWorker))
 		})
 		By("commit transaction", func() {
 			tx := db.Begin()
 			Expect(tx.Error).ShouldNot(HaveOccurred())
-			Expect(state.UpdateRole(ctx, &host, RoleMaster, tx)).NotTo(HaveOccurred())
+			Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, tx)).NotTo(HaveOccurred())
 			Expect(tx.Commit().Error).ShouldNot(HaveOccurred())
 			h := getHost(id, clusterID, db)
-			Expect(h.Role).Should(Equal(RoleMaster))
+			Expect(h.Role).Should(Equal(models.HostRoleMaster))
 		})
 	})
 
 	It("update role master to worker", func() {
 		host = getTestHost(id, clusterID, HostStatusKnown)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		Expect(state.UpdateRole(ctx, &host, RoleMaster, nil)).NotTo(HaveOccurred())
+		Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, nil)).NotTo(HaveOccurred())
 		h := getHost(id, clusterID, db)
-		Expect(h.Role).To(Equal(RoleMaster))
-		Expect(state.UpdateRole(ctx, &host, RoleWorker, nil)).NotTo(HaveOccurred())
+		Expect(h.Role).To(Equal(models.HostRoleMaster))
+		Expect(state.UpdateRole(ctx, &host, models.HostRoleWorker, nil)).NotTo(HaveOccurred())
 		h = getHost(id, clusterID, db)
-		Expect(h.Role).To(Equal(RoleWorker))
+		Expect(h.Role).To(Equal(models.HostRoleWorker))
 	})
 })
 
@@ -489,7 +489,7 @@ func getTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
 		Status:       swag.String(state),
 		HardwareInfo: defaultHwInfo,
 		Inventory:    defaultInventory(),
-		Role:         "worker",
+		Role:         models.HostRoleWorker,
 		CheckedInAt:  strfmt.DateTime(time.Now()),
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/filanov/bm-inventory/models"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -67,7 +68,7 @@ type InstallerConfigBaremetal struct {
 	SSHKey     string   `yaml:"sshKey"`
 }
 
-func countHostsByRole(cluster *common.Cluster, role string) int {
+func countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
 	var count int
 	for _, host := range cluster.Hosts {
 		if host.Role == role {
@@ -115,14 +116,17 @@ func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
 			Name     string `yaml:"name"`
 			Replicas int    `yaml:"replicas"`
 		}{
-			{Name: "worker", Replicas: countHostsByRole(cluster, "worker")},
+			{
+				Name:     string(models.HostRoleWorker),
+				Replicas: countHostsByRole(cluster, models.HostRoleWorker),
+			},
 		},
 		ControlPlane: struct {
 			Name     string `yaml:"name"`
 			Replicas int    `yaml:"replicas"`
 		}{
-			Name:     "master",
-			Replicas: countHostsByRole(cluster, "master"),
+			Name:     string(models.HostRoleMaster),
+			Replicas: countHostsByRole(cluster, models.HostRoleMaster),
 		},
 		PullSecret: cluster.PullSecret,
 		SSHKey:     cluster.SSHPublicKey,
@@ -142,8 +146,8 @@ func getDummyMAC(log logrus.FieldLogger, dummyMAC string, count int) (string, er
 
 func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster, cfg *InstallerConfigBaremetal) error {
 	// set hosts
-	numMasters := countHostsByRole(cluster, "master")
-	numWorkers := countHostsByRole(cluster, "worker")
+	numMasters := countHostsByRole(cluster, models.HostRoleMaster)
+	numWorkers := countHostsByRole(cluster, models.HostRoleWorker)
 	masterCount := 0
 	workerCount := 0
 	hosts := make([]host, numWorkers+numMasters)
@@ -156,11 +160,11 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster,
 		log.Infof("Setting master, host %d, master count %d", i, masterCount)
 		if i >= numMasters {
 			hosts[i].Name = fmt.Sprintf("openshift-worker-%d", workerCount)
-			hosts[i].Role = "worker"
+			hosts[i].Role = string(models.HostRoleWorker)
 			workerCount += 1
 		} else {
 			hosts[i].Name = fmt.Sprintf("openshift-master-%d", masterCount)
-			hosts[i].Role = "master"
+			hosts[i].Role = string(models.HostRoleMaster)
 			masterCount += 1
 		}
 		hosts[i].Bmc = bmc{

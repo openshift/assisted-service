@@ -95,7 +95,7 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 		return nil, errors.Errorf("cluster %s not found", c.ID)
 	}
 	for _, host := range cluster.Hosts {
-		if host.Role == "master" && swag.StringValue(host.Status) == "known" {
+		if host.Role == models.HostRoleMaster && swag.StringValue(host.Status) == "known" {
 			masterNodesIds = append(masterNodesIds, host.ID)
 		}
 	}
@@ -106,7 +106,7 @@ func mapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
 	hostMap := make(map[string][]*models.Host)
 
 	for _, host := range c.Hosts {
-		if host.Role != "master" {
+		if host.Role != models.HostRoleMaster {
 			continue
 		}
 		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {
