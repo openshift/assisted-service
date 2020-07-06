@@ -54,20 +54,6 @@ var _ = Describe("disconnected_state", func() {
 		addTestCluster(clusterId, "1.2.3.5", "1.2.3.6", "1.2.3.0/24", db)
 	})
 
-	Context("update hw info", func() {
-		It("update", func() {
-			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
-			updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			expectedReply.postCheck = func() {
-				h := getHost(id, clusterId, db)
-				Expect(h.Inventory).Should(Equal(defaultInventory()))
-				Expect(h.HardwareInfo).Should(Equal("some hw info"))
-				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(expectedStatusInfo))
-			}
-		})
-	})
-
 	Context("update inventory", func() {
 		It("sufficient_hw", func() {
 			expectedStatusInfo := mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)

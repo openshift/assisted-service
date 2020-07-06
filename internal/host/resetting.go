@@ -19,11 +19,6 @@ func NewResettingState(log logrus.FieldLogger, db *gorm.DB) *resettingState {
 
 type resettingState baseState
 
-func (r *resettingState) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to update hardware info to host <%s> in <%s> status",
-		h.ID, swag.StringValue(h.Status))
-}
-
 func (r *resettingState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
 	return nil, errors.Errorf("unable to update inventory to host <%s> in <%s> status",
 		h.ID, swag.StringValue(h.Status))

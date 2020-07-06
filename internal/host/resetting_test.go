@@ -34,15 +34,6 @@ var _ = Describe("resetting_state", func() {
 		expectedReply = &expect{expectedState: currentState}
 	})
 
-	It("update_hw_info", func() {
-		updateReply, updateErr = state.UpdateHwInfo(ctx, &host, "some hw info")
-		expectedReply.expectError = true
-		expectedReply.postCheck = func() {
-			h := getHost(id, clusterId, db)
-			Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
-		}
-	})
-
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)

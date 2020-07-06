@@ -110,12 +110,6 @@ func updateHostStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo str
 	return nil
 }
 
-func updateHwInfo(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	status, statusInfo := getDefaultStatusAndStatusInfo(h)
-	return updateStateWithParams(log, status, statusInfo, h, db, "hardware_info", h.HardwareInfo)
-
-}
-
 func getDefaultStatusAndStatusInfo(h *models.Host) (string, string) {
 	status, statusInfo := "", ""
 	if h.Status != nil {
