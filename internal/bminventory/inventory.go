@@ -17,6 +17,10 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/filanov/bm-inventory/pkg/auth"
+
+	"github.com/filanov/bm-inventory/internal/identity"
+
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/cluster/validations"
@@ -333,6 +337,8 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		ServiceNetworkCidr:       swag.StringValue(params.NewClusterParams.ServiceNetworkCidr),
 		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
 		UpdatedAt:                strfmt.DateTime{},
+		UserID:                   auth.UserIDFromContext(ctx),
+		OrgID:                    auth.OrgIDFromContext(ctx),
 	}}
 	if params.NewClusterParams.PullSecret != "" {
 		err := validations.ValidatePullSecret(params.NewClusterParams.PullSecret)
@@ -1116,7 +1122,8 @@ func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*m
 func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var clusters []*common.Cluster
-	if err := b.db.Preload("Hosts").Find(&clusters).Error; err != nil {
+	query := identity.GetUserIDFilter(ctx)
+	if err := b.db.Preload("Hosts").Find(&clusters).Where(query).Error; err != nil {
 		log.WithError(err).Error("failed to list clusters")
 		return installer.NewListClustersInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
