@@ -966,8 +966,8 @@ var _ = Describe("cluster install", func() {
 		Expect(err).NotTo(HaveOccurred())
 		h1 = getHost(clusterID, *h1.ID)
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
-
 	})
+
 	It("unique hostname validation", func() {
 		clusterID := *cluster.ID
 		hosts := register3nodes(clusterID)
@@ -1039,6 +1039,102 @@ var _ = Describe("cluster install", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 	})
+
+	It("set_requested_hostnames", func() {
+		clusterID := *cluster.ID
+		hosts := register3nodes(clusterID)
+		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *hosts[0].ID, Role: "master"},
+				{ID: *hosts[1].ID, Role: "master"},
+				{ID: *hosts[2].ID, Role: "master"},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		h1 := getHost(clusterID, *hosts[0].ID)
+		h2 := getHost(clusterID, *hosts[1].ID)
+		h3 := getHost(clusterID, *hosts[2].ID)
+		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
+		waitForHostState(ctx, clusterID, *h2.ID, "known", 60*time.Second)
+		waitForHostState(ctx, clusterID, *h3.ID, "known", 60*time.Second)
+		// update requested hostnames
+		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+				{ID: *hosts[0].ID, Hostname: "reqh0"},
+				{ID: *hosts[1].ID, Hostname: "reqh1"},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		// check hostnames were updated
+		h1 = getHost(clusterID, *h1.ID)
+		h2 = getHost(clusterID, *h2.ID)
+		h3 = getHost(clusterID, *h3.ID)
+		Expect(h1.RequestedHostname).Should(Equal("reqh0"))
+		Expect(h2.RequestedHostname).Should(Equal("reqh1"))
+		Expect(*h1.Status).Should(Equal("known"))
+		Expect(*h2.Status).Should(Equal("known"))
+		Expect(*h3.Status).Should(Equal("known"))
+
+		// register new host with the same name in inventory
+		By("Registering new host with same hostname as in node's inventory")
+		h4 := registerHost(clusterID)
+		generateHWPostStepReply(h4, validHwInfo, "h3")
+		h4 = getHost(clusterID, *h4.ID)
+		waitForHostState(ctx, clusterID, *h4.ID, "insufficient", 60*time.Second)
+		h3 = getHost(clusterID, *h3.ID)
+		Expect(*h3.Status).Should(Equal("insufficient"))
+
+		By("Check cluster install fails on validation")
+		_, err = bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		Expect(err).Should(HaveOccurred())
+
+		By("Registering new host with same hostname as in node's requested_hostname")
+		h5 := registerHost(clusterID)
+		generateHWPostStepReply(h5, validHwInfo, "reqh0")
+		h5 = getHost(clusterID, *h5.ID)
+		waitForHostState(ctx, clusterID, *h5.ID, "insufficient", 60*time.Second)
+		h1 = getHost(clusterID, *h1.ID)
+		Expect(*h1.Status).Should(Equal("insufficient"))
+
+		By("Change requested hostname of an insufficient node")
+		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+					{ID: *hosts[0].ID, Hostname: "reqh0new"},
+				},
+				HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+					{ID: *h5.ID, Role: "worker"},
+				},
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
+		waitForHostState(ctx, clusterID, *h5.ID, "known", 60*time.Second)
+
+		By("change the requested hostname of the insufficient node")
+		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+					{ID: *h3.ID, Hostname: "reqh2"},
+				},
+				HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+					{ID: *h4.ID, Role: "worker"},
+				},
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		waitForHostState(ctx, clusterID, *h3.ID, "known", 60*time.Second)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
+		_, err = bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 })
 
 func FailCluster(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
