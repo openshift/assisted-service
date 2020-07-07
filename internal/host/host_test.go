@@ -30,7 +30,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var defaultHwInfo = "default hw info" // invalid hw info used only for tests
+var defaultHwInfo = "default hw info"       // invalid hw info used only for tests
+var defaultInventoryS = "default inventory" // invalid inventory info used only for tests
 
 var _ = Describe("statemachine", func() {
 	var (
@@ -555,6 +556,108 @@ func addTestCluster(clusterID strfmt.UUID, apiVip, ingressVip string, machineCid
 	}
 	Expect(db.Create(&cluster).Error).To(Not(HaveOccurred()))
 }
+
+var _ = Describe("UpdateInventory", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+	Context("enable host", func() {
+		newInventory := "new inventory stuff"
+		success := func(reply error) {
+			Expect(reply).To(BeNil())
+			h := getHost(hostId, clusterId, db)
+			Expect(h.Inventory).To(Equal(newInventory))
+		}
+
+		failure := func(reply error) {
+			Expect(reply).To(HaveOccurred())
+			h := getHost(hostId, clusterId, db)
+			Expect(h.Inventory).To(Equal(defaultInventoryS))
+		}
+
+		tests := []struct {
+			name       string
+			srcState   string
+			validation func(error)
+		}{
+			{
+				name:       models.HostStatusKnown,
+				srcState:   models.HostStatusKnown,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDisabled,
+				srcState:   models.HostStatusDisabled,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusDisconnected,
+				srcState:   models.HostStatusDisconnected,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDiscovering,
+				srcState:   models.HostStatusDiscovering,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusError,
+				srcState:   models.HostStatusError,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstalled,
+				srcState:   models.HostStatusInstalled,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstalling,
+				srcState:   models.HostStatusInstalling,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstallingInProgress,
+				srcState:   models.HostStatusInstallingInProgress,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInsufficient,
+				srcState:   models.HostStatusInsufficient,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusResetting,
+				srcState:   models.HostStatusResetting,
+				validation: failure,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				host = getTestHost(hostId, clusterId, t.srcState)
+				host.Inventory = defaultInventoryS
+
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				t.validation(hapi.UpdateInventory(ctx, &host, newInventory))
+			})
+		}
+	})
+	AfterEach(func() {
+		_ = db.Close()
+	})
+})
 
 var _ = Describe("UpdateHwInfo", func() {
 	var (
