@@ -132,6 +132,29 @@ var _ = Describe("Base DNS validation", func() {
 	})
 })
 
+var _ = Describe("Cluster name validation", func() {
+	It("success", func() {
+		err := ValidateClusterNameFormat("test-1")
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+	It("invalid format - special character", func() {
+		err := ValidateClusterNameFormat("test!")
+		Expect(err).Should(HaveOccurred())
+	})
+	It("invalid format - capital letter", func() {
+		err := ValidateClusterNameFormat("testA")
+		Expect(err).Should(HaveOccurred())
+	})
+	It("invalid format - starts with number", func() {
+		err := ValidateClusterNameFormat("1test")
+		Expect(err).Should(HaveOccurred())
+	})
+	It("invalid format - ends with hyphen", func() {
+		err := ValidateClusterNameFormat("test-")
+		Expect(err).Should(HaveOccurred())
+	})
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")
