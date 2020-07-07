@@ -578,21 +578,20 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 	var cluster common.Cluster
 	var err error
 	if err = tx.Preload("Hosts").First(&cluster, "id = ?", c.params.ClusterID).Error; err != nil {
-		return common.NewApiError(http.StatusNotFound, err)
+		return err
 	}
 
 	if err = c.b.createDNSRecordSets(c.ctx, cluster); err != nil {
-		return common.NewApiError(http.StatusInternalServerError,
-			fmt.Errorf("failed to create DNS record sets for base domain: %s", cluster.BaseDNSDomain))
+		return errors.Wrapf(err, "failed to create DNS record sets for base domain: %s", cluster.BaseDNSDomain)
 	}
 
 	if err = c.b.clusterApi.Install(c.ctx, &cluster, tx); err != nil {
-		return common.NewApiError(http.StatusConflict, errors.Wrapf(err, "failed to install cluster %s", cluster.ID.String()))
+		return errors.Wrapf(err, "failed to install cluster %s", cluster.ID.String())
 	}
 
 	// set one of the master nodes as bootstrap
 	if err = c.b.setBootstrapHost(c.ctx, cluster, tx); err != nil {
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return err
 	}
 
 	// move hosts states to installing
@@ -601,7 +600,7 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 	}
 
 	if err = c.b.generateClusterInstallConfig(c.ctx, cluster, tx); err != nil {
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return err
 	}
 	return nil
 }
@@ -647,7 +646,6 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		err := b.db.Transaction(cInstaller.install)
 		if err != nil {
 			log.WithError(err).Warn("Cluster install")
-			// TODO: set cluster in retryable error state
 			b.clusterApi.HandlePreInstallError(context.Background(), &cluster, err)
 		}
 	}()
@@ -663,6 +661,9 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 	if err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s master node id's", cluster.ID)
 		return errors.Wrapf(err, "Failed to get cluster %s master node id's", cluster.ID)
+	}
+	if len(masterNodesIds) == 0 {
+		return errors.Errorf("Cluster have no master hosts that can operate as bootstrap")
 	}
 	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
 	log.Infof("Bootstrap ID is %s", bootstrapId)
