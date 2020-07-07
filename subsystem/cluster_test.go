@@ -147,6 +147,7 @@ var _ = Describe("Cluster tests", func() {
 })
 
 func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string, timeout time.Duration, stateInfo string) {
+	log.Infof("Waiting for cluster %s status %s", clusterID, state)
 	for start := time.Now(); time.Since(start) < timeout; {
 		rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
@@ -247,6 +248,7 @@ var _ = Describe("cluster install", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		cluster = registerClusterReply.GetPayload()
+		log.Infof("Register cluster %s", cluster.ID.String())
 	})
 
 	generateHWPostStepReply := func(h *models.Host, hwInfo *models.Inventory, hostname string) {

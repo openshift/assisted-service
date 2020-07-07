@@ -2,7 +2,6 @@ package subsystem
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"testing"
 
@@ -17,6 +16,7 @@ import (
 
 var db *gorm.DB
 var bmclient *client.AssistedInstall
+var log *logrus.Logger
 
 var Options struct {
 	DBHost        string `envconfig:"DB_HOST"`
@@ -26,6 +26,8 @@ var Options struct {
 
 func init() {
 	var err error
+	log = logrus.New()
+	log.SetReportCaller(true)
 	err = envconfig.Process("subsystem", &Options)
 	if err != nil {
 		log.Fatal(err.Error())
