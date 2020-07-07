@@ -26,8 +26,6 @@ import (
 //go:generate mockgen -source=host.go -package=host -aux_files=github.com/filanov/bm-inventory/internal/host=instructionmanager.go -destination=mock_host_api.go
 
 type StateAPI interface {
-	// Set a new inventory information
-	UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error)
 	// check keep alive
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error)
 }
@@ -79,6 +77,8 @@ type API interface {
 	Install(ctx context.Context, h *models.Host, db *gorm.DB) error
 	// Set a new HW information
 	UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) error
+	// Set a new inventory information
+	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
 }
 
 type Manager struct {
@@ -187,12 +187,17 @@ func (m *Manager) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo strin
 	return m.db.Model(h).Update("hardware_info", hwInfo).Error
 }
 
-func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
-	state, err := m.getCurrentState(swag.StringValue(h.Status))
-	if err != nil {
-		return nil, err
+func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
+	hostStatus := swag.StringValue(h.Status)
+	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected,
+		HostStatusInsufficient}
+	if !funk.ContainsString(allowedStatuses, hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, host can be updated only in one of %s states",
+				hostStatus, allowedStatuses))
 	}
-	return state.UpdateInventory(ctx, h, inventory)
+	h.Inventory = inventory
+	return m.db.Model(h).Update("inventory", inventory).Error
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {

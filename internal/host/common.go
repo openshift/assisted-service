@@ -110,38 +110,12 @@ func updateHostStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo str
 	return nil
 }
 
-func getDefaultStatusAndStatusInfo(h *models.Host) (string, string) {
-	status, statusInfo := "", ""
-	if h.Status != nil {
-		status = *h.Status
-	}
-	if h.StatusInfo != nil {
-		statusInfo = *h.StatusInfo
-	}
-	return status, statusInfo
-}
-
 func getCluster(clusterID strfmt.UUID, db *gorm.DB) (*common.Cluster, error) {
 	var cluster common.Cluster
 	if err := db.Preload("Hosts", "status <> ?", HostStatusDisabled).First(&cluster, "id = ?", clusterID).Error; err != nil {
 		return nil, err
 	}
 	return &cluster, nil
-}
-
-func updateInventory(log logrus.FieldLogger, hwValidator hardware.Validator, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	cluster, err := getCluster(h.ClusterID, db)
-	if err != nil {
-		return nil, err
-	}
-	_, err = hwValidator.IsSufficient(h, cluster)
-	// Only in case there is a parsing error for the inventory data - we don't want to change the data in DB
-	if err != nil {
-		return nil, err
-	}
-	status, statusInfo := getDefaultStatusAndStatusInfo(h)
-
-	return updateStateWithParams(log, status, statusInfo, h, db, "inventory", h.Inventory)
 }
 
 func isSufficientRole(h *models.Host) *validators.IsSufficientReply {

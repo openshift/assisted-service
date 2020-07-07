@@ -29,11 +29,6 @@ type insufficientState struct {
 	connectivityValidator connectivity.Validator
 }
 
-func (d *insufficientState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
-	h.Inventory = inventory
-	return updateInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
-}
-
 func (i *insufficientState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	return checkAndUpdateSufficientHost(logutil.FromContext(ctx, i.log), h, db, i.hwValidator, i.connectivityValidator)
 }

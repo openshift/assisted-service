@@ -26,11 +26,6 @@ type disconnectedState struct {
 	hwValidator hardware.Validator
 }
 
-func (d *disconnectedState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
-	h.Inventory = inventory
-	return updateInventory(logutil.FromContext(ctx, d.log), d.hwValidator, h, d.db)
-}
-
 func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	log := logutil.FromContext(ctx, d.log)
 	if time.Since(time.Time(h.CheckedInAt)) < 3*time.Minute {
