@@ -189,10 +189,10 @@ func (m *Manager) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo strin
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
 	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected,
-		HostStatusInsufficient}
+	allowedStatuses := []string{models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
+		models.HostStatusInsufficient}
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
-		return common.NewApiError(http.StatusBadRequest,
+		return common.NewApiError(http.StatusConflict,
 			errors.Errorf("Host is in %s state, host can be updated only in one of %s states",
 				hostStatus, allowedStatuses))
 	}
