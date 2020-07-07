@@ -2009,6 +2009,15 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 }
 
 func (b *bareMetalInventory) customizeHost(host *models.Host) error {
+	err := b.customizeHostProgress(host)
+	if err != nil {
+		return err
+	}
+	b.customizeHostname(host)
+	return nil
+}
+
+func (b *bareMetalInventory) customizeHostProgress(host *models.Host) error {
 	var hostProgressReport models.HostProgressReport
 	var err error
 
@@ -2028,4 +2037,8 @@ func (b *bareMetalInventory) customizeHost(host *models.Host) error {
 	}
 
 	return nil
+}
+
+func (b *bareMetalInventory) customizeHostname(host *models.Host) {
+	host.RequestedHostname = b.hostApi.GetHostname(host)
 }
