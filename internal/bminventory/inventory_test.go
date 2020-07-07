@@ -906,6 +906,7 @@ var _ = Describe("cluster", func() {
 				APIVip:             "10.11.12.13",
 				IngressVip:         "10.11.20.50",
 				MachineNetworkCidr: "10.11.0.0/16",
+				Status:             swag.String(models.ClusterStatusReady),
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -997,6 +998,25 @@ var _ = Describe("cluster", func() {
 				Return(errors.Errorf("host has a error")).AnyTimes()
 			setDefaultHostGetHostValidDisks(mockClusterApi)
 			setDefaultHostSetBootstrap(mockClusterApi)
+			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+			waitForDoneChannel()
+		})
+
+		It("list of masters for setting bootstrap return empty list", func() {
+			mockPrepareForInstallationSuccess(mockClusterApi)
+			validateHostInventory(mockClusterApi)
+			setDefaultInstall(mockClusterApi)
+			// first call is for verifyClusterNetworkConfig
+			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil).Times(1)
+			// second call is for setBootstrapHost
+			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return([]*strfmt.UUID{}, nil).Times(1)
 			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{

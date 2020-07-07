@@ -167,6 +167,7 @@ func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state strin
 }
 
 func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUID, state string, timeout time.Duration) {
+	log.Infof("Waiting for host %s state %s", hostID, state)
 	for start := time.Now(); time.Since(start) < timeout; {
 		rep, err := bmclient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
 		Expect(err).NotTo(HaveOccurred())
