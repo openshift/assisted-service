@@ -30,7 +30,7 @@ var _ = Describe("Host tests", func() {
 		var err error
 		cluster, err = bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("test cluster"),
+				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
 			},
 		})
@@ -397,7 +397,7 @@ var _ = Describe("Host tests", func() {
 
 		cluster2, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("another cluster"),
+				Name:             swag.String("another-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
 			},
 		})

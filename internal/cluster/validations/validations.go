@@ -11,6 +11,8 @@ import (
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 )
 
+const clusterNameRegex = "^([a-z]([-a-z0-9]*[a-z0-9])?)*$"
+
 type imagePullSecret struct {
 	Auths map[string]map[string]interface{} `json:"auths"`
 }
@@ -150,6 +152,16 @@ func checkDNSRecordsExistence(names []string, dnsProvider dnsproviders.Provider)
 		if res != "" {
 			return fmt.Errorf("DNS domain already exists")
 		}
+	}
+	return nil
+}
+
+// ValidateClusterNameFormat validates specified cluster name format
+func ValidateClusterNameFormat(name string) error {
+	if matched, _ := regexp.MatchString(clusterNameRegex, name); !matched {
+		return fmt.Errorf("Cluster name format is not valid: '%s'. "+
+			"Name must consist of lower-case letters, numbers and hyphens. "+
+			"It must start with a letter and end with a letter or number.", name)
 	}
 	return nil
 }
