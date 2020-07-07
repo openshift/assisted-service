@@ -29,11 +29,6 @@ type knownState struct {
 	connectivityValidator connectivity.Validator
 }
 
-func (k *knownState) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
-	h.Inventory = inventory
-	return updateInventory(logutil.FromContext(ctx, k.log), k.hwValidator, h, k.db)
-}
-
 func (k *knownState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	return checkAndUpdateSufficientHost(logutil.FromContext(ctx, k.log), h, db, k.hwValidator, k.connectivityValidator)
 }
