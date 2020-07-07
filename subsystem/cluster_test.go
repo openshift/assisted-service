@@ -76,7 +76,7 @@ var _ = Describe("Cluster tests", func() {
 	BeforeEach(func() {
 		cluster, err = bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("test cluster"),
+				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
 			},
 		})
