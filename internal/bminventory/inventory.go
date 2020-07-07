@@ -1543,16 +1543,16 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 		// host have nothing to do with the error so we just log it
 		return installer.NewUpdateHostInstallProgressOK()
 	}
-	if err := b.hostApi.UpdateInstallProgress(ctx, &host, params.HostInstallProgressParams); err != nil {
+	if err := b.hostApi.UpdateInstallProgress(ctx, &host, params.HostProgress); err != nil {
 		log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
 		// host have nothing to do with the error so we just log it
 		return installer.NewUpdateHostInstallProgressOK()
 	}
 
-	event := fmt.Sprintf("reached installation stage %s", params.HostInstallProgressParams.CurrentStage)
+	event := fmt.Sprintf("reached installation stage %s", params.HostProgress.CurrentStage)
 
-	if params.HostInstallProgressParams.ProgressInfo != "" {
-		event += fmt.Sprintf(": %s", params.HostInstallProgressParams.ProgressInfo)
+	if params.HostProgress.ProgressInfo != "" {
+		event += fmt.Sprintf(": %s", params.HostProgress.ProgressInfo)
 	}
 
 	log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))

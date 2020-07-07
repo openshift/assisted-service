@@ -191,3 +191,16 @@ func checkAndUpdateSufficientHost(log logrus.FieldLogger, h *models.Host, db *go
 		IsChanged: false,
 	}, nil
 }
+
+func getStagesByRole(role models.HostRole) []models.HostStage {
+	switch role {
+	case models.HostRoleBootstrap:
+		return []models.HostStage{models.HostStageStartingInstallation, models.HostStageStartWaitingForControlPlane,
+			models.HostStageInstalling, models.HostStageWritingImageToDisk, models.HostStageFinishWaitingForControlPlane,
+			models.HostStageRebooting, models.HostStageConfiguring, models.HostStageDone}
+	default:
+		return []models.HostStage{models.HostStageStartingInstallation, models.HostStageInstalling,
+			models.HostStageWritingImageToDisk, models.HostStageRebooting,
+			models.HostStageConfiguring, models.HostStageJoined, models.HostStageDone}
+	}
+}

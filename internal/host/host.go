@@ -54,7 +54,7 @@ type API interface {
 	StateAPI
 	InstructionApi
 	SpecificHardwareParams
-	UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostInstallProgressParams) error
+	UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
@@ -242,20 +242,24 @@ func (m *Manager) ValidateCurrentInventory(host *models.Host, cluster *common.Cl
 	return m.hwValidator.IsSufficient(host, cluster)
 }
 
-func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostInstallProgressParams) error {
+func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error {
 	if swag.StringValue(h.Status) != HostStatusInstalling && swag.StringValue(h.Status) != HostStatusInstallingInProgress {
 		return fmt.Errorf("can't set progress to host in status <%s>", swag.StringValue(h.Status))
 	}
 
-	progressJson, err := json.Marshal(models.HostProgress{CurrentStage: progress.CurrentStage})
+	progressJson, err := json.Marshal(models.HostProgressReport{
+		Stages: getStagesByRole(h.Role),
+		CurrentProgress: &models.HostProgress{
+			CurrentStage: progress.CurrentStage,
+			ProgressInfo: progress.ProgressInfo,
+		},
+	})
+
 	if err != nil {
 		return err
 	}
 
 	statusInfo := string(progress.CurrentStage)
-	if progress.ProgressInfo != "" {
-		statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
-	}
 
 	switch progress.CurrentStage {
 	case models.HostStageDone:
@@ -264,6 +268,11 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		return err
 	case models.HostStageFailed:
 		// Keeps the last progress
+
+		if progress.ProgressInfo != "" {
+			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
+		}
+
 		_, err = updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusError, statusInfo, h, m.db)
 		return err
 	default:

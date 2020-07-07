@@ -6,8 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"strconv"
-
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -19,10 +17,11 @@ import (
 type HostProgress struct {
 
 	// current stage
-	CurrentStage HostStage `json:"current_stage,omitempty"`
+	// Required: true
+	CurrentStage HostStage `json:"current_stage"`
 
-	// stages
-	Stages []HostStage `json:"stages"`
+	// progress info
+	ProgressInfo string `json:"progress_info,omitempty" gorm:"type:varchar(2048)"`
 }
 
 // Validate validates this host progress
@@ -30,10 +29,6 @@ func (m *HostProgress) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCurrentStage(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateStages(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -45,35 +40,11 @@ func (m *HostProgress) Validate(formats strfmt.Registry) error {
 
 func (m *HostProgress) validateCurrentStage(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.CurrentStage) { // not required
-		return nil
-	}
-
 	if err := m.CurrentStage.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("current_stage")
 		}
 		return err
-	}
-
-	return nil
-}
-
-func (m *HostProgress) validateStages(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Stages) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.Stages); i++ {
-
-		if err := m.Stages[i].Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("stages" + "." + strconv.Itoa(i))
-			}
-			return err
-		}
-
 	}
 
 	return nil
