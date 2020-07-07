@@ -147,10 +147,9 @@ func listValidDisks(inventory models.Inventory, minSizeRequiredInBytes int64) []
 }
 
 func (v *validator) isHostnameUnique(cluster *common.Cluster, host *models.Host, hwInventoryHostname string) bool {
-	var hwInfo models.Inventory
-	hostToCheckHostname := host.RequestedHostname
-	if hostToCheckHostname == "" {
-		hostToCheckHostname = hwInventoryHostname
+	hostToCheckHostname, err := common.GetCurrentHostName(host)
+	if err != nil {
+		return false
 	}
 
 	for _, chost := range cluster.Hosts {
@@ -160,14 +159,12 @@ func (v *validator) isHostnameUnique(cluster *common.Cluster, host *models.Host,
 		if chost.Inventory == "" || *chost.Status == models.HostStatusDisabled {
 			continue
 		}
-		if err := json.Unmarshal([]byte(chost.Inventory), &hwInfo); err != nil {
+
+		hostToCompareHostname, err := common.GetCurrentHostName(chost)
+		if err != nil {
 			continue
 		}
 
-		hostToCompareHostname := chost.RequestedHostname
-		if hostToCompareHostname == "" {
-			hostToCompareHostname = hwInfo.Hostname
-		}
 		if hostToCheckHostname == hostToCompareHostname {
 			return false
 		}

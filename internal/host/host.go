@@ -362,11 +362,11 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 }
 
 func (m *Manager) GetHostname(host *models.Host) string {
-	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+	hostName, err := common.GetCurrentHostName(host)
+	if err != nil {
 		return host.ID.String()
 	}
-	return inventory.Hostname
+	return hostName
 }
 
 func (m *Manager) GetStagesByRole(role models.HostRole) []models.HostStage {
