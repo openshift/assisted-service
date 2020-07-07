@@ -322,6 +322,9 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		}
 		setPullSecret(&cluster, params.NewClusterParams.PullSecret)
 	}
+	if err := validations.ValidateClusterNameFormat(swag.StringValue(params.NewClusterParams.Name)); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
 
 	err := b.clusterApi.RegisterCluster(ctx, &cluster)
 	if err != nil {
@@ -785,6 +788,11 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 			log.WithError(err).Errorf("Pull-secret for cluster %s, has invalid format", params.ClusterID)
 			return installer.NewUpdateClusterBadRequest().
 				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Pull-secret has invalid format")))
+		}
+	}
+	if newClusterName := swag.StringValue(params.ClusterUpdateParams.Name); newClusterName != "" {
+		if err = validations.ValidateClusterNameFormat(newClusterName); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
 
