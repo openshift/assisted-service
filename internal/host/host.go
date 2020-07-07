@@ -269,7 +269,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error {
 	if h.Bootstrap != isbootstrap {
-		err := db.Model(h).Update(models.HostRoleBootstrap, isbootstrap).Error
+		err := db.Model(h).Update("bootstrap", isbootstrap).Error
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
