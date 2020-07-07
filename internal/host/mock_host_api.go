@@ -14,45 +14,30 @@ import (
 	reflect "reflect"
 )
 
-// MockStateAPI is a mock of StateAPI interface
+// MockStateAPI is a mock of StateAPI interface.
 type MockStateAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockStateAPIMockRecorder
 }
 
-// MockStateAPIMockRecorder is the mock recorder for MockStateAPI
+// MockStateAPIMockRecorder is the mock recorder for MockStateAPI.
 type MockStateAPIMockRecorder struct {
 	mock *MockStateAPI
 }
 
-// NewMockStateAPI creates a new mock instance
+// NewMockStateAPI creates a new mock instance.
 func NewMockStateAPI(ctrl *gomock.Controller) *MockStateAPI {
 	mock := &MockStateAPI{ctrl: ctrl}
 	mock.recorder = &MockStateAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStateAPI) EXPECT() *MockStateAPIMockRecorder {
 	return m.recorder
 }
 
-// UpdateInventory mocks base method
-func (m *MockStateAPI) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateInventory", ctx, h, inventory)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateInventory indicates an expected call of UpdateInventory
-func (mr *MockStateAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockStateAPI)(nil).UpdateInventory), ctx, h, inventory)
-}
-
-// RefreshStatus mocks base method
+// RefreshStatus mocks base method.
 func (m *MockStateAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshStatus", ctx, h, db)
@@ -61,36 +46,36 @@ func (m *MockStateAPI) RefreshStatus(ctx context.Context, h *models.Host, db *go
 	return ret0, ret1
 }
 
-// RefreshStatus indicates an expected call of RefreshStatus
+// RefreshStatus indicates an expected call of RefreshStatus.
 func (mr *MockStateAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockStateAPI)(nil).RefreshStatus), ctx, h, db)
 }
 
-// MockSpecificHardwareParams is a mock of SpecificHardwareParams interface
+// MockSpecificHardwareParams is a mock of SpecificHardwareParams interface.
 type MockSpecificHardwareParams struct {
 	ctrl     *gomock.Controller
 	recorder *MockSpecificHardwareParamsMockRecorder
 }
 
-// MockSpecificHardwareParamsMockRecorder is the mock recorder for MockSpecificHardwareParams
+// MockSpecificHardwareParamsMockRecorder is the mock recorder for MockSpecificHardwareParams.
 type MockSpecificHardwareParamsMockRecorder struct {
 	mock *MockSpecificHardwareParams
 }
 
-// NewMockSpecificHardwareParams creates a new mock instance
+// NewMockSpecificHardwareParams creates a new mock instance.
 func NewMockSpecificHardwareParams(ctrl *gomock.Controller) *MockSpecificHardwareParams {
 	mock := &MockSpecificHardwareParams{ctrl: ctrl}
 	mock.recorder = &MockSpecificHardwareParamsMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSpecificHardwareParams) EXPECT() *MockSpecificHardwareParamsMockRecorder {
 	return m.recorder
 }
 
-// GetHostValidDisks mocks base method
+// GetHostValidDisks mocks base method.
 func (m *MockSpecificHardwareParams) GetHostValidDisks(h *models.Host) ([]*models.Disk, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostValidDisks", h)
@@ -99,13 +84,13 @@ func (m *MockSpecificHardwareParams) GetHostValidDisks(h *models.Host) ([]*model
 	return ret0, ret1
 }
 
-// GetHostValidDisks indicates an expected call of GetHostValidDisks
+// GetHostValidDisks indicates an expected call of GetHostValidDisks.
 func (mr *MockSpecificHardwareParamsMockRecorder) GetHostValidDisks(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockSpecificHardwareParams)(nil).GetHostValidDisks), h)
 }
 
-// ValidateCurrentInventory mocks base method
+// ValidateCurrentInventory mocks base method.
 func (m *MockSpecificHardwareParams) ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*validators.IsSufficientReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateCurrentInventory", host, cluster)
@@ -114,36 +99,36 @@ func (m *MockSpecificHardwareParams) ValidateCurrentInventory(host *models.Host,
 	return ret0, ret1
 }
 
-// ValidateCurrentInventory indicates an expected call of ValidateCurrentInventory
+// ValidateCurrentInventory indicates an expected call of ValidateCurrentInventory.
 func (mr *MockSpecificHardwareParamsMockRecorder) ValidateCurrentInventory(host, cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCurrentInventory", reflect.TypeOf((*MockSpecificHardwareParams)(nil).ValidateCurrentInventory), host, cluster)
 }
 
-// MockAPI is a mock of API interface
+// MockAPI is a mock of API interface.
 type MockAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockAPIMockRecorder
 }
 
-// MockAPIMockRecorder is the mock recorder for MockAPI
+// MockAPIMockRecorder is the mock recorder for MockAPI.
 type MockAPIMockRecorder struct {
 	mock *MockAPI
 }
 
-// NewMockAPI creates a new mock instance
+// NewMockAPI creates a new mock instance.
 func NewMockAPI(ctrl *gomock.Controller) *MockAPI {
 	mock := &MockAPI{ctrl: ctrl}
 	mock.recorder = &MockAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
-// RegisterHost mocks base method
+// RegisterHost mocks base method.
 func (m *MockAPI) RegisterHost(ctx context.Context, h *models.Host) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterHost", ctx, h)
@@ -151,13 +136,13 @@ func (m *MockAPI) RegisterHost(ctx context.Context, h *models.Host) error {
 	return ret0
 }
 
-// RegisterHost indicates an expected call of RegisterHost
+// RegisterHost indicates an expected call of RegisterHost.
 func (mr *MockAPIMockRecorder) RegisterHost(ctx, h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterHost", reflect.TypeOf((*MockAPI)(nil).RegisterHost), ctx, h)
 }
 
-// HandleInstallationFailure mocks base method
+// HandleInstallationFailure mocks base method.
 func (m *MockAPI) HandleInstallationFailure(ctx context.Context, h *models.Host) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleInstallationFailure", ctx, h)
@@ -165,28 +150,13 @@ func (m *MockAPI) HandleInstallationFailure(ctx context.Context, h *models.Host)
 	return ret0
 }
 
-// HandleInstallationFailure indicates an expected call of HandleInstallationFailure
+// HandleInstallationFailure indicates an expected call of HandleInstallationFailure.
 func (mr *MockAPIMockRecorder) HandleInstallationFailure(ctx, h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleInstallationFailure", reflect.TypeOf((*MockAPI)(nil).HandleInstallationFailure), ctx, h)
 }
 
-// UpdateInventory mocks base method
-func (m *MockAPI) UpdateInventory(ctx context.Context, h *models.Host, inventory string) (*UpdateReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateInventory", ctx, h, inventory)
-	ret0, _ := ret[0].(*UpdateReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateInventory indicates an expected call of UpdateInventory
-func (mr *MockAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockAPI)(nil).UpdateInventory), ctx, h, inventory)
-}
-
-// RefreshStatus mocks base method
+// RefreshStatus mocks base method.
 func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshStatus", ctx, h, db)
@@ -195,13 +165,13 @@ func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	return ret0, ret1
 }
 
-// RefreshStatus indicates an expected call of RefreshStatus
+// RefreshStatus indicates an expected call of RefreshStatus.
 func (mr *MockAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, h, db)
 }
 
-// GetNextSteps mocks base method
+// GetNextSteps mocks base method.
 func (m *MockAPI) GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNextSteps", ctx, host)
@@ -210,13 +180,13 @@ func (m *MockAPI) GetNextSteps(ctx context.Context, host *models.Host) (models.S
 	return ret0, ret1
 }
 
-// GetNextSteps indicates an expected call of GetNextSteps
+// GetNextSteps indicates an expected call of GetNextSteps.
 func (mr *MockAPIMockRecorder) GetNextSteps(ctx, host interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextSteps", reflect.TypeOf((*MockAPI)(nil).GetNextSteps), ctx, host)
 }
 
-// GetHostValidDisks mocks base method
+// GetHostValidDisks mocks base method.
 func (m *MockAPI) GetHostValidDisks(h *models.Host) ([]*models.Disk, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostValidDisks", h)
@@ -225,13 +195,13 @@ func (m *MockAPI) GetHostValidDisks(h *models.Host) ([]*models.Disk, error) {
 	return ret0, ret1
 }
 
-// GetHostValidDisks indicates an expected call of GetHostValidDisks
+// GetHostValidDisks indicates an expected call of GetHostValidDisks.
 func (mr *MockAPIMockRecorder) GetHostValidDisks(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockAPI)(nil).GetHostValidDisks), h)
 }
 
-// ValidateCurrentInventory mocks base method
+// ValidateCurrentInventory mocks base method.
 func (m *MockAPI) ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*validators.IsSufficientReply, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateCurrentInventory", host, cluster)
@@ -240,13 +210,13 @@ func (m *MockAPI) ValidateCurrentInventory(host *models.Host, cluster *common.Cl
 	return ret0, ret1
 }
 
-// ValidateCurrentInventory indicates an expected call of ValidateCurrentInventory
+// ValidateCurrentInventory indicates an expected call of ValidateCurrentInventory.
 func (mr *MockAPIMockRecorder) ValidateCurrentInventory(host, cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCurrentInventory", reflect.TypeOf((*MockAPI)(nil).ValidateCurrentInventory), host, cluster)
 }
 
-// UpdateInstallProgress mocks base method
+// UpdateInstallProgress mocks base method.
 func (m *MockAPI) UpdateInstallProgress(ctx context.Context, h *models.Host, progress string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateInstallProgress", ctx, h, progress)
@@ -254,13 +224,13 @@ func (m *MockAPI) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	return ret0
 }
 
-// UpdateInstallProgress indicates an expected call of UpdateInstallProgress
+// UpdateInstallProgress indicates an expected call of UpdateInstallProgress.
 func (mr *MockAPIMockRecorder) UpdateInstallProgress(ctx, h, progress interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallProgress", reflect.TypeOf((*MockAPI)(nil).UpdateInstallProgress), ctx, h, progress)
 }
 
-// SetBootstrap mocks base method
+// SetBootstrap mocks base method.
 func (m *MockAPI) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetBootstrap", ctx, h, isbootstrap, db)
@@ -268,13 +238,13 @@ func (m *MockAPI) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 	return ret0
 }
 
-// SetBootstrap indicates an expected call of SetBootstrap
+// SetBootstrap indicates an expected call of SetBootstrap.
 func (mr *MockAPIMockRecorder) SetBootstrap(ctx, h, isbootstrap, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBootstrap", reflect.TypeOf((*MockAPI)(nil).SetBootstrap), ctx, h, isbootstrap, db)
 }
 
-// UpdateConnectivityReport mocks base method
+// UpdateConnectivityReport mocks base method.
 func (m *MockAPI) UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateConnectivityReport", ctx, h, connectivityReport)
@@ -282,25 +252,25 @@ func (m *MockAPI) UpdateConnectivityReport(ctx context.Context, h *models.Host, 
 	return ret0
 }
 
-// UpdateConnectivityReport indicates an expected call of UpdateConnectivityReport
+// UpdateConnectivityReport indicates an expected call of UpdateConnectivityReport.
 func (mr *MockAPIMockRecorder) UpdateConnectivityReport(ctx, h, connectivityReport interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConnectivityReport", reflect.TypeOf((*MockAPI)(nil).UpdateConnectivityReport), ctx, h, connectivityReport)
 }
 
-// HostMonitoring mocks base method
+// HostMonitoring mocks base method.
 func (m *MockAPI) HostMonitoring() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "HostMonitoring")
 }
 
-// HostMonitoring indicates an expected call of HostMonitoring
+// HostMonitoring indicates an expected call of HostMonitoring.
 func (mr *MockAPIMockRecorder) HostMonitoring() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostMonitoring", reflect.TypeOf((*MockAPI)(nil).HostMonitoring))
 }
 
-// UpdateRole mocks base method
+// UpdateRole mocks base method.
 func (m *MockAPI) UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateRole", ctx, h, role, db)
@@ -308,13 +278,13 @@ func (m *MockAPI) UpdateRole(ctx context.Context, h *models.Host, role models.Ho
 	return ret0
 }
 
-// UpdateRole indicates an expected call of UpdateRole
+// UpdateRole indicates an expected call of UpdateRole.
 func (mr *MockAPIMockRecorder) UpdateRole(ctx, h, role, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRole", reflect.TypeOf((*MockAPI)(nil).UpdateRole), ctx, h, role, db)
 }
 
-// UpdateHostname mocks base method
+// UpdateHostname mocks base method.
 func (m *MockAPI) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateHostname", ctx, h, hostname, db)
@@ -322,13 +292,13 @@ func (m *MockAPI) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 	return ret0
 }
 
-// UpdateHostname indicates an expected call of UpdateHostname
+// UpdateHostname indicates an expected call of UpdateHostname.
 func (mr *MockAPIMockRecorder) UpdateHostname(ctx, h, hostname, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostname", reflect.TypeOf((*MockAPI)(nil).UpdateHostname), ctx, h, hostname, db)
 }
 
-// CancelInstallation mocks base method
+// CancelInstallation mocks base method.
 func (m *MockAPI) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelInstallation", ctx, h, reason, db)
@@ -336,13 +306,13 @@ func (m *MockAPI) CancelInstallation(ctx context.Context, h *models.Host, reason
 	return ret0
 }
 
-// CancelInstallation indicates an expected call of CancelInstallation
+// CancelInstallation indicates an expected call of CancelInstallation.
 func (mr *MockAPIMockRecorder) CancelInstallation(ctx, h, reason, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInstallation", reflect.TypeOf((*MockAPI)(nil).CancelInstallation), ctx, h, reason, db)
 }
 
-// ResetHost mocks base method
+// ResetHost mocks base method.
 func (m *MockAPI) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResetHost", ctx, h, reason, db)
@@ -350,13 +320,13 @@ func (m *MockAPI) ResetHost(ctx context.Context, h *models.Host, reason string, 
 	return ret0
 }
 
-// ResetHost indicates an expected call of ResetHost
+// ResetHost indicates an expected call of ResetHost.
 func (mr *MockAPIMockRecorder) ResetHost(ctx, h, reason, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetHost", reflect.TypeOf((*MockAPI)(nil).ResetHost), ctx, h, reason, db)
 }
 
-// GetHostname mocks base method
+// GetHostname mocks base method.
 func (m *MockAPI) GetHostname(h *models.Host) string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostname", h)
@@ -364,13 +334,13 @@ func (m *MockAPI) GetHostname(h *models.Host) string {
 	return ret0
 }
 
-// GetHostname indicates an expected call of GetHostname
+// GetHostname indicates an expected call of GetHostname.
 func (mr *MockAPIMockRecorder) GetHostname(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostname", reflect.TypeOf((*MockAPI)(nil).GetHostname), h)
 }
 
-// DisableHost mocks base method
+// DisableHost mocks base method.
 func (m *MockAPI) DisableHost(ctx context.Context, h *models.Host) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DisableHost", ctx, h)
@@ -378,13 +348,13 @@ func (m *MockAPI) DisableHost(ctx context.Context, h *models.Host) error {
 	return ret0
 }
 
-// DisableHost indicates an expected call of DisableHost
+// DisableHost indicates an expected call of DisableHost.
 func (mr *MockAPIMockRecorder) DisableHost(ctx, h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableHost", reflect.TypeOf((*MockAPI)(nil).DisableHost), ctx, h)
 }
 
-// EnableHost mocks base method
+// EnableHost mocks base method.
 func (m *MockAPI) EnableHost(ctx context.Context, h *models.Host) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnableHost", ctx, h)
@@ -392,13 +362,13 @@ func (m *MockAPI) EnableHost(ctx context.Context, h *models.Host) error {
 	return ret0
 }
 
-// EnableHost indicates an expected call of EnableHost
+// EnableHost indicates an expected call of EnableHost.
 func (mr *MockAPIMockRecorder) EnableHost(ctx, h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableHost", reflect.TypeOf((*MockAPI)(nil).EnableHost), ctx, h)
 }
 
-// Install mocks base method
+// Install mocks base method.
 func (m *MockAPI) Install(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Install", ctx, h, db)
@@ -406,13 +376,13 @@ func (m *MockAPI) Install(ctx context.Context, h *models.Host, db *gorm.DB) erro
 	return ret0
 }
 
-// Install indicates an expected call of Install
+// Install indicates an expected call of Install.
 func (mr *MockAPIMockRecorder) Install(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockAPI)(nil).Install), ctx, h, db)
 }
 
-// UpdateHwInfo mocks base method
+// UpdateHwInfo mocks base method.
 func (m *MockAPI) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateHwInfo", ctx, h, hwInfo)
@@ -420,8 +390,22 @@ func (m *MockAPI) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo strin
 	return ret0
 }
 
-// UpdateHwInfo indicates an expected call of UpdateHwInfo
+// UpdateHwInfo indicates an expected call of UpdateHwInfo.
 func (mr *MockAPIMockRecorder) UpdateHwInfo(ctx, h, hwInfo interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHwInfo", reflect.TypeOf((*MockAPI)(nil).UpdateHwInfo), ctx, h, hwInfo)
+}
+
+// UpdateInventory mocks base method.
+func (m *MockAPI) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInventory", ctx, h, inventory)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateInventory indicates an expected call of UpdateInventory.
+func (mr *MockAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockAPI)(nil).UpdateInventory), ctx, h, inventory)
 }
