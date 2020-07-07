@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -652,6 +653,54 @@ var _ = Describe("UpdateHwInfo", func() {
 			})
 		}
 	})
+
+	AfterEach(func() {
+		_ = db.Close()
+	})
+})
+
+var _ = Describe("SetBootstrap", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+
+		host = getTestHost(hostId, clusterId, HostStatusResetting)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+		h := getHost(*host.ID, host.ClusterID, db)
+		Expect(h.Bootstrap).Should(Equal(false))
+	})
+
+	tests := []struct {
+		IsBootstrap bool
+	}{
+		{
+			IsBootstrap: true,
+		},
+		{
+			IsBootstrap: false,
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(fmt.Sprintf("Boostrap %s", strconv.FormatBool(t.IsBootstrap)), func() {
+			Expect(hapi.SetBootstrap(ctx, &host, t.IsBootstrap, db)).ShouldNot(HaveOccurred())
+
+			h := getHost(*host.ID, host.ClusterID, db)
+			Expect(h.Bootstrap).Should(Equal(t.IsBootstrap))
+		})
+	}
 
 	AfterEach(func() {
 		_ = db.Close()
