@@ -505,13 +505,13 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		var (
 			hostID         strfmt.UUID
 			clusterID      strfmt.UUID
-			progressParams *models.HostInstallProgressParams
+			progressParams *models.HostProgress
 		)
 
 		BeforeEach(func() {
 			hostID = strfmt.UUID(uuid.New().String())
 			clusterID = strfmt.UUID(uuid.New().String())
-			progressParams = &models.HostInstallProgressParams{
+			progressParams = &models.HostProgress{
 				CurrentStage: defaultProgressStage,
 			}
 
@@ -528,9 +528,9 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockHostApi.EXPECT().GetHostname(gomock.Any())
 			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
-				ClusterID:                 clusterID,
-				HostInstallProgressParams: progressParams,
-				HostID:                    hostID,
+				ClusterID:    clusterID,
+				HostProgress: progressParams,
+				HostID:       hostID,
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
 		})
@@ -538,9 +538,9 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		It("update_failed", func() {
 			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error"))
 			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
-				ClusterID:                 clusterID,
-				HostInstallProgressParams: progressParams,
-				HostID:                    hostID,
+				ClusterID:    clusterID,
+				HostProgress: progressParams,
+				HostID:       hostID,
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
 		})
@@ -549,7 +549,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 	It("host_dont_exist", func() {
 		reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
-			HostInstallProgressParams: &models.HostInstallProgressParams{
+			HostProgress: &models.HostProgress{
 				CurrentStage: defaultProgressStage,
 			},
 			HostID: strfmt.UUID(uuid.New().String()),

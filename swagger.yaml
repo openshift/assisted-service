@@ -585,11 +585,11 @@ paths:
           format: uuid
           required: true
         - in: body
-          name: host-install-progress-params
+          name: host-progress
           description: New progress value
           required: true
           schema:
-            $ref: '#/definitions/host-install-progress-params'
+            $ref: '#/definitions/host-progress'
       responses:
         200:
           description: Update install progress
@@ -985,7 +985,7 @@ definitions:
         format: date-time
         x-go-custom-tag: gorm:"type:datetime"
         description: The last time that the host status has been updated
-      progress: # #/definitions/host-progress
+      progress: # #/definitions/host-progress-report
         x-go-custom-tag: gorm:"type:text"
         type: string
       connectivity:
@@ -1025,15 +1025,15 @@ definitions:
       requested_hostname:
         type: string
 
-  host-progress:
+  host-progress-report:
     type: object
     properties:
       stages:
         type: array
         items:
           $ref: '#/definitions/host-stage'
-      current_stage:
-        $ref: '#/definitions/host-stage'
+      current_progress:
+        $ref: '#/definitions/host-progress'
 
   steps:
     type: object
@@ -1561,7 +1561,7 @@ definitions:
   ingress-cert-params:
     type: string
 
-  host-install-progress-params:
+  host-progress:
     type: object
     required:
      - current_stage

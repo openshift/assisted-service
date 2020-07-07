@@ -43,7 +43,7 @@ type UpdateHostInstallProgressParams struct {
 	  Required: true
 	  In: body
 	*/
-	HostInstallProgressParams *models.HostInstallProgressParams
+	HostProgress *models.HostProgress
 	/*The ID of the host to retrieve
 	  Required: true
 	  In: path
@@ -67,12 +67,12 @@ func (o *UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *mi
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body models.HostInstallProgressParams
+		var body models.HostProgress
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("hostInstallProgressParams", "body", ""))
+				res = append(res, errors.Required("hostProgress", "body", ""))
 			} else {
-				res = append(res, errors.NewParseError("hostInstallProgressParams", "body", "", err))
+				res = append(res, errors.NewParseError("hostProgress", "body", "", err))
 			}
 		} else {
 			// validate body object
@@ -81,11 +81,11 @@ func (o *UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *mi
 			}
 
 			if len(res) == 0 {
-				o.HostInstallProgressParams = &body
+				o.HostProgress = &body
 			}
 		}
 	} else {
-		res = append(res, errors.Required("hostInstallProgressParams", "body", ""))
+		res = append(res, errors.Required("hostProgress", "body", ""))
 	}
 	rHostID, rhkHostID, _ := route.Params.GetOK("host_id")
 	if err := o.bindHostID(rHostID, rhkHostID, route.Formats); err != nil {

@@ -1127,11 +1127,11 @@ func init() {
           },
           {
             "description": "New progress value",
-            "name": "host-install-progress-params",
+            "name": "host-progress",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/host-install-progress-params"
+              "$ref": "#/definitions/host-progress"
             }
           }
         ],
@@ -2042,7 +2042,13 @@ func init() {
         }
       }
     },
-    "host-install-progress-params": {
+    "host-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/host"
+      }
+    },
+    "host-progress": {
       "type": "object",
       "required": [
         "current_stage"
@@ -2058,17 +2064,11 @@ func init() {
         }
       }
     },
-    "host-list": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/host"
-      }
-    },
-    "host-progress": {
+    "host-progress-report": {
       "type": "object",
       "properties": {
-        "current_stage": {
-          "$ref": "#/definitions/host-stage"
+        "current_progress": {
+          "$ref": "#/definitions/host-progress"
         },
         "stages": {
           "type": "array",
@@ -3611,11 +3611,11 @@ func init() {
           },
           {
             "description": "New progress value",
-            "name": "host-install-progress-params",
+            "name": "host-progress",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/host-install-progress-params"
+              "$ref": "#/definitions/host-progress"
             }
           }
         ],
@@ -4532,7 +4532,13 @@ func init() {
         }
       }
     },
-    "host-install-progress-params": {
+    "host-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/host"
+      }
+    },
+    "host-progress": {
       "type": "object",
       "required": [
         "current_stage"
@@ -4548,17 +4554,11 @@ func init() {
         }
       }
     },
-    "host-list": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/host"
-      }
-    },
-    "host-progress": {
+    "host-progress-report": {
       "type": "object",
       "properties": {
-        "current_stage": {
-          "$ref": "#/definitions/host-stage"
+        "current_progress": {
+          "$ref": "#/definitions/host-progress"
         },
         "stages": {
           "type": "array",

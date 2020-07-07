@@ -67,11 +67,11 @@ type UpdateHostInstallProgressParams struct {
 
 	*/
 	ClusterID strfmt.UUID
-	/*HostInstallProgressParams
+	/*HostProgress
 	  New progress value
 
 	*/
-	HostInstallProgressParams *models.HostInstallProgressParams
+	HostProgress *models.HostProgress
 	/*HostID
 	  The ID of the host to retrieve
 
@@ -127,15 +127,15 @@ func (o *UpdateHostInstallProgressParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
-// WithHostInstallProgressParams adds the hostInstallProgressParams to the update host install progress params
-func (o *UpdateHostInstallProgressParams) WithHostInstallProgressParams(hostInstallProgressParams *models.HostInstallProgressParams) *UpdateHostInstallProgressParams {
-	o.SetHostInstallProgressParams(hostInstallProgressParams)
+// WithHostProgress adds the hostProgress to the update host install progress params
+func (o *UpdateHostInstallProgressParams) WithHostProgress(hostProgress *models.HostProgress) *UpdateHostInstallProgressParams {
+	o.SetHostProgress(hostProgress)
 	return o
 }
 
-// SetHostInstallProgressParams adds the hostInstallProgressParams to the update host install progress params
-func (o *UpdateHostInstallProgressParams) SetHostInstallProgressParams(hostInstallProgressParams *models.HostInstallProgressParams) {
-	o.HostInstallProgressParams = hostInstallProgressParams
+// SetHostProgress adds the hostProgress to the update host install progress params
+func (o *UpdateHostInstallProgressParams) SetHostProgress(hostProgress *models.HostProgress) {
+	o.HostProgress = hostProgress
 }
 
 // WithHostID adds the hostID to the update host install progress params
@@ -162,8 +162,8 @@ func (o *UpdateHostInstallProgressParams) WriteToRequest(r runtime.ClientRequest
 		return err
 	}
 
-	if o.HostInstallProgressParams != nil {
-		if err := r.SetBodyParam(o.HostInstallProgressParams); err != nil {
+	if o.HostProgress != nil {
+		if err := r.SetBodyParam(o.HostProgress); err != nil {
 			return err
 		}
 	}
