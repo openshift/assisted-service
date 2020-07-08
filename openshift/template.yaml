@@ -1,0 +1,158 @@
+---
+parameters:
+- name: BM_INVENTORY_IMAGE
+  value: quay.io/app-sre/bm-inventory
+- name: BM_INVENTORY_IMAGE_TAG
+  value: latest
+- name: OBJ_EXPIRER_IMAGE
+  value: quay.io/ocpmetal/s3-object-expirer
+- name: OBJ_EXPIRER_IMAGE_TAG
+  value: latest
+apiVersion: v1
+kind: Template
+metadata:
+  name: assisted-installer
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: bm-inventory
+    namespace: assisted-installer
+  spec:
+    selector:
+      matchLabels:
+        app: bm-inventory
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: bm-inventory
+      spec:
+        containers:
+          - name: bm-inventory
+            image: ${BM_INVENTORY_IMAGE}:${BM_INVENTORY_IMAGE_TAG}
+            imagePullPolicy: Always
+            resources:
+              limits:
+                cpu: 200m
+                memory: 500Mi
+              requests:
+                cpu: 100m
+                memory: 400Mi
+            ports:
+              - name: bm-inventory
+                containerPort: 8090
+            env:
+              - name: ROUTE53_CREDS
+                  valueFrom:
+                  secretKeyRef:
+                    key: creds
+                    name: route53-creds
+              - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                  secretKeyRef:
+                    key: aws_secret_access_key
+                    name: assisted-installer-s3
+              - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                  secretKeyRef:
+                    key: aws_access_key_id
+                    name: assisted-installer-s3
+              - name: AWS_REGION
+                  valueFrom:
+                  secretKeyRef:
+                    key: aws_region
+                    name: assisted-installer-s3
+              - name: BUCKET
+                  valueFrom:
+                  secretKeyRef:
+                    key: bucket
+                    name: assisted-installer-s3
+              - name: ENDPOINT
+                  valueFrom:
+                  secretKeyRef:
+                    key: endpoint
+                    name: assisted-installer-s3
+              - name: DB_HOST
+                  valueFrom:
+                  secretKeyRef:
+                    key: db.host
+                    name: assisted-installer-rds
+              - name: DB_NAME
+                  valueFrom:
+                  secretKeyRef:
+                    key: db.name
+                    name: assisted-installer-rds
+              - name: DB_PASSWORD
+                  valueFrom:
+                  secretKeyRef:
+                    key: db.password
+                    name: assisted-installer-rds
+              - name: DB_PORT
+                  valueFrom:
+                  secretKeyRef:
+                    key: db.port
+                    name: assisted-installer-rds
+              - name: DB_USER
+                  valueFrom:
+                  secretKeyRef:
+                    key: db.user
+                    name: assisted-installer-rds
+              - name: IMAGE_BUILDER_CMD
+                value: ""
+#- apiVersion: batch/v1beta1
+#  kind: CronJob
+#  metadata:
+#    name: s3-object-expirer-cron-job
+#    namespace: assisted-installer
+#  spec:
+#    schedule: "@hourly"
+#    successfulJobsHistoryLimit: 0
+#    failedJobsHistoryLimit: 1
+#    jobTemplate:
+#      spec:
+#        template:
+#          spec:
+#            containers:
+#            - name: s3-object-expirer-job-pod
+#              image: ${OBJ_EXPIRER_IMAGE}:${OBJ_EXPIRER_IMAGE_TAG}
+#              imagePullPolicy: Always
+#              env:
+#                - name: AWS_SECRET_ACCESS_KEY
+#                  valueFrom:
+#                  secretKeyRef:
+#                    key: aws_secret_access_key
+#                    name: assisted-installer-s3
+#              - name: AWS_ACCESS_KEY_ID
+#                  valueFrom:
+#                  secretKeyRef:
+#                    key: aws_access_key_id
+#                    name: assisted-installer-s3
+#              - name: AWS_REGION
+#                  valueFrom:
+#                  secretKeyRef:
+#                    key: aws_region
+#                    name: assisted-installer-s3
+#              - name: BUCKET
+#                  valueFrom:
+#                  secretKeyRef:
+#                    key: bucket
+#                    name: assisted-installer-s3
+#              - name: ENDPOINT
+#                  valueFrom:
+#                  secretKeyRef:
+#                    key: endpoint
+#                    name: assisted-installer-s3
+#              args:
+#              - /bin/bash
+#              - -c
+#              -  python ./expirer.py
+#              resources:
+#                limits:
+#                  cpu: 200m
+#                  memory: 200Mi
+#                requests:
+#                  cpu: 100m
+#                  memory: 100Mi
+#            restartPolicy: OnFailure
+#        backoffLimit: 3
