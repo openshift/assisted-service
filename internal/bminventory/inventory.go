@@ -100,6 +100,15 @@ const ignitionConfigFormat = `{
 }
 }`
 
+var clusterFileNames = []string{
+	"kubeconfig",
+	"bootstrap.ign",
+	"master.ign",
+	"worker.ign",
+	"metadata.json",
+	"kubeadmin-password",
+}
+
 type debugCmd struct {
 	cmd    string
 	stepID string
@@ -1809,6 +1818,10 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 		}
 	}
 
+	if err := b.deleteS3ClusterFiles(ctx, &c); err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		log.Error(err)
 		return installer.NewResetClusterInternalServerError().WithPayload(
@@ -1817,6 +1830,15 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 	txSuccess = true
 
 	return installer.NewResetClusterAccepted().WithPayload(&c.Cluster)
+}
+
+func (b *bareMetalInventory) deleteS3ClusterFiles(ctx context.Context, c *common.Cluster) error {
+	for _, name := range clusterFileNames {
+		if err := b.s3Client.DeleteFileFromS3(ctx, fmt.Sprintf("%s/%s", c.ID, name), b.S3Bucket); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) createDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
