@@ -93,3 +93,17 @@ func (mr *MockS3ClientMockRecorder) UpdateObjectTag(ctx, objectName, s3Bucket, k
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateObjectTag", reflect.TypeOf((*MockS3Client)(nil).UpdateObjectTag), ctx, objectName, s3Bucket, key, value)
 }
+
+// DeleteFileFromS3 mocks base method
+func (m *MockS3Client) DeleteFileFromS3(ctx context.Context, fileName, s3Bucket string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteFileFromS3", ctx, fileName, s3Bucket)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteFileFromS3 indicates an expected call of DeleteFileFromS3
+func (mr *MockS3ClientMockRecorder) DeleteFileFromS3(ctx, fileName, s3Bucket interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFileFromS3", reflect.TypeOf((*MockS3Client)(nil).DeleteFileFromS3), ctx, fileName, s3Bucket)
+}
