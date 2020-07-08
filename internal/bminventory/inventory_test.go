@@ -714,6 +714,8 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("GetCluster", func() {
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any()).Return(nil).Times(3) // Number of hosts
+
 				reply := bm.GetCluster(ctx, installer.GetClusterParams{
 					ClusterID: clusterID,
 				})
@@ -853,6 +855,7 @@ var _ = Describe("cluster", func() {
 				apiVip := "10.11.12.15"
 				ingressVip := "10.11.12.16"
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(3)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any()).Return(nil).Times(3) // Number of hosts
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,

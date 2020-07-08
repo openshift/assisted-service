@@ -409,3 +409,17 @@ func (mr *MockAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *g
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockAPI)(nil).UpdateInventory), ctx, h, inventory)
 }
+
+// GetStagesByRole mocks base method
+func (m *MockAPI) GetStagesByRole(role models.HostRole) []models.HostStage {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStagesByRole", role)
+	ret0, _ := ret[0].([]models.HostStage)
+	return ret0
+}
+
+// GetStagesByRole indicates an expected call of GetStagesByRole
+func (mr *MockAPIMockRecorder) GetStagesByRole(role interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStagesByRole", reflect.TypeOf((*MockAPI)(nil).GetStagesByRole), role)
+}

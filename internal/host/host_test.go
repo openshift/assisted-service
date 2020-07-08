@@ -270,7 +270,6 @@ var _ = Describe("update_progress", func() {
 			AfterEach(func() {
 				Expect(hostProgressReport.CurrentProgress.CurrentStage).Should(Equal(progress.CurrentStage))
 				Expect(hostProgressReport.CurrentProgress.ProgressInfo).Should(Equal(progress.ProgressInfo))
-				Expect(hostProgressReport.Stages).Should(Equal(getStagesByRole(host.Role)))
 			})
 		})
 
@@ -308,7 +307,6 @@ var _ = Describe("update_progress", func() {
 				Expect(json.Unmarshal([]byte(h.Progress), &hostProgressReport)).ToNot(HaveOccurred())
 				Expect(hostProgressReport.CurrentProgress.CurrentStage).Should(Equal(progress.CurrentStage))
 				Expect(hostProgressReport.CurrentProgress.ProgressInfo).Should(Equal(progress.ProgressInfo))
-				Expect(hostProgressReport.Stages).Should(Equal(getStagesByRole(host.Role)))
 
 				// Failed
 				newProgress := models.HostProgress{}
@@ -322,7 +320,6 @@ var _ = Describe("update_progress", func() {
 				Expect(json.Unmarshal([]byte(h.Progress), &hostProgressReport)).ToNot(HaveOccurred())
 				Expect(hostProgressReport.CurrentProgress.CurrentStage).Should(Equal(progress.CurrentStage))
 				Expect(hostProgressReport.CurrentProgress.ProgressInfo).Should(Equal(progress.ProgressInfo))
-				Expect(hostProgressReport.Stages).Should(Equal(getStagesByRole(host.Role)))
 			})
 		})
 	})

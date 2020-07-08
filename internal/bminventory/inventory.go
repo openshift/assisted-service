@@ -820,6 +820,12 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}
 
 	cluster.HostNetworks = calculateHostNetworks(log, &cluster)
+	for _, host := range cluster.Hosts {
+		if err := b.customizeHost(host); err != nil {
+			return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+		}
+	}
+
 	return installer.NewUpdateClusterCreated().WithPayload(&cluster.Cluster)
 }
 
@@ -1005,7 +1011,14 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.Ge
 		return installer.NewGetClusterNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
+
 	cluster.HostNetworks = calculateHostNetworks(log, &cluster)
+	for _, host := range cluster.Hosts {
+		if err := b.customizeHost(host); err != nil {
+			return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+		}
+	}
+
 	return installer.NewGetClusterOK().WithPayload(&cluster.Cluster)
 }
 
@@ -1056,6 +1069,10 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
+	if err := b.customizeHost(&host); err != nil {
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+	}
+
 	return installer.NewRegisterHostCreated().WithPayload(&host)
 }
 
@@ -1082,6 +1099,10 @@ func (b *bareMetalInventory) GetHost(ctx context.Context, params installer.GetHo
 		return installer.NewGetHostNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 
+	if err := b.customizeHost(&host); err != nil {
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+	}
+
 	return installer.NewGetHostOK().WithPayload(&host)
 }
 
@@ -1093,6 +1114,13 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.Lis
 		return installer.NewListHostsInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
+
+	for _, host := range hosts {
+		if err := b.customizeHost(host); err != nil {
+			return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+		}
+	}
+
 	return installer.NewListHostsOK().WithPayload(hosts)
 }
 
@@ -1328,6 +1356,11 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
+
+	if err := b.customizeHost(&host); err != nil {
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+	}
+
 	return installer.NewDisableHostOK().WithPayload(&host)
 }
 
@@ -1349,6 +1382,11 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 		log.WithError(err).Errorf("failed to enable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
+
+	if err := b.customizeHost(&host); err != nil {
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+	}
+
 	return installer.NewEnableHostOK().WithPayload(&host)
 }
 
@@ -1968,4 +2006,26 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewGetFreeAddressesOK().WithPayload(results)
+}
+
+func (b *bareMetalInventory) customizeHost(host *models.Host) error {
+	var hostProgressReport models.HostProgressReport
+	var err error
+
+	if host.Progress != "" {
+		if err = json.Unmarshal([]byte(host.Progress), &hostProgressReport); err != nil {
+			return err
+		}
+	}
+
+	hostProgressReport.Stages = b.hostApi.GetStagesByRole(host.Role)
+
+	progressJson, err := json.Marshal(hostProgressReport)
+	host.Progress = string(progressJson)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
