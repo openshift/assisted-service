@@ -32,16 +32,16 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
-// RegisterCluster mocks base method
-func (m *MockAPI) RegisterCluster(clusterVersion string) {
+// ClusterRegistered mocks base method
+func (m *MockAPI) ClusterRegistered(clusterVersion string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RegisterCluster", clusterVersion)
+	m.ctrl.Call(m, "ClusterRegistered", clusterVersion)
 }
 
-// RegisterCluster indicates an expected call of RegisterCluster
-func (mr *MockAPIMockRecorder) RegisterCluster(clusterVersion interface{}) *gomock.Call {
+// ClusterRegistered indicates an expected call of ClusterRegistered
+func (mr *MockAPIMockRecorder) ClusterRegistered(clusterVersion interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockAPI)(nil).RegisterCluster), clusterVersion)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterRegistered", reflect.TypeOf((*MockAPI)(nil).ClusterRegistered), clusterVersion)
 }
 
 // InstallationStarted mocks base method
