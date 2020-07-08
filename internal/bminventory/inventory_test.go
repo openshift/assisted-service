@@ -1121,13 +1121,13 @@ var _ = Describe("cluster", func() {
 		})
 
 		Context("reset cluster", func() {
-			It("cancel installation success", func() {
+			It("reset installation success", func() {
 				setResetClusterSuccess()
 
-				cancelReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
+				resetReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
 					ClusterID: clusterID,
 				})
-				Expect(cancelReply).Should(BeAssignableToTypeOf(installer.NewResetClusterAccepted()))
+				Expect(resetReply).Should(BeAssignableToTypeOf(installer.NewResetClusterAccepted()))
 			})
 			It("reset cluster conflict", func() {
 				setResetClusterConflict()
