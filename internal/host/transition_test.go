@@ -57,6 +57,7 @@ var _ = Describe("RegisterHost", func() {
 			Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusError))
 			Expect(h.Role).Should(Equal(models.HostRoleMaster))
 			Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+			Expect(h.StatusInfo).NotTo(BeNil())
 		})
 
 		for i := range tests {
