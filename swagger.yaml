@@ -1032,6 +1032,7 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/host-stage'
+        x-go-custom-tag: gorm:"-"
       current_progress:
         $ref: '#/definitions/host-progress'
 

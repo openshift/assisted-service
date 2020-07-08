@@ -22,7 +22,7 @@ type HostProgressReport struct {
 	CurrentProgress *HostProgress `json:"current_progress,omitempty"`
 
 	// stages
-	Stages []HostStage `json:"stages"`
+	Stages []HostStage `json:"stages" gorm:"-"`
 }
 
 // Validate validates this host progress report

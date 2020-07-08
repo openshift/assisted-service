@@ -73,6 +73,8 @@ type API interface {
 	UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) error
 	// Set a new inventory information
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
+
+	GetStagesByRole(role models.HostRole) []models.HostStage
 }
 
 type Manager struct {
@@ -248,7 +250,6 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	}
 
 	progressJson, err := json.Marshal(models.HostProgressReport{
-		Stages: getStagesByRole(h.Role),
 		CurrentProgress: &models.HostProgress{
 			CurrentStage: progress.CurrentStage,
 			ProgressInfo: progress.ProgressInfo,
@@ -366,4 +367,23 @@ func (m *Manager) GetHostname(host *models.Host) string {
 		return host.ID.String()
 	}
 	return inventory.Hostname
+}
+
+func (m *Manager) GetStagesByRole(role models.HostRole) []models.HostStage {
+	switch role {
+	case models.HostRoleBootstrap:
+		return []models.HostStage{models.HostStageStartingInstallation, models.HostStageStartWaitingForControlPlane,
+			models.HostStageInstalling, models.HostStageWritingImageToDisk, models.HostStageFinishWaitingForControlPlane,
+			models.HostStageRebooting, models.HostStageConfiguring, models.HostStageDone}
+	case models.HostRoleMaster:
+		return []models.HostStage{models.HostStageStartingInstallation, models.HostStageInstalling,
+			models.HostStageWritingImageToDisk, models.HostStageRebooting,
+			models.HostStageConfiguring, models.HostStageJoined, models.HostStageDone}
+	case models.HostRoleWorker:
+		return []models.HostStage{models.HostStageStartingInstallation, models.HostStageInstalling,
+			models.HostStageWritingImageToDisk, models.HostStageRebooting,
+			models.HostStageConfiguring, models.HostStageDone}
+	default:
+		return []models.HostStage{}
+	}
 }

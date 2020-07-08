@@ -2074,7 +2074,8 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/host-stage"
-          }
+          },
+          "x-go-custom-tag": "gorm:\"-\""
         }
       }
     },
@@ -4564,7 +4565,8 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/host-stage"
-          }
+          },
+          "x-go-custom-tag": "gorm:\"-\""
         }
       }
     },
