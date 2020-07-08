@@ -8,6 +8,7 @@ import (
 
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/events"
+	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
@@ -67,6 +68,7 @@ type Manager struct {
 	installing      StateAPI
 	installed       StateAPI
 	error           StateAPI
+	prepare         StateAPI
 	registrationAPI RegistrationAPI
 	installationAPI InstallationAPI
 	eventsHandler   events.Handler
@@ -86,6 +88,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		installing:      NewInstallingState(log, db),
 		installed:       NewInstalledState(log, db),
 		error:           NewErrorState(log, db),
+		prepare:         NewPrepareForInstallation(),
 		registrationAPI: NewRegistrar(log, db),
 		installationAPI: NewInstaller(log, db),
 		eventsHandler:   eventsHandler,
@@ -96,16 +99,18 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 	switch status {
 	case "":
-	case clusterStatusInsufficient:
+	case models.ClusterStatusInsufficient:
 		return m.insufficient, nil
-	case clusterStatusReady:
+	case models.ClusterStatusReady:
 		return m.ready, nil
-	case clusterStatusInstalling:
+	case models.ClusterStatusInstalling:
 		return m.installing, nil
-	case clusterStatusInstalled:
+	case models.ClusterStatusInstalled:
 		return m.installed, nil
-	case clusterStatusError:
+	case models.ClusterStatusError:
 		return m.error, nil
+	case models.ClusterStatusPreparingForInstallation:
+		return m.prepare, nil
 	}
 	return nil, fmt.Errorf("not supported cluster status: %s", status)
 }
