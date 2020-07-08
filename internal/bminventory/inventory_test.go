@@ -577,6 +577,7 @@ var _ = Describe("cluster", func() {
 		ctrl           *gomock.Controller
 		mockHostApi    *host.MockAPI
 		mockClusterApi *cluster.MockAPI
+		mockS3Client   *awsS3Client.MockS3Client
 		mockJob        *job.MockAPI
 		clusterID      strfmt.UUID
 		mockEvents     *events.MockHandler
@@ -655,13 +656,16 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
 	}
 	setResetClusterSuccess := func() {
+		mockS3Client.EXPECT().DeleteFileFromS3(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
 	setResetClusterConflict := func() {
+		mockS3Client.EXPECT().DeleteFileFromS3(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusConflict, nil)).Times(1)
 	}
 	setResetClusterInternalServerError := func() {
+		mockS3Client.EXPECT().DeleteFileFromS3(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
 	}
 	getInventoryStr := func(ipv4Addresses ...string) string {
@@ -690,10 +694,11 @@ var _ = Describe("cluster", func() {
 		db = prepareDB()
 		mockClusterApi = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
+		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, mockS3Client)
 	})
 
 	Context("Get", func() {
