@@ -20,6 +20,7 @@ type S3Client interface {
 	DownloadFileFromS3(ctx context.Context, fileName string, s3Bucket string) (io.ReadCloser, int64, error)
 	DoesObjectExist(ctx context.Context, fileName string, s3Bucket string) (bool, error)
 	UpdateObjectTag(ctx context.Context, objectName, s3Bucket, key, value string) (bool, error)
+	DeleteFileFromS3(ctx context.Context, fileName string, s3Bucket string) error
 }
 
 type s3Client struct {
@@ -84,6 +85,22 @@ func (s s3Client) DoesObjectExist(ctx context.Context, objectName string, s3Buck
 		return false, errors.Wrap(err, fmt.Sprintf("failed to get %s from %s", objectName, s3Bucket))
 	}
 	return true, nil
+}
+
+func (s s3Client) DeleteFileFromS3(ctx context.Context, fileName string, s3Bucket string) error {
+	log := logutil.FromContext(ctx, s.log)
+	log.Infof("Deleting file if %s exists in %s", fileName, s3Bucket)
+	err := s.client.RemoveObject(s3Bucket, fileName)
+	if err != nil {
+		errResponse := minio.ToErrorResponse(err)
+		if errResponse.Code == "NoSuchKey" {
+			log.Warnf("File %s does not exists in %s", fileName, s3Bucket)
+			return nil
+		}
+		return errors.Wrap(err, fmt.Sprintf("failed to delete %s from %s", fileName, s3Bucket))
+	}
+	log.Infof("Deleted file %s from %s", fileName, s3Bucket)
+	return nil
 }
 
 func (s s3Client) UpdateObjectTag(ctx context.Context, objectName, s3Bucket, key, value string) (bool, error) {
