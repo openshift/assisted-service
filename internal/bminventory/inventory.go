@@ -1970,13 +1970,13 @@ func (b *bareMetalInventory) validateDNSDomain(params installer.UpdateClusterPar
 	dnsDomain, err := b.getDNSDomain(clusterName, clusterBaseDomain)
 	if err == nil && dnsDomain != nil {
 		// Cluster's baseDNSDomain is defined in config (BaseDNSDomains map)
-		if err = b.validateBaseDNS(clusterName, dnsDomain); err != nil {
+		if err = b.validateBaseDNS(dnsDomain); err != nil {
 			log.WithError(err).Errorf("Invalid base DNS domain: %s", clusterBaseDomain)
 			return installer.NewUpdateClusterConflict().
 				WithPayload(common.GenerateError(http.StatusConflict,
 					errors.New("Base DNS domain isn't configured properly")))
 		}
-		if err = b.validateDNSRecords(clusterName, dnsDomain); err != nil {
+		if err = b.validateDNSRecords(dnsDomain); err != nil {
 			log.WithError(err).Errorf("DNS records already exist for cluster: %s", params.ClusterID)
 			return installer.NewUpdateClusterConflict().
 				WithPayload(common.GenerateError(http.StatusConflict,
@@ -1986,11 +1986,11 @@ func (b *bareMetalInventory) validateDNSDomain(params installer.UpdateClusterPar
 	return nil
 }
 
-func (b *bareMetalInventory) validateBaseDNS(clusterName string, domain *dnsDomain) error {
+func (b *bareMetalInventory) validateBaseDNS(domain *dnsDomain) error {
 	return validations.ValidateBaseDNS(domain.Name, domain.ID, domain.Provider)
 }
 
-func (b *bareMetalInventory) validateDNSRecords(clusterName string, domain *dnsDomain) error {
+func (b *bareMetalInventory) validateDNSRecords(domain *dnsDomain) error {
 	vipAddresses := []string{domain.APIDomainName, domain.IngressDomainName}
 	return validations.CheckDNSRecordsExistence(vipAddresses, domain.ID, domain.Provider)
 }
