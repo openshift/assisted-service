@@ -369,7 +369,46 @@ var _ = Describe("cluster install", func() {
 			Expect(err).To(BeNil())
 			host := getHost(clusterID, *hostID)
 			Expect(*host.Status).To(Equal("error"))
+		})
 
+		It("[only_k8s]register host after reboot - wrong boot order", func() {
+			c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			waitForClusterInstallationToStart(clusterID)
+			hostID := c.GetPayload().Hosts[0].ID
+
+			installProgress := models.HostStageRebooting
+			updateProgress(*hostID, clusterID, installProgress)
+
+			By("Verify the db has been updated", func() {
+				hostInDb := getHost(clusterID, *hostID)
+				Expect(*hostInDb.Status).Should(Equal(host.HostStatusInstallingInProgress))
+				Expect(*hostInDb.StatusInfo).Should(Equal(string(installProgress)))
+			})
+
+			By("Try to register", func() {
+				Expect(err).NotTo(HaveOccurred())
+				_, err = bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+					ClusterID: clusterID,
+					NewHostParams: &models.HostCreateParams{
+						HostID: hostID,
+					},
+				})
+				Expect(err).To(BeNil())
+				hostInDb := getHost(clusterID, *hostID)
+				Expect(*hostInDb.Status).Should(Equal(models.HostStatusInstallingPendingUserAction))
+			})
+
+			By("Updating progress after fixing boot order", func() {
+				installProgress = models.HostStageConfiguring
+				updateProgress(*hostID, clusterID, installProgress)
+			})
+
+			By("Verify the db has been updated", func() {
+				hostInDb := getHost(clusterID, *hostID)
+				Expect(*hostInDb.Status).Should(Equal(host.HostStatusInstallingInProgress))
+				Expect(*hostInDb.StatusInfo).Should(Equal(string(installProgress)))
+			})
 		})
 
 		It("[only_k8s]install cluster", func() {

@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/go-openapi/swag"
 
@@ -177,6 +178,56 @@ var _ = Describe("RegisterHost", func() {
 				Expect(swag.StringValue(h.Status)).Should(Equal(t.srcState))
 				Expect(h.Role).Should(Equal(models.HostRoleMaster))
 				Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+			})
+		}
+	})
+
+	Context("register after reboot", func() {
+		tests := []struct {
+			name           string
+			srcState       string
+			progressReport models.HostProgressReport
+		}{
+			{
+				name:     "host in reboot",
+				srcState: HostStatusInstallingInProgress,
+				progressReport: models.HostProgressReport{
+					CurrentProgress: &models.HostProgress{
+						CurrentStage: models.HostStageRebooting,
+					},
+				},
+			},
+		}
+
+		AfterEach(func() {
+			h := getHost(hostId, clusterId, db)
+			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusInstallingPendingUserAction))
+			Expect(h.Role).Should(Equal(models.HostRoleMaster))
+			Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+			Expect(h.StatusInfo).NotTo(BeNil())
+		})
+
+		for i := range tests {
+			t := tests[i]
+
+			It(t.name, func() {
+				progressJson, err := json.Marshal(t.progressReport)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(db.Create(&models.Host{
+					ID:           &hostId,
+					ClusterID:    clusterId,
+					Role:         models.HostRoleMaster,
+					HardwareInfo: defaultHwInfo,
+					Status:       swag.String(t.srcState),
+					Progress:     string(progressJson),
+				}).Error).ShouldNot(HaveOccurred())
+
+				Expect(hapi.RegisterHost(ctx, &models.Host{
+					ID:        &hostId,
+					ClusterID: clusterId,
+					Status:    swag.String(t.srcState),
+				})).ShouldNot(HaveOccurred())
 			})
 		}
 	})

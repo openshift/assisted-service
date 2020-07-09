@@ -1,6 +1,8 @@
 package host
 
-import "github.com/filanov/stateswitch"
+import (
+	"github.com/filanov/stateswitch"
+)
 
 const (
 	TransitionTypeRegisterHost           = "RegisterHost"
@@ -15,6 +17,7 @@ const (
 func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm := stateswitch.NewStateMachine()
 
+	// Register host
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRegisterHost,
 		SourceStates: []stateswitch.State{
@@ -29,7 +32,16 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRegisterHost,
 	})
 
-	// Register host
+	// Register host after reboot
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRegisterHost,
+		Condition:        th.IsHostInReboot,
+		SourceStates:     []stateswitch.State{HostStatusInstallingInProgress},
+		DestinationState: HostStatusInstallingPendingUserAction,
+		PostTransition:   th.PostRegisterDuringReboot,
+	})
+
+	// Register host during installation
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType:   TransitionTypeRegisterHost,
 		SourceStates:     []stateswitch.State{HostStatusInstalling, HostStatusInstallingInProgress},
