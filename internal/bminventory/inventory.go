@@ -1595,10 +1595,10 @@ func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installe
 			WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
 	fileName := "kubeadmin-password"
-	filesUrl := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
+	filesURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
 		fmt.Sprintf("%s/%s", params.ClusterID, fileName))
-	log.Info("File URL: ", filesUrl)
-	resp, err := http.Get(filesUrl)
+	log.Info("File URL: ", filesURL)
+	resp, err := http.Get(filesURL)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get clusters %s %s file", params.ClusterID, fileName)
 		return installer.NewGetCredentialsInternalServerError().
