@@ -17,8 +17,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/thoas/go-funk"
-
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/cluster/validations"
@@ -1488,12 +1486,6 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
 	log.Infof("Download cluster files: %s for cluster %s", params.FileName, params.ClusterID)
-
-	if !funk.Contains(clusterFileNames, params.FileName) {
-		err := fmt.Errorf("invalid cluster file %s", params.FileName)
-		log.WithError(err).Errorf("failed download file: %s from cluster: %s", params.FileName, params.ClusterID)
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
 
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
