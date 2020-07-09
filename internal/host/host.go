@@ -35,16 +35,17 @@ type SpecificHardwareParams interface {
 }
 
 const (
-	HostStatusDiscovering          = "discovering"
-	HostStatusKnown                = "known"
-	HostStatusDisconnected         = "disconnected"
-	HostStatusInsufficient         = "insufficient"
-	HostStatusDisabled             = "disabled"
-	HostStatusInstalling           = "installing"
-	HostStatusInstallingInProgress = "installing-in-progress"
-	HostStatusInstalled            = "installed"
-	HostStatusError                = "error"
-	HostStatusResetting            = "resetting"
+	HostStatusDiscovering                 = "discovering"
+	HostStatusKnown                       = "known"
+	HostStatusDisconnected                = "disconnected"
+	HostStatusInsufficient                = "insufficient"
+	HostStatusDisabled                    = "disabled"
+	HostStatusInstalling                  = "installing"
+	HostStatusInstallingInProgress        = "installing-in-progress"
+	HostStatusInstallingPendingUserAction = "installing-pending-user-action"
+	HostStatusInstalled                   = "installed"
+	HostStatusError                       = "error"
+	HostStatusResetting                   = "resetting"
 )
 
 type API interface {
@@ -245,7 +246,8 @@ func (m *Manager) ValidateCurrentInventory(host *models.Host, cluster *common.Cl
 }
 
 func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error {
-	if swag.StringValue(h.Status) != HostStatusInstalling && swag.StringValue(h.Status) != HostStatusInstallingInProgress {
+	validStatuses := []string{HostStatusInstalling, HostStatusInstallingInProgress, HostStatusInstallingPendingUserAction}
+	if !funk.ContainsString(validStatuses, swag.StringValue(h.Status)) {
 		return fmt.Errorf("can't set progress to host in status <%s>", swag.StringValue(h.Status))
 	}
 
