@@ -7,6 +7,7 @@ package models
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -67,7 +68,10 @@ type Host struct {
 	Kind *string `json:"kind"`
 
 	// progress
-	Progress string `json:"progress,omitempty" gorm:"type:text"`
+	Progress *HostProgress `json:"progress,omitempty" gorm:"embedded;embedded_prefix:progress_"`
+
+	// progress stages
+	ProgressStages []HostStage `json:"progress_stages" gorm:"-"`
 
 	// requested hostname
 	RequestedHostname string `json:"requested_hostname,omitempty"`
@@ -118,6 +122,14 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateKind(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateProgress(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateProgressStages(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -243,6 +255,44 @@ func (m *Host) validateKind(formats strfmt.Registry) error {
 	// value enum
 	if err := m.validateKindEnum("kind", "body", *m.Kind); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateProgress(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Progress) { // not required
+		return nil
+	}
+
+	if m.Progress != nil {
+		if err := m.Progress.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("progress")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Host) validateProgressStages(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ProgressStages) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.ProgressStages); i++ {
+
+		if err := m.ProgressStages[i].Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("progress_stages" + "." + strconv.Itoa(i))
+			}
+			return err
+		}
+
 	}
 
 	return nil

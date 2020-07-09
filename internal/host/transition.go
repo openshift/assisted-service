@@ -2,7 +2,6 @@ package host
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -81,17 +80,7 @@ func (th *transitionHandler) IsHostInReboot(sw stateswitch.StateSwitch, _ states
 		return false, errors.New("IsInReboot incompatible type of StateSwitch")
 	}
 
-	// No progress has been set
-	if sHost.host.Progress == "" {
-		return false, nil
-	}
-
-	var hostProgressReport models.HostProgressReport
-	if err := json.Unmarshal([]byte(sHost.host.Progress), &hostProgressReport); err != nil {
-		return false, err
-	}
-
-	return hostProgressReport.CurrentProgress.CurrentStage == models.HostStageRebooting, nil
+	return sHost.host.Progress.CurrentStage == models.HostStageRebooting, nil
 }
 
 func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -104,7 +93,8 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 		return errors.New("PostRegisterDuringReboot invalid argument")
 	}
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
-		"There was an attemp to re-register after a reboot", sHost.host, th.db)
+		"Expected the host to boot from disk, but it booted the installation image. Please reboot and fix boot order to boot from disk.",
+		sHost.host, th.db)
 }
 
 ////////////////////////////////////////////////////////////////////////////

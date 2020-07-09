@@ -2,7 +2,6 @@ package host
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -48,6 +47,22 @@ const (
 	HostStatusResetting                   = "resetting"
 )
 
+var BootstrapStages = [...]models.HostStage{
+	models.HostStageStartingInstallation, models.HostStageStartWaitingForControlPlane,
+	models.HostStageInstalling, models.HostStageWritingImageToDisk, models.HostStageFinishWaitingForControlPlane,
+	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageDone,
+}
+var MasterStages = [...]models.HostStage{
+	models.HostStageStartingInstallation, models.HostStageInstalling,
+	models.HostStageWritingImageToDisk, models.HostStageRebooting,
+	models.HostStageConfiguring, models.HostStageJoined, models.HostStageDone,
+}
+var WorkerStages = [...]models.HostStage{
+	models.HostStageStartingInstallation, models.HostStageInstalling,
+	models.HostStageWritingImageToDisk, models.HostStageRebooting,
+	models.HostStageWaitingForIgnition, models.HostStageConfiguring, models.HostStageDone,
+}
+
 type API interface {
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host) error
@@ -74,7 +89,7 @@ type API interface {
 	UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) error
 	// Set a new inventory information
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
-	GetStagesByRole(role models.HostRole) []models.HostStage
+	GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage
 	IsInstallable(h *models.Host) bool
 }
 
@@ -251,23 +266,12 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		return fmt.Errorf("can't set progress to host in status <%s>", swag.StringValue(h.Status))
 	}
 
-	progressJson, err := json.Marshal(models.HostProgressReport{
-		CurrentProgress: &models.HostProgress{
-			CurrentStage: progress.CurrentStage,
-			ProgressInfo: progress.ProgressInfo,
-		},
-	})
-
-	if err != nil {
-		return err
-	}
-
 	statusInfo := string(progress.CurrentStage)
 
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		_, err = updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusInstalled, statusInfo, h, m.db,
-			"progress", progressJson)
+		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusInstalled, statusInfo, h, m.db,
+			"progress_current_stage", progress.CurrentStage, "progress_progress_info", progress.ProgressInfo)
 		return err
 	case models.HostStageFailed:
 		// Keeps the last progress
@@ -276,11 +280,11 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 		}
 
-		_, err = updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusError, statusInfo, h, m.db)
+		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusError, statusInfo, h, m.db)
 		return err
 	default:
-		_, err = updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusInstallingInProgress, statusInfo, h, m.db,
-			"progress", progressJson)
+		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusInstallingInProgress, statusInfo, h, m.db,
+			"progress_current_stage", progress.CurrentStage, "progress_progress_info", progress.ProgressInfo)
 		return err
 	}
 }
@@ -371,20 +375,16 @@ func (m *Manager) GetHostname(host *models.Host) string {
 	return hostName
 }
 
-func (m *Manager) GetStagesByRole(role models.HostRole) []models.HostStage {
+func (m *Manager) GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage {
+	if isbootstrap || role == models.HostRoleBootstrap {
+		return BootstrapStages[:]
+	}
+
 	switch role {
-	case models.HostRoleBootstrap:
-		return []models.HostStage{models.HostStageStartingInstallation, models.HostStageStartWaitingForControlPlane,
-			models.HostStageInstalling, models.HostStageWritingImageToDisk, models.HostStageFinishWaitingForControlPlane,
-			models.HostStageRebooting, models.HostStageConfiguring, models.HostStageDone}
 	case models.HostRoleMaster:
-		return []models.HostStage{models.HostStageStartingInstallation, models.HostStageInstalling,
-			models.HostStageWritingImageToDisk, models.HostStageRebooting,
-			models.HostStageConfiguring, models.HostStageJoined, models.HostStageDone}
+		return MasterStages[:]
 	case models.HostRoleWorker:
-		return []models.HostStage{models.HostStageStartingInstallation, models.HostStageInstalling,
-			models.HostStageWritingImageToDisk, models.HostStageRebooting, models.HostStageWaitingForIgnition,
-			models.HostStageConfiguring, models.HostStageDone}
+		return WorkerStages[:]
 	default:
 		return []models.HostStage{}
 	}

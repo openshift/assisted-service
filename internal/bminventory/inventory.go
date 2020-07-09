@@ -2028,34 +2028,13 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 }
 
 func (b *bareMetalInventory) customizeHost(host *models.Host) error {
-	err := b.customizeHostProgress(host)
-	if err != nil {
-		return err
-	}
+	b.customizeHostStages(host)
 	b.customizeHostname(host)
 	return nil
 }
 
-func (b *bareMetalInventory) customizeHostProgress(host *models.Host) error {
-	var hostProgressReport models.HostProgressReport
-	var err error
-
-	if host.Progress != "" {
-		if err = json.Unmarshal([]byte(host.Progress), &hostProgressReport); err != nil {
-			return err
-		}
-	}
-
-	hostProgressReport.Stages = b.hostApi.GetStagesByRole(host.Role)
-
-	progressJson, err := json.Marshal(hostProgressReport)
-	host.Progress = string(progressJson)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (b *bareMetalInventory) customizeHostStages(host *models.Host) {
+	host.ProgressStages = b.hostApi.GetStagesByRole(host.Role, host.Bootstrap)
 }
 
 func (b *bareMetalInventory) customizeHostname(host *models.Host) {

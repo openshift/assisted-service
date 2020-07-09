@@ -1986,8 +1986,15 @@ func init() {
           ]
         },
         "progress": {
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text\""
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
+          "$ref": "#/definitions/host-progress"
+        },
+        "progress_stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host-stage"
+          },
+          "x-go-custom-tag": "gorm:\"-\""
         },
         "requested_hostname": {
           "type": "string"
@@ -2062,21 +2069,6 @@ func init() {
         "progress_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
-        }
-      }
-    },
-    "host-progress-report": {
-      "type": "object",
-      "properties": {
-        "current_progress": {
-          "$ref": "#/definitions/host-progress"
-        },
-        "stages": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/host-stage"
-          },
-          "x-go-custom-tag": "gorm:\"-\""
         }
       }
     },
@@ -4479,8 +4471,15 @@ func init() {
           ]
         },
         "progress": {
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text\""
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
+          "$ref": "#/definitions/host-progress"
+        },
+        "progress_stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host-stage"
+          },
+          "x-go-custom-tag": "gorm:\"-\""
         },
         "requested_hostname": {
           "type": "string"
@@ -4555,21 +4554,6 @@ func init() {
         "progress_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
-        }
-      }
-    },
-    "host-progress-report": {
-      "type": "object",
-      "properties": {
-        "current_progress": {
-          "$ref": "#/definitions/host-progress"
-        },
-        "stages": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/host-stage"
-          },
-          "x-go-custom-tag": "gorm:\"-\""
         }
       }
     },
