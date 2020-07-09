@@ -21,6 +21,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--target")
     parser.add_argument("--domain")
+    parser.add_argument("--base-dns-domains")
     deploy_options = deployment_options.load_deployment_options(parser)
     # TODO: delete once rename everything to assisted-installer
     if deploy_options.target == "oc-ingress":
@@ -34,6 +35,7 @@ def main():
             data = src.read()
             data = data.replace("REPLACE_URL", '"{}"'.format(service_host))
             data = data.replace("REPLACE_PORT", '"{}"'.format(service_port))
+            data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
             print("Deploying {}".format(DST_FILE))
 
             versions = {"IMAGE_BUILDER": "installer-image-build",
