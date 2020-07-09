@@ -381,7 +381,7 @@ func (m *Manager) GetStagesByRole(role models.HostRole) []models.HostStage {
 			models.HostStageConfiguring, models.HostStageJoined, models.HostStageDone}
 	case models.HostRoleWorker:
 		return []models.HostStage{models.HostStageStartingInstallation, models.HostStageInstalling,
-			models.HostStageWritingImageToDisk, models.HostStageRebooting,
+			models.HostStageWritingImageToDisk, models.HostStageRebooting, models.HostStageWaitingForIgnition,
 			models.HostStageConfiguring, models.HostStageDone}
 	default:
 		return []models.HostStage{}
