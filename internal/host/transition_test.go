@@ -2,7 +2,6 @@ package host
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/go-openapi/swag"
 
@@ -184,17 +183,15 @@ var _ = Describe("RegisterHost", func() {
 
 	Context("register after reboot", func() {
 		tests := []struct {
-			name           string
-			srcState       string
-			progressReport models.HostProgressReport
+			name     string
+			srcState string
+			progress models.HostProgress
 		}{
 			{
 				name:     "host in reboot",
 				srcState: HostStatusInstallingInProgress,
-				progressReport: models.HostProgressReport{
-					CurrentProgress: &models.HostProgress{
-						CurrentStage: models.HostStageRebooting,
-					},
+				progress: models.HostProgress{
+					CurrentStage: models.HostStageRebooting,
 				},
 			},
 		}
@@ -211,16 +208,13 @@ var _ = Describe("RegisterHost", func() {
 			t := tests[i]
 
 			It(t.name, func() {
-				progressJson, err := json.Marshal(t.progressReport)
-				Expect(err).ShouldNot(HaveOccurred())
-
 				Expect(db.Create(&models.Host{
 					ID:           &hostId,
 					ClusterID:    clusterId,
 					Role:         models.HostRoleMaster,
 					HardwareInfo: defaultHwInfo,
 					Status:       swag.String(t.srcState),
-					Progress:     string(progressJson),
+					Progress:     &t.progress,
 				}).Error).ShouldNot(HaveOccurred())
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{

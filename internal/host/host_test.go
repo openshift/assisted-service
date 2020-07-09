@@ -226,8 +226,8 @@ var _ = Describe("update_progress", func() {
 
 	Context("installaing host", func() {
 		var (
-			hostProgressReport models.HostProgressReport
-			progress           models.HostProgress
+			progress   models.HostProgress
+			hostFromDB *models.Host
 		)
 
 		BeforeEach(func() {
@@ -239,37 +239,32 @@ var _ = Describe("update_progress", func() {
 			It("some_progress", func() {
 				progress.CurrentStage = defaultProgressStage
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
-				h := getHost(*host.ID, host.ClusterID, db)
+				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
-				Expect(*h.Status).Should(Equal(HostStatusInstallingInProgress))
-				Expect(*h.StatusInfo).Should(Equal(string(defaultProgressStage)))
-				Expect(json.Unmarshal([]byte(h.Progress), &hostProgressReport)).ToNot(HaveOccurred())
+				Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
 			})
 
 			It("writing to disk", func() {
 				progress.CurrentStage = models.HostStageWritingImageToDisk
 				progress.ProgressInfo = "20%"
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
-				h := getHost(*host.ID, host.ClusterID, db)
+				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
-				Expect(*h.Status).Should(Equal(HostStatusInstallingInProgress))
-				Expect(*h.StatusInfo).Should(Equal(string(progress.CurrentStage)))
-				Expect(json.Unmarshal([]byte(h.Progress), &hostProgressReport)).ToNot(HaveOccurred())
+				Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
 			})
 
 			It("done", func() {
 				progress.CurrentStage = models.HostStageDone
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
-				h := getHost(*host.ID, host.ClusterID, db)
+				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
-				Expect(*h.Status).Should(Equal(HostStatusInstalled))
-				Expect(*h.StatusInfo).Should(Equal(string(progress.CurrentStage)))
-				Expect(json.Unmarshal([]byte(h.Progress), &hostProgressReport)).ToNot(HaveOccurred())
+				Expect(*hostFromDB.Status).Should(Equal(HostStatusInstalled))
 			})
 
 			AfterEach(func() {
-				Expect(hostProgressReport.CurrentProgress.CurrentStage).Should(Equal(progress.CurrentStage))
-				Expect(hostProgressReport.CurrentProgress.ProgressInfo).Should(Equal(progress.ProgressInfo))
+				Expect(*hostFromDB.StatusInfo).Should(Equal(string(progress.CurrentStage)))
+				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
+				Expect(hostFromDB.Progress.ProgressInfo).Should(Equal(progress.ProgressInfo))
 			})
 		})
 
@@ -278,21 +273,19 @@ var _ = Describe("update_progress", func() {
 				progress.CurrentStage = models.HostStageFailed
 				progress.ProgressInfo = "reason"
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
-				h := getHost(*host.ID, host.ClusterID, db)
+				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
-				Expect(*h.Status).Should(Equal(HostStatusError))
-				Expect(*h.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", progress.CurrentStage, progress.ProgressInfo)))
-				Expect(json.Unmarshal([]byte(h.Progress), &hostProgressReport)).To(HaveOccurred())
+				Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
+				Expect(*hostFromDB.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", progress.CurrentStage, progress.ProgressInfo)))
 			})
 
 			It("progress_failed_empty_reason", func() {
 				progress.CurrentStage = models.HostStageFailed
 				progress.ProgressInfo = ""
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
-				h := getHost(*host.ID, host.ClusterID, db)
-				Expect(*h.Status).Should(Equal(HostStatusError))
-				Expect(*h.StatusInfo).Should(Equal(string(progress.CurrentStage)))
-				Expect(json.Unmarshal([]byte(h.Progress), &hostProgressReport)).To(HaveOccurred())
+				hostFromDB = getHost(*host.ID, host.ClusterID, db)
+				Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
+				Expect(*hostFromDB.StatusInfo).Should(Equal(string(progress.CurrentStage)))
 			})
 
 			It("progress_failed_after_a_stage", func() {
@@ -300,26 +293,24 @@ var _ = Describe("update_progress", func() {
 				progress.CurrentStage = models.HostStageWritingImageToDisk
 				progress.ProgressInfo = "20%"
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
-				h := getHost(*host.ID, host.ClusterID, db)
-				Expect(*h.Status).Should(Equal(HostStatusInstallingInProgress))
-				Expect(*h.StatusInfo).Should(Equal(string(progress.CurrentStage)))
+				hostFromDB = getHost(*host.ID, host.ClusterID, db)
+				Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
+				Expect(*hostFromDB.StatusInfo).Should(Equal(string(progress.CurrentStage)))
 
-				Expect(json.Unmarshal([]byte(h.Progress), &hostProgressReport)).ToNot(HaveOccurred())
-				Expect(hostProgressReport.CurrentProgress.CurrentStage).Should(Equal(progress.CurrentStage))
-				Expect(hostProgressReport.CurrentProgress.ProgressInfo).Should(Equal(progress.ProgressInfo))
+				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
+				Expect(hostFromDB.Progress.ProgressInfo).Should(Equal(progress.ProgressInfo))
 
 				// Failed
 				newProgress := models.HostProgress{}
 				newProgress.CurrentStage = models.HostStageFailed
 				newProgress.ProgressInfo = "reason"
-				Expect(state.UpdateInstallProgress(ctx, h, &newProgress)).ShouldNot(HaveOccurred())
-				h = getHost(*h.ID, h.ClusterID, db)
-				Expect(*h.Status).Should(Equal(HostStatusError))
-				Expect(*h.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", newProgress.CurrentStage, newProgress.ProgressInfo)))
+				Expect(state.UpdateInstallProgress(ctx, hostFromDB, &newProgress)).ShouldNot(HaveOccurred())
+				hostFromDB = getHost(*host.ID, host.ClusterID, db)
+				Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
+				Expect(*hostFromDB.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", newProgress.CurrentStage, newProgress.ProgressInfo)))
 
-				Expect(json.Unmarshal([]byte(h.Progress), &hostProgressReport)).ToNot(HaveOccurred())
-				Expect(hostProgressReport.CurrentProgress.CurrentStage).Should(Equal(progress.CurrentStage))
-				Expect(hostProgressReport.CurrentProgress.ProgressInfo).Should(Equal(progress.ProgressInfo))
+				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
+				Expect(hostFromDB.Progress.ProgressInfo).Should(Equal(progress.ProgressInfo))
 			})
 		})
 	})
