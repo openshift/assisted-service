@@ -10,12 +10,12 @@ volumes:
     - $HOME/.cache/golangci-lint:$HOME/.cache/golangci-lint
     - $HOME/.minikube:$HOME/.minikube
     - $HOME/.kube/:$HOME/.kube
+    - $HOME/.docker/:$HOME/.docker
     - /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock
     - /var/lib/libvirt/:/var/lib/libvirt/
     - $KUBECONFIG:$KUBECONFIG
 env:
     SERVICE: $SERVICE
-    OBJEXP: $OBJEXP
     KUBECONFIG: $KUBECONFIG
     APPLY_NAMESPACE: $APPLY_NAMESPACE
     TARGET: $TARGET
