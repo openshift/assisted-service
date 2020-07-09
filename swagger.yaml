@@ -1583,6 +1583,7 @@ definitions:
     - Writing image to disk
     - Finish Waiting for control plane
     - Rebooting
+    - Waiting for ignition
     - Configuring
     - Joined
     - Done
