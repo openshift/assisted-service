@@ -88,7 +88,7 @@ type Config struct {
 }
 
 const ignitionConfigFormat = `{
-"ignition": { "version": "3.0.0" },
+"ignition": { "version": "2.2.0" },
   "passwd": {
     "users": [
       {{.userSshKey}}
@@ -103,6 +103,7 @@ const ignitionConfigFormat = `{
 },
 "storage": {
     "files": [{
+      "filesystem": "root",
       "path": "/etc/assisted-installer.ps",
       "mode": 420,
       "contents": { "source": "{{.PULL_SECRET}}" }
