@@ -16,6 +16,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/bminventory"
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/filanov/bm-inventory/internal/imgexpirer"
 	"github.com/filanov/bm-inventory/internal/metrics"
 
 	"github.com/filanov/bm-inventory/internal/events"
@@ -56,7 +57,9 @@ var Options struct {
 	S3Config                    s3wrapper.Config
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
-	UseK8s                      bool `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
+	UseK8s                      bool          `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
+	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
+	ImageExpirationTime         time.Duration `envconfig:"IMAGE_EXPIRATION_TIME" default:"60m"`
 }
 
 func main() {
@@ -138,6 +141,20 @@ func main() {
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, jobApi, eventsHandler, s3Client)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
+
+	if Options.UseK8s {
+		s3WrapperClient, s3Err := s3wrapper.NewS3Client(&Options.S3Config)
+		if s3Err != nil {
+			log.Fatal("failed to create S3 client, ", err)
+		}
+		expirer := imgexpirer.NewManager(log, s3WrapperClient, Options.S3Config.S3Bucket, Options.ImageExpirationTime, eventsHandler)
+		imageExpirationMonitor := thread.New(
+			log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
+		imageExpirationMonitor.Start()
+		defer imageExpirationMonitor.Stop()
+	} else {
+		log.Info("Disabled image expiration monitor")
+	}
 
 	h, err := restapi.Handler(restapi.Config{
 		InstallerAPI:      bm,

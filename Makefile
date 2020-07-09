@@ -17,7 +17,6 @@ endef # get_service
 endif # TARGET
 
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/bm-inventory:latest)
-OBJEXP := $(or ${OBJEXP},quay.io/ocpmetal/s3-object-expirer:latest)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -61,10 +60,6 @@ update-minikube: build create-python-client
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube docker-env) && \
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.bm-inventory . -t $(SERVICE)
 
-update-expirer: build
-	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.s3-object-expirer . -t $(OBJEXP)
-	docker push $(OBJEXP)
-
 create-python-client: build/bm-inventory-client-${GIT_REVISION}.tar.gz
 
 build/bm-inventory-client/setup.py: swagger.yaml
@@ -92,7 +87,7 @@ else ifdef DEPLOY_MANIFEST_TAG
   DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
 endif
 
-deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-route53 deploy-service deploy-expirer
+deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-route53 deploy-service
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
@@ -122,9 +117,6 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) $(TEST_FLAGS)
 	python3 ./tools/wait_for_pod.py --app=bm-inventory --state=running
-
-deploy-expirer: deploy-role
-	python3 ./tools/deploy_s3_object_expirer.py $(DEPLOY_TAG_OPTION)
 
 deploy-role: deploy-namespace
 	python3 ./tools/deploy_role.py
@@ -161,7 +153,6 @@ deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
 unit-test:
 	go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) -cover
-	python3 ./tools/expirer_test.py
 
 #########
 # Clean #
