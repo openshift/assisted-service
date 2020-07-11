@@ -38,8 +38,8 @@ const (
 	// StepTypeFreeNetworkAddresses captures enum value "free-network-addresses"
 	StepTypeFreeNetworkAddresses StepType = "free-network-addresses"
 
-	// StepTypeResetAgent captures enum value "reset-agent"
-	StepTypeResetAgent StepType = "reset-agent"
+	// StepTypeResetInstallation captures enum value "reset-installation"
+	StepTypeResetInstallation StepType = "reset-installation"
 )
 
 // for schema
@@ -47,7 +47,7 @@ var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType
-	if err := json.Unmarshal([]byte(`["hardware-info","connectivity-check","execute","inventory","install","free-network-addresses","reset-agent"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["hardware-info","connectivity-check","execute","inventory","install","free-network-addresses","reset-installation"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
