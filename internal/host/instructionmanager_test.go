@@ -77,7 +77,7 @@ var _ = Describe("instructionmanager", func() {
 		})
 		It("reset", func() {
 			checkStepsByState(HostStatusResetting, &host, db, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeResetAgent})
+				[]models.StepType{models.StepTypeResetInstallation})
 		})
 	})
 

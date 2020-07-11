@@ -15,14 +15,14 @@ var _ = Describe("reset", func() {
 	ctx := context.Background()
 	var host models.Host
 	var db *gorm.DB
-	var rstCmd *resetAgentCmd
+	var rstCmd *resetInstallationCmd
 	var id, clusterId strfmt.UUID
 	var stepReply *models.Step
 	var stepErr error
 
 	BeforeEach(func() {
 		db = prepareDB()
-		rstCmd = NewResetAgentCmd(getTestLog())
+		rstCmd = NewResetInstallationCmd(getTestLog())
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -32,7 +32,7 @@ var _ = Describe("reset", func() {
 
 	It("get_step", func() {
 		stepReply, stepErr = rstCmd.GetStep(ctx, &host)
-		Expect(stepReply.StepType).To(Equal(models.StepTypeResetAgent))
+		Expect(stepReply.StepType).To(Equal(models.StepTypeResetInstallation))
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 

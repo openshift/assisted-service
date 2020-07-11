@@ -803,7 +803,7 @@ var _ = Describe("cluster install", func() {
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 				for _, host := range c.Hosts {
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
-					_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetAgent)
+					_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
 					Expect(ok).Should(Equal(true))
 					_, err = bmclient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
 						ClusterID: clusterID,
