@@ -608,8 +608,8 @@ var _ = Describe("cluster", func() {
 	setDefaultInstall := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	}
-	setDefaultGetMasterNodesIds := func(mockClusterApi *cluster.MockAPI) {
-		mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil).Times(2)
+	setDefaultGetMasterNodesIds := func(mockClusterApi *cluster.MockAPI, times int) {
+		mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil).Times(times)
 	}
 	set4GetMasterNodesIds := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3, &masterHostId4}, nil)
@@ -663,6 +663,9 @@ var _ = Describe("cluster", func() {
 	}
 	setResetClusterInternalServerError := func() {
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
+	}
+	mockIsInstallable := func() {
+		mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(3)
 	}
 	getInventoryStr := func(ipv4Addresses ...string) string {
 		inventory := models.Inventory{Interfaces: []*models.Interface{
@@ -937,8 +940,9 @@ var _ = Describe("cluster", func() {
 
 		It("success", func() {
 			mockPrepareForInstallationSuccess(mockClusterApi)
+			mockIsInstallable()
 			setDefaultInstall(mockClusterApi)
-			setDefaultGetMasterNodesIds(mockClusterApi)
+			setDefaultGetMasterNodesIds(mockClusterApi, 2)
 			setDefaultJobCreate(mockJob)
 			setDefaultJobMonitor(mockJob)
 			validateHostInventory(mockClusterApi)
@@ -986,6 +990,7 @@ var _ = Describe("cluster", func() {
 
 		It("cluster failed to update", func() {
 			validateHostInventory(mockClusterApi)
+			mockIsInstallable()
 			mockPrepareForInstallationSuccess(mockClusterApi)
 			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil)
@@ -995,6 +1000,18 @@ var _ = Describe("cluster", func() {
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
 			waitForDoneChannel()
+		})
+
+		It("not all hosts are ready", func() {
+			validateHostInventory(mockClusterApi)
+			setDefaultGetMasterNodesIds(mockClusterApi, 1)
+			// Two out of three nodes are not ready
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(false).Times(2)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(1)
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			verifyApiError(reply, http.StatusConflict)
 		})
 
 		It("cluster failed to  validateHostInventory", func() {
@@ -1007,9 +1024,10 @@ var _ = Describe("cluster", func() {
 
 		It("host failed to install", func() {
 			mockPrepareForInstallationSuccess(mockClusterApi)
+			mockIsInstallable()
 			validateHostInventory(mockClusterApi)
 			setDefaultInstall(mockClusterApi)
-			setDefaultGetMasterNodesIds(mockClusterApi)
+			setDefaultGetMasterNodesIds(mockClusterApi, 2)
 
 			mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(errors.Errorf("host has a error")).AnyTimes()
@@ -1026,6 +1044,7 @@ var _ = Describe("cluster", func() {
 
 		It("list of masters for setting bootstrap return empty list", func() {
 			mockPrepareForInstallationSuccess(mockClusterApi)
+			mockIsInstallable()
 			validateHostInventory(mockClusterApi)
 			setDefaultInstall(mockClusterApi)
 			// first call is for verifyClusterNetworkConfig

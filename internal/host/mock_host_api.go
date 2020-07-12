@@ -423,3 +423,17 @@ func (mr *MockAPIMockRecorder) GetStagesByRole(role interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStagesByRole", reflect.TypeOf((*MockAPI)(nil).GetStagesByRole), role)
 }
+
+// IsInstallable mocks base method
+func (m *MockAPI) IsInstallable(h *models.Host) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsInstallable", h)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsInstallable indicates an expected call of IsInstallable
+func (mr *MockAPIMockRecorder) IsInstallable(h interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsInstallable", reflect.TypeOf((*MockAPI)(nil).IsInstallable), h)
+}
