@@ -56,6 +56,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.InventoryImage)
 	freeAddressesCmd := NewFreeAddressesCmd(log, instructionConfig.FreeAddressesImage)
 	resetCmd := NewResetInstallationCmd(log)
+	stopCmd := NewStopInstallationCmd(log)
 
 	return &InstructionManager{
 		log: log,
@@ -68,6 +69,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			HostStatusInstalling:   {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec},
 			HostStatusDisabled:     {[]CommandGetter{}, defaultBackedOffInstructionInSec},
 			HostStatusResetting:    {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
+			HostStatusError:        {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
 		},
 	}
 }
