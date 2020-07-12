@@ -69,7 +69,7 @@ var _ = Describe("instructionmanager", func() {
 		})
 		It("error", func() {
 			checkStepsByState(HostStatusError, &host, db, instMng, hwValidator, ctx,
-				[]models.StepType{})
+				[]models.StepType{models.StepTypeExecute})
 		})
 		It("installing", func() {
 			checkStepsByState(HostStatusInstalling, &host, db, instMng, hwValidator, ctx,
