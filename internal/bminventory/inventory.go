@@ -628,6 +628,21 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 	return nil
 }
 
+func (b *bareMetalInventory) validateAllHostsCanBeInstalled(cluster *common.Cluster) error {
+	notInstallableHosts := make([]string, 0, len(cluster.Hosts))
+	for _, h := range cluster.Hosts {
+		if !b.hostApi.IsInstallable(h) {
+			notInstallableHosts = append(notInstallableHosts, h.ID.String())
+		}
+	}
+
+	if len(notInstallableHosts) > 0 {
+		return common.NewApiError(http.StatusConflict,
+			errors.Errorf("Not all hosts are ready for installation: %s", notInstallableHosts))
+	}
+	return nil
+}
+
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
@@ -647,6 +662,10 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	}
 
 	if err = b.verifyClusterNetworkConfig(ctx, &cluster); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err = b.validateAllHostsCanBeInstalled(&cluster); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 

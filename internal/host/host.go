@@ -74,8 +74,8 @@ type API interface {
 	UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) error
 	// Set a new inventory information
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
-
 	GetStagesByRole(role models.HostRole) []models.HostStage
+	IsInstallable(h *models.Host) bool
 }
 
 type Manager struct {
@@ -388,4 +388,8 @@ func (m *Manager) GetStagesByRole(role models.HostRole) []models.HostStage {
 	default:
 		return []models.HostStage{}
 	}
+}
+
+func (m *Manager) IsInstallable(h *models.Host) bool {
+	return swag.StringValue(h.Status) == models.HostStatusKnown
 }
