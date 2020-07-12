@@ -31,6 +31,7 @@ import (
 	"github.com/filanov/bm-inventory/pkg/filemiddleware"
 	"github.com/filanov/bm-inventory/pkg/job"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
+	"github.com/filanov/bm-inventory/pkg/requestid"
 	awsS3CLient "github.com/filanov/bm-inventory/pkg/s3Client"
 	"github.com/filanov/bm-inventory/pkg/transaction"
 	"github.com/filanov/bm-inventory/restapi"
@@ -634,9 +635,6 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 		return err
 	}
 
-	if err = c.b.generateClusterInstallConfig(c.ctx, cluster, tx); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -691,17 +689,27 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	}
 
 	go func() {
+		var err error
+		asyncCtx := requestid.ToContext(context.Background(), requestid.FromContext(ctx))
+
+		defer func() {
+			if err != nil {
+				log.WithError(err).Warn("Cluster install")
+				b.clusterApi.HandlePreInstallError(asyncCtx, &cluster, err)
+			}
+		}()
+
+		if err = b.generateClusterInstallConfig(asyncCtx, cluster); err != nil {
+			return
+		}
+
 		cInstaller := clusterInstaller{
-			ctx:    context.Background(), // Need a new context for async part
+			ctx:    asyncCtx, // Need a new context for async part
 			b:      b,
 			log:    log,
 			params: params,
 		}
-		err := b.db.Transaction(cInstaller.install)
-		if err != nil {
-			log.WithError(err).Warn("Cluster install")
-			b.clusterApi.HandlePreInstallError(context.Background(), &cluster, err)
-		}
+		err = b.db.Transaction(cInstaller.install)
 	}()
 
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
@@ -733,7 +741,7 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 	return nil
 }
 
-func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster, tx *gorm.DB) error {
+func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 
 	cfg, err := installcfg.GetInstallConfig(log, &cluster)
@@ -752,7 +760,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		return errors.Wrapf(err, "Generating kubeconfig files %s failed for cluster %s", jobName, cluster.ID)
 	}
 
-	return b.clusterApi.SetGeneratorVersion(&cluster, b.Config.KubeconfigGenerator, tx)
+	return b.clusterApi.SetGeneratorVersion(&cluster, b.Config.KubeconfigGenerator, b.db)
 }
 
 func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) error {

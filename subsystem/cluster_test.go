@@ -1092,7 +1092,7 @@ var _ = Describe("cluster install", func() {
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
 	})
 
-	It("unique_hostname_validation", func() {
+	It("[only_k8s]unique_hostname_validation", func() {
 		clusterID := *cluster.ID
 		hosts := register3nodes(clusterID)
 		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -1196,7 +1196,7 @@ var _ = Describe("cluster install", func() {
 		Expect(atLeastOneBootstrap).Should(BeTrue())
 	})
 
-	It("set_requested_hostnames", func() {
+	It("[only_k8s]set_requested_hostnames", func() {
 		clusterID := *cluster.ID
 		hosts := register3nodes(clusterID)
 		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
