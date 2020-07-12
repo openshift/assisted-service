@@ -81,7 +81,7 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected insufficient disabled installing installing-in-progress installing-pending-user-action installed error resetting]
+	// Enum: [discovering known disconnected insufficient disabled installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting]
 	Status *string `json:"status"`
 
 	// status info
@@ -318,7 +318,7 @@ var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","installing","installing-in-progress","installing-pending-user-action","installed","error","resetting"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -351,6 +351,9 @@ const (
 
 	// HostStatusInstallingPendingUserAction captures enum value "installing-pending-user-action"
 	HostStatusInstallingPendingUserAction string = "installing-pending-user-action"
+
+	// HostStatusResettingPendingUserAction captures enum value "resetting-pending-user-action"
+	HostStatusResettingPendingUserAction string = "resetting-pending-user-action"
 
 	// HostStatusInstalled captures enum value "installed"
 	HostStatusInstalled string = "installed"

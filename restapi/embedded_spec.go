@@ -2013,6 +2013,7 @@ func init() {
             "installing",
             "installing-in-progress",
             "installing-pending-user-action",
+            "resetting-pending-user-action",
             "installed",
             "error",
             "resetting"
@@ -4498,6 +4499,7 @@ func init() {
             "installing",
             "installing-in-progress",
             "installing-pending-user-action",
+            "resetting-pending-user-action",
             "installed",
             "error",
             "resetting"
