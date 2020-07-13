@@ -53,6 +53,19 @@ var _ = Describe("insufficient_state", func() {
 			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInsufficient))
 		})
 
+		It("resetting when host in reboot stage", func() {
+			addHost(models.HostRoleMaster, models.HostStatusResetting, *cluster.ID, db)
+			c := geCluster(*cluster.ID, db)
+			Expect(len(c.Hosts)).Should(Equal(1))
+			updateHostProgress(c.Hosts[0], models.HostStageRebooting, "rebooting", db)
+			updateReply, updateErr = state.RefreshStatus(ctx, &cluster, db)
+			Expect(updateErr).Should(BeNil())
+			Expect(updateReply.State).Should(Equal(clusterStatusInsufficient))
+			c = geCluster(*cluster.ID, db)
+			Expect(c.Hosts[0].Progress.CurrentStage).Should(Equal(models.HostStageRebooting))
+			Expect(swag.StringValue(c.Hosts[0].Status)).Should(Equal(models.HostStatusResettingPendingUserAction))
+		})
+
 		It("answering requirement to be ready", func() {
 			addInstallationRequirements(id, db)
 			updateReply, updateErr = state.RefreshStatus(ctx, &cluster, db)
