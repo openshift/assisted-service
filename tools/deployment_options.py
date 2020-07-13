@@ -39,6 +39,10 @@ def get_image_revision_from_manifest(short_image_name, manifest):
     raise Exception("Failed to find revision for image: %s" % short_image_name)
 
 
+def get_tag(image_fqdn):
+    return image_fqdn.split(":")[-1]
+
+
 def get_image_override(deployment_options, short_image_name, env_var_name):
     # default tag is latest
     tag = "latest"
