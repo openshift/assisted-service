@@ -19,6 +19,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+var defaultInstructionConfig = InstructionConfig{
+	InventoryURL:    "10.35.59.36",
+	InventoryPort:   "30485",
+	InstallerImage:  "quay.io/ocpmetal/assisted-installer:latest",
+	ControllerImage: "quay.io/ocpmetal/assisted-installer-controller:latest",
+}
+
 var _ = Describe("installcmd", func() {
 	var (
 		ctx               = context.Background()
@@ -38,11 +45,7 @@ var _ = Describe("installcmd", func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
-		instructionConfig = InstructionConfig{
-			InventoryURL:   "10.35.59.36",
-			InventoryPort:  "30485",
-			InstallerImage: "quay.io/ocpmetal/assisted-installer:latest",
-		}
+		instructionConfig = defaultInstructionConfig
 		installCmd = NewInstallCmd(getTestLog(), db, mockValidator, instructionConfig)
 		cluster = createClusterInDb(db)
 		clusterId = *cluster.ID
@@ -75,7 +78,7 @@ var _ = Describe("installcmd", func() {
 		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
 		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID))
 		Expect(getHost(*host.ID, clusterId, db).InstallerVersion).
-			To(Equal("quay.io/ocpmetal/assisted-installer:latest"))
+			To(Equal(defaultInstructionConfig.InstallerImage))
 	})
 
 	It("get_step_three_master_success", func() {
@@ -146,9 +149,12 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 	installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host " +
 		"--net=host -v /var/log:/var/log:rw " +
 		"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
-		"--cluster-id %s --host 10.35.59.36 --port 30485 " +
-		"--boot-device /dev/sdb --host-id %s --openshift-version 4.5"
-	ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId, hostId)))
+		"--cluster-id %s --host %s --port %s " +
+		"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
+		"--controller-image %s"
+	ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
+		defaultInstructionConfig.InventoryURL, defaultInstructionConfig.InventoryPort, hostId,
+		defaultInstructionConfig.ControllerImage)))
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
 }
 
