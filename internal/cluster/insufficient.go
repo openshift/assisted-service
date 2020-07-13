@@ -34,6 +34,20 @@ func (i *insufficientState) RefreshStatus(ctx context.Context, c *common.Cluster
 	}
 	mappedMastersByRole := mapMasterHostsByStatus(c)
 
+	manager := intenralhost.NewManager(log, db, nil, nil, nil, nil)
+	if isPendingUserResetRequired(c, manager) {
+		log.Infof("Setting cluster: %s hosts to status: %s",
+			c.ID, intenralhost.HostStatusInstallingPendingUserAction)
+		if err := setPendingUserReset(ctx, c, db, manager); err != nil {
+			return &UpdateReply{
+					State:     clusterStatusInsufficient,
+					IsChanged: false},
+				errors.Wrapf(err, "failed setting cluster: %s hosts to status: %s",
+					c.ID, intenralhost.HostStatusInstallingPendingUserAction)
+		}
+		return &UpdateReply{State: clusterStatusInsufficient, IsChanged: false}, nil
+	}
+
 	// Cluster is ready
 	mastersInKnown, ok := mappedMastersByRole[intenralhost.HostStatusKnown]
 	if ok && len(mastersInKnown) == minHostsNeededForInstallation && c.APIVip != "" && c.IngressVip != "" {
@@ -45,4 +59,37 @@ func (i *insufficientState) RefreshStatus(ctx context.Context, c *common.Cluster
 		return &UpdateReply{State: clusterStatusInsufficient,
 			IsChanged: false}, nil
 	}
+}
+
+func isPendingUserResetRequired(c *common.Cluster, manager *intenralhost.Manager) bool {
+	for _, h := range c.Hosts {
+		if manager.IsRequireUserActionReset(h) {
+			return true
+		}
+	}
+	return false
+}
+
+func setPendingUserReset(ctx context.Context, c *common.Cluster, db *gorm.DB, manager *intenralhost.Manager) error {
+	txSuccess := false
+	tx := db.Begin()
+	defer func() {
+		if !txSuccess {
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	for _, h := range c.Hosts {
+		if err := manager.ResetPendingUserAction(ctx, h, tx); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+	txSuccess = true
+	return nil
 }
