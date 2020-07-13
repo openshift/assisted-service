@@ -30,6 +30,7 @@ const (
 	pullSecret                   = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
 	IgnoreStateInfo              = "IgnoreStateInfo"
 	clusterErrorInfo             = "cluster %s has %d hosts in error"
+	clusterResetStateInfo        = "cluster was reset by user"
 )
 
 const (
@@ -871,6 +872,35 @@ var _ = Describe("cluster install", func() {
 				_, err = bmclient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
 				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewResetClusterConflict())))
 				checkHostsStatuses()
+			})
+
+			It("[only_k8s]require user reset", func() {
+				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				waitForClusterInstallationToStart(clusterID)
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(len(c.Hosts)).Should(Equal(4))
+				updateProgress(*c.Hosts[0].ID, clusterID, models.HostStageRebooting)
+				_, err = bmclient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				_, err = bmclient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterResetStateInfo)
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
+						defaultWaitForHostStateTimeout)
+					_, err = bmclient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
+						ClusterID: clusterID,
+						NewHostParams: &models.HostCreateParams{
+							HostID: host.ID,
+						},
+					})
+					Expect(err).ShouldNot(HaveOccurred())
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
+						defaultWaitForHostStateTimeout)
+				}
 			})
 		})
 	})
