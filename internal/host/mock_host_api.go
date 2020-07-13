@@ -312,6 +312,20 @@ func (mr *MockAPIMockRecorder) CancelInstallation(ctx, h, reason, db interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInstallation", reflect.TypeOf((*MockAPI)(nil).CancelInstallation), ctx, h, reason, db)
 }
 
+// IsRequireUserActionReset mocks base method
+func (m *MockAPI) IsRequireUserActionReset(h *models.Host) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsRequireUserActionReset", h)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsRequireUserActionReset indicates an expected call of IsRequireUserActionReset
+func (mr *MockAPIMockRecorder) IsRequireUserActionReset(h interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsRequireUserActionReset", reflect.TypeOf((*MockAPI)(nil).IsRequireUserActionReset), h)
+}
+
 // ResetHost mocks base method
 func (m *MockAPI) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	m.ctrl.T.Helper()
@@ -324,6 +338,20 @@ func (m *MockAPI) ResetHost(ctx context.Context, h *models.Host, reason string, 
 func (mr *MockAPIMockRecorder) ResetHost(ctx, h, reason, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetHost", reflect.TypeOf((*MockAPI)(nil).ResetHost), ctx, h, reason, db)
+}
+
+// ResetPendingUserAction mocks base method
+func (m *MockAPI) ResetPendingUserAction(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetPendingUserAction", ctx, h, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetPendingUserAction indicates an expected call of ResetPendingUserAction
+func (mr *MockAPIMockRecorder) ResetPendingUserAction(ctx, h, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetPendingUserAction", reflect.TypeOf((*MockAPI)(nil).ResetPendingUserAction), ctx, h, db)
 }
 
 // GetHostname mocks base method
