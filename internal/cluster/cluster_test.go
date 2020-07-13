@@ -24,6 +24,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+var defaultTestConfig = Config{
+	PrepareConfig: PrepareConfig{
+		InstallationTimeout: 10 * time.Minute,
+	},
+}
+
 var _ = Describe("stateMachine", func() {
 	var (
 		ctx        = context.Background()
@@ -36,7 +42,7 @@ var _ = Describe("stateMachine", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil)
+		state = NewManager(defaultTestConfig, getTestLog(), db, nil)
 		id := strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
@@ -88,7 +94,7 @@ var _ = Describe("cluster monitor", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		id = strfmt.UUID(uuid.New().String())
-		clusterApi = NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
 		expectedState = ""
 		shouldHaveUpdated = false
 	})
@@ -318,7 +324,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		id = strfmt.UUID(uuid.New().String())
-		clusterApi = NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
 	})
 
 	checkVerifyRegisterHost := func(clusterStatus string, expectErr bool) {
@@ -364,7 +370,7 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		id = strfmt.UUID(uuid.New().String())
-		clusterApi = NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
 	})
 
 	checkVerifyClusterUpdatability := func(clusterStatus string, expectErr bool) {
@@ -409,7 +415,7 @@ var _ = Describe("SetGeneratorVersion", func() {
 	It("set generator version", func() {
 		db = prepareDB()
 		id = strfmt.UUID(uuid.New().String())
-		clusterApi = NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
 		cluster := common.Cluster{Cluster: models.Cluster{ID: &id, Status: swag.String(clusterStatusReady)}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		cluster = geCluster(id, db)
@@ -429,7 +435,7 @@ var _ = Describe("CancelInstallation", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil)
+		state = NewManager(defaultTestConfig, getTestLog(), db, nil)
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
@@ -476,7 +482,7 @@ var _ = Describe("ResetCluster", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil)
+		state = NewManager(defaultTestConfig, getTestLog(), db, nil)
 	})
 
 	It("reset_cluster", func() {

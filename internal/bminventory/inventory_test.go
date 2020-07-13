@@ -1219,7 +1219,7 @@ var _ = Describe("KubeConfig download", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
-		clusterApi = cluster.NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
 
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client)
@@ -1312,7 +1312,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
-		clusterApi = cluster.NewManager(getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client)
 		c = common.Cluster{Cluster: models.Cluster{

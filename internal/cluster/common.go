@@ -22,11 +22,12 @@ const (
 )
 
 const (
-	statusInfoReady                    = "Cluster ready to be installed"
-	statusInfoInsufficient             = "cluster is insufficient, exactly 3 known master hosts are needed for installation"
-	statusInfoInstalling               = "Installation in progress"
-	statusInfoInstalled                = "installed"
-	statusInfoPreparingForInstallation = "Preparing cluster for installation"
+	statusInfoReady                           = "Cluster ready to be installed"
+	statusInfoInsufficient                    = "cluster is insufficient, exactly 3 known master hosts are needed for installation"
+	statusInfoInstalling                      = "Installation in progress"
+	statusInfoInstalled                       = "installed"
+	statusInfoPreparingForInstallation        = "Preparing cluster for installation"
+	statusInfoPreparingForInstallationTimeout = "Preparing cluster for installation timeout"
 )
 
 type UpdateReply struct {

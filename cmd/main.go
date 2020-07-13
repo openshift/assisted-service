@@ -59,7 +59,9 @@ var Options struct {
 	Versions                    versions.Versions
 	UseK8s                      bool          `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
-	ImageExpirationTime         time.Duration `envconfig:"IMAGE_EXPIRATION_TIME" default:"60m"`
+	ImageExpirationTime         time.Duration `envconfig:"image_expiration_time" default:"60m"`
+	PrepareConfig               cluster.PrepareConfig
+	ClusterConfig               cluster.Config
 }
 
 func main() {
@@ -120,7 +122,8 @@ func main() {
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, Options.InstructionConfig, connectivityValidator)
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator, instructionApi, connectivityValidator)
-	clusterApi := cluster.NewManager(log.WithField("pkg", "cluster-state"), db, eventsHandler)
+	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
+		eventsHandler)
 
 	clusterStateMonitor := thread.New(
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
