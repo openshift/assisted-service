@@ -94,21 +94,22 @@ type API interface {
 }
 
 type Manager struct {
-	log            logrus.FieldLogger
-	db             *gorm.DB
-	discovering    StateAPI
-	known          StateAPI
-	insufficient   StateAPI
-	disconnected   StateAPI
-	disabled       StateAPI
-	installing     StateAPI
-	installed      StateAPI
-	error          StateAPI
-	resetting      StateAPI
-	instructionApi InstructionApi
-	hwValidator    hardware.Validator
-	eventsHandler  events.Handler
-	sm             stateswitch.StateMachine
+	log                        logrus.FieldLogger
+	db                         *gorm.DB
+	discovering                StateAPI
+	known                      StateAPI
+	insufficient               StateAPI
+	disconnected               StateAPI
+	disabled                   StateAPI
+	installing                 StateAPI
+	installed                  StateAPI
+	error                      StateAPI
+	resetting                  StateAPI
+	resettingPendingUserAction StateAPI
+	instructionApi             InstructionApi
+	hwValidator                hardware.Validator
+	eventsHandler              events.Handler
+	sm                         stateswitch.StateMachine
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi InstructionApi, connectivityValidator connectivity.Validator) *Manager {
@@ -117,21 +118,22 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		log: log,
 	}
 	return &Manager{
-		log:            log,
-		db:             db,
-		discovering:    NewDiscoveringState(log, db, hwValidator, connectivityValidator),
-		known:          NewKnownState(log, db, hwValidator, connectivityValidator),
-		insufficient:   NewInsufficientState(log, db, hwValidator, connectivityValidator),
-		disconnected:   NewDisconnectedState(log, db, hwValidator),
-		disabled:       NewDisabledState(log, db),
-		installing:     NewInstallingState(log, db),
-		installed:      NewInstalledState(log, db),
-		error:          NewErrorState(log, db),
-		resetting:      NewResettingState(log, db),
-		instructionApi: instructionApi,
-		hwValidator:    hwValidator,
-		eventsHandler:  eventsHandler,
-		sm:             NewHostStateMachine(th),
+		log:                        log,
+		db:                         db,
+		discovering:                NewDiscoveringState(log, db, hwValidator, connectivityValidator),
+		known:                      NewKnownState(log, db, hwValidator, connectivityValidator),
+		insufficient:               NewInsufficientState(log, db, hwValidator, connectivityValidator),
+		disconnected:               NewDisconnectedState(log, db, hwValidator),
+		disabled:                   NewDisabledState(log, db),
+		installing:                 NewInstallingState(log, db),
+		resettingPendingUserAction: NewResettingPendingUserActionState(log, db),
+		installed:                  NewInstalledState(log, db),
+		error:                      NewErrorState(log, db),
+		resetting:                  NewResettingState(log, db),
+		instructionApi:             instructionApi,
+		hwValidator:                hwValidator,
+		eventsHandler:              eventsHandler,
+		sm:                         NewHostStateMachine(th),
 	}
 }
 
@@ -150,6 +152,8 @@ func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 		return m.disabled, nil
 	case HostStatusInstalling:
 		return m.installing, nil
+	case models.HostStatusResettingPendingUserAction:
+		return m.resettingPendingUserAction, nil
 	case HostStatusInstalled:
 		return m.installed, nil
 	case HostStatusError:

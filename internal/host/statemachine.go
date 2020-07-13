@@ -1,6 +1,7 @@
 package host
 
 import (
+	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/stateswitch"
 )
 
@@ -27,6 +28,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			HostStatusDisconnected,
 			HostStatusInsufficient,
 			HostStatusResetting,
+			stateswitch.State(models.HostStatusResettingPendingUserAction),
 		},
 		DestinationState: HostStatusDiscovering,
 		PostTransition:   th.PostRegisterHost,

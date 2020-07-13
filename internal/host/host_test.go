@@ -698,6 +698,11 @@ var _ = Describe("UpdateInventory", func() {
 				validation: failure,
 			},
 			{
+				name:       models.HostStatusResettingPendingUserAction,
+				srcState:   models.HostStatusResettingPendingUserAction,
+				validation: failure,
+			},
+			{
 				name:       models.HostStatusInsufficient,
 				srcState:   models.HostStatusInsufficient,
 				validation: success,
@@ -798,6 +803,11 @@ var _ = Describe("UpdateHwInfo", func() {
 			{
 				name:       models.HostStatusInstallingInProgress,
 				srcState:   models.HostStatusInstallingInProgress,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusResettingPendingUserAction,
+				srcState:   models.HostStatusResettingPendingUserAction,
 				validation: failure,
 			},
 			{
