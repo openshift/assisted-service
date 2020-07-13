@@ -22,6 +22,9 @@ type API interface {
 	   CancelInstallation cancels an ongoing installation*/
 	CancelInstallation(ctx context.Context, params *CancelInstallationParams) (*CancelInstallationAccepted, error)
 	/*
+	   CompleteInstallation agents API to mark a finalizing installation as complete*/
+	CompleteInstallation(ctx context.Context, params *CompleteInstallationParams) (*CompleteInstallationAccepted, error)
+	/*
 	   DeregisterCluster deletes an open shift bare metal cluster definition*/
 	DeregisterCluster(ctx context.Context, params *DeregisterClusterParams) (*DeregisterClusterNoContent, error)
 	/*
@@ -134,6 +137,30 @@ func (a *Client) CancelInstallation(ctx context.Context, params *CancelInstallat
 		return nil, err
 	}
 	return result.(*CancelInstallationAccepted), nil
+
+}
+
+/*
+CompleteInstallation agents API to mark a finalizing installation as complete
+*/
+func (a *Client) CompleteInstallation(ctx context.Context, params *CompleteInstallationParams) (*CompleteInstallationAccepted, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CompleteInstallation",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/actions/complete_installation",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &CompleteInstallationReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CompleteInstallationAccepted), nil
 
 }
 

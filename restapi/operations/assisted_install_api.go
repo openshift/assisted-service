@@ -50,6 +50,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerCancelInstallationHandler: installer.CancelInstallationHandlerFunc(func(params installer.CancelInstallationParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.CancelInstallation has not yet been implemented")
 		}),
+		InstallerCompleteInstallationHandler: installer.CompleteInstallationHandlerFunc(func(params installer.CompleteInstallationParams) middleware.Responder {
+			return middleware.NotImplemented("operation installer.CompleteInstallation has not yet been implemented")
+		}),
 		InstallerDeregisterClusterHandler: installer.DeregisterClusterHandlerFunc(func(params installer.DeregisterClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DeregisterCluster has not yet been implemented")
 		}),
@@ -169,6 +172,8 @@ type AssistedInstallAPI struct {
 
 	// InstallerCancelInstallationHandler sets the operation handler for the cancel installation operation
 	InstallerCancelInstallationHandler installer.CancelInstallationHandler
+	// InstallerCompleteInstallationHandler sets the operation handler for the complete installation operation
+	InstallerCompleteInstallationHandler installer.CompleteInstallationHandler
 	// InstallerDeregisterClusterHandler sets the operation handler for the deregister cluster operation
 	InstallerDeregisterClusterHandler installer.DeregisterClusterHandler
 	// InstallerDeregisterHostHandler sets the operation handler for the deregister host operation
@@ -294,6 +299,9 @@ func (o *AssistedInstallAPI) Validate() error {
 
 	if o.InstallerCancelInstallationHandler == nil {
 		unregistered = append(unregistered, "installer.CancelInstallationHandler")
+	}
+	if o.InstallerCompleteInstallationHandler == nil {
+		unregistered = append(unregistered, "installer.CompleteInstallationHandler")
 	}
 	if o.InstallerDeregisterClusterHandler == nil {
 		unregistered = append(unregistered, "installer.DeregisterClusterHandler")
@@ -470,6 +478,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/actions/cancel"] = installer.NewCancelInstallation(o.context, o.InstallerCancelInstallationHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/actions/complete_installation"] = installer.NewCompleteInstallation(o.context, o.InstallerCompleteInstallationHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
