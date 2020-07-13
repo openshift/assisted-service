@@ -38,13 +38,16 @@ format:
 	goimports -w -l cmd/ internal/ subsystem/
 
 generate:
-	go generate $(shell go list ./...)
+	go generate $(shell go list ./... | grep -v 'bm-inventory/models\|bm-inventory/client\|bm-inventory/restapi')
 
 generate-from-swagger:
 	rm -rf client models restapi
-	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) quay.io/goswagger/swagger:v0.24.0 generate server	--template=stratoscale -f swagger.yaml --template-dir=/templates/contrib
-	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) quay.io/goswagger/swagger:v0.24.0 generate client	--template=stratoscale -f swagger.yaml --template-dir=/templates/contrib
-	go generate $(shell go list ./client/... ./models/... ./restapi/...)
+	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
+		quay.io/goswagger/swagger:v0.24.0 generate server	--template=stratoscale -f swagger.yaml \
+		--template-dir=/templates/contrib
+	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
+		quay.io/goswagger/swagger:v0.24.0 generate client	--template=stratoscale -f swagger.yaml \
+		--template-dir=/templates/contrib
 
 ##########
 # Update #
