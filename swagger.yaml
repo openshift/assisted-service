@@ -448,6 +448,41 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/actions/complete_installation:
+    post:
+      tags:
+        - installer
+      summary: Agent API to mark a finalizing installation as complete.
+      operationId: CompleteInstallation
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: completion-params
+          required: true
+          schema:
+            $ref: '#/definitions/completion-params'
+      responses:
+        202:
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /clusters/{cluster_id}/hosts:
     post:
       tags:
@@ -1308,9 +1343,10 @@ definitions:
           - insufficient
           - ready
           - error
-          - installing
-          - installed
           - preparing-for-installation
+          - installing
+          - finalizing
+          - installed
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
@@ -1559,6 +1595,16 @@ definitions:
 
   ingress-cert-params:
     type: string
+
+  completion-params:
+    type: object
+    required:
+      - is_success
+    properties:
+      is_success:
+        type: boolean
+      error_info:
+        type: string
 
   host-progress:
     type: object
