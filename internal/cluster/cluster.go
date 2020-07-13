@@ -60,7 +60,12 @@ type API interface {
 	HandlePreInstallError(ctx context.Context, c *common.Cluster, err error)
 }
 
+type Config struct {
+	PrepareConfig PrepareConfig
+}
+
 type Manager struct {
+	Config
 	log             logrus.FieldLogger
 	db              *gorm.DB
 	insufficient    StateAPI
@@ -75,7 +80,7 @@ type Manager struct {
 	sm              stateswitch.StateMachine
 }
 
-func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler) *Manager {
+func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler) *Manager {
 	th := &transitionHandler{
 		log: log,
 		db:  db,
@@ -88,7 +93,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		installing:      NewInstallingState(log, db),
 		installed:       NewInstalledState(log, db),
 		error:           NewErrorState(log, db),
-		prepare:         NewPrepareForInstallation(),
+		prepare:         NewPrepareForInstallation(cfg.PrepareConfig, log, db),
 		registrationAPI: NewRegistrar(log, db),
 		installationAPI: NewInstaller(log, db),
 		eventsHandler:   eventsHandler,
