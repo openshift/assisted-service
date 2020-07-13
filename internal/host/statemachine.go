@@ -6,13 +6,14 @@ import (
 )
 
 const (
-	TransitionTypeRegisterHost           = "RegisterHost"
-	TransitionTypeHostInstallationFailed = "HostInstallationFailed"
-	TransitionTypeCancelInstallation     = "CancelInstallation"
-	TransitionTypeResetHost              = "ResetHost"
-	TransitionTypeInstallHost            = "InstallHost"
-	TransitionTypeDisableHost            = "DisableHost"
-	TransitionTypeEnableHost             = "EnableHost"
+	TransitionTypeRegisterHost               = "RegisterHost"
+	TransitionTypeHostInstallationFailed     = "HostInstallationFailed"
+	TransitionTypeCancelInstallation         = "CancelInstallation"
+	TransitionTypeResetHost                  = "ResetHost"
+	TransitionTypeInstallHost                = "InstallHost"
+	TransitionTypeDisableHost                = "DisableHost"
+	TransitionTypeEnableHost                 = "EnableHost"
+	TransitionTypeResettingPendingUserAction = "ResettingPendingUserAction"
 )
 
 func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -114,5 +115,14 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostEnableHost,
 	})
 
+	// Resetting pending user action
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeResettingPendingUserAction,
+		SourceStates: []stateswitch.State{
+			HostStatusResetting,
+		},
+		DestinationState: stateswitch.State(models.HostStatusResettingPendingUserAction),
+		PostTransition:   th.PostResettingPendingUserAction,
+	})
 	return sm
 }

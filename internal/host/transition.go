@@ -245,3 +245,25 @@ func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args sta
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState, statusInfoDiscovering,
 		sHost.host, th.db, "hardware_info", "")
 }
+
+////////////////////////////////////////////////////////////////////////////
+// Resetting pending user action
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionResettingPendingUserAction struct {
+	ctx context.Context
+	db  *gorm.DB
+}
+
+func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("ResettingPendingUserAction incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionResettingPendingUserAction)
+	if !ok {
+		return errors.New("ResettingPendingUserAction invalid argument")
+	}
+	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
+		statusInfoResettingPendingUserAction, sHost.host, params.db, "bootstrap", false)
+}

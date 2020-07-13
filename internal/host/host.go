@@ -63,6 +63,14 @@ var WorkerStages = [...]models.HostStage{
 	models.HostStageWaitingForIgnition, models.HostStageConfiguring, models.HostStageDone,
 }
 
+var manualRebootStages = [...]models.HostStage{
+	models.HostStageRebooting,
+	models.HostStageWaitingForIgnition,
+	models.HostStageConfiguring,
+	models.HostStageJoined,
+	models.HostStageDone,
+}
+
 type API interface {
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host) error
@@ -77,7 +85,9 @@ type API interface {
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
 	CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
+	IsRequireUserActionReset(h *models.Host) bool
 	ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
+	ResetPendingUserAction(ctx context.Context, h *models.Host, db *gorm.DB) error
 	GetHostname(h *models.Host) string
 	// Disable host from getting any requests
 	DisableHost(ctx context.Context, h *models.Host) error
@@ -359,6 +369,16 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 	return nil
 }
 
+func (m *Manager) IsRequireUserActionReset(h *models.Host) bool {
+	if *h.Status != models.HostStatusResetting {
+		return false
+	}
+	if !funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
+		return false
+	}
+	return true
+}
+
 func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	err := m.sm.Run(TransitionTypeResetHost, newStateHost(h), &TransitionArgsResetHost{
 		ctx:    ctx,
@@ -367,6 +387,17 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 	})
 	if err != nil {
 		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
+}
+
+func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	err := m.sm.Run(TransitionTypeResettingPendingUserAction, newStateHost(h), &TransitionResettingPendingUserAction{
+		ctx: ctx,
+		db:  db,
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }
