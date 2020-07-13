@@ -1199,7 +1199,7 @@ var _ = Describe("cluster", func() {
 			success := true
 			errorInfo := "dummy"
 			It("complete success", func() {
-				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), success, errorInfo, gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), success, errorInfo).Return(nil).Times(1)
 				reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
 					ClusterID:        clusterID,
 					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
@@ -1207,7 +1207,7 @@ var _ = Describe("cluster", func() {
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewCompleteInstallationAccepted()))
 			})
 			It("complete bad request", func() {
-				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), success, errorInfo, gomock.Any()).Return(common.NewApiError(http.StatusBadRequest, nil)).Times(1)
+				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), success, errorInfo).Return(common.NewApiError(http.StatusBadRequest, nil)).Times(1)
 
 				reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
 					ClusterID:        clusterID,

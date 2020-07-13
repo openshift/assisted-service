@@ -49,6 +49,11 @@ var _ = Describe("installer", func() {
 			err := installerManager.Install(ctx, &cluster, db)
 			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is already installing", cluster.ID).Error()))
 		})
+		It("cluster is finalizing", func() {
+			cluster = updateClusterState(cluster, models.ClusterStatusFinalizing, db)
+			err := installerManager.Install(ctx, &cluster, db)
+			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is already %s", cluster.ID, models.ClusterStatusFinalizing).Error()))
+		})
 		It("cluster is in error", func() {
 			cluster = updateClusterState(cluster, clusterStatusError, db)
 			err := installerManager.Install(ctx, &cluster, db)
