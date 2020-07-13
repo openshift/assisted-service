@@ -223,7 +223,7 @@ func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args st
 		return errors.New("PostDisableHost invalid argument")
 	}
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState, statusInfoDisabled,
-		sHost.host, th.db)
+		sHost.host, th.db, "bootstrap", false)
 }
 
 ////////////////////////////////////////////////////////////////////////////
