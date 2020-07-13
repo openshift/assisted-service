@@ -87,3 +87,37 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 		statusInfoPreparingForInstallation, sCluster.cluster, th.db,
 		"install_started_at", strfmt.DateTime(time.Now()))
 }
+
+////////////////////////////////////////////////////////////////////////////
+// Complete installation
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsCompleteInstallation struct {
+	ctx       context.Context
+	isSuccess bool
+	reason    string
+}
+
+func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return errors.New("PostCompleteInstallation incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsCompleteInstallation)
+	if !ok {
+		return errors.New("PostCompleteInstallation invalid argument")
+	}
+
+	return updateClusterStateWithParams(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
+		params.reason, sCluster.cluster, th.db, "install_completed_at", strfmt.DateTime(time.Now()))
+}
+
+func (th *transitionHandler) isSuccess(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) (b bool, err error) {
+	params, _ := args.(*TransitionArgsCompleteInstallation)
+	return params.isSuccess, nil
+}
+
+func (th *transitionHandler) notSuccess(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) (b bool, err error) {
+	params, _ := args.(*TransitionArgsCompleteInstallation)
+	return !params.isSuccess, nil
+}

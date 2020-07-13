@@ -1900,6 +1900,24 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 	return installer.NewResetClusterAccepted().WithPayload(&c.Cluster)
 }
 
+func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	log.Infof("complete cluster %s installation", params.ClusterID)
+
+	var c common.Cluster
+	if err := b.db.Preload("Hosts").First(&c, "id = ?", params.ClusterID).Error; err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err := b.clusterApi.CompleteInstallation(ctx, &c, *params.CompletionParams.IsSuccess, params.CompletionParams.ErrorInfo); err != nil {
+		log.WithError(err).Errorf("Failed to set complete cluster state on %s ", params.ClusterID.String())
+		return common.GenerateErrorResponder(err)
+	}
+
+	return installer.NewCompleteInstallationAccepted().WithPayload(&c.Cluster)
+}
+
 func (b *bareMetalInventory) deleteS3ClusterFiles(ctx context.Context, c *common.Cluster) error {
 	for _, name := range clusterFileNames {
 		if err := b.s3Client.DeleteFileFromS3(ctx, fmt.Sprintf("%s/%s", c.ID, name), b.S3Bucket); err != nil {
