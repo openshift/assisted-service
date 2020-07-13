@@ -791,6 +791,9 @@ var _ = Describe("cluster install", func() {
 		})
 		Context("reset installation", func() {
 			It("[only_k8s]reset cluster and register hosts", func() {
+				var bootstrapID *strfmt.UUID
+
+				By("verify reset success")
 				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				waitForClusterInstallationToStart(clusterID)
@@ -801,7 +804,21 @@ var _ = Describe("cluster install", func() {
 				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c := rep.GetPayload()
+				for _, h := range c.Hosts {
+					if h.Bootstrap {
+						bootstrapID = h.ID
+						break
+					}
+				}
+				Expect(bootstrapID).ShouldNot(Equal(nil))
+
+				By("verify cluster state")
+				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c = rep.GetPayload()
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
+
+				By("verify hosts state")
 				for _, host := range c.Hosts {
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
 					_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
@@ -813,12 +830,29 @@ var _ = Describe("cluster install", func() {
 						},
 					})
 					Expect(err).ShouldNot(HaveOccurred())
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown,
 						defaultWaitForHostStateTimeout)
 					host = getHost(clusterID, *host.ID)
 					Expect(host.Progress.CurrentStage).Should(Equal(models.HostStage("")))
 					Expect(host.Progress.ProgressInfo).Should(Equal(""))
 				}
+
+				By("verify bootstrap ID")
+				waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+					clusterReadyStateInfo)
+				_, err = bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				waitForClusterInstallationToStart(clusterID)
+				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c = rep.GetPayload()
+				for _, h := range c.Hosts {
+					if h.Bootstrap {
+						Expect(h.ID).Should(Equal(bootstrapID))
+						break
+					}
+				}
+
 			})
 			It("[only_k8s]reset ready/installing cluster", func() {
 				_, err := bmclient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})

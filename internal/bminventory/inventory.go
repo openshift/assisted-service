@@ -722,6 +722,14 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster common.Cluster, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, b.log)
 
+	// check if cluster already has bootstrap
+	for _, h := range cluster.Hosts {
+		if h.Bootstrap {
+			log.Infof("Bootstrap ID is %s", h.ID)
+			return nil
+		}
+	}
+
 	masterNodesIds, err := b.clusterApi.GetMasterNodesIds(ctx, &cluster, db)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s master node id's", cluster.ID)
