@@ -815,6 +815,9 @@ var _ = Describe("cluster install", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
 						defaultWaitForHostStateTimeout)
+					host = getHost(clusterID, *host.ID)
+					Expect(host.Progress.CurrentStage).Should(Equal(models.HostStage("")))
+					Expect(host.Progress.ProgressInfo).Should(Equal(""))
 				}
 			})
 			It("[only_k8s]reset ready/installing cluster", func() {
