@@ -141,13 +141,13 @@ var _ = Describe("cluster monitor", func() {
 			shouldHaveUpdated = false
 			expectedState = "installing"
 		})
-		It("installing -> installed", func() {
+		It("installing -> finalizing", func() {
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
 
 			shouldHaveUpdated = true
-			expectedState = "installed"
+			expectedState = models.ClusterStatusFinalizing
 		})
 		It("installing -> error", func() {
 			createHost(id, "error", db)
@@ -346,6 +346,9 @@ var _ = Describe("VerifyRegisterHost", func() {
 	})
 	It("Register host while cluster in installing state", func() {
 		checkVerifyRegisterHost(clusterStatusInstalling, true)
+	})
+	It("Register host while cluster in installing state", func() {
+		checkVerifyRegisterHost(models.ClusterStatusFinalizing, true)
 	})
 	It("Register host while cluster in error state", func() {
 		checkVerifyRegisterHost(clusterStatusError, true)
