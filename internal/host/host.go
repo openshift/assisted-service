@@ -48,8 +48,8 @@ const (
 )
 
 var BootstrapStages = [...]models.HostStage{
-	models.HostStageStartingInstallation, models.HostStageStartWaitingForControlPlane,
-	models.HostStageInstalling, models.HostStageWritingImageToDisk, models.HostStageFinishWaitingForControlPlane,
+	models.HostStageStartingInstallation, models.HostStageInstalling,
+	models.HostStageWritingImageToDisk, models.HostStageStartWaitingForControlPlane,
 	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageDone,
 }
 var MasterStages = [...]models.HostStage{
