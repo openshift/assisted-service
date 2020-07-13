@@ -102,7 +102,7 @@ type Cluster struct {
 
 	// Status of the OpenShift cluster.
 	// Required: true
-	// Enum: [insufficient ready error installing installed preparing-for-installation]
+	// Enum: [insufficient ready error preparing-for-installation installing finalizing installed]
 	Status *string `json:"status"`
 
 	// Additional information pertaining to the status of the OpenShift cluster.
@@ -503,7 +503,7 @@ var clusterTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["insufficient","ready","error","installing","installed","preparing-for-installation"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["insufficient","ready","error","preparing-for-installation","installing","finalizing","installed"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -522,14 +522,17 @@ const (
 	// ClusterStatusError captures enum value "error"
 	ClusterStatusError string = "error"
 
+	// ClusterStatusPreparingForInstallation captures enum value "preparing-for-installation"
+	ClusterStatusPreparingForInstallation string = "preparing-for-installation"
+
 	// ClusterStatusInstalling captures enum value "installing"
 	ClusterStatusInstalling string = "installing"
 
+	// ClusterStatusFinalizing captures enum value "finalizing"
+	ClusterStatusFinalizing string = "finalizing"
+
 	// ClusterStatusInstalled captures enum value "installed"
 	ClusterStatusInstalled string = "installed"
-
-	// ClusterStatusPreparingForInstallation captures enum value "preparing-for-installation"
-	ClusterStatusPreparingForInstallation string = "preparing-for-installation"
 )
 
 // prop value enum

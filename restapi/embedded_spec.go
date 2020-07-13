@@ -273,6 +273,58 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/actions/complete_installation": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Agent API to mark a finalizing installation as complete.",
+        "operationId": "CompleteInstallation",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "completion-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/completion-params"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/actions/install": {
       "post": {
         "tags": [
@@ -1454,9 +1506,10 @@ func init() {
             "insufficient",
             "ready",
             "error",
+            "preparing-for-installation",
             "installing",
-            "installed",
-            "preparing-for-installation"
+            "finalizing",
+            "installed"
           ]
         },
         "status_info": {
@@ -1629,6 +1682,20 @@ func init() {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string",
           "x-nullable": true
+        }
+      }
+    },
+    "completion-params": {
+      "type": "object",
+      "required": [
+        "is_success"
+      ],
+      "properties": {
+        "error_info": {
+          "type": "string"
+        },
+        "is_success": {
+          "type": "boolean"
         }
       }
     },
@@ -2725,6 +2792,58 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/actions/complete_installation": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Agent API to mark a finalizing installation as complete.",
+        "operationId": "CompleteInstallation",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "completion-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/completion-params"
+            }
           }
         ],
         "responses": {
@@ -3960,9 +4079,10 @@ func init() {
             "insufficient",
             "ready",
             "error",
+            "preparing-for-installation",
             "installing",
-            "installed",
-            "preparing-for-installation"
+            "finalizing",
+            "installed"
           ]
         },
         "status_info": {
@@ -4117,6 +4237,20 @@ func init() {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string",
           "x-nullable": true
+        }
+      }
+    },
+    "completion-params": {
+      "type": "object",
+      "required": [
+        "is_success"
+      ],
+      "properties": {
+        "error_info": {
+          "type": "string"
+        },
+        "is_success": {
+          "type": "boolean"
         }
       }
     },

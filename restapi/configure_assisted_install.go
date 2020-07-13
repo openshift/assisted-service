@@ -39,6 +39,9 @@ type InstallerAPI interface {
 	/* CancelInstallation Cancels an ongoing installation. */
 	CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder
 
+	/* CompleteInstallation Agent API to mark a finalizing installation as complete. */
+	CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder
+
 	/* DeregisterCluster Deletes an OpenShift bare metal cluster definition. */
 	DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder
 
@@ -169,6 +172,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	api.InstallerCancelInstallationHandler = installer.CancelInstallationHandlerFunc(func(params installer.CancelInstallationParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InstallerAPI.CancelInstallation(ctx, params)
+	})
+	api.InstallerCompleteInstallationHandler = installer.CompleteInstallationHandlerFunc(func(params installer.CompleteInstallationParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InstallerAPI.CompleteInstallation(ctx, params)
 	})
 	api.InstallerDeregisterClusterHandler = installer.DeregisterClusterHandlerFunc(func(params installer.DeregisterClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
