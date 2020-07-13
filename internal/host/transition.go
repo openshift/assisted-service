@@ -52,7 +52,8 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and start the discovery process again.
 		return updateHostStateWithParams(log, currentState, statusInfoDiscovering, &host, th.db,
-			"hardware_info", "", "discovery_agent_version", params.discoveryAgentVersion)
+			"hardware_info", "", "discovery_agent_version", params.discoveryAgentVersion,
+			"progress_current_stage", "", "progress_progress_info", "")
 	}
 
 	sHost.host.StatusUpdatedAt = strfmt.DateTime(time.Now())
