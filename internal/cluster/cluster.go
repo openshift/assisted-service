@@ -272,16 +272,11 @@ func (m *Manager) ResetCluster(ctx context.Context, c *common.Cluster, reason st
 }
 
 func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster) error {
-	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{clusterStatusReady}
-	if !funk.ContainsString(allowedStatuses, clusterStatus) {
-		return common.NewApiError(http.StatusBadRequest,
-			errors.Errorf("Cluster is in %s state, cluster can be prepared for installation only in one of %s states",
-				clusterStatus, allowedStatuses))
-	}
-
-	_, err := updateState(clusterStatusPrepareForInstallation, statusInfoPreparingForInstallation, c, m.db,
-		logutil.FromContext(ctx, m.log))
+	err := m.sm.Run(TransitionTypePrepareForInstallation, newStateCluster(c),
+		&TransitionArgsPrepareForInstallation{
+			ctx: ctx,
+		},
+	)
 	return err
 }
 
