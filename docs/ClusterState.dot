@@ -14,13 +14,16 @@ digraph ClusterStateMachine {
     ready -> insufficient [label = "min reqs\nnot met", color=lightpink3, fontcolor=lightpink3];
     error -> insufficient [label = "reset", color=lightpink3, fontcolor=lightpink3];
     ready -> installing [label = "installation started", color=darkolivegreen4, fontcolor=darkolivegreen4];
-    installing -> installed [label = "installation\ncompleted", color=chartreuse4, fontcolor=chartreuse4];
+    installing -> finalizing [label = "3 masters\ninstalled", color=chartreuse4, fontcolor=chartreuse4];
     installing -> error [label = "installation\nerror\nor canceled", color=crimson, fontcolor=crimson];
+    finalizing -> installed [label = "installation\ncompleted", color=chartreuse4, fontcolor=chartreuse4];
+    finalizing -> error [label = "installation\nerror\nor canceled", color=crimson, fontcolor=crimson];
     error -> insufficient [label = "reset\nstate", color=lightpink3, fontcolor=lightpink3];
 
     {rank=min; start}
     {rank=max; installed}
     {rank=same; start; insufficient}
     {rank=same; ready; installing; error}
-    {rank=same; installed}
+    {rank=same; installing; error}
+    {rank=same; installed; finalizing}
 }
