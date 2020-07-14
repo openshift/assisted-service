@@ -1130,6 +1130,10 @@ var _ = Describe("cluster", func() {
 		})
 
 		Context("CancelInstallation", func() {
+			BeforeEach(func() {
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockHostApi.EXPECT().GetHostname(gomock.Any()).Return("whatever").AnyTimes()
+			})
 			It("cancel installation success", func() {
 				setCancelInstallationSuccess()
 
@@ -1159,6 +1163,10 @@ var _ = Describe("cluster", func() {
 		})
 
 		Context("reset cluster", func() {
+			BeforeEach(func() {
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockHostApi.EXPECT().GetHostname(gomock.Any()).Return("whatever").AnyTimes()
+			})
 			It("reset installation success", func() {
 				setResetClusterSuccess()
 

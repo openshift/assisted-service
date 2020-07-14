@@ -1816,6 +1816,9 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 		if err := b.hostApi.CancelInstallation(ctx, h, "installation was canceled by user", tx); err != nil {
 			return common.GenerateErrorResponder(err)
 		}
+		if err := b.customizeHost(h); err != nil {
+			return installer.NewCancelInstallationInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -1867,6 +1870,9 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 	for _, h := range c.Hosts {
 		if err := b.hostApi.ResetHost(ctx, h, "cluster was reset by user", tx); err != nil {
 			return common.GenerateErrorResponder(err)
+		}
+		if err := b.customizeHost(h); err != nil {
+			return installer.NewResetClusterInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 		}
 	}
 
