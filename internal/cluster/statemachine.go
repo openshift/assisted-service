@@ -1,12 +1,14 @@
 package cluster
 
 import (
+	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/stateswitch"
 )
 
 const (
-	TransitionTypeCancelInstallation = "CancelInstallation"
-	TransitionTypeResetCluster       = "ResetCluster"
+	TransitionTypeCancelInstallation     = "CancelInstallation"
+	TransitionTypeResetCluster           = "ResetCluster"
+	TransitionTypePrepareForInstallation = "PrepareForInstallation"
 )
 
 func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -29,6 +31,15 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		DestinationState: clusterStatusInsufficient,
 		PostTransition:   th.PostResetCluster,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypePrepareForInstallation,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusReady),
+		},
+		DestinationState: stateswitch.State(models.ClusterStatusPreparingForInstallation),
+		PostTransition:   th.PostPrepareForInstallation,
 	})
 
 	return sm
