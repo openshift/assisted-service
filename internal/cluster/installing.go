@@ -64,14 +64,17 @@ func (i *installingState) getClusterInstallationState(ctx context.Context, c *co
 	}
 
 	// Cluster is installing
-	mastersInInstalling := mappedMastersByRole[intenralhost.HostStatusInstalling]
-	mastersInInstallingInProgress := mappedMastersByRole[intenralhost.HostStatusInstallingInProgress]
-	if (len(mastersInInstalling) + len(mastersInInstallingInProgress) + len(mastersInInstalled)) >= minHostsNeededForInstallation {
+	mastersInSomeInstallingStatus := len(mappedMastersByRole[intenralhost.HostStatusInstalling]) +
+		len(mappedMastersByRole[intenralhost.HostStatusInstallingInProgress]) +
+		len(mappedMastersByRole[intenralhost.HostStatusInstalled]) +
+		len(mappedMastersByRole[intenralhost.HostStatusInstallingPendingUserAction])
+	if mastersInSomeInstallingStatus >= minHostsNeededForInstallation {
 		return clusterStatusInstalling, statusInfoInstalling, nil
 	}
 
 	// Cluster is in error
 	mastersInError := mappedMastersByRole[intenralhost.HostStatusError]
+	log.Infof("Cluster %s hosts status map is %+v", c.ID, mappedMastersByRole)
 	log.Warningf("Cluster %s has %d hosts in error.", c.ID, len(mastersInError))
 	return clusterStatusError, fmt.Sprintf("cluster %s has %d hosts in error", c.ID, len(mastersInError)), nil
 }
