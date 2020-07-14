@@ -1577,7 +1577,6 @@ definitions:
     - Start Waiting for control plane
     - Installing
     - Writing image to disk
-    - Finish Waiting for control plane
     - Rebooting
     - Waiting for ignition
     - Configuring
