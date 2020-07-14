@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
@@ -39,7 +40,7 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 	if sCluster.srcState == clusterStatusError {
 		return nil
 	}
-	return updateClusterStateWithParams(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
+	return updateCluster(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
 		params.reason, sCluster.cluster, params.db)
 }
 
@@ -62,7 +63,7 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 	if !ok {
 		return errors.New("PostResetCluster invalid argument")
 	}
-	return updateClusterStateWithParams(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
+	return updateCluster(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
 		params.reason, sCluster.cluster, params.db)
 }
 
@@ -78,7 +79,7 @@ type TransitionArgsPrepareForInstallation struct {
 func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sCluster, _ := sw.(*stateCluster)
 	params, _ := args.(*TransitionArgsPrepareForInstallation)
-	return updateClusterStateWithParams(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
+	return updateCluster(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
 		statusInfoPreparingForInstallation, sCluster.cluster, params.db,
 		"install_started_at", strfmt.DateTime(time.Now()))
 }
@@ -103,7 +104,7 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 		return errors.New("PostCompleteInstallation invalid argument")
 	}
 
-	return updateClusterStateWithParams(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
+	return updateCluster(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
 		params.reason, sCluster.cluster, th.db, "install_completed_at", strfmt.DateTime(time.Now()))
 }
 
@@ -129,6 +130,14 @@ type TransitionArgsHandlePreInstallationError struct {
 func (th *transitionHandler) PostHandlePreInstallationError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sCluster, _ := sw.(*stateCluster)
 	params, _ := args.(*TransitionArgsHandlePreInstallationError)
-	return updateClusterStateWithParams(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
+	return updateCluster(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
 		params.installErr.Error(), sCluster.cluster, th.db)
+}
+
+// Updates the status according to the cluster where the status equals the srcStatus
+func updateCluster(log logrus.FieldLogger, srcStatus, statusInfo string, c *common.Cluster, db *gorm.DB,
+	extra ...interface{}) error {
+	newStatus := c.Status
+	c.Status = &srcStatus
+	return updateClusterStateWithParams(log, *newStatus, statusInfo, c, db, extra...)
 }

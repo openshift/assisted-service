@@ -93,7 +93,7 @@ var _ = Describe("instructionmanager", func() {
 
 func checkStepsByState(state string, host *models.Host, db *gorm.DB, instMng *InstructionManager, mockValidator *hardware.MockValidator, ctx context.Context,
 	expectedStepTypes []models.StepType) {
-	updateReply, updateErr := updateState(getTestLog(), state, "", host, db)
+	updateReply, updateErr := updateHostState(getTestLog(), state, "", host, db)
 	ExpectWithOffset(1, updateErr).ShouldNot(HaveOccurred())
 	ExpectWithOffset(1, updateReply.IsChanged).Should(BeTrue())
 	h := getHost(*host.ID, host.ClusterID, db)

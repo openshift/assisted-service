@@ -79,6 +79,14 @@ type Host struct {
 	// role
 	Role HostRole `json:"role,omitempty"`
 
+	// Time at which the current progress stage started
+	// Format: date-time
+	StageStartedAt strfmt.DateTime `json:"stage_started_at,omitempty" gorm:"type:datetime"`
+
+	// Time at which the current progress stage was last updated
+	// Format: date-time
+	StageUpdatedAt strfmt.DateTime `json:"stage_updated_at,omitempty" gorm:"type:datetime"`
+
 	// status
 	// Required: true
 	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting]
@@ -134,6 +142,14 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateRole(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStageStartedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStageUpdatedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -308,6 +324,32 @@ func (m *Host) validateRole(formats strfmt.Registry) error {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("role")
 		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateStageStartedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StageStartedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("stage_started_at", "body", "date-time", m.StageStartedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateStageUpdatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StageUpdatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("stage_updated_at", "body", "date-time", m.StageUpdatedAt.String(), formats); err != nil {
 		return err
 	}
 
