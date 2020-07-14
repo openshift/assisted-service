@@ -38,8 +38,17 @@ type baseState struct {
 	db  *gorm.DB
 }
 
-func updateState(log logrus.FieldLogger, state, stateInfo string, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	return updateStateWithParams(log, state, stateInfo, h, db)
+func updateHostState(log logrus.FieldLogger, status string, statusInfo string, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+	wouldChange := status != swag.StringValue(h.Status)
+
+	if err := updateHostStateWithParams(log, status, statusInfo, h, db); err != nil {
+		return nil, err
+	}
+
+	return &UpdateReply{
+		State:     status,
+		IsChanged: wouldChange,
+	}, nil
 }
 
 func defaultReply(h *models.Host) (*UpdateReply, error) {
@@ -51,16 +60,35 @@ func defaultReply(h *models.Host) (*UpdateReply, error) {
 
 func updateByKeepAlive(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
 	if h.CheckedInAt.String() != "" && time.Since(time.Time(h.CheckedInAt)) > 3*time.Minute {
-		return updateState(log, HostStatusDisconnected, statusInfoDisconnected, h, db)
+		return updateHostState(log, HostStatusDisconnected, statusInfoDisconnected, h, db)
 	}
 	return defaultReply(h)
 }
 
-func updateStateWithParams(log logrus.FieldLogger, status, statusInfo string, h *models.Host, db *gorm.DB, extra ...interface{}) (*UpdateReply, error) {
-	updates := map[string]interface{}{"status": status, "status_info": statusInfo, "status_updated_at": strfmt.DateTime(time.Now())}
+func updateHostProgress(log logrus.FieldLogger, status string, statusInfo string, h *models.Host, db *gorm.DB,
+	stage models.HostStage, progressInfo string, extra ...interface{}) error {
+
+	extra = append(extra, "progress_current_stage", stage, "progress_progress_info", progressInfo,
+		"stage_updated_at", strfmt.DateTime(time.Now()))
+
+	// New stage
+	if h.Progress.CurrentStage != stage {
+		extra = append(extra, "stage_started_at", strfmt.DateTime(time.Now()))
+	}
+
+	return updateHostStateWithParams(log, status, statusInfo, h, db, extra...)
+}
+
+func updateHostStateWithParams(log logrus.FieldLogger, status string, statusInfo string, h *models.Host, db *gorm.DB,
+	extra ...interface{}) error {
+	updates := map[string]interface{}{"status": status, "status_info": statusInfo}
+
+	if status != swag.StringValue(h.Status) {
+		updates["status_updated_at"] = strfmt.DateTime(time.Now())
+	}
 
 	if len(extra)%2 != 0 {
-		return nil, errors.Errorf("invalid update extra parameters %+v", extra)
+		return errors.Errorf("invalid update extra parameters %+v", extra)
 	}
 	for i := 0; i < len(extra); i += 2 {
 		updates[extra[i].(string)] = extra[i+1]
@@ -72,51 +100,22 @@ func updateStateWithParams(log logrus.FieldLogger, status, statusInfo string, h 
 		h.ID.String(), h.ClusterID.String(), swag.StringValue(h.Status)).
 		Updates(updates)
 	if dbReply.Error != nil {
-		return nil, errors.Wrapf(dbReply.Error, "failed to update host %s from cluster %s state from %s to %s",
+		return errors.Wrapf(dbReply.Error, "failed to update host %s from cluster %s state from %s to %s",
 			h.ID.String(), h.ClusterID, swag.StringValue(h.Status), status)
 	}
 	if dbReply.RowsAffected == 0 && swag.StringValue(h.Status) != status {
-		return nil, errors.Errorf("failed to update host %s from cluster %s state from %s to %s, nothing have changed",
+		return errors.Errorf("failed to update host %s from cluster %s state from %s to %s, nothing have changed",
 			h.ID.String(), h.ClusterID, swag.StringValue(h.Status), status)
 	}
+
 	log.Infof("Updated host <%s> status from <%s> to <%s> with fields: %s",
 		h.ID.String(), swag.StringValue(h.Status), status, updates)
-	isChanged := status != swag.StringValue(h.Status)
-	h.Status = &status
-	h.StatusInfo = &statusInfo
-	return &UpdateReply{
-		State:     status,
-		IsChanged: isChanged,
-	}, nil
-}
 
-func updateHostStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo string, h *models.Host, db *gorm.DB,
-	extra ...interface{}) error {
+	if err := db.First(h, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error; err != nil {
+		return errors.Wrapf(dbReply.Error, "failed to read host %s from cluster %s from the database after the update",
+			h.ID.String(), h.ClusterID)
+	}
 
-	updates := map[string]interface{}{
-		"status":            swag.StringValue(h.Status),
-		"status_info":       statusInfo,
-		"status_updated_at": strfmt.DateTime(time.Now()),
-	}
-	if len(extra)%2 != 0 {
-		return errors.Errorf("invalid update extra parameters %+v", extra)
-	}
-	for i := 0; i < len(extra); i += 2 {
-		updates[extra[i].(string)] = extra[i+1]
-	}
-	dbReply := db.Model(&models.Host{}).Where("id = ? and cluster_id = ? and status = ?",
-		h.ID.String(), h.ClusterID.String(), srcStatus).
-		Updates(updates)
-	if dbReply.Error != nil {
-		return errors.Wrapf(dbReply.Error, "failed to update host %s from cluster %s state from %s to %s",
-			h.ID.String(), h.ClusterID, srcStatus, swag.StringValue(h.Status))
-	}
-	if dbReply.RowsAffected == 0 && swag.StringValue(h.Status) != srcStatus {
-		return errors.Errorf("failed to update host %s from cluster %s state from %s to %s, nothing have changed",
-			h.ID.String(), h.ClusterID, srcStatus, swag.StringValue(h.Status))
-	}
-	log.Infof("Updated host <%s> status from <%s> to <%s> with fields: %s",
-		h.ID.String(), srcStatus, swag.StringValue(h.Status), updates)
 	return nil
 }
 
@@ -190,7 +189,7 @@ func checkAndUpdateSufficientHost(log logrus.FieldLogger, h *models.Host, db *go
 	//update status & status info in DB only if there is a change
 	if swag.StringValue(h.Status) != newStatus || swag.StringValue(h.StatusInfo) != newStatusInfo {
 		log.Infof("is sufficient host: %s role reply %+v inventory reply %+v connectivity reply %+v", h.ID, roleReply, inventoryReply, connectivityReply)
-		return updateState(log, newStatus, newStatusInfo, h, db)
+		return updateHostState(log, newStatus, newStatusInfo, h, db)
 	}
 	return &UpdateReply{
 		State:     swag.StringValue(h.Status),

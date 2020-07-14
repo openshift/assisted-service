@@ -289,9 +289,8 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusInstalled, statusInfo, h, m.db,
-			"progress_current_stage", progress.CurrentStage, "progress_progress_info", progress.ProgressInfo)
-		return err
+		return updateHostProgress(logutil.FromContext(ctx, m.log), HostStatusInstalled, statusInfo, h, m.db,
+			progress.CurrentStage, progress.ProgressInfo)
 	case models.HostStageFailed:
 		// Keeps the last progress
 
@@ -299,12 +298,10 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 		}
 
-		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusError, statusInfo, h, m.db)
-		return err
+		return updateHostStateWithParams(logutil.FromContext(ctx, m.log), HostStatusError, statusInfo, h, m.db)
 	default:
-		_, err := updateStateWithParams(logutil.FromContext(ctx, m.log), HostStatusInstallingInProgress, statusInfo, h, m.db,
-			"progress_current_stage", progress.CurrentStage, "progress_progress_info", progress.ProgressInfo)
-		return err
+		return updateHostProgress(logutil.FromContext(ctx, m.log), HostStatusInstallingInProgress, statusInfo, h, m.db,
+			progress.CurrentStage, progress.ProgressInfo)
 	}
 }
 

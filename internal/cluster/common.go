@@ -43,54 +43,59 @@ type baseState struct {
 	db  *gorm.DB           //nolint:structcheck
 }
 
-func updateState(state string, statusInfo string, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (*UpdateReply, error) {
-	updates := map[string]interface{}{"status": state, "status_info": statusInfo, "status_updated_at": strfmt.DateTime(time.Now())}
-	if *c.Status == clusterStatusReady && state == clusterStatusPrepareForInstallation {
-		updates["install_started_at"] = strfmt.DateTime(time.Now())
+func updateClusterStatus(status string, statusInfo string, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (*UpdateReply, error) {
+	wouldChange := status != swag.StringValue(c.Status)
+
+	if err := updateClusterStateWithParams(log, status, statusInfo, c, db); err != nil {
+		return nil, err
 	}
-	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?",
-		c.ID.String(), swag.StringValue(c.Status)).Updates(updates)
-	if dbReply.Error != nil {
-		return nil, errors.Wrapf(dbReply.Error, "failed to update cluster %s state from %s to %s",
-			c.ID.String(), swag.StringValue(c.Status), state)
-	}
-	if dbReply.RowsAffected == 0 {
-		return nil, errors.Errorf("failed to update cluster %s state from %s to %s, nothing have changed",
-			c.ID.String(), swag.StringValue(c.Status), state)
-	}
-	log.Infof("updated cluster %s from state <%s> to state <%s>", c.ID.String(), swag.StringValue(c.Status), state)
+
 	return &UpdateReply{
-		State:     state,
-		IsChanged: state != swag.StringValue(c.Status),
+		State:     status,
+		IsChanged: wouldChange,
 	}, nil
 }
 
-func updateClusterStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo string, c *common.Cluster, db *gorm.DB,
+func updateClusterStateWithParams(log logrus.FieldLogger, status string, statusInfo string, c *common.Cluster, db *gorm.DB,
 	extra ...interface{}) error {
 
-	updates := map[string]interface{}{
-		"status":            swag.StringValue(c.Status),
-		"status_info":       statusInfo,
-		"status_updated_at": strfmt.DateTime(time.Now()),
+	updates := map[string]interface{}{"status": status, "status_info": statusInfo}
+
+	if status != swag.StringValue(c.Status) {
+		updates["status_updated_at"] = strfmt.DateTime(time.Now())
 	}
+	if *c.Status == clusterStatusReady && status == clusterStatusPrepareForInstallation {
+		updates["install_started_at"] = strfmt.DateTime(time.Now())
+	} else if *c.Status == clusterStatusInstalling && status == clusterStatusInstalled {
+		updates["install_completed_at"] = strfmt.DateTime(time.Now())
+	}
+
 	if len(extra)%2 != 0 {
 		return errors.Errorf("invalid update extra parameters %+v", extra)
 	}
 	for i := 0; i < len(extra); i += 2 {
 		updates[extra[i].(string)] = extra[i+1]
 	}
-	dbReply := db.Model(&models.Cluster{}).Where("id = ? and status = ?", c.ID.String(), srcStatus).Updates(updates)
+
+	// Query by <cluster-id, status>
+	// Status is queried as well to avoid races between different components.
+	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?",
+		c.ID.String(), swag.StringValue(c.Status)).Updates(updates)
 	if dbReply.Error != nil {
 		return errors.Wrapf(dbReply.Error, "failed to update cluster %s state from %s to %s",
-			c.ID.String(), srcStatus, swag.StringValue(c.Status))
+			c.ID.String(), swag.StringValue(c.Status), status)
 	}
-	if dbReply.RowsAffected == 0 && swag.StringValue(c.Status) != srcStatus {
+	if dbReply.RowsAffected == 0 {
 		return errors.Errorf("failed to update cluster %s state from %s to %s, nothing have changed",
-			c.ID.String(), srcStatus, swag.StringValue(c.Status))
+			c.ID.String(), swag.StringValue(c.Status), status)
 	}
-	c.StatusInfo = &statusInfo
-	log.Infof("Updated cluster <%s> status from <%s> to <%s> with fields: %s",
-		c.ID.String(), srcStatus, swag.StringValue(c.Status), updates)
+	log.Infof("updated cluster %s from state <%s> to state <%s>", c.ID.String(), swag.StringValue(c.Status), status)
+
+	if err := db.First(c, "id = ?", c.ID.String()).Error; err != nil {
+		return errors.Wrapf(dbReply.Error, "failed to read from cluster %s from the database after the update",
+			c.ID.String())
+	}
+
 	return nil
 }
 
