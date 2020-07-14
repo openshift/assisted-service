@@ -398,6 +398,11 @@ var _ = Describe("cluster install", func() {
 				Expect(err).To(BeNil())
 				hostInDb := getHost(clusterID, *hostID)
 				Expect(*hostInDb.Status).Should(Equal(models.HostStatusInstallingPendingUserAction))
+
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
 			})
 
 			By("Updating progress after fixing boot order", func() {
