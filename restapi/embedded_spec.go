@@ -1917,6 +1917,7 @@ func init() {
       "type": "object",
       "required": [
         "entity_id",
+        "severity",
         "message",
         "event_time"
       ],
@@ -1940,6 +1941,15 @@ func init() {
           "description": "Unique identifier for the request that caused this event to occure",
           "type": "string",
           "format": "uuid"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "info",
+            "warning",
+            "error",
+            "critical"
+          ]
         }
       }
     },
@@ -4473,6 +4483,7 @@ func init() {
       "type": "object",
       "required": [
         "entity_id",
+        "severity",
         "message",
         "event_time"
       ],
@@ -4496,6 +4507,15 @@ func init() {
           "description": "Unique identifier for the request that caused this event to occure",
           "type": "string",
           "format": "uuid"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "info",
+            "warning",
+            "error",
+            "critical"
+          ]
         }
       }
     },

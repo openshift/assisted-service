@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -34,6 +36,11 @@ type Event struct {
 	// Unique identifier for the request that caused this event to occure
 	// Format: uuid
 	RequestID strfmt.UUID `json:"request_id,omitempty"`
+
+	// severity
+	// Required: true
+	// Enum: [info warning error critical]
+	Severity *string `json:"severity"`
 }
 
 // Validate validates this event
@@ -53,6 +60,10 @@ func (m *Event) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateRequestID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSeverity(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -104,6 +115,55 @@ func (m *Event) validateRequestID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("request_id", "body", "uuid", m.RequestID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var eventTypeSeverityPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["info","warning","error","critical"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		eventTypeSeverityPropEnum = append(eventTypeSeverityPropEnum, v)
+	}
+}
+
+const (
+
+	// EventSeverityInfo captures enum value "info"
+	EventSeverityInfo string = "info"
+
+	// EventSeverityWarning captures enum value "warning"
+	EventSeverityWarning string = "warning"
+
+	// EventSeverityError captures enum value "error"
+	EventSeverityError string = "error"
+
+	// EventSeverityCritical captures enum value "critical"
+	EventSeverityCritical string = "critical"
+)
+
+// prop value enum
+func (m *Event) validateSeverityEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, eventTypeSeverityPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Event) validateSeverity(formats strfmt.Registry) error {
+
+	if err := validate.Required("severity", "body", m.Severity); err != nil {
+		return err
+	}
+
+	// value enum
+	if err := m.validateSeverityEnum("severity", "body", *m.Severity); err != nil {
 		return err
 	}
 
