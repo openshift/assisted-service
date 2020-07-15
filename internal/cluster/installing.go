@@ -37,11 +37,11 @@ func (i *installingState) RefreshStatus(ctx context.Context, c *common.Cluster, 
 
 	switch installationState {
 	case models.ClusterStatusFinalizing:
-		return updateClusterStatus(models.ClusterStatusFinalizing, StateInfo, c, db, log)
+		return updateClusterStatusUpdateReplay(log, db, *c.ID, *c.Status, models.ClusterStatusFinalizing, StateInfo)
 	case clusterStatusInstalled:
-		return updateClusterStatus(clusterStatusInstalled, StateInfo, c, db, log)
+		return updateClusterStatusUpdateReplay(log, db, *c.ID, *c.Status, clusterStatusInstalled, StateInfo)
 	case clusterStatusError:
-		return updateClusterStatus(clusterStatusError, StateInfo, c, db, log)
+		return updateClusterStatusUpdateReplay(log, db, *c.ID, *c.Status, clusterStatusError, StateInfo)
 	case clusterStatusInstalling:
 		return &UpdateReply{
 			State:     clusterStatusInstalling,

@@ -43,60 +43,63 @@ type baseState struct {
 	db  *gorm.DB           //nolint:structcheck
 }
 
-func updateClusterStatus(status string, statusInfo string, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (*UpdateReply, error) {
-	wouldChange := status != swag.StringValue(c.Status)
+func updateClusterStatusUpdateReplay(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
+	newStatus string, statusInfo string) (*UpdateReply, error) {
+	wouldChange := srcStatus != newStatus
 
-	if err := updateClusterStateWithParams(log, status, statusInfo, c, db); err != nil {
+	if err := updateClusterStatus(log, db, clusterId, srcStatus, newStatus, statusInfo); err != nil {
 		return nil, err
 	}
 
 	return &UpdateReply{
-		State:     status,
+		State:     newStatus,
 		IsChanged: wouldChange,
 	}, nil
 }
 
-func updateClusterStateWithParams(log logrus.FieldLogger, status string, statusInfo string, c *common.Cluster, db *gorm.DB,
-	extra ...interface{}) error {
+func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
+	newStatus string, statusInfo string, extra ...interface{}) error {
+	extra = append(extra, "status", newStatus, "status_info", statusInfo)
 
-	updates := map[string]interface{}{"status": status, "status_info": statusInfo}
+	if newStatus != srcStatus {
+		extra = append(extra, "status_updated_at", strfmt.DateTime(time.Now()))
+	}
 
-	if status != swag.StringValue(c.Status) {
-		updates["status_updated_at"] = strfmt.DateTime(time.Now())
+	if _, err := UpdateCluster(log, db, clusterId, srcStatus, extra...); err != nil {
+		return errors.Wrapf(err, "failed to update cluster %s state from %s to %s",
+			clusterId, srcStatus, newStatus)
 	}
-	if *c.Status == clusterStatusReady && status == clusterStatusPrepareForInstallation {
-		updates["install_started_at"] = strfmt.DateTime(time.Now())
-	} else if *c.Status == clusterStatusInstalling && status == clusterStatusInstalled {
-		updates["install_completed_at"] = strfmt.DateTime(time.Now())
-	}
+
+	return nil
+}
+
+func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string, extra ...interface{}) (*common.Cluster, error) {
+	updates := make(map[string]interface{})
 
 	if len(extra)%2 != 0 {
-		return errors.Errorf("invalid update extra parameters %+v", extra)
+		return nil, errors.Errorf("invalid update extra parameters %+v", extra)
 	}
 	for i := 0; i < len(extra); i += 2 {
 		updates[extra[i].(string)] = extra[i+1]
 	}
 
 	// Query by <cluster-id, status>
-	// Status is queried as well to avoid races between different components.
-	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?",
-		c.ID.String(), swag.StringValue(c.Status)).Updates(updates)
-	if dbReply.Error != nil {
-		return errors.Wrapf(dbReply.Error, "failed to update cluster %s state from %s to %s",
-			c.ID.String(), swag.StringValue(c.Status), status)
-	}
-	if dbReply.RowsAffected == 0 {
-		return errors.Errorf("failed to update cluster %s state from %s to %s, nothing have changed",
-			c.ID.String(), swag.StringValue(c.Status), status)
-	}
-	log.Infof("updated cluster %s from state <%s> to state <%s>", c.ID.String(), swag.StringValue(c.Status), status)
+	// Status is required as well to avoid races between different components.
+	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
 
-	if err := db.First(c, "id = ?", c.ID.String()).Error; err != nil {
-		return errors.Wrapf(dbReply.Error, "failed to read from cluster %s from the database after the update",
-			c.ID.String())
+	if dbReply.Error != nil || dbReply.RowsAffected == 0 {
+		return nil, errors.Errorf("failed to update cluster %s. nothing have changed", clusterId)
+	}
+	log.Infof("cluster %s has been updated with the following updateds %+v", clusterId, extra)
+
+	var cluster common.Cluster
+
+	if err := db.First(&cluster, "id = ?", clusterId).Error; err != nil {
+		return nil, errors.Wrapf(dbReply.Error, "failed to read from cluster %s from the database after the update",
+			clusterId)
 	}
 
-	return nil
+	return &cluster, nil
 }
 
 func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {

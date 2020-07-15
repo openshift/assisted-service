@@ -40,8 +40,8 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 	if sCluster.srcState == clusterStatusError {
 		return nil
 	}
-	return updateCluster(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
-		params.reason, sCluster.cluster, params.db)
+	return updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState,
+		*sCluster.cluster.Status, params.reason)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -63,8 +63,8 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 	if !ok {
 		return errors.New("PostResetCluster invalid argument")
 	}
-	return updateCluster(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
-		params.reason, sCluster.cluster, params.db)
+	return updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState,
+		*sCluster.cluster.Status, params.reason)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -77,11 +77,17 @@ type TransitionArgsPrepareForInstallation struct {
 }
 
 func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
-	sCluster, _ := sw.(*stateCluster)
-	params, _ := args.(*TransitionArgsPrepareForInstallation)
-	return updateCluster(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
-		statusInfoPreparingForInstallation, sCluster.cluster, params.db,
-		"install_started_at", strfmt.DateTime(time.Now()))
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return errors.New("PostResetCluster incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsPrepareForInstallation)
+	if !ok {
+		return errors.New("PostResetCluster invalid argument")
+	}
+
+	return updateClusterStatus(logutil.FromContext(params.ctx, th.log), th.db, *sCluster.cluster.ID, sCluster.srcState,
+		statusInfoPreparingForInstallation, "install_started_at", strfmt.DateTime(time.Now()))
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -104,8 +110,9 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 		return errors.New("PostCompleteInstallation invalid argument")
 	}
 
-	return updateCluster(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
-		params.reason, sCluster.cluster, th.db, "install_completed_at", strfmt.DateTime(time.Now()))
+	return updateClusterStatus(logutil.FromContext(params.ctx, th.log), th.db, *sCluster.cluster.ID, sCluster.srcState,
+		*sCluster.cluster.Status, params.reason,
+		"install_completed_at", strfmt.DateTime(time.Now()))
 }
 
 func (th *transitionHandler) isSuccess(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) (b bool, err error) {
@@ -139,5 +146,5 @@ func updateCluster(log logrus.FieldLogger, srcStatus, statusInfo string, c *comm
 	extra ...interface{}) error {
 	newStatus := c.Status
 	c.Status = &srcStatus
-	return updateClusterStateWithParams(log, *newStatus, statusInfo, c, db, extra...)
+	return updateClusterStatus(log, db, *c.ID, *c.Status, *newStatus, statusInfo, extra...)
 }

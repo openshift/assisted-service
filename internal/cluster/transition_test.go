@@ -35,6 +35,8 @@ var _ = Describe("Transition tests", func() {
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
+
+			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusError))
 		})
 
@@ -46,6 +48,8 @@ var _ = Describe("Transition tests", func() {
 			replay := capi.CancelInstallation(ctx, &c, "", db)
 			Expect(replay).Should(HaveOccurred())
 			Expect(int(replay.StatusCode())).Should(Equal(http.StatusConflict))
+
+			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInsufficient))
 		})
 
@@ -58,6 +62,8 @@ var _ = Describe("Transition tests", func() {
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
+
+			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusError))
 			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("original error"))
 		})
@@ -69,6 +75,8 @@ var _ = Describe("Transition tests", func() {
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			Expect(capi.CompleteInstallation(ctx, &c, true, clusterStatusInstalled)).ShouldNot(HaveOccurred())
+
+			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInstalled))
 		})
 
@@ -78,6 +86,8 @@ var _ = Describe("Transition tests", func() {
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			Expect(capi.CompleteInstallation(ctx, &c, false, "aaaa")).ShouldNot(HaveOccurred())
+
+			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusError))
 			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("aaaa"))
 
@@ -91,6 +101,8 @@ var _ = Describe("Transition tests", func() {
 			replay := capi.CompleteInstallation(ctx, &c, true, "")
 			Expect(replay).Should(HaveOccurred())
 			Expect(int(replay.StatusCode())).Should(Equal(http.StatusConflict))
+
+			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInstalling))
 		})
 
@@ -102,6 +114,8 @@ var _ = Describe("Transition tests", func() {
 			replay := capi.CompleteInstallation(ctx, &c, false, "")
 			Expect(replay).Should(HaveOccurred())
 			Expect(int(replay.StatusCode())).Should(Equal(http.StatusConflict))
+
+			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInstalling))
 		})
 	})
