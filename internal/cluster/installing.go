@@ -75,8 +75,7 @@ func (i *installingState) getClusterInstallationState(ctx context.Context, c *co
 	}
 
 	// Cluster is in error
-	mastersInError := mappedMastersByRole[intenralhost.HostStatusError]
 	log.Infof("Cluster %s hosts status map is %+v", c.ID, mappedMastersByRole)
-	log.Warningf("Cluster %s has %d hosts in error.", c.ID, len(mastersInError))
-	return clusterStatusError, fmt.Sprintf("cluster %s has %d hosts in error", c.ID, len(mastersInError)), nil
+	log.Warningf("Cluster %s has hosts in error.", c.ID)
+	return clusterStatusError, fmt.Sprintf("cluster %s has hosts in error", c.ID), nil
 }
