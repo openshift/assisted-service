@@ -406,7 +406,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New(string(b))))
 	}
-	b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), "Started image download", time.Now())
+	b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityInfo, "Started image download", time.Now())
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(resp.Body),
 		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()),
@@ -496,7 +496,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 
 	if imageExists {
 		log.Infof("Re-used existing cluster <%s> image", params.ClusterID)
-		b.eventsHandler.AddEvent(ctx, cluster.ID.String(), "Re-used existing image rather than generating a new one", time.Now())
+		b.eventsHandler.AddEvent(ctx, cluster.ID.String(), models.EventSeverityInfo, "Re-used existing image rather than generating a new one", time.Now())
 		return installer.NewGenerateClusterISOCreated().WithPayload(&cluster.Cluster)
 	}
 
@@ -540,7 +540,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	} else {
 		msg += "SSH public key is not set)"
 	}
-	b.eventsHandler.AddEvent(ctx, cluster.ID.String(), msg, time.Now())
+	b.eventsHandler.AddEvent(ctx, cluster.ID.String(), models.EventSeverityInfo, msg, time.Now())
 	return installer.NewGenerateClusterISOCreated().WithPayload(&cluster.Cluster)
 }
 
@@ -1685,7 +1685,7 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 	log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
 	msg := fmt.Sprintf("Host %s: %s", b.hostApi.GetHostname(&host), event)
 
-	b.eventsHandler.AddEvent(ctx, host.ID.String(), msg, time.Now(), host.ClusterID.String())
+	b.eventsHandler.AddEvent(ctx, host.ID.String(), models.EventSeverityInfo, msg, time.Now(), host.ClusterID.String())
 	return installer.NewUpdateHostInstallProgressOK()
 }
 

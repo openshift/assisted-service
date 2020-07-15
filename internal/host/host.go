@@ -239,7 +239,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	ret, err := state.RefreshStatus(ctx, h, db)
 	if err == nil && ret.IsChanged {
 		msg := fmt.Sprintf("Updated status of host %s to %s", m.GetHostname(h), ret.State)
-		m.eventsHandler.AddEvent(ctx, h.ID.String(), msg, time.Now(), h.ClusterID.String())
+		m.eventsHandler.AddEvent(ctx, h.ID.String(), models.EventSeverityInfo, msg, time.Now(), h.ClusterID.String())
 	}
 	return ret, err
 }

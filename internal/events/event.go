@@ -21,7 +21,7 @@ type Handler interface {
 	//     host added to cluster, we have the host-id as the main entityID and
 	//     the cluster-id as another ID that this event should be related to
 	// otherEntities arguments provides for specifying mor IDs that are relevant for this event
-	AddEvent(ctx context.Context, entityID string, msg string, eventTime time.Time, otherEntities ...string)
+	AddEvent(ctx context.Context, entityID string, severity string, msg string, eventTime time.Time, otherEntities ...string)
 	GetEvents(entityID string) ([]*Event, error)
 }
 
@@ -44,7 +44,7 @@ func New(db *gorm.DB, log logrus.FieldLogger) *Events {
 	}
 }
 
-func addEventToDB(log logrus.FieldLogger, db *gorm.DB, id string, message string, t time.Time, requestID string) error {
+func addEventToDB(log logrus.FieldLogger, db *gorm.DB, id string, severity string, message string, t time.Time, requestID string) error {
 	tt := strfmt.DateTime(t)
 	uid := strfmt.UUID(id)
 	rid := strfmt.UUID(requestID)
@@ -52,6 +52,7 @@ func addEventToDB(log logrus.FieldLogger, db *gorm.DB, id string, message string
 		Event: models.Event{
 			EventTime: &tt,
 			EntityID:  &uid,
+			Severity:  &severity,
 			Message:   &message,
 			RequestID: rid,
 		},
@@ -63,7 +64,7 @@ func addEventToDB(log logrus.FieldLogger, db *gorm.DB, id string, message string
 	return nil
 }
 
-func (e *Events) AddEvent(ctx context.Context, entityID string, msg string, eventTime time.Time, otherEntities ...string) {
+func (e *Events) AddEvent(ctx context.Context, entityID string, severity string, msg string, eventTime time.Time, otherEntities ...string) {
 	log := logutil.FromContext(ctx, e.log)
 	var isSuccess bool = false
 	tx := e.db.Begin()
@@ -77,7 +78,7 @@ func (e *Events) AddEvent(ctx context.Context, entityID string, msg string, even
 	}()
 
 	requestID := requestid.FromContext(ctx)
-	err := addEventToDB(log, tx, entityID, msg, eventTime, requestID)
+	err := addEventToDB(log, tx, entityID, severity, msg, eventTime, requestID)
 	if err != nil {
 		return
 	}
@@ -85,7 +86,7 @@ func (e *Events) AddEvent(ctx context.Context, entityID string, msg string, even
 	// Since we don't keep different tables to support multiple IDs for a single event,
 	// the workaround is to add to the DB a new event for every ID this event relates to
 	for _, entity := range otherEntities {
-		err := addEventToDB(log, tx, entity, msg, eventTime, requestID)
+		err := addEventToDB(log, tx, entity, severity, msg, eventTime, requestID)
 		if err != nil {
 			return
 		}

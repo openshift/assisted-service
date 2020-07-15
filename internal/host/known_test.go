@@ -59,7 +59,7 @@ var _ = Describe("known_state", func() {
 			expectedReply.expectedState = HostStatusKnown
 		})
 		It("keep_alive_timeout", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), string(id), gomock.Any(), gomock.Any(), string(clusterId))
+			mockEvents.EXPECT().AddEvent(gomock.Any(), string(id), models.EventSeverityInfo, gomock.Any(), gomock.Any(), string(clusterId))
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Hour))
 			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
 			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
