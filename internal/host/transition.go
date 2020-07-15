@@ -53,7 +53,8 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		// so we reset the hw info and start the discovery process again.
 		return updateHostStateWithParams(log, currentState, statusInfoDiscovering, &host, th.db,
 			"hardware_info", "", "discovery_agent_version", params.discoveryAgentVersion,
-			"progress_current_stage", "", "progress_progress_info", "")
+			"progress_current_stage", "", "progress_progress_info", "",
+			"bootstrap", false)
 	}
 
 	sHost.host.StatusUpdatedAt = strfmt.DateTime(time.Now())
@@ -209,7 +210,7 @@ func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args st
 		return errors.New("PostDisableHost invalid argument")
 	}
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState, statusInfoDisabled,
-		sHost.host, th.db, "bootstrap", false)
+		sHost.host, th.db)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -266,7 +267,7 @@ func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.State
 		return errors.New("ResettingPendingUserAction invalid argument")
 	}
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
-		statusInfoResettingPendingUserAction, sHost.host, params.db, "bootstrap", false)
+		statusInfoResettingPendingUserAction, sHost.host, params.db)
 }
 
 ////////////////////////////////////////////////////////////////////////////
