@@ -2,6 +2,7 @@ package common
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
@@ -12,7 +13,7 @@ import (
 
 func GenerateError(id int32, err error) *models.Error {
 	return &models.Error{
-		Code:   swag.String(string(id)),
+		Code:   swag.String(strconv.Itoa(int(id))),
 		Href:   swag.String(""),
 		ID:     swag.Int32(id),
 		Kind:   swag.String("Error"),
