@@ -932,6 +932,7 @@ definitions:
     type: object
     required:
       - entity_id
+      - severity
       - message
       - event_time
     properties:
@@ -940,6 +941,9 @@ definitions:
         format: uuid
         description: Unique identifier of the object this event relates to.
         x-go-custom-tag: gorm:"index"
+      severity:
+        type: string
+        enum: [info, warning, error, critical]
       message:
         type: string
         x-go-custom-tag: gorm:"type:varchar(4096)"
