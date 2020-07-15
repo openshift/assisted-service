@@ -14,6 +14,7 @@ import (
 
 const imagePrefix = "discovery-image-"
 const imagePrefixLen = len(imagePrefix)
+const dummyImage = "discovery-image-00000000-0000-0000-0000-000000000000"
 
 type Manager struct {
 	log           logrus.FieldLogger
@@ -52,6 +53,12 @@ func (m *Manager) ExpirationTask() {
 }
 
 func (m *Manager) handleObject(ctx context.Context, log logrus.FieldLogger, object *s3.Object, now time.Time) {
+	// Delete dummy objects right away, they just take up space
+	if *object.Key == dummyImage {
+		m.deleteObject(ctx, log, object)
+		return
+	}
+
 	// The timestamp that we really want is stored in a tag, but we check this one first as a cost optimization
 	if now.Before(object.LastModified.Add(m.deleteTime)) {
 		return
