@@ -168,13 +168,25 @@ func NewGenerateClusterISOConflict() *GenerateClusterISOConflict {
 Error.
 */
 type GenerateClusterISOConflict struct {
+	Payload *models.Error
 }
 
 func (o *GenerateClusterISOConflict) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOConflict ", 409)
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOConflict  %+v", 409, o.Payload)
+}
+
+func (o *GenerateClusterISOConflict) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *GenerateClusterISOConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

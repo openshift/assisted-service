@@ -153,6 +153,11 @@ const GenerateClusterISOConflictCode int = 409
 swagger:response generateClusterISOConflict
 */
 type GenerateClusterISOConflict struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewGenerateClusterISOConflict creates GenerateClusterISOConflict with default headers values
@@ -161,12 +166,27 @@ func NewGenerateClusterISOConflict() *GenerateClusterISOConflict {
 	return &GenerateClusterISOConflict{}
 }
 
+// WithPayload adds the payload to the generate cluster i s o conflict response
+func (o *GenerateClusterISOConflict) WithPayload(payload *models.Error) *GenerateClusterISOConflict {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the generate cluster i s o conflict response
+func (o *GenerateClusterISOConflict) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GenerateClusterISOConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(409)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 // GenerateClusterISOInternalServerErrorCode is the HTTP code returned for type GenerateClusterISOInternalServerError
