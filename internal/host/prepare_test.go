@@ -59,7 +59,7 @@ var _ = Describe("RefreshStatus", func() {
 		host = getTestHost(hostId, clusterId, models.HostStatusPreparingForInstallation)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
-		mockEvents.EXPECT().AddEvent(gomock.Any(), string(hostId), gomock.Any(), gomock.Any(), string(clusterId)).
+		mockEvents.EXPECT().AddEvent(gomock.Any(), string(hostId), models.EventSeverityInfo, gomock.Any(), gomock.Any(), string(clusterId)).
 			Times(1)
 
 		_, err := hapi.RefreshStatus(ctx, &host, db)

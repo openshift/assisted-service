@@ -55,7 +55,7 @@ var _ = Describe("disconnected_state", func() {
 
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), string(id), gomock.Any(), gomock.Any(), string(clusterId))
+			mockEvents.EXPECT().AddEvent(gomock.Any(), string(id), models.EventSeverityInfo, gomock.Any(), gomock.Any(), string(clusterId))
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			host.Inventory = ""
 			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)

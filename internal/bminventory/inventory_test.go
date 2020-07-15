@@ -103,7 +103,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockJob.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -118,7 +118,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockJob.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), "Generated image (proxy URL is \"http://1.1.1.1:1234\", SSH public key "+
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", SSH public key "+
 			"is not set)", gomock.Any())
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
@@ -526,7 +526,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		})
 
 		It("success", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), hostID.String(), gomock.Any(), gomock.Any(), clusterID.String())
+			mockEvents.EXPECT().AddEvent(gomock.Any(), hostID.String(), models.EventSeverityInfo, gomock.Any(), gomock.Any(), clusterID.String())
 			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockHostApi.EXPECT().GetHostname(gomock.Any())
 			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{

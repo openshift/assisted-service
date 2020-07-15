@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filanov/bm-inventory/internal/events"
+	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/bm-inventory/pkg/requestid"
 	"github.com/sirupsen/logrus"
@@ -85,7 +86,7 @@ func (m *Manager) deleteObject(ctx context.Context, log logrus.FieldLogger, obje
 		return
 	}
 	eventMsg := "Deleted image from backend because it expired. It may be generated again at any time."
-	m.eventsHandler.AddEvent(ctx, clusterIDFromImageName(*object.Key), eventMsg, time.Now())
+	m.eventsHandler.AddEvent(ctx, clusterIDFromImageName(*object.Key), models.EventSeverityInfo, eventMsg, time.Now())
 	log.Infof("Deleted expired image %s", *object.Key)
 }
 

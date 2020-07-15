@@ -39,6 +39,7 @@ func (a *Api) ListEvents(ctx context.Context, params events.ListEventsParams) mi
 	for i, ev := range evs {
 		ret[i] = &models.Event{
 			EntityID:  ev.EntityID,
+			Severity:  ev.Severity,
 			EventTime: ev.EventTime,
 			Message:   ev.Message,
 		}
