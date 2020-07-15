@@ -42,14 +42,16 @@ func (m *Manager) ExpirationTask() {
 	prefix := imagePrefix
 
 	log.Info("Image expiration monitor woke up, checking for expired images...")
-	// Currently limited to 1000 objects
-	output, err := m.s3Client.ListObjects(&s3.ListObjectsInput{Bucket: &m.s3Bucket, Prefix: &prefix})
+	err := m.s3Client.ListObjectsPages(&s3.ListObjectsInput{Bucket: &m.s3Bucket, Prefix: &prefix},
+		func(page *s3.ListObjectsOutput, lastPage bool) bool {
+			for _, object := range page.Contents {
+				m.handleObject(ctx, log, object, now)
+			}
+			return !lastPage
+		})
 	if err != nil {
 		log.WithError(err).Error("Error listing objects")
 		return
-	}
-	for _, object := range output.Contents {
-		m.handleObject(ctx, log, object, now)
 	}
 }
 
