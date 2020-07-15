@@ -10,14 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/validators"
-
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/connectivity"
 	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/pkg/errors"
-
-	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/filanov/bm-inventory/internal/validators"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -27,6 +24,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -880,6 +878,69 @@ var _ = Describe("SetBootstrap", func() {
 			Expect(h.Bootstrap).Should(Equal(t.IsBootstrap))
 		})
 	}
+
+	AfterEach(func() {
+		_ = db.Close()
+	})
+})
+
+var _ = Describe("PrepareForInstallation", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	It("success", func() {
+		host = getTestHost(hostId, clusterId, models.HostStatusKnown)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		Expect(hapi.PrepareForInstallation(ctx, &host, db)).NotTo(HaveOccurred())
+		h := getHost(hostId, clusterId, db)
+		Expect(swag.StringValue(h.Status)).To(Equal(models.HostStatusPreparingForInstallation))
+		Expect(swag.StringValue(h.StatusInfo)).To(Equal(statusInfoPreparingForInstallation))
+	})
+
+	It("failure - no role set", func() {
+		host = getTestHost(hostId, clusterId, models.HostStatusKnown)
+		host.Role = ""
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		Expect(hapi.PrepareForInstallation(ctx, &host, db)).To(HaveOccurred())
+		h := getHost(hostId, clusterId, db)
+		Expect(swag.StringValue(h.Status)).To(Equal(models.HostStatusKnown))
+	})
+
+	Context("forbidden", func() {
+
+		forbiddenStates := []string{
+			models.HostStatusDisabled,
+			models.HostStatusDisconnected,
+			models.HostStatusError,
+			models.HostStatusInstalling,
+			models.HostStatusInstallingInProgress,
+			models.HostStatusDiscovering,
+			models.HostStatusPreparingForInstallation,
+			models.HostStatusResetting,
+		}
+
+		for _, state := range forbiddenStates {
+			It(fmt.Sprintf("forbidden state %s", state), func() {
+				host = getTestHost(hostId, clusterId, state)
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				Expect(hapi.PrepareForInstallation(ctx, &host, db)).To(HaveOccurred())
+				h := getHost(hostId, clusterId, db)
+				Expect(swag.StringValue(h.Status)).To(Equal(state))
+			})
+		}
+	})
 
 	AfterEach(func() {
 		_ = db.Close()

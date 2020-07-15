@@ -6,10 +6,11 @@ import (
 )
 
 const (
-	TransitionTypeCancelInstallation     = "CancelInstallation"
-	TransitionTypeResetCluster           = "ResetCluster"
-	TransitionTypePrepareForInstallation = "PrepareForInstallation"
-	TransitionTypeCompleteInstallation   = "CompleteInstallation"
+	TransitionTypeCancelInstallation         = "CancelInstallation"
+	TransitionTypeResetCluster               = "ResetCluster"
+	TransitionTypePrepareForInstallation     = "PrepareForInstallation"
+	TransitionTypeCompleteInstallation       = "CompleteInstallation"
+	TransitionTypeHandlePreInstallationError = "Handle pre-installation-error"
 )
 
 func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -66,6 +67,16 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		DestinationState: clusterStatusError,
 		PostTransition:   th.PostCompleteInstallation,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeHandlePreInstallationError,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusPreparingForInstallation),
+			stateswitch.State(models.ClusterStatusError),
+		},
+		DestinationState: stateswitch.State(models.ClusterStatusError),
+		PostTransition:   th.PostHandlePreInstallationError,
 	})
 
 	return sm

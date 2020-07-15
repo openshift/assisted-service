@@ -72,19 +72,14 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 
 type TransitionArgsPrepareForInstallation struct {
 	ctx context.Context
+	db  *gorm.DB
 }
 
 func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
-	sCluster, ok := sw.(*stateCluster)
-	if !ok {
-		return errors.New("PostResetCluster incompatible type of StateSwitch")
-	}
-	params, ok := args.(*TransitionArgsPrepareForInstallation)
-	if !ok {
-		return errors.New("PostResetCluster invalid argument")
-	}
+	sCluster, _ := sw.(*stateCluster)
+	params, _ := args.(*TransitionArgsPrepareForInstallation)
 	return updateClusterStateWithParams(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
-		statusInfoPreparingForInstallation, sCluster.cluster, th.db,
+		statusInfoPreparingForInstallation, sCluster.cluster, params.db,
 		"install_started_at", strfmt.DateTime(time.Now()))
 }
 
@@ -120,4 +115,20 @@ func (th *transitionHandler) isSuccess(stateSwitch stateswitch.StateSwitch, args
 func (th *transitionHandler) notSuccess(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) (b bool, err error) {
 	params, _ := args.(*TransitionArgsCompleteInstallation)
 	return !params.isSuccess, nil
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Handle pre-installation error
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsHandlePreInstallationError struct {
+	ctx        context.Context
+	installErr error
+}
+
+func (th *transitionHandler) PostHandlePreInstallationError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sCluster, _ := sw.(*stateCluster)
+	params, _ := args.(*TransitionArgsHandlePreInstallationError)
+	return updateClusterStateWithParams(logutil.FromContext(params.ctx, th.log), sCluster.srcState,
+		params.installErr.Error(), sCluster.cluster, th.db)
 }

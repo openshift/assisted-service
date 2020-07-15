@@ -299,78 +299,61 @@ var _ = Describe("Install", func() {
 		tests := []struct {
 			name       string
 			srcState   string
-			role       models.HostRole
 			validation func(error)
 		}{
 			{
-				name:       "known with role worker",
-				srcState:   HostStatusKnown,
-				role:       models.HostRoleWorker,
+				name:       "prepared",
+				srcState:   models.HostStatusPreparingForInstallation,
 				validation: success,
 			},
 			{
-				name:       "known with role master",
-				srcState:   HostStatusKnown,
-				role:       models.HostRoleMaster,
-				validation: success,
-			},
-			{
-				name:       "known without role",
+				name:       "known",
 				srcState:   HostStatusKnown,
 				validation: failure,
 			},
 			{
 				name:       "disabled nothing change",
 				srcState:   HostStatusDisabled,
-				role:       models.HostRoleMaster,
 				validation: noChange,
 			},
 			{
 				name:       "disconnected",
 				srcState:   HostStatusDisconnected,
-				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "discovering",
 				srcState:   HostStatusDiscovering,
-				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "error",
 				srcState:   HostStatusError,
-				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "installed",
 				srcState:   HostStatusInstalled,
-				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "installing",
 				srcState:   HostStatusInstalling,
-				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "in-progress",
 				srcState:   HostStatusInstallingInProgress,
-				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "insufficient",
 				srcState:   HostStatusInsufficient,
-				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 			{
 				name:       "resetting",
 				srcState:   HostStatusResetting,
-				role:       models.HostRoleMaster,
 				validation: failure,
 			},
 		}
@@ -379,7 +362,6 @@ var _ = Describe("Install", func() {
 			t := tests[i]
 			It(t.name, func() {
 				host = getTestHost(hostId, clusterId, t.srcState)
-				host.Role = t.role
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				t.validation(hapi.Install(ctx, &host, nil))
 			})
@@ -388,9 +370,8 @@ var _ = Describe("Install", func() {
 
 	Context("install with transaction", func() {
 		BeforeEach(func() {
-			host = getTestHost(hostId, clusterId, HostStatusKnown)
-			host.Role = models.HostRoleMaster
-			host.StatusInfo = swag.String("known")
+			host = getTestHost(hostId, clusterId, models.HostStatusPreparingForInstallation)
+			host.StatusInfo = swag.String(models.HostStatusPreparingForInstallation)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		})
 
@@ -410,8 +391,8 @@ var _ = Describe("Install", func() {
 			Expect(hapi.Install(ctx, &host, tx)).ShouldNot(HaveOccurred())
 			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
 			h := getHost(hostId, clusterId, db)
-			Expect(*h.Status).Should(Equal(HostStatusKnown))
-			Expect(*h.StatusInfo).Should(Equal("known"))
+			Expect(*h.Status).Should(Equal(models.HostStatusPreparingForInstallation))
+			Expect(*h.StatusInfo).Should(Equal(models.HostStatusPreparingForInstallation))
 		})
 	})
 
