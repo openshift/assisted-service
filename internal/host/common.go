@@ -92,7 +92,11 @@ func updateStateWithParams(log logrus.FieldLogger, status, statusInfo string, h 
 func updateHostStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo string, h *models.Host, db *gorm.DB,
 	extra ...interface{}) error {
 
-	updates := map[string]interface{}{"status": swag.StringValue(h.Status), "status_info": statusInfo}
+	updates := map[string]interface{}{
+		"status":            swag.StringValue(h.Status),
+		"status_info":       statusInfo,
+		"status_updated_at": strfmt.DateTime(time.Now()),
+	}
 	if len(extra)%2 != 0 {
 		return errors.Errorf("invalid update extra parameters %+v", extra)
 	}

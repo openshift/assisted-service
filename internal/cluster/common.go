@@ -68,7 +68,11 @@ func updateState(state string, statusInfo string, c *common.Cluster, db *gorm.DB
 func updateClusterStateWithParams(log logrus.FieldLogger, srcStatus, statusInfo string, c *common.Cluster, db *gorm.DB,
 	extra ...interface{}) error {
 
-	updates := map[string]interface{}{"status": swag.StringValue(c.Status), "status_info": statusInfo}
+	updates := map[string]interface{}{
+		"status":            swag.StringValue(c.Status),
+		"status_info":       statusInfo,
+		"status_updated_at": strfmt.DateTime(time.Now()),
+	}
 	if len(extra)%2 != 0 {
 		return errors.Errorf("invalid update extra parameters %+v", extra)
 	}
