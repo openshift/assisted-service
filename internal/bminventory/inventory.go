@@ -1889,6 +1889,9 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 	if err := b.deleteS3ClusterFiles(ctx, &c); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+	if err := b.deleteDNSRecordSets(ctx, c); err != nil {
+		log.Warnf("failed to delete DNS record sets for base domain: %s", c.BaseDNSDomain)
+	}
 
 	if err := tx.Commit().Error; err != nil {
 		log.Error(err)
