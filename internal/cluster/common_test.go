@@ -18,15 +18,16 @@ var newStatusInfo = "newStatusInfo"
 var _ = Describe("update_cluster_state", func() {
 	var (
 		db              *gorm.DB
-		cluster         common.Cluster
+		cluster         *common.Cluster
 		lastUpdatedTime strfmt.DateTime
+		err             error
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
 
 		id := strfmt.UUID(uuid.New().String())
-		cluster = common.Cluster{Cluster: models.Cluster{
+		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:         &id,
 			Status:     &defaultStatus,
 			StatusInfo: &defaultStatusInfo,
@@ -36,36 +37,39 @@ var _ = Describe("update_cluster_state", func() {
 		lastUpdatedTime = cluster.StatusUpdatedAt
 	})
 
-	Describe("updateClusterStateWithParams", func() {
+	Describe("UpdateCluster", func() {
 		It("change_status", func() {
-			Expect(updateClusterStateWithParams(getTestLog(), newStatus, newStatusInfo, &cluster, db)).ShouldNot(HaveOccurred())
+			cluster, err = UpdateCluster(getTestLog(), db, *cluster.ID, *cluster.Status, "status", newStatus, "status_info", newStatusInfo)
+			Expect(err).ShouldNot(HaveOccurred())
 			Expect(*cluster.Status).Should(Equal(newStatus))
 			Expect(*cluster.StatusInfo).Should(Equal(newStatusInfo))
-			Expect(cluster.StatusUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
 		})
 
 		Describe("negative", func() {
 			It("invalid_extras_amount", func() {
-				Expect(updateClusterStateWithParams(getTestLog(), newStatus, newStatusInfo, &cluster, db, "1")).Should(HaveOccurred())
-				Expect(updateClusterStateWithParams(getTestLog(), newStatus, newStatusInfo, &cluster, db, "1", "2", "3")).Should(HaveOccurred())
+				_, err = UpdateCluster(getTestLog(), db, *cluster.ID, *cluster.Status, "1")
+				Expect(err).Should(HaveOccurred())
+				_, err = UpdateCluster(getTestLog(), db, *cluster.ID, *cluster.Status, "1", "2", "3")
+				Expect(err).Should(HaveOccurred())
 			})
 
 			It("no_matching_rows", func() {
-				var otherStatus = "otherStatus"
-				cluster.Status = &otherStatus
-				Expect(updateClusterStateWithParams(getTestLog(), newStatus, newStatusInfo, &cluster, db)).Should(HaveOccurred())
-			})
-
-			It("db_failure", func() {
-				db.Close()
-				Expect(updateClusterStateWithParams(getTestLog(), newStatus, newStatusInfo, &cluster, db)).Should(HaveOccurred())
+				_, err = UpdateCluster(getTestLog(), db, *cluster.ID, "otherStatus", "status", newStatus)
+				Expect(err).Should(HaveOccurred())
 			})
 
 			AfterEach(func() {
+				Expect(db.First(&cluster, "id = ?", cluster.ID).Error).ShouldNot(HaveOccurred())
 				Expect(*cluster.Status).ShouldNot(Equal(newStatus))
 				Expect(*cluster.StatusInfo).ShouldNot(Equal(newStatusInfo))
 				Expect(cluster.StatusUpdatedAt).Should(Equal(lastUpdatedTime))
 			})
+		})
+
+		It("db_failure", func() {
+			db.Close()
+			_, err = UpdateCluster(getTestLog(), db, *cluster.ID, *cluster.Status, "status", newStatus)
+			Expect(err).Should(HaveOccurred())
 		})
 	})
 })
