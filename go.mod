@@ -16,7 +16,6 @@ require (
 	github.com/go-openapi/validate v0.19.10
 	github.com/golang/mock v1.2.0
 	github.com/google/uuid v1.1.1
-	github.com/jasonlvhit/gocron v0.0.0-20200423141508-ab84337f7963
 	github.com/jinzhu/gorm v1.9.12
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/minio/minio-go/v6 v6.0.55
@@ -29,6 +28,7 @@ require (
 	github.com/slok/go-http-metrics v0.8.0
 	github.com/stretchr/testify v1.6.1
 	github.com/thoas/go-funk v0.6.0
+	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.17.3
 	k8s.io/apimachinery v0.17.3

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/thoas/go-funk"
+	"github.com/vincent-petithory/dataurl"
 
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/filanov/bm-inventory/internal/cluster"
@@ -100,7 +101,14 @@ const ignitionConfigFormat = `{
 "enabled": true,
 "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTPS_PROXY={{.ProxyURL}}\nEnvironment=HTTP_PROXY={{.ProxyURL}}\nEnvironment=http_proxy={{.ProxyURL}}\nEnvironment=https_proxy={{.ProxyURL}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}}\n\n[Install]\nWantedBy=multi-user.target"
 }]
-}
+},
+"storage": {
+    "files": [{
+      "path": "/etc/assisted-installer.ps",
+      "mode": 420,
+      "contents": { "source": "{{.PULL_SECRET}}" }
+    }]
+  }
 }`
 
 var clusterFileNames = []string{
@@ -259,6 +267,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"InventoryPort":  b.InventoryPort,
 		"clusterId":      cluster.ID.String(),
 		"ProxyURL":       params.ImageCreateParams.ProxyURL,
+		"PULL_SECRET":    dataurl.EncodeBytes([]byte(cluster.PullSecret)),
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
