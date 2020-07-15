@@ -56,7 +56,7 @@ type API interface {
 	SetGeneratorVersion(c *common.Cluster, version string, db *gorm.DB) error
 	CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
 	ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
-	PrepareForInstallation(ctx context.Context, c *common.Cluster) error
+	PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	HandlePreInstallError(ctx context.Context, c *common.Cluster, err error)
 	CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse
 }
@@ -289,10 +289,11 @@ func (m *Manager) CompleteInstallation(ctx context.Context, c *common.Cluster, s
 	return nil
 }
 
-func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster) error {
+func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
 	err := m.sm.Run(TransitionTypePrepareForInstallation, newStateCluster(c),
 		&TransitionArgsPrepareForInstallation{
 			ctx: ctx,
+			db:  db,
 		},
 	)
 	return err
@@ -300,9 +301,13 @@ func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster)
 
 func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, installErr error) {
 	log := logutil.FromContext(ctx, m.log)
-	if _, err := updateState(clusterStatusError, installErr.Error(), c, m.db, log); err != nil {
-		log.WithError(err).Errorf("failed to set cluster to %s", clusterStatusError)
+	err := m.sm.Run(TransitionTypeHandlePreInstallationError, newStateCluster(c), &TransitionArgsHandlePreInstallationError{
+		ctx:        ctx,
+		installErr: installErr,
+	})
+	if err != nil {
+		log.WithError(err).Errorf("Failed to handle pre installation error for cluster %s", c.ID.String())
+	} else {
+		log.Infof("Successfully handled pre-installation error, cluster %s", c.ID.String())
 	}
-	log.Infof("Successfully handled pre-installation error, cluster %s changed state to %s",
-		c.ID.String(), clusterStatusError)
 }

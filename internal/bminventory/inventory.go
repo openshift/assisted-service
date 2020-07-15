@@ -627,7 +627,7 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 	var cluster common.Cluster
 	var err error
 	if err = tx.Preload("Hosts").First(&cluster, "id = ?", c.params.ClusterID).Error; err != nil {
-		return err
+		return errors.Wrapf(err, "failed to find cluster %s", c.params.ClusterID)
 	}
 
 	if err = c.b.createDNSRecordSets(c.ctx, cluster); err != nil {
@@ -671,15 +671,10 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	var cluster common.Cluster
 	var err error
 
-	defer func() {
-		if r := recover(); r != nil {
-			log.Error("update cluster failed")
-		}
-	}()
-
 	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
+
 	if err = b.validateHostsInventory(&cluster); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -692,8 +687,21 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		return common.GenerateErrorResponder(err)
 	}
 
-	// Update cluster status and return
-	if err = b.clusterApi.PrepareForInstallation(ctx, &cluster); err != nil {
+	// prepare cluster and hosts for installation
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		if err = b.clusterApi.PrepareForInstallation(ctx, &cluster, tx); err != nil {
+			return err
+		}
+
+		for i := range cluster.Hosts {
+			if err = b.hostApi.PrepareForInstallation(ctx, cluster.Hosts[i], tx); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 

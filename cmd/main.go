@@ -60,7 +60,6 @@ var Options struct {
 	UseK8s                      bool          `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
 	ImageExpirationTime         time.Duration `envconfig:"image_expiration_time" default:"60m"`
-	PrepareConfig               cluster.PrepareConfig
 	ClusterConfig               cluster.Config
 }
 

@@ -603,8 +603,19 @@ var _ = Describe("cluster", func() {
 		disk := models.Disk{DriveType: "SSD", Name: "loop0", SizeBytes: 0}
 		return &disk
 	}
-	mockPrepareForInstallationSuccess := func(mockClusterApi *cluster.MockAPI) {
-		mockClusterApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockClusterPrepareForInstallationSuccess := func(mockClusterApi *cluster.MockAPI) {
+		mockClusterApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	}
+	mockClusterPrepareForInstallationFailure := func(mockClusterApi *cluster.MockAPI) {
+		mockClusterApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(errors.Errorf("error")).Times(1)
+	}
+	mockHostPrepareForInstallationSuccess := func(mockHostApi *host.MockAPI, times int) {
+		mockHostApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
+	}
+	mockHostPrepareForInstallationFailure := func(mockHostApi *host.MockAPI, times int) {
+		mockHostApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(errors.Errorf("error")).Times(times)
 	}
 	setDefaultInstall := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -949,7 +960,8 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("success", func() {
-			mockPrepareForInstallationSuccess(mockClusterApi)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 			mockIsInstallable()
 			setDefaultJobCreate(mockJob)
 			setDefaultJobMonitor(mockJob)
@@ -967,6 +979,38 @@ var _ = Describe("cluster", func() {
 
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
 			waitForDoneChannel()
+		})
+
+		It("failed to prepare cluster", func() {
+			// validations
+			mockIsInstallable()
+			setDefaultGetMasterNodesIds(mockClusterApi, 1)
+			validateHostInventory(mockClusterApi)
+			setDefaultHostGetHostValidDisks(mockClusterApi)
+			// sync prepare for installation
+			mockClusterPrepareForInstallationFailure(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			verifyApiError(reply, http.StatusInternalServerError)
+		})
+
+		It("failed to prepare host", func() {
+			// validations
+			mockIsInstallable()
+			setDefaultGetMasterNodesIds(mockClusterApi, 1)
+			validateHostInventory(mockClusterApi)
+			setDefaultHostGetHostValidDisks(mockClusterApi)
+			// sync prepare for installation
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 2)
+			mockHostPrepareForInstallationFailure(mockHostApi, 1)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			verifyApiError(reply, http.StatusInternalServerError)
 		})
 
 		It("cidr calculate error", func() {
@@ -1001,7 +1045,8 @@ var _ = Describe("cluster", func() {
 		It("cluster failed to update", func() {
 			validateHostInventory(mockClusterApi)
 			mockIsInstallable()
-			mockPrepareForInstallationSuccess(mockClusterApi)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 			setDefaultJobCreate(mockJob)
 			setDefaultJobMonitor(mockJob)
 			setIgnitionGeneratorVersionSuccess(mockClusterApi)
@@ -1036,7 +1081,8 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("host failed to install", func() {
-			mockPrepareForInstallationSuccess(mockClusterApi)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 			mockIsInstallable()
 			validateHostInventory(mockClusterApi)
 			setDefaultInstall(mockClusterApi)
@@ -1059,7 +1105,8 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("list of masters for setting bootstrap return empty list", func() {
-			mockPrepareForInstallationSuccess(mockClusterApi)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 			mockIsInstallable()
 			validateHostInventory(mockClusterApi)
 			setDefaultInstall(mockClusterApi)

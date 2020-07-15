@@ -568,3 +568,157 @@ func addInstallationRequirements(clusterId strfmt.UUID, db *gorm.DB) {
 	Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.5"}).Error).To(Not(HaveOccurred()))
 
 }
+
+var _ = Describe("PrepareForInstallation", func() {
+	var (
+		ctx       = context.Background()
+		capi      API
+		db        *gorm.DB
+		clusterId strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		capi = NewManager(defaultTestConfig, getTestLog(), db, nil)
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	// state changes to preparing-for-installation
+	success := func(cluster *common.Cluster) {
+		Expect(capi.PrepareForInstallation(ctx, cluster, db)).NotTo(HaveOccurred())
+		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		Expect(swag.StringValue(cluster.Status)).To(Equal(models.ClusterStatusPreparingForInstallation))
+	}
+
+	// status should not change
+	failure := func(cluster *common.Cluster) {
+		src := swag.StringValue(cluster.Status)
+		Expect(capi.PrepareForInstallation(ctx, cluster, db)).To(HaveOccurred())
+		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(src))
+	}
+
+	tests := []struct {
+		name       string
+		srcState   string
+		validation func(cluster *common.Cluster)
+	}{
+		{
+			name:       "success from ready",
+			srcState:   models.ClusterStatusReady,
+			validation: success,
+		},
+		{
+			name:       "already prepared for installation - should fail",
+			srcState:   models.ClusterStatusPreparingForInstallation,
+			validation: failure,
+		},
+		{
+			name:       "insufficient - should fail",
+			srcState:   models.ClusterStatusInsufficient,
+			validation: failure,
+		},
+		{
+			name:       "installing - should fail",
+			srcState:   models.ClusterStatusInstalling,
+			validation: failure,
+		},
+		{
+			name:       "error - should fail",
+			srcState:   models.ClusterStatusError,
+			validation: failure,
+		},
+		{
+			name:       "installed - should fail",
+			srcState:   models.ClusterStatusInstalled,
+			validation: failure,
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.srcState)}}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			Expect(db.Take(&cluster, "id = ?", clusterId).Error).ShouldNot(HaveOccurred())
+			t.validation(&cluster)
+		})
+	}
+})
+
+var _ = Describe("HandlePreInstallationError", func() {
+	var (
+		ctx       = context.Background()
+		capi      API
+		db        *gorm.DB
+		clusterId strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		db = prepareDB()
+		capi = NewManager(defaultTestConfig, getTestLog(), db, nil)
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	// state changes to error
+	success := func(cluster *common.Cluster) {
+		capi.HandlePreInstallError(ctx, cluster, errors.Errorf("pre-install error"))
+		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		Expect(swag.StringValue(cluster.Status)).To(Equal(models.ClusterStatusError))
+	}
+
+	// status should not change
+	failure := func(cluster *common.Cluster) {
+		src := swag.StringValue(cluster.Status)
+		capi.HandlePreInstallError(ctx, cluster, errors.Errorf("pre-install error"))
+		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(src))
+	}
+
+	tests := []struct {
+		name       string
+		srcState   string
+		validation func(cluster *common.Cluster)
+	}{
+		{
+			name:       "success",
+			srcState:   models.ClusterStatusPreparingForInstallation,
+			validation: success,
+		},
+		{
+			name:       "ready - should fail",
+			srcState:   models.ClusterStatusReady,
+			validation: failure,
+		},
+		{
+			name:       "insufficient - should fail",
+			srcState:   models.ClusterStatusInsufficient,
+			validation: failure,
+		},
+		{
+			name:       "installing - should fail",
+			srcState:   models.ClusterStatusInstalling,
+			validation: failure,
+		},
+		{
+			name:       "error - success",
+			srcState:   models.ClusterStatusError,
+			validation: success,
+		},
+		{
+			name:       "installed - should fail",
+			srcState:   models.ClusterStatusInstalled,
+			validation: failure,
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.srcState)}}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			Expect(db.Take(&cluster, "id = ?", clusterId).Error).ShouldNot(HaveOccurred())
+			t.validation(&cluster)
+		})
+	}
+})

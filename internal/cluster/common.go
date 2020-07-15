@@ -10,6 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 const (
@@ -100,8 +101,10 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 	if err := db.Preload("Hosts").First(&cluster, "id = ?", c.ID).Error; err != nil {
 		return nil, errors.Errorf("cluster %s not found", c.ID)
 	}
+
+	allowedStatuses := []string{models.HostStatusKnown, models.HostStatusPreparingForInstallation}
 	for _, host := range cluster.Hosts {
-		if host.Role == models.HostRoleMaster && swag.StringValue(host.Status) == "known" {
+		if host.Role == models.HostRoleMaster && funk.ContainsString(allowedStatuses, swag.StringValue(host.Status)) {
 			masterNodesIds = append(masterNodesIds, host.ID)
 		}
 	}

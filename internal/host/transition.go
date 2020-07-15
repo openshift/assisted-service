@@ -178,20 +178,6 @@ type TransitionArgsInstallHost struct {
 	db  *gorm.DB
 }
 
-func (th *transitionHandler) IsValidRoleForInstallation(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
-	sHost, ok := sw.(*stateHost)
-	if !ok {
-		return false, errors.New("IsValidRoleForInstallation incompatible type of StateSwitch")
-	}
-	validRoles := []string{string(models.HostRoleMaster), string(models.HostRoleWorker)}
-	if !funk.ContainsString(validRoles, string(sHost.host.Role)) {
-		return false, common.NewApiError(http.StatusConflict,
-			errors.Errorf("Can't install host %s due to invalid host role: %s, should be one of %s",
-				sHost.host.ID.String(), sHost.host.Role, validRoles))
-	}
-	return true, nil
-}
-
 func (th *transitionHandler) PostInstallHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
@@ -256,6 +242,20 @@ type TransitionResettingPendingUserAction struct {
 	db  *gorm.DB
 }
 
+func (th *transitionHandler) IsValidRoleForInstallation(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("IsValidRoleForInstallation incompatible type of StateSwitch")
+	}
+	validRoles := []string{string(models.HostRoleMaster), string(models.HostRoleWorker)}
+	if !funk.ContainsString(validRoles, string(sHost.host.Role)) {
+		return false, common.NewApiError(http.StatusConflict,
+			errors.Errorf("Can't install host %s due to invalid host role: %s, should be one of %s",
+				sHost.host.ID.String(), sHost.host.Role, validRoles))
+	}
+	return true, nil
+}
+
 func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
@@ -267,4 +267,20 @@ func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.State
 	}
 	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
 		statusInfoResettingPendingUserAction, sHost.host, params.db, "bootstrap", false)
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Resetting pending user action
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsPrepareForInstallation struct {
+	ctx context.Context
+	db  *gorm.DB
+}
+
+func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, _ := sw.(*stateHost)
+	params, _ := args.(*TransitionArgsPrepareForInstallation)
+	return updateHostStateWithParams(logutil.FromContext(params.ctx, th.log), sHost.srcState,
+		statusInfoPreparingForInstallation, sHost.host, params.db)
 }

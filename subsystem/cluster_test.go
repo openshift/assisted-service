@@ -206,8 +206,10 @@ func updateProgressWithInfo(hostID strfmt.UUID, clusterID strfmt.UUID, current_s
 }
 
 func waitForClusterInstallationToStart(clusterID strfmt.UUID) {
-	waitForClusterState(context.Background(), clusterID, "preparing-for-installation", 10*time.Second, IgnoreStateInfo)
-	waitForClusterState(context.Background(), clusterID, "installing", 180*time.Second, "Installation in progress")
+	waitForClusterState(context.Background(), clusterID, models.ClusterStatusPreparingForInstallation,
+		10*time.Second, IgnoreStateInfo)
+	waitForClusterState(context.Background(), clusterID, models.ClusterStatusInstalling,
+		180*time.Second, "Installation in progress")
 }
 
 func installCluster(clusterID strfmt.UUID) {

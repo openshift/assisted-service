@@ -388,17 +388,17 @@ func (mr *MockAPIMockRecorder) ResetCluster(ctx, c, reason, db interface{}) *gom
 }
 
 // PrepareForInstallation mocks base method
-func (m *MockAPI) PrepareForInstallation(ctx context.Context, c *common.Cluster) error {
+func (m *MockAPI) PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PrepareForInstallation", ctx, c)
+	ret := m.ctrl.Call(m, "PrepareForInstallation", ctx, c, db)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PrepareForInstallation indicates an expected call of PrepareForInstallation
-func (mr *MockAPIMockRecorder) PrepareForInstallation(ctx, c interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) PrepareForInstallation(ctx, c, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareForInstallation", reflect.TypeOf((*MockAPI)(nil).PrepareForInstallation), ctx, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareForInstallation", reflect.TypeOf((*MockAPI)(nil).PrepareForInstallation), ctx, c, db)
 }
 
 // HandlePreInstallError mocks base method

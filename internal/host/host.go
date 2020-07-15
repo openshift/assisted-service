@@ -101,6 +101,7 @@ type API interface {
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
 	GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage
 	IsInstallable(h *models.Host) bool
+	PrepareForInstallation(ctx context.Context, h *models.Host, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -116,6 +117,7 @@ type Manager struct {
 	error                      StateAPI
 	resetting                  StateAPI
 	resettingPendingUserAction StateAPI
+	prepare                    StateAPI
 	instructionApi             InstructionApi
 	hwValidator                hardware.Validator
 	eventsHandler              events.Handler
@@ -140,6 +142,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		installed:                  NewInstalledState(log, db),
 		error:                      NewErrorState(log, db),
 		resetting:                  NewResettingState(log, db),
+		prepare:                    NewPrepareState(log),
 		instructionApi:             instructionApi,
 		hwValidator:                hwValidator,
 		eventsHandler:              eventsHandler,
@@ -170,6 +173,8 @@ func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 		return m.error, nil
 	case HostStatusResetting:
 		return m.resetting, nil
+	case models.HostStatusPreparingForInstallation:
+		return m.prepare, nil
 	}
 	return nil, fmt.Errorf("not supported host status: %s", status)
 }
@@ -427,4 +432,11 @@ func (m *Manager) GetStagesByRole(role models.HostRole, isbootstrap bool) []mode
 
 func (m *Manager) IsInstallable(h *models.Host) bool {
 	return swag.StringValue(h.Status) == models.HostStatusKnown
+}
+
+func (m *Manager) PrepareForInstallation(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	return m.sm.Run(TransitionTypePrepareForInstallation, newStateHost(h), &TransitionArgsPrepareForInstallation{
+		ctx: ctx,
+		db:  db,
+	})
 }

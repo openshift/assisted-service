@@ -465,3 +465,17 @@ func (mr *MockAPIMockRecorder) IsInstallable(h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsInstallable", reflect.TypeOf((*MockAPI)(nil).IsInstallable), h)
 }
+
+// PrepareForInstallation mocks base method
+func (m *MockAPI) PrepareForInstallation(ctx context.Context, c *models.Host, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PrepareForInstallation", ctx, c, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PrepareForInstallation indicates an expected call of PrepareForInstallation
+func (mr *MockAPIMockRecorder) PrepareForInstallation(ctx, c, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareForInstallation", reflect.TypeOf((*MockAPI)(nil).PrepareForInstallation), ctx, c, db)
+}

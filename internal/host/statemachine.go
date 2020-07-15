@@ -14,6 +14,7 @@ const (
 	TransitionTypeDisableHost                = "DisableHost"
 	TransitionTypeEnableHost                 = "EnableHost"
 	TransitionTypeResettingPendingUserAction = "ResettingPendingUserAction"
+	TransitionTypePrepareForInstallation     = "Prepare for installation"
 )
 
 func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -46,8 +47,12 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 
 	// Register host during installation
 	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType:   TransitionTypeRegisterHost,
-		SourceStates:     []stateswitch.State{HostStatusInstalling, HostStatusInstallingInProgress},
+		TransitionType: TransitionTypeRegisterHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+			stateswitch.State(models.HostStatusInstalling),
+			stateswitch.State(models.HostStatusInstallingInProgress),
+		},
 		DestinationState: HostStatusError,
 		PostTransition:   th.PostRegisterDuringInstallation,
 	})
@@ -97,9 +102,8 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	// Install host
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType:   TransitionTypeInstallHost,
-		Condition:        th.IsValidRoleForInstallation,
-		SourceStates:     []stateswitch.State{HostStatusKnown},
-		DestinationState: HostStatusInstalling,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.HostStatusPreparingForInstallation)},
+		DestinationState: stateswitch.State(models.HostStatusInstalling),
 		PostTransition:   th.PostInstallHost,
 	})
 
@@ -142,5 +146,15 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		DestinationState: stateswitch.State(models.HostStatusResettingPendingUserAction),
 		PostTransition:   th.PostResettingPendingUserAction,
 	})
+
+	// Prepare for installation
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypePrepareForInstallation,
+		Condition:        th.IsValidRoleForInstallation,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.HostStatusKnown)},
+		DestinationState: stateswitch.State(models.HostStatusPreparingForInstallation),
+		PostTransition:   th.PostPrepareForInstallation,
+	})
+
 	return sm
 }

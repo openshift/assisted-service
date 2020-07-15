@@ -10,6 +10,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
+	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -24,7 +25,9 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 	)
 	BeforeEach(func() {
 		db = prepareDB()
-		capi = NewManager(defaultTestConfig, getTestLog(), db, nil)
+		cfg := Config{}
+		Expect(envconfig.Process("myapp", &cfg)).NotTo(HaveOccurred())
+		capi = NewManager(cfg, getTestLog(), db, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 		cl = common.Cluster{
 			Cluster: models.Cluster{

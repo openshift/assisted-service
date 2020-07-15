@@ -25,6 +25,7 @@ const (
 	statusInfoDiscovering                = "Waiting for host hardware info"
 	statusInfoInstalling                 = "Installation in progress"
 	statusInfoResettingPendingUserAction = "Reboot the host into the installation image to complete resetting the installation"
+	statusInfoPreparingForInstallation   = "Preparing host for installation"
 )
 
 type UpdateReply struct {
