@@ -22,6 +22,7 @@ var _ = Describe("system-test image tests", func() {
 	ctx := context.Background()
 	var cluster *installer.RegisterClusterCreated
 	var clusterID strfmt.UUID
+	pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
 
 	AfterEach(func() {
 		clearDB()
@@ -33,6 +34,7 @@ var _ = Describe("system-test image tests", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
+				PullSecret:       pullSecret,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
