@@ -60,12 +60,30 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostHostInstallationFailed,
 	})
 
+	// Cancel installation - disabled host (do nothing)
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeCancelInstallation,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusDisabled),
+		},
+		DestinationState: stateswitch.State(models.HostStatusDisabled),
+	})
+
 	// Cancel installation
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType:   TransitionTypeCancelInstallation,
 		SourceStates:     []stateswitch.State{HostStatusInstalling, HostStatusInstallingInProgress, HostStatusError},
 		DestinationState: HostStatusError,
 		PostTransition:   th.PostCancelInstallation,
+	})
+
+	// Reset disabled host (do nothing)
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeResetHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusDisabled),
+		},
+		DestinationState: stateswitch.State(models.HostStatusDisabled),
 	})
 
 	// Reset host
