@@ -436,7 +436,8 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	previousCreatedAt := time.Time(cluster.ImageInfo.CreatedAt)
 	if previousCreatedAt.Add(10 * time.Second).After(now) {
 		log.Error("request came too soon after previous request")
-		return installer.NewGenerateClusterISOConflict()
+		return installer.NewGenerateClusterISOConflict().WithPayload(common.GenerateError(http.StatusConflict,
+			errors.New("Another request to generate an image has been recently submitted. Please wait a few seconds and try again.")))
 	}
 
 	/* If the request has the same parameters as the previous request and the image is still in S3,

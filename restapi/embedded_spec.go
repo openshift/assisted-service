@@ -563,7 +563,10 @@ func init() {
             }
           },
           "409": {
-            "description": "Error."
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           },
           "500": {
             "description": "Error.",
@@ -3042,7 +3045,10 @@ func init() {
             }
           },
           "409": {
-            "description": "Error."
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           },
           "500": {
             "description": "Error.",

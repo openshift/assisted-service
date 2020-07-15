@@ -182,6 +182,8 @@ paths:
             $ref: '#/definitions/error'
         409:
           description: Error.
+          schema:
+            $ref: '#/definitions/error'
         500:
           description: Error.
           schema:
