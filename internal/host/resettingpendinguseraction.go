@@ -17,9 +17,7 @@ func NewResettingPendingUserActionState(log logrus.FieldLogger, db *gorm.DB) *re
 
 type resettingPendingUserAction baseState
 
-func (r *resettingPendingUserAction) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	return &UpdateReply{
-		State:     models.HostStatusResettingPendingUserAction,
-		IsChanged: false,
-	}, nil
+func (r *resettingPendingUserAction) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
+	// State in the same state
+	return h, nil
 }

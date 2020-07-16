@@ -41,17 +41,15 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 
 	It("no change", func() {
 		Expect(db.Take(&cl, "id = ?", clusterId).Error).NotTo(HaveOccurred())
-		reply, err := capi.RefreshStatus(ctx, &cl, db)
+		refreshedCluster, err := capi.RefreshStatus(ctx, &cl, db)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(reply.IsChanged).To(BeFalse())
-		Expect(reply.State).To(Equal(models.ClusterStatusPreparingForInstallation))
+		Expect(*refreshedCluster.Status).To(Equal(models.ClusterStatusPreparingForInstallation))
 	})
 
 	It("timeout", func() {
 		cl.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-15 * time.Minute))
-		reply, err := capi.RefreshStatus(ctx, &cl, db)
+		refreshedCluster, err := capi.RefreshStatus(ctx, &cl, db)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(reply.IsChanged).To(BeTrue())
-		Expect(reply.State).To(Equal(models.ClusterStatusError))
+		Expect(*refreshedCluster.Status).To(Equal(models.ClusterStatusError))
 	})
 })

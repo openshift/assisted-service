@@ -41,7 +41,7 @@ var _ = Describe("statemachine", func() {
 		mockConnectivityValidator *connectivity.MockValidator
 		state                     API
 		host                      models.Host
-		stateReply                *UpdateReply
+		hostAfterRefresh          *models.Host
 		stateErr                  error
 		mockEvents                *events.MockHandler
 	)
@@ -61,11 +61,11 @@ var _ = Describe("statemachine", func() {
 	Context("unknown_host_state", func() {
 
 		It("update_hw_info", func() {
-			stateReply, stateErr = state.RefreshStatus(ctx, &host, nil)
+			hostAfterRefresh, stateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 
 		AfterEach(func() {
-			Expect(stateReply).To(BeNil())
+			Expect(hostAfterRefresh).To(BeNil())
 			Expect(stateErr).Should(HaveOccurred())
 		})
 	})
@@ -505,31 +505,28 @@ func prepareDB() *gorm.DB {
 }
 
 type expect struct {
-	expectError   bool
-	expectedState string
-	postCheck     func()
+	expectError    bool
+	expectedStatus string
+	postCheck      func()
 }
 
 func postValidation(expectedReply *expect, firstState string, db *gorm.DB, id, clusterId strfmt.UUID,
-	updateReply *UpdateReply, updateErr error) {
+	updatedHost *models.Host, updateErr error) {
 	if expectedReply != nil {
 		h := getHost(id, clusterId, db)
 		if expectedReply.expectError {
-			Expect(updateReply).To(BeNil())
+			Expect(updatedHost).To(BeNil())
 			Expect(updateErr).Should(HaveOccurred())
 			Expect(swag.StringValue(h.Status)).Should(Equal(firstState))
 		} else {
 			Expect(updateErr).ShouldNot(HaveOccurred())
-			Expect(updateReply).NotTo(BeNil())
-			Expect(updateReply.State).Should(Equal(expectedReply.expectedState))
-			if updateReply.State == firstState {
-				Expect(updateReply.IsChanged).Should(BeFalse())
-			} else {
-				Expect(updateReply.IsChanged).Should(BeTrue())
+			Expect(updatedHost).NotTo(BeNil())
+			Expect(*updatedHost.Status).Should(Equal(expectedReply.expectedStatus))
+			if expectedReply.expectedStatus != firstState {
 				Expect(h.StatusInfo).ShouldNot(BeNil())
 				Expect(h.StatusUpdatedAt).ShouldNot(BeNil())
 			}
-			Expect(swag.StringValue(h.Status)).Should(Equal(expectedReply.expectedState))
+			Expect(swag.StringValue(h.Status)).Should(Equal(expectedReply.expectedStatus))
 		}
 
 		if expectedReply.postCheck != nil {

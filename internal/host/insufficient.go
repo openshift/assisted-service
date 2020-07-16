@@ -29,6 +29,6 @@ type insufficientState struct {
 	connectivityValidator connectivity.Validator
 }
 
-func (i *insufficientState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+func (i *insufficientState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
 	return checkAndUpdateSufficientHost(logutil.FromContext(ctx, i.log), h, db, i.hwValidator, i.connectivityValidator)
 }

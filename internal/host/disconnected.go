@@ -26,11 +26,12 @@ type disconnectedState struct {
 	hwValidator hardware.Validator
 }
 
-func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+func (d *disconnectedState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
 	log := logutil.FromContext(ctx, d.log)
 	if time.Since(time.Time(h.CheckedInAt)) < 3*time.Minute {
-		return updateHostState(log, HostStatusDiscovering, statusInfoDiscovering, h, d.db)
+		return updateHostStatus(log, db, h.ClusterID, *h.ID, *h.Status, HostStatusDiscovering, statusInfoDiscovering)
 	}
+
 	// Stay in the same state
-	return defaultReply(h)
+	return h, nil
 }

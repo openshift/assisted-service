@@ -25,7 +25,7 @@ var _ = Describe("insufficient_state", func() {
 		currentState              = HostStatusInsufficient
 		host                      models.Host
 		id, clusterId             strfmt.UUID
-		updateReply               *UpdateReply
+		hostAfterRefresh          *models.Host
 		updateErr                 error
 		expectedReply             *expect
 		ctrl                      *gomock.Controller
@@ -46,7 +46,7 @@ var _ = Describe("insufficient_state", func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, currentState)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		expectedReply = &expect{expectedState: currentState}
+		expectedReply = &expect{expectedStatus: currentState}
 		addTestCluster(clusterId, "1.2.3.5", "1.2.3.6", "1.2.3.0/24", db)
 	})
 
@@ -56,26 +56,26 @@ var _ = Describe("insufficient_state", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			host.Inventory = ""
 			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			expectedReply.expectedState = HostStatusKnown
+			hostAfterRefresh, updateErr = state.RefreshStatus(ctx, &host, db)
+			expectedReply.expectedStatus = HostStatusKnown
 		})
 		It("keep_alive_timeout", func() {
 			mockEvents.EXPECT().AddEvent(gomock.Any(), string(id), models.EventSeverityInfo, gomock.Any(), gomock.Any(), string(clusterId))
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-time.Hour))
 			mockConnectivityAndHwValidators(&host, mockHWValidator, mockConnectivityValidator, false, true, true)
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, db)
-			expectedReply.expectedState = HostStatusDisconnected
+			hostAfterRefresh, updateErr = state.RefreshStatus(ctx, &host, db)
+			expectedReply.expectedStatus = HostStatusDisconnected
 		})
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
-		postValidation(expectedReply, currentState, db, id, clusterId, updateReply, updateErr)
+		postValidation(expectedReply, currentState, db, id, clusterId, hostAfterRefresh, updateErr)
 
 		// cleanup
 		db.Close()
 		expectedReply = nil
-		updateReply = nil
+		hostAfterRefresh = nil
 		updateErr = nil
 	})
 })

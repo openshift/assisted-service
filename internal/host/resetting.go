@@ -17,9 +17,7 @@ func NewResettingState(log logrus.FieldLogger, db *gorm.DB) *resettingState {
 
 type resettingState baseState
 
-func (r *resettingState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	return &UpdateReply{
-		State:     HostStatusResetting,
-		IsChanged: false,
-	}, nil
+func (r *resettingState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
+	// State in the same state
+	return h, nil
 }

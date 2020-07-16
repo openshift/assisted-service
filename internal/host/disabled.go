@@ -17,6 +17,6 @@ func NewDisabledState(log logrus.FieldLogger, db *gorm.DB) *disabledState {
 
 type disabledState baseState
 
-func (d *disabledState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
-	return defaultReply(h)
+func (d *disabledState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
+	return h, nil
 }

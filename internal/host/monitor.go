@@ -9,6 +9,7 @@ import (
 
 func (m *Manager) HostMonitoring() {
 	var hosts []*models.Host
+	var hostAfterRefresh *models.Host
 
 	monitorStates := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient}
 	if err := m.db.Where("status IN (?)", monitorStates).Find(&hosts).Error; err != nil {
@@ -22,13 +23,14 @@ func (m *Manager) HostMonitoring() {
 			continue
 
 		}
-		stateReply, err := state.RefreshStatus(context.Background(), host, m.db)
-		if err != nil {
+		if hostAfterRefresh, err = state.RefreshStatus(context.Background(), host, m.db); err != nil {
 			m.log.WithError(err).Errorf("failed to refresh host %s state", host.ID)
 			continue
 		}
-		if stateReply.IsChanged {
-			m.log.Infof("host %s updated to state %s via monitor", host.ID, stateReply.State)
+
+		if hostAfterRefresh.Status != host.Status {
+			m.log.Infof("host %s updated status from %s to %s via monitor", host.ID,
+				*host.Status, *hostAfterRefresh.Status)
 		}
 	}
 }

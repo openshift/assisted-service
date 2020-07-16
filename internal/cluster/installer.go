@@ -57,7 +57,7 @@ func (i *installer) Install(ctx context.Context, c *common.Cluster, db *gorm.DB)
 		return errors.Errorf("cluster %s state is unclear - cluster state: %s", c.ID, swag.StringValue(c.Status))
 	}
 
-	if err := updateClusterStatus(i.log, db, *c.ID, *c.Status, clusterStatusInstalling, statusInfoInstalling); err != nil {
+	if _, err := updateClusterStatus(i.log, db, *c.ID, *c.Status, clusterStatusInstalling, statusInfoInstalling); err != nil {
 		return err
 	}
 

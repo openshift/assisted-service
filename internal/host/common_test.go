@@ -21,6 +21,8 @@ var _ = Describe("update_host_state", func() {
 		db              *gorm.DB
 		host            models.Host
 		lastUpdatedTime strfmt.DateTime
+		returnedHost    *models.Host
+		err             error
 	)
 
 	BeforeEach(func() {
@@ -33,93 +35,108 @@ var _ = Describe("update_host_state", func() {
 		lastUpdatedTime = host.StatusUpdatedAt
 	})
 
-	Describe("updateHostStateWithParams", func() {
+	Describe("updateHostStatus", func() {
 		It("change_status", func() {
-			Expect(updateHostStateWithParams(getTestLog(), newStatus, newStatusInfo, &host, db)).ShouldNot(HaveOccurred())
-			Expect(*host.Status).Should(Equal(newStatus))
-			Expect(*host.StatusInfo).Should(Equal(newStatusInfo))
-			Expect(host.StatusUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
+			returnedHost, err = updateHostStatus(getTestLog(), db, host.ClusterID, *host.ID, defaultStatus,
+				newStatus, newStatusInfo)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*returnedHost.Status).Should(Equal(newStatus))
+			Expect(*returnedHost.StatusInfo).Should(Equal(newStatusInfo))
+			Expect(returnedHost.StatusUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
 		})
 
 		Describe("negative", func() {
 			It("invalid_extras_amount", func() {
-				Expect(updateHostStateWithParams(getTestLog(), newStatus, newStatusInfo, &host, db, "1")).Should(HaveOccurred())
-				Expect(updateHostStateWithParams(getTestLog(), newStatus, newStatusInfo, &host, db, "1", "2", "3")).Should(HaveOccurred())
+				returnedHost, err = updateHostStatus(getTestLog(), db, host.ClusterID, *host.ID, *host.Status,
+					newStatus, newStatusInfo, "1")
+				Expect(err).Should(HaveOccurred())
+				Expect(returnedHost).Should(BeNil())
+				returnedHost, err = updateHostStatus(getTestLog(), db, host.ClusterID, *host.ID, *host.Status,
+					newStatus, newStatusInfo, "1", "2", "3")
 			})
 
 			It("no_matching_rows", func() {
-				var otherStatus = "otherStatus"
-				host.Status = &otherStatus
-				Expect(updateHostStateWithParams(getTestLog(), newStatus, newStatusInfo, &host, db)).Should(HaveOccurred())
-			})
-
-			It("db_failure", func() {
-				db.Close()
-				Expect(updateHostStateWithParams(getTestLog(), newStatus, newStatusInfo, &host, db)).Should(HaveOccurred())
+				returnedHost, err = updateHostStatus(getTestLog(), db, host.ClusterID, *host.ID, "otherStatus",
+					newStatus, newStatusInfo)
 			})
 
 			AfterEach(func() {
-				Expect(*host.Status).ShouldNot(Equal(newStatus))
-				Expect(*host.StatusInfo).ShouldNot(Equal(newStatusInfo))
-				Expect(host.StatusUpdatedAt).Should(Equal(lastUpdatedTime))
+				Expect(err).Should(HaveOccurred())
+				Expect(returnedHost).Should(BeNil())
+
+				hostFromDb := getHost(*host.ID, host.ClusterID, db)
+				Expect(*hostFromDb.Status).ShouldNot(Equal(newStatus))
+				Expect(*hostFromDb.StatusInfo).ShouldNot(Equal(newStatusInfo))
+				Expect(hostFromDb.StatusUpdatedAt).Should(Equal(lastUpdatedTime))
 			})
+		})
+
+		It("db_failure", func() {
+			db.Close()
+			_, err = updateHostStatus(getTestLog(), db, host.ClusterID, *host.ID, *host.Status,
+				newStatus, newStatusInfo)
+			Expect(err).Should(HaveOccurred())
 		})
 	})
 
 	Describe("updateHostProgress", func() {
 		Describe("same_status", func() {
 			It("new_stage", func() {
-				Expect(updateHostProgress(getTestLog(), defaultStatus, defaultStatusInfo, &host, db,
-					defaultProgressStage, host.Progress.ProgressInfo)).ShouldNot(HaveOccurred())
+				returnedHost, err = updateHostProgress(getTestLog(), db, host.ClusterID, *host.ID, *host.Status, defaultStatus, defaultStatusInfo,
+					host.Progress.CurrentStage, defaultProgressStage, host.Progress.ProgressInfo)
+				Expect(err).ShouldNot(HaveOccurred())
 
-				Expect(host.Progress.CurrentStage).Should(Equal(defaultProgressStage))
-				Expect(host.Progress.ProgressInfo).Should(Equal(host.Progress.ProgressInfo))
-				Expect(host.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
-				Expect(host.StageStartedAt).ShouldNot(Equal(lastUpdatedTime))
+				Expect(returnedHost.Progress.CurrentStage).Should(Equal(defaultProgressStage))
+				Expect(returnedHost.Progress.ProgressInfo).Should(Equal(host.Progress.ProgressInfo))
+				Expect(returnedHost.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
+				Expect(returnedHost.StageStartedAt).ShouldNot(Equal(lastUpdatedTime))
 			})
 
 			It("same_stage", func() {
 				// Still updates because stage_updated_at is being updated
-				Expect(updateHostProgress(getTestLog(), defaultStatus, defaultStatusInfo, &host, db,
-					host.Progress.CurrentStage, host.Progress.ProgressInfo)).ShouldNot(HaveOccurred())
+				returnedHost, err = updateHostProgress(getTestLog(), db, host.ClusterID, *host.ID, *host.Status, defaultStatus, defaultStatusInfo,
+					host.Progress.CurrentStage, host.Progress.CurrentStage, host.Progress.ProgressInfo)
+				Expect(err).ShouldNot(HaveOccurred())
 
-				Expect(host.Progress.CurrentStage).Should(Equal(models.HostStage("")))
-				Expect(host.Progress.ProgressInfo).Should(Equal(""))
-				Expect(host.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
-				Expect(host.StageStartedAt).Should(Equal(lastUpdatedTime))
+				Expect(returnedHost.Progress.CurrentStage).Should(Equal(models.HostStage("")))
+				Expect(returnedHost.Progress.ProgressInfo).Should(Equal(""))
+				Expect(returnedHost.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
+				Expect(returnedHost.StageStartedAt).Should(Equal(lastUpdatedTime))
 			})
 
 			AfterEach(func() {
 				By("Same status info", func() {
-					Expect(*host.Status).Should(Equal(defaultStatus))
-					Expect(*host.StatusInfo).Should(Equal(defaultStatusInfo))
-					Expect(host.StatusUpdatedAt).Should(Equal(lastUpdatedTime))
+					Expect(*returnedHost.Status).Should(Equal(defaultStatus))
+					Expect(*returnedHost.StatusInfo).Should(Equal(defaultStatusInfo))
+					Expect(returnedHost.StatusUpdatedAt).Should(Equal(lastUpdatedTime))
 				})
 			})
 		})
 
 		It("new_status_new_stage", func() {
-			Expect(updateHostProgress(getTestLog(), newStatus, newStatusInfo, &host, db,
-				defaultProgressStage, "")).ShouldNot(HaveOccurred())
+			returnedHost, err = updateHostProgress(getTestLog(), db, host.ClusterID, *host.ID, *host.Status, newStatus, newStatusInfo,
+				host.Progress.CurrentStage, defaultProgressStage, "")
+			Expect(err).ShouldNot(HaveOccurred())
 
-			Expect(host.Progress.CurrentStage).Should(Equal(defaultProgressStage))
-			Expect(host.Progress.ProgressInfo).Should(Equal(""))
-			Expect(host.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
-			Expect(host.StageStartedAt).ShouldNot(Equal(lastUpdatedTime))
+			Expect(returnedHost.Progress.CurrentStage).Should(Equal(defaultProgressStage))
+			Expect(returnedHost.Progress.ProgressInfo).Should(Equal(""))
+			Expect(returnedHost.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
+			Expect(returnedHost.StageStartedAt).ShouldNot(Equal(lastUpdatedTime))
 
-			By("New status ", func() {
-				Expect(*host.Status).Should(Equal(newStatus))
-				Expect(*host.StatusInfo).Should(Equal(newStatusInfo))
-				Expect(host.StatusUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
+			By("New status", func() {
+				Expect(*returnedHost.Status).Should(Equal(newStatus))
+				Expect(*returnedHost.StatusInfo).Should(Equal(newStatusInfo))
+				Expect(returnedHost.StatusUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
 			})
 		})
 
 		It("update_info", func() {
 			for _, i := range []int{5, 10, 15} {
-				Expect(updateHostProgress(getTestLog(), defaultStatus, defaultStatusInfo, &host, db,
-					host.Progress.CurrentStage, fmt.Sprintf("%d%%", i))).ShouldNot(HaveOccurred())
-				Expect(host.Progress.ProgressInfo).Should(Equal(fmt.Sprintf("%d%%", i)))
-				Expect(host.StageStartedAt).Should(Equal(lastUpdatedTime))
+				returnedHost, err = updateHostProgress(getTestLog(), db, host.ClusterID, *host.ID, *host.Status, defaultStatus, defaultStatusInfo,
+					host.Progress.CurrentStage, host.Progress.CurrentStage, fmt.Sprintf("%d%%", i))
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(returnedHost.Progress.ProgressInfo).Should(Equal(fmt.Sprintf("%d%%", i)))
+				Expect(returnedHost.StageStartedAt).Should(Equal(lastUpdatedTime))
 			}
 		})
 	})

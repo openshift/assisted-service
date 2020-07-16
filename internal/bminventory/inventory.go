@@ -1027,8 +1027,7 @@ func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cl
 		return err
 	}
 
-	_, err = b.clusterApi.RefreshStatus(ctx, cluster, db)
-	if err != nil {
+	if _, err = b.clusterApi.RefreshStatus(ctx, cluster, db); err != nil {
 		log.WithError(err).Errorf("failed to validate or update cluster %s state", cluster.ID)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}

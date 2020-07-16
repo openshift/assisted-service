@@ -32,19 +32,19 @@ var defaultTestConfig = Config{
 
 var _ = Describe("stateMachine", func() {
 	var (
-		ctx        = context.Background()
-		db         *gorm.DB
-		state      API
-		cluster    common.Cluster
-		stateReply *UpdateReply
-		stateErr   error
+		ctx              = context.Background()
+		db               *gorm.DB
+		state            API
+		cluster          *common.Cluster
+		refreshedCluster *common.Cluster
+		stateErr         error
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
 		state = NewManager(defaultTestConfig, getTestLog(), db, nil)
 		id := strfmt.UUID(uuid.New().String())
-		cluster = common.Cluster{Cluster: models.Cluster{
+		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
 			Status: swag.String("not a known state"),
 		}}
@@ -53,16 +53,16 @@ var _ = Describe("stateMachine", func() {
 
 	Context("unknown_cluster_state", func() {
 		It("update_cluster", func() {
-			stateReply, stateErr = state.RefreshStatus(ctx, &cluster, db)
+			refreshedCluster, stateErr = state.RefreshStatus(ctx, cluster, db)
 		})
 
 		It("install_cluster", func() {
-			stateErr = state.Install(ctx, &cluster, db)
+			stateErr = state.Install(ctx, cluster, db)
 		})
 
 		AfterEach(func() {
 			db.Close()
-			Expect(stateReply).To(BeNil())
+			Expect(refreshedCluster).To(BeNil())
 			Expect(stateErr).Should(HaveOccurred())
 		})
 	})

@@ -23,18 +23,15 @@ func NewPrepareState(log logrus.FieldLogger) *prepare {
 	}
 }
 
-func (p *prepare) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+func (p *prepare) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
 	c := common.Cluster{}
 	if err := db.Take(&c, "id = ?", h.ClusterID.String()).Error; err != nil {
 		return nil, err
 	}
 	if swag.StringValue(c.Status) != models.ClusterStatusPreparingForInstallation {
-		return updateHostState(logutil.FromContext(ctx, p.log), models.HostStatusError,
-			fmt.Sprintf("Cluster is not longer is not longer %s", models.ClusterStatusPreparingForInstallation),
-			h, db)
+		return updateHostStatus(logutil.FromContext(ctx, p.log), db, h.ClusterID, *h.ID, *h.Status,
+			models.HostStatusError, fmt.Sprintf("Cluster is not longer is not longer %s", models.ClusterStatusPreparingForInstallation))
 	}
-	return &UpdateReply{
-		State:     models.HostStatusPreparingForInstallation,
-		IsChanged: false,
-	}, nil
+
+	return h, nil
 }

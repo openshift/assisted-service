@@ -23,14 +23,12 @@ func NewInsufficientState(log logrus.FieldLogger, db *gorm.DB) *insufficientStat
 
 type insufficientState baseState
 
-func (i *insufficientState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
+func (i *insufficientState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
 
 	log := logutil.FromContext(ctx, i.log)
 
 	if err := db.Preload("Hosts").First(&c, "id = ?", c.ID).Error; err != nil {
-		return &UpdateReply{
-			State:     clusterStatusInsufficient,
-			IsChanged: false}, errors.Errorf("cluster %s not found", c.ID)
+		return nil, errors.Errorf("cluster %s not found", c.ID)
 	}
 	mappedMastersByRole := mapMasterHostsByStatus(c)
 
@@ -39,25 +37,21 @@ func (i *insufficientState) RefreshStatus(ctx context.Context, c *common.Cluster
 		log.Infof("Setting cluster: %s hosts to status: %s",
 			c.ID, intenralhost.HostStatusInstallingPendingUserAction)
 		if err := setPendingUserReset(ctx, c, db, manager); err != nil {
-			return &UpdateReply{
-					State:     clusterStatusInsufficient,
-					IsChanged: false},
-				errors.Wrapf(err, "failed setting cluster: %s hosts to status: %s",
-					c.ID, intenralhost.HostStatusInstallingPendingUserAction)
+			return nil, errors.Wrapf(err, "failed setting cluster: %s hosts to status: %s",
+				c.ID, intenralhost.HostStatusInstallingPendingUserAction)
 		}
-		return &UpdateReply{State: clusterStatusInsufficient, IsChanged: false}, nil
+		return c, nil
 	}
 
 	// Cluster is ready
 	mastersInKnown, ok := mappedMastersByRole[intenralhost.HostStatusKnown]
 	if ok && len(mastersInKnown) == minHostsNeededForInstallation && c.APIVip != "" && c.IngressVip != "" {
 		log.Infof("Cluster %s has %d known master hosts, cluster is ready.", c.ID, minHostsNeededForInstallation)
-		return updateClusterStatusUpdateReplay(log, db, *c.ID, *c.Status, clusterStatusReady, statusInfoReady)
+		return updateClusterStatus(log, db, *c.ID, *c.Status, clusterStatusReady, statusInfoReady)
 
 		//cluster is still insufficient
 	} else {
-		return &UpdateReply{State: clusterStatusInsufficient,
-			IsChanged: false}, nil
+		return c, nil
 	}
 }
 

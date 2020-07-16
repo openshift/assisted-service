@@ -3,8 +3,6 @@ package cluster
 import (
 	context "context"
 
-	"github.com/filanov/bm-inventory/models"
-
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/sirupsen/logrus"
 
@@ -22,9 +20,6 @@ type finalizingState baseState
 
 var _ StateAPI = (*Manager)(nil)
 
-func (i *finalizingState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
-	return &UpdateReply{
-		State:     models.ClusterStatusFinalizing,
-		IsChanged: false,
-	}, nil
+func (i *finalizingState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+	return c, nil
 }
