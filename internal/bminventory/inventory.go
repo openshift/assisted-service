@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -1455,6 +1456,44 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 	return installer.NewEnableHostOK().WithPayload(&host)
 }
 
+func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.InstallHostParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var host models.Host
+	log.Infof("Installing host, cluster ID: %s host Id: %s ", params.ClusterID, params.HostID)
+
+	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			log.WithError(err).Errorf("host %s not found", params.HostID)
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		log.WithError(err).Errorf("failed to get host %s", params.HostID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	workerIgnitionBytes, err := base64.StdEncoding.DecodeString(*params.InstallHostParams.WorkerIgnition)
+	if err != nil {
+		log.Errorf("Worker ignition for new cluster failed to base64 decoded: [%s]", *params.InstallHostParams.WorkerIgnition)
+		return installer.NewInstallHostBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("failed to decode Worker-ignition")))
+	}
+
+	objectKey := fmt.Sprintf("%s/%s-worker.ign", params.ClusterID, params.HostID)
+	if err := b.s3Client.PushDataToS3(ctx, workerIgnitionBytes, objectKey, b.S3Bucket); err != nil {
+		return installer.NewInstallHostInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", objectKey)))
+	}
+
+	if err := b.hostApi.Install(ctx, &host, b.db); err != nil {
+		log.WithError(err).Errorf("failed to install host <%s> from cluster <%s>", params.HostID, params.ClusterID)
+		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
+	}
+
+	if err := b.customizeHost(&host); err != nil {
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+	}
+
+	return installer.NewInstallHostOK()
+}
+
 func (b *bareMetalInventory) createKubeconfigJob(cluster *common.Cluster, jobName string, cfg []byte) *batch.Job {
 	id := cluster.ID
 	// [TODO] need to find more generic way to set the openshift release image
@@ -1544,9 +1583,13 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 	log.Infof("Download cluster files: %s for cluster %s", params.FileName, params.ClusterID)
 
 	if !funk.Contains(clusterFileNames, params.FileName) {
-		err := fmt.Errorf("invalid cluster file %s", params.FileName)
-		log.WithError(err).Errorf("failed download file: %s from cluster: %s", params.FileName, params.ClusterID)
-		return common.NewApiError(http.StatusBadRequest, err)
+		if strings.HasSuffix(params.FileName, "worker.ign") {
+			log.Infof("Downloading special file %s", params.FileName)
+		} else {
+			err := fmt.Errorf("invalid cluster file %s", params.FileName)
+			log.WithError(err).Errorf("failed download file: %s from cluster: %s", params.FileName, params.ClusterID)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {

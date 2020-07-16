@@ -36,17 +36,17 @@ func NewS3Client(s3EndpointURL string, awsAccessKeyID string, awsSecretAccessKey
 	return &s3Client{logger, client}, nil
 }
 
-func (s s3Client) PushDataToS3(ctx context.Context, data []byte, fileName string, s3Bucket string) error {
+func (s s3Client) PushDataToS3(ctx context.Context, data []byte, objectName string, s3Bucket string) error {
 	log := logutil.FromContext(ctx, s.log)
 	// create a reader from data in memory
 	reader := bytes.NewReader(data)
-	_, err := s.client.PutObject(s3Bucket, fileName, reader, reader.Size(), minio.PutObjectOptions{ContentType: "application/octet-stream"})
+	_, err := s.client.PutObject(s3Bucket, objectName, reader, reader.Size(), minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
-		err = errors.Wrapf(err, "Unable to upload %s to %s", fileName, s3Bucket)
+		err = errors.Wrapf(err, "Unable to upload %s to %s", objectName, s3Bucket)
 		log.Error(err)
 		return err
 	}
-	s.log.Infof("Successfully uploaded %s to %s", fileName, s3Bucket)
+	s.log.Infof("Successfully uploaded %s to %s", objectName, s3Bucket)
 	return nil
 }
 
