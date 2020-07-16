@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/metrics"
+
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/internal/host"
@@ -82,9 +84,10 @@ type Manager struct {
 	installationAPI InstallationAPI
 	eventsHandler   events.Handler
 	sm              stateswitch.StateMachine
+	metricAPI       metrics.API
 }
 
-func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hostAPI host.API) *Manager {
+func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hostAPI host.API, metricApi metrics.API) *Manager {
 	th := &transitionHandler{
 		log: log,
 		db:  db,
@@ -103,6 +106,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		installationAPI: NewInstaller(log, db),
 		eventsHandler:   eventsHandler,
 		sm:              NewClusterStateMachine(th),
+		metricAPI:       metricApi,
 	}
 }
 
@@ -152,8 +156,12 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+	log := logutil.FromContext(ctx, m.log)
+
+	stateBeforeRefresh := swag.StringValue(c.Status)
 	// get updated cluster info with hosts
 	var cluster common.Cluster
+
 	if err := db.Preload("Hosts").Take(&cluster, "id = ?", c.ID.String()).Error; err != nil {
 		return nil, errors.Wrapf(err, "failed to get cluster %s", c.ID.String())
 	}
@@ -161,7 +169,15 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	if err != nil {
 		return nil, err
 	}
-	return state.RefreshStatus(ctx, &cluster, db)
+
+	clusterAfterRefresh, err := state.RefreshStatus(ctx, &cluster, db)
+	//report installation finished metric if needed
+	reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError}
+	if err == nil && stateBeforeRefresh != "" && stateBeforeRefresh == models.ClusterStatusInstalling &&
+		funk.ContainsString(reportInstallationCompleteStatuses, swag.StringValue(clusterAfterRefresh.Status)) {
+		m.metricAPI.ClusterInstallationFinished(log, swag.StringValue(cluster.Status), c.OpenshiftVersion, c.InstallStartedAt)
+	}
+	return clusterAfterRefresh, err
 }
 
 func (m *Manager) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
@@ -263,6 +279,8 @@ func (m *Manager) SetGeneratorVersion(c *common.Cluster, version string, db *gor
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	log := logutil.FromContext(ctx, m.log)
+
 	eventSeverity := models.EventSeverityInfo
 	eventInfo := "Canceled cluster installation"
 	defer func() {
@@ -279,6 +297,8 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 		eventInfo = fmt.Sprintf("Failed to cancel installation: %s", err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
+	//report installation finished metric
+	m.metricAPI.ClusterInstallationFinished(log, "canceled", c.OpenshiftVersion, c.InstallStartedAt)
 	return nil
 }
 
@@ -303,6 +323,8 @@ func (m *Manager) ResetCluster(ctx context.Context, c *common.Cluster, reason st
 }
 
 func (m *Manager) CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse {
+	log := logutil.FromContext(ctx, m.log)
+
 	err := m.sm.Run(TransitionTypeCompleteInstallation, newStateCluster(c), &TransitionArgsCompleteInstallation{
 		ctx:       ctx,
 		isSuccess: successfullyFinished,
@@ -311,6 +333,11 @@ func (m *Manager) CompleteInstallation(ctx context.Context, c *common.Cluster, s
 	if err != nil {
 		return common.NewApiError(http.StatusConflict, err)
 	}
+	result := models.ClusterStatusInstalled
+	if !successfullyFinished {
+		result = models.ClusterStatusError
+	}
+	m.metricAPI.ClusterInstallationFinished(log, result, c.OpenshiftVersion, c.InstallStartedAt)
 	return nil
 }
 

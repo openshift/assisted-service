@@ -9,9 +9,11 @@ import (
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/filanov/bm-inventory/internal/metrics"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/stateswitch"
+
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -99,9 +101,11 @@ type Manager struct {
 	eventsHandler  events.Handler
 	sm             stateswitch.StateMachine
 	rp             *refreshPreprocessor
+	metricApi      metrics.API
 }
 
-func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi InstructionApi, hwValidatorCfg *hardware.ValidatorCfg) *Manager {
+func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi InstructionApi,
+	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API) *Manager {
 	th := &transitionHandler{
 		db:  db,
 		log: log,
@@ -114,6 +118,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		eventsHandler:  eventsHandler,
 		sm:             NewHostStateMachine(th),
 		rp:             newRefreshPreprocessor(log, hwValidatorCfg),
+		metricApi:      metricApi,
 	}
 }
 
@@ -137,10 +142,14 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host) error {
 
 func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host) error {
 
-	return m.sm.Run(TransitionTypeHostInstallationFailed, newStateHost(h), &TransitionArgsHostInstallationFailed{
+	err := m.sm.Run(TransitionTypeHostInstallationFailed, newStateHost(h), &TransitionArgsHostInstallationFailed{
 		ctx:    ctx,
 		reason: "installation command failed",
 	})
+	if err == nil {
+		m.reportInstallationMetrics(ctx, h, &models.HostProgressInfo{CurrentStage: "installation command failed"}, models.HostStageFailed)
+	}
+	return err
 }
 
 func (m *Manager) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) error {
@@ -226,7 +235,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	if !funk.ContainsString(validStatuses, swag.StringValue(h.Status)) {
 		return fmt.Errorf("can't set progress to host in status <%s>", swag.StringValue(h.Status))
 	}
-
+	previousProgress := h.Progress
 	if h.Progress.CurrentStage != "" && progress.CurrentStage != models.HostStageFailed {
 
 		// Verify the new stage is higher or equal to the current host stage according to its role stages array
@@ -238,12 +247,12 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 	statusInfo := string(progress.CurrentStage)
 
+	var err error
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		_, err := updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
+		_, err = updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), HostStatusInstalled, statusInfo,
 			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
-		return err
 	case models.HostStageFailed:
 		// Keeps the last progress
 
@@ -251,15 +260,15 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 		}
 
-		_, err := updateHostStatus(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
+		_, err = updateHostStatus(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), HostStatusError, statusInfo)
-		return err
 	default:
-		_, err := updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
+		_, err = updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), HostStatusInstallingInProgress, statusInfo,
 			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
-		return err
 	}
+	m.reportInstallationMetrics(ctx, h, previousProgress, progress.CurrentStage)
+	return err
 }
 
 func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error {
@@ -409,4 +418,15 @@ func (m *Manager) PrepareForInstallation(ctx context.Context, h *models.Host, db
 		ctx: ctx,
 		db:  db,
 	})
+}
+
+func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host, previousProgress *models.HostProgressInfo, CurrentStage models.HostStage) {
+	log := logutil.FromContext(ctx, m.log)
+	//get openshift version from cluster
+	var cluster common.Cluster
+
+	if err := m.db.First(&cluster, "id = ?", h.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("not reporting installation metrics - failed to find cluster %s", h.ClusterID)
+	}
+	m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h, previousProgress, CurrentStage)
 }

@@ -27,7 +27,7 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 		db = prepareDB()
 		cfg := Config{}
 		Expect(envconfig.Process("myapp", &cfg)).NotTo(HaveOccurred())
-		capi = NewManager(cfg, getTestLog(), db, nil, nil)
+		capi = NewManager(cfg, getTestLog(), db, nil, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 		cl = common.Cluster{
 			Cluster: models.Cluster{

@@ -63,3 +63,23 @@ func getNextSteps(clusterID, hostID strfmt.UUID) models.Steps {
 	Expect(err).NotTo(HaveOccurred())
 	return *steps.GetPayload()
 }
+
+func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, current_step models.HostStage) {
+	updateProgressWithInfo(hostID, clusterID, current_step, "")
+}
+
+func updateProgressWithInfo(hostID strfmt.UUID, clusterID strfmt.UUID, current_step models.HostStage, info string) {
+	ctx := context.Background()
+
+	installProgress := &models.HostProgress{
+		CurrentStage: current_step,
+		ProgressInfo: info,
+	}
+	updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
+		ClusterID:    clusterID,
+		HostProgress: installProgress,
+		HostID:       hostID,
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
+}

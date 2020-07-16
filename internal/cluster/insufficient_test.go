@@ -34,6 +34,7 @@ var _ = Describe("insufficient_state", func() {
 		mockEvents := events.NewMockHandler(ctrl)
 		db = prepareDB()
 		manager = &Manager{
+			log:             getTestLog(),
 			insufficient:    NewInsufficientState(getTestLog(), db, mockHostAPI),
 			registrationAPI: NewRegistrar(getTestLog(), db),
 			eventsHandler:   mockEvents,

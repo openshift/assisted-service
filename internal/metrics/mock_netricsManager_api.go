@@ -5,7 +5,10 @@
 package metrics
 
 import (
+	models "github.com/filanov/bm-inventory/models"
+	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
+	logrus "github.com/sirupsen/logrus"
 	reflect "reflect"
 )
 
@@ -54,4 +57,28 @@ func (m *MockAPI) InstallationStarted(clusterVersion string) {
 func (mr *MockAPIMockRecorder) InstallationStarted(clusterVersion interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallationStarted", reflect.TypeOf((*MockAPI)(nil).InstallationStarted), clusterVersion)
+}
+
+// ClusterInstallationFinished mocks base method
+func (m *MockAPI) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, installationStratedTime strfmt.DateTime) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClusterInstallationFinished", log, result, clusterVersion, installationStratedTime)
+}
+
+// ClusterInstallationFinished indicates an expected call of ClusterInstallationFinished
+func (mr *MockAPIMockRecorder) ClusterInstallationFinished(log, result, clusterVersion, installationStratedTime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterInstallationFinished", reflect.TypeOf((*MockAPI)(nil).ClusterInstallationFinished), log, result, clusterVersion, installationStratedTime)
+}
+
+// ReportHostInstallationMetrics mocks base method
+func (m *MockAPI) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ReportHostInstallationMetrics", log, clusterVersion, h, previousProgress, currentStage)
+}
+
+// ReportHostInstallationMetrics indicates an expected call of ReportHostInstallationMetrics
+func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(log, clusterVersion, h, previousProgress, currentStage interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportHostInstallationMetrics", reflect.TypeOf((*MockAPI)(nil).ReportHostInstallationMetrics), log, clusterVersion, h, previousProgress, currentStage)
 }

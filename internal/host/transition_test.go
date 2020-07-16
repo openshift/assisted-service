@@ -6,11 +6,14 @@ import (
 	"time"
 
 	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/golang/mock/gomock"
 
 	"github.com/filanov/bm-inventory/internal/common"
 
 	"github.com/filanov/bm-inventory/internal/hardware"
+
+	"github.com/golang/mock/gomock"
+
+	"github.com/filanov/bm-inventory/internal/metrics"
 
 	"github.com/go-openapi/swag"
 
@@ -46,7 +49,7 @@ var _ = Describe("RegisterHost", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -259,11 +262,15 @@ var _ = Describe("HostInstallationFailed", func() {
 		db                *gorm.DB
 		hostId, clusterId strfmt.UUID
 		host              models.Host
+		ctrl              *gomock.Controller
+		mockMetric        *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
+		ctrl = gomock.NewController(GinkgoT())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), mockMetric)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = getTestHost(hostId, clusterId, "")
@@ -272,6 +279,7 @@ var _ = Describe("HostInstallationFailed", func() {
 	})
 
 	It("handle_installation_error", func() {
+		mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 		Expect(hapi.HandleInstallationFailure(ctx, &host)).ShouldNot(HaveOccurred())
 		h := getHost(hostId, clusterId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusError))
@@ -294,7 +302,7 @@ var _ = Describe("Install", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -433,7 +441,7 @@ var _ = Describe("Disable", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -537,7 +545,7 @@ var _ = Describe("Enable", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -703,7 +711,7 @@ var _ = Describe("Refresh Host", func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg())
+		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return().AnyTimes()
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
