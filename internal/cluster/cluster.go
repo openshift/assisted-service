@@ -24,8 +24,8 @@ const minHostsNeededForInstallation = 3
 //go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go
 
 type StateAPI interface {
-	// Refresh state in case of hosts update7
-	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error)
+	// Refresh state in case of hosts update
+	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error)
 }
 
 type RegistrationAPI interface {
@@ -149,7 +149,7 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 	return err
 }
 
-func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
+func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
 	state, err := m.getCurrentState(swag.StringValue(c.Status))
 	if err != nil {
 		return nil, err
@@ -167,6 +167,7 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 
 func (m *Manager) ClusterMonitoring() {
 	var clusters []*common.Cluster
+	var clusterAfterRefresh *common.Cluster
 
 	if err := m.db.Find(&clusters).Error; err != nil {
 		m.log.WithError(err).Errorf("failed to get clusters")
@@ -179,13 +180,15 @@ func (m *Manager) ClusterMonitoring() {
 			m.log.WithError(err).Errorf("failed to get cluster %s currentState", cluster.ID)
 			continue
 		}
-		stateReply, err := state.RefreshStatus(context.Background(), cluster, m.db)
-		if err != nil {
+
+		if clusterAfterRefresh, err = state.RefreshStatus(context.Background(), cluster, m.db); err != nil {
 			m.log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
 			continue
 		}
-		if stateReply.IsChanged {
-			m.log.Infof("cluster %s updated to state %s via monitor", cluster.ID, stateReply.State)
+
+		if clusterAfterRefresh.Status != cluster.Status {
+			m.log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
+				*cluster.Status, *clusterAfterRefresh.Status)
 		}
 	}
 }

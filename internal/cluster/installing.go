@@ -28,7 +28,7 @@ type installingState baseState
 
 var _ StateAPI = (*Manager)(nil)
 
-func (i *installingState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
+func (i *installingState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, i.log)
 	installationState, StateInfo, err := i.getClusterInstallationState(ctx, c, db)
 	if err != nil {
@@ -37,16 +37,13 @@ func (i *installingState) RefreshStatus(ctx context.Context, c *common.Cluster, 
 
 	switch installationState {
 	case models.ClusterStatusFinalizing:
-		return updateClusterStatusUpdateReplay(log, db, *c.ID, *c.Status, models.ClusterStatusFinalizing, StateInfo)
+		return updateClusterStatus(log, db, *c.ID, *c.Status, models.ClusterStatusFinalizing, StateInfo)
 	case clusterStatusInstalled:
-		return updateClusterStatusUpdateReplay(log, db, *c.ID, *c.Status, clusterStatusInstalled, StateInfo)
+		return updateClusterStatus(log, db, *c.ID, *c.Status, clusterStatusInstalled, StateInfo)
 	case clusterStatusError:
-		return updateClusterStatusUpdateReplay(log, db, *c.ID, *c.Status, clusterStatusError, StateInfo)
+		return updateClusterStatus(log, db, *c.ID, *c.Status, clusterStatusError, StateInfo)
 	case clusterStatusInstalling:
-		return &UpdateReply{
-			State:     clusterStatusInstalling,
-			IsChanged: false,
-		}, nil
+		return c, nil
 	}
 	return nil, errors.Errorf("cluster % state transaction is not clear, installation state: %s ", c.ID, installationState)
 }

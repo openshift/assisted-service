@@ -21,8 +21,6 @@ var _ = Describe("insufficient_state", func() {
 		db           *gorm.DB
 		currentState = clusterStatusInsufficient
 		id           strfmt.UUID
-		updateReply  *UpdateReply
-		updateErr    error
 		cluster      common.Cluster
 	)
 
@@ -46,11 +44,9 @@ var _ = Describe("insufficient_state", func() {
 
 	Context("refresh_state", func() {
 		It("not answering requirement to be ready", func() {
-			updateReply, updateErr = state.RefreshStatus(ctx, &cluster, db)
+			refreshedCluster, updateErr := state.RefreshStatus(ctx, &cluster, db)
 			Expect(updateErr).Should(BeNil())
-			Expect(updateReply.State).Should(Equal(clusterStatusInsufficient))
-			c := geCluster(*cluster.ID, db)
-			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInsufficient))
+			Expect(*refreshedCluster.Status).Should(Equal(clusterStatusInsufficient))
 		})
 
 		It("resetting when host in reboot stage", func() {
@@ -58,28 +54,20 @@ var _ = Describe("insufficient_state", func() {
 			c := geCluster(*cluster.ID, db)
 			Expect(len(c.Hosts)).Should(Equal(1))
 			updateHostProgress(c.Hosts[0], models.HostStageRebooting, "rebooting", db)
-			updateReply, updateErr = state.RefreshStatus(ctx, &cluster, db)
+			refreshedCluster, updateErr := state.RefreshStatus(ctx, &cluster, db)
 			Expect(updateErr).Should(BeNil())
-			Expect(updateReply.State).Should(Equal(clusterStatusInsufficient))
-			c = geCluster(*cluster.ID, db)
-			Expect(c.Hosts[0].Progress.CurrentStage).Should(Equal(models.HostStageRebooting))
-			Expect(swag.StringValue(c.Hosts[0].Status)).Should(Equal(models.HostStatusResettingPendingUserAction))
+			Expect(swag.StringValue(refreshedCluster.Hosts[0].Status)).Should(Equal(models.HostStatusResettingPendingUserAction))
+			Expect(*refreshedCluster.Status).Should(Equal(clusterStatusInsufficient))
+			Expect(refreshedCluster.Hosts[0].Progress.CurrentStage).Should(Equal(models.HostStageRebooting))
+			Expect(swag.StringValue(refreshedCluster.Hosts[0].Status)).Should(Equal(models.HostStatusResettingPendingUserAction))
 		})
 
 		It("answering requirement to be ready", func() {
 			addInstallationRequirements(id, db)
-			updateReply, updateErr = state.RefreshStatus(ctx, &cluster, db)
+			refreshedCluster, updateErr := state.RefreshStatus(ctx, &cluster, db)
 			Expect(updateErr).Should(BeNil())
-			Expect(updateReply.State).Should(Equal(clusterStatusReady))
-			c := geCluster(*cluster.ID, db)
-			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusReady))
+			Expect(*refreshedCluster.Status).Should(Equal(clusterStatusReady))
 
 		})
-	})
-
-	AfterEach(func() {
-		db.Close()
-		updateReply = nil
-		updateErr = nil
 	})
 })

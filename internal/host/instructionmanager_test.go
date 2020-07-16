@@ -2,7 +2,6 @@ package host
 
 import (
 	"context"
-	"testing"
 
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/hardware"
@@ -93,9 +92,9 @@ var _ = Describe("instructionmanager", func() {
 
 func checkStepsByState(state string, host *models.Host, db *gorm.DB, instMng *InstructionManager, mockValidator *hardware.MockValidator, ctx context.Context,
 	expectedStepTypes []models.StepType) {
-	updateReply, updateErr := updateHostState(getTestLog(), state, "", host, db)
+	updateReply, updateErr := updateHostStatus(getTestLog(), db, host.ClusterID, *host.ID, *host.Status, state, "")
 	ExpectWithOffset(1, updateErr).ShouldNot(HaveOccurred())
-	ExpectWithOffset(1, updateReply.IsChanged).Should(BeTrue())
+	ExpectWithOffset(1, updateReply).ShouldNot(BeNil())
 	h := getHost(*host.ID, host.ClusterID, db)
 	ExpectWithOffset(1, swag.StringValue(h.Status)).Should(Equal(state))
 	validDiskSize := int64(128849018880)
@@ -117,9 +116,4 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, instMng *In
 		ExpectWithOffset(1, step.StepType).Should(Equal(expectedStepTypes[i]))
 	}
 	ExpectWithOffset(1, stepsErr).ShouldNot(HaveOccurred())
-}
-
-func TestInstructionManager(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "instruction manager tests")
 }

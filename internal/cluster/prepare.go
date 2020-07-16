@@ -32,14 +32,11 @@ func NewPrepareForInstallation(cfg PrepareConfig, log logrus.FieldLogger, db *go
 	}
 }
 
-func (p *prepare) RefreshStatus(ctx context.Context, c *common.Cluster, _ *gorm.DB) (*UpdateReply, error) {
+func (p *prepare) RefreshStatus(ctx context.Context, c *common.Cluster, _ *gorm.DB) (*common.Cluster, error) {
 	// can happen if the service was rebooted or somehow the async part crashed.
 	if time.Since(time.Time(c.StatusUpdatedAt)) > p.InstallationTimeout {
-		return updateClusterStatusUpdateReplay(logutil.FromContext(ctx, p.log), p.db,
+		return updateClusterStatus(logutil.FromContext(ctx, p.log), p.db,
 			*c.ID, *c.Status, models.ClusterStatusError, statusInfoPreparingForInstallationTimeout)
 	}
-	return &UpdateReply{
-		State:     models.ClusterStatusPreparingForInstallation,
-		IsChanged: false,
-	}, nil
+	return c, nil
 }

@@ -37,10 +37,10 @@ func (m *MockStateAPI) EXPECT() *MockStateAPIMockRecorder {
 }
 
 // RefreshStatus mocks base method
-func (m *MockStateAPI) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
+func (m *MockStateAPI) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshStatus", ctx, c, db)
-	ret0, _ := ret[0].(*UpdateReply)
+	ret0, _ := ret[0].(*common.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -178,10 +178,10 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 }
 
 // RefreshStatus mocks base method
-func (m *MockAPI) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
+func (m *MockAPI) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshStatus", ctx, c, db)
-	ret0, _ := ret[0].(*UpdateReply)
+	ret0, _ := ret[0].(*common.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

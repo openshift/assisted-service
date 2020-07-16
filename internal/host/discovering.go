@@ -29,6 +29,6 @@ type discoveringState struct {
 	connectivityValidator connectivity.Validator
 }
 
-func (d *discoveringState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+func (d *discoveringState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
 	return checkAndUpdateSufficientHost(logutil.FromContext(ctx, d.log), h, db, d.hwValidator, d.connectivityValidator)
 }

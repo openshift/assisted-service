@@ -17,10 +17,7 @@ func NewErrorState(log logrus.FieldLogger, db *gorm.DB) *errorState {
 
 type errorState baseState
 
-func (e *errorState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+func (e *errorState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
 	// State in the same state
-	return &UpdateReply{
-		State:     HostStatusError,
-		IsChanged: false,
-	}, nil
+	return h, nil
 }

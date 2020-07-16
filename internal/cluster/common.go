@@ -32,45 +32,29 @@ const (
 	statusInfoPreparingForInstallationTimeout = "Preparing cluster for installation timeout"
 )
 
-type UpdateReply struct {
-	State     string
-	IsChanged bool
-}
-
 type baseState struct {
 	//TODO remove when res: https://github.com/golangci/golangci-lint/issues/537
 	log logrus.FieldLogger //nolint:structcheck
 	db  *gorm.DB           //nolint:structcheck
 }
 
-func updateClusterStatusUpdateReplay(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
-	newStatus string, statusInfo string) (*UpdateReply, error) {
-	wouldChange := srcStatus != newStatus
-
-	if err := updateClusterStatus(log, db, clusterId, srcStatus, newStatus, statusInfo); err != nil {
-		return nil, err
-	}
-
-	return &UpdateReply{
-		State:     newStatus,
-		IsChanged: wouldChange,
-	}, nil
-}
-
 func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
-	newStatus string, statusInfo string, extra ...interface{}) error {
-	extra = append(extra, "status", newStatus, "status_info", statusInfo)
+	newStatus string, statusInfo string, extra ...interface{}) (*common.Cluster, error) {
+	var cluster *common.Cluster
+	var err error
+
+	extra = append(append(make([]interface{}, 0), "status", newStatus, "status_info", statusInfo), extra...)
 
 	if newStatus != srcStatus {
 		extra = append(extra, "status_updated_at", strfmt.DateTime(time.Now()))
 	}
 
-	if _, err := UpdateCluster(log, db, clusterId, srcStatus, extra...); err != nil {
-		return errors.Wrapf(err, "failed to update cluster %s state from %s to %s",
+	if cluster, err = UpdateCluster(log, db, clusterId, srcStatus, extra...); err != nil || *cluster.Status != newStatus {
+		return nil, errors.Wrapf(err, "failed to update cluster %s state from %s to %s",
 			clusterId, srcStatus, newStatus)
 	}
 
-	return nil
+	return cluster, nil
 }
 
 func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string, extra ...interface{}) (*common.Cluster, error) {

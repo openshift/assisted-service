@@ -18,10 +18,7 @@ func NewInstallingState(log logrus.FieldLogger, db *gorm.DB) *installingState {
 
 type installingState baseState
 
-func (i *installingState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+func (i *installingState) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
 	// State in the same state
-	return &UpdateReply{
-		State:     HostStatusInstalling,
-		IsChanged: false,
-	}, nil
+	return h, nil
 }

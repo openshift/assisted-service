@@ -38,10 +38,10 @@ func (m *MockStateAPI) EXPECT() *MockStateAPIMockRecorder {
 }
 
 // RefreshStatus mocks base method
-func (m *MockStateAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+func (m *MockStateAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshStatus", ctx, h, db)
-	ret0, _ := ret[0].(*UpdateReply)
+	ret0, _ := ret[0].(*models.Host)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -157,10 +157,10 @@ func (mr *MockAPIMockRecorder) HandleInstallationFailure(ctx, h interface{}) *go
 }
 
 // RefreshStatus mocks base method
-func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshStatus", ctx, h, db)
-	ret0, _ := ret[0].(*UpdateReply)
+	ret0, _ := ret[0].(*models.Host)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

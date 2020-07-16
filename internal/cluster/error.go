@@ -20,14 +20,11 @@ func NewErrorState(log logrus.FieldLogger, db *gorm.DB) *errorState {
 
 type errorState baseState
 
-func (e *errorState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*UpdateReply, error) {
-	return &UpdateReply{
-		State:     clusterStatusError,
-		IsChanged: false,
-	}, nil
+func (e *errorState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+	return c, nil
 }
 
-func (e *errorState) Install(ctx context.Context, c *common.Cluster) (*UpdateReply, error) {
-	return nil, errors.Errorf("unable to install cluster <%s> in <%s> status",
+func (e *errorState) Install(ctx context.Context, c *common.Cluster) error {
+	return errors.Errorf("unable to install cluster <%s> in <%s> status",
 		c.ID, swag.StringValue(c.Status))
 }

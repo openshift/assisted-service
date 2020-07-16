@@ -25,7 +25,7 @@ import (
 
 type StateAPI interface {
 	// check keep alive
-	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error)
+	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error)
 }
 
 type SpecificHardwareParams interface {
@@ -231,14 +231,14 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 	return m.db.Model(h).Update("inventory", inventory).Error
 }
 
-func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*UpdateReply, error) {
+func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
 	state, err := m.getCurrentState(swag.StringValue(h.Status))
 	if err != nil {
 		return nil, err
 	}
 	ret, err := state.RefreshStatus(ctx, h, db)
-	if err == nil && ret.IsChanged {
-		msg := fmt.Sprintf("Updated status of host %s to %s", m.GetHostname(h), ret.State)
+	if err == nil && ret.Status != h.Status {
+		msg := fmt.Sprintf("Updated status of host %s to %s", m.GetHostname(h), *ret.Status)
 		m.eventsHandler.AddEvent(ctx, h.ID.String(), models.EventSeverityInfo, msg, time.Now(), h.ClusterID.String())
 	}
 	return ret, err
@@ -289,8 +289,9 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		return updateHostProgress(logutil.FromContext(ctx, m.log), HostStatusInstalled, statusInfo, h, m.db,
-			progress.CurrentStage, progress.ProgressInfo)
+		_, err := updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID, *h.Status, HostStatusInstalled, statusInfo,
+			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
+		return err
 	case models.HostStageFailed:
 		// Keeps the last progress
 
@@ -298,10 +299,12 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 		}
 
-		return updateHostStateWithParams(logutil.FromContext(ctx, m.log), HostStatusError, statusInfo, h, m.db)
+		_, err := updateHostStatus(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID, *h.Status, HostStatusError, statusInfo)
+		return err
 	default:
-		return updateHostProgress(logutil.FromContext(ctx, m.log), HostStatusInstallingInProgress, statusInfo, h, m.db,
-			progress.CurrentStage, progress.ProgressInfo)
+		_, err := updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID, *h.Status, HostStatusInstallingInProgress, statusInfo,
+			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
+		return err
 	}
 }
 

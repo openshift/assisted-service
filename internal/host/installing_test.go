@@ -19,7 +19,7 @@ var _ = Describe("installing_state", func() {
 	currentState := HostStatusInstalling
 	var host models.Host
 	var id, clusterId strfmt.UUID
-	var updateReply *UpdateReply
+	var hostAfterRefresh *models.Host
 	var updateErr error
 	var expectedReply *expect
 
@@ -31,25 +31,25 @@ var _ = Describe("installing_state", func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, currentState)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		expectedReply = &expect{expectedState: currentState}
+		expectedReply = &expect{expectedStatus: currentState}
 	})
 
 	Context("refresh_status", func() {
 		It("keep_alive", func() {
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
+			hostAfterRefresh, updateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 		It("keep_alive_timeout", func() {
 			host.UpdatedAt = strfmt.DateTime(time.Now().Add(-time.Hour))
-			updateReply, updateErr = state.RefreshStatus(ctx, &host, nil)
+			hostAfterRefresh, updateErr = state.RefreshStatus(ctx, &host, nil)
 		})
 	})
 
 	AfterEach(func() {
-		postValidation(expectedReply, currentState, db, id, clusterId, updateReply, updateErr)
+		postValidation(expectedReply, currentState, db, id, clusterId, hostAfterRefresh, updateErr)
 		// cleanup
 		db.Close()
 		expectedReply = nil
-		updateReply = nil
+		hostAfterRefresh = nil
 		updateErr = nil
 	})
 })
