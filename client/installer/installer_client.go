@@ -85,6 +85,9 @@ type API interface {
 	   RegisterHost registers a new open shift bare metal host*/
 	RegisterHost(ctx context.Context, params *RegisterHostParams) (*RegisterHostCreated, error)
 	/*
+	   RegisterInstalledCluster registers an installed open shift cluster*/
+	RegisterInstalledCluster(ctx context.Context, params *RegisterInstalledClusterParams) (*RegisterInstalledClusterCreated, error)
+	/*
 	   ResetCluster resets a failed installation*/
 	ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error)
 	/*
@@ -644,6 +647,30 @@ func (a *Client) RegisterHost(ctx context.Context, params *RegisterHostParams) (
 		return nil, err
 	}
 	return result.(*RegisterHostCreated), nil
+
+}
+
+/*
+RegisterInstalledCluster registers an installed open shift cluster
+*/
+func (a *Client) RegisterInstalledCluster(ctx context.Context, params *RegisterInstalledClusterParams) (*RegisterInstalledClusterCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "RegisterInstalledCluster",
+		Method:             "POST",
+		PathPattern:        "/installed_clusters",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &RegisterInstalledClusterReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*RegisterInstalledClusterCreated), nil
 
 }
 

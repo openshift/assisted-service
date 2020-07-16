@@ -29,6 +29,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/thoas/go-funk v0.6.0
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
+	google.golang.org/appengine v1.5.0
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.17.3
 	k8s.io/apimachinery v0.17.3

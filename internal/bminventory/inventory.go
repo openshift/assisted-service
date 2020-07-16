@@ -54,6 +54,7 @@ import (
 
 const kubeconfigPrefix = "generate-kubeconfig"
 const kubeconfig = "kubeconfig"
+const workerIgnition = "worker.ign"
 
 const (
 	ResourceKindHost    = "Host"
@@ -2183,4 +2184,87 @@ func (b *bareMetalInventory) customizeHostStages(host *models.Host) {
 
 func (b *bareMetalInventory) customizeHostname(host *models.Host) {
 	host.RequestedHostname = b.hostApi.GetHostname(host)
+}
+
+func (b *bareMetalInventory) RegisterInstalledCluster(ctx context.Context, params installer.RegisterInstalledClusterParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	id := strfmt.UUID(uuid.New().String())
+	url := installer.GetClusterURL{ClusterID: id}
+	log.Infof("Register installed-cluster: %s with id %s", swag.StringValue(params.NewInstalledClusterParams.Name), id)
+
+	c := common.Cluster{Cluster: models.Cluster{
+		ID:               &id,
+		Href:             swag.String(url.String()),
+		Kind:             swag.String(ResourceKindCluster),
+		Name:             swag.StringValue(params.NewInstalledClusterParams.Name),
+		OpenshiftVersion: swag.StringValue(&params.NewInstalledClusterParams.OpenshiftVersion),
+		UpdatedAt:        strfmt.DateTime{},
+	}}
+
+	var workerIgnitionBytes []byte
+	if params.NewInstalledClusterParams.WorkerIgnition != nil {
+		if *params.NewInstalledClusterParams.WorkerIgnition == "" {
+			log.Errorf("Worker ignition for new cluster has cannot be empty")
+			return installer.NewRegisterInstalledClusterBadRequest().
+				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Worker-ignition cannot be empty")))
+		}
+
+		var err error
+		workerIgnitionBytes, err = base64.StdEncoding.DecodeString(*params.NewInstalledClusterParams.WorkerIgnition)
+		if err != nil {
+			log.Errorf("Worker ignition for new cluster failed to base64 decoded: [%s]", *params.NewInstalledClusterParams.WorkerIgnition)
+			return installer.NewRegisterInstalledClusterBadRequest().
+				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Worker-ignition failed to decode")))
+		}
+	}
+
+	if err := validations.ValidateClusterNameFormat(swag.StringValue(params.NewInstalledClusterParams.Name)); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	// After registering the cluster, its status should be 'Insufficient'
+	err := b.clusterApi.RegisterCluster(ctx, &c)
+	if err != nil {
+		log.Errorf("failed to register cluster %s ", swag.StringValue(params.NewInstalledClusterParams.Name))
+		return installer.NewRegisterInstalledClusterInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	// Persist worker-ignition to s3 for cluster
+	fileName := fmt.Sprintf("%s/%s", c.ID, workerIgnition)
+	if err := b.s3Client.PushDataToS3(ctx, workerIgnitionBytes, fileName, b.S3Bucket); err != nil {
+		return installer.NewRegisterInstalledClusterInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", fileName)))
+	}
+
+	// Update cluster status to Installed
+	installedStatus := models.ClusterStatusInstalled
+	if err := b.updateClusterStatus(ctx, &c, &installedStatus); err != nil {
+		log.Errorf("failed to update status of cluster %s", swag.StringValue(params.NewInstalledClusterParams.Name))
+		return installer.NewRegisterInstalledClusterInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	return installer.NewRegisterInstalledClusterCreated().WithPayload(&c.Cluster)
+}
+
+func (b *bareMetalInventory) updateClusterStatus(ctx context.Context, c *common.Cluster, status *string) error {
+	log := logutil.FromContext(ctx, b.log)
+	srcStatus := *c.Status
+	updates := map[string]interface{}{
+		"status":            swag.StringValue(status),
+		"status_info":       swag.StringValue(status),
+		"status_updated_at": strfmt.DateTime(time.Now()),
+	}
+	dbReply := b.db.Model(&models.Cluster{}).Where("id = ?", c.ID.String()).Updates(updates)
+	if dbReply.Error != nil {
+		return errors.Wrapf(dbReply.Error, "failed to update cluster <%s> state from <%s> to <%s>",
+			c.ID.String(), srcStatus, swag.StringValue(c.Status))
+	}
+	c.Status = status
+	c.StatusInfo = status
+	log.Infof("Updated cluster <%s> status from <%s> to <%s> with fields: <%v>",
+		c.ID.String(), srcStatus, swag.StringValue(c.Status), updates)
+
+	return nil
 }

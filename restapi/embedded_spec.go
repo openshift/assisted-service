@@ -1364,6 +1364,45 @@ func init() {
           }
         }
       }
+    },
+    "/installed_clusters": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Register an installed OpenShift cluster.",
+        "operationId": "RegisterInstalledCluster",
+        "parameters": [
+          {
+            "name": "new-installed-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/installed-cluster-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -2282,6 +2321,34 @@ func init() {
       "properties": {
         "worker_ignition": {
           "description": "base64 encoded worker ignition",
+          "type": "string"
+        }
+      }
+    },
+    "installed-cluster-create-params": {
+      "type": "object",
+      "required": [
+        "name",
+        "worker_ignition"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name of the OpenShift cluster.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string",
+          "enum": [
+            "4.5"
+          ]
+        },
+        "os_image_url": {
+          "description": "The URL of the OS image file to install on cluster's hosts.",
+          "type": "string"
+        },
+        "worker_ignition": {
+          "description": "Ignition content (base64 format) for igniting worker nodes to be added to cluster.",
           "type": "string"
         }
       }
@@ -3972,6 +4039,45 @@ func init() {
           }
         }
       }
+    },
+    "/installed_clusters": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Register an installed OpenShift cluster.",
+        "operationId": "RegisterInstalledCluster",
+        "parameters": [
+          {
+            "name": "new-installed-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/installed-cluster-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -4896,6 +5002,34 @@ func init() {
       "properties": {
         "worker_ignition": {
           "description": "base64 encoded worker ignition",
+          "type": "string"
+        }
+      }
+    },
+    "installed-cluster-create-params": {
+      "type": "object",
+      "required": [
+        "name",
+        "worker_ignition"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name of the OpenShift cluster.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string",
+          "enum": [
+            "4.5"
+          ]
+        },
+        "os_image_url": {
+          "description": "The URL of the OS image file to install on cluster's hosts.",
+          "type": "string"
+        },
+        "worker_ignition": {
+          "description": "Ignition content (base64 format) for igniting worker nodes to be added to cluster.",
           "type": "string"
         }
       }
