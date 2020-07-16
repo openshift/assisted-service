@@ -67,6 +67,9 @@ type API interface {
 	   InstallCluster installs the open shift bare metal cluster*/
 	InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterAccepted, error)
 	/*
+	   InstallHost performs the install command on the host*/
+	InstallHost(ctx context.Context, params *InstallHostParams) (*InstallHostOK, error)
+	/*
 	   ListClusters retrieves the list of open shift bare metal clusters*/
 	ListClusters(ctx context.Context, params *ListClustersParams) (*ListClustersOK, error)
 	/*
@@ -497,6 +500,30 @@ func (a *Client) InstallCluster(ctx context.Context, params *InstallClusterParam
 		return nil, err
 	}
 	return result.(*InstallClusterAccepted), nil
+
+}
+
+/*
+InstallHost performs the install command on the host
+*/
+func (a *Client) InstallHost(ctx context.Context, params *InstallHostParams) (*InstallHostOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "InstallHost",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/install",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &InstallHostReader{formats: a.formats},
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*InstallHostOK), nil
 
 }
 

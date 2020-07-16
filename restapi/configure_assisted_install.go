@@ -84,6 +84,9 @@ type InstallerAPI interface {
 	/* InstallCluster Installs the OpenShift bare metal cluster. */
 	InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder
 
+	/* InstallHost Perform the install command on the host. */
+	InstallHost(ctx context.Context, params installer.InstallHostParams) middleware.Responder
+
 	/* ListClusters Retrieves the list of OpenShift bare metal clusters. */
 	ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder
 
@@ -232,6 +235,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	api.InstallerInstallClusterHandler = installer.InstallClusterHandlerFunc(func(params installer.InstallClusterParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		return c.InstallerAPI.InstallCluster(ctx, params)
+	})
+	api.InstallerInstallHostHandler = installer.InstallHostHandlerFunc(func(params installer.InstallHostParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.InstallerAPI.InstallHost(ctx, params)
 	})
 	api.InstallerListClustersHandler = installer.ListClustersHandlerFunc(func(params installer.ListClustersParams) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

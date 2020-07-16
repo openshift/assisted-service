@@ -95,6 +95,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerInstallClusterHandler: installer.InstallClusterHandlerFunc(func(params installer.InstallClusterParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.InstallCluster has not yet been implemented")
 		}),
+		InstallerInstallHostHandler: installer.InstallHostHandlerFunc(func(params installer.InstallHostParams) middleware.Responder {
+			return middleware.NotImplemented("operation installer.InstallHost has not yet been implemented")
+		}),
 		InstallerListClustersHandler: installer.ListClustersHandlerFunc(func(params installer.ListClustersParams) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListClusters has not yet been implemented")
 		}),
@@ -202,6 +205,8 @@ type AssistedInstallAPI struct {
 	InstallerGetNextStepsHandler installer.GetNextStepsHandler
 	// InstallerInstallClusterHandler sets the operation handler for the install cluster operation
 	InstallerInstallClusterHandler installer.InstallClusterHandler
+	// InstallerInstallHostHandler sets the operation handler for the install host operation
+	InstallerInstallHostHandler installer.InstallHostHandler
 	// InstallerListClustersHandler sets the operation handler for the list clusters operation
 	InstallerListClustersHandler installer.ListClustersHandler
 	// VersionsListComponentVersionsHandler sets the operation handler for the list component versions operation
@@ -344,6 +349,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerInstallClusterHandler == nil {
 		unregistered = append(unregistered, "installer.InstallClusterHandler")
+	}
+	if o.InstallerInstallHostHandler == nil {
+		unregistered = append(unregistered, "installer.InstallHostHandler")
 	}
 	if o.InstallerListClustersHandler == nil {
 		unregistered = append(unregistered, "installer.ListClustersHandler")
@@ -538,6 +546,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/actions/install"] = installer.NewInstallCluster(o.context, o.InstallerInstallClusterHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/actions/install"] = installer.NewInstallHost(o.context, o.InstallerInstallHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

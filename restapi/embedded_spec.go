@@ -1058,6 +1058,62 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/hosts/{host_id}/actions/install": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Perform the install command on the host.",
+        "operationId": "InstallHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "InstallHostParams",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/install-host-params"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
       "get": {
         "tags": [
@@ -2226,6 +2282,18 @@ func init() {
     },
     "ingress-cert-params": {
       "type": "string"
+    },
+    "install-host-params": {
+      "type": "object",
+      "required": [
+        "worker_ignition"
+      ],
+      "properties": {
+        "worker_ignition": {
+          "description": "base64 encoded worker ignition",
+          "type": "string"
+        }
+      }
     },
     "interface": {
       "type": "object",
@@ -3607,6 +3675,62 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/hosts/{host_id}/actions/install": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Perform the install command on the host.",
+        "operationId": "InstallHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "InstallHostParams",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/install-host-params"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
       "get": {
         "tags": [
@@ -4781,6 +4905,18 @@ func init() {
     },
     "ingress-cert-params": {
       "type": "string"
+    },
+    "install-host-params": {
+      "type": "object",
+      "required": [
+        "worker_ignition"
+      ],
+      "properties": {
+        "worker_ignition": {
+          "description": "base64 encoded worker ignition",
+          "type": "string"
+        }
+      }
     },
     "interface": {
       "type": "object",
