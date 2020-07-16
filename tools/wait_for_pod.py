@@ -41,10 +41,10 @@ def get_pod_state():
     ret = subprocess.check_output(
         "kubectl get pods -l app={app} -o json --namespace=assisted-installer".format(app=args.app), shell=True)
     pod_json = json.loads(ret)
+
     if not pod_json["items"]:
         print("ERROR: pods app name {} not found".format(args.app))
-        sys.exit("pods app name {} not found".format(args.app))
-
+        return []
     state_keys = pod_json["items"][0]["status"]["containerStatuses"][0]["state"].keys()
     return state_keys
 
