@@ -75,6 +75,14 @@ var _ = Describe("Host tests", func() {
 					IPV4Addresses: []string{
 						"1.2.3.4/24",
 					},
+					SpeedMbps: 20,
+				},
+				{
+					Name: "eth1",
+					IPV4Addresses: []string{
+						"1.2.5.4/24",
+					},
+					SpeedMbps: 40,
 				},
 			},
 
@@ -144,9 +152,44 @@ var _ = Describe("Host tests", func() {
 		Expect(ok).Should(Equal(true))
 	})
 
+	It("host installation progress", func() {
+		host := registerHost(clusterID)
+		Expect(db.Model(host).Update("status", "installing").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).Update("role", "master").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).Update("bootstrap", "true").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
+
+		updateProgress(*host.ID, clusterID, models.HostStageStartingInstallation)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageStartingInstallation))
+		time.Sleep(time.Second * 3)
+		updateProgress(*host.ID, clusterID, models.HostStageInstalling)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageInstalling))
+		time.Sleep(time.Second * 3)
+		updateProgress(*host.ID, clusterID, models.HostStageWritingImageToDisk)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageWritingImageToDisk))
+		time.Sleep(time.Second * 3)
+		updateProgress(*host.ID, clusterID, models.HostStageRebooting)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageRebooting))
+		time.Sleep(time.Second * 3)
+		updateProgress(*host.ID, clusterID, models.HostStageConfiguring)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageConfiguring))
+		time.Sleep(time.Second * 3)
+		updateProgress(*host.ID, clusterID, models.HostStageDone)
+		host = getHost(clusterID, *host.ID)
+		Expect(host.Progress.CurrentStage).Should(Equal(models.HostStageDone))
+		time.Sleep(time.Second * 3)
+	})
+
 	It("installation_error_reply", func() {
 		host := registerHost(clusterID)
 		Expect(db.Model(host).Update("status", "installing").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).Update("role", "worker").Error).NotTo(HaveOccurred())
 
 		_, err := bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,

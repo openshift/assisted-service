@@ -24,7 +24,7 @@ var _ = Describe("ready_state", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = &Manager{ready: NewReadyState(getTestLog(), db)}
+		state = &Manager{log: getTestLog(), ready: NewReadyState(getTestLog(), db)}
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{

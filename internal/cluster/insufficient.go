@@ -6,6 +6,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
+
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"

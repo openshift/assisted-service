@@ -185,26 +185,6 @@ func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.
 	ExpectWithOffset(1, swag.StringValue(c.Status)).Should(Equal(state))
 }
 
-func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, current_step models.HostStage) {
-	updateProgressWithInfo(hostID, clusterID, current_step, "")
-}
-
-func updateProgressWithInfo(hostID strfmt.UUID, clusterID strfmt.UUID, current_step models.HostStage, info string) {
-	ctx := context.Background()
-
-	installProgress := &models.HostProgress{
-		CurrentStage: current_step,
-		ProgressInfo: info,
-	}
-	updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
-		ClusterID:    clusterID,
-		HostProgress: installProgress,
-		HostID:       hostID,
-	})
-	Expect(err).ShouldNot(HaveOccurred())
-	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
-}
-
 func waitForClusterInstallationToStart(clusterID strfmt.UUID) {
 	waitForClusterState(context.Background(), clusterID, models.ClusterStatusPreparingForInstallation,
 		10*time.Second, IgnoreStateInfo)

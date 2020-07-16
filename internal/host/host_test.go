@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/filanov/bm-inventory/internal/metrics"
+
 	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
@@ -39,7 +41,7 @@ var _ = Describe("update_role", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
+		state = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
@@ -162,13 +164,19 @@ var _ = Describe("update_progress", func() {
 		host       models.Host
 		ctrl       *gomock.Controller
 		mockEvents *events.MockHandler
+		mockMetric *metrics.MockAPI
 	)
+
+	setDefaultReportHostInstallationMetrics := func(mockMetricApi *metrics.MockAPI) {
+		mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	}
 
 	BeforeEach(func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), mockMetric)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, "")
@@ -183,20 +191,22 @@ var _ = Describe("update_progress", func() {
 		BeforeEach(func() {
 			host.Status = swag.String(HostStatusInstalling)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		})
 
 		Context("positive stages", func() {
+			setDefaultReportHostInstallationMetrics(mockMetric)
 			It("some_progress", func() {
 				progress.CurrentStage = defaultProgressStage
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
-
 				Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
 			})
 
 			It("writing to disk", func() {
 				progress.CurrentStage = models.HostStageWritingImageToDisk
 				progress.ProgressInfo = "20%"
+				//mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), progress.CurrentStage)
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
@@ -205,6 +215,7 @@ var _ = Describe("update_progress", func() {
 
 			It("done", func() {
 				progress.CurrentStage = models.HostStageDone
+				//mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), progress.CurrentStage)
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
@@ -222,6 +233,7 @@ var _ = Describe("update_progress", func() {
 			It("progress_failed", func() {
 				progress.CurrentStage = models.HostStageFailed
 				progress.ProgressInfo = "reason"
+				mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), progress.CurrentStage)
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
@@ -232,6 +244,7 @@ var _ = Describe("update_progress", func() {
 			It("progress_failed_empty_reason", func() {
 				progress.CurrentStage = models.HostStageFailed
 				progress.ProgressInfo = ""
+				mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), progress.CurrentStage)
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 				Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
@@ -242,6 +255,7 @@ var _ = Describe("update_progress", func() {
 				By("Some stage", func() {
 					progress.CurrentStage = models.HostStageWritingImageToDisk
 					progress.ProgressInfo = "20%"
+					mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 					Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 					hostFromDB = getHost(*host.ID, host.ClusterID, db)
 					Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
@@ -256,6 +270,7 @@ var _ = Describe("update_progress", func() {
 						CurrentStage: models.HostStageFailed,
 						ProgressInfo: "reason",
 					}
+					mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 					Expect(state.UpdateInstallProgress(ctx, hostFromDB, &newProgress)).ShouldNot(HaveOccurred())
 					hostFromDB = getHost(*host.ID, host.ClusterID, db)
 					Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
@@ -279,6 +294,7 @@ var _ = Describe("update_progress", func() {
 				By("Some stage", func() {
 					progress.CurrentStage = models.HostStageWritingImageToDisk
 					progress.ProgressInfo = "20%"
+					mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 					Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 					verifyDb()
 				})
@@ -315,7 +331,7 @@ var _ = Describe("monitor_disconnection", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return().AnyTimes()
-		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg())
+		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil)
 		clusterID := strfmt.UUID(uuid.New().String())
 		host = getTestHost(strfmt.UUID(uuid.New().String()), clusterID, HostStatusDiscovering)
 		cluster := getTestCluster(clusterID, "1.1.0.0/16")
@@ -385,7 +401,7 @@ var _ = Describe("cancel_installation", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		eventsHandler = events.New(db, logrus.New())
-		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil)
+		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		h = getTestHost(id, clusterId, HostStatusDiscovering)
@@ -452,7 +468,7 @@ var _ = Describe("reset_host", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		eventsHandler = events.New(db, logrus.New())
-		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil)
+		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil)
 	})
 
 	Context("reset_installation", func() {
@@ -654,7 +670,7 @@ var _ = Describe("UpdateInventory", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -761,7 +777,7 @@ var _ = Describe("UpdateHwInfo", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -869,7 +885,7 @@ var _ = Describe("SetBootstrap", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 
@@ -917,7 +933,7 @@ var _ = Describe("PrepareForInstallation", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
