@@ -44,13 +44,3 @@ jobs:
         dockerfile: "Dockerfile.bm-inventory"
         buildargs: GIT_REVISION
         tags: "${{ env.GIT_TAG }},${{ env.GIT_REVISION }}"
-    - name: Publish expirer to Registry
-      uses: elgohr/Publish-Docker-Github-Action@2.15
-      with:
-        name: s3-object-expirer
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        REGISTRY: 'quay.io/ocpmetal'
-        dockerfile: "Dockerfile.s3-object-expirer"
-        buildargs: GIT_REVISION
-        tags: "${{ env.GIT_TAG }},${{ env.GIT_REVISION }}"

@@ -4,7 +4,6 @@ build-container-image: bm-inventory-build
 containers:
     bm-inventory-build: Dockerfile.bm-inventory-build
     bm-inventory: Dockerfile.bm-inventory
-    s3-object-expirer: Dockerfile.s3-object-expirer
 volumes:
     - $HOME/.cache/go-build:/go/pkg/mod
     - $HOME/.cache/golangci-lint:$HOME/.cache/golangci-lint
