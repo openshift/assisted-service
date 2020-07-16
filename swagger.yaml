@@ -844,6 +844,44 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/hosts/{host_id}/actions/install:
+    post:
+      tags:
+        - installer
+      summary: Perform the install command on the host.
+      operationId: InstallHost
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: InstallHostParams
+          required: true
+          schema:
+            $ref: '#/definitions/install-host-params'
+      responses:
+        200:
+          description: Success.
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        400:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /domains:
     get:
       tags:
@@ -1609,7 +1647,7 @@ definitions:
   host-progress:
     type: object
     required:
-     - current_stage
+      - current_stage
     properties:
       current_stage:
         type: string
@@ -1621,16 +1659,16 @@ definitions:
   host-stage:
     type: string
     enum:
-    - Starting installation
-    - Start Waiting for control plane
-    - Installing
-    - Writing image to disk
-    - Rebooting
-    - Waiting for ignition
-    - Configuring
-    - Joined
-    - Done
-    - Failed
+      - Starting installation
+      - Start Waiting for control plane
+      - Installing
+      - Writing image to disk
+      - Rebooting
+      - Waiting for ignition
+      - Configuring
+      - Joined
+      - Done
+      - Failed
 
   error:
     type: object
@@ -1795,10 +1833,10 @@ definitions:
         type: string
         pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
       free_addresses:
-          type: array
-          items:
-            type: string
-            format: ipv4
+        type: array
+        items:
+          type: string
+          format: ipv4
 
   free_networks_addresses:
     type: array
@@ -1833,3 +1871,12 @@ definitions:
       - 'master'
       - 'worker'
       - 'bootstrap'
+
+  install-host-params:
+    type: object
+    properties:
+      worker_ignition:
+        type: string
+        description: base64 encoded worker ignition
+    required:
+      - worker_ignition
