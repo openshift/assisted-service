@@ -1453,6 +1453,53 @@ var _ = Describe("cluster install", func() {
 
 	})
 
+	It("[only_k8s]localhost is not valid", func() {
+		localhost := "localhost"
+		clusterID := *cluster.ID
+
+		hosts := register3nodes(clusterID)
+		_, err := bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		h1 := getHost(clusterID, *hosts[0].ID)
+		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
+		Expect(h1.RequestedHostname).Should(Equal("h1"))
+
+		By("Changing hostname reply to localhost")
+		generateHWPostStepReply(h1, validHwInfo, localhost)
+		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, 60*time.Second)
+		h1Host := getHost(clusterID, *h1.ID)
+		Expect(h1Host.RequestedHostname).Should(Equal(localhost))
+
+		By("Setting hostname to valid name")
+		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+				{ID: *h1Host.ID, Hostname: "reqh0"},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, 60*time.Second)
+
+		By("Setting hostname to localhost")
+		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+				{ID: *h1Host.ID, Hostname: localhost},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, 60*time.Second)
+
+	})
+
 	It("[only_k8s]different_roles_stages", func() {
 		clusterID := *cluster.ID
 		registerHostsAndSetRoles(clusterID, 4)
