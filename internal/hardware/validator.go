@@ -18,6 +18,7 @@ import (
 )
 
 const diskNameFilterRegex = "nvme"
+const localhost = "localhost"
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
@@ -94,8 +95,9 @@ func (v *validator) IsSufficient(host *models.Host, cluster *common.Cluster) (*v
 			"expected at least 1 not removable, not readonly disk of size more than %d  bytes", minDiskSizeRequired))
 	}
 
-	if !v.isHostnameUnique(cluster, host, hwInfo.Hostname) {
-		reasons = append(reasons, fmt.Sprintf("host with hostname \"%s\" already exists.", hwInfo.Hostname))
+	valid, notValidReason := v.isHostnameValid(cluster, host, hwInfo.Hostname)
+	if !valid {
+		reasons = append(reasons, notValidReason)
 	}
 
 	var reason string
@@ -146,10 +148,13 @@ func listValidDisks(inventory models.Inventory, minSizeRequiredInBytes int64) []
 	return disks
 }
 
-func (v *validator) isHostnameUnique(cluster *common.Cluster, host *models.Host, hwInventoryHostname string) bool {
+func (v *validator) isHostnameValid(cluster *common.Cluster, host *models.Host, hwInventoryHostname string) (bool, string) {
 	hostToCheckHostname, err := common.GetCurrentHostName(host)
 	if err != nil {
-		return false
+		return false, "failed to get hostname from hardware info"
+	}
+	if hostToCheckHostname == localhost {
+		return false, "hostname \"localhost\" is forbidden"
 	}
 
 	for _, chost := range cluster.Hosts {
@@ -166,8 +171,8 @@ func (v *validator) isHostnameUnique(cluster *common.Cluster, host *models.Host,
 		}
 
 		if hostToCheckHostname == hostToCompareHostname {
-			return false
+			return false, fmt.Sprintf("host with hostname \"%s\" already exists.", hostToCheckHostname)
 		}
 	}
-	return true
+	return true, ""
 }
