@@ -34,10 +34,10 @@ var _ = Describe("hardware_validator", func() {
 		cluster          *common.Cluster
 		validDiskSize    = int64(128849018880)
 		notValidDiskSize = int64(108849018880)
+		status           = models.HostStatusKnown
 	)
 	BeforeEach(func() {
 		var cfg ValidatorCfg
-		status := models.HostStatusKnown
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 		hwvalidator = NewValidator(logrus.New(), cfg)
 		id1 := strfmt.UUID(uuid.New().String())
@@ -192,6 +192,24 @@ var _ = Describe("hardware_validator", func() {
 		host1.Inventory = string(hw)
 		host2.Inventory = string(hw)
 		host3.Inventory = string(hw)
+		insufficient(hwvalidator.IsSufficient(host1, cluster))
+	})
+
+	It("requested_hostname is localhost", func() {
+		host1.RequestedHostname = "localhost"
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host1.Inventory = string(hw)
+		insufficient(hwvalidator.IsSufficient(host1, cluster))
+	})
+	It("hostname is localhost", func() {
+		id1 := strfmt.UUID(uuid.New().String())
+		clusterID := strfmt.UUID(uuid.New().String())
+		host1 = &models.Host{ID: &id1, ClusterID: clusterID, Status: &status}
+		inventory.Hostname = "localhost"
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host1.Inventory = string(hw)
 		insufficient(hwvalidator.IsSufficient(host1, cluster))
 	})
 
