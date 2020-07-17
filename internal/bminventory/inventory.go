@@ -1476,8 +1476,8 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 func (b *bareMetalInventory) createKubeconfigJob(cluster *common.Cluster, jobName string, cfg []byte) *batch.Job {
 	id := cluster.ID
 	// [TODO] need to find more generic way to set the openshift release image
-	//https://mirror.openshift.com/pub/openshift-v4/clients/ocp-dev-preview/4.5.0-0.nightly-2020-05-21-015458/
-	overrideImageName := "quay.io/openshift-release-dev/ocp-release-nightly@sha256:a9f7564e0f2edef2c15cc1da699ebd1d11f5acd717c3668940848b3fed0d13c7"
+	//OCP 4.5.2
+	overrideImageName := "quay.io/openshift-release-dev/ocp-release@sha256:8f923b7b8efdeac619eb0e7697106c1d17dd3d262c49d8742b38600417cf7d1d"
 	// [TODO]  make sure that we use openshift-installer from the release image, otherwise the KubeconfigGenerator image must be updated here per opnshift version
 	kubeConfigGeneratorImage := b.Config.KubeconfigGenerator
 	return &batch.Job{
