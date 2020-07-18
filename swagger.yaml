@@ -958,7 +958,7 @@ definitions:
       event_time:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
       request_id:
         type: string
         format: uuid
@@ -1040,7 +1040,7 @@ definitions:
       status_updated_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: The last time that the host status has been updated
       progress:
         $ref: '#/definitions/host-progress-info'
@@ -1072,15 +1072,15 @@ definitions:
       updated_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
       created_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
       checked_in_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: The last time the host's agent communicated with the service.
       discovery_agent_version:
         type: string
@@ -1372,7 +1372,7 @@ definitions:
       status_updated_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: The last time that the cluster status has been updated
       hosts:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;association_foreignkey:ID"
@@ -1384,22 +1384,22 @@ definitions:
       updated_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: The last time that this cluster was updated.
       created_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: The time that this cluster was created.
       install_started_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime;default:0"
+        x-go-custom-tag: gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"
         description: The time that this cluster began installation.
       install_completed_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime;default:0"
+        x-go-custom-tag: gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"
         description: The time that this cluster completed installation.
       host_networks:
         type: array
@@ -1431,7 +1431,7 @@ definitions:
       created_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
 
   free-addresses-list:
     type: array
