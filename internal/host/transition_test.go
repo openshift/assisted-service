@@ -45,10 +45,11 @@ var _ = Describe("RegisterHost", func() {
 		hapi              API
 		db                *gorm.DB
 		hostId, clusterId strfmt.UUID
+		dbName            = "register_host"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -251,7 +252,7 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	AfterEach(func() {
-		_ = db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -264,10 +265,11 @@ var _ = Describe("HostInstallationFailed", func() {
 		host              models.Host
 		ctrl              *gomock.Controller
 		mockMetric        *metrics.MockAPI
+		dbName            = "host_installation_failed"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), mockMetric)
@@ -287,7 +289,7 @@ var _ = Describe("HostInstallationFailed", func() {
 	})
 
 	AfterEach(func() {
-		_ = db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -298,10 +300,11 @@ var _ = Describe("Install", func() {
 		db                *gorm.DB
 		hostId, clusterId strfmt.UUID
 		host              models.Host
+		dbName            = "transition_install"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -426,7 +429,7 @@ var _ = Describe("Install", func() {
 	})
 
 	AfterEach(func() {
-		_ = db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -437,10 +440,11 @@ var _ = Describe("Disable", func() {
 		db                *gorm.DB
 		hostId, clusterId strfmt.UUID
 		host              models.Host
+		dbName            = "transition_disable"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -530,7 +534,7 @@ var _ = Describe("Disable", func() {
 	})
 
 	AfterEach(func() {
-		_ = db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -541,10 +545,11 @@ var _ = Describe("Enable", func() {
 		db                *gorm.DB
 		hostId, clusterId strfmt.UUID
 		host              models.Host
+		dbName            = "transition_enable"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -637,7 +642,7 @@ var _ = Describe("Enable", func() {
 	})
 
 	AfterEach(func() {
-		_ = db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -705,10 +710,11 @@ var _ = Describe("Refresh Host", func() {
 		cluster           common.Cluster
 		mockEvents        *events.MockHandler
 		ctrl              *gomock.Controller
+		dbName            string = "host_transition_test_refresh_host"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil)
@@ -1796,7 +1802,7 @@ var _ = Describe("Refresh Host", func() {
 		}
 	})
 	AfterEach(func() {
-		_ = db.Close()
+		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 })

@@ -19,7 +19,7 @@ type ImageInfo struct {
 
 	// created at
 	// Format: date-time
-	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:datetime"`
+	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// Image generator version
 	GeneratorVersion string `json:"generator_version,omitempty"`

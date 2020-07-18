@@ -39,9 +39,10 @@ var _ = Describe("installcmd", func() {
 		mockValidator     *hardware.MockValidator
 		instructionConfig InstructionConfig
 		disks             []*models.Disk
+		dbName            = "install_cmd"
 	)
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		instructionConfig = defaultInstructionConfig
@@ -99,7 +100,7 @@ var _ = Describe("installcmd", func() {
 	AfterEach(func() {
 
 		// cleanup
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 		stepReply = nil
 		stepErr = nil

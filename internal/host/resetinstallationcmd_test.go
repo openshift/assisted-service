@@ -3,6 +3,8 @@ package host
 import (
 	"context"
 
+	"github.com/filanov/bm-inventory/internal/common"
+
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -19,9 +21,10 @@ var _ = Describe("reset", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply *models.Step
 	var stepErr error
+	dbName := "reset_cmd"
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		rstCmd = NewResetInstallationCmd(getTestLog())
 
 		id = strfmt.UUID(uuid.New().String())
@@ -38,7 +41,7 @@ var _ = Describe("reset", func() {
 
 	AfterEach(func() {
 		// cleanup
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

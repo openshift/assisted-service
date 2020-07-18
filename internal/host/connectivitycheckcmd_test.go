@@ -3,6 +3,8 @@ package host
 import (
 	"context"
 
+	"github.com/filanov/bm-inventory/internal/common"
+
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -19,9 +21,10 @@ var _ = Describe("connectivitycheckcmd", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply *models.Step
 	var stepErr error
+	dbName := "connectivitycheckcmd"
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		connectivityCheckCmd = NewConnectivityCheckCmd(getTestLog(), db, nil, "quay.io/ocpmetal/connectivity_check:latest")
 
 		id = strfmt.UUID(uuid.New().String())
@@ -44,7 +47,7 @@ var _ = Describe("connectivitycheckcmd", func() {
 	})
 
 	AfterEach(func() {
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

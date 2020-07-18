@@ -3,6 +3,8 @@ package host
 import (
 	"fmt"
 
+	"github.com/filanov/bm-inventory/internal/common"
+
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -23,10 +25,11 @@ var _ = Describe("update_host_state", func() {
 		lastUpdatedTime strfmt.DateTime
 		returnedHost    *models.Host
 		err             error
+		dbName          string = "host_common_test"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, defaultStatus)
@@ -140,4 +143,8 @@ var _ = Describe("update_host_state", func() {
 			}
 		})
 	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
 })

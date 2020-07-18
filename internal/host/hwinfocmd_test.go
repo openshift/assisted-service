@@ -3,6 +3,8 @@ package host
 import (
 	"context"
 
+	"github.com/filanov/bm-inventory/internal/common"
+
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -19,9 +21,10 @@ var _ = Describe("hwinfocmd", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply *models.Step
 	var stepErr error
+	dbName := "hwinfo_cmd"
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		hwCmd = NewHwInfoCmd(getTestLog(), "quay.io/ocpmetal/hardware_info:latest")
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -37,7 +40,7 @@ var _ = Describe("hwinfocmd", func() {
 
 	AfterEach(func() {
 		// cleanup
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

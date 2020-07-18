@@ -27,10 +27,11 @@ var _ = Describe("instructionmanager", func() {
 		ctrl              *gomock.Controller
 		hwValidator       *hardware.MockValidator
 		instructionConfig InstructionConfig
+		dbName            = "instructionmanager"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		hwValidator = hardware.NewMockValidator(ctrl)
 		instMng = NewInstructionManager(getTestLog(), db, hwValidator, instructionConfig, nil)
@@ -86,7 +87,7 @@ var _ = Describe("instructionmanager", func() {
 
 	AfterEach(func() {
 		// cleanup
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 		stepsReply = models.Steps{}
 		stepsErr = nil

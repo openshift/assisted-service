@@ -22,9 +22,10 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 		db        *gorm.DB
 		clusterId strfmt.UUID
 		cl        common.Cluster
+		dbName    = "cluster_prepare_for_installation"
 	)
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		cfg := Config{}
 		Expect(envconfig.Process("myapp", &cfg)).NotTo(HaveOccurred())
 		capi = NewManager(cfg, getTestLog(), db, nil, nil, nil)
@@ -56,5 +57,9 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 
 	AfterEach(func() {
 		db.Close()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 })
