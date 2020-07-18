@@ -2,12 +2,10 @@ kind: pipeline
 name: default
 
 steps:
-  - name: mariadb
-    image: mariadb
+  - name: postgres
+    image: postgres:12.3-alpine
     commands:
-      - until mysql -u admin -h database -padmin --execute="SELECT VERSION();"; do sleep 5; done
-      - mysql -u admin -h database -padmin --execute="SELECT VERSION();"
-
+      - until psql -U admin -w installer -c "select 1"; do sleep 5; done
   - name: build
     image: golang
     commands:
@@ -17,8 +15,8 @@ steps:
       - go test -v ./subsystem/... -count=1 -ginkgo.skip=only_k8s -ginkgo.v
     environment:
       INVENTORY: build:8090
-      DB_HOST: database
-      DB_PORT: 3306
+      DB_HOST: postgres
+      DB_PORT: 5432
       USE_K8S: false
 
 trigger:
@@ -29,12 +27,9 @@ trigger:
     - push
 
 services:
-  - name: database
-    image: mariadb
+  - name: postgres
+    image: postgres:12.3-alpine
     environment:
-      MYSQL_DATABASE: installer
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: admin
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
-      MYSQL_RANDOM_ROOT_PASSWORD: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: admin
+      POSTGRES_DB: installer
