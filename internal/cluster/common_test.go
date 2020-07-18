@@ -22,10 +22,11 @@ var _ = Describe("update_cluster_state", func() {
 		cluster         *common.Cluster
 		lastUpdatedTime strfmt.DateTime
 		err             error
+		dbName          string = "common_test"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
@@ -73,4 +74,8 @@ var _ = Describe("update_cluster_state", func() {
 			Expect(err).Should(HaveOccurred())
 		})
 	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
 })

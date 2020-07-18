@@ -32,7 +32,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -45,14 +46,6 @@ const ClusterStatusInstalled = "installed"
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "inventory_test")
-}
-
-func prepareDB() *gorm.DB {
-	db, err := gorm.Open("sqlite3", ":memory:")
-	Expect(err).ShouldNot(HaveOccurred())
-	//db = db.Debug()
-	db.AutoMigrate(&common.Cluster{}, &models.Host{})
-	return db
 }
 
 func getTestLog() logrus.FieldLogger {
@@ -75,16 +68,22 @@ var _ = Describe("GenerateClusterISO", func() {
 		ctrl       *gomock.Controller
 		mockJob    *job.MockAPI
 		mockEvents *events.MockHandler
+		dbName     = "generate_cluster_iso"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, mockEvents, nil, nil)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	registerCluster := func() *common.Cluster {
@@ -157,11 +156,6 @@ var _ = Describe("GenerateClusterISO", func() {
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOInternalServerError()))
 	})
 
-	AfterEach(func() {
-		ctrl.Finish()
-		db.Close()
-	})
-
 })
 
 var _ = Describe("GetNextSteps", func() {
@@ -175,18 +169,24 @@ var _ = Describe("GetNextSteps", func() {
 		mockJob           *job.MockAPI
 		mockEvents        *events.MockHandler
 		defaultNextStepIn int64
+		dbName            = "get_next_steps"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
 		defaultNextStepIn = 60
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("get_next_steps_unknown_host", func() {
@@ -226,11 +226,6 @@ var _ = Describe("GetNextSteps", func() {
 			Expect(step.StepType).Should(Equal(expectedStepsType[i]))
 		}
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		db.Close()
-	})
 })
 
 func makeFreeAddresses(network string, ips ...strfmt.IPv4) *models.FreeNetworkAddresses {
@@ -261,7 +256,24 @@ var _ = Describe("PostStepReply", func() {
 		mockHostApi *host.MockAPI
 		mockJob     *job.MockAPI
 		mockEvents  *events.MockHandler
+		dbName      = "post_step_reply"
 	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
 
 	var makeStepReply = func(clusterID, hostID strfmt.UUID, freeAddresses models.FreeNetworksAddresses) installer.PostStepReplyParams {
 		b, _ := json.Marshal(&freeAddresses)
@@ -274,17 +286,6 @@ var _ = Describe("PostStepReply", func() {
 			},
 		}
 	}
-
-	BeforeEach(func() {
-		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
-		db = prepareDB()
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		mockJob = job.NewMockAPI(ctrl)
-		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil)
-	})
 
 	It("free addresses success", func() {
 		clusterId := strToUUID(uuid.New().String())
@@ -324,10 +325,6 @@ var _ = Describe("PostStepReply", func() {
 		Expect(h.FreeAddresses).To(BeEmpty())
 	})
 
-	AfterEach(func() {
-		ctrl.Finish()
-		db.Close()
-	})
 })
 
 var _ = Describe("GetFreeAddresses", func() {
@@ -340,7 +337,24 @@ var _ = Describe("GetFreeAddresses", func() {
 		mockHostApi *host.MockAPI
 		mockJob     *job.MockAPI
 		mockEvents  *events.MockHandler
+		dbName      = "get_free_addresses"
 	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
 
 	var makeHost = func(clusterId *strfmt.UUID, freeAddresses, status string) *models.Host {
 		hostId := strToUUID(uuid.New().String())
@@ -360,17 +374,6 @@ var _ = Describe("GetFreeAddresses", func() {
 			Network:   network,
 		}
 	}
-
-	BeforeEach(func() {
-		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
-		db = prepareDB()
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		mockJob = job.NewMockAPI(ctrl)
-		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil)
-	})
 
 	It("success", func() {
 		clusterId := strToUUID(uuid.New().String())
@@ -471,11 +474,6 @@ var _ = Describe("GetFreeAddresses", func() {
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
 		verifyApiError(bm.GetFreeAddresses(ctx, params), http.StatusNotFound)
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		db.Close()
-	})
 })
 
 var _ = Describe("UpdateHostInstallProgress", func() {
@@ -489,18 +487,24 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		mockHostApi          *host.MockAPI
 		mockEvents           *events.MockHandler
 		defaultProgressStage models.HostStage
+		dbName               = "update_host_install_progress"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil)
 		defaultProgressStage = "some progress"
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("host exists", func() {
@@ -558,11 +562,6 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressNotFound()))
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		db.Close()
-	})
 })
 
 var _ = Describe("cluster", func() {
@@ -584,7 +583,27 @@ var _ = Describe("cluster", func() {
 		clusterID      strfmt.UUID
 		mockEvents     *events.MockHandler
 		mockMetric     *metrics.MockAPI
+		dbName         = "inventory_cluster"
 	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		mockClusterApi = cluster.NewMockAPI(ctrl)
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockJob = job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, mockS3Client, mockMetric)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
 
 	addHost := func(hostId strfmt.UUID, role models.HostRole, state string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
 		host := models.Host{
@@ -704,20 +723,6 @@ var _ = Describe("cluster", func() {
 		sort.Slice(arr, func(i, j int) bool { return arr[i].Cidr < arr[j].Cidr })
 		return arr
 	}
-
-	BeforeEach(func() {
-		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
-		db = prepareDB()
-		mockClusterApi = cluster.NewMockAPI(ctrl)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		mockJob = job.NewMockAPI(ctrl)
-		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockMetric = metrics.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, mockS3Client, mockMetric)
-	})
 
 	Context("Get", func() {
 		{
@@ -1257,10 +1262,6 @@ var _ = Describe("cluster", func() {
 			close(DoneChannel)
 		})
 	})
-	AfterEach(func() {
-		ctrl.Finish()
-		db.Close()
-	})
 })
 
 var _ = Describe("KubeConfig download", func() {
@@ -1276,12 +1277,13 @@ var _ = Describe("KubeConfig download", func() {
 		c            common.Cluster
 		mockJob      *job.MockAPI
 		clusterApi   cluster.API
+		dbName       = "kubeconfig_download"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = awsS3Client.NewMockS3Client(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
@@ -1296,6 +1298,11 @@ var _ = Describe("KubeConfig download", func() {
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("kubeconfig download no cluster id", func() {
@@ -1335,11 +1342,6 @@ var _ = Describe("KubeConfig download", func() {
 		})
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(r), kubeconfig, 4)))
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		db.Close()
-	})
 })
 
 var _ = Describe("UploadClusterIngressCert test", func() {
@@ -1359,12 +1361,13 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		kubeconfigObject    string
 		mockJob             *job.MockAPI
 		clusterApi          cluster.API
+		dbName              = "upload_cluster_ingress_cert"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		ingressCa = "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 			"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
@@ -1394,6 +1397,12 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		kubeconfigFile, err = os.Open("../../subsystem/test_kubeconfig")
 		Expect(err).ShouldNot(HaveOccurred())
 
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+		kubeconfigFile.Close()
 	})
 
 	objectExists := func() {
@@ -1518,12 +1527,6 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			IngressCertParams: ingressCa,
 		})
 		Expect(generateReply).Should(Equal(installer.NewUploadClusterIngressCertCreated()))
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		db.Close()
-		kubeconfigFile.Close()
 	})
 })
 

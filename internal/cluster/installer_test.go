@@ -23,10 +23,11 @@ var _ = Describe("installer", func() {
 		id               strfmt.UUID
 		cluster          common.Cluster
 		hostsIds         []strfmt.UUID
+		dbName           = "cluster_installer"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		installerManager = NewInstaller(getTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
@@ -103,7 +104,7 @@ var _ = Describe("installer", func() {
 		})
 	})
 	AfterEach(func() {
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 

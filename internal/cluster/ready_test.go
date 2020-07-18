@@ -20,10 +20,11 @@ var _ = Describe("ready_state", func() {
 		db      *gorm.DB
 		id      strfmt.UUID
 		cluster common.Cluster
+		dbName  = "cluster_ready_state"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		state = &Manager{log: getTestLog(), ready: NewReadyState(getTestLog(), db)}
 
 		id = strfmt.UUID(uuid.New().String())
@@ -56,5 +57,8 @@ var _ = Describe("ready_state", func() {
 			Expect(updateErr).Should(BeNil())
 			Expect(*clusterAfterRefresh.Status).Should(Equal(clusterStatusInsufficient))
 		})
+	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 })

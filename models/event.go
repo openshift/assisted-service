@@ -27,7 +27,7 @@ type Event struct {
 	// event time
 	// Required: true
 	// Format: date-time
-	EventTime *strfmt.DateTime `json:"event_time" gorm:"type:datetime"`
+	EventTime *strfmt.DateTime `json:"event_time" gorm:"type:timestamp with time zone"`
 
 	// message
 	// Required: true

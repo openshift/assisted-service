@@ -26,13 +26,14 @@ var _ = Describe("insufficient_state", func() {
 		cluster      common.Cluster
 		ctrl         *gomock.Controller
 		mockHostAPI  *host.MockAPI
+		dbName       = "cluster_insufficient_state"
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockEvents := events.NewMockHandler(ctrl)
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		manager = &Manager{
 			log:             getTestLog(),
 			insufficient:    NewInsufficientState(getTestLog(), db, mockHostAPI),
@@ -97,7 +98,7 @@ var _ = Describe("insufficient_state", func() {
 	})
 
 	AfterEach(func() {
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 })

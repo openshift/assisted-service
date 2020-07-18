@@ -7,7 +7,7 @@ import (
 
 	"github.com/filanov/bm-inventory/client"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -41,8 +41,8 @@ func init() {
 		},
 	})
 
-	db, err = gorm.Open("mysql",
-		fmt.Sprintf("admin:admin@tcp(%s:%s)/installer?charset=utf8&parseTime=True&loc=Local",
+	db, err = gorm.Open("postgres",
+		fmt.Sprintf("host=%s port=%s user=admin dbname=installer password=admin sslmode=disable",
 			Options.DBHost, Options.DBPort))
 	if err != nil {
 		logrus.Fatal("Fail to connect to DB, ", err)

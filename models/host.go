@@ -25,7 +25,7 @@ type Host struct {
 
 	// The last time the host's agent communicated with the service.
 	// Format: date-time
-	CheckedInAt strfmt.DateTime `json:"checked_in_at,omitempty" gorm:"type:datetime"`
+	CheckedInAt strfmt.DateTime `json:"checked_in_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// The cluster that this host is associated with.
 	// Format: uuid
@@ -36,7 +36,7 @@ type Host struct {
 
 	// created at
 	// Format: date-time
-	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:datetime"`
+	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// discovery agent version
 	DiscoveryAgentVersion string `json:"discovery_agent_version,omitempty"`
@@ -79,6 +79,14 @@ type Host struct {
 	// role
 	Role HostRole `json:"role,omitempty"`
 
+	// Time at which the current progress stage started
+	// Format: date-time
+	StageStartedAt strfmt.DateTime `json:"stage_started_at,omitempty" gorm:"type:timestamp with time zone"`
+
+	// Time at which the current progress stage was last updated
+	// Format: date-time
+	StageUpdatedAt strfmt.DateTime `json:"stage_updated_at,omitempty" gorm:"type:timestamp with time zone"`
+
 	// status
 	// Required: true
 	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting]
@@ -90,11 +98,11 @@ type Host struct {
 
 	// The last time that the host status has been updated
 	// Format: date-time
-	StatusUpdatedAt strfmt.DateTime `json:"status_updated_at,omitempty" gorm:"type:datetime"`
+	StatusUpdatedAt strfmt.DateTime `json:"status_updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// updated at
 	// Format: date-time
-	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:datetime"`
+	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)
 	ValidationsInfo string `json:"validations_info,omitempty" gorm:"type:varchar(2048)"`

@@ -22,10 +22,11 @@ var _ = Describe("registrar", func() {
 		updateErr       error
 		cluster         common.Cluster
 		host            models.Host
+		dbName          = "registar"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		registerManager = NewRegistrar(getTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
@@ -79,7 +80,7 @@ var _ = Describe("registrar", func() {
 	})
 
 	AfterEach(func() {
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 		updateErr = nil
 	})
 })

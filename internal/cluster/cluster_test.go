@@ -18,11 +18,12 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/sirupsen/logrus"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 var defaultTestConfig = Config{
@@ -39,10 +40,11 @@ var _ = Describe("stateMachine", func() {
 		cluster          *common.Cluster
 		refreshedCluster *common.Cluster
 		stateErr         error
+		dbName           = "state_machine"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		state = NewManager(defaultTestConfig, getTestLog(), db, nil, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
@@ -62,7 +64,7 @@ var _ = Describe("stateMachine", func() {
 		})
 
 		AfterEach(func() {
-			db.Close()
+			common.DeleteTestDB(db, dbName)
 			Expect(refreshedCluster).To(BeNil())
 			Expect(stateErr).Should(HaveOccurred())
 		})
@@ -93,10 +95,11 @@ var _ = Describe("cluster monitor", func() {
 		ctrl              *gomock.Controller
 		mockHostAPI       *host.MockAPI
 		mockMetric        *metrics.MockAPI
+		dbName            = "cluster_monitor"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		id = strfmt.UUID(uuid.New().String())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -330,7 +333,7 @@ var _ = Describe("cluster monitor", func() {
 			Expect(c.StatusInfo).Should(Equal(saveStatusInfo))
 		}
 
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -342,10 +345,11 @@ var _ = Describe("VerifyRegisterHost", func() {
 		id          strfmt.UUID
 		clusterApi  *Manager
 		errTemplate = "Cluster %s is in %s state, host can register only in one of [insufficient ready]"
+		dbName      = "verify_register_host"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		id = strfmt.UUID(uuid.New().String())
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
 			nil, nil, nil)
@@ -382,7 +386,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 		checkVerifyRegisterHost(clusterStatusInstalled, true)
 	})
 	AfterEach(func() {
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -392,10 +396,11 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 		id          strfmt.UUID
 		clusterApi  *Manager
 		errTemplate = "Cluster %s is in %s state, cluster can be updated only in one of [insufficient ready]"
+		dbName      = "verify_cluster_updatability"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		id = strfmt.UUID(uuid.New().String())
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
 			nil, nil, nil)
@@ -429,7 +434,7 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 	})
 
 	AfterEach(func() {
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -438,10 +443,11 @@ var _ = Describe("SetGeneratorVersion", func() {
 		db         *gorm.DB
 		id         strfmt.UUID
 		clusterApi *Manager
+		dbName     = "set_generator_version"
 	)
 
 	It("set generator version", func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		id = strfmt.UUID(uuid.New().String())
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
 			nil, nil, nil)
@@ -451,6 +457,9 @@ var _ = Describe("SetGeneratorVersion", func() {
 		Expect(clusterApi.SetGeneratorVersion(&cluster, "v1", db)).ShouldNot(HaveOccurred())
 		cluster = geCluster(id, db)
 		Expect(cluster.IgnitionGeneratorVersion).To(Equal("v1"))
+	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -463,10 +472,11 @@ var _ = Describe("CancelInstallation", func() {
 		eventsHandler events.Handler
 		ctrl          *gomock.Controller
 		mockMetric    *metrics.MockAPI
+		dbName        = "cluster_cancel_installation"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -524,7 +534,7 @@ var _ = Describe("CancelInstallation", func() {
 	})
 
 	AfterEach(func() {
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -535,10 +545,11 @@ var _ = Describe("ResetCluster", func() {
 		state         API
 		c             common.Cluster
 		eventsHandler events.Handler
+		dbName        = "reset_cluster"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		eventsHandler = events.New(db, logrus.New())
 		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler, nil, nil)
 	})
@@ -578,7 +589,7 @@ var _ = Describe("ResetCluster", func() {
 	})
 
 	AfterEach(func() {
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -591,13 +602,6 @@ func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 		Status:    swag.String(state),
 	}
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-}
-
-func prepareDB() *gorm.DB {
-	db, err := gorm.Open("sqlite3", ":memory:")
-	Expect(err).ShouldNot(HaveOccurred())
-	db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{})
-	return db
 }
 
 func TestCluster(t *testing.T) {
@@ -640,10 +644,11 @@ var _ = Describe("PrepareForInstallation", func() {
 		capi      API
 		db        *gorm.DB
 		clusterId strfmt.UUID
+		dbName    = "cluster_prepare_for_installation"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		capi = NewManager(defaultTestConfig, getTestLog(), db, nil, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -709,6 +714,9 @@ var _ = Describe("PrepareForInstallation", func() {
 			t.validation(&cluster)
 		})
 	}
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
 })
 
 var _ = Describe("HandlePreInstallationError", func() {
@@ -717,10 +725,11 @@ var _ = Describe("HandlePreInstallationError", func() {
 		capi      API
 		db        *gorm.DB
 		clusterId strfmt.UUID
+		dbName    = "handle_preInstallation_error"
 	)
 
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName)
 		capi = NewManager(defaultTestConfig, getTestLog(), db, nil, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -786,4 +795,7 @@ var _ = Describe("HandlePreInstallationError", func() {
 			t.validation(&cluster)
 		})
 	}
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
 })

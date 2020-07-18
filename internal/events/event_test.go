@@ -2,9 +2,10 @@ package events_test
 
 import (
 	"context"
-
 	"testing"
 	"time"
+
+	"github.com/filanov/bm-inventory/internal/common"
 
 	"github.com/filanov/bm-inventory/pkg/requestid"
 	"github.com/pborman/uuid"
@@ -13,20 +14,12 @@ import (
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/sirupsen/logrus"
 )
-
-func prepareDB() *gorm.DB {
-	db, err := gorm.Open("sqlite3", ":memory:")
-	Expect(err).ShouldNot(HaveOccurred())
-	//db = db.Debug()
-	db.AutoMigrate(&events.Event{})
-	return db
-}
 
 /*
 Given events library
@@ -37,13 +30,14 @@ var _ = Describe("Events library", func() {
 	var (
 		db        *gorm.DB
 		theEvents *events.Events
+		dbName    = "events_test"
 	)
 	BeforeEach(func() {
-		db = prepareDB()
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		theEvents = events.New(db, logrus.WithField("pkg", "events"))
 	})
 	AfterEach(func() {
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	numOfEvents := func(id string) int {
