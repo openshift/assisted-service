@@ -87,7 +87,7 @@ else ifdef DEPLOY_MANIFEST_TAG
   DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
 endif
 
-deploy-all: create-build-dir deploy-namespace deploy-mariadb deploy-s3 deploy-route53 deploy-service
+deploy-all: create-build-dir deploy-namespace deploy-postgres deploy-s3 deploy-route53 deploy-service
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
@@ -124,6 +124,9 @@ deploy-role: deploy-namespace
 deploy-mariadb: deploy-namespace
 	python3 ./tools/deploy_mariadb.py
 
+deploy-postgres: deploy-namespace
+	python3 ./tools/deploy_postgres.py
+
 deploy-test:
 	export SERVICE=quay.io/ocpmetal/bm-inventory:test && export TEST_FLAGS=--subsystem-test && \
 	$(MAKE) update-minikube deploy-all
@@ -136,8 +139,8 @@ subsystem-run: test subsystem-clean
 
 test:
 	INVENTORY=$(shell $(call get_service,bm-inventory) | sed 's/http:\/\///g') \
-		DB_HOST=$(shell $(call get_service,mariadb) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
-		DB_PORT=$(shell $(call get_service,mariadb) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
+		DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
+		DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
 		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 20m
 
 deploy-olm: deploy-namespace
@@ -152,7 +155,10 @@ deploy-grafana: create-build-dir
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
 unit-test:
-	go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) -cover
+	docker stop postgres || true
+	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 postgres:12.3-alpine -c 'max_connections=10000'
+	go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) -cover || (docker stop postgres && /bin/false)
+	docker stop postgres
 
 #########
 # Clean #

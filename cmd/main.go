@@ -34,7 +34,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,8 +50,8 @@ func init() {
 
 var Options struct {
 	BMConfig                    bminventory.Config
-	DBHost                      string `envconfig:"DB_HOST" default:"mariadb"`
-	DBPort                      string `envconfig:"DB_PORT" default:"3306"`
+	DBHost                      string `envconfig:"DB_HOST" default:"postgres"`
+	DBPort                      string `envconfig:"DB_PORT" default:"5432"`
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           host.InstructionConfig
@@ -100,10 +100,10 @@ func main() {
 		kclient = nil
 	}
 
-	db, err := gorm.Open("mysql",
-		fmt.Sprintf("admin:admin@tcp(%s:%s)/installer?charset=utf8&parseTime=True&loc=Local",
+	// Connect to db
+	db, err := gorm.Open("postgres",
+		fmt.Sprintf("host=%s port=%s user=admin dbname=installer password=admin sslmode=disable",
 			Options.DBHost, Options.DBPort))
-
 	if err != nil {
 		log.Fatal("Fail to connect to DB, ", err)
 	}

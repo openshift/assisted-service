@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: assisted-installer
+  labels:
+    app: postgres
+data:
+  POSTGRES_DB: installer
+  POSTGRES_USER: admin
+  POSTGRES_PASSWORD: admin
