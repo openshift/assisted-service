@@ -3,14 +3,11 @@ package cluster
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/filanov/bm-inventory/internal/common"
 	intenralhost "github.com/filanov/bm-inventory/internal/host"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
-
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func NewReadyState(log logrus.FieldLogger, db *gorm.DB) *readyState {
@@ -27,9 +24,6 @@ var _ StateAPI = (*Manager)(nil)
 func (r *readyState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, r.log)
 
-	if err := db.Preload("Hosts").First(&c, "id = ?", c.ID).Error; err != nil {
-		return nil, errors.Errorf("cluster %s not found", c.ID)
-	}
 	mappedMastersByRole := mapMasterHostsByStatus(c)
 
 	// Installation has started

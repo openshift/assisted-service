@@ -151,11 +151,16 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
-	state, err := m.getCurrentState(swag.StringValue(c.Status))
+	// get updated cluster info with hosts
+	var cluster common.Cluster
+	if err := db.Preload("Hosts").Take(&cluster, "id = ?", c.ID.String()).Error; err != nil {
+		return nil, errors.Wrapf(err, "failed to get cluster %s", c.ID.String())
+	}
+	state, err := m.getCurrentState(swag.StringValue(cluster.Status))
 	if err != nil {
 		return nil, err
 	}
-	return state.RefreshStatus(ctx, c, db)
+	return state.RefreshStatus(ctx, &cluster, db)
 }
 
 func (m *Manager) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
@@ -173,21 +178,15 @@ func (m *Manager) ClusterMonitoring() {
 		requestID           = requestid.NewID()
 		ctx                 = requestid.ToContext(context.Background(), requestID)
 		log                 = requestid.RequestIDLogger(m.log, requestID)
+		err                 error
 	)
 
-	if err := m.db.Find(&clusters).Error; err != nil {
+	if err = m.db.Find(&clusters).Error; err != nil {
 		log.WithError(err).Errorf("failed to get clusters")
 		return
 	}
 	for _, cluster := range clusters {
-		state, err := m.getCurrentState(swag.StringValue(cluster.Status))
-
-		if err != nil {
-			log.WithError(err).Errorf("failed to get cluster %s currentState", cluster.ID)
-			continue
-		}
-
-		if clusterAfterRefresh, err = state.RefreshStatus(ctx, cluster, m.db); err != nil {
+		if clusterAfterRefresh, err = m.RefreshStatus(ctx, cluster, m.db); err != nil {
 			log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
 			continue
 		}

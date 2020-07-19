@@ -47,9 +47,14 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 	})
 
 	It("timeout", func() {
-		cl.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-15 * time.Minute))
+		Expect(db.Model(&cl).Update("status_updated_at", strfmt.DateTime(time.Now().Add(-15*time.Minute))).Error).
+			NotTo(HaveOccurred())
 		refreshedCluster, err := capi.RefreshStatus(ctx, &cl, db)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(*refreshedCluster.Status).To(Equal(models.ClusterStatusError))
+		Expect(swag.StringValue(refreshedCluster.Status)).To(Equal(models.ClusterStatusError))
+	})
+
+	AfterEach(func() {
+		db.Close()
 	})
 })

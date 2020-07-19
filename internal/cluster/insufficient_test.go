@@ -54,7 +54,7 @@ var _ = Describe("insufficient_state", func() {
 			c := geCluster(*cluster.ID, db)
 			Expect(len(c.Hosts)).Should(Equal(1))
 			updateHostProgress(c.Hosts[0], models.HostStageRebooting, "rebooting", db)
-			refreshedCluster, updateErr := state.RefreshStatus(ctx, &cluster, db)
+			refreshedCluster, updateErr := state.RefreshStatus(ctx, &c, db)
 			Expect(updateErr).Should(BeNil())
 			Expect(swag.StringValue(refreshedCluster.Hosts[0].Status)).Should(Equal(models.HostStatusResettingPendingUserAction))
 			Expect(*refreshedCluster.Status).Should(Equal(clusterStatusInsufficient))
@@ -69,5 +69,9 @@ var _ = Describe("insufficient_state", func() {
 			Expect(*refreshedCluster.Status).Should(Equal(clusterStatusReady))
 
 		})
+	})
+
+	AfterEach(func() {
+		db.Close()
 	})
 })
