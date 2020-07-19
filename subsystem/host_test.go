@@ -2,6 +2,7 @@ package subsystem
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"time"
 
@@ -378,6 +379,50 @@ var _ = Describe("Host tests", func() {
 			Reply: &models.StepReply{
 				ExitCode: 0,
 				Output:   "hello",
+				StepID:   step.StepID,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("install_host", func() {
+		host1 := registerHost(clusterID)
+		host2 := registerHost(clusterID)
+		Expect(db.Model(host1).Update("status", host.StateInsufficient).Error).NotTo(HaveOccurred())
+		Expect(db.Model(host1).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
+
+		// set debug to host1
+		workerIgn := []byte("fooooobar")
+		encodedWorkerIgn := base64.StdEncoding.EncodeToString(workerIgn)
+		_, err := bmclient.Installer.InstallHost(ctx, &installer.InstallHostParams{
+			ClusterID: clusterID,
+			HostID:    *host1.ID,
+			InstallHostParams: &models.InstallHostParams{
+				WorkerIgnition: &encodedWorkerIgn,
+			},
+		},
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		var step *models.Step
+		var ok bool
+		// debug should be only for host1
+		_, ok = getStepInList(getNextSteps(clusterID, *host2.ID), models.StepTypeExecute)
+		Expect(ok).Should(Equal(false))
+
+		step, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeInstall)
+		Expect(ok).Should(Equal(true))
+
+		// install executed only once
+		_, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeExecute)
+		Expect(ok).Should(Equal(false))
+
+		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host1.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   "Success",
 				StepID:   step.StepID,
 			},
 		})
