@@ -121,19 +121,5 @@ func (o *DownloadClusterFilesParams) bindFileName(rawData []string, hasKey bool,
 
 	o.FileName = raw
 
-	if err := o.validateFileName(formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// validateFileName carries on validations for parameter FileName
-func (o *DownloadClusterFilesParams) validateFileName(formats strfmt.Registry) error {
-
-	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"bootstrap.ign", "master.ign", "metadata.json", "worker.ign", "kubeadmin-password", "kubeconfig", "kubeconfig-noingress"}, true); err != nil {
-		return err
-	}
-
 	return nil
 }

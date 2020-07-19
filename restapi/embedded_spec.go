@@ -482,15 +482,6 @@ func init() {
             "required": true
           },
           {
-            "enum": [
-              "bootstrap.ign",
-              "master.ign",
-              "metadata.json",
-              "worker.ign",
-              "kubeadmin-password",
-              "kubeconfig",
-              "kubeconfig-noingress"
-            ],
             "type": "string",
             "name": "file_name",
             "in": "query",
@@ -3099,15 +3090,6 @@ func init() {
             "required": true
           },
           {
-            "enum": [
-              "bootstrap.ign",
-              "master.ign",
-              "metadata.json",
-              "worker.ign",
-              "kubeadmin-password",
-              "kubeconfig",
-              "kubeconfig-noingress"
-            ],
             "type": "string",
             "name": "file_name",
             "in": "query",
