@@ -1477,11 +1477,23 @@ func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.I
 	}
 
 	objectKey := fmt.Sprintf("%s/%s-worker.ign", params.ClusterID, params.HostID)
-	if err := b.s3Client.PushDataToS3(ctx, workerIgnitionBytes, objectKey, b.S3Bucket); err != nil {
+	if err = b.s3Client.PushDataToS3(ctx, workerIgnitionBytes, objectKey, b.S3Bucket); err != nil {
 		return installer.NewInstallHostInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", objectKey)))
 	}
 
+	log.Infof("Setting host: %s role to: %s", params.HostID, models.HostRoleWorker)
+	err = b.hostApi.UpdateRole(ctx, &host, models.HostRoleWorker, b.db)
+	if err != nil {
+		log.WithError(err).Errorf("failed to set role <%s> host <%s> in cluster <%s>",
+			models.HostRoleWorker, params.HostID,
+			params.ClusterID)
+		return installer.NewInstallHostInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, fmt.Errorf("failed to set role <%s> to host <%s>",
+				models.HostRoleWorker, params.HostID)))
+	}
+
+	log.Infof("Setting host: %s status to : %s", params.HostID, models.HostStatusInstalling)
 	if err := b.hostApi.Install(ctx, &host, b.db); err != nil {
 		log.WithError(err).Errorf("failed to install host <%s> from cluster <%s>", params.HostID, params.ClusterID)
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
