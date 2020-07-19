@@ -606,6 +606,8 @@ func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
+	common.InitializeDBTest()
+	defer common.TerminateDBTest()
 	RunSpecs(t, "cluster state machine tests")
 }
 

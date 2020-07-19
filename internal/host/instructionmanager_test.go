@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"testing"
 
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/hardware"
@@ -121,4 +122,11 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, instMng *In
 		ExpectWithOffset(1, step.StepType).Should(Equal(expectedStepTypes[i]))
 	}
 	ExpectWithOffset(1, stepsErr).ShouldNot(HaveOccurred())
+}
+
+func TestInstructionManager(t *testing.T) {
+	RegisterFailHandler(Fail)
+	common.InitializeDBTest()
+	defer common.TerminateDBTest()
+	RunSpecs(t, "instruction manager tests")
 }

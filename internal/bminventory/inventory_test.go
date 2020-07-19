@@ -45,6 +45,8 @@ const ClusterStatusInstalled = "installed"
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
+	common.InitializeDBTest()
+	defer common.TerminateDBTest()
 	RunSpecs(t, "inventory_test")
 }
 

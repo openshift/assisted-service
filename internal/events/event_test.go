@@ -36,10 +36,6 @@ var _ = Describe("Events library", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		theEvents = events.New(db, logrus.WithField("pkg", "events"))
 	})
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
 	numOfEvents := func(id string) int {
 		evs, err := theEvents.GetEvents(id)
 		Expect(err).Should(BeNil())
@@ -133,6 +129,11 @@ var _ = Describe("Events library", func() {
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
 		})
 	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
 })
 
 func WithRequestID(requestID string) types.GomegaMatcher {
@@ -161,5 +162,7 @@ func WithTime(t time.Time) types.GomegaMatcher {
 
 func TestEvents(t *testing.T) {
 	RegisterFailHandler(Fail)
+	common.InitializeDBTest()
+	defer common.TerminateDBTest()
 	RunSpecs(t, "Events test Suite")
 }

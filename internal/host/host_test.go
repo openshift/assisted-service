@@ -533,8 +533,10 @@ var _ = Describe("reset_host", func() {
 
 })
 
-func TestSubsystem(t *testing.T) {
+func TestHost(t *testing.T) {
 	RegisterFailHandler(Fail)
+	common.InitializeDBTest()
+	defer common.TerminateDBTest()
 	RunSpecs(t, "host state machine tests")
 }
 
