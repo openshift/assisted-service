@@ -195,6 +195,7 @@ func (m *Manager) DownloadFiles(c *common.Cluster) (err error) {
 	allowedStatuses := []string{clusterStatusInstalling,
 		models.ClusterStatusFinalizing,
 		clusterStatusInstalled,
+		clusterStatusInsufficient,
 		clusterStatusError}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, files can be downloaded only when status is one of: %s",
