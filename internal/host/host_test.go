@@ -387,19 +387,17 @@ var _ = Describe("monitor_disconnection", func() {
 
 var _ = Describe("cancel_installation", func() {
 	var (
-		ctx        = context.Background()
-		db         *gorm.DB
-		state      API
-		h          models.Host
-		ctrl       *gomock.Controller
-		mockEvents *events.MockHandler
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		h             models.Host
+		eventsHandler events.Handler
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
-		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
-		state = NewManager(getTestLog(), db, mockEvents, nil, nil, nil)
+		eventsHandler = events.New(db, logrus.New())
+		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		h = getTestHost(id, clusterId, HostStatusDiscovering)
@@ -410,12 +408,26 @@ var _ = Describe("cancel_installation", func() {
 			h.Status = swag.String(HostStatusInstalling)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
+			events, err := eventsHandler.GetEvents(h.ID.String())
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			cancelEvent := events[len(events)-1]
+			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
+			eventMessage := fmt.Sprintf("Installation canceled for host %s", state.GetHostname(&h))
+			Expect(*cancelEvent.Message).Should(Equal(eventMessage))
 		})
 
 		It("cancel_failed_installation", func() {
 			h.Status = swag.String(HostStatusError)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
+			events, err := eventsHandler.GetEvents(h.ID.String())
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			cancelEvent := events[len(events)-1]
+			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
+			eventMessage := fmt.Sprintf("Installation canceled for host %s", state.GetHostname(&h))
+			Expect(*cancelEvent.Message).Should(Equal(eventMessage))
 		})
 
 		AfterEach(func() {
@@ -427,6 +439,11 @@ var _ = Describe("cancel_installation", func() {
 	Context("invalid_cancel_installation", func() {
 		It("nothing_to_cancel", func() {
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).Should(HaveOccurred())
+			events, err := eventsHandler.GetEvents(h.ID.String())
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			cancelEvent := events[len(events)-1]
+			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityError))
 		})
 	})
 
@@ -437,19 +454,21 @@ var _ = Describe("cancel_installation", func() {
 
 var _ = Describe("reset_host", func() {
 	var (
-		ctx   = context.Background()
-		db    *gorm.DB
-		state API
-		h     models.Host
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		h             models.Host
+		eventsHandler events.Handler
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		eventsHandler = events.New(db, logrus.New())
+		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil)
 	})
 
-	Context("cancel_installation", func() {
-		It("cancel_installation", func() {
+	Context("reset_installation", func() {
+		It("reset_installation", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			h = getTestHost(id, clusterId, HostStatusError)
@@ -457,6 +476,13 @@ var _ = Describe("reset_host", func() {
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
 			Expect(*h.Status).Should(Equal(HostStatusResetting))
+			events, err := eventsHandler.GetEvents(h.ID.String())
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			resetEvent := events[len(events)-1]
+			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
+			eventMessage := fmt.Sprintf("Installation reset for host %s", state.GetHostname(&h))
+			Expect(*resetEvent.Message).Should(Equal(eventMessage))
 		})
 
 		It("register resetting host", func() {
@@ -477,6 +503,11 @@ var _ = Describe("reset_host", func() {
 			h = getTestHost(id, clusterId, HostStatusDiscovering)
 			reply := state.ResetHost(ctx, &h, "some reason", db)
 			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
+			events, err := eventsHandler.GetEvents(h.ID.String())
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			resetEvent := events[len(events)-1]
+			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityError))
 		})
 	})
 
@@ -500,7 +531,7 @@ func prepareDB() *gorm.DB {
 	db, err := gorm.Open("sqlite3", ":memory:")
 	Expect(err).ShouldNot(HaveOccurred())
 	// db = db.Debug()
-	db.AutoMigrate(&models.Host{}, &common.Cluster{})
+	db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{})
 	return db
 }
 

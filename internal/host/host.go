@@ -363,12 +363,20 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	eventSeverity := models.EventSeverityInfo
+	eventInfo := fmt.Sprintf("Installation canceled for host %s", m.GetHostname(h))
+	defer func() {
+		m.eventsHandler.AddEvent(ctx, h.ID.String(), eventSeverity, eventInfo, time.Now(), h.ClusterID.String())
+	}()
+
 	err := m.sm.Run(TransitionTypeCancelInstallation, newStateHost(h), &TransitionArgsCancelInstallation{
 		ctx:    ctx,
 		reason: reason,
 		db:     db,
 	})
 	if err != nil {
+		eventSeverity = models.EventSeverityError
+		eventInfo = fmt.Sprintf("Failed to cancel installation of host %s. Error: %s", m.GetHostname(h), err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
@@ -385,12 +393,20 @@ func (m *Manager) IsRequireUserActionReset(h *models.Host) bool {
 }
 
 func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	eventSeverity := models.EventSeverityInfo
+	eventInfo := fmt.Sprintf("Installation reset for host %s", m.GetHostname(h))
+	defer func() {
+		m.eventsHandler.AddEvent(ctx, h.ID.String(), eventSeverity, eventInfo, time.Now(), h.ClusterID.String())
+	}()
+
 	err := m.sm.Run(TransitionTypeResetHost, newStateHost(h), &TransitionArgsResetHost{
 		ctx:    ctx,
 		reason: reason,
 		db:     db,
 	})
 	if err != nil {
+		eventSeverity = models.EventSeverityError
+		eventInfo = fmt.Sprintf("Failed to reset installation of host %s. Error: %s", m.GetHostname(h), err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
