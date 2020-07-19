@@ -18,6 +18,7 @@ steps:
       DB_HOST: postgres
       DB_PORT: 5432
       USE_K8S: false
+      ENABLE_AUTH: false
 
 trigger:
   branch:

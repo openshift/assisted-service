@@ -41,6 +41,8 @@ def main():
             data = data.replace("REPLACE_URL", '"{}"'.format(service_host))
             data = data.replace("REPLACE_PORT", '"{}"'.format(service_port))
             data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
+            data = data.replace("REPLACE_AUTH_ENABLED_FLAG", '"{}"'.format(os.environ.get("ENABLE_AUTH", "true"))) # TODO(nmagnezi): change default value to false
+            data = data.replace("REPLACE_JWKS_URL", '"{}"'.format(os.environ.get("JWKS_URL", "https://api.openshift.com/.well-known/jwks.json")))
             print("Deploying {}".format(DST_FILE))
 
             versions = {"IMAGE_BUILDER": "installer-image-build",
