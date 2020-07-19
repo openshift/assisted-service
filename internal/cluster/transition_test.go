@@ -4,7 +4,10 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -16,15 +19,17 @@ import (
 
 var _ = Describe("Transition tests", func() {
 	var (
-		ctx       = context.Background()
-		capi      API
-		db        *gorm.DB
-		clusterId strfmt.UUID
+		ctx           = context.Background()
+		capi          API
+		db            *gorm.DB
+		clusterId     strfmt.UUID
+		eventsHandler events.Handler
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
-		capi = NewManager(defaultTestConfig, getTestLog(), db, nil)
+		eventsHandler = events.New(db, logrus.New())
+		capi = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 

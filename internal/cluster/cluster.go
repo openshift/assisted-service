@@ -263,24 +263,40 @@ func (m *Manager) SetGeneratorVersion(c *common.Cluster, version string, db *gor
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	eventSeverity := models.EventSeverityInfo
+	eventInfo := "Canceled cluster installation"
+	defer func() {
+		m.eventsHandler.AddEvent(ctx, c.ID.String(), eventSeverity, eventInfo, time.Now())
+	}()
+
 	err := m.sm.Run(TransitionTypeCancelInstallation, newStateCluster(c), &TransitionArgsCancelInstallation{
 		ctx:    ctx,
 		reason: reason,
 		db:     db,
 	})
 	if err != nil {
+		eventSeverity = models.EventSeverityError
+		eventInfo = fmt.Sprintf("Failed to cancel installation. Error: %s", err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
 }
 
 func (m *Manager) ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
+	eventSeverity := models.EventSeverityInfo
+	eventInfo := "Reset cluster installation"
+	defer func() {
+		m.eventsHandler.AddEvent(ctx, c.ID.String(), eventSeverity, eventInfo, time.Now())
+	}()
+
 	err := m.sm.Run(TransitionTypeResetCluster, newStateCluster(c), &TransitionArgsResetCluster{
 		ctx:    ctx,
 		reason: reason,
 		db:     db,
 	})
 	if err != nil {
+		eventSeverity = models.EventSeverityError
+		eventInfo = fmt.Sprintf("Failed to reset installation. Error: %s", err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil

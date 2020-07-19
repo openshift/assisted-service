@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/pkg/errors"
 
 	"github.com/go-openapi/strfmt"
@@ -430,15 +431,17 @@ var _ = Describe("SetGeneratorVersion", func() {
 
 var _ = Describe("CancelInstallation", func() {
 	var (
-		ctx   = context.Background()
-		db    *gorm.DB
-		state API
-		c     common.Cluster
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		c             common.Cluster
+		eventsHandler events.Handler
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(defaultTestConfig, getTestLog(), db, nil)
+		eventsHandler = events.New(db, logrus.New())
+		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler)
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
@@ -451,11 +454,23 @@ var _ = Describe("CancelInstallation", func() {
 			c.Status = swag.String(clusterStatusInstalling)
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
+			events, err := eventsHandler.GetEvents(c.ID.String())
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			cancelEvent := events[len(events)-1]
+			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
+			Expect(*cancelEvent.Message).Should(Equal("Canceled cluster installation"))
 		})
 		It("cancel_failed_installation", func() {
 			c.Status = swag.String(clusterStatusError)
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
+			events, err := eventsHandler.GetEvents(c.ID.String())
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			cancelEvent := events[len(events)-1]
+			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
+			Expect(*cancelEvent.Message).Should(Equal("Canceled cluster installation"))
 		})
 
 		AfterEach(func() {
@@ -467,6 +482,11 @@ var _ = Describe("CancelInstallation", func() {
 	Context("invalid_cancel_installation", func() {
 		It("nothing_to_cancel", func() {
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).Should(HaveOccurred())
+			events, err := eventsHandler.GetEvents(c.ID.String())
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			cancelEvent := events[len(events)-1]
+			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityError))
 		})
 	})
 
@@ -477,15 +497,17 @@ var _ = Describe("CancelInstallation", func() {
 
 var _ = Describe("ResetCluster", func() {
 	var (
-		ctx   = context.Background()
-		db    *gorm.DB
-		state API
-		c     common.Cluster
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		c             common.Cluster
+		eventsHandler events.Handler
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(defaultTestConfig, getTestLog(), db, nil)
+		eventsHandler = events.New(db, logrus.New())
+		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler)
 	})
 
 	It("reset_cluster", func() {
@@ -498,6 +520,12 @@ var _ = Describe("ResetCluster", func() {
 		Expect(state.ResetCluster(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
 		db.First(&c, "id = ?", c.ID)
 		Expect(*c.Status).Should(Equal(clusterStatusInsufficient))
+		events, err := eventsHandler.GetEvents(c.ID.String())
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(events)).ShouldNot(Equal(0))
+		resetEvent := events[len(events)-1]
+		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
+		Expect(*resetEvent.Message).Should(Equal("Reset cluster installation"))
 	})
 
 	It("reset cluster conflict", func() {
@@ -509,6 +537,11 @@ var _ = Describe("ResetCluster", func() {
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 		reply := state.ResetCluster(ctx, &c, "some reason", db)
 		Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
+		events, err := eventsHandler.GetEvents(c.ID.String())
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(events)).ShouldNot(Equal(0))
+		resetEvent := events[len(events)-1]
+		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityError))
 	})
 
 	AfterEach(func() {
@@ -530,8 +563,7 @@ func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 func prepareDB() *gorm.DB {
 	db, err := gorm.Open("sqlite3", ":memory:")
 	Expect(err).ShouldNot(HaveOccurred())
-	db.AutoMigrate(&common.Cluster{})
-	db.AutoMigrate(&models.Host{})
+	db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{})
 	return db
 }
 
