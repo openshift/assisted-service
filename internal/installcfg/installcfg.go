@@ -184,7 +184,7 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster,
 	}
 	cfg.Platform = platform{
 		Baremetal: baremetal{
-			ProvisioningNetworkInterface: "ethh0",
+			ProvisioningNetworkInterface: "ens4",
 			APIVIP:                       cluster.APIVip,
 			IngressVIP:                   cluster.IngressVip,
 			DNSVIP:                       cluster.APIVip,

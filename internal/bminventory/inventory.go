@@ -1563,6 +1563,10 @@ func (b *bareMetalInventory) createKubeconfigJob(cluster *common.Cluster, jobNam
 									Value: string(cfg),
 								},
 								{
+									Name:  "INVENTORY_ENDPOINT",
+									Value: "http://" + b.InventoryURL + ":" + b.InventoryPort + "/api/assisted-install/v1",
+								},
+								{
 									Name:  "IMAGE_NAME",
 									Value: jobName,
 								},
