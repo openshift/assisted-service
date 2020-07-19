@@ -10,6 +10,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
+	"github.com/filanov/bm-inventory/pkg/requestid"
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -122,7 +123,7 @@ func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 	case models.ClusterStatusPreparingForInstallation:
 		return m.prepare, nil
 	}
-	return nil, fmt.Errorf("not supported cluster status: %s", status)
+	return nil, errors.Errorf("not supported cluster status: %s", status)
 }
 
 func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error {
@@ -166,28 +167,33 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 }
 
 func (m *Manager) ClusterMonitoring() {
-	var clusters []*common.Cluster
-	var clusterAfterRefresh *common.Cluster
+	var (
+		clusters            []*common.Cluster
+		clusterAfterRefresh *common.Cluster
+		requestID           = requestid.NewID()
+		ctx                 = requestid.ToContext(context.Background(), requestID)
+		log                 = requestid.RequestIDLogger(m.log, requestID)
+	)
 
 	if err := m.db.Find(&clusters).Error; err != nil {
-		m.log.WithError(err).Errorf("failed to get clusters")
+		log.WithError(err).Errorf("failed to get clusters")
 		return
 	}
 	for _, cluster := range clusters {
 		state, err := m.getCurrentState(swag.StringValue(cluster.Status))
 
 		if err != nil {
-			m.log.WithError(err).Errorf("failed to get cluster %s currentState", cluster.ID)
+			log.WithError(err).Errorf("failed to get cluster %s currentState", cluster.ID)
 			continue
 		}
 
-		if clusterAfterRefresh, err = state.RefreshStatus(context.Background(), cluster, m.db); err != nil {
-			m.log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
+		if clusterAfterRefresh, err = state.RefreshStatus(ctx, cluster, m.db); err != nil {
+			log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
 			continue
 		}
 
 		if clusterAfterRefresh.Status != cluster.Status {
-			m.log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
+			log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
 				*cluster.Status, *clusterAfterRefresh.Status)
 		}
 	}
