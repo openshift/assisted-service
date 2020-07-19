@@ -175,16 +175,21 @@ func NewBareMetalInventory(
 
 	if b.Config.UseK8s {
 		//Run first ISO dummy for image pull, this is done so that the image will be pulled and the api will take less time.
-		generateDummyISOImage(jobApi, b, log)
+		b.generateDummyISOImage()
 	}
 	return b
 }
 
-func generateDummyISOImage(jobApi job.API, b *bareMetalInventory, log logrus.FieldLogger) {
-	dummyId := "00000000-0000-0000-0000-000000000000"
-	jobName := fmt.Sprintf("dummyimage-%s-%s", dummyId, time.Now().Format("20060102150405"))
-	imgName := fmt.Sprintf("discovery-image-%s", dummyId)
-	if err := jobApi.Create(context.Background(), b.createImageJob(jobName, imgName, "Dummy")); err != nil {
+func (b *bareMetalInventory) generateDummyISOImage() {
+	var (
+		dummyId   = "00000000-0000-0000-0000-000000000000"
+		jobName   = fmt.Sprintf("dummyimage-%s-%s", dummyId, time.Now().Format("20060102150405"))
+		imgName   = fmt.Sprintf("discovery-image-%s", dummyId)
+		requestID = requestid.NewID()
+		log       = requestid.RequestIDLogger(b.log, requestID)
+	)
+	if err := b.job.Create(requestid.ToContext(context.Background(), requestID),
+		b.createImageJob(jobName, imgName, "Dummy")); err != nil {
 		log.WithError(err).Errorf("failed to generate dummy ISO image")
 	}
 }
