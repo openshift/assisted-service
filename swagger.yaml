@@ -16,6 +16,18 @@ consumes:
 produces:
   - application/json
 
+securityDefinitions:
+  agentAuth:
+    type: apiKey
+    in: header
+    name: X-Secret-Key
+  userAuth:
+    type: apiKey
+    in: header
+    name: Authorization
+
+security:
+  - userAuth: []
 
 paths:
   /clusters:
@@ -226,6 +238,9 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: []
+        - agentAuth: []
       summary: Downloads files relating to the installed/installing cluster.
       operationId: DownloadClusterFiles
       produces:
@@ -325,6 +340,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - agentAuth: []
       summary: Transfer the ingress certificate for the cluster.
       operationId: UploadClusterIngressCert
       parameters:
@@ -487,6 +504,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - agentAuth: []
       summary: Registers a new OpenShift bare metal host.
       operationId: RegisterHost
       parameters:
@@ -606,6 +625,8 @@ paths:
     put:
       tags:
         - installer
+      security:
+        - agentAuth: []
       summary: Update installation progress
       operationId: UpdateHostInstallProgress
       parameters:
@@ -746,6 +767,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - agentAuth: []
       summary: Retrieves the next operations that the host agent needs to perform.
       operationId: GetNextSteps
       parameters:
@@ -776,6 +799,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - agentAuth: []
       summary: Posts the result of the operations from the host agent.
       operationId: PostStepReply
       parameters:
