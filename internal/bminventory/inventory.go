@@ -637,6 +637,10 @@ func (b *bareMetalInventory) validateHostsInventory(cluster *common.Cluster) err
 func (c clusterInstaller) install(tx *gorm.DB) error {
 	var cluster common.Cluster
 	var err error
+
+	// in case host monitor already updated the state we need to use FOR UPDATE option
+	transaction.AddForUpdateQueryOption(tx)
+
 	if err = tx.Preload("Hosts").First(&cluster, "id = ?", c.params.ClusterID).Error; err != nil {
 		return errors.Wrapf(err, "failed to find cluster %s", c.params.ClusterID)
 	}
@@ -700,6 +704,9 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 
 	// prepare cluster and hosts for installation
 	err = b.db.Transaction(func(tx *gorm.DB) error {
+		// in case host monitor already updated the state we need to use FOR UPDATE option
+		transaction.AddForUpdateQueryOption(tx)
+
 		if err = b.clusterApi.PrepareForInstallation(ctx, &cluster, tx); err != nil {
 			return err
 		}
