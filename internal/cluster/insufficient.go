@@ -24,12 +24,8 @@ func NewInsufficientState(log logrus.FieldLogger, db *gorm.DB) *insufficientStat
 type insufficientState baseState
 
 func (i *insufficientState) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
-
 	log := logutil.FromContext(ctx, i.log)
 
-	if err := db.Preload("Hosts").First(&c, "id = ?", c.ID).Error; err != nil {
-		return nil, errors.Errorf("cluster %s not found", c.ID)
-	}
 	mappedMastersByRole := mapMasterHostsByStatus(c)
 
 	manager := intenralhost.NewManager(log, db, nil, nil, nil, nil)

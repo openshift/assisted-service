@@ -51,10 +51,6 @@ func (i *installingState) RefreshStatus(ctx context.Context, c *common.Cluster, 
 func (i *installingState) getClusterInstallationState(ctx context.Context, c *common.Cluster, db *gorm.DB) (string, string, error) {
 	log := logutil.FromContext(ctx, i.log)
 
-	if err := db.Preload("Hosts").First(&c, "id = ?", c.ID).Error; err != nil {
-		return "", "", errors.Errorf("cluster %s not found", c.ID)
-	}
-
 	mappedMastersByRole := mapMasterHostsByStatus(c)
 
 	// Cluster is in finalizing
