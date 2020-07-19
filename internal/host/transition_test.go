@@ -365,7 +365,7 @@ var _ = Describe("Install", func() {
 				name:       "insufficient",
 				srcState:   HostStatusInsufficient,
 				role:       models.HostRoleMaster,
-				validation: failure,
+				validation: success,
 			},
 			{
 				name:       "resetting",

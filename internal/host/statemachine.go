@@ -103,6 +103,14 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostInstallHost,
 	})
 
+	// Install insufficient host
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeInstallHost,
+		SourceStates:     []stateswitch.State{HostStatusInsufficient},
+		DestinationState: HostStatusInstalling,
+		PostTransition:   th.PostInstallHost,
+	})
+
 	// Install disabled host will not do anything
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType:   TransitionTypeInstallHost,
