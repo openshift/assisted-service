@@ -8,6 +8,7 @@ import (
 
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/events"
+	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/bm-inventory/pkg/requestid"
@@ -83,7 +84,7 @@ type Manager struct {
 	sm              stateswitch.StateMachine
 }
 
-func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler) *Manager {
+func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hostAPI host.API) *Manager {
 	th := &transitionHandler{
 		log: log,
 		db:  db,
@@ -91,7 +92,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 	return &Manager{
 		log:             log,
 		db:              db,
-		insufficient:    NewInsufficientState(log, db),
+		insufficient:    NewInsufficientState(log, db, hostAPI),
 		ready:           NewReadyState(log, db),
 		installing:      NewInstallingState(log, db),
 		finalizing:      NewFinalizingState(log, db),

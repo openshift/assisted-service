@@ -7,22 +7,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/pkg/errors"
-
+	"github.com/filanov/bm-inventory/internal/host"
+	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/sirupsen/logrus"
-
-	"github.com/filanov/bm-inventory/internal/common"
-	"github.com/filanov/bm-inventory/models"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var defaultTestConfig = Config{
@@ -43,7 +41,7 @@ var _ = Describe("stateMachine", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(defaultTestConfig, getTestLog(), db, nil)
+		state = NewManager(defaultTestConfig, getTestLog(), db, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
@@ -90,12 +88,17 @@ var _ = Describe("cluster monitor", func() {
 		clusterApi        *Manager
 		shouldHaveUpdated bool
 		expectedState     string
+		ctrl              *gomock.Controller
+		mockHostAPI       *host.MockAPI
 	)
 
 	BeforeEach(func() {
 		db = prepareDB()
 		id = strfmt.UUID(uuid.New().String())
-		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		ctrl = gomock.NewController(GinkgoT())
+		mockHostAPI = host.NewMockAPI(ctrl)
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
+			nil, mockHostAPI)
 		expectedState = ""
 		shouldHaveUpdated = false
 	})
@@ -174,6 +177,10 @@ var _ = Describe("cluster monitor", func() {
 		})
 	})
 
+	mockHostAPIIsRequireUserActionResetFalse := func(times int) {
+		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).Times(times)
+	}
+
 	Context("ghost hosts", func() {
 
 		Context("from insufficient state", func() {
@@ -190,6 +197,7 @@ var _ = Describe("cluster monitor", func() {
 
 			It("insufficient -> insufficient", func() {
 				createHost(id, "known", db)
+				mockHostAPIIsRequireUserActionResetFalse(1)
 
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
@@ -198,6 +206,7 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "known", db)
+				mockHostAPIIsRequireUserActionResetFalse(3)
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
 			})
@@ -205,6 +214,7 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "known", db)
+				mockHostAPIIsRequireUserActionResetFalse(3)
 
 				shouldHaveUpdated = true
 				expectedState = "ready"
@@ -214,6 +224,7 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "discovering", db)
+				mockHostAPIIsRequireUserActionResetFalse(3)
 
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
@@ -222,6 +233,7 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "error", db)
+				mockHostAPIIsRequireUserActionResetFalse(3)
 
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
@@ -230,6 +242,7 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "disabled", db)
+				mockHostAPIIsRequireUserActionResetFalse(3)
 
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
@@ -310,6 +323,7 @@ var _ = Describe("cluster monitor", func() {
 		}
 
 		db.Close()
+		ctrl.Finish()
 	})
 
 })
@@ -325,7 +339,8 @@ var _ = Describe("VerifyRegisterHost", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		id = strfmt.UUID(uuid.New().String())
-		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
+			nil, nil)
 	})
 
 	checkVerifyRegisterHost := func(clusterStatus string, expectErr bool) {
@@ -374,7 +389,8 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		id = strfmt.UUID(uuid.New().String())
-		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
+			nil, nil)
 	})
 
 	checkVerifyClusterUpdatability := func(clusterStatus string, expectErr bool) {
@@ -419,7 +435,8 @@ var _ = Describe("SetGeneratorVersion", func() {
 	It("set generator version", func() {
 		db = prepareDB()
 		id = strfmt.UUID(uuid.New().String())
-		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db, nil)
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
+			nil, nil)
 		cluster := common.Cluster{Cluster: models.Cluster{ID: &id, Status: swag.String(clusterStatusReady)}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		cluster = geCluster(id, db)
@@ -441,7 +458,7 @@ var _ = Describe("CancelInstallation", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		eventsHandler = events.New(db, logrus.New())
-		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler)
+		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler, nil)
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
@@ -507,7 +524,7 @@ var _ = Describe("ResetCluster", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		eventsHandler = events.New(db, logrus.New())
-		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler)
+		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler, nil)
 	})
 
 	It("reset_cluster", func() {
@@ -611,7 +628,7 @@ var _ = Describe("PrepareForInstallation", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		capi = NewManager(defaultTestConfig, getTestLog(), db, nil)
+		capi = NewManager(defaultTestConfig, getTestLog(), db, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
@@ -688,7 +705,7 @@ var _ = Describe("HandlePreInstallationError", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		capi = NewManager(defaultTestConfig, getTestLog(), db, nil)
+		capi = NewManager(defaultTestConfig, getTestLog(), db, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
