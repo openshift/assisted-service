@@ -117,7 +117,7 @@ var _ = Describe("cluster monitor", func() {
 
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			Expect(err).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), c.OpenshiftVersion, c.InstallStartedAt).AnyTimes()
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		})
 
 		It("installing -> installing", func() {
@@ -159,7 +159,7 @@ var _ = Describe("cluster monitor", func() {
 			expectedState = models.ClusterStatusFinalizing
 		})
 		It("installing -> error", func() {
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", c.OpenshiftVersion, c.InstallStartedAt).AnyTimes()
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "error", db)
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
@@ -168,7 +168,7 @@ var _ = Describe("cluster monitor", func() {
 			expectedState = "error"
 		})
 		It("installing -> error", func() {
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", c.OpenshiftVersion, c.InstallStartedAt).AnyTimes()
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
 
@@ -176,7 +176,7 @@ var _ = Describe("cluster monitor", func() {
 			expectedState = "error"
 		})
 		It("installing -> error insufficient hosts", func() {
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", c.OpenshiftVersion, c.InstallStartedAt).AnyTimes()
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "installing", db)
 			createHost(id, "installed", db)
 			shouldHaveUpdated = true

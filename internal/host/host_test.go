@@ -168,7 +168,7 @@ var _ = Describe("update_progress", func() {
 	)
 
 	setDefaultReportHostInstallationMetrics := func(mockMetricApi *metrics.MockAPI) {
-		mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockMetricApi.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	}
 
 	BeforeEach(func() {
@@ -189,13 +189,15 @@ var _ = Describe("update_progress", func() {
 		)
 
 		BeforeEach(func() {
+			ctrl = gomock.NewController(GinkgoT())
+			mockMetric = metrics.NewMockAPI(ctrl)
+			setDefaultReportHostInstallationMetrics(mockMetric)
 			host.Status = swag.String(HostStatusInstalling)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		})
 
 		Context("positive stages", func() {
-			setDefaultReportHostInstallationMetrics(mockMetric)
 			It("some_progress", func() {
 				progress.CurrentStage = defaultProgressStage
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
@@ -206,7 +208,6 @@ var _ = Describe("update_progress", func() {
 			It("writing to disk", func() {
 				progress.CurrentStage = models.HostStageWritingImageToDisk
 				progress.ProgressInfo = "20%"
-				//mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), progress.CurrentStage)
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
@@ -215,7 +216,6 @@ var _ = Describe("update_progress", func() {
 
 			It("done", func() {
 				progress.CurrentStage = models.HostStageDone
-				//mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), progress.CurrentStage)
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
@@ -233,7 +233,6 @@ var _ = Describe("update_progress", func() {
 			It("progress_failed", func() {
 				progress.CurrentStage = models.HostStageFailed
 				progress.ProgressInfo = "reason"
-				mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), progress.CurrentStage)
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
@@ -244,7 +243,6 @@ var _ = Describe("update_progress", func() {
 			It("progress_failed_empty_reason", func() {
 				progress.CurrentStage = models.HostStageFailed
 				progress.ProgressInfo = ""
-				mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), progress.CurrentStage)
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 				Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
@@ -255,7 +253,6 @@ var _ = Describe("update_progress", func() {
 				By("Some stage", func() {
 					progress.CurrentStage = models.HostStageWritingImageToDisk
 					progress.ProgressInfo = "20%"
-					mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 					Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 					hostFromDB = getHost(*host.ID, host.ClusterID, db)
 					Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
@@ -270,7 +267,6 @@ var _ = Describe("update_progress", func() {
 						CurrentStage: models.HostStageFailed,
 						ProgressInfo: "reason",
 					}
-					mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 					Expect(state.UpdateInstallProgress(ctx, hostFromDB, &newProgress)).ShouldNot(HaveOccurred())
 					hostFromDB = getHost(*host.ID, host.ClusterID, db)
 					Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
