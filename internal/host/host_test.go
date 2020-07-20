@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
-	"testing"
 	"time"
 
 	"github.com/filanov/bm-inventory/internal/common"
@@ -532,13 +531,6 @@ var _ = Describe("reset_host", func() {
 	})
 
 })
-
-func TestHost(t *testing.T) {
-	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
-	RunSpecs(t, "host state machine tests")
-}
 
 func getHost(hostId, clusterId strfmt.UUID, db *gorm.DB) *models.Host {
 	var host models.Host

@@ -52,6 +52,8 @@ var Options struct {
 	BMConfig                    bminventory.Config
 	DBHost                      string `envconfig:"DB_HOST" default:"postgres"`
 	DBPort                      string `envconfig:"DB_PORT" default:"5432"`
+	DBUser                      string `envconfig:"DB_USER" default:"admin"`
+	DBPass                      string `envconfig:"DB_PASS" default:"admin"`
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           host.InstructionConfig
@@ -102,8 +104,8 @@ func main() {
 
 	// Connect to db
 	db, err := gorm.Open("postgres",
-		fmt.Sprintf("host=%s port=%s user=admin dbname=installer password=admin sslmode=disable",
-			Options.DBHost, Options.DBPort))
+		fmt.Sprintf("host=%s port=%s user=%s dbname=installer password=%s sslmode=disable",
+			Options.DBHost, Options.DBPort, Options.DBUser, Options.DBPass))
 	if err != nil {
 		log.Fatal("Fail to connect to DB, ", err)
 	}
