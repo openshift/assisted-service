@@ -74,7 +74,7 @@ func (m *Manager) handleObject(ctx context.Context, log logrus.FieldLogger, obje
 	for _, tag := range objectTags.TagSet {
 		if *tag.Key == "create_sec_since_epoch" {
 			objTime, _ := strconv.ParseInt(*tag.Value, 10, 64)
-			if now.Before(time.Unix(objTime, 0).Add(m.deleteTime)) {
+			if now.After(time.Unix(objTime, 0).Add(m.deleteTime)) {
 				m.deleteObject(ctx, log, object)
 			}
 		}
