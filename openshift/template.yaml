@@ -44,57 +44,57 @@ objects:
                 containerPort: 8090
             env:
               - name: ROUTE53_CREDS
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: creds
                     name: route53-creds
               - name: AWS_SECRET_ACCESS_KEY
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: aws_secret_access_key
                     name: assisted-installer-s3
               - name: AWS_ACCESS_KEY_ID
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: aws_access_key_id
                     name: assisted-installer-s3
               - name: AWS_REGION
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: aws_region
                     name: assisted-installer-s3
               - name: BUCKET
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: bucket
                     name: assisted-installer-s3
               - name: ENDPOINT
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: endpoint
                     name: assisted-installer-s3
               - name: DB_HOST
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: db.host
                     name: assisted-installer-rds
               - name: DB_NAME
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: db.name
                     name: assisted-installer-rds
               - name: DB_PASSWORD
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: db.password
                     name: assisted-installer-rds
               - name: DB_PORT
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: db.port
                     name: assisted-installer-rds
               - name: DB_USER
-                  valueFrom:
+                valueFrom:
                   secretKeyRef:
                     key: db.user
                     name: assisted-installer-rds
@@ -118,28 +118,28 @@ objects:
 #              image: ${OBJ_EXPIRER_IMAGE}:${OBJ_EXPIRER_IMAGE_TAG}
 #              imagePullPolicy: Always
 #              env:
-#                - name: AWS_SECRET_ACCESS_KEY
-#                  valueFrom:
+#              - name: AWS_SECRET_ACCESS_KEY
+#                valueFrom:
 #                  secretKeyRef:
 #                    key: aws_secret_access_key
 #                    name: assisted-installer-s3
 #              - name: AWS_ACCESS_KEY_ID
-#                  valueFrom:
+#                valueFrom:
 #                  secretKeyRef:
 #                    key: aws_access_key_id
 #                    name: assisted-installer-s3
 #              - name: AWS_REGION
-#                  valueFrom:
+#                valueFrom:
 #                  secretKeyRef:
 #                    key: aws_region
 #                    name: assisted-installer-s3
 #              - name: BUCKET
-#                  valueFrom:
+#                valueFrom:
 #                  secretKeyRef:
 #                    key: bucket
 #                    name: assisted-installer-s3
 #              - name: ENDPOINT
-#                  valueFrom:
+#                valueFrom:
 #                  secretKeyRef:
 #                    key: endpoint
 #                    name: assisted-installer-s3
