@@ -65,9 +65,10 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"OPENSHIFT_VERSION": cluster.OpenshiftVersion,
 	}
 
-	if host.RequestedHostname != "" {
+	hostname, _ := common.GetCurrentHostName(host)
+	if hostname != "" {
 		cmdArgsTmpl = cmdArgsTmpl + " --host-name {{.HOST_NAME}}"
-		data["HOST_NAME"] = host.RequestedHostname
+		data["HOST_NAME"] = hostname
 	}
 
 	bootdevice, err := getBootDevice(i.log, i.hwValidator, *host)
