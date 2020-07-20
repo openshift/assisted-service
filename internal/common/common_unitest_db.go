@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/jinzhu/gorm"
@@ -12,9 +13,22 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const (
+	dbDockerName  = "ut-postgres"
+	dbDefaultPort = "5432"
+)
+
 type DBContext struct {
 	resource *dockertest.Resource
 	pool     *dockertest.Pool
+}
+
+func (c *DBContext) GetPort() string {
+	if c.resource == nil {
+		return dbDefaultPort
+	} else {
+		return c.resource.GetPort(fmt.Sprintf("%s/tcp", dbDefaultPort))
+	}
 }
 
 var gDbCtx DBContext = DBContext{
@@ -23,33 +37,50 @@ var gDbCtx DBContext = DBContext{
 }
 
 func InitializeDBTest() {
+	if os.Getenv("SKIP_UT_DB") != "" {
+		return
+	}
 	pool, err := dockertest.NewPool("")
 	Expect(err).ShouldNot(HaveOccurred())
 
-	resource, err := pool.Run("postgres", "12.3", []string{"POSTGRES_PASSWORD=admin", "POSTGRES_USER=admin"})
+	//cleanup any old instances of the DB
+	if oldResource, isFound := pool.ContainerByName(dbDockerName); isFound {
+		oldResource.Close()
+	}
+	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "postgres",
+		Tag:        "12.3",
+		Env:        []string{"POSTGRES_PASSWORD=admin", "POSTGRES_USER=admin"},
+		Name:       dbDockerName,
+	})
 	Expect(err).ShouldNot(HaveOccurred())
 
 	gDbCtx.pool = pool
 	gDbCtx.resource = resource
+
+	var dbTemp *gorm.DB
+	err = gDbCtx.pool.Retry(func() error {
+		var er error
+
+		dbTemp, er = gorm.Open("postgres", fmt.Sprintf("host=127.0.0.1 port=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort()))
+		return er
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+	dbTemp.Close()
 }
 
 func TerminateDBTest() {
-	Expect(gDbCtx).ShouldNot(BeNil())
+	if os.Getenv("SKIP_UT_DB") != "" {
+		return
+	}
+	Expect(gDbCtx.pool).ShouldNot(BeNil())
 	err := gDbCtx.pool.Purge(gDbCtx.resource)
 	Expect(err).ShouldNot(HaveOccurred())
 	gDbCtx.pool = nil
 }
 
 func PrepareTestDB(dbName string, extrasSchemas ...interface{}) *gorm.DB {
-	Expect(gDbCtx.pool).ShouldNot(BeNil())
-	Expect(gDbCtx.resource).ShouldNot(BeNil())
-	var dbTemp *gorm.DB
-	err := gDbCtx.pool.Retry(func() error {
-		var err error
-
-		dbTemp, err = gorm.Open("postgres", fmt.Sprintf("host=localhost port=%s user=admin password=admin sslmode=disable", gDbCtx.resource.GetPort("5432/tcp")))
-		return err
-	})
+	dbTemp, err := gorm.Open("postgres", fmt.Sprintf("host=127.0.0.1 port=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort()))
 	Expect(err).ShouldNot(HaveOccurred())
 	defer dbTemp.Close()
 
@@ -57,7 +88,7 @@ func PrepareTestDB(dbName string, extrasSchemas ...interface{}) *gorm.DB {
 	Expect(dbTemp.Error).ShouldNot(HaveOccurred())
 
 	db, err := gorm.Open("postgres",
-		fmt.Sprintf("host=localhost port=%s dbname=%s user=admin password=admin sslmode=disable", gDbCtx.resource.GetPort("5432/tcp"), strings.ToLower(dbName)))
+		fmt.Sprintf("host=127.0.0.1 port=%s dbname=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort(), strings.ToLower(dbName)))
 	Expect(err).ShouldNot(HaveOccurred())
 	// db = db.Debug()
 	db.AutoMigrate(&models.Host{}, &Cluster{})
@@ -71,12 +102,10 @@ func PrepareTestDB(dbName string, extrasSchemas ...interface{}) *gorm.DB {
 }
 
 func DeleteTestDB(db *gorm.DB, dbName string) {
-
-	Expect(gDbCtx.resource).ShouldNot(BeNil())
 	db.Close()
 
 	db, err := gorm.Open("postgres",
-		fmt.Sprintf("host=localhost port=%s user=admin password=admin sslmode=disable", gDbCtx.resource.GetPort("5432/tcp")))
+		fmt.Sprintf("host=127.0.0.1 port=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort()))
 	Expect(err).ShouldNot(HaveOccurred())
 	defer db.Close()
 	db = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s;", strings.ToLower(dbName)))

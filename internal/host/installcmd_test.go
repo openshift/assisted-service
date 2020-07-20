@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"testing"
 
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/hardware"
@@ -170,11 +169,4 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			defaultInstructionConfig.ControllerImage)))
 	}
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
-}
-
-func TestInstallCommand(t *testing.T) {
-	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
-	RunSpecs(t, "installcmd test Suite")
 }

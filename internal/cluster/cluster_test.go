@@ -4,7 +4,6 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
-	"testing"
 	"time"
 
 	"github.com/filanov/bm-inventory/internal/common"
@@ -602,13 +601,6 @@ func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 		Status:    swag.String(state),
 	}
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-}
-
-func TestCluster(t *testing.T) {
-	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
-	RunSpecs(t, "cluster state machine tests")
 }
 
 func getTestLog() logrus.FieldLogger {
