@@ -276,7 +276,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 	})
 	if err != nil {
 		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to cancel installation. Error: %s", err.Error())
+		eventInfo = fmt.Sprintf("Failed to cancel installation: %s", err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil

@@ -395,21 +395,27 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 	resp, err := http.Get(imageURL)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ISO: %s", imgName)
+		msg := "Failed to download image: error fetching from storage backend"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
-		b, _ := ioutil.ReadAll(resp.Body)
-		log.WithError(fmt.Errorf("%d - %s", resp.StatusCode, string(b))).
+		body, _ := ioutil.ReadAll(resp.Body)
+		log.WithError(fmt.Errorf("%d - %s", resp.StatusCode, string(body))).
 			Errorf("Failed to get ISO: %s", imgName)
 		if resp.StatusCode == http.StatusNotFound {
+			msg := "Failed to download image: the image was not found (perhaps it expired) - please generate the image and try again"
+			b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 			return installer.NewDownloadClusterISONotFound().
 				WithPayload(common.GenerateError(http.StatusNotFound, errors.New("The image was not found "+
-					"(perhaps it expired) - please generate a new one and try again")))
+					"(perhaps it expired) - please generate the image and try again")))
 		}
+		msg := fmt.Sprintf("Failed to download image: error fetching from storage backend (%d)", resp.StatusCode)
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewDownloadClusterISOInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New(string(b))))
+			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New(string(body))))
 	}
 	b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityInfo, "Started image download", time.Now())
 
@@ -437,6 +443,8 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	}()
 
 	if tx.Error != nil {
+		msg := "Failed to generate image: error starting DB transaction"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		log.WithError(tx.Error).Errorf("failed to start db transaction")
 		return installer.NewInstallClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
@@ -456,6 +464,8 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	previousCreatedAt := time.Time(cluster.ImageInfo.CreatedAt)
 	if previousCreatedAt.Add(10 * time.Second).After(now) {
 		log.Error("request came too soon after previous request")
+		msg := "Failed to generate image: another request to generate an image has been recently submitted - please wait a few seconds and try again"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewGenerateClusterISOConflict().WithPayload(common.GenerateError(http.StatusConflict,
 			errors.New("Another request to generate an image has been recently submitted. Please wait a few seconds and try again.")))
 	}
@@ -472,6 +482,8 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		imageExists, err = b.s3Client.UpdateObjectTag(ctx, imgName, b.S3Bucket, "create_sec_since_epoch", strconv.FormatInt(now.Unix(), 10))
 		if err != nil {
 			log.WithError(tx.Error).Errorf("failed to contact storage backend")
+			msg := "Failed to generate image: error contacting storage backend"
+			b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 			return installer.NewInstallClusterInternalServerError().
 				WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("failed to contact storage backend")))
 		}
@@ -485,16 +497,22 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
+		msg := "Failed to generate image: error updating metadata"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewGenerateClusterISOInternalServerError()
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		log.Error(err)
+		msg := "Failed to generate image: error committing the transaction"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewGenerateClusterISOInternalServerError()
 	}
 	txSuccess = true
 	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
+		msg := "Failed to generate image: error fetching updated cluster metadata"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewUpdateClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
@@ -510,14 +528,17 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	log.Info("Attempting to delete job %s", prevJobName)
 	if err := b.job.Delete(ctx, prevJobName, b.Namespace); err != nil {
 		log.WithError(err).Errorf("failed to kill previous job in cluster %s", cluster.ID)
+		msg := "Failed to generate image: error stopping previous image generation"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewGenerateClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-	log.Info("Finished attempting to delete job %s", prevJobName)
 
 	ignitionConfig, formatErr := b.formatIgnitionFile(&cluster, params)
 	if formatErr != nil {
 		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
+		msg := "Failed to generate image: error formatting ignition file"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewGenerateClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, formatErr))
 	}
@@ -528,12 +549,16 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	log.Infof("Creating job %s", jobName)
 	if err := b.job.Create(ctx, b.createImageJob(jobName, imgName, ignitionConfig)); err != nil {
 		log.WithError(err).Error("failed to create image job")
+		msg := "Failed to generate image: error creating image generation job"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewGenerateClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
 	if err := b.job.Monitor(ctx, jobName, b.Namespace); err != nil {
 		log.WithError(err).Error("image creation failed")
+		msg := "Failed to generate image: error during image generation job"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewGenerateClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
@@ -1140,6 +1165,8 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		if err := b.clusterApi.AcceptRegistration(&cluster); err != nil {
 			log.WithError(err).Errorf("failed to register host <%s> to cluster %s due to: %s",
 				params.NewHostParams.HostID, params.ClusterID.String(), err.Error())
+			msg := "Failed to register host: cluster cannot accept new hosts in its current state"
+			b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
 			return installer.NewRegisterHostForbidden().
 				WithPayload(common.GenerateError(http.StatusForbidden, err))
 		}
@@ -1158,14 +1185,20 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	if err := b.hostApi.RegisterHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
 			params.NewHostParams.HostID.String(), params.ClusterID.String())
+		msg := "Failed to register host: error creating host metadata"
+		b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
 		return installer.NewRegisterHostBadRequest().
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
 	if err := b.customizeHost(&host); err != nil {
+		msg := "Failed to register host: error setting host properties"
+		b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 	}
 
+	msg := "New host registered to cluster"
+	b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityInfo, msg, time.Now(), params.ClusterID.String())
 	return installer.NewRegisterHostCreated().WithPayload(&host)
 }
 
@@ -1181,6 +1214,8 @@ func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params installe
 	}
 
 	// TODO: need to check that host can be deleted from the cluster
+	msg := "Host deregistered from cluster"
+	b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityInfo, msg, time.Now(), params.ClusterID.String())
 	return installer.NewDeregisterHostNoContent()
 }
 
@@ -1428,6 +1463,7 @@ func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params installer.
 	b.debugCmdMux.Unlock()
 	log.Infof("Added new debug command <%s> for cluster <%s> host <%s>: <%s>",
 		stepID, params.ClusterID, params.HostID, swag.StringValue(params.Step.Command))
+	b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityInfo, "Added debug command", time.Now(), params.HostID.String())
 	return installer.NewSetDebugStepNoContent()
 }
 
@@ -1442,18 +1478,26 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID)
+		msg := "Failed to disable host: error fetching host from DB"
+		b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if err := b.hostApi.DisableHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
+		msg := "Failed to disable host: error disabling host in current status"
+		b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
 
 	if err := b.customizeHost(&host); err != nil {
+		msg := "Failed to disable host: error setting host properties"
+		b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 	}
 
+	msg := "Host disabled by user"
+	b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityInfo, msg, time.Now(), params.ClusterID.String())
 	return installer.NewDisableHostOK().WithPayload(&host)
 }
 
@@ -1468,18 +1512,26 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID)
+		msg := "Failed to enable host: error fetching host from DB"
+		b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if err := b.hostApi.EnableHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to enable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
+		msg := "Failed to enable host: error disabling host in current status"
+		b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
 
 	if err := b.customizeHost(&host); err != nil {
+		msg := "Failed to enable host: error setting host properties"
+		b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 	}
 
+	msg := "Host enabled by user"
+	b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityInfo, msg, time.Now(), params.ClusterID.String())
 	return installer.NewEnableHostOK().WithPayload(&host)
 }
 
@@ -1833,13 +1885,15 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 	}()
 
 	if tx.Error != nil {
-		log.WithError(tx.Error).Errorf("failed to start db transaction")
+		msg := "Failed to cancel installation: error starting DB transaction"
+		log.WithError(tx.Error).Errorf(msg)
+		b.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewCancelInstallationInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
+			common.GenerateError(http.StatusInternalServerError, errors.New(msg)))
 	}
 
 	if err := tx.Preload("Hosts").First(&c, "id = ?", params.ClusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
+		log.WithError(err).Errorf("Failed to cancel installation: could not find cluster %s", params.ClusterID)
 		if gorm.IsRecordNotFoundError(err) {
 			return installer.NewCancelInstallationNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
 		}
@@ -1847,11 +1901,11 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 	}
 
 	// cancellation is made by setting the cluster and and hosts states to error.
-	if err := b.clusterApi.CancelInstallation(ctx, &c, "installation was canceled by user", tx); err != nil {
+	if err := b.clusterApi.CancelInstallation(ctx, &c, "Installation was canceled by user", tx); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	for _, h := range c.Hosts {
-		if err := b.hostApi.CancelInstallation(ctx, h, "installation was canceled by user", tx); err != nil {
+		if err := b.hostApi.CancelInstallation(ctx, h, "Installation was canceled by user", tx); err != nil {
 			return common.GenerateErrorResponder(err)
 		}
 		if err := b.customizeHost(h); err != nil {
@@ -1860,7 +1914,9 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		log.Error(err)
+		log.Errorf("Failed to cancel installation: error committing DB transaction (%s)", err)
+		msg := "Failed to cancel installation: error committing DB transaction"
+		b.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewCancelInstallationInternalServerError().WithPayload(
 			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction")))
 	}
