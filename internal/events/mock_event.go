@@ -6,9 +6,10 @@ package events
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	time "time"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockHandler is a mock of Handler interface
@@ -37,7 +38,7 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 // AddEvent mocks base method
 func (m *MockHandler) AddEvent(ctx context.Context, entityID, severity, msg string, eventTime time.Time, otherEntities ...string) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, entityID, severity,msg, eventTime}
+	varargs := []interface{}{ctx, entityID, severity, msg, eventTime}
 	for _, a := range otherEntities {
 		varargs = append(varargs, a)
 	}
