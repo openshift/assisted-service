@@ -6,6 +6,7 @@ import (
 
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/models"
+	"github.com/go-openapi/swag"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -71,7 +72,7 @@ type InstallerConfigBaremetal struct {
 func countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
 	var count int
 	for _, host := range cluster.Hosts {
-		if host.Role == role {
+		if swag.StringValue(host.Status) != models.HostStatusDisabled && host.Role == role {
 			count += 1
 		}
 	}

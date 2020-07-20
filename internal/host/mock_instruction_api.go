@@ -6,9 +6,10 @@ package host
 
 import (
 	context "context"
+	reflect "reflect"
+
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockInstructionApi is a mock of InstructionApi interface
