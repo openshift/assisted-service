@@ -5,8 +5,9 @@ go 1.13
 require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
 	github.com/aws/aws-sdk-go v1.32.6
-	github.com/danielerez/go-dns-client v0.0.0-20200629124827-e4a32ed16a29
-	github.com/filanov/stateswitch v0.0.0-20200513095115-051501b05b45
+	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
+	github.com/docker/go-units v0.4.0
+	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/loads v0.19.5
 	github.com/go-openapi/runtime v0.19.19
@@ -19,7 +20,7 @@ require (
 	github.com/jinzhu/gorm v1.9.12
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/minio/minio-go/v6 v6.0.55
-	github.com/onsi/ginkgo v1.12.2
+	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1

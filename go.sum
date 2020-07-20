@@ -62,6 +62,8 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/danielerez/go-dns-client v0.0.0-20200629124827-e4a32ed16a29 h1:4CTch4fbkk5qBUtiSlM8/SvA9UsTykdLpfcEjXW28yU=
 github.com/danielerez/go-dns-client v0.0.0-20200629124827-e4a32ed16a29/go.mod h1:2l39JZ3DOxVtByPDmp0Zhh4xS7603UHmeRtLCKzqQdQ=
+github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b h1:3Mkb/I9NauxsrV6kc6DaP3MspFFHsi06kA6jL8L8iBc=
+github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b/go.mod h1:2l39JZ3DOxVtByPDmp0Zhh4xS7603UHmeRtLCKzqQdQ=
 github.com/davecgh/go-spew v0.0.0-20151105211317-5215b55f46b2/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
@@ -90,6 +92,14 @@ github.com/evanphx/json-patch v4.5.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLi
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/filanov/stateswitch v0.0.0-20200513095115-051501b05b45 h1:IwhQ7f5Gx8ivAkpiQC4iQaKTMOq1wrgRDaxe+OggGTg=
 github.com/filanov/stateswitch v0.0.0-20200513095115-051501b05b45/go.mod h1:sk33Oz1ABVidMrVdJfd6tj7n9exK/PZarClHJNnFIQ8=
+github.com/filanov/stateswitch v0.0.0-20200704183537-be38b090f667 h1:5U1htz3rGQOXt48IQMx4M6xm8cSnjzYEQ9v3M9uNJHM=
+github.com/filanov/stateswitch v0.0.0-20200704183537-be38b090f667/go.mod h1:/dLVXazqXVH6lOV6ICV0kLc6FP1g2CLXDMfULBEQNq8=
+github.com/filanov/stateswitch v0.0.0-20200705122956-f73346fe9d27 h1:MPpnRyC/BNfH6A2iI8vfRxZUQgKb04pnRHREOD4AhQk=
+github.com/filanov/stateswitch v0.0.0-20200705122956-f73346fe9d27/go.mod h1:/dLVXazqXVH6lOV6ICV0kLc6FP1g2CLXDMfULBEQNq8=
+github.com/filanov/stateswitch v0.0.0-20200707093657-321a5049bd8a h1:ZTyyf3F3pv52BjOnGo1KzKRHs70VtUAI08xBFXig9/4=
+github.com/filanov/stateswitch v0.0.0-20200707093657-321a5049bd8a/go.mod h1:GYnXtGE0e/uuFBz4CbjJL0JmP3DWwzGtcpjZYYC9ikc=
+github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604 h1:aZhbnjYgDH0XJXQPYGxJjla3bOsx+I4V1F3eqMuiIpQ=
+github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604/go.mod h1:GYnXtGE0e/uuFBz4CbjJL0JmP3DWwzGtcpjZYYC9ikc=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.4.9 h1:hsms1Qyu0jgnwNXIxa+/V/PDsU6CfLf6CNO8H7IWoS4=
@@ -391,6 +401,8 @@ github.com/onsi/ginkgo v1.12.0/go.mod h1:oUhWkIvk5aDxtKvDDuw8gItl8pKl42LzjC9KZE0
 github.com/onsi/ginkgo v1.12.1/go.mod h1:zj2OWP4+oCPe1qIXoGWkgMRwljMUYCdkwsT2108oapk=
 github.com/onsi/ginkgo v1.12.2 h1:Ke9m3h2Hu0wsZ45yewCqhYr3Z+emcNTuLY2nMWCkrSI=
 github.com/onsi/ginkgo v1.12.2/go.mod h1:iSB4RoI2tjJc9BBv4NKIKWKya62Rps+oPG/Lv9klQyY=
+github.com/onsi/ginkgo v1.14.0 h1:2mOpI4JVVPBN+WQRa0WKH2eXR+Ey+uK4n7Zj0aYpIQA=
+github.com/onsi/ginkgo v1.14.0/go.mod h1:iSB4RoI2tjJc9BBv4NKIKWKya62Rps+oPG/Lv9klQyY=
 github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
 github.com/onsi/gomega v1.5.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
