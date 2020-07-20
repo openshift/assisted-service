@@ -29,7 +29,7 @@ var _ = Describe("Transition tests", func() {
 	BeforeEach(func() {
 		db = prepareDB()
 		eventsHandler = events.New(db, logrus.New())
-		capi = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler)
+		capi = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
