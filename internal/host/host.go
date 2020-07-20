@@ -425,8 +425,10 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 	//get openshift version from cluster
 	var cluster common.Cluster
 
-	if err := m.db.First(&cluster, "id = ?", h.ClusterID).Error; err != nil {
+	err := m.db.First(&cluster, "id = ?", h.ClusterID).Error
+	if err != nil {
 		log.WithError(err).Errorf("not reporting installation metrics - failed to find cluster %s", h.ClusterID)
+	} else {
+		m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h, previousProgress, CurrentStage)
 	}
-	m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h, previousProgress, CurrentStage)
 }

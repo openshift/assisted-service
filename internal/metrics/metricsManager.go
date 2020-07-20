@@ -180,7 +180,8 @@ func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, res
 	m.serviceLogicClusterInstallationSeconds.WithLabelValues(result, clusterVersion).Observe(duration)
 }
 
-func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
+func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host,
+	previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 
 	if previousProgress != nil && previousProgress.CurrentStage != currentStage {
 
@@ -202,7 +203,8 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 			}
 			log.Infof("service Logic Host Installation Phase Seconds phase %s, result %s, duration %f",
 				string(previousProgress.CurrentStage), string(phaseResult), duration)
-			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage), string(phaseResult), clusterVersion).Observe(duration)
+			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
+				string(phaseResult), clusterVersion).Observe(duration)
 		}
 	}
 }
@@ -219,22 +221,26 @@ func (m *MetricsManager) handleHostInstallationComplete(log logrus.FieldLogger, 
 	} else {
 		log.Infof("service Logic Cluster Host Cores role %s, result %s cpu %d",
 			roleStr, installationStageStr, hwInfo.CPU.Count)
-		m.serviceLogicClusterHostCores.WithLabelValues(roleStr, installationStageStr, clusterVersion).Observe(float64(hwInfo.CPU.Count))
+		m.serviceLogicClusterHostCores.WithLabelValues(roleStr, installationStageStr,
+			clusterVersion).Observe(float64(hwInfo.CPU.Count))
 		log.Infof("service Logic Cluster Host RAMGb role %s, result %s ram %d",
 			roleStr, installationStageStr, bytesToGib(hwInfo.Memory.PhysicalBytes))
-		m.serviceLogicClusterHostRAMGb.WithLabelValues(roleStr, installationStageStr, clusterVersion).Observe(float64(bytesToGib(hwInfo.Memory.PhysicalBytes)))
+		m.serviceLogicClusterHostRAMGb.WithLabelValues(roleStr, installationStageStr,
+			clusterVersion).Observe(float64(bytesToGib(hwInfo.Memory.PhysicalBytes)))
 		for _, disk := range hwInfo.Disks {
 			//TODO change the code after adding storage controller to disk model
 			diskTypeStr := disk.DriveType //+ "-" + disk.StorageController
 			log.Infof("service Logic Cluster Host DiskGb role %s, result %s diskType %s diskSize %d",
 				roleStr, installationStageStr, diskTypeStr, bytesToGib(disk.SizeBytes))
 			//TODO missing raid data
-			m.serviceLogicClusterHostDiskGb.WithLabelValues(diskTypeStr, roleStr, installationStageStr, clusterVersion).Observe(float64(bytesToGib(disk.SizeBytes)))
+			m.serviceLogicClusterHostDiskGb.WithLabelValues(diskTypeStr, roleStr, installationStageStr,
+				clusterVersion).Observe(float64(bytesToGib(disk.SizeBytes)))
 		}
 		for _, inter := range hwInfo.Interfaces {
 			log.Infof("service Logic Cluster Host NicGb role %s, result %s SpeedMbps %f",
 				roleStr, installationStageStr, float64(inter.SpeedMbps))
-			m.serviceLogicClusterHostNicGb.WithLabelValues(roleStr, installationStageStr, clusterVersion).Observe(float64(inter.SpeedMbps))
+			m.serviceLogicClusterHostNicGb.WithLabelValues(roleStr, installationStageStr,
+				clusterVersion).Observe(float64(inter.SpeedMbps))
 		}
 	}
 }
