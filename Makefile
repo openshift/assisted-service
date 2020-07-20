@@ -121,9 +121,6 @@ deploy-service: deploy-namespace deploy-service-requirements deploy-role
 deploy-role: deploy-namespace
 	python3 ./tools/deploy_role.py
 
-deploy-mariadb: deploy-namespace
-	python3 ./tools/deploy_mariadb.py
-
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py
 

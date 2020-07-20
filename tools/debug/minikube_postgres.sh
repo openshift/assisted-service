@@ -5,7 +5,7 @@
 
 function print_usage() {
     [[ -n "$1" ]] && echo "$1" && echo
-    echo "usage: minikube_mysql.sh [-u <username>] [-p <password>] [-t <table-name>] <db-service-name>"
+    echo "usage: minikube_postgres.sh [-u <username>] [-p <password>] [-t <table-name>] <db-service-name>"
     echo
     echo "    -u - username"
     echo "    -p - password"
@@ -13,8 +13,8 @@ function print_usage() {
     exit 1
 }
 
-USER="root"
-PWD="root"
+USER="admin"
+PWD="admin"
 TABLE="installer"
 
 while getopts ':t:u:p:h' flag; do
@@ -34,4 +34,4 @@ DB_SERVICE=${@:$OPTIND:1}
 SERVICE_URL=$(minikube service list | grep ${DB_SERVICE} | awk -F"|" '{print $5}' | tr -d '[:space:]')
 PORT=$(echo  ${SERVICE_URL}| awk -F"://|:" '{print $3}')
 SERVER=$(echo  ${SERVICE_URL}| awk -F"://|:" '{print $2}')
-mysql -u ${USER} -D ${TABLE} -h ${SERVER} --port ${PORT} -p${PWD}
+PGPASSWORD=admin psql -U ${USER} --dbname ${TABLE} --host ${SERVER} --port ${PORT} -w
