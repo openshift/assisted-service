@@ -63,14 +63,15 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 		log: log,
 		db:  db,
 		stateToSteps: stateToStepsMap{
-			HostStatusKnown:        {[]CommandGetter{connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
-			HostStatusInsufficient: {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
-			HostStatusDisconnected: {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd}, defaultBackedOffInstructionInSec},
-			HostStatusDiscovering:  {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
-			HostStatusInstalling:   {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec},
-			HostStatusDisabled:     {[]CommandGetter{}, defaultBackedOffInstructionInSec},
-			HostStatusResetting:    {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
-			HostStatusError:        {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
+			HostStatusKnown:           {[]CommandGetter{connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
+			HostStatusInsufficient:    {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
+			HostStatusDisconnected:    {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd}, defaultBackedOffInstructionInSec},
+			HostStatusDiscovering:     {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
+			HostStatusPendingForInput: {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
+			HostStatusInstalling:      {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec},
+			HostStatusDisabled:        {[]CommandGetter{}, defaultBackedOffInstructionInSec},
+			HostStatusResetting:       {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
+			HostStatusError:           {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
 		},
 	}
 }

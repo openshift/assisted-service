@@ -6,105 +6,12 @@ package host
 
 import (
 	context "context"
-	reflect "reflect"
-
 	common "github.com/filanov/bm-inventory/internal/common"
-	validators "github.com/filanov/bm-inventory/internal/validators"
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
+	reflect "reflect"
 )
-
-// MockStateAPI is a mock of StateAPI interface
-type MockStateAPI struct {
-	ctrl     *gomock.Controller
-	recorder *MockStateAPIMockRecorder
-}
-
-// MockStateAPIMockRecorder is the mock recorder for MockStateAPI
-type MockStateAPIMockRecorder struct {
-	mock *MockStateAPI
-}
-
-// NewMockStateAPI creates a new mock instance
-func NewMockStateAPI(ctrl *gomock.Controller) *MockStateAPI {
-	mock := &MockStateAPI{ctrl: ctrl}
-	mock.recorder = &MockStateAPIMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockStateAPI) EXPECT() *MockStateAPIMockRecorder {
-	return m.recorder
-}
-
-// RefreshStatus mocks base method
-func (m *MockStateAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshStatus", ctx, h, db)
-	ret0, _ := ret[0].(*models.Host)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RefreshStatus indicates an expected call of RefreshStatus
-func (mr *MockStateAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockStateAPI)(nil).RefreshStatus), ctx, h, db)
-}
-
-// MockSpecificHardwareParams is a mock of SpecificHardwareParams interface
-type MockSpecificHardwareParams struct {
-	ctrl     *gomock.Controller
-	recorder *MockSpecificHardwareParamsMockRecorder
-}
-
-// MockSpecificHardwareParamsMockRecorder is the mock recorder for MockSpecificHardwareParams
-type MockSpecificHardwareParamsMockRecorder struct {
-	mock *MockSpecificHardwareParams
-}
-
-// NewMockSpecificHardwareParams creates a new mock instance
-func NewMockSpecificHardwareParams(ctrl *gomock.Controller) *MockSpecificHardwareParams {
-	mock := &MockSpecificHardwareParams{ctrl: ctrl}
-	mock.recorder = &MockSpecificHardwareParamsMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockSpecificHardwareParams) EXPECT() *MockSpecificHardwareParamsMockRecorder {
-	return m.recorder
-}
-
-// GetHostValidDisks mocks base method
-func (m *MockSpecificHardwareParams) GetHostValidDisks(h *models.Host) ([]*models.Disk, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostValidDisks", h)
-	ret0, _ := ret[0].([]*models.Disk)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHostValidDisks indicates an expected call of GetHostValidDisks
-func (mr *MockSpecificHardwareParamsMockRecorder) GetHostValidDisks(h interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockSpecificHardwareParams)(nil).GetHostValidDisks), h)
-}
-
-// ValidateCurrentInventory mocks base method
-func (m *MockSpecificHardwareParams) ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*validators.IsSufficientReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateCurrentInventory", host, cluster)
-	ret0, _ := ret[0].(*validators.IsSufficientReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ValidateCurrentInventory indicates an expected call of ValidateCurrentInventory
-func (mr *MockSpecificHardwareParamsMockRecorder) ValidateCurrentInventory(host, cluster interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCurrentInventory", reflect.TypeOf((*MockSpecificHardwareParams)(nil).ValidateCurrentInventory), host, cluster)
-}
 
 // MockAPI is a mock of API interface
 type MockAPI struct {
@@ -157,21 +64,6 @@ func (mr *MockAPIMockRecorder) HandleInstallationFailure(ctx, h interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleInstallationFailure", reflect.TypeOf((*MockAPI)(nil).HandleInstallationFailure), ctx, h)
 }
 
-// RefreshStatus mocks base method
-func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) (*models.Host, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshStatus", ctx, h, db)
-	ret0, _ := ret[0].(*models.Host)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RefreshStatus indicates an expected call of RefreshStatus
-func (mr *MockAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, h, db)
-}
-
 // GetNextSteps mocks base method
 func (m *MockAPI) GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error) {
 	m.ctrl.T.Helper()
@@ -187,36 +79,6 @@ func (mr *MockAPIMockRecorder) GetNextSteps(ctx, host interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextSteps", reflect.TypeOf((*MockAPI)(nil).GetNextSteps), ctx, host)
 }
 
-// GetHostValidDisks mocks base method
-func (m *MockAPI) GetHostValidDisks(h *models.Host) ([]*models.Disk, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostValidDisks", h)
-	ret0, _ := ret[0].([]*models.Disk)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHostValidDisks indicates an expected call of GetHostValidDisks
-func (mr *MockAPIMockRecorder) GetHostValidDisks(h interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockAPI)(nil).GetHostValidDisks), h)
-}
-
-// ValidateCurrentInventory mocks base method
-func (m *MockAPI) ValidateCurrentInventory(host *models.Host, cluster *common.Cluster) (*validators.IsSufficientReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateCurrentInventory", host, cluster)
-	ret0, _ := ret[0].(*validators.IsSufficientReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ValidateCurrentInventory indicates an expected call of ValidateCurrentInventory
-func (mr *MockAPIMockRecorder) ValidateCurrentInventory(host, cluster interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCurrentInventory", reflect.TypeOf((*MockAPI)(nil).ValidateCurrentInventory), host, cluster)
-}
-
 // UpdateInstallProgress mocks base method
 func (m *MockAPI) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error {
 	m.ctrl.T.Helper()
@@ -229,6 +91,20 @@ func (m *MockAPI) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 func (mr *MockAPIMockRecorder) UpdateInstallProgress(ctx, h, progress interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallProgress", reflect.TypeOf((*MockAPI)(nil).UpdateInstallProgress), ctx, h, progress)
+}
+
+// RefreshStatus mocks base method
+func (m *MockAPI) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshStatus", ctx, h, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RefreshStatus indicates an expected call of RefreshStatus
+func (mr *MockAPIMockRecorder) RefreshStatus(ctx, h, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, h, db)
 }
 
 // SetBootstrap mocks base method
