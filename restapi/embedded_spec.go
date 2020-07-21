@@ -1193,6 +1193,18 @@ func init() {
         "responses": {
           "200": {
             "description": "Update install progress"
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       }
@@ -3788,6 +3800,18 @@ func init() {
         "responses": {
           "200": {
             "description": "Update install progress"
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       }

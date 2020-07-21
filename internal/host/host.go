@@ -227,6 +227,15 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		return fmt.Errorf("can't set progress to host in status <%s>", swag.StringValue(h.Status))
 	}
 
+	if h.Progress.CurrentStage != "" && progress.CurrentStage != models.HostStageFailed {
+
+		// Verify the new stage is higher or equal to the current host stage according to its role stages array
+		if stages := m.GetStagesByRole(h.Role, h.Bootstrap); indexOfStage(progress.CurrentStage, stages) < indexOfStage(h.Progress.CurrentStage, stages) {
+			return errors.Errorf("can't assign lower %s stage after host has been in stage %s",
+				progress.CurrentStage, h.Progress.CurrentStage)
+		}
+	}
+
 	statusInfo := string(progress.CurrentStage)
 
 	switch progress.CurrentStage {

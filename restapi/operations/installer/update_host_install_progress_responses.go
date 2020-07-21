@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/filanov/bm-inventory/models"
 )
 
 // UpdateHostInstallProgressOKCode is the HTTP code returned for type UpdateHostInstallProgressOK
@@ -33,4 +35,92 @@ func (o *UpdateHostInstallProgressOK) WriteResponse(rw http.ResponseWriter, prod
 	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
 	rw.WriteHeader(200)
+}
+
+// UpdateHostInstallProgressNotFoundCode is the HTTP code returned for type UpdateHostInstallProgressNotFound
+const UpdateHostInstallProgressNotFoundCode int = 404
+
+/*UpdateHostInstallProgressNotFound Error.
+
+swagger:response updateHostInstallProgressNotFound
+*/
+type UpdateHostInstallProgressNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUpdateHostInstallProgressNotFound creates UpdateHostInstallProgressNotFound with default headers values
+func NewUpdateHostInstallProgressNotFound() *UpdateHostInstallProgressNotFound {
+
+	return &UpdateHostInstallProgressNotFound{}
+}
+
+// WithPayload adds the payload to the update host install progress not found response
+func (o *UpdateHostInstallProgressNotFound) WithPayload(payload *models.Error) *UpdateHostInstallProgressNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update host install progress not found response
+func (o *UpdateHostInstallProgressNotFound) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UpdateHostInstallProgressNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// UpdateHostInstallProgressInternalServerErrorCode is the HTTP code returned for type UpdateHostInstallProgressInternalServerError
+const UpdateHostInstallProgressInternalServerErrorCode int = 500
+
+/*UpdateHostInstallProgressInternalServerError Error.
+
+swagger:response updateHostInstallProgressInternalServerError
+*/
+type UpdateHostInstallProgressInternalServerError struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUpdateHostInstallProgressInternalServerError creates UpdateHostInstallProgressInternalServerError with default headers values
+func NewUpdateHostInstallProgressInternalServerError() *UpdateHostInstallProgressInternalServerError {
+
+	return &UpdateHostInstallProgressInternalServerError{}
+}
+
+// WithPayload adds the payload to the update host install progress internal server error response
+func (o *UpdateHostInstallProgressInternalServerError) WithPayload(payload *models.Error) *UpdateHostInstallProgressInternalServerError {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update host install progress internal server error response
+func (o *UpdateHostInstallProgressInternalServerError) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UpdateHostInstallProgressInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(500)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }

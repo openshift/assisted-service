@@ -239,28 +239,57 @@ var _ = Describe("update_progress", func() {
 			})
 
 			It("progress_failed_after_a_stage", func() {
-				// Some stage
-				progress.CurrentStage = models.HostStageWritingImageToDisk
-				progress.ProgressInfo = "20%"
-				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
-				hostFromDB = getHost(*host.ID, host.ClusterID, db)
-				Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
-				Expect(*hostFromDB.StatusInfo).Should(Equal(string(progress.CurrentStage)))
+				By("Some stage", func() {
+					progress.CurrentStage = models.HostStageWritingImageToDisk
+					progress.ProgressInfo = "20%"
+					Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
+					hostFromDB = getHost(*host.ID, host.ClusterID, db)
+					Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
+					Expect(*hostFromDB.StatusInfo).Should(Equal(string(progress.CurrentStage)))
 
-				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
-				Expect(hostFromDB.Progress.ProgressInfo).Should(Equal(progress.ProgressInfo))
+					Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
+					Expect(hostFromDB.Progress.ProgressInfo).Should(Equal(progress.ProgressInfo))
+				})
 
-				// Failed
-				newProgress := models.HostProgress{}
-				newProgress.CurrentStage = models.HostStageFailed
-				newProgress.ProgressInfo = "reason"
-				Expect(state.UpdateInstallProgress(ctx, hostFromDB, &newProgress)).ShouldNot(HaveOccurred())
-				hostFromDB = getHost(*host.ID, host.ClusterID, db)
-				Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
-				Expect(*hostFromDB.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", newProgress.CurrentStage, newProgress.ProgressInfo)))
+				By("Failed", func() {
+					newProgress := models.HostProgress{
+						CurrentStage: models.HostStageFailed,
+						ProgressInfo: "reason",
+					}
+					Expect(state.UpdateInstallProgress(ctx, hostFromDB, &newProgress)).ShouldNot(HaveOccurred())
+					hostFromDB = getHost(*host.ID, host.ClusterID, db)
+					Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
+					Expect(*hostFromDB.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", newProgress.CurrentStage, newProgress.ProgressInfo)))
 
-				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
-				Expect(hostFromDB.Progress.ProgressInfo).Should(Equal(progress.ProgressInfo))
+					Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
+					Expect(hostFromDB.Progress.ProgressInfo).Should(Equal(progress.ProgressInfo))
+				})
+			})
+
+			It("lower_stage", func() {
+				verifyDb := func() {
+					hostFromDB = getHost(*host.ID, host.ClusterID, db)
+					Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
+					Expect(*hostFromDB.StatusInfo).Should(Equal(string(progress.CurrentStage)))
+
+					Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
+					Expect(hostFromDB.Progress.ProgressInfo).Should(Equal(progress.ProgressInfo))
+				}
+
+				By("Some stage", func() {
+					progress.CurrentStage = models.HostStageWritingImageToDisk
+					progress.ProgressInfo = "20%"
+					Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
+					verifyDb()
+				})
+
+				By("Lower stage", func() {
+					newProgress := models.HostProgress{
+						CurrentStage: models.HostStageInstalling,
+					}
+					Expect(state.UpdateInstallProgress(ctx, hostFromDB, &newProgress)).Should(HaveOccurred())
+					verifyDb()
+				})
 			})
 		})
 	})

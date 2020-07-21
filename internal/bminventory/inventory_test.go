@@ -544,7 +544,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 				HostProgress: progressParams,
 				HostID:       hostID,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressInternalServerError()))
 		})
 	})
 
@@ -556,7 +556,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 			},
 			HostID: strfmt.UUID(uuid.New().String()),
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressNotFound()))
 	})
 
 	AfterEach(func() {

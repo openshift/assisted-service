@@ -536,6 +536,20 @@ var _ = Describe("cluster install", func() {
 				Expect(hostFromDB.Progress.ProgressInfo).Should(BeEmpty())
 			})
 
+			By("invalid_lower_stage", func() {
+				installProgress := &models.HostProgress{
+					CurrentStage: models.HostStageInstalling,
+				}
+
+				_, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
+					ClusterID:    clusterID,
+					HostProgress: installProgress,
+					HostID:       *hosts[0].ID,
+				})
+
+				Expect(err).Should(HaveOccurred())
+			})
+
 			By("report_failed_on_same_host", func() {
 				installProgress := models.HostStageFailed
 				installInfo := "because some error"
@@ -549,15 +563,17 @@ var _ = Describe("cluster install", func() {
 			})
 
 			By("cant_report_after_error", func() {
-				installProgress := models.HostStageWritingImageToDisk
-				updateProgress(*hosts[0].ID, clusterID, installProgress)
-				hostFromDB := getHost(clusterID, *hosts[0].ID)
+				installProgress := &models.HostProgress{
+					CurrentStage: models.HostStageWritingImageToDisk,
+				}
 
-				// Last status and stage
-				Expect(*hostFromDB.Status).Should(Equal(host.HostStatusError))
-				Expect(*hostFromDB.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", models.HostStageFailed, "because some error")))
-				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(models.HostStageWritingImageToDisk))
-				Expect(hostFromDB.Progress.ProgressInfo).Should(BeEmpty())
+				_, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
+					ClusterID:    clusterID,
+					HostProgress: installProgress,
+					HostID:       *hosts[0].ID,
+				})
+
+				Expect(err).Should(HaveOccurred())
 			})
 
 			// Host #2
@@ -586,15 +602,17 @@ var _ = Describe("cluster install", func() {
 			})
 
 			By("cant_report_after_done", func() {
-				installProgress := models.HostStageFailed
-				updateProgress(*hosts[1].ID, clusterID, installProgress)
-				hostFromDB := getHost(clusterID, *hosts[1].ID)
+				installProgress := &models.HostProgress{
+					CurrentStage: models.HostStageFailed,
+				}
 
-				// Last status and stage
-				Expect(*hostFromDB.Status).Should(Equal(host.HostStatusInstalled))
-				Expect(*hostFromDB.StatusInfo).Should(Equal(string(models.HostStageDone)))
-				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(models.HostStageDone))
-				Expect(hostFromDB.Progress.ProgressInfo).Should(BeEmpty())
+				_, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
+					ClusterID:    clusterID,
+					HostProgress: installProgress,
+					HostID:       *hosts[1].ID,
+				})
+
+				Expect(err).Should(HaveOccurred())
 			})
 
 			// Host #3

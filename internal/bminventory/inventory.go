@@ -1729,13 +1729,13 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 	var host models.Host
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find host %s", params.HostID)
-		// host have nothing to do with the error so we just log it
-		return installer.NewUpdateHostInstallProgressOK()
+		return installer.NewUpdateHostInstallProgressNotFound().
+			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 	if err := b.hostApi.UpdateInstallProgress(ctx, &host, params.HostProgress); err != nil {
 		log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
-		// host have nothing to do with the error so we just log it
-		return installer.NewUpdateHostInstallProgressOK()
+		return installer.NewUpdateHostInstallProgressInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
 	event := fmt.Sprintf("reached installation stage %s", params.HostProgress.CurrentStage)
