@@ -2103,6 +2103,7 @@ func init() {
             "insufficient",
             "disabled",
             "preparing-for-installation",
+            "pending-for-input",
             "installing",
             "installing-in-progress",
             "installing-pending-user-action",
@@ -2126,6 +2127,11 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:datetime\""
+        },
+        "validations_info": {
+          "description": "Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         }
       }
     },
@@ -2194,6 +2200,23 @@ func init() {
         "Joined",
         "Done",
         "Failed"
+      ]
+    },
+    "host-validation-id": {
+      "type": "string",
+      "enum": [
+        "connected",
+        "has-inventory",
+        "has-min-cpu-cores",
+        "has-min-valid-disks",
+        "has-min-memory",
+        "machine-cidr-defined",
+        "role-defined",
+        "has-cpu-cores-for-role",
+        "has-memory-for-role",
+        "hostname-unique",
+        "hostname-valid",
+        "belongs-to-machine-cidr"
       ]
     },
     "host_network": {
@@ -4681,6 +4704,7 @@ func init() {
             "insufficient",
             "disabled",
             "preparing-for-installation",
+            "pending-for-input",
             "installing",
             "installing-in-progress",
             "installing-pending-user-action",
@@ -4704,6 +4728,11 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:datetime\""
+        },
+        "validations_info": {
+          "description": "Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         }
       }
     },
@@ -4772,6 +4801,23 @@ func init() {
         "Joined",
         "Done",
         "Failed"
+      ]
+    },
+    "host-validation-id": {
+      "type": "string",
+      "enum": [
+        "connected",
+        "has-inventory",
+        "has-min-cpu-cores",
+        "has-min-valid-disks",
+        "has-min-memory",
+        "machine-cidr-defined",
+        "role-defined",
+        "has-cpu-cores-for-role",
+        "has-memory-for-role",
+        "hostname-unique",
+        "hostname-valid",
+        "belongs-to-machine-cidr"
       ]
     },
     "host_network": {

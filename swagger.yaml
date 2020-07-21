@@ -1014,6 +1014,7 @@ definitions:
           - insufficient
           - disabled
           - preparing-for-installation
+          - pending-for-input
           - installing
           - installing-in-progress
           - installing-pending-user-action
@@ -1023,6 +1024,10 @@ definitions:
           - resetting
       status_info:
         type: string
+        x-go-custom-tag: gorm:"type:varchar(2048)"
+      validations_info:
+        type: string
+        description: Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)
         x-go-custom-tag: gorm:"type:varchar(2048)"
       status_updated_at:
         type: string
@@ -1848,3 +1853,19 @@ definitions:
       - 'master'
       - 'worker'
       - 'bootstrap'
+
+  host-validation-id:
+    type: string
+    enum:
+      - 'connected'
+      - 'has-inventory'
+      - 'has-min-cpu-cores'
+      - 'has-min-valid-disks'
+      - 'has-min-memory'
+      - 'machine-cidr-defined'
+      - 'role-defined'
+      - 'has-cpu-cores-for-role'
+      - 'has-memory-for-role'
+      - 'hostname-unique'
+      - 'hostname-valid'
+      - 'belongs-to-machine-cidr'
