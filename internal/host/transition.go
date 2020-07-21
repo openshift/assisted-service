@@ -49,7 +49,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and progress, and start the discovery process again.
 		if host, err := updateHostProgress(log, th.db, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState,
-			*sHost.host.Status, statusInfoDiscovering, sHost.host.Progress.CurrentStage, "", "",
+			swag.StringValue(sHost.host.Status), statusInfoDiscovering, sHost.host.Progress.CurrentStage, "", "",
 			"hardware_info", "", "discovery_agent_version", params.discoveryAgentVersion, "bootstrap", false); err != nil {
 			return err
 		} else {
@@ -298,7 +298,7 @@ func (th *transitionHandler) updateTransitionHost(log logrus.FieldLogger, db *go
 	statusInfo string, extra ...interface{}) error {
 
 	if host, err := updateHostStatus(log, db, state.host.ClusterID, *state.host.ID, state.srcState,
-		*state.host.Status, statusInfo, extra...); err != nil {
+		swag.StringValue(state.host.Status), statusInfo, extra...); err != nil {
 		return err
 	} else {
 		state.host = host

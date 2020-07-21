@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/filanov/bm-inventory/internal/validators"
+	"github.com/go-openapi/swag"
 
 	"github.com/sirupsen/logrus"
 
@@ -161,7 +162,7 @@ func (v *validator) isHostnameValid(cluster *common.Cluster, host *models.Host, 
 		if host.ID.String() == chost.ID.String() {
 			continue
 		}
-		if chost.Inventory == "" || *chost.Status == models.HostStatusDisabled {
+		if chost.Inventory == "" || swag.StringValue(chost.Status) == models.HostStatusDisabled {
 			continue
 		}
 

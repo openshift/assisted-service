@@ -4,6 +4,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
@@ -41,7 +42,7 @@ var _ = Describe("update_cluster_state", func() {
 		It("change_status", func() {
 			cluster, err = UpdateCluster(getTestLog(), db, *cluster.ID, *cluster.Status, "status", newStatus, "status_info", newStatusInfo)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(*cluster.Status).Should(Equal(newStatus))
+			Expect(swag.StringValue(cluster.Status)).Should(Equal(newStatus))
 			Expect(*cluster.StatusInfo).Should(Equal(newStatusInfo))
 		})
 

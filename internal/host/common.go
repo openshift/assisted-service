@@ -40,7 +40,8 @@ type baseState struct {
 
 func updateByKeepAlive(log logrus.FieldLogger, h *models.Host, db *gorm.DB) (*models.Host, error) {
 	if h.CheckedInAt.String() != "" && time.Since(time.Time(h.CheckedInAt)) > 3*time.Minute {
-		return updateHostStatus(log, db, h.ClusterID, *h.ID, *h.Status, HostStatusDisconnected, statusInfoDisconnected)
+		return updateHostStatus(log, db, h.ClusterID, *h.ID,
+			swag.StringValue(h.Status), HostStatusDisconnected, statusInfoDisconnected)
 	}
 	return h, nil
 }
@@ -70,7 +71,8 @@ func updateHostStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID
 		extra = append(extra, "status_updated_at", strfmt.DateTime(time.Now()))
 	}
 
-	if host, err = UpdateHost(log, db, clusterId, hostId, srcStatus, extra...); err != nil || *host.Status != newStatus {
+	if host, err = UpdateHost(log, db, clusterId, hostId, srcStatus, extra...); err != nil ||
+		swag.StringValue(host.Status) != newStatus {
 		return nil, errors.Wrapf(err, "failed to update host %s from cluster %s state from %s to %s",
 			hostId, clusterId, srcStatus, newStatus)
 	}
@@ -137,7 +139,8 @@ func isSufficientRole(h *models.Host) *validators.IsSufficientReply {
 func checkAndUpdateSufficientHost(log logrus.FieldLogger, h *models.Host, db *gorm.DB, hwValidator hardware.Validator,
 	connectivityValidator connectivity.Validator) (*models.Host, error) {
 	//checking if need to change state to disconnect
-	if hostAfterKeepAlive, err := updateByKeepAlive(log, h, db); err != nil || hostAfterKeepAlive.Status != h.Status {
+	if hostAfterKeepAlive, err := updateByKeepAlive(log, h, db); err != nil ||
+		swag.StringValue(hostAfterKeepAlive.Status) != swag.StringValue(h.Status) {
 		return hostAfterKeepAlive, err
 	}
 	var statusInfoDetails = make(map[string]string)
@@ -180,7 +183,7 @@ func checkAndUpdateSufficientHost(log logrus.FieldLogger, h *models.Host, db *go
 	//update status & status info in DB only if there is a change
 	if swag.StringValue(h.Status) != newStatus || swag.StringValue(h.StatusInfo) != newStatusInfo {
 		log.Infof("is sufficient host: %s role reply %+v inventory reply %+v connectivity reply %+v", h.ID, roleReply, inventoryReply, connectivityReply)
-		return updateHostStatus(log, db, h.ClusterID, *h.ID, *h.Status, newStatus, newStatusInfo)
+		return updateHostStatus(log, db, h.ClusterID, *h.ID, swag.StringValue(h.Status), newStatus, newStatusInfo)
 	}
 	return h, nil
 }

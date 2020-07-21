@@ -192,9 +192,9 @@ func (m *Manager) ClusterMonitoring() {
 			continue
 		}
 
-		if clusterAfterRefresh.Status != cluster.Status {
+		if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
 			log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
-				*cluster.Status, *clusterAfterRefresh.Status)
+				swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
 		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 )
@@ -36,7 +37,7 @@ func (p *prepare) RefreshStatus(ctx context.Context, c *common.Cluster, _ *gorm.
 	// can happen if the service was rebooted or somehow the async part crashed.
 	if time.Since(time.Time(c.StatusUpdatedAt)) > p.InstallationTimeout {
 		return updateClusterStatus(logutil.FromContext(ctx, p.log), p.db,
-			*c.ID, *c.Status, models.ClusterStatusError, statusInfoPreparingForInstallationTimeout)
+			*c.ID, swag.StringValue(c.Status), models.ClusterStatusError, statusInfoPreparingForInstallationTimeout)
 	}
 	return c, nil
 }

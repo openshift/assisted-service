@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/filanov/bm-inventory/models"
+	"github.com/go-openapi/swag"
 
 	"github.com/filanov/bm-inventory/internal/common"
 	intenralhost "github.com/filanov/bm-inventory/internal/host"
@@ -37,11 +38,11 @@ func (i *installingState) RefreshStatus(ctx context.Context, c *common.Cluster, 
 
 	switch installationState {
 	case models.ClusterStatusFinalizing:
-		return updateClusterStatus(log, db, *c.ID, *c.Status, models.ClusterStatusFinalizing, StateInfo)
+		return updateClusterStatus(log, db, *c.ID, swag.StringValue(c.Status), models.ClusterStatusFinalizing, StateInfo)
 	case clusterStatusInstalled:
-		return updateClusterStatus(log, db, *c.ID, *c.Status, clusterStatusInstalled, StateInfo)
+		return updateClusterStatus(log, db, *c.ID, swag.StringValue(c.Status), clusterStatusInstalled, StateInfo)
 	case clusterStatusError:
-		return updateClusterStatus(log, db, *c.ID, *c.Status, clusterStatusError, StateInfo)
+		return updateClusterStatus(log, db, *c.ID, swag.StringValue(c.Status), clusterStatusError, StateInfo)
 	case clusterStatusInstalling:
 		return c, nil
 	}
