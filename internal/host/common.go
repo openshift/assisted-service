@@ -96,7 +96,7 @@ func UpdateHost(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, host
 	var host models.Host
 
 	if err := db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error; err != nil {
-		return nil, errors.Wrapf(dbReply.Error, "failed to read from host %s from cluster %s from the database after the update",
+		return nil, errors.Wrapf(err, "failed to read from host %s from cluster %s from the database after the update",
 			hostId, clusterId)
 	}
 
