@@ -7,6 +7,7 @@ import (
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -145,7 +146,7 @@ func (th *transitionHandler) updateTransitionCluster(log logrus.FieldLogger, db 
 	statusInfo string, extra ...interface{}) error {
 
 	if cluster, err := updateClusterStatus(log, db, *state.cluster.ID, state.srcState,
-		*state.cluster.Status, statusInfo, extra...); err != nil {
+		swag.StringValue(state.cluster.Status), statusInfo, extra...); err != nil {
 		return err
 	} else {
 		state.cluster = cluster

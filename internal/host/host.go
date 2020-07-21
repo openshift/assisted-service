@@ -237,8 +237,8 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 		return nil, err
 	}
 	ret, err := state.RefreshStatus(ctx, h, db)
-	if err == nil && ret.Status != h.Status {
-		msg := fmt.Sprintf("Updated status of host %s to %s", m.GetHostname(h), *ret.Status)
+	if err == nil && swag.StringValue(ret.Status) != swag.StringValue(h.Status) {
+		msg := fmt.Sprintf("Updated status of host %s to %s", m.GetHostname(h), swag.StringValue(ret.Status))
 		m.eventsHandler.AddEvent(ctx, h.ID.String(), models.EventSeverityInfo, msg, time.Now(), h.ClusterID.String())
 	}
 	return ret, err
@@ -289,7 +289,8 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		_, err := updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID, *h.Status, HostStatusInstalled, statusInfo,
+		_, err := updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
+			swag.StringValue(h.Status), HostStatusInstalled, statusInfo,
 			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 		return err
 	case models.HostStageFailed:
@@ -299,10 +300,12 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 		}
 
-		_, err := updateHostStatus(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID, *h.Status, HostStatusError, statusInfo)
+		_, err := updateHostStatus(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
+			swag.StringValue(h.Status), HostStatusError, statusInfo)
 		return err
 	default:
-		_, err := updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID, *h.Status, HostStatusInstallingInProgress, statusInfo,
+		_, err := updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
+			swag.StringValue(h.Status), HostStatusInstallingInProgress, statusInfo,
 			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 		return err
 	}
@@ -383,7 +386,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 }
 
 func (m *Manager) IsRequireUserActionReset(h *models.Host) bool {
-	if *h.Status != models.HostStatusResetting {
+	if swag.StringValue(h.Status) != models.HostStatusResetting {
 		return false
 	}
 	if !funk.Contains(manualRebootStages, h.Progress.CurrentStage) {

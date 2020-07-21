@@ -49,7 +49,8 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 		extra = append(extra, "status_updated_at", strfmt.DateTime(time.Now()))
 	}
 
-	if cluster, err = UpdateCluster(log, db, clusterId, srcStatus, extra...); err != nil || *cluster.Status != newStatus {
+	if cluster, err = UpdateCluster(log, db, clusterId, srcStatus, extra...); err != nil ||
+		swag.StringValue(cluster.Status) != newStatus {
 		return nil, errors.Wrapf(err, "failed to update cluster %s state from %s to %s",
 			clusterId, srcStatus, newStatus)
 	}

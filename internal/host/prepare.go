@@ -29,7 +29,7 @@ func (p *prepare) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 		return nil, err
 	}
 	if swag.StringValue(c.Status) != models.ClusterStatusPreparingForInstallation {
-		return updateHostStatus(logutil.FromContext(ctx, p.log), db, h.ClusterID, *h.ID, *h.Status,
+		return updateHostStatus(logutil.FromContext(ctx, p.log), db, h.ClusterID, *h.ID, swag.StringValue(h.Status),
 			models.HostStatusError, fmt.Sprintf("Cluster is not longer is not longer %s", models.ClusterStatusPreparingForInstallation))
 	}
 

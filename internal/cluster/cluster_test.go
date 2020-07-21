@@ -311,7 +311,7 @@ var _ = Describe("cluster monitor", func() {
 		clusterApi.ClusterMonitoring()
 		after := time.Now().Truncate(10 * time.Millisecond)
 		c = geCluster(id, db)
-		Expect(c.Status).Should(Equal(swag.String(expectedState)))
+		Expect(swag.StringValue(c.Status)).Should(Equal(expectedState))
 		if shouldHaveUpdated {
 			Expect(c.StatusInfo).ShouldNot(BeNil())
 			updateTime := time.Time(c.StatusUpdatedAt).Truncate(10 * time.Millisecond)
@@ -492,7 +492,7 @@ var _ = Describe("CancelInstallation", func() {
 
 		AfterEach(func() {
 			db.First(&c, "id = ?", c.ID)
-			Expect(*c.Status).Should(Equal(clusterStatusError))
+			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusError))
 		})
 	})
 
@@ -536,7 +536,7 @@ var _ = Describe("ResetCluster", func() {
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 		Expect(state.ResetCluster(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
 		db.First(&c, "id = ?", c.ID)
-		Expect(*c.Status).Should(Equal(clusterStatusInsufficient))
+		Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInsufficient))
 		events, err := eventsHandler.GetEvents(c.ID.String())
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(events)).ShouldNot(Equal(0))

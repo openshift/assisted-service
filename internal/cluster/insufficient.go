@@ -7,6 +7,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -46,7 +47,7 @@ func (i *insufficientState) RefreshStatus(ctx context.Context, c *common.Cluster
 	mastersInKnown, ok := mappedMastersByRole[models.HostStatusKnown]
 	if ok && len(mastersInKnown) == minHostsNeededForInstallation && c.APIVip != "" && c.IngressVip != "" {
 		log.Infof("Cluster %s has %d known master hosts, cluster is ready.", c.ID, minHostsNeededForInstallation)
-		return updateClusterStatus(log, db, *c.ID, *c.Status, clusterStatusReady, statusInfoReady)
+		return updateClusterStatus(log, db, *c.ID, swag.StringValue(c.Status), clusterStatusReady, statusInfoReady)
 
 		//cluster is still insufficient
 	} else {
