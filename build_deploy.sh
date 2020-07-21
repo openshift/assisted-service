@@ -1,6 +1,9 @@
 #!/bin/bash
 
-TAG=$(git rev-parse --short=7 HEAD)
+# required for `skipper` according to
+# https://github.com/Stratoscale/skipper/blob/upstream/README.md#python3-environment
+export LC_ALL="en_US.UTF-8"
+export LANG="en_US.UTF-8"
 
 ASSISTED_SERVICE_IMAGE="quay.io/app-sre/assisted-service"
 
