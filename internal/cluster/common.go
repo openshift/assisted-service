@@ -80,7 +80,7 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 	var cluster common.Cluster
 
 	if err := db.First(&cluster, "id = ?", clusterId).Error; err != nil {
-		return nil, errors.Wrapf(dbReply.Error, "failed to read from cluster %s from the database after the update",
+		return nil, errors.Wrapf(err, "failed to read from cluster %s from the database after the update",
 			clusterId)
 	}
 
