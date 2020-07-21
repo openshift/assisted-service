@@ -127,7 +127,7 @@ func addHost(role models.HostRole, state string, clusterId strfmt.UUID, db *gorm
 }
 
 func updateHostProgress(h *models.Host, stage models.HostStage, info string, db *gorm.DB) {
-	progress := &models.HostProgress{
+	progress := &models.HostProgressInfo{
 		CurrentStage: stage,
 		ProgressInfo: info,
 	}

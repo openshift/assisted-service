@@ -206,12 +206,12 @@ var _ = Describe("RegisterHost", func() {
 		tests := []struct {
 			name     string
 			srcState string
-			progress models.HostProgress
+			progress models.HostProgressInfo
 		}{
 			{
 				name:     "host in reboot",
 				srcState: HostStatusInstallingInProgress,
-				progress: models.HostProgress{
+				progress: models.HostProgressInfo{
 					CurrentStage: models.HostStageRebooting,
 				},
 			},

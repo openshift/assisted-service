@@ -1043,18 +1043,8 @@ definitions:
         x-go-custom-tag: gorm:"type:datetime"
         description: The last time that the host status has been updated
       progress:
-        $ref: '#/definitions/host-progress'
+        $ref: '#/definitions/host-progress-info'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:progress_"
-      stage_started_at:
-        type: string
-        format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
-        description: Time at which the current progress stage started
-      stage_updated_at:
-        type: string
-        format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
-        description: Time at which the current progress stage was last updated
       progress_stages:
         type: array
         items:
@@ -1645,6 +1635,28 @@ definitions:
       progress_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
+
+  host-progress-info:
+    type: object
+    required:
+      - current_stage
+    properties:
+      current_stage:
+        type: string
+        $ref: '#/definitions/host-stage'
+      progress_info:
+        type: string
+        x-go-custom-tag: gorm:"type:varchar(2048)"
+      stage_started_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:datetime"
+        description: Time at which the current progress stage started
+      stage_updated_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:datetime"
+        description: Time at which the current progress stage was last updated
 
   host-stage:
     type: string

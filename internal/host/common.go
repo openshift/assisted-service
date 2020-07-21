@@ -35,10 +35,10 @@ func updateHostProgress(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UU
 	srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{}) (*models.Host, error) {
 
 	extra = append(append(make([]interface{}, 0), "progress_current_stage", newStage, "progress_progress_info", progressInfo,
-		"stage_updated_at", strfmt.DateTime(time.Now())), extra...)
+		"progress_stage_updated_at", strfmt.DateTime(time.Now())), extra...)
 
 	if newStage != srcStage {
-		extra = append(extra, "stage_started_at", strfmt.DateTime(time.Now()))
+		extra = append(extra, "progress_stage_started_at", strfmt.DateTime(time.Now()))
 	}
 
 	return updateHostStatus(log, db, clusterId, hostId, srcStatus, newStatus, statusInfo, extra...)

@@ -2079,7 +2079,7 @@ func init() {
         },
         "progress": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
-          "$ref": "#/definitions/host-progress"
+          "$ref": "#/definitions/host-progress-info"
         },
         "progress_stages": {
           "type": "array",
@@ -2093,18 +2093,6 @@ func init() {
         },
         "role": {
           "$ref": "#/definitions/host-role"
-        },
-        "stage_started_at": {
-          "description": "Time at which the current progress stage started",
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:datetime\""
-        },
-        "stage_updated_at": {
-          "description": "Time at which the current progress stage was last updated",
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:datetime\""
         },
         "status": {
           "type": "string",
@@ -2181,6 +2169,34 @@ func init() {
         "progress_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+        }
+      }
+    },
+    "host-progress-info": {
+      "type": "object",
+      "required": [
+        "current_stage"
+      ],
+      "properties": {
+        "current_stage": {
+          "type": "string",
+          "$ref": "#/definitions/host-stage"
+        },
+        "progress_info": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+        },
+        "stage_started_at": {
+          "description": "Time at which the current progress stage started",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
+        },
+        "stage_updated_at": {
+          "description": "Time at which the current progress stage was last updated",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
         }
       }
     },
@@ -4692,7 +4708,7 @@ func init() {
         },
         "progress": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
-          "$ref": "#/definitions/host-progress"
+          "$ref": "#/definitions/host-progress-info"
         },
         "progress_stages": {
           "type": "array",
@@ -4706,18 +4722,6 @@ func init() {
         },
         "role": {
           "$ref": "#/definitions/host-role"
-        },
-        "stage_started_at": {
-          "description": "Time at which the current progress stage started",
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:datetime\""
-        },
-        "stage_updated_at": {
-          "description": "Time at which the current progress stage was last updated",
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:datetime\""
         },
         "status": {
           "type": "string",
@@ -4794,6 +4798,34 @@ func init() {
         "progress_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+        }
+      }
+    },
+    "host-progress-info": {
+      "type": "object",
+      "required": [
+        "current_stage"
+      ],
+      "properties": {
+        "current_stage": {
+          "type": "string",
+          "$ref": "#/definitions/host-stage"
+        },
+        "progress_info": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+        },
+        "stage_started_at": {
+          "description": "Time at which the current progress stage started",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
+        },
+        "stage_updated_at": {
+          "description": "Time at which the current progress stage was last updated",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:datetime\""
         }
       }
     },
