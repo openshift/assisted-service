@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
@@ -19,13 +20,13 @@ const dummyImage = "discovery-image-00000000-0000-0000-0000-000000000000"
 
 type Manager struct {
 	log           logrus.FieldLogger
-	s3Client      *s3.S3
+	s3Client      s3iface.S3API
 	s3Bucket      string
 	deleteTime    time.Duration
 	eventsHandler events.Handler
 }
 
-func NewManager(log logrus.FieldLogger, s3Client *s3.S3, s3Bucket string, deleteTime time.Duration, eventsHandler events.Handler) *Manager {
+func NewManager(log logrus.FieldLogger, s3Client s3iface.S3API, s3Bucket string, deleteTime time.Duration, eventsHandler events.Handler) *Manager {
 	return &Manager{
 		log:           log,
 		s3Client:      s3Client,
