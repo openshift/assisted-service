@@ -17,6 +17,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type AUtilsInteface interface {
+	downloadPublicKeys(cas *x509.CertPool) (map[string]*rsa.PublicKey, error)
+}
+
+func NewAuthUtils(url string) AUtilsInteface {
+	return &aUtils{
+		url: url,
+	}
+}
+
+type aUtils struct {
+	url string
+}
+
 // jwtCert on jwt key
 type jwtCert struct {
 	KID string `json:"kid,omitempty"`
@@ -33,7 +47,7 @@ type jwtKeys struct {
 }
 
 // downloadPublicKeys download public keys from URL.
-func downloadPublicKeys(url string, cas *x509.CertPool) (keyMap map[string]*rsa.PublicKey, err error) {
+func (au *aUtils) downloadPublicKeys(cas *x509.CertPool) (keyMap map[string]*rsa.PublicKey, err error) {
 	var body []byte
 	var certs jwtKeys
 	var res *http.Response
@@ -50,8 +64,8 @@ func downloadPublicKeys(url string, cas *x509.CertPool) (keyMap map[string]*rsa.
 			},
 		},
 	}
-	logrus.Infof("Getting JWK public key from %s", url)
-	res, err = client.Get(url)
+	logrus.Infof("Getting JWK public key from %s", au.url)
+	res, err = client.Get(au.url)
 	if err != nil {
 		return
 	}
@@ -73,7 +87,7 @@ func downloadPublicKeys(url string, cas *x509.CertPool) (keyMap map[string]*rsa.
 		var pubKey *rsa.PublicKey
 
 		// Try to convert cert to string.
-		pemStr, err = certToPEM(c)
+		pemStr, err = au.certToPEM(c)
 		if err != nil {
 			return
 		}
@@ -89,7 +103,7 @@ func downloadPublicKeys(url string, cas *x509.CertPool) (keyMap map[string]*rsa.
 }
 
 // certToPEM convert JWT object to PEM
-func certToPEM(c jwtCert) (string, error) {
+func (au *aUtils) certToPEM(c jwtCert) (string, error) {
 	var out bytes.Buffer
 
 	// Check key type.

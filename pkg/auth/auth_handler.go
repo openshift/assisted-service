@@ -35,13 +35,14 @@ type AuthHandler struct {
 	CertURL    string
 	EnableAuth bool
 	KeyMap     map[string]*rsa.PublicKey
+	utils      AUtilsInteface
 	log        logrus.FieldLogger
 }
 
 func NewAuthHandler(cfg Config, log logrus.FieldLogger) *AuthHandler {
 	a := &AuthHandler{
 		EnableAuth: cfg.EnableAuth,
-		CertURL:    cfg.JwkCertURL,
+		utils:      NewAuthUtils(cfg.JwkCertURL),
 		log:        log,
 	}
 	err := a.populateKeyMap()
@@ -59,7 +60,7 @@ func (a *AuthHandler) populateKeyMap() error {
 	}
 
 	// Try to read the JWT public key object file.
-	a.KeyMap, err = downloadPublicKeys(a.CertURL, trustedCAs)
+	a.KeyMap, err = a.utils.downloadPublicKeys(trustedCAs)
 	return err
 }
 
