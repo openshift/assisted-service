@@ -28,7 +28,9 @@ lint:
 	golangci-lint run -v
 
 .PHONY: build
-build: create-build-dir lint unit-test
+build: lint unit-test build-minimal
+
+build-minimal: create-build-dir
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
 create-build-dir:
@@ -56,6 +58,9 @@ generate-from-swagger:
 update: build create-python-client
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
 	docker push $(SERVICE)
+
+update-minimal: build-minimal create-python-client
+	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.bm-inventory . -t $(SERVICE)
 
 update-minikube: build create-python-client
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube docker-env) && \
