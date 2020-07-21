@@ -146,11 +146,11 @@ This will allow you to deploy Prometheus and Grafana already integrated with Ass
 
     ```shell
     # Step by step
-    make deploy-prometheus TARGET=oc-ingress
-    make deploy-grafana TARGET=oc-ingress
+    make deploy-prometheus TARGET=oc-ingress APPLY_NAMESPACE=false
+    make deploy-grafana TARGET=oc-ingress APPLY_NAMESPACE=false
 
     # Or just all-in
-    make deploy-monitoring TARGET=oc-ingress
+    make deploy-monitoring TARGET=oc-ingress APPLY_NAMESPACE=false
     ```
 
 NOTE: To expose the monitoring UI's on your local environment you could follow these steps
