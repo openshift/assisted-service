@@ -45,7 +45,7 @@ var _ = Describe("update_host_state", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(*returnedHost.Status).Should(Equal(newStatus))
 			Expect(*returnedHost.StatusInfo).Should(Equal(newStatusInfo))
-			Expect(returnedHost.StatusUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
+			Expect(returnedHost.StatusUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
 		})
 
 		Describe("negative", func() {
@@ -70,7 +70,7 @@ var _ = Describe("update_host_state", func() {
 				hostFromDb := getHost(*host.ID, host.ClusterID, db)
 				Expect(*hostFromDb.Status).ShouldNot(Equal(newStatus))
 				Expect(*hostFromDb.StatusInfo).ShouldNot(Equal(newStatusInfo))
-				Expect(hostFromDb.StatusUpdatedAt).Should(Equal(lastUpdatedTime))
+				Expect(hostFromDb.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
 			})
 		})
 
@@ -91,8 +91,8 @@ var _ = Describe("update_host_state", func() {
 
 				Expect(returnedHost.Progress.CurrentStage).Should(Equal(defaultProgressStage))
 				Expect(returnedHost.Progress.ProgressInfo).Should(Equal(host.Progress.ProgressInfo))
-				Expect(returnedHost.Progress.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
-				Expect(returnedHost.Progress.StageStartedAt).ShouldNot(Equal(lastUpdatedTime))
+				Expect(returnedHost.Progress.StageUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+				Expect(returnedHost.Progress.StageStartedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
 			})
 
 			It("same_stage", func() {
@@ -103,15 +103,15 @@ var _ = Describe("update_host_state", func() {
 
 				Expect(returnedHost.Progress.CurrentStage).Should(Equal(models.HostStage("")))
 				Expect(returnedHost.Progress.ProgressInfo).Should(Equal(""))
-				Expect(returnedHost.Progress.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
-				Expect(returnedHost.Progress.StageStartedAt).Should(Equal(lastUpdatedTime))
+				Expect(returnedHost.Progress.StageUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+				Expect(returnedHost.Progress.StageStartedAt.String()).Should(Equal(lastUpdatedTime.String()))
 			})
 
 			AfterEach(func() {
 				By("Same status info", func() {
 					Expect(*returnedHost.Status).Should(Equal(defaultStatus))
 					Expect(*returnedHost.StatusInfo).Should(Equal(defaultStatusInfo))
-					Expect(returnedHost.StatusUpdatedAt).Should(Equal(lastUpdatedTime))
+					Expect(returnedHost.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
 				})
 			})
 		})
@@ -123,13 +123,13 @@ var _ = Describe("update_host_state", func() {
 
 			Expect(returnedHost.Progress.CurrentStage).Should(Equal(defaultProgressStage))
 			Expect(returnedHost.Progress.ProgressInfo).Should(Equal(""))
-			Expect(returnedHost.Progress.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
-			Expect(returnedHost.Progress.StageStartedAt).ShouldNot(Equal(lastUpdatedTime))
+			Expect(returnedHost.Progress.StageUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+			Expect(returnedHost.Progress.StageStartedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
 
 			By("New status", func() {
 				Expect(*returnedHost.Status).Should(Equal(newStatus))
 				Expect(*returnedHost.StatusInfo).Should(Equal(newStatusInfo))
-				Expect(returnedHost.StatusUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
+				Expect(returnedHost.StatusUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
 			})
 		})
 
@@ -139,7 +139,7 @@ var _ = Describe("update_host_state", func() {
 					host.Progress.CurrentStage, host.Progress.CurrentStage, fmt.Sprintf("%d%%", i))
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(returnedHost.Progress.ProgressInfo).Should(Equal(fmt.Sprintf("%d%%", i)))
-				Expect(returnedHost.Progress.StageStartedAt).Should(Equal(lastUpdatedTime))
+				Expect(returnedHost.Progress.StageStartedAt.String()).Should(Equal(lastUpdatedTime.String()))
 			}
 		})
 	})
