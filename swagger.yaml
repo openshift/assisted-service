@@ -630,6 +630,14 @@ paths:
       responses:
         200:
           description: Update install progress
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/hosts/{host_id}/actions/debug:
     post:

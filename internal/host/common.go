@@ -102,3 +102,12 @@ func UpdateHost(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, host
 
 	return &host, nil
 }
+
+func indexOfStage(element models.HostStage, data []models.HostStage) int {
+	for k, v := range data {
+		if element == v {
+			return k
+		}
+	}
+	return -1 // not found.
+}
