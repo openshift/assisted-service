@@ -744,6 +744,11 @@ var _ = Describe("UpdateInventory", func() {
 				srcState:   models.HostStatusResetting,
 				validation: failure,
 			},
+			{
+				name:       models.HostStatusPendingForInput,
+				srcState:   models.HostStatusPendingForInput,
+				validation: success,
+			},
 		}
 
 		for i := range tests {
