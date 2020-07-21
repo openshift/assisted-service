@@ -6,6 +6,6 @@ metadata:
   labels:
     app: postgres
 data:
-  POSTGRES_DB: installer
-  POSTGRES_USER: admin
-  POSTGRES_PASSWORD: admin
+  POSTGRESQL_DATABASE: installer
+  POSTGRESQL_USER: admin
+  POSTGRESQL_PASSWORD: admin

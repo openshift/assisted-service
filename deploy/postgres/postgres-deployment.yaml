@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:12.3-alpine
+          image: centos/postgresql-12-centos7
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 5432
