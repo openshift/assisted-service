@@ -88,8 +88,8 @@ var _ = Describe("update_host_state", func() {
 
 				Expect(returnedHost.Progress.CurrentStage).Should(Equal(defaultProgressStage))
 				Expect(returnedHost.Progress.ProgressInfo).Should(Equal(host.Progress.ProgressInfo))
-				Expect(returnedHost.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
-				Expect(returnedHost.StageStartedAt).ShouldNot(Equal(lastUpdatedTime))
+				Expect(returnedHost.Progress.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
+				Expect(returnedHost.Progress.StageStartedAt).ShouldNot(Equal(lastUpdatedTime))
 			})
 
 			It("same_stage", func() {
@@ -100,8 +100,8 @@ var _ = Describe("update_host_state", func() {
 
 				Expect(returnedHost.Progress.CurrentStage).Should(Equal(models.HostStage("")))
 				Expect(returnedHost.Progress.ProgressInfo).Should(Equal(""))
-				Expect(returnedHost.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
-				Expect(returnedHost.StageStartedAt).Should(Equal(lastUpdatedTime))
+				Expect(returnedHost.Progress.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
+				Expect(returnedHost.Progress.StageStartedAt).Should(Equal(lastUpdatedTime))
 			})
 
 			AfterEach(func() {
@@ -120,8 +120,8 @@ var _ = Describe("update_host_state", func() {
 
 			Expect(returnedHost.Progress.CurrentStage).Should(Equal(defaultProgressStage))
 			Expect(returnedHost.Progress.ProgressInfo).Should(Equal(""))
-			Expect(returnedHost.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
-			Expect(returnedHost.StageStartedAt).ShouldNot(Equal(lastUpdatedTime))
+			Expect(returnedHost.Progress.StageUpdatedAt).ShouldNot(Equal(lastUpdatedTime))
+			Expect(returnedHost.Progress.StageStartedAt).ShouldNot(Equal(lastUpdatedTime))
 
 			By("New status", func() {
 				Expect(*returnedHost.Status).Should(Equal(newStatus))
@@ -136,7 +136,7 @@ var _ = Describe("update_host_state", func() {
 					host.Progress.CurrentStage, host.Progress.CurrentStage, fmt.Sprintf("%d%%", i))
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(returnedHost.Progress.ProgressInfo).Should(Equal(fmt.Sprintf("%d%%", i)))
-				Expect(returnedHost.StageStartedAt).Should(Equal(lastUpdatedTime))
+				Expect(returnedHost.Progress.StageStartedAt).Should(Equal(lastUpdatedTime))
 			}
 		})
 	})
