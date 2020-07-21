@@ -64,7 +64,7 @@ var _ = Describe("update_cluster_state", func() {
 				Expect(db.First(&cluster, "id = ?", cluster.ID).Error).ShouldNot(HaveOccurred())
 				Expect(*cluster.Status).ShouldNot(Equal(newStatus))
 				Expect(*cluster.StatusInfo).ShouldNot(Equal(newStatusInfo))
-				Expect(cluster.StatusUpdatedAt).Should(Equal(lastUpdatedTime))
+				Expect(cluster.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
 			})
 		})
 

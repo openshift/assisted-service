@@ -49,7 +49,7 @@ var _ = Describe("RegisterHost", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -269,7 +269,7 @@ var _ = Describe("HostInstallationFailed", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), mockMetric)
@@ -304,7 +304,7 @@ var _ = Describe("Install", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -444,7 +444,7 @@ var _ = Describe("Disable", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -549,7 +549,7 @@ var _ = Describe("Enable", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -714,7 +714,7 @@ var _ = Describe("Refresh Host", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil)

@@ -33,7 +33,7 @@ var _ = Describe("insufficient_state", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockEvents := events.NewMockHandler(ctrl)
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		manager = &Manager{
 			log:             getTestLog(),
 			insufficient:    NewInsufficientState(getTestLog(), db, mockHostAPI),

@@ -43,7 +43,7 @@ var _ = Describe("stateMachine", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		state = NewManager(defaultTestConfig, getTestLog(), db, nil, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
@@ -98,7 +98,7 @@ var _ = Describe("cluster monitor", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		id = strfmt.UUID(uuid.New().String())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -348,7 +348,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		id = strfmt.UUID(uuid.New().String())
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
 			nil, nil, nil)
@@ -399,7 +399,7 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		id = strfmt.UUID(uuid.New().String())
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
 			nil, nil, nil)
@@ -446,7 +446,7 @@ var _ = Describe("SetGeneratorVersion", func() {
 	)
 
 	It("set generator version", func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		id = strfmt.UUID(uuid.New().String())
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
 			nil, nil, nil)
@@ -475,7 +475,7 @@ var _ = Describe("CancelInstallation", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -548,7 +548,7 @@ var _ = Describe("ResetCluster", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
 		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler, nil, nil)
 	})
@@ -642,7 +642,7 @@ var _ = Describe("PrepareForInstallation", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		capi = NewManager(defaultTestConfig, getTestLog(), db, nil, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -723,7 +723,7 @@ var _ = Describe("HandlePreInstallationError", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		capi = NewManager(defaultTestConfig, getTestLog(), db, nil, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})

@@ -41,7 +41,7 @@ var _ = Describe("update_role", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		state = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
@@ -177,7 +177,7 @@ var _ = Describe("update_progress", func() {
 	}
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -333,7 +333,7 @@ var _ = Describe("monitor_disconnection", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return().AnyTimes()
@@ -410,7 +410,7 @@ var _ = Describe("cancel_installation", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
 		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
@@ -478,7 +478,7 @@ var _ = Describe("reset_host", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
 		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil)
 	})
@@ -669,7 +669,7 @@ var _ = Describe("UpdateInventory", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -784,7 +784,7 @@ var _ = Describe("UpdateHwInfo", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -893,7 +893,7 @@ var _ = Describe("SetBootstrap", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -942,7 +942,7 @@ var _ = Describe("PrepareForInstallation", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db = common.PrepareTestDB(dbName, &events.Event{})
 		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
