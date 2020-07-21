@@ -66,6 +66,10 @@ var _ = Describe("instructionmanager", func() {
 			checkStepsByState(HostStatusInsufficient, &host, db, instMng, hwValidator, ctx,
 				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
 		})
+		It("pending-for-input", func() {
+			checkStepsByState(HostStatusPendingForInput, &host, db, instMng, hwValidator, ctx,
+				[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
+		})
 		It("error", func() {
 			checkStepsByState(HostStatusError, &host, db, instMng, hwValidator, ctx,
 				[]models.StepType{models.StepTypeExecute})

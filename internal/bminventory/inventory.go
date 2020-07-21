@@ -616,19 +616,15 @@ func (c *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) er
 	return nil
 }
 
-func (b *bareMetalInventory) validateHostsInventory(cluster *common.Cluster) error {
+func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *common.Cluster) error {
 	for _, chost := range cluster.Hosts {
-		sufficient, err := b.hostApi.ValidateCurrentInventory(chost, cluster)
-		if err != nil {
-			msg := fmt.Sprintf("failed to validate host <%s> in cluster: %s", chost.ID.String(), cluster.ID.String())
-			b.log.WithError(err).Warn(msg)
-			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, msg))
+		if swag.StringValue(chost.Status) != host.HostStatusKnown {
+			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install", chost.ID.String(),
+				swag.StringValue(chost.Status)))
 		}
-		if !sufficient.IsSufficient {
-			msg := fmt.Sprintf("host <%s>  failed to pass hardware validation in cluster: %s. Reason %s",
-				chost.ID.String(), cluster.ID.String(), sufficient.Reason)
-			b.log.Warn(msg)
-			return common.NewApiError(http.StatusConflict, errors.Errorf(msg))
+		err := b.hostApi.RefreshStatus(ctx, chost, b.db)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -689,11 +685,14 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
-
-	if err = b.validateHostsInventory(&cluster); err != nil {
+	if err = b.refreshAllHosts(ctx, &cluster); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
+	// Reload again after refresh
+	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		return common.NewApiError(http.StatusNotFound, err)
+	}
 	if err = b.verifyClusterNetworkConfig(ctx, &cluster); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -824,7 +823,7 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 				h.ID.String(), cluster.ID.String())
 			return common.NewApiError(http.StatusNotFound, err)
 		}
-		if _, err = b.hostApi.RefreshStatus(ctx, &host, tx); err != nil {
+		if err = b.hostApi.RefreshStatus(ctx, &host, tx); err != nil {
 			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, cluster.ID.String())
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}

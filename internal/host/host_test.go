@@ -11,10 +11,7 @@ import (
 	"time"
 
 	"github.com/filanov/bm-inventory/internal/common"
-	"github.com/filanov/bm-inventory/internal/connectivity"
 	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/filanov/bm-inventory/internal/hardware"
-	"github.com/filanov/bm-inventory/internal/validators"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -24,57 +21,12 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 var defaultHwInfo = "default hw info"                                 // invalid hw info used only for tests
 var defaultInventoryS = "default inventory"                           // invalid inventory info used only for tests
 var defaultProgressStage = models.HostStage("default progress stage") // invalid progress stage used only for tests
-
-var _ = Describe("statemachine", func() {
-	var (
-		ctx                       = context.Background()
-		db                        *gorm.DB
-		ctrl                      *gomock.Controller
-		mockHwValidator           *hardware.MockValidator
-		mockConnectivityValidator *connectivity.MockValidator
-		state                     API
-		host                      models.Host
-		hostAfterRefresh          *models.Host
-		stateErr                  error
-		mockEvents                *events.MockHandler
-	)
-
-	BeforeEach(func() {
-		db = prepareDB()
-		ctrl = gomock.NewController(GinkgoT())
-		mockHwValidator = hardware.NewMockValidator(ctrl)
-		mockConnectivityValidator = connectivity.NewMockValidator(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		state = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, mockConnectivityValidator)
-		id := strfmt.UUID(uuid.New().String())
-		clusterId := strfmt.UUID(uuid.New().String())
-		host = getTestHost(id, clusterId, "unknown invalid state")
-	})
-
-	Context("unknown_host_state", func() {
-
-		It("update_hw_info", func() {
-			hostAfterRefresh, stateErr = state.RefreshStatus(ctx, &host, nil)
-		})
-
-		AfterEach(func() {
-			Expect(hostAfterRefresh).To(BeNil())
-			Expect(stateErr).Should(HaveOccurred())
-		})
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		db.Close()
-	})
-})
 
 var _ = Describe("update_role", func() {
 	var (
@@ -87,7 +39,7 @@ var _ = Describe("update_role", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		state = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		state = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
@@ -216,7 +168,7 @@ var _ = Describe("update_progress", func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		state = NewManager(getTestLog(), db, mockEvents, nil, nil, nil)
+		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg())
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, "")
@@ -333,8 +285,13 @@ var _ = Describe("monitor_disconnection", func() {
 		db = prepareDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		state = NewManager(getTestLog(), db, mockEvents, nil, nil, nil)
-		host = getTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), HostStatusDiscovering)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return().AnyTimes()
+		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg())
+		clusterID := strfmt.UUID(uuid.New().String())
+		host = getTestHost(strfmt.UUID(uuid.New().String()), clusterID, HostStatusDiscovering)
+		cluster := getTestCluster(clusterID, "1.1.0.0/16")
+		Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
+		host.Inventory = workerInventory()
 		err := state.RegisterHost(ctx, &host)
 		Expect(err).ShouldNot(HaveOccurred())
 		db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
@@ -369,6 +326,7 @@ var _ = Describe("monitor_disconnection", func() {
 	Context("host_reconnecting", func() {
 		It("host_connects", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now())
+			host.Inventory = ""
 			host.Status = swag.String(HostStatusDisconnected)
 			db.Save(&host)
 		})
@@ -381,6 +339,7 @@ var _ = Describe("monitor_disconnection", func() {
 	})
 
 	AfterEach(func() {
+		ctrl.Finish()
 		db.Close()
 	})
 })
@@ -535,37 +494,6 @@ func prepareDB() *gorm.DB {
 	return db
 }
 
-type expect struct {
-	expectError    bool
-	expectedStatus string
-	postCheck      func()
-}
-
-func postValidation(expectedReply *expect, firstState string, db *gorm.DB, id, clusterId strfmt.UUID,
-	updatedHost *models.Host, updateErr error) {
-	if expectedReply != nil {
-		h := getHost(id, clusterId, db)
-		if expectedReply.expectError {
-			Expect(updatedHost).To(BeNil())
-			Expect(updateErr).Should(HaveOccurred())
-			Expect(swag.StringValue(h.Status)).Should(Equal(firstState))
-		} else {
-			Expect(updateErr).ShouldNot(HaveOccurred())
-			Expect(updatedHost).NotTo(BeNil())
-			Expect(*updatedHost.Status).Should(Equal(expectedReply.expectedStatus))
-			if expectedReply.expectedStatus != firstState {
-				Expect(h.StatusInfo).ShouldNot(BeNil())
-				Expect(h.StatusUpdatedAt).ShouldNot(BeNil())
-			}
-			Expect(swag.StringValue(h.Status)).Should(Equal(expectedReply.expectedStatus))
-		}
-
-		if expectedReply.postCheck != nil {
-			expectedReply.postCheck()
-		}
-	}
-}
-
 func getTestLog() logrus.FieldLogger {
 	l := logrus.New()
 	l.SetOutput(ioutil.Discard)
@@ -584,43 +512,13 @@ func getTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
 	}
 }
 
-func mockConnectivityAndHwValidators(h *models.Host, mockHWValidator *hardware.MockValidator, mockConnectivityValidator *connectivity.MockValidator, hwError, sufficientHw, sufficientConnectivity bool) string {
-	var statusInfoDetails = make(map[string]string)
-	roleReply := isSufficientRole(h)
-	statusInfoDetails[roleReply.Type] = roleReply.Reason
-	if hwError {
-		mockHWValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-			Return(nil, errors.New("error")).AnyTimes()
-		statusInfoDetails["hardware"] = "parsing error"
-	} else if sufficientHw {
-		mockHWValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-			Return(&validators.IsSufficientReply{Type: "hardware", IsSufficient: true}, nil).AnyTimes()
-		statusInfoDetails["hardware"] = ""
-	} else {
-		//insufficient hw
-		mockHWValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-			Return(&validators.IsSufficientReply{Type: "hardware", IsSufficient: false, Reason: "failed reason"}, nil).AnyTimes()
-		statusInfoDetails["hardware"] = "failed reason"
+func getTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) common.Cluster {
+	return common.Cluster{
+		Cluster: models.Cluster{
+			ID:                 &clusterID,
+			MachineNetworkCidr: machineNetworkCidr,
+		},
 	}
-	if sufficientConnectivity {
-		mockConnectivityValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-			Return(&validators.IsSufficientReply{Type: "connectivity", IsSufficient: true}, nil).AnyTimes()
-		statusInfoDetails["connectivity"] = ""
-	} else {
-		//insufficient connectivity
-		mockConnectivityValidator.EXPECT().IsSufficient(gomock.Any(), gomock.Any()).
-			Return(&validators.IsSufficientReply{Type: "connectivity", IsSufficient: false, Reason: "failed reason"}, nil).AnyTimes()
-		statusInfoDetails["connectivity"] = "failed reason"
-	}
-
-	if !hwError && sufficientHw && sufficientConnectivity && roleReply.IsSufficient {
-		return ""
-	}
-	statusInfo, err := json.Marshal(statusInfoDetails)
-	if err != nil {
-		return ""
-	}
-	return string(statusInfo)
 }
 
 func defaultInventory() string {
@@ -639,14 +537,81 @@ func defaultInventory() string {
 	return string(b)
 }
 
-func addTestCluster(clusterID strfmt.UUID, apiVip, ingressVip string, machineCidr string, db *gorm.DB) {
-	cluster := models.Cluster{
-		ID:                 &clusterID,
-		APIVip:             apiVip,
-		IngressVip:         ingressVip,
-		MachineNetworkCidr: machineCidr,
+func insufficientHWInventory() string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: 2},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 130,
+				DriveType: "HDD",
+			},
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Memory: &models.Memory{PhysicalBytes: 130},
 	}
-	Expect(db.Create(&cluster).Error).To(Not(HaveOccurred()))
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func workerInventory() string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: 2},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+			},
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Memory: &models.Memory{PhysicalBytes: gibToBytes(8)},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func masterInventory() string {
+	return masterInventoryWithHostname("master-hostname")
+}
+
+func masterInventoryWithHostname(hostname string) string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: 8},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+			},
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Memory:   &models.Memory{PhysicalBytes: gibToBytes(16)},
+		Hostname: hostname,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
 }
 
 var _ = Describe("UpdateInventory", func() {
@@ -660,7 +625,7 @@ var _ = Describe("UpdateInventory", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -767,7 +732,7 @@ var _ = Describe("UpdateHwInfo", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -875,7 +840,7 @@ var _ = Describe("SetBootstrap", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 
@@ -923,7 +888,7 @@ var _ = Describe("PrepareForInstallation", func() {
 
 	BeforeEach(func() {
 		db = prepareDB()
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, nil)
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg())
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})

@@ -5,12 +5,9 @@
 package hardware
 
 import (
-	reflect "reflect"
-
-	common "github.com/filanov/bm-inventory/internal/common"
-	validators "github.com/filanov/bm-inventory/internal/validators"
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // MockValidator is a mock of Validator interface
@@ -34,21 +31,6 @@ func NewMockValidator(ctrl *gomock.Controller) *MockValidator {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 	return m.recorder
-}
-
-// IsSufficient mocks base method
-func (m *MockValidator) IsSufficient(host *models.Host, cluster *common.Cluster) (*validators.IsSufficientReply, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsSufficient", host, cluster)
-	ret0, _ := ret[0].(*validators.IsSufficientReply)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// IsSufficient indicates an expected call of IsSufficient
-func (mr *MockValidatorMockRecorder) IsSufficient(host, cluster interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSufficient", reflect.TypeOf((*MockValidator)(nil).IsSufficient), host, cluster)
 }
 
 // GetHostValidDisks mocks base method

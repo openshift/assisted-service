@@ -5,9 +5,8 @@
 package metrics
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // MockAPI is a mock of API interface

@@ -182,7 +182,7 @@ func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.
 	rep, err := bmclient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
 	Expect(err).NotTo(HaveOccurred())
 	c := rep.GetPayload()
-	Expect(swag.StringValue(c.Status)).Should(Equal(state))
+	ExpectWithOffset(1, swag.StringValue(c.Status)).Should(Equal(state))
 }
 
 func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, current_step models.HostStage) {
@@ -1350,11 +1350,14 @@ var _ = Describe("cluster install", func() {
 			ClusterID: clusterID,
 		})
 		Expect(err).To(Not(HaveOccurred()))
-		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
+		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusPendingForInput, 60*time.Second)
 
 		hwInfo = &models.Inventory{
 			CPU:    &models.CPU{Count: 16},
 			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
+			Disks: []*models.Disk{
+				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
+			},
 		}
 		h2 := registerHost(clusterID)
 		generateHWPostStepReply(h2, hwInfo, "h2")
@@ -1419,7 +1422,7 @@ var _ = Describe("cluster install", func() {
 		disabledHost := registerHost(clusterID)
 		generateHWPostStepReply(disabledHost, validHwInfo, "h1")
 		disabledHost = getHost(clusterID, *disabledHost.ID)
-		waitForHostState(ctx, clusterID, *disabledHost.ID, "insufficient", 60*time.Second)
+		waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusPendingForInput, 60*time.Second)
 		_, err = bmclient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -1572,7 +1575,7 @@ var _ = Describe("cluster install", func() {
 		h4 := registerHost(clusterID)
 		generateHWPostStepReply(h4, validHwInfo, "h3")
 		h4 = getHost(clusterID, *h4.ID)
-		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusInsufficient, time.Minute)
+		waitForHostState(ctx, clusterID, *h4.ID, host.HostStatusPendingForInput, time.Minute)
 		waitForHostState(ctx, clusterID, *h3.ID, models.HostStatusInsufficient, time.Minute)
 
 		By("Check cluster install fails on validation")
@@ -1583,7 +1586,7 @@ var _ = Describe("cluster install", func() {
 		h5 := registerHost(clusterID)
 		generateHWPostStepReply(h5, validHwInfo, "reqh0")
 		h5 = getHost(clusterID, *h5.ID)
-		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusInsufficient, time.Minute)
+		waitForHostState(ctx, clusterID, *h5.ID, host.HostStatusPendingForInput, time.Minute)
 		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, time.Minute)
 
 		By("Change requested hostname of an insufficient node")

@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/filanov/bm-inventory/internal/validators"
-
 	"github.com/filanov/bm-inventory/internal/common"
 
 	"github.com/sirupsen/logrus"
@@ -26,15 +24,14 @@ func TestValidator(t *testing.T) {
 
 var _ = Describe("hardware_validator", func() {
 	var (
-		hwvalidator      Validator
-		host1            *models.Host
-		host2            *models.Host
-		host3            *models.Host
-		inventory        *models.Inventory
-		cluster          *common.Cluster
-		validDiskSize    = int64(128849018880)
-		notValidDiskSize = int64(108849018880)
-		status           = models.HostStatusKnown
+		hwvalidator   Validator
+		host1         *models.Host
+		host2         *models.Host
+		host3         *models.Host
+		inventory     *models.Inventory
+		cluster       *common.Cluster
+		validDiskSize = int64(128849018880)
+		status        = models.HostStatusKnown
 	)
 	BeforeEach(func() {
 		var cfg ValidatorCfg
@@ -70,64 +67,6 @@ var _ = Describe("hardware_validator", func() {
 		cluster.Hosts = append(cluster.Hosts, host3)
 	})
 
-	It("sufficient_hw", func() {
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host1.Inventory = string(hw)
-
-		roles := []models.HostRole{"", models.HostRoleMaster, models.HostRoleWorker}
-		for _, role := range roles {
-			host1.Role = role
-			sufficient(hwvalidator.IsSufficient(host1, cluster))
-		}
-	})
-
-	It("insufficient_minimal_hw_requirements", func() {
-		inventory.CPU = &models.CPU{Count: 1}
-		inventory.Memory = &models.Memory{PhysicalBytes: int64(3 * units.GiB)}
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host1.Inventory = string(hw)
-
-		roles := []models.HostRole{"", models.HostRoleMaster, models.HostRoleWorker}
-		for _, role := range roles {
-			host1.Role = role
-			insufficient(hwvalidator.IsSufficient(host1, cluster))
-		}
-	})
-
-	It("insufficient_master_but_valid_worker", func() {
-		inventory.CPU = &models.CPU{Count: 8}
-		inventory.Memory = &models.Memory{PhysicalBytes: int64(8 * units.GiB)}
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host1.Inventory = string(hw)
-		host1.Role = models.HostRoleMaster
-		insufficient(hwvalidator.IsSufficient(host1, cluster))
-		host1.Role = models.HostRoleWorker
-		sufficient(hwvalidator.IsSufficient(host1, cluster))
-	})
-
-	It("insufficient_number_of_valid_disks", func() {
-		inventory.Disks = []*models.Disk{
-			// Not enough size
-			{DriveType: "HDD", Name: "sdb", SizeBytes: notValidDiskSize},
-			// Removable
-			{DriveType: "FDD", Name: "sda", SizeBytes: validDiskSize},
-			// Filtered Name
-			{DriveType: "HDD", Name: "nvme01fs", SizeBytes: validDiskSize},
-		}
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-
-		host1.Inventory = string(hw)
-		insufficient(hwvalidator.IsSufficient(host1, cluster))
-
-		disks, err := hwvalidator.GetHostValidDisks(host1)
-		Expect(err).To(HaveOccurred())
-		Expect(disks).To(BeNil())
-	})
-
 	It("validate_disk_list_return_order", func() {
 		nvmename := "nvme01fs"
 		inventory.Disks = []*models.Disk{
@@ -147,90 +86,7 @@ var _ = Describe("hardware_validator", func() {
 		Expect(len(disks)).Should(Equal(3))
 		Expect(isBlockDeviceNameInlist(disks, nvmename)).Should(Equal(false))
 	})
-
-	It("invalid_hw_info", func() {
-		host1.Inventory = "not a valid json"
-		roles := []models.HostRole{"", models.HostRoleMaster, models.HostRoleWorker}
-		for _, role := range roles {
-			host1.Role = role
-			reply, err := hwvalidator.IsSufficient(host1, cluster)
-			Expect(err).To(HaveOccurred())
-			Expect(reply).To(BeNil())
-		}
-		disks, err := hwvalidator.GetHostValidDisks(host1)
-		Expect(err).To(HaveOccurred())
-		Expect(disks).To(BeNil())
-	})
-
-	It("requested_hostnames_unique_invneotry_hostnames_not_unique", func() {
-		inventory.Hostname = "same_hostname"
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host1.Inventory = string(hw)
-		host2.Inventory = string(hw)
-		host3.Inventory = string(hw)
-		sufficient(hwvalidator.IsSufficient(host1, cluster))
-	})
-
-	It("requested_hostnames_not_unique", func() {
-		host1.RequestedHostname = "non_unique_hostname"
-		host3.RequestedHostname = "non_unique_hostname"
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host1.Inventory = string(hw)
-		host2.Inventory = string(hw)
-		host3.Inventory = string(hw)
-		insufficient(hwvalidator.IsSufficient(host1, cluster))
-	})
-
-	It("requested_hostnames_empty_inventory_non_unique", func() {
-		host1.RequestedHostname = ""
-		host2.RequestedHostname = ""
-		host3.RequestedHostname = ""
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host1.Inventory = string(hw)
-		host2.Inventory = string(hw)
-		host3.Inventory = string(hw)
-		insufficient(hwvalidator.IsSufficient(host1, cluster))
-	})
-
-	It("requested_hostname is localhost", func() {
-		host1.RequestedHostname = "localhost"
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host1.Inventory = string(hw)
-		insufficient(hwvalidator.IsSufficient(host1, cluster))
-	})
-	It("hostname is localhost", func() {
-		id1 := strfmt.UUID(uuid.New().String())
-		clusterID := strfmt.UUID(uuid.New().String())
-		host1 = &models.Host{ID: &id1, ClusterID: clusterID, Status: &status}
-		inventory.Hostname = "localhost"
-		hw, err := json.Marshal(&inventory)
-		Expect(err).NotTo(HaveOccurred())
-		host1.Inventory = string(hw)
-		insufficient(hwvalidator.IsSufficient(host1, cluster))
-	})
-
-	It("no_hw_info", func() {
-		host1.Inventory = ""
-		insufficient(hwvalidator.IsSufficient(host1, cluster))
-	})
-
 })
-
-func sufficient(reply *validators.IsSufficientReply, err error) {
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	ExpectWithOffset(1, reply.IsSufficient).To(BeTrue())
-	ExpectWithOffset(1, reply.Reason).Should(Equal(""))
-}
-
-func insufficient(reply *validators.IsSufficientReply, err error) {
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	ExpectWithOffset(1, reply.IsSufficient).To(BeFalse())
-	ExpectWithOffset(1, reply.Reason).ShouldNot(Equal(""))
-}
 
 func isBlockDeviceNameInlist(disks []*models.Disk, name string) bool {
 	for _, disk := range disks {

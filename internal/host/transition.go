@@ -2,15 +2,20 @@ package host
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/filanov/bm-inventory/internal/events"
+
 	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
+
 	"github.com/filanov/bm-inventory/models"
 	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/stateswitch"
-	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -304,4 +309,85 @@ func (th *transitionHandler) updateTransitionHost(log logrus.FieldLogger, db *go
 		state.host = host
 		return nil
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Refresh Host
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsRefreshHost struct {
+	ctx               context.Context
+	eventHandler      events.Handler
+	conditions        map[validationID]bool
+	validationResults map[string][]validationResult
+	db                *gorm.DB
+}
+
+func If(id validationID) stateswitch.Condition {
+	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+		params, ok := args.(*TransitionArgsRefreshHost)
+		if !ok {
+			return false, errors.Errorf("If(%s) invalid argument", id.String())
+		}
+		b, ok := params.conditions[id]
+		if !ok {
+			return false, errors.Errorf("If(%s) no such condition", id.String())
+		}
+		return b, nil
+	}
+	return ret
+}
+
+func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("IsPreparingTimedOut incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshHost)
+	if !ok {
+		return false, errors.New("IsPreparingTimedOut invalid argument")
+	}
+	var cluster common.Cluster
+	err := params.db.Select("status").Take(&cluster, "id = ?", sHost.host.ClusterID.String()).Error
+	if err != nil {
+		return false, err
+	}
+	return swag.StringValue(cluster.Status) != models.ClusterStatusPreparingForInstallation, nil
+}
+
+// Return a post transition function with a constant reason
+func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTransition {
+	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+		sHost, ok := sw.(*stateHost)
+		if !ok {
+			return errors.New("PostResetHost incompatible type of StateSwitch")
+		}
+		params, ok := args.(*TransitionArgsRefreshHost)
+		if !ok {
+			return errors.New("PostRefreshHost invalid argument")
+		}
+		var (
+			b           []byte
+			err         error
+			updatedHost *models.Host
+			hostname    string
+		)
+		b, err = json.Marshal(&params.validationResults)
+		if err != nil {
+			return err
+		}
+		updatedHost, err = updateHostStatus(logutil.FromContext(params.ctx, th.log), params.db, sHost.host.ClusterID, *sHost.host.ID,
+			sHost.srcState, swag.StringValue(sHost.host.Status), reason, "validations_info", string(b))
+		if err == nil && updatedHost != nil && sHost.srcState != swag.StringValue(updatedHost.Status) {
+			hostname, err = common.GetCurrentHostName(updatedHost)
+			if err != nil {
+				hostname = updatedHost.ID.String()
+			}
+			msg := fmt.Sprintf("Updated status of host %s to %s", hostname, *updatedHost.Status)
+			params.eventHandler.AddEvent(params.ctx, updatedHost.ID.String(), models.EventSeverityInfo, msg, time.Now(), updatedHost.ClusterID.String())
+			return nil
+		}
+		return err
+	}
+	return ret
 }
