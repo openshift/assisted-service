@@ -1,13 +1,10 @@
 #!/bin/bash
 
 TAG=$(git rev-parse --short=7 HEAD)
-
 BM_INVENTORY_IMAGE="quay.io/app-sre/bm-inventory"
 
-docker build -t "${BM_INVENTORY_IMAGE}:latest" -f Dockerfile.demo .
+SERVICE="${BM_INVENTORY_IMAGE}:latest" skipper make update-minimal
 docker tag "${BM_INVENTORY_IMAGE}:latest" "${BM_INVENTORY_IMAGE}:${TAG}"
-#docker build -t "${BM_INVENTORY_IMAGE}:latest" -f Dockerfile.bm-inventory .
-#docker tag "${BM_INVENTORY_IMAGE}:latest" "${BM_INVENTORY_IMAGE}:${TAG}"
 
 #BM_INVENTORY_BUILD_IMAGE="quay.io/app-sre/bm-inventory-build"
 #

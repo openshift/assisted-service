@@ -1,3 +1,0 @@
-FROM        busybox
-
-ENTRYPOINT ["sh", "-c", "--", "while true; echo DEMO APP; date; do sleep 60; done;" ]
