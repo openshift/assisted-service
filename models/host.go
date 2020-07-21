@@ -89,7 +89,7 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting]
+	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting]
 	Status *string `json:"status"`
 
 	// status info
@@ -103,6 +103,9 @@ type Host struct {
 	// updated at
 	// Format: date-time
 	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:datetime"`
+
+	// Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)
+	ValidationsInfo string `json:"validations_info,omitempty" gorm:"type:varchar(2048)"`
 }
 
 // Validate validates this host
@@ -360,7 +363,7 @@ var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -387,6 +390,9 @@ const (
 
 	// HostStatusPreparingForInstallation captures enum value "preparing-for-installation"
 	HostStatusPreparingForInstallation string = "preparing-for-installation"
+
+	// HostStatusPendingForInput captures enum value "pending-for-input"
+	HostStatusPendingForInput string = "pending-for-input"
 
 	// HostStatusInstalling captures enum value "installing"
 	HostStatusInstalling string = "installing"
