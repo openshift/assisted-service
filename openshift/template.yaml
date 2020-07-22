@@ -2,8 +2,9 @@
 parameters:
 - name: BM_INVENTORY_IMAGE
   value: quay.io/app-sre/bm-inventory
-- name: BM_INVENTORY_IMAGE_TAG
-  value: latest
+- name: IMAGE_TAG
+  value: ''
+  required: true
 - name: OBJ_EXPIRER_IMAGE
   value: quay.io/ocpmetal/s3-object-expirer
 - name: OBJ_EXPIRER_IMAGE_TAG
@@ -30,7 +31,7 @@ objects:
       spec:
         containers:
           - name: bm-inventory
-            image: ${BM_INVENTORY_IMAGE}:${BM_INVENTORY_IMAGE_TAG}
+            image: ${BM_INVENTORY_IMAGE}:${IMAGE_TAG}
             imagePullPolicy: Always
             resources:
               limits:
