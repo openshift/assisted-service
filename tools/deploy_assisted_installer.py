@@ -22,6 +22,8 @@ def main():
         image_fqdn = deployment_options.get_image_override(deploy_options, "bm-inventory", "SERVICE")
         data["spec"]["template"]["spec"]["containers"][0]["image"] = image_fqdn
         if deploy_options.subsystem_test:
+            if data["spec"]["template"]["spec"]["containers"][0].get("env", None) is None:
+                data["spec"]["template"]["spec"]["containers"][0]["env"] = []
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'CLUSTER_MONITOR_INTERVAL', 'value': TEST_CLUSTER_MONITOR_INTERVAL})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'HOST_MONITOR_INTERVAL', 'value': TEST_HOST_MONITOR_INTERVAL})
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"

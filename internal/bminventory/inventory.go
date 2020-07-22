@@ -17,18 +17,14 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/thoas/go-funk"
-	"github.com/vincent-petithory/dataurl"
-
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
-	"github.com/filanov/bm-inventory/internal/metrics"
-
 	"github.com/filanov/bm-inventory/internal/cluster"
 	"github.com/filanov/bm-inventory/internal/cluster/validations"
 	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/internal/installcfg"
+	"github.com/filanov/bm-inventory/internal/metrics"
 	"github.com/filanov/bm-inventory/internal/network"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/filemiddleware"
@@ -46,6 +42,8 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
+	"github.com/vincent-petithory/dataurl"
 	batch "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -72,7 +70,6 @@ var (
 
 type Config struct {
 	ImageBuilder        string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/installer-image-build:latest"`
-	ImageBuilderCmd     string            `envconfig:"IMAGE_BUILDER_CMD" default:"echo hello"`
 	AgentDockerImg      string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/agent:latest"`
 	KubeconfigGenerator string            `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:latest"` // TODO: update the latest once the repository has git workflow
 	InventoryURL        string            `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
@@ -130,7 +127,6 @@ type debugCmd struct {
 
 type bareMetalInventory struct {
 	Config
-	imageBuildCmd []string
 	db            *gorm.DB
 	debugCmdMap   map[strfmt.UUID]debugCmd
 	debugCmdMux   sync.Mutex
@@ -168,9 +164,6 @@ func NewBareMetalInventory(
 		eventsHandler: eventsHandler,
 		s3Client:      s3Client,
 		metricApi:     metricApi,
-	}
-	if cfg.ImageBuilderCmd != "" {
-		b.imageBuildCmd = strings.Split(cfg.ImageBuilderCmd, " ")
 	}
 
 	if b.Config.UseK8s {
@@ -232,7 +225,6 @@ func (b *bareMetalInventory) createImageJob(jobName, imgName, ignitionConfig str
 							},
 							Name:            "image-creator",
 							Image:           b.Config.ImageBuilder,
-							Command:         b.imageBuildCmd,
 							ImagePullPolicy: "IfNotPresent",
 							Env: []core.EnvVar{
 								{
@@ -1563,7 +1555,6 @@ func (b *bareMetalInventory) createKubeconfigJob(cluster *common.Cluster, jobNam
 						{
 							Name:            kubeconfigPrefix,
 							Image:           kubeConfigGeneratorImage,
-							Command:         b.imageBuildCmd,
 							ImagePullPolicy: "IfNotPresent",
 							Env: []core.EnvVar{
 								{
