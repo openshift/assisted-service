@@ -1390,18 +1390,13 @@ func (b *bareMetalInventory) updateFreeAddressesReport(ctx context.Context, host
 		log.WithError(err).Warn("Update free addresses")
 		return err
 	}
-	result := b.db.Model(&models.Host{}).Where("id = ? and cluster_id = ?", host.ID.String(),
-		host.ClusterID.String()).Updates(map[string]interface{}{"free_addresses": freeAddressesReport})
-	err = result.Error
-	if err != nil {
+	if err = b.db.Model(&models.Host{}).Where("id = ? and cluster_id = ?", host.ID.String(),
+		host.ClusterID.String()).Updates(map[string]interface{}{"free_addresses": freeAddressesReport}).Error; err != nil {
 		log.WithError(err).Warnf("Update free addresses of host %s", host.ID.String())
 		return err
 	}
-	if result.RowsAffected != 1 {
-		err = fmt.Errorf("Update free_addresses of host %s: %d affected rows", host.ID.String(), result.RowsAffected)
-		log.WithError(err).Warn("Update free addresses")
-		return err
-	}
+	// Gorm sets the number of changed rows in AffectedRows and not the number of matched rows.  Therefore, if the report hasn't changed
+	// from the previous report, the AffectedRows will be 0 but it will still be correct.  So no error reporting needed for AffectedRows == 0
 	return nil
 }
 
