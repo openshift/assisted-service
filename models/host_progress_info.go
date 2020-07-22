@@ -26,11 +26,11 @@ type HostProgressInfo struct {
 
 	// Time at which the current progress stage started
 	// Format: date-time
-	StageStartedAt strfmt.DateTime `json:"stage_started_at,omitempty" gorm:"type:datetime"`
+	StageStartedAt strfmt.DateTime `json:"stage_started_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// Time at which the current progress stage was last updated
 	// Format: date-time
-	StageUpdatedAt strfmt.DateTime `json:"stage_updated_at,omitempty" gorm:"type:datetime"`
+	StageUpdatedAt strfmt.DateTime `json:"stage_updated_at,omitempty" gorm:"type:timestamp with time zone"`
 }
 
 // Validate validates this host progress info

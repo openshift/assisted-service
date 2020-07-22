@@ -6,11 +6,12 @@ package host
 
 import (
 	context "context"
+	reflect "reflect"
+
 	common "github.com/filanov/bm-inventory/internal/common"
 	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
-	reflect "reflect"
 )
 
 // MockAPI is a mock of API interface

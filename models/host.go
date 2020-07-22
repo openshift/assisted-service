@@ -148,6 +148,14 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateStageStartedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStageUpdatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateStatus(formats); err != nil {
 		res = append(res, err)
 	}
@@ -319,6 +327,32 @@ func (m *Host) validateRole(formats strfmt.Registry) error {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("role")
 		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateStageStartedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StageStartedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("stage_started_at", "body", "date-time", m.StageStartedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateStageUpdatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StageUpdatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("stage_updated_at", "body", "date-time", m.StageUpdatedAt.String(), formats); err != nil {
 		return err
 	}
 

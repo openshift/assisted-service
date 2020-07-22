@@ -170,6 +170,7 @@ var _ = Describe("update_progress", func() {
 		ctrl       *gomock.Controller
 		mockEvents *events.MockHandler
 		mockMetric *metrics.MockAPI
+		dbName     = "host_update_progress"
 	)
 
 	setDefaultReportHostInstallationMetrics := func(mockMetricApi *metrics.MockAPI) {
