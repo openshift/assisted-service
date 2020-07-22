@@ -31,9 +31,6 @@ spec:
                 name: s3-config
             - configMapRef:
                 name: bm-inventory-config
-          env:
-            - name: IMAGE_BUILDER_CMD
-              value: ""
           volumeMounts:
             - name: route53-creds
               mountPath: "/.aws"
