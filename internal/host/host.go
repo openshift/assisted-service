@@ -142,12 +142,14 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host) error {
 
 func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host) error {
 
+	lastStatusUpdateTime := h.StatusUpdatedAt
 	err := m.sm.Run(TransitionTypeHostInstallationFailed, newStateHost(h), &TransitionArgsHostInstallationFailed{
 		ctx:    ctx,
 		reason: "installation command failed",
 	})
 	if err == nil {
-		m.reportInstallationMetrics(ctx, h, &models.HostProgressInfo{CurrentStage: "installation command failed"}, models.HostStageFailed)
+		m.reportInstallationMetrics(ctx, h, &models.HostProgressInfo{CurrentStage: "installation command failed",
+			StageStartedAt: lastStatusUpdateTime}, models.HostStageFailed)
 	}
 	return err
 }
