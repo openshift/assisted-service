@@ -181,8 +181,9 @@ func (b *bareMetalInventory) generateDummyISOImage() {
 		requestID = requestid.NewID()
 		log       = requestid.RequestIDLogger(b.log, requestID)
 	)
+	// create dummy job without uploading to s3, we just need to pull the image
 	if err := b.job.Create(requestid.ToContext(context.Background(), requestID),
-		b.createImageJob(jobName, imgName, "Dummy")); err != nil {
+		b.createImageJob(jobName, imgName, "Dummy", false)); err != nil {
 		log.WithError(err).Errorf("failed to generate dummy ISO image")
 	}
 }
@@ -193,7 +194,11 @@ func getQuantity(s string) resource.Quantity {
 }
 
 // create discovery image generation job, return job name and error
-func (b *bareMetalInventory) createImageJob(jobName, imgName, ignitionConfig string) *batch.Job {
+func (b *bareMetalInventory) createImageJob(jobName, imgName, ignitionConfig string, performUpload bool) *batch.Job {
+	var command []string
+	if !performUpload {
+		command = []string{"echo", "pass"}
+	}
 	return &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
@@ -223,6 +228,7 @@ func (b *bareMetalInventory) createImageJob(jobName, imgName, ignitionConfig str
 									"memory": getQuantity(b.JobMemoryRequests),
 								},
 							},
+							Command:         command,
 							Name:            "image-creator",
 							Image:           b.Config.ImageBuilder,
 							ImagePullPolicy: "IfNotPresent",
@@ -539,7 +545,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	jobName := fmt.Sprintf("createimage-%s-%s", cluster.ID, now.Format("20060102150405"))
 	imgName := getImageName(params.ClusterID)
 	log.Infof("Creating job %s", jobName)
-	if err := b.job.Create(ctx, b.createImageJob(jobName, imgName, ignitionConfig)); err != nil {
+	if err := b.job.Create(ctx, b.createImageJob(jobName, imgName, ignitionConfig, true)); err != nil {
 		log.WithError(err).Error("failed to create image job")
 		msg := "Failed to generate image: error creating image generation job"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
