@@ -2202,13 +2202,13 @@ func init() {
           "description": "Time at which the current progress stage started",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:datetime\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "stage_updated_at": {
           "description": "Time at which the current progress stage was last updated",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:datetime\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         }
       }
     },
@@ -4735,8 +4735,6 @@ func init() {
         "role": {
           "$ref": "#/definitions/host-role"
         },
-<<<<<<< HEAD
-=======
         "stage_started_at": {
           "description": "Time at which the current progress stage started",
           "type": "string",
@@ -4749,7 +4747,6 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
->>>>>>> MGMT-1528 test fixes
         "status": {
           "type": "string",
           "enum": [
@@ -4846,13 +4843,13 @@ func init() {
           "description": "Time at which the current progress stage started",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:datetime\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "stage_updated_at": {
           "description": "Time at which the current progress stage was last updated",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:datetime\""
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         }
       }
     },

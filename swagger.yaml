@@ -1660,12 +1660,12 @@ definitions:
       stage_started_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: Time at which the current progress stage started
       stage_updated_at:
         type: string
         format: date-time
-        x-go-custom-tag: gorm:"type:datetime"
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: Time at which the current progress stage was last updated
 
   host-stage:
