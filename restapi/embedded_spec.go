@@ -1332,38 +1332,6 @@ func init() {
     }
   },
   "definitions": {
-    "block-device": {
-      "type": "object",
-      "properties": {
-        "device_type": {
-          "type": "string"
-        },
-        "fstype": {
-          "type": "string"
-        },
-        "major_device_number": {
-          "type": "integer"
-        },
-        "minor_device_number": {
-          "type": "integer"
-        },
-        "mountpoint": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "read_only": {
-          "type": "boolean"
-        },
-        "removable_device": {
-          "type": "integer"
-        },
-        "size": {
-          "type": "integer"
-        }
-      }
-    },
     "boot": {
       "type": "object",
       "properties": {
@@ -1372,17 +1340,6 @@ func init() {
         },
         "pxe_interface": {
           "type": "string"
-        }
-      }
-    },
-    "cidr": {
-      "type": "object",
-      "properties": {
-        "ip_address": {
-          "type": "string"
-        },
-        "mask": {
-          "type": "integer"
         }
       }
     },
@@ -1804,29 +1761,6 @@ func init() {
         }
       }
     },
-    "cpu_details": {
-      "type": "object",
-      "properties": {
-        "architecture": {
-          "type": "string"
-        },
-        "cpu_mhz": {
-          "type": "number"
-        },
-        "cpus": {
-          "type": "integer"
-        },
-        "model_name": {
-          "type": "string"
-        },
-        "sockets": {
-          "type": "integer"
-        },
-        "threads_per_core": {
-          "type": "integer"
-        }
-      }
-    },
     "credentials": {
       "type": "object",
       "properties": {
@@ -2045,10 +1979,6 @@ func init() {
           "type": "string"
         },
         "free_addresses": {
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text\""
-        },
-        "hardware_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
@@ -2364,32 +2294,6 @@ func init() {
         }
       }
     },
-    "introspection": {
-      "type": "object",
-      "properties": {
-        "block_devices": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/block-device"
-          }
-        },
-        "cpu": {
-          "$ref": "#/definitions/cpu_details"
-        },
-        "memory": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/memory_details"
-          }
-        },
-        "nics": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/nic"
-          }
-        }
-      }
-    },
     "inventory": {
       "type": "object",
       "properties": {
@@ -2504,55 +2408,6 @@ func init() {
         }
       }
     },
-    "memory_details": {
-      "type": "object",
-      "properties": {
-        "available": {
-          "type": "integer"
-        },
-        "buff_cached": {
-          "type": "integer"
-        },
-        "free": {
-          "type": "integer"
-        },
-        "name": {
-          "type": "string"
-        },
-        "shared": {
-          "type": "integer"
-        },
-        "total": {
-          "type": "integer"
-        },
-        "used": {
-          "type": "integer"
-        }
-      }
-    },
-    "nic": {
-      "type": "object",
-      "properties": {
-        "cidrs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cidr"
-          }
-        },
-        "mac": {
-          "type": "string"
-        },
-        "mtu": {
-          "type": "integer"
-        },
-        "name": {
-          "type": "string"
-        },
-        "state": {
-          "type": "string"
-        }
-      }
-    },
     "step": {
       "type": "object",
       "properties": {
@@ -2596,7 +2451,6 @@ func init() {
     "step-type": {
       "type": "string",
       "enum": [
-        "hardware-info",
         "connectivity-check",
         "execute",
         "inventory",
@@ -3992,38 +3846,6 @@ func init() {
         }
       }
     },
-    "block-device": {
-      "type": "object",
-      "properties": {
-        "device_type": {
-          "type": "string"
-        },
-        "fstype": {
-          "type": "string"
-        },
-        "major_device_number": {
-          "type": "integer"
-        },
-        "minor_device_number": {
-          "type": "integer"
-        },
-        "mountpoint": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "read_only": {
-          "type": "boolean"
-        },
-        "removable_device": {
-          "type": "integer"
-        },
-        "size": {
-          "type": "integer"
-        }
-      }
-    },
     "boot": {
       "type": "object",
       "properties": {
@@ -4032,17 +3854,6 @@ func init() {
         },
         "pxe_interface": {
           "type": "string"
-        }
-      }
-    },
-    "cidr": {
-      "type": "object",
-      "properties": {
-        "ip_address": {
-          "type": "string"
-        },
-        "mask": {
-          "type": "integer"
         }
       }
     },
@@ -4446,29 +4257,6 @@ func init() {
         }
       }
     },
-    "cpu_details": {
-      "type": "object",
-      "properties": {
-        "architecture": {
-          "type": "string"
-        },
-        "cpu_mhz": {
-          "type": "number"
-        },
-        "cpus": {
-          "type": "integer"
-        },
-        "model_name": {
-          "type": "string"
-        },
-        "sockets": {
-          "type": "integer"
-        },
-        "threads_per_core": {
-          "type": "integer"
-        }
-      }
-    },
     "credentials": {
       "type": "object",
       "properties": {
@@ -4687,10 +4475,6 @@ func init() {
           "type": "string"
         },
         "free_addresses": {
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text\""
-        },
-        "hardware_info": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
@@ -5006,32 +4790,6 @@ func init() {
         }
       }
     },
-    "introspection": {
-      "type": "object",
-      "properties": {
-        "block_devices": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/block-device"
-          }
-        },
-        "cpu": {
-          "$ref": "#/definitions/cpu_details"
-        },
-        "memory": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/memory_details"
-          }
-        },
-        "nics": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/nic"
-          }
-        }
-      }
-    },
     "inventory": {
       "type": "object",
       "properties": {
@@ -5146,55 +4904,6 @@ func init() {
         }
       }
     },
-    "memory_details": {
-      "type": "object",
-      "properties": {
-        "available": {
-          "type": "integer"
-        },
-        "buff_cached": {
-          "type": "integer"
-        },
-        "free": {
-          "type": "integer"
-        },
-        "name": {
-          "type": "string"
-        },
-        "shared": {
-          "type": "integer"
-        },
-        "total": {
-          "type": "integer"
-        },
-        "used": {
-          "type": "integer"
-        }
-      }
-    },
-    "nic": {
-      "type": "object",
-      "properties": {
-        "cidrs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cidr"
-          }
-        },
-        "mac": {
-          "type": "string"
-        },
-        "mtu": {
-          "type": "integer"
-        },
-        "name": {
-          "type": "string"
-        },
-        "state": {
-          "type": "string"
-        }
-      }
-    },
     "step": {
       "type": "object",
       "properties": {
@@ -5238,7 +4947,6 @@ func init() {
     "step-type": {
       "type": "string",
       "enum": [
-        "hardware-info",
         "connectivity-check",
         "execute",
         "inventory",

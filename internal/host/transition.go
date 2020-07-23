@@ -55,7 +55,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		// so we reset the hw info and progress, and start the discovery process again.
 		if host, err := updateHostProgress(log, th.db, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState,
 			swag.StringValue(sHost.host.Status), statusInfoDiscovering, sHost.host.Progress.CurrentStage, "", "",
-			"hardware_info", "", "discovery_agent_version", params.discoveryAgentVersion, "bootstrap", false); err != nil {
+			"inventory", "", "discovery_agent_version", params.discoveryAgentVersion, "bootstrap", false); err != nil {
 			return err
 		} else {
 			sHost.host = host
@@ -243,7 +243,7 @@ func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args sta
 	}
 
 	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), th.db, sHost,
-		statusInfoDiscovering, "hardware_info", "")
+		statusInfoDiscovering, "inventory", "")
 }
 
 ////////////////////////////////////////////////////////////////////////////

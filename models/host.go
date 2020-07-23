@@ -44,9 +44,6 @@ type Host struct {
 	// free addresses
 	FreeAddresses string `json:"free_addresses,omitempty" gorm:"type:text"`
 
-	// hardware info
-	HardwareInfo string `json:"hardware_info,omitempty" gorm:"type:text"`
-
 	// Self link.
 	// Required: true
 	Href *string `json:"href"`

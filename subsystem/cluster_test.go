@@ -914,7 +914,7 @@ var _ = Describe("cluster install", func() {
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 
 				By("verify hosts state")
-				for _, host := range c.Hosts {
+				for i, host := range c.Hosts {
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
 					_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
 					Expect(ok).Should(Equal(true))
@@ -925,6 +925,9 @@ var _ = Describe("cluster install", func() {
 						},
 					})
 					Expect(err).ShouldNot(HaveOccurred())
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
+						defaultWaitForHostStateTimeout)
+					generateHWPostStepReply(host, validHwInfo, fmt.Sprintf("host-after-reset-%d", i))
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown,
 						defaultWaitForHostStateTimeout)
 					host = getHost(clusterID, *host.ID)
@@ -962,7 +965,7 @@ var _ = Describe("cluster install", func() {
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 
 				By("register hosts and disable bootstrap")
-				for _, host := range c.Hosts {
+				for i, host := range c.Hosts {
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
 					_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
 					Expect(ok).Should(Equal(true))
@@ -973,6 +976,9 @@ var _ = Describe("cluster install", func() {
 						},
 					})
 					Expect(err).ShouldNot(HaveOccurred())
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
+						defaultWaitForHostStateTimeout)
+					generateHWPostStepReply(host, validHwInfo, fmt.Sprintf("host-after-reset-%d", i))
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown,
 						defaultWaitForHostStateTimeout)
 

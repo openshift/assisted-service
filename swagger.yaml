@@ -1063,9 +1063,6 @@ definitions:
       connectivity:
         x-go-custom-tag: gorm:"type:text"
         type: string
-      hardware_info:
-        x-go-custom-tag: gorm:"type:text"
-        type: string
       inventory:
         x-go-custom-tag: gorm:"type:text"
         type: string
@@ -1111,7 +1108,6 @@ definitions:
   step-type:
     type: string
     enum:
-      - hardware-info
       - connectivity-check
       - execute
       - inventory
@@ -1472,106 +1468,6 @@ definitions:
     properties:
       command:
         type: string
-
-  cpu_details:
-    type: object
-    properties:
-      architecture:
-        type: string
-      model_name:
-        type: string
-      cpus:
-        type: integer
-      threads_per_core:
-        type: integer
-      sockets:
-        type: integer
-      cpu_mhz:
-        type: number
-
-  block-device:
-    type: object
-    properties:
-      name:
-        type: string
-      major_device_number:
-        type: integer
-      minor_device_number:
-        type: integer
-      removable_device:
-        type: integer
-      size:
-        type: integer
-      read_only:
-        type: boolean
-      device_type:
-        type: string
-      mountpoint:
-        type: string
-      fstype:
-        type: string
-
-  memory_details:
-    type: object
-    properties:
-      name:
-        type: string
-      total:
-        type: integer
-      used:
-        type: integer
-      free:
-        type: integer
-      shared:
-        type: integer
-      buff_cached:
-        type: integer
-      available:
-        type: integer
-
-  cidr:
-    type: object
-    properties:
-      ip_address:
-        type: string
-      mask:
-        type: integer
-
-  nic:
-    type: object
-    properties:
-      name:
-        type: string
-      state:
-        type: string
-      mtu:
-        type: integer
-      mac:
-        type: string
-      cidrs:
-        type: array
-        items:
-          $ref: '#/definitions/cidr'
-
-
-  # Return value of hardware info
-  introspection:
-    type: object
-    properties:
-      cpu:
-        $ref: '#/definitions/cpu_details'
-      block_devices:
-        type: array
-        items:
-          $ref: '#/definitions/block-device'
-      memory:
-        type: array
-        items:
-          $ref: '#/definitions/memory_details'
-      nics:
-        type: array
-        items:
-          $ref: '#/definitions/nic'
 
   l2-connectivity:
     type: object

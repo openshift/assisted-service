@@ -20,9 +20,6 @@ type StepType string
 
 const (
 
-	// StepTypeHardwareInfo captures enum value "hardware-info"
-	StepTypeHardwareInfo StepType = "hardware-info"
-
 	// StepTypeConnectivityCheck captures enum value "connectivity-check"
 	StepTypeConnectivityCheck StepType = "connectivity-check"
 
@@ -47,7 +44,7 @@ var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType
-	if err := json.Unmarshal([]byte(`["hardware-info","connectivity-check","execute","inventory","install","free-network-addresses","reset-installation"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

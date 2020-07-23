@@ -49,8 +49,7 @@ def main():
                         "INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",
                         "CONNECTIVITY_CHECK_IMAGE": "connectivity_check",
-                        "INVENTORY_IMAGE": "inventory",
-                        "HARDWARE_INFO_IMAGE": "hardware_info"}
+                        "INVENTORY_IMAGE": "inventory"}
             for env_var_name, image_short_name in versions.items():
                 image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
                 versions[env_var_name] = image_fqdn
