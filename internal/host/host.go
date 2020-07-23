@@ -312,7 +312,8 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.Ho
 
 func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
 	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient}
+	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient,
+		HostStatusPendingForInput}
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host is in %s state, host name can be set only in one of %s states",
