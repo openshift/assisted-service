@@ -59,6 +59,10 @@ func gibToBytes(gib int64) int64 {
 	return gib * int64(units.GiB)
 }
 
+func bytesToGiB(bytes int64) int64 {
+	return bytes / int64(units.GiB)
+}
+
 func (c *validationContext) loadCluster() error {
 	var cluster common.Cluster
 	err := c.db.Preload("Hosts", "status <> ?", HostStatusDisabled).Take(&cluster, "id = ?", c.host.ClusterID.String()).Error
@@ -174,9 +178,9 @@ func (v *validator) hasMinCpuCores(c *validationContext) validationStatus {
 func (v *validator) printHasMinCpuCores(c *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "Sufficient minimum CPU cores"
+		return "Sufficient CPU cores"
 	case ValidationFailure:
-		return fmt.Sprintf("Insufficient minimum CPU cores, expected: %d got %d", v.hwValidatorCfg.MinCPUCores, c.inventory.CPU.Count)
+		return fmt.Sprintf("Require at least %d CPU cores, found only %d", v.hwValidatorCfg.MinCPUCores, c.inventory.CPU.Count)
 	case ValidationPending:
 		return "Missing inventory"
 	default:
@@ -194,10 +198,10 @@ func (v *validator) hasMinMemory(c *validationContext) validationStatus {
 func (v *validator) printHasMinMemory(c *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "Sufficient minimum memory"
+		return "Sufficient minimum RAM"
 	case ValidationFailure:
-		return fmt.Sprintf("Insufficient minimum RAM requirements, expected: %s got %s", units.Base2Bytes(gibToBytes(v.hwValidatorCfg.MinRamGib)),
-			units.Base2Bytes(c.inventory.Memory.PhysicalBytes))
+		return fmt.Sprintf("Require at least %d GiB RAM, found only %d GiB", v.hwValidatorCfg.MinRamGib,
+			bytesToGiB(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory"
 	default:
@@ -209,16 +213,16 @@ func (v *validator) hasMinValidDisks(c *validationContext) validationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	disks := hardware.ListValidDisks(c.inventory, gibToBytes(v.hwValidatorCfg.MinDiskSizeGib))
+	disks := hardware.ListValidDisks(c.inventory, gibToBytes(v.hwValidatorCfg.MinDiskSizeGb))
 	return boolValue(len(disks) > 0)
 }
 
 func (v *validator) printHasMinValidDisks(c *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "Sufficient number of disks with required size"
+		return "Sufficient disk capacity"
 	case ValidationFailure:
-		return fmt.Sprintf("Insufficient number of disks with required size, expected at least 1 not removable, not readonly disk of size more than %d  bytes", gibToBytes(v.hwValidatorCfg.MinDiskSizeGib))
+		return fmt.Sprintf("Require a disk of at least %d GB", v.hwValidatorCfg.MinDiskSizeGb)
 	case ValidationPending:
 		return "Missing inventory"
 	default:
@@ -287,8 +291,8 @@ func (v *validator) printHasCpuCoresForRole(c *validationContext, status validat
 	case ValidationSuccess:
 		return fmt.Sprintf("Sufficient CPU cores for role %s", c.host.Role)
 	case ValidationFailure:
-		return fmt.Sprintf("Insufficient CPU cores for role %s, expected: %d got %d", c.host.Role,
-			v.getCpuCountForRole(c.host.Role), c.inventory.CPU.Count)
+		return fmt.Sprintf("Require at least %d CPU cores for %s role, found only %d",
+			v.getCpuCountForRole(c.host.Role), c.host.Role, c.inventory.CPU.Count)
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
@@ -325,10 +329,10 @@ func (v *validator) getMemoryForRole(role models.HostRole) int64 {
 func (v *validator) printHasMemoryForRole(c *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return fmt.Sprintf("Sufficient memory for role %s", c.host.Role)
+		return fmt.Sprintf("Sufficient RAM for role %s", c.host.Role)
 	case ValidationFailure:
-		return fmt.Sprintf("Insufficient RAM requirements for role %s, expected: %s got %s", c.host.Role,
-			units.Base2Bytes(gibToBytes(v.getMemoryForRole(c.host.Role))), units.Base2Bytes(c.inventory.Memory.PhysicalBytes))
+		return fmt.Sprintf("Require at least %d GiB RAM role %s, found only %d",
+			v.getMemoryForRole(c.host.Role), c.host.Role, bytesToGiB(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
