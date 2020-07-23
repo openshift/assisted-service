@@ -125,7 +125,7 @@ func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role models.HostRole, bo
 		Status:            swag.String(HostStatusDiscovering),
 		Role:              role,
 		Bootstrap:         bootstrap,
-		HardwareInfo:      defaultHwInfo,
+		Inventory:         defaultInventory(),
 		RequestedHostname: hostname,
 	}
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())

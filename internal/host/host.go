@@ -84,8 +84,6 @@ type API interface {
 	EnableHost(ctx context.Context, h *models.Host) error
 	// Install host - db is optional, for transactions
 	Install(ctx context.Context, h *models.Host, db *gorm.DB) error
-	// Set a new HW information
-	UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) error
 	// Set a new inventory information
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
 	GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage
@@ -152,19 +150,6 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 			StageStartedAt: lastStatusUpdateTime}, models.HostStageFailed)
 	}
 	return err
-}
-
-func (m *Manager) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) error {
-	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{models.HostStatusDisconnected, models.HostStatusDiscovering,
-		models.HostStatusInsufficient, models.HostStatusKnown}
-	if !funk.ContainsString(allowedStatuses, hostStatus) {
-		return common.NewApiError(http.StatusConflict,
-			errors.Errorf("Host %s is in %s state, hardware info can be set only in one of %s states",
-				h.ID.String(), hostStatus, allowedStatuses))
-	}
-	h.HardwareInfo = hwInfo
-	return m.db.Model(h).Update("hardware_info", hwInfo).Error
 }
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {

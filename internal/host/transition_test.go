@@ -81,7 +81,7 @@ var _ = Describe("RegisterHost", func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusError))
 			Expect(h.Role).Should(Equal(models.HostRoleMaster))
-			Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+			Expect(h.Inventory).Should(Equal(defaultHwInfo))
 			Expect(h.StatusInfo).NotTo(BeNil())
 		})
 
@@ -90,11 +90,11 @@ var _ = Describe("RegisterHost", func() {
 
 			It(t.name, func() {
 				Expect(db.Create(&models.Host{
-					ID:           &hostId,
-					ClusterID:    clusterId,
-					Role:         models.HostRoleMaster,
-					HardwareInfo: defaultHwInfo,
-					Status:       swag.String(t.srcState),
+					ID:        &hostId,
+					ClusterID: clusterId,
+					Role:      models.HostRoleMaster,
+					Inventory: defaultHwInfo,
+					Status:    swag.String(t.srcState),
 				}).Error).ShouldNot(HaveOccurred())
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
@@ -134,7 +134,7 @@ var _ = Describe("RegisterHost", func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusDiscovering))
 			Expect(h.Role).Should(Equal(models.HostRoleMaster))
-			Expect(h.HardwareInfo).Should(Equal(""))
+			Expect(h.Inventory).Should(Equal(""))
 			Expect(h.DiscoveryAgentVersion).To(Equal(discoveryAgentVersion))
 		})
 
@@ -143,11 +143,11 @@ var _ = Describe("RegisterHost", func() {
 
 			It(t.name, func() {
 				Expect(db.Create(&models.Host{
-					ID:           &hostId,
-					ClusterID:    clusterId,
-					Role:         models.HostRoleMaster,
-					HardwareInfo: defaultHwInfo,
-					Status:       swag.String(t.srcState),
+					ID:        &hostId,
+					ClusterID: clusterId,
+					Role:      models.HostRoleMaster,
+					Inventory: defaultHwInfo,
+					Status:    swag.String(t.srcState),
 				}).Error).ShouldNot(HaveOccurred())
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
@@ -185,11 +185,11 @@ var _ = Describe("RegisterHost", func() {
 
 			It(t.name, func() {
 				Expect(db.Create(&models.Host{
-					ID:           &hostId,
-					ClusterID:    clusterId,
-					Role:         models.HostRoleMaster,
-					HardwareInfo: defaultHwInfo,
-					Status:       swag.String(t.srcState),
+					ID:        &hostId,
+					ClusterID: clusterId,
+					Role:      models.HostRoleMaster,
+					Inventory: defaultHwInfo,
+					Status:    swag.String(t.srcState),
 				}).Error).ShouldNot(HaveOccurred())
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
@@ -201,7 +201,7 @@ var _ = Describe("RegisterHost", func() {
 				h := getHost(hostId, clusterId, db)
 				Expect(swag.StringValue(h.Status)).Should(Equal(t.srcState))
 				Expect(h.Role).Should(Equal(models.HostRoleMaster))
-				Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+				Expect(h.Inventory).Should(Equal(defaultHwInfo))
 			})
 		}
 	})
@@ -225,7 +225,7 @@ var _ = Describe("RegisterHost", func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusInstallingPendingUserAction))
 			Expect(h.Role).Should(Equal(models.HostRoleMaster))
-			Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+			Expect(h.Inventory).Should(Equal(defaultHwInfo))
 			Expect(h.StatusInfo).NotTo(BeNil())
 		})
 
@@ -234,12 +234,12 @@ var _ = Describe("RegisterHost", func() {
 
 			It(t.name, func() {
 				Expect(db.Create(&models.Host{
-					ID:           &hostId,
-					ClusterID:    clusterId,
-					Role:         models.HostRoleMaster,
-					HardwareInfo: defaultHwInfo,
-					Status:       swag.String(t.srcState),
-					Progress:     &t.progress,
+					ID:        &hostId,
+					ClusterID: clusterId,
+					Role:      models.HostRoleMaster,
+					Inventory: defaultHwInfo,
+					Status:    swag.String(t.srcState),
+					Progress:  &t.progress,
 				}).Error).ShouldNot(HaveOccurred())
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
@@ -562,14 +562,14 @@ var _ = Describe("Enable", func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(HostStatusDiscovering))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
-			Expect(h.HardwareInfo).Should(Equal(""))
+			Expect(h.Inventory).Should(Equal(""))
 		}
 
 		failure := func(reply error) {
 			Expect(reply).Should(HaveOccurred())
 			h := getHost(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(srcState))
-			Expect(h.HardwareInfo).Should(Equal(defaultHwInfo))
+			Expect(h.Inventory).Should(Equal(defaultHwInfo))
 		}
 
 		tests := []struct {
@@ -634,7 +634,7 @@ var _ = Describe("Enable", func() {
 			It(t.name, func() {
 				srcState = t.srcState
 				host = getTestHost(hostId, clusterId, srcState)
-				host.HardwareInfo = defaultHwInfo
+				host.Inventory = defaultHwInfo
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				t.validation(hapi.EnableHost(ctx, &host))
 			})

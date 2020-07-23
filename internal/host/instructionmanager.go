@@ -46,14 +46,12 @@ type InstructionConfig struct {
 	ControllerImage        string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
 	ConnectivityCheckImage string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/connectivity_check:latest"`
 	InventoryImage         string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/inventory:latest"`
-	HardwareInfoImage      string `envconfig:"HARDWARE_INFO_IMAGE" default:"quay.io/ocpmetal/hardware_info:latest"`
 	FreeAddressesImage     string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/free_addresses:latest"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator) *InstructionManager {
 	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.ConnectivityCheckImage)
 	installCmd := NewInstallCmd(log, db, hwValidator, instructionConfig)
-	hwCmd := NewHwInfoCmd(log, instructionConfig.HardwareInfoImage)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.InventoryImage)
 	freeAddressesCmd := NewFreeAddressesCmd(log, instructionConfig.FreeAddressesImage)
 	resetCmd := NewResetInstallationCmd(log)
@@ -64,9 +62,9 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 		db:  db,
 		stateToSteps: stateToStepsMap{
 			HostStatusKnown:           {[]CommandGetter{connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
-			HostStatusInsufficient:    {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
-			HostStatusDisconnected:    {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd}, defaultBackedOffInstructionInSec},
-			HostStatusDiscovering:     {[]CommandGetter{hwCmd, inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
+			HostStatusInsufficient:    {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
+			HostStatusDisconnected:    {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultBackedOffInstructionInSec},
+			HostStatusDiscovering:     {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
 			HostStatusPendingForInput: {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
 			HostStatusInstalling:      {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec},
 			HostStatusDisabled:        {[]CommandGetter{}, defaultBackedOffInstructionInSec},

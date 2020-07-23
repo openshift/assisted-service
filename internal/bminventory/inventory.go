@@ -1403,8 +1403,6 @@ func (b *bareMetalInventory) updateFreeAddressesReport(ctx context.Context, host
 func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {
 	var err error
 	switch params.Reply.StepType {
-	case models.StepTypeHardwareInfo:
-		err = b.hostApi.UpdateHwInfo(ctx, &host, stepReply)
 	case models.StepTypeInventory:
 		err = b.hostApi.UpdateInventory(ctx, &host, stepReply)
 	case models.StepTypeConnectivityCheck:
@@ -1421,8 +1419,6 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 
 	// To make sure we store only information defined in swagger we unmarshal and marshal the stepReplyParams.
 	switch params.Reply.StepType {
-	case models.StepTypeHardwareInfo:
-		stepReply, err = filterReply(&models.Introspection{}, params.Reply.Output)
 	case models.StepTypeInventory:
 		stepReply, err = filterReply(&models.Inventory{}, params.Reply.Output)
 	case models.StepTypeConnectivityCheck:

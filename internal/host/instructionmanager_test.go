@@ -52,7 +52,7 @@ var _ = Describe("instructionmanager", func() {
 		})
 		It("discovering", func() {
 			checkStepsByState(HostStatusDiscovering, &host, db, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck})
+				[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
 		})
 		It("known", func() {
 
@@ -61,11 +61,11 @@ var _ = Describe("instructionmanager", func() {
 		})
 		It("disconnected", func() {
 			checkStepsByState(HostStatusDisconnected, &host, db, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck})
+				[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
 		})
 		It("insufficient", func() {
 			checkStepsByState(HostStatusInsufficient, &host, db, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeHardwareInfo, models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
+				[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
 		})
 		It("pending-for-input", func() {
 			checkStepsByState(HostStatusPendingForInput, &host, db, instMng, hwValidator, ctx,

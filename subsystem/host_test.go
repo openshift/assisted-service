@@ -110,9 +110,7 @@ var _ = Describe("Host tests", func() {
 	It("next step", func() {
 		host := registerHost(clusterID)
 		steps := getNextSteps(clusterID, *host.ID)
-		_, ok := getStepInList(steps, models.StepTypeHardwareInfo)
-		Expect(ok).Should(Equal(true))
-		_, ok = getStepInList(steps, models.StepTypeInventory)
+		_, ok := getStepInList(steps, models.StepTypeInventory)
 		Expect(ok).Should(Equal(true))
 		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
 		Expect(ok).Should(Equal(true))
@@ -206,41 +204,6 @@ var _ = Describe("Host tests", func() {
 		Expect(swag.StringValue(host.Status)).Should(Equal("error"))
 		Expect(swag.StringValue(host.StatusInfo)).Should(Equal("installation command failed"))
 
-	})
-
-	It("hardware_info_store_only_relevant_hw_reply", func() {
-		host := registerHost(clusterID)
-
-		extraHwInfo := "{\"extra\":\"data\",\"block_devices\":null,\"cpu\":{\"architecture\":\"x86_64\",\"cpus\":8,\"sockets\":1},\"memory\":[{\"available\":19743372,\"free\":8357316,\"name\":\"Mem\",\"shared\":1369116,\"total\":32657728,\"used\":11105024},{\"free\":16400380,\"name\":\"Swap\",\"total\":16400380}],\"nics\":[{\"cidrs\":[],\"mac\":\"f8:75:a4:a4:01:6e\",\"mtu\":1500,\"name\":\"enp0s31f6\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"80:32:53:4f:16:4f\",\"mtu\":1500,\"name\":\"wlp0s20f3\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"52:54:00:71:50:da\",\"mtu\":1500,\"name\":\"virbr1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"8e:59:a1:a9:14:23\",\"mtu\":1500,\"name\":\"virbr1-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"mask\":16}],\"mac\":\"02:42:aa:59:3a:d3\",\"mtu\":1500,\"name\":\"docker0\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[],\"mac\":\"fe:9b:ea:d0:f5:70\",\"mtu\":1500,\"name\":\"vnet0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"fe:16:a0:ea:b3:0b\",\"mtu\":1500,\"name\":\"vnet1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"}]}"
-		hwInfo := "{\"block_devices\":null,\"cpu\":{\"architecture\":\"x86_64\",\"cpus\":8,\"sockets\":1},\"memory\":[{\"available\":19743372,\"free\":8357316,\"name\":\"Mem\",\"shared\":1369116,\"total\":32657728,\"used\":11105024},{\"free\":16400380,\"name\":\"Swap\",\"total\":16400380}],\"nics\":[{\"cidrs\":[],\"mac\":\"f8:75:a4:a4:01:6e\",\"mtu\":1500,\"name\":\"enp0s31f6\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"80:32:53:4f:16:4f\",\"mtu\":1500,\"name\":\"wlp0s20f3\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"52:54:00:71:50:da\",\"mtu\":1500,\"name\":\"virbr1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"8e:59:a1:a9:14:23\",\"mtu\":1500,\"name\":\"virbr1-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"mask\":24}],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"52:54:00:bc:9b:3f\",\"mtu\":1500,\"name\":\"virbr0-nic\",\"state\":\"BROADCAST,MULTICAST\"},{\"cidrs\":[{\"mask\":16}],\"mac\":\"02:42:aa:59:3a:d3\",\"mtu\":1500,\"name\":\"docker0\",\"state\":\"NO-CARRIER,BROADCAST,MULTICAST,UP\"},{\"cidrs\":[],\"mac\":\"fe:9b:ea:d0:f5:70\",\"mtu\":1500,\"name\":\"vnet0\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"},{\"cidrs\":[],\"mac\":\"fe:16:a0:ea:b3:0b\",\"mtu\":1500,\"name\":\"vnet1\",\"state\":\"BROADCAST,MULTICAST,UP,LOWER_UP\"}]}"
-
-		_, err := bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *host.ID,
-			Reply: &models.StepReply{
-				ExitCode: 0,
-				Output:   extraHwInfo,
-				StepID:   string(models.StepTypeHardwareInfo),
-				StepType: models.StepTypeHardwareInfo,
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-		host = getHost(clusterID, *host.ID)
-		Expect(host.HardwareInfo).Should(Equal(hwInfo))
-
-		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *host.ID,
-			Reply: &models.StepReply{
-				ExitCode: 0,
-				Output:   "not a json",
-				StepID:   string(models.StepTypeHardwareInfo),
-				StepType: models.StepTypeHardwareInfo,
-			},
-		})
-		Expect(err).To(HaveOccurred())
-		host = getHost(clusterID, *host.ID)
-		Expect(host.HardwareInfo).Should(Equal(hwInfo))
 	})
 
 	It("connectivity_report_store_only_relevant_reply", func() {
