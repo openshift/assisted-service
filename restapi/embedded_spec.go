@@ -2231,6 +2231,7 @@ func init() {
       "type": "string",
       "enum": [
         "Starting installation",
+        "Waiting for control plane",
         "Start Waiting for control plane",
         "Installing",
         "Writing image to disk",
@@ -4872,6 +4873,7 @@ func init() {
       "type": "string",
       "enum": [
         "Starting installation",
+        "Waiting for control plane",
         "Start Waiting for control plane",
         "Installing",
         "Writing image to disk",
