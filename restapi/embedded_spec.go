@@ -1460,6 +1460,9 @@ func init() {
             "4.5"
           ]
         },
+        "org_id": {
+          "type": "string"
+        },
         "pull_secret_set": {
           "description": "True if the pull-secret has been added to the cluster",
           "type": "boolean"
@@ -1503,6 +1506,9 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "user_id": {
+          "type": "string"
         }
       }
     },
@@ -3980,6 +3986,9 @@ func init() {
             "4.5"
           ]
         },
+        "org_id": {
+          "type": "string"
+        },
         "pull_secret_set": {
           "description": "True if the pull-secret has been added to the cluster",
           "type": "boolean"
@@ -4023,6 +4032,9 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "user_id": {
+          "type": "string"
         }
       }
     },

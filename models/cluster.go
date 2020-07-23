@@ -90,6 +90,9 @@ type Cluster struct {
 	// Enum: [4.5]
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
+	// org id
+	OrgID string `json:"org_id,omitempty"`
+
 	// True if the pull-secret has been added to the cluster
 	PullSecretSet bool `json:"pull_secret_set,omitempty"`
 
@@ -116,6 +119,9 @@ type Cluster struct {
 	// The last time that this cluster was updated.
 	// Format: date-time
 	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
+
+	// user id
+	UserID string `json:"user_id,omitempty"`
 }
 
 // Validate validates this cluster
