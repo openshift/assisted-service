@@ -33,7 +33,7 @@ type ValidatorCfg struct {
 	MinRamGib         int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
 	MinRamGibWorker   int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_WORKER" default:"8"`
 	MinRamGibMaster   int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_MASTER" default:"16"`
-	MinDiskSizeGib    int64 `envconfig:"HW_VALIDATOR_MIN_DISK_SIZE_GIB" default:"120"`
+	MinDiskSizeGb     int64 `envconfig:"HW_VALIDATOR_MIN_DISK_SIZE_GIB" default:"120"` // Env variable is GIB to not break infra
 }
 
 type validator struct {
@@ -46,15 +46,15 @@ func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		return nil, err
 	}
-	disks := ListValidDisks(&inventory, gibToBytes(v.MinDiskSizeGib))
+	disks := ListValidDisks(&inventory, gbToBytes(v.MinDiskSizeGb))
 	if len(disks) == 0 {
 		return nil, fmt.Errorf("host %s doesn't have valid disks", host.ID)
 	}
 	return disks, nil
 }
 
-func gibToBytes(gib int64) int64 {
-	return gib * int64(units.GiB)
+func gbToBytes(gb int64) int64 {
+	return gb * int64(units.GB)
 }
 
 func ListValidDisks(inventory *models.Inventory, minSizeRequiredInBytes int64) []*models.Disk {
