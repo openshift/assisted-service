@@ -774,6 +774,118 @@ var _ = Describe("UpdateInventory", func() {
 	})
 })
 
+var _ = Describe("Update hostname", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+		dbName            = "update_inventory"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("set hostname", func() {
+		success := func(reply error) {
+			Expect(reply).To(BeNil())
+			h := getHost(hostId, clusterId, db)
+			Expect(h.RequestedHostname).To(Equal("my-hostname"))
+		}
+
+		failure := func(reply error) {
+			Expect(reply).To(HaveOccurred())
+			h := getHost(hostId, clusterId, db)
+			Expect(h.RequestedHostname).To(Equal(""))
+		}
+
+		tests := []struct {
+			name       string
+			srcState   string
+			validation func(error)
+		}{
+			{
+				name:       models.HostStatusKnown,
+				srcState:   models.HostStatusKnown,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDisabled,
+				srcState:   models.HostStatusDisabled,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusDisconnected,
+				srcState:   models.HostStatusDisconnected,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDiscovering,
+				srcState:   models.HostStatusDiscovering,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusError,
+				srcState:   models.HostStatusError,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstalled,
+				srcState:   models.HostStatusInstalled,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstalling,
+				srcState:   models.HostStatusInstalling,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstallingInProgress,
+				srcState:   models.HostStatusInstallingInProgress,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusResettingPendingUserAction,
+				srcState:   models.HostStatusResettingPendingUserAction,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInsufficient,
+				srcState:   models.HostStatusInsufficient,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusResetting,
+				srcState:   models.HostStatusResetting,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusPendingForInput,
+				srcState:   models.HostStatusPendingForInput,
+				validation: success,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				host = getTestHost(hostId, clusterId, t.srcState)
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				t.validation(hapi.UpdateHostname(ctx, &host, "my-hostname", db))
+			})
+		}
+	})
+})
+
 var _ = Describe("UpdateHwInfo", func() {
 	var (
 		ctx               = context.Background()
