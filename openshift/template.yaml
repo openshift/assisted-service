@@ -101,6 +101,21 @@ objects:
                     name: assisted-installer-rds
               - name: IMAGE_BUILDER_CMD
                 value: ""
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: bm-inventory
+    name: assisted-service
+    namespace: assisted-installer
+  spec:
+    ports:
+      - name: bm-inventory
+        port: 8090
+        protocol: TCP
+        targetPort: 8090
+    selector:
+      app: bm-inventory
 #- apiVersion: batch/v1beta1
 #  kind: CronJob
 #  metadata:
