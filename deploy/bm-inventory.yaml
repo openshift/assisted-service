@@ -28,9 +28,58 @@ spec:
             - containerPort: 8090
           envFrom:
             - configMapRef:
-                name: s3-config
-            - configMapRef:
                 name: bm-inventory-config
+          env:
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: aws_secret_access_key
+                  name: assisted-installer-s3
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  key: aws_access_key_id
+                  name: assisted-installer-s3
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  key: aws_region
+                  name: assisted-installer-s3
+            - name: BUCKET
+              valueFrom:
+                secretKeyRef:
+                  key: bucket
+                  name: assisted-installer-s3
+            - name: ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  key: endpoint
+                  name: assisted-installer-s3
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-rds
+                  key: db.host
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  key: db.name
+                  name: assisted-installer-rds
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: db.password
+                  name: assisted-installer-rds
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  key: db.port
+                  name: assisted-installer-rds
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  key: db.user
+                  name: assisted-installer-rds
           volumeMounts:
             - name: route53-creds
               mountPath: "/.aws"

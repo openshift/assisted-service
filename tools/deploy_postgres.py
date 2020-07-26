@@ -3,8 +3,8 @@ import utils
 
 
 def main():
-    src_file = os.path.join(os.getcwd(), "deploy/postgres/postgres-configmap.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/postgres-configmap.yaml")
+    src_file = os.path.join(os.getcwd(), "deploy/postgres/postgres-secret.yaml")
+    dst_file = os.path.join(os.getcwd(), "build/postgres-secret.yaml")
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()

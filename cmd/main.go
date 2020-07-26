@@ -26,6 +26,7 @@ import (
 	"github.com/filanov/bm-inventory/internal/host"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/bm-inventory/pkg/app"
+	"github.com/filanov/bm-inventory/pkg/db"
 	"github.com/filanov/bm-inventory/pkg/job"
 	"github.com/filanov/bm-inventory/pkg/requestid"
 	awsS3Client "github.com/filanov/bm-inventory/pkg/s3Client"
@@ -50,10 +51,7 @@ func init() {
 
 var Options struct {
 	BMConfig                    bminventory.Config
-	DBHost                      string `envconfig:"DB_HOST" default:"postgres"`
-	DBPort                      string `envconfig:"DB_PORT" default:"5432"`
-	DBUser                      string `envconfig:"DB_USER" default:"admin"`
-	DBPass                      string `envconfig:"DB_PASS" default:"admin"`
+	DBConfig                    db.Config
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           host.InstructionConfig
@@ -103,9 +101,9 @@ func main() {
 	}
 
 	// Connect to db
-	db, err := gorm.Open("postgres",
-		fmt.Sprintf("host=%s port=%s user=%s dbname=installer password=%s sslmode=disable",
-			Options.DBHost, Options.DBPort, Options.DBUser, Options.DBPass))
+	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
+	db, err := gorm.Open("postgres", dbConnectionStr)
 	if err != nil {
 		log.Fatal("Fail to connect to DB, ", err)
 	}
