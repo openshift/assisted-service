@@ -101,7 +101,6 @@ objects:
                     name: assisted-installer-rds
               - name: IMAGE_BUILDER_CMD
                 value: ""
----
 - apiVersion: v1
   kind: Service
   metadata:
