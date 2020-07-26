@@ -355,6 +355,23 @@ func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, arg
 	return swag.StringValue(cluster.Status) != models.ClusterStatusPreparingForInstallation, nil
 }
 
+func (th *transitionHandler) HasClusterError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("HasClusterError incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshHost)
+	if !ok {
+		return false, errors.New("HasClusterError invalid argument")
+	}
+	var cluster common.Cluster
+	err := params.db.Select("status").Take(&cluster, "id = ?", sHost.host.ClusterID.String()).Error
+	if err != nil {
+		return false, err
+	}
+	return swag.StringValue(cluster.Status) == models.ClusterStatusError, nil
+}
+
 // Return a post transition function with a constant reason
 func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTransition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {

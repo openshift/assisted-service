@@ -23,6 +23,7 @@ const (
 	statusInfoResettingPendingUserAction = "Reboot the host into the installation image to complete resetting the installation"
 	statusInfoPreparingForInstallation   = "Preparing host for installation"
 	statusInfoPreparingTimedOut          = "Cluster is no longer preparing for installation"
+	statusInfoAbortingDueClusterErrors   = "Installation has been aborted due cluster errors"
 )
 
 type UpdateReply struct {

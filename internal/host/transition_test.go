@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/filanov/bm-inventory/internal/events"
@@ -1798,6 +1799,39 @@ var _ = Describe("Refresh Host", func() {
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(resultHost.ValidationsInfo)
 				}
+			})
+		}
+	})
+	Context("Cluster Errors", func() {
+		for _, srcState := range []string{
+			models.HostStatusInstalling,
+			models.HostStatusInstallingInProgress,
+			models.HostStatusInstalled,
+		} {
+			It(fmt.Sprintf("host src: %s cluster error: false", srcState), func() {
+				h := getTestHost(hostId, clusterId, srcState)
+				h.Inventory = masterInventory()
+				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+				c := getTestCluster(clusterId, "1.2.3.0/24")
+				c.Status = swag.String(models.ClusterStatusInstalling)
+				Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+				err := hapi.RefreshStatus(ctx, &h, db)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(swag.StringValue(h.Status)).Should(Equal(srcState))
+			})
+			It(fmt.Sprintf("host src: %s cluster error: true", srcState), func() {
+				h := getTestHost(hostId, clusterId, srcState)
+				h.Inventory = masterInventory()
+				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+				c := getTestCluster(clusterId, "1.2.3.0/24")
+				c.Status = swag.String(models.ClusterStatusError)
+				Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+				err := hapi.RefreshStatus(ctx, &h, db)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusError))
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+				Expect(swag.StringValue(resultHost.StatusInfo)).Should(Equal(statusInfoAbortingDueClusterErrors))
 			})
 		}
 	})
