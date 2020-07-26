@@ -808,6 +808,12 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -3293,6 +3299,12 @@ func init() {
             }
           },
           "403": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "404": {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
