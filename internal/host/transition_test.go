@@ -149,10 +149,6 @@ var _ = Describe("RegisterHost", func() {
 				name:     "error",
 				srcState: HostStatusError,
 			},
-			{
-				name:     "installed",
-				srcState: HostStatusInstalled,
-			},
 		}
 
 		for i := range tests {
