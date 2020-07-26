@@ -17,20 +17,20 @@ objects:
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
-    name: bm-inventory
+    name: assisted-service
     namespace: assisted-installer
   spec:
     selector:
       matchLabels:
-        app: bm-inventory
+        app: assisted-service
     replicas: 1
     template:
       metadata:
         labels:
-          app: bm-inventory
+          app: assisted-service
       spec:
         containers:
-          - name: bm-inventory
+          - name: assisted-service
             image: ${BM_INVENTORY_IMAGE}:${IMAGE_TAG}
             imagePullPolicy: Always
             resources:
@@ -41,7 +41,7 @@ objects:
                 cpu: 100m
                 memory: 400Mi
             ports:
-              - name: bm-inventory
+              - name: assisted-service
                 containerPort: 8090
             env:
               - name: ROUTE53_CREDS
@@ -101,6 +101,21 @@ objects:
                     name: assisted-installer-rds
               - name: IMAGE_BUILDER_CMD
                 value: ""
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: assisted-service
+    name: assisted-service
+    namespace: assisted-installer
+  spec:
+    ports:
+      - name: assisted-service
+        port: 8090
+        protocol: TCP
+        targetPort: 8090
+    selector:
+      app: assisted-service
 #- apiVersion: batch/v1beta1
 #  kind: CronJob
 #  metadata:
