@@ -169,6 +169,39 @@ var _ = Describe("GenerateClusterISO", func() {
 	})
 })
 
+var _ = Describe("RegisterHost", func() {
+	var (
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		ctx    = context.Background()
+		dbName = "register_host"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("register host to none existing cluster", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			NewHostParams: &models.HostCreateParams{
+				DiscoveryAgentVersion: "v1",
+				HostID:                &hostID,
+			},
+		})
+		apiErr, ok := reply.(*common.ApiErrorResponse)
+		Expect(ok).Should(BeTrue())
+		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusNotFound)))
+	})
+})
+
 var _ = Describe("GetNextSteps", func() {
 	var (
 		bm                *bareMetalInventory

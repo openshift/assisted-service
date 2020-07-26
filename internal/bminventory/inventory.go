@@ -1154,8 +1154,10 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID.String()).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID.String())
-		return installer.NewRegisterHostBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		if gorm.IsRecordNotFoundError(err) {
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	err := b.db.First(&host, "id = ? and cluster_id = ?", *params.NewHostParams.HostID, params.ClusterID).Error
 	if err != nil && !gorm.IsRecordNotFoundError(err) {
@@ -1167,7 +1169,6 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	// In case host doesn't exists check if the cluster accept new hosts registration
 	if err != nil && gorm.IsRecordNotFoundError(err) {
-
 		if err := b.clusterApi.AcceptRegistration(&cluster); err != nil {
 			log.WithError(err).Errorf("failed to register host <%s> to cluster %s due to: %s",
 				params.NewHostParams.HostID, params.ClusterID.String(), err.Error())
