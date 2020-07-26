@@ -17,3 +17,25 @@ func GetCurrentHostName(host *models.Host) (string, error) {
 	}
 	return inventory.Hostname, nil
 }
+
+func GetHostnameForMsg(host *models.Host) string {
+	hostName, err := GetCurrentHostName(host)
+	// An error here probably indicates that the agent didn't send inventory yet, fall back to UUID
+	if err != nil || hostName == "" {
+		return host.ID.String()
+	}
+	return hostName
+}
+
+func GetEventSeverityFromHostStatus(status string) string {
+	switch status {
+	case models.HostStatusDisconnected:
+		return models.EventSeverityWarning
+	case models.HostStatusInstallingPendingUserAction:
+		return models.EventSeverityWarning
+	case models.HostStatusError:
+		return models.EventSeverityError
+	default:
+		return models.EventSeverityInfo
+	}
+}

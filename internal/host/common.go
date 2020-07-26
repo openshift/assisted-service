@@ -1,11 +1,15 @@
 package host
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
+	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/filanov/bm-inventory/internal/events"
 	"github.com/filanov/bm-inventory/models"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -31,7 +35,7 @@ type UpdateReply struct {
 	IsChanged bool
 }
 
-func updateHostProgress(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, hostId strfmt.UUID,
+func updateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, clusterId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, newStatus string, statusInfo string,
 	srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{}) (*models.Host, error) {
 
@@ -42,10 +46,10 @@ func updateHostProgress(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UU
 		extra = append(extra, "progress_stage_started_at", strfmt.DateTime(time.Now()))
 	}
 
-	return updateHostStatus(log, db, clusterId, hostId, srcStatus, newStatus, statusInfo, extra...)
+	return updateHostStatus(ctx, log, db, eventsHandler, clusterId, hostId, srcStatus, newStatus, statusInfo, extra...)
 }
 
-func updateHostStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, hostId strfmt.UUID,
+func updateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, clusterId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, newStatus string, statusInfo string, extra ...interface{}) (*models.Host, error) {
 	var host *models.Host
 	var err error
@@ -60,6 +64,12 @@ func updateHostStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID
 		swag.StringValue(host.Status) != newStatus {
 		return nil, errors.Wrapf(err, "failed to update host %s from cluster %s state from %s to %s",
 			hostId, clusterId, srcStatus, newStatus)
+	}
+
+	if newStatus != srcStatus {
+		eventsHandler.AddEvent(ctx, hostId.String(), common.GetEventSeverityFromHostStatus(newStatus),
+			fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\" (%s)", common.GetHostnameForMsg(host), srcStatus, newStatus, statusInfo),
+			time.Now(), clusterId.String())
 	}
 
 	return host, nil

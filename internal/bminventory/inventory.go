@@ -1181,8 +1181,8 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		if err := b.clusterApi.AcceptRegistration(&cluster); err != nil {
 			log.WithError(err).Errorf("failed to register host <%s> to cluster %s due to: %s",
 				params.NewHostParams.HostID, params.ClusterID.String(), err.Error())
-			msg := "Failed to register host: cluster cannot accept new hosts in its current state"
-			b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
+			b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityError,
+				"Failed to register host: cluster cannot accept new hosts in its current state", time.Now(), params.ClusterID.String())
 			return installer.NewRegisterHostForbidden().
 				WithPayload(common.GenerateError(http.StatusForbidden, err))
 		}
@@ -1201,20 +1201,21 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	if err := b.hostApi.RegisterHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
 			params.NewHostParams.HostID.String(), params.ClusterID.String())
-		msg := "Failed to register host: error creating host metadata"
-		b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
+		b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityError,
+			"Failed to register host: error creating host metadata", time.Now(), params.ClusterID.String())
 		return installer.NewRegisterHostBadRequest().
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
 	if err := b.customizeHost(&host); err != nil {
-		msg := "Failed to register host: error setting host properties"
-		b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityError, msg, time.Now(), params.ClusterID.String())
+		b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityError,
+			"Failed to register host: error setting host properties", time.Now(), params.ClusterID.String())
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 	}
 
-	msg := "New host registered to cluster"
-	b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityInfo, msg, time.Now(), params.ClusterID.String())
+	b.eventsHandler.AddEvent(ctx, params.NewHostParams.HostID.String(), models.EventSeverityInfo,
+		fmt.Sprintf("Host %s: registered to cluster", common.GetHostnameForMsg(&host)),
+		time.Now(), params.ClusterID.String())
 	return installer.NewRegisterHostCreated().WithPayload(&host)
 }
 
@@ -1230,8 +1231,8 @@ func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params installe
 	}
 
 	// TODO: need to check that host can be deleted from the cluster
-	msg := "Host deregistered from cluster"
-	b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityInfo, msg, time.Now(), params.ClusterID.String())
+	b.eventsHandler.AddEvent(ctx, params.HostID.String(), models.EventSeverityInfo,
+		fmt.Sprintf("Host %s: deregistered from cluster", params.HostID.String()), time.Now(), params.ClusterID.String())
 	return installer.NewDeregisterHostNoContent()
 }
 
@@ -1752,7 +1753,7 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 	}
 
 	log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-	msg := fmt.Sprintf("Host %s: %s", b.hostApi.GetHostname(&host), event)
+	msg := fmt.Sprintf("Host %s: %s", common.GetHostnameForMsg(&host), event)
 
 	b.eventsHandler.AddEvent(ctx, host.ID.String(), models.EventSeverityInfo, msg, time.Now(), host.ClusterID.String())
 	return installer.NewUpdateHostInstallProgressOK()
@@ -2221,5 +2222,5 @@ func (b *bareMetalInventory) customizeHostStages(host *models.Host) {
 }
 
 func (b *bareMetalInventory) customizeHostname(host *models.Host) {
-	host.RequestedHostname = b.hostApi.GetHostname(host)
+	host.RequestedHostname = common.GetHostnameForMsg(host)
 }

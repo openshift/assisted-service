@@ -77,7 +77,6 @@ type API interface {
 	IsRequireUserActionReset(h *models.Host) bool
 	ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	ResetPendingUserAction(ctx context.Context, h *models.Host, db *gorm.DB) error
-	GetHostname(h *models.Host) string
 	// Disable host from getting any requests
 	DisableHost(ctx context.Context, h *models.Host) error
 	// Enable host to get requests (disabled by default)
@@ -105,8 +104,9 @@ type Manager struct {
 func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi InstructionApi,
 	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API) *Manager {
 	th := &transitionHandler{
-		db:  db,
-		log: log,
+		db:            db,
+		log:           log,
+		eventsHandler: eventsHandler,
 	}
 	return &Manager{
 		log:            log,
@@ -237,7 +237,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	var err error
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		_, err = updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
+		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), HostStatusInstalled, statusInfo,
 			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 	case models.HostStageFailed:
@@ -247,10 +247,10 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 		}
 
-		_, err = updateHostStatus(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
+		_, err = updateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), HostStatusError, statusInfo)
 	default:
-		_, err = updateHostProgress(logutil.FromContext(ctx, m.log), m.db, h.ClusterID, *h.ID,
+		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), HostStatusInstallingInProgress, statusInfo,
 			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 	}
@@ -315,7 +315,7 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	eventSeverity := models.EventSeverityInfo
-	eventInfo := fmt.Sprintf("Installation canceled for host %s", m.GetHostname(h))
+	eventInfo := fmt.Sprintf("Installation canceled for host %s", common.GetHostnameForMsg(h))
 	defer func() {
 		m.eventsHandler.AddEvent(ctx, h.ID.String(), eventSeverity, eventInfo, time.Now(), h.ClusterID.String())
 	}()
@@ -327,7 +327,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 	})
 	if err != nil {
 		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to cancel installation of host %s: %s", m.GetHostname(h), err.Error())
+		eventInfo = fmt.Sprintf("Failed to cancel installation of host %s: %s", common.GetHostnameForMsg(h), err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
@@ -345,7 +345,7 @@ func (m *Manager) IsRequireUserActionReset(h *models.Host) bool {
 
 func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	eventSeverity := models.EventSeverityInfo
-	eventInfo := fmt.Sprintf("Installation reset for host %s", m.GetHostname(h))
+	eventInfo := fmt.Sprintf("Installation reset for host %s", common.GetHostnameForMsg(h))
 	defer func() {
 		m.eventsHandler.AddEvent(ctx, h.ID.String(), eventSeverity, eventInfo, time.Now(), h.ClusterID.String())
 	}()
@@ -357,7 +357,7 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 	})
 	if err != nil {
 		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to reset installation of host %s. Error: %s", m.GetHostname(h), err.Error())
+		eventInfo = fmt.Sprintf("Failed to reset installation of host %s. Error: %s", common.GetHostnameForMsg(h), err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
@@ -372,14 +372,6 @@ func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 		return err
 	}
 	return nil
-}
-
-func (m *Manager) GetHostname(host *models.Host) string {
-	hostName, err := common.GetCurrentHostName(host)
-	if err != nil {
-		return host.ID.String()
-	}
-	return hostName
 }
 
 func (m *Manager) GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage {

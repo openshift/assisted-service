@@ -3,7 +3,6 @@ package host
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -23,8 +22,9 @@ import (
 )
 
 type transitionHandler struct {
-	db  *gorm.DB
-	log logrus.FieldLogger
+	db            *gorm.DB
+	log           logrus.FieldLogger
+	eventsHandler events.Handler
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -53,7 +53,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 	if err := th.db.First(&host, "id = ? and cluster_id = ?", sHost.host.ID, sHost.host.ClusterID).Error; err == nil {
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and progress, and start the discovery process again.
-		if host, err := updateHostProgress(log, th.db, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState,
+		if host, err := updateHostProgress(params.ctx, log, th.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState,
 			swag.StringValue(sHost.host.Status), statusInfoDiscovering, sHost.host.Progress.CurrentStage, "", "",
 			"inventory", "", "discovery_agent_version", params.discoveryAgentVersion, "bootstrap", false); err != nil {
 			return err
@@ -79,8 +79,8 @@ func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.State
 		return errors.New("PostRegisterDuringInstallation invalid argument")
 	}
 
-	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), th.db, sHost,
-		"The host unexpectedly restarted during the installation.")
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
+		"The host unexpectedly restarted during the installation")
 }
 
 func (th *transitionHandler) IsHostInReboot(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
@@ -102,8 +102,8 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 		return errors.New("PostRegisterDuringReboot invalid argument")
 	}
 
-	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), th.db, sHost,
-		"Expected the host to boot from disk, but it booted the installation image. Please reboot and fix boot order to boot from disk.")
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
+		"Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot order to boot from disk")
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -125,7 +125,7 @@ func (th *transitionHandler) PostHostInstallationFailed(sw stateswitch.StateSwit
 		return errors.New("HostInstallationFailed invalid argument")
 	}
 
-	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), th.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
 		params.reason)
 }
 
@@ -152,7 +152,7 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 		return nil
 	}
 
-	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), params.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		params.reason)
 }
 
@@ -176,7 +176,7 @@ func (th *transitionHandler) PostResetHost(sw stateswitch.StateSwitch, args stat
 		return errors.New("PostResetHost invalid argument")
 	}
 
-	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), params.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		params.reason)
 }
 
@@ -198,7 +198,7 @@ func (th *transitionHandler) PostInstallHost(sw stateswitch.StateSwitch, args st
 	if !ok {
 		return errors.New("PostInstallHost invalid argument")
 	}
-	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), params.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		statusInfoInstalling)
 }
 
@@ -220,7 +220,7 @@ func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args st
 		return errors.New("PostDisableHost invalid argument")
 	}
 
-	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), th.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
 		statusInfoDisabled)
 }
 
@@ -242,7 +242,7 @@ func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args sta
 		return errors.New("PostEnableHost invalid argument")
 	}
 
-	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), th.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
 		statusInfoDiscovering, "inventory", "")
 }
 
@@ -279,7 +279,7 @@ func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.State
 		return errors.New("ResettingPendingUserAction invalid argument")
 	}
 
-	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), params.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		statusInfoResettingPendingUserAction)
 }
 
@@ -295,14 +295,14 @@ type TransitionArgsPrepareForInstallation struct {
 func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, _ := sw.(*stateHost)
 	params, _ := args.(*TransitionArgsPrepareForInstallation)
-	return th.updateTransitionHost(logutil.FromContext(params.ctx, th.log), params.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		statusInfoPreparingForInstallation)
 }
 
-func (th *transitionHandler) updateTransitionHost(log logrus.FieldLogger, db *gorm.DB, state *stateHost,
+func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, state *stateHost,
 	statusInfo string, extra ...interface{}) error {
 
-	if host, err := updateHostStatus(log, db, state.host.ClusterID, *state.host.ID, state.srcState,
+	if host, err := updateHostStatus(ctx, log, db, th.eventsHandler, state.host.ClusterID, *state.host.ID, state.srcState,
 		swag.StringValue(state.host.Status), statusInfo, extra...); err != nil {
 		return err
 	} else {
@@ -384,26 +384,15 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 			return errors.New("PostRefreshHost invalid argument")
 		}
 		var (
-			b           []byte
-			err         error
-			updatedHost *models.Host
-			hostname    string
+			b   []byte
+			err error
 		)
 		b, err = json.Marshal(&params.validationResults)
 		if err != nil {
 			return err
 		}
-		updatedHost, err = updateHostStatus(logutil.FromContext(params.ctx, th.log), params.db, sHost.host.ClusterID, *sHost.host.ID,
+		_, err = updateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
 			sHost.srcState, swag.StringValue(sHost.host.Status), reason, "validations_info", string(b))
-		if err == nil && updatedHost != nil && sHost.srcState != swag.StringValue(updatedHost.Status) {
-			hostname, err = common.GetCurrentHostName(updatedHost)
-			if err != nil {
-				hostname = updatedHost.ID.String()
-			}
-			msg := fmt.Sprintf("Updated status of host %s to %s", hostname, *updatedHost.Status)
-			params.eventHandler.AddEvent(params.ctx, updatedHost.ID.String(), models.EventSeverityInfo, msg, time.Now(), updatedHost.ClusterID.String())
-			return nil
-		}
 		return err
 	}
 	return ret
