@@ -576,7 +576,6 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		It("success", func() {
 			mockEvents.EXPECT().AddEvent(gomock.Any(), hostID.String(), models.EventSeverityInfo, gomock.Any(), gomock.Any(), clusterID.String())
 			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			mockHostApi.EXPECT().GetHostname(gomock.Any())
 			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 				ClusterID:    clusterID,
 				HostProgress: progressParams,
@@ -787,7 +786,6 @@ var _ = Describe("cluster", func() {
 
 			It("GetCluster", func() {
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-				mockHostApi.EXPECT().GetHostname(gomock.Any()).Return("whatever").Times(3)
 				reply := bm.GetCluster(ctx, installer.GetClusterParams{
 					ClusterID: clusterID,
 				})
@@ -927,7 +925,6 @@ var _ = Describe("cluster", func() {
 				apiVip := "10.11.12.15"
 				ingressVip := "10.11.12.16"
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-				mockHostApi.EXPECT().GetHostname(gomock.Any()).Return("whatever").Times(3)            // Number of hosts
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -1216,7 +1213,6 @@ var _ = Describe("cluster", func() {
 		Context("CancelInstallation", func() {
 			BeforeEach(func() {
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-				mockHostApi.EXPECT().GetHostname(gomock.Any()).Return("whatever").AnyTimes()
 			})
 			It("cancel installation success", func() {
 				setCancelInstallationSuccess()
@@ -1249,7 +1245,6 @@ var _ = Describe("cluster", func() {
 		Context("reset cluster", func() {
 			BeforeEach(func() {
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-				mockHostApi.EXPECT().GetHostname(gomock.Any()).Return("whatever").AnyTimes()
 			})
 			It("reset installation success", func() {
 				setResetClusterSuccess()
