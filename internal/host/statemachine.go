@@ -167,6 +167,33 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshHost(statusInfoDisconnected),
 	})
 
+	// Abort host if cluster has errors
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstalling),
+			stateswitch.State(models.HostStatusInstallingInProgress),
+			stateswitch.State(models.HostStatusInstalled),
+		},
+		Condition:        th.HasClusterError,
+		DestinationState: stateswitch.State(models.HostStatusError),
+		PostTransition:   th.PostRefreshHost(statusInfoAbortingDueClusterErrors),
+	})
+
+	// Noop transitions for cluster error
+	for _, state := range []stateswitch.State{
+		stateswitch.State(models.HostStatusInstalling),
+		stateswitch.State(models.HostStatusInstallingInProgress),
+		stateswitch.State(models.HostStatusInstalled),
+	} {
+		sm.AddTransition(stateswitch.TransitionRule{
+			TransitionType:   TransitionTypeRefresh,
+			SourceStates:     []stateswitch.State{state},
+			Condition:        stateswitch.Not(th.HasClusterError),
+			DestinationState: state,
+		})
+	}
+
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType:   TransitionTypeRefresh,
 		SourceStates:     []stateswitch.State{HostStatusDisconnected, HostStatusDiscovering},
@@ -250,8 +277,12 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	})
 
 	// Noop transitions
-	for _, state := range []stateswitch.State{HostStatusDisabled, HostStatusError, HostStatusInstalled, HostStatusInstalling,
-		HostStatusResetting, HostStatusInstallingPendingUserAction, HostStatusInstallingInProgress} {
+	for _, state := range []stateswitch.State{
+		stateswitch.State(models.HostStatusDisabled),
+		stateswitch.State(models.HostStatusError),
+		stateswitch.State(models.HostStatusResetting),
+		stateswitch.State(models.HostStatusInstallingPendingUserAction),
+		stateswitch.State(models.HostStatusResettingPendingUserAction)} {
 		sm.AddTransition(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefresh,
 			SourceStates:     []stateswitch.State{state},

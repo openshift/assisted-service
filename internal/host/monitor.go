@@ -15,8 +15,18 @@ func (m *Manager) HostMonitoring() {
 		log       = requestid.RequestIDLogger(m.log, requestID)
 	)
 
-	monitorStates := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient,
-		HostStatusPendingForInput, models.HostStatusPreparingForInstallation}
+	monitorStates := []string{
+		models.HostStatusDiscovering,
+		models.HostStatusKnown,
+		models.HostStatusDisconnected,
+		models.HostStatusInsufficient,
+		models.HostStatusPendingForInput,
+		models.HostStatusPreparingForInstallation,
+		models.HostStatusInstalling,
+		models.HostStatusInstallingInProgress,
+		models.HostStatusInstalled,
+	}
+
 	if err := m.db.Where("status IN (?)", monitorStates).Find(&hosts).Error; err != nil {
 		log.WithError(err).Errorf("failed to get hosts")
 		return
