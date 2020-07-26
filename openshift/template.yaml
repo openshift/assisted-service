@@ -104,17 +104,17 @@ objects:
   kind: Service
   metadata:
     labels:
-      app: bm-inventory
+      app: assisted-service
     name: assisted-service
     namespace: assisted-installer
   spec:
     ports:
-      - name: bm-inventory
+      - name: assisted-svc
         port: 8090
         protocol: TCP
         targetPort: 8090
     selector:
-      app: bm-inventory
+      app: assisted-service
 #- apiVersion: batch/v1beta1
 #  kind: CronJob
 #  metadata:
