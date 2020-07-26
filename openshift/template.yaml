@@ -41,7 +41,7 @@ objects:
                 cpu: 100m
                 memory: 400Mi
             ports:
-              - name: assisted-service
+              - name: assisted-svc
                 containerPort: 8090
             env:
               - name: ROUTE53_CREDS
@@ -110,7 +110,7 @@ objects:
     namespace: assisted-installer
   spec:
     ports:
-      - name: assisted-service
+      - name: assisted-svc
         port: 8090
         protocol: TCP
         targetPort: 8090
