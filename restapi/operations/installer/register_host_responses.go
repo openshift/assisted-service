@@ -145,6 +145,50 @@ func (o *RegisterHostForbidden) WriteResponse(rw http.ResponseWriter, producer r
 	}
 }
 
+// RegisterHostNotFoundCode is the HTTP code returned for type RegisterHostNotFound
+const RegisterHostNotFoundCode int = 404
+
+/*RegisterHostNotFound Error.
+
+swagger:response registerHostNotFound
+*/
+type RegisterHostNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewRegisterHostNotFound creates RegisterHostNotFound with default headers values
+func NewRegisterHostNotFound() *RegisterHostNotFound {
+
+	return &RegisterHostNotFound{}
+}
+
+// WithPayload adds the payload to the register host not found response
+func (o *RegisterHostNotFound) WithPayload(payload *models.Error) *RegisterHostNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register host not found response
+func (o *RegisterHostNotFound) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterHostNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // RegisterHostInternalServerErrorCode is the HTTP code returned for type RegisterHostInternalServerError
 const RegisterHostInternalServerErrorCode int = 500
 

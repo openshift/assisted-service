@@ -41,6 +41,12 @@ func (o *RegisterHostReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
+	case 404:
+		result := NewRegisterHostNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewRegisterHostInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -141,6 +147,39 @@ func (o *RegisterHostForbidden) GetPayload() *models.Error {
 }
 
 func (o *RegisterHostForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewRegisterHostNotFound creates a RegisterHostNotFound with default headers values
+func NewRegisterHostNotFound() *RegisterHostNotFound {
+	return &RegisterHostNotFound{}
+}
+
+/*RegisterHostNotFound handles this case with default header values.
+
+Error.
+*/
+type RegisterHostNotFound struct {
+	Payload *models.Error
+}
+
+func (o *RegisterHostNotFound) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostNotFound  %+v", 404, o.Payload)
+}
+
+func (o *RegisterHostNotFound) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *RegisterHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 
