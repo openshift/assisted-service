@@ -69,22 +69,24 @@ var (
 )
 
 type Config struct {
-	ImageBuilder        string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/installer-image-build:latest"`
-	AgentDockerImg      string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/agent:latest"`
-	KubeconfigGenerator string            `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:latest"` // TODO: update the latest once the repository has git workflow
-	InventoryURL        string            `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
-	InventoryPort       string            `envconfig:"INVENTORY_PORT" default:"30485"`
-	S3EndpointURL       string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
-	S3Bucket            string            `envconfig:"S3_BUCKET" default:"test"`
-	AwsAccessKeyID      string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
-	AwsSecretAccessKey  string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
-	Namespace           string            `envconfig:"NAMESPACE" default:"assisted-installer"`
-	UseK8s              bool              `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
-	BaseDNSDomains      map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
-	JobCPULimit         string            `envconfig:"JOB_CPU_LIMIT" default:"500m"`
-	JobMemoryLimit      string            `envconfig:"JOB_MEMORY_LIMIT" default:"1000Mi"`
-	JobCPURequests      string            `envconfig:"JOB_CPU_REQUESTS" default:"300m"`
-	JobMemoryRequests   string            `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
+	ImageBuilder        string `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/installer-image-build:latest"`
+	AgentDockerImg      string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/agent:latest"`
+	KubeconfigGenerator string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:latest"` // TODO: update the latest once the repository has git workflow
+	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
+	ReleaseImage       string            `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
+	InventoryURL       string            `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
+	InventoryPort      string            `envconfig:"INVENTORY_PORT" default:"30485"`
+	S3EndpointURL      string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket           string            `envconfig:"S3_BUCKET" default:"test"`
+	AwsAccessKeyID     string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	Namespace          string            `envconfig:"NAMESPACE" default:"assisted-installer"`
+	UseK8s             bool              `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
+	BaseDNSDomains     map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
+	JobCPULimit        string            `envconfig:"JOB_CPU_LIMIT" default:"500m"`
+	JobMemoryLimit     string            `envconfig:"JOB_MEMORY_LIMIT" default:"1000Mi"`
+	JobCPURequests     string            `envconfig:"JOB_CPU_REQUESTS" default:"300m"`
+	JobMemoryRequests  string            `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
 }
 
 const ignitionConfigFormat = `{
@@ -1535,9 +1537,6 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 
 func (b *bareMetalInventory) createKubeconfigJob(cluster *common.Cluster, jobName string, cfg []byte) *batch.Job {
 	id := cluster.ID
-	// [TODO] need to find more generic way to set the openshift release image
-	//OCP 4.5.3
-	overrideImageName := "quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"
 	// [TODO]  make sure that we use openshift-installer from the release image, otherwise the KubeconfigGenerator image must be updated here per opnshift version
 	kubeConfigGeneratorImage := b.Config.KubeconfigGenerator
 	return &batch.Job{
@@ -1589,7 +1588,7 @@ func (b *bareMetalInventory) createKubeconfigJob(cluster *common.Cluster, jobNam
 								},
 								{
 									Name:  "OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE",
-									Value: overrideImageName, //TODO: change this to match the cluster openshift version
+									Value: b.ReleaseImage, //TODO: change this to match the cluster openshift version
 								},
 								{
 									Name:  "aws_access_key_id",
