@@ -288,20 +288,6 @@ func (mr *MockAPIMockRecorder) Install(ctx, h, db interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockAPI)(nil).Install), ctx, h, db)
 }
 
-// UpdateHwInfo mocks base method
-func (m *MockAPI) UpdateHwInfo(ctx context.Context, h *models.Host, hwInfo string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateHwInfo", ctx, h, hwInfo)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateHwInfo indicates an expected call of UpdateHwInfo
-func (mr *MockAPIMockRecorder) UpdateHwInfo(ctx, h, hwInfo interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHwInfo", reflect.TypeOf((*MockAPI)(nil).UpdateHwInfo), ctx, h, hwInfo)
-}
-
 // UpdateInventory mocks base method
 func (m *MockAPI) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
 	m.ctrl.T.Helper()
