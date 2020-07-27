@@ -6,6 +6,8 @@ import (
 	"net"
 	"strings"
 
+	"github.com/go-openapi/swag"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 
@@ -35,6 +37,9 @@ func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*mode
 		return "", fmt.Errorf("Could not parse VIP ip %s", ip)
 	}
 	for _, h := range hosts {
+		if swag.StringValue(h.Status) == models.HostStatusDisabled {
+			continue
+		}
 		var inventory models.Inventory
 		err := json.Unmarshal([]byte(h.Inventory), &inventory)
 		if err != nil {
@@ -188,7 +193,7 @@ func MakeFreeAddressesSet(hosts []*models.Host, network string, prefix *string, 
 		resultingSet           = make(IPSet)
 	)
 	for _, h := range hosts {
-		if h.FreeAddresses != "" {
+		if swag.StringValue(h.Status) != models.HostStatusDisabled && h.FreeAddresses != "" {
 			availableFreeAddresses = append(availableFreeAddresses, h.FreeAddresses)
 		}
 	}
