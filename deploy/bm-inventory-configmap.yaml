@@ -2,12 +2,12 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: bm-inventory-config
-  namespace: assisted-installer
+  namespace: REPLACE_NAMESPACE
   labels:
     app: bm-inventory
 data:
   INVENTORY_URL: REPLACE_URL
   INVENTORY_PORT: REPLACE_PORT
-  NAMESPACE: assisted-installer
+  NAMESPACE: REPLACE_NAMESPACE
   BASE_DNS_DOMAINS: REPLACE_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
   OPENSHIFT_INSTALL_RELEASE_IMAGE: "quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"

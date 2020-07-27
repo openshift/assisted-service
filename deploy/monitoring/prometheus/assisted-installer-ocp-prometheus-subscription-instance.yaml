@@ -4,7 +4,7 @@ metadata:
   name: assisted-installer-prometheus
   labels:
     prometheus: assisted-installer-prometheus
-  namespace: assisted-installer
+  namespace: REPLACE_NAMESPACE
 spec:
   replicas: 1
   version: v2.8.0
@@ -29,7 +29,7 @@ spec:
     - -openshift-service-account=prometheus-k8s
     - -openshift-ca=/etc/proxy/custom-ca/ca.crt
     - -openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-    - '-openshift-sar={"resource":"namespaces","resourceName":"assisted-installer","namespace":"assisted-installer","verb":"get"}'
+    - '-openshift-sar={"resource":"namespaces","resourceName":"assisted-installer","namespace":"REPLACE_NAMESPACE","verb":"get"}'
     - -tls-cert=/etc/tls/private/tls.crt
     - -tls-key=/etc/tls/private/tls.key
     - -cookie-secret-file=/etc/proxy/secrets/session_secret

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: postgres-config
-  namespace: assisted-installer
+  namespace: REPLACE_NAMESPACE
   labels:
     app: postgres
 data:

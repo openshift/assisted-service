@@ -2,7 +2,7 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: grafana-dashboard-assisted-installer
-  namespace: assisted-installer
+  namespace: REPLACE_NAMESPACE
 data:
   assisted-installer-dashboard.json: |-
     {

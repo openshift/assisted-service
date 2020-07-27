@@ -4,7 +4,7 @@ metadata:
   labels:
     prometheus: assisted-installer-prometheus
   name: prometheus-assisted
-  namespace: assisted-installer
+  namespace: REPLACE_NAMESPACE
 spec:
   host: monitoring-assisted-installer.INGRESS_DOMAIN
   port:
