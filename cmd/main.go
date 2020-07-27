@@ -81,9 +81,6 @@ func main() {
 
 	var kclient client.Client
 	if Options.UseK8s {
-		if err = s3wrapper.CreateBucket(&Options.S3Config); err != nil {
-			log.Fatal(err)
-		}
 
 		scheme := runtime.NewScheme()
 		if err = clientgoscheme.AddToScheme(scheme); err != nil {
