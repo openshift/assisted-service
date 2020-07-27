@@ -29,9 +29,10 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeResetCluster,
 		SourceStates: []stateswitch.State{
-			clusterStatusError,
+			stateswitch.State(models.ClusterStatusInstalling),
+			stateswitch.State(models.ClusterStatusError),
 		},
-		DestinationState: clusterStatusInsufficient,
+		DestinationState: stateswitch.State(models.ClusterStatusInsufficient),
 		PostTransition:   th.PostResetCluster,
 	})
 
