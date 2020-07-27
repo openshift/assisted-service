@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/runtime/security"
 
 	"github.com/filanov/bm-inventory/restapi/operations"
 	"github.com/filanov/bm-inventory/restapi/operations/events"
@@ -145,6 +146,19 @@ type Config struct {
 	// Authorizer is used to authorize a request after the Auth function was called using the "Auth*" functions
 	// and the principal was stored in the context in the "AuthKey" context value.
 	Authorizer func(*http.Request) error
+
+	// AuthAgentAuth Applies when the "X-Secret-Key" header is set
+	AuthAgentAuth func(token string) (interface{}, error)
+
+	// AuthUserAuth Applies when the "Authorization" header is set
+	AuthUserAuth func(token string) (interface{}, error)
+
+	// Authenticator to use for all APIKey authentication
+	APIKeyAuthenticator func(string, string, security.TokenAuthentication) runtime.Authenticator
+	// Authenticator to use for all Bearer authentication
+	BasicAuthenticator func(security.UserPassAuthentication) runtime.Authenticator
+	// Authenticator to use for all Basic authentication
+	BearerAuthenticator func(string, security.ScopedTokenAuthentication) runtime.Authenticator
 }
 
 // Handler returns an http.Handler given the handler configuration
@@ -166,123 +180,177 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 	api.ServeError = errors.ServeError
 	api.Logger = c.Logger
 
+	if c.APIKeyAuthenticator != nil {
+		api.APIKeyAuthenticator = c.APIKeyAuthenticator
+	}
+	if c.BasicAuthenticator != nil {
+		api.BasicAuthenticator = c.BasicAuthenticator
+	}
+	if c.BearerAuthenticator != nil {
+		api.BearerAuthenticator = c.BearerAuthenticator
+	}
+
 	api.JSONConsumer = runtime.JSONConsumer()
 	api.BinProducer = runtime.ByteStreamProducer()
 	api.JSONProducer = runtime.JSONProducer()
-	api.InstallerCancelInstallationHandler = installer.CancelInstallationHandlerFunc(func(params installer.CancelInstallationParams) middleware.Responder {
+	api.AgentAuthAuth = func(token string) (interface{}, error) {
+		if c.AuthAgentAuth == nil {
+			return token, nil
+		}
+		return c.AuthAgentAuth(token)
+	}
+
+	api.UserAuthAuth = func(token string) (interface{}, error) {
+		if c.AuthUserAuth == nil {
+			return token, nil
+		}
+		return c.AuthUserAuth(token)
+	}
+
+	api.APIAuthorizer = authorizer(c.Authorizer)
+	api.InstallerCancelInstallationHandler = installer.CancelInstallationHandlerFunc(func(params installer.CancelInstallationParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.CancelInstallation(ctx, params)
 	})
-	api.InstallerCompleteInstallationHandler = installer.CompleteInstallationHandlerFunc(func(params installer.CompleteInstallationParams) middleware.Responder {
+	api.InstallerCompleteInstallationHandler = installer.CompleteInstallationHandlerFunc(func(params installer.CompleteInstallationParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.CompleteInstallation(ctx, params)
 	})
-	api.InstallerDeregisterClusterHandler = installer.DeregisterClusterHandlerFunc(func(params installer.DeregisterClusterParams) middleware.Responder {
+	api.InstallerDeregisterClusterHandler = installer.DeregisterClusterHandlerFunc(func(params installer.DeregisterClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DeregisterCluster(ctx, params)
 	})
-	api.InstallerDeregisterHostHandler = installer.DeregisterHostHandlerFunc(func(params installer.DeregisterHostParams) middleware.Responder {
+	api.InstallerDeregisterHostHandler = installer.DeregisterHostHandlerFunc(func(params installer.DeregisterHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DeregisterHost(ctx, params)
 	})
-	api.InstallerDisableHostHandler = installer.DisableHostHandlerFunc(func(params installer.DisableHostParams) middleware.Responder {
+	api.InstallerDisableHostHandler = installer.DisableHostHandlerFunc(func(params installer.DisableHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DisableHost(ctx, params)
 	})
-	api.InstallerDownloadClusterFilesHandler = installer.DownloadClusterFilesHandlerFunc(func(params installer.DownloadClusterFilesParams) middleware.Responder {
+	api.InstallerDownloadClusterFilesHandler = installer.DownloadClusterFilesHandlerFunc(func(params installer.DownloadClusterFilesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterFiles(ctx, params)
 	})
-	api.InstallerDownloadClusterISOHandler = installer.DownloadClusterISOHandlerFunc(func(params installer.DownloadClusterISOParams) middleware.Responder {
+	api.InstallerDownloadClusterISOHandler = installer.DownloadClusterISOHandlerFunc(func(params installer.DownloadClusterISOParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterISO(ctx, params)
 	})
-	api.InstallerDownloadClusterKubeconfigHandler = installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams) middleware.Responder {
+	api.InstallerDownloadClusterKubeconfigHandler = installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterKubeconfig(ctx, params)
 	})
-	api.InstallerEnableHostHandler = installer.EnableHostHandlerFunc(func(params installer.EnableHostParams) middleware.Responder {
+	api.InstallerEnableHostHandler = installer.EnableHostHandlerFunc(func(params installer.EnableHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.EnableHost(ctx, params)
 	})
-	api.InstallerGenerateClusterISOHandler = installer.GenerateClusterISOHandlerFunc(func(params installer.GenerateClusterISOParams) middleware.Responder {
+	api.InstallerGenerateClusterISOHandler = installer.GenerateClusterISOHandlerFunc(func(params installer.GenerateClusterISOParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GenerateClusterISO(ctx, params)
 	})
-	api.InstallerGetClusterHandler = installer.GetClusterHandlerFunc(func(params installer.GetClusterParams) middleware.Responder {
+	api.InstallerGetClusterHandler = installer.GetClusterHandlerFunc(func(params installer.GetClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetCluster(ctx, params)
 	})
-	api.InstallerGetCredentialsHandler = installer.GetCredentialsHandlerFunc(func(params installer.GetCredentialsParams) middleware.Responder {
+	api.InstallerGetCredentialsHandler = installer.GetCredentialsHandlerFunc(func(params installer.GetCredentialsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetCredentials(ctx, params)
 	})
-	api.InstallerGetFreeAddressesHandler = installer.GetFreeAddressesHandlerFunc(func(params installer.GetFreeAddressesParams) middleware.Responder {
+	api.InstallerGetFreeAddressesHandler = installer.GetFreeAddressesHandlerFunc(func(params installer.GetFreeAddressesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetFreeAddresses(ctx, params)
 	})
-	api.InstallerGetHostHandler = installer.GetHostHandlerFunc(func(params installer.GetHostParams) middleware.Responder {
+	api.InstallerGetHostHandler = installer.GetHostHandlerFunc(func(params installer.GetHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetHost(ctx, params)
 	})
-	api.InstallerGetNextStepsHandler = installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams) middleware.Responder {
+	api.InstallerGetNextStepsHandler = installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetNextSteps(ctx, params)
 	})
-	api.InstallerInstallClusterHandler = installer.InstallClusterHandlerFunc(func(params installer.InstallClusterParams) middleware.Responder {
+	api.InstallerInstallClusterHandler = installer.InstallClusterHandlerFunc(func(params installer.InstallClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.InstallCluster(ctx, params)
 	})
-	api.InstallerListClustersHandler = installer.ListClustersHandlerFunc(func(params installer.ListClustersParams) middleware.Responder {
+	api.InstallerListClustersHandler = installer.ListClustersHandlerFunc(func(params installer.ListClustersParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.ListClusters(ctx, params)
 	})
-	api.VersionsListComponentVersionsHandler = versions.ListComponentVersionsHandlerFunc(func(params versions.ListComponentVersionsParams) middleware.Responder {
+	api.VersionsListComponentVersionsHandler = versions.ListComponentVersionsHandlerFunc(func(params versions.ListComponentVersionsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.VersionsAPI.ListComponentVersions(ctx, params)
 	})
-	api.EventsListEventsHandler = events.ListEventsHandlerFunc(func(params events.ListEventsParams) middleware.Responder {
+	api.EventsListEventsHandler = events.ListEventsHandlerFunc(func(params events.ListEventsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.EventsAPI.ListEvents(ctx, params)
 	})
-	api.InstallerListHostsHandler = installer.ListHostsHandlerFunc(func(params installer.ListHostsParams) middleware.Responder {
+	api.InstallerListHostsHandler = installer.ListHostsHandlerFunc(func(params installer.ListHostsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.ListHosts(ctx, params)
 	})
-	api.ManagedDomainsListManagedDomainsHandler = managed_domains.ListManagedDomainsHandlerFunc(func(params managed_domains.ListManagedDomainsParams) middleware.Responder {
+	api.ManagedDomainsListManagedDomainsHandler = managed_domains.ListManagedDomainsHandlerFunc(func(params managed_domains.ListManagedDomainsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.ManagedDomainsAPI.ListManagedDomains(ctx, params)
 	})
-	api.InstallerPostStepReplyHandler = installer.PostStepReplyHandlerFunc(func(params installer.PostStepReplyParams) middleware.Responder {
+	api.InstallerPostStepReplyHandler = installer.PostStepReplyHandlerFunc(func(params installer.PostStepReplyParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.PostStepReply(ctx, params)
 	})
-	api.InstallerRegisterClusterHandler = installer.RegisterClusterHandlerFunc(func(params installer.RegisterClusterParams) middleware.Responder {
+	api.InstallerRegisterClusterHandler = installer.RegisterClusterHandlerFunc(func(params installer.RegisterClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.RegisterCluster(ctx, params)
 	})
-	api.InstallerRegisterHostHandler = installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams) middleware.Responder {
+	api.InstallerRegisterHostHandler = installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.RegisterHost(ctx, params)
 	})
-	api.InstallerResetClusterHandler = installer.ResetClusterHandlerFunc(func(params installer.ResetClusterParams) middleware.Responder {
+	api.InstallerResetClusterHandler = installer.ResetClusterHandlerFunc(func(params installer.ResetClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.ResetCluster(ctx, params)
 	})
-	api.InstallerSetDebugStepHandler = installer.SetDebugStepHandlerFunc(func(params installer.SetDebugStepParams) middleware.Responder {
+	api.InstallerSetDebugStepHandler = installer.SetDebugStepHandlerFunc(func(params installer.SetDebugStepParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.SetDebugStep(ctx, params)
 	})
-	api.InstallerUpdateClusterHandler = installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams) middleware.Responder {
+	api.InstallerUpdateClusterHandler = installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UpdateCluster(ctx, params)
 	})
-	api.InstallerUpdateHostInstallProgressHandler = installer.UpdateHostInstallProgressHandlerFunc(func(params installer.UpdateHostInstallProgressParams) middleware.Responder {
+	api.InstallerUpdateHostInstallProgressHandler = installer.UpdateHostInstallProgressHandlerFunc(func(params installer.UpdateHostInstallProgressParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UpdateHostInstallProgress(ctx, params)
 	})
-	api.InstallerUploadClusterIngressCertHandler = installer.UploadClusterIngressCertHandlerFunc(func(params installer.UploadClusterIngressCertParams) middleware.Responder {
+	api.InstallerUploadClusterIngressCertHandler = installer.UploadClusterIngressCertHandlerFunc(func(params installer.UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UploadClusterIngressCert(ctx, params)
 	})
 	api.ServerShutdown = func() {}

@@ -12,16 +12,16 @@ import (
 )
 
 // DeregisterClusterHandlerFunc turns a function with the right signature into a deregister cluster handler
-type DeregisterClusterHandlerFunc func(DeregisterClusterParams) middleware.Responder
+type DeregisterClusterHandlerFunc func(DeregisterClusterParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn DeregisterClusterHandlerFunc) Handle(params DeregisterClusterParams) middleware.Responder {
-	return fn(params)
+func (fn DeregisterClusterHandlerFunc) Handle(params DeregisterClusterParams, principal interface{}) middleware.Responder {
+	return fn(params, principal)
 }
 
 // DeregisterClusterHandler interface for that can handle valid deregister cluster params
 type DeregisterClusterHandler interface {
-	Handle(DeregisterClusterParams) middleware.Responder
+	Handle(DeregisterClusterParams, interface{}) middleware.Responder
 }
 
 // NewDeregisterCluster creates a new http.Handler for the deregister cluster operation
@@ -46,12 +46,25 @@ func (o *DeregisterCluster) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	var Params = NewDeregisterClusterParams()
 
+	uprinc, aCtx, err := o.Context.Authorize(r, route)
+	if err != nil {
+		o.Context.Respond(rw, r, route.Produces, route, err)
+		return
+	}
+	if aCtx != nil {
+		r = aCtx
+	}
+	var principal interface{}
+	if uprinc != nil {
+		principal = uprinc
+	}
+
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params) // actually handle the request
+	res := o.Handler.Handle(Params, principal) // actually handle the request
 
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
