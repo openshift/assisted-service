@@ -19,9 +19,42 @@ spec:
         - image: scality/s3server
           imagePullPolicy: Always
           name: s3server
-          envFrom:
-            - configMapRef:
-                name: s3-config
+          env:
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: aws_secret_access_key
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: aws_access_key_id
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: aws_region
+            - name: BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: bucket
+            - name: S3_ENDPOINT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: endpoint
+            - name: S3DATAPATH
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: s3_data_path
+            - name: S3METADATAPATH
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: s3_metadata_path
           volumeMounts:
             - mountPath: /mnt/data
               name: scalityvol
