@@ -94,9 +94,14 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 
 	// Reset host
 	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType:   TransitionTypeResetHost,
-		SourceStates:     []stateswitch.State{HostStatusError},
-		DestinationState: HostStatusResetting,
+		TransitionType: TransitionTypeResetHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstalling),
+			stateswitch.State(models.HostStatusInstallingInProgress),
+			stateswitch.State(models.HostStatusInstalled),
+			stateswitch.State(models.HostStatusError),
+		},
+		DestinationState: stateswitch.State(models.HostStatusResetting),
 		PostTransition:   th.PostResetHost,
 	})
 

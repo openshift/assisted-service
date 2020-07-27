@@ -1029,9 +1029,15 @@ var _ = Describe("cluster install", func() {
 						defaultWaitForHostStateTimeout)
 				}
 				_, err = bmclient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
-				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewResetClusterConflict())))
+				Expect(err).NotTo(HaveOccurred())
+				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c = rep.GetPayload()
+				for _, host := range c.Hosts {
+					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+				}
 			})
-			It("[only_k8s]reset failed cluster with various hosts states", func() {
+			It("[only_k8s]reset cluster with various hosts states", func() {
 				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				waitForClusterInstallationToStart(clusterID)
@@ -1050,10 +1056,14 @@ var _ = Describe("cluster install", func() {
 				Expect(*h2.Status).Should(Equal(models.HostStatusInstalled))
 
 				_, err = bmclient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
-				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewResetClusterConflict())))
+				Expect(err).NotTo(HaveOccurred())
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
+						defaultWaitForClusterStateTimeout)
+				}
 			})
 
-			It("[only_k8s]require user reset", func() {
+			It("[only_k8s]reset cluster - wrong boot order", func() {
 				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				waitForClusterInstallationToStart(clusterID)
