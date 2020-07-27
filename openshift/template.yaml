@@ -59,17 +59,17 @@ objects:
                   secretKeyRef:
                     key: aws_access_key_id
                     name: assisted-installer-s3
-              - name: AWS_REGION
+              - name: S3_REGION
                 valueFrom:
                   secretKeyRef:
                     key: aws_region
                     name: assisted-installer-s3
-              - name: BUCKET
+              - name: S3_BUCKET
                 valueFrom:
                   secretKeyRef:
                     key: bucket
                     name: assisted-installer-s3
-              - name: ENDPOINT
+              - name: S3_ENDPOINT_URL
                 valueFrom:
                   secretKeyRef:
                     key: endpoint
