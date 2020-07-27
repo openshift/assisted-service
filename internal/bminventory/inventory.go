@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
@@ -93,6 +94,15 @@ type Config struct {
 	JobMemoryRequests  string            `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
 }
 
+const agentMessageOfTheDay = `
+**  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
+This is a host being installed by the OpenShift Assisted Installer.
+It will be installed from scratch during the installation.
+The primary service is agent.service.  To watch its status run e.g
+sudo journalctl -u agent.service
+**  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
+`
+
 const ignitionConfigFormat = `{
 "ignition": { "version": "2.2.0" },
   "passwd": {
@@ -113,6 +123,12 @@ const ignitionConfigFormat = `{
       "path": "/etc/assisted-installer.ps",
       "mode": 420,
       "contents": { "source": "{{.PULL_SECRET}}" }
+    },
+	{
+      "filesystem": "root",
+      "path": "/etc/motd",
+      "mode": 644,
+      "contents": { "source": "data:,{{.AGENT_MOTD}}" }
     }]
   }
 }`
@@ -283,6 +299,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"clusterId":      cluster.ID.String(),
 		"ProxyURL":       params.ImageCreateParams.ProxyURL,
 		"PULL_SECRET":    dataurl.EncodeBytes([]byte(cluster.PullSecret)),
+		"AGENT_MOTD":     url.PathEscape(agentMessageOfTheDay),
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
