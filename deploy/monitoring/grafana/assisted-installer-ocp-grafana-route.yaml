@@ -4,7 +4,7 @@ metadata:
   annotations:
     openshift.io/host.generated: "true"
   name: grafana
-  namespace: assisted-installer
+  namespace: REPLACE_NAMESPACE
 spec:
   host: grafana-assisted-installer.INGRESS_DOMAIN
   port:

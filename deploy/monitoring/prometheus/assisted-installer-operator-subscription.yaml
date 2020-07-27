@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: prometheus
-  namespace: assisted-installer
+  namespace: REPLACE_NAMESPACE
 spec:
   channel: beta
   installPlanApproval: Automatic

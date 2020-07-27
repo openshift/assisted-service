@@ -4,7 +4,7 @@ metadata:
   labels:
     app: assisted-installer-monitor
   name: assisted-installer
-  namespace: assisted-installer
+  namespace: REPLACE_NAMESPACE
 spec:
   endpoints:
   - interval: 30s
@@ -17,7 +17,7 @@ spec:
     scheme: http
   namespaceSelector:
     matchNames:
-    - assisted-installer
+    - REPLACE_NAMESPACE
   selector:
     matchLabels:
       app: "bm-inventory"

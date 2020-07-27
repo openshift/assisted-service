@@ -4,7 +4,7 @@ metadata:
   labels:
     app: scality
   name: scality
-  namespace: assisted-installer
+  namespace: REPLACE_NAMESPACE
 spec:
   replicas: 1
   selector:
@@ -45,7 +45,7 @@ metadata:
   # cloudserver-front supported as one of the default hostnames that can receive messages
   # to support other hostnamnes they need to be defined with HOST_NAME environment variable.
   name: cloudserver-front
-  namespace: assisted-installer
+  namespace: REPLACE_NAMESPACE
 spec:
   ports:
     - port: 8000
