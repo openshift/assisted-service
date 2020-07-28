@@ -175,7 +175,7 @@ var _ = Describe("RegisterHost", func() {
 		cfg    Config
 		db     *gorm.DB
 		ctx    = context.Background()
-		dbName = "register_host"
+		dbName = "register_host_api"
 	)
 
 	BeforeEach(func() {
