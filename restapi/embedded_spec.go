@@ -489,7 +489,8 @@ func init() {
               "worker.ign",
               "kubeadmin-password",
               "kubeconfig",
-              "kubeconfig-noingress"
+              "kubeconfig-noingress",
+              "install-config.yaml"
             ],
             "type": "string",
             "name": "file_name",
@@ -2991,7 +2992,8 @@ func init() {
               "worker.ign",
               "kubeadmin-password",
               "kubeconfig",
-              "kubeconfig-noingress"
+              "kubeconfig-noingress",
+              "install-config.yaml"
             ],
             "type": "string",
             "name": "file_name",
