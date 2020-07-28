@@ -3,15 +3,16 @@ UID = $(shell id -u)
 BUILD_FOLDER = $(PWD)/build
 
 TARGET := $(or ${TARGET},minikube)
-KUBECTL=kubectl -n assisted-installer
+NAMESPACE := $(or ${NAMESPACE},assisted-installer)
+KUBECTL=kubectl -n $(NAMESPACE)
 
 ifeq ($(TARGET), minikube)
 define get_service
-minikube service --url $(1) -n assisted-installer | sed 's/http:\/\///g'
+minikube service --url $(1) -n $(NAMESPACE) | sed 's/http:\/\///g'
 endef # get_service
 else
 define get_service
-kubectl get service $(1) -n assisted-installer | grep $(1) | awk '{print $$4 ":" $$5}' | \
+kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}' | \
 	awk '{split($$0,a,":"); print a[1] ":" a[2]}'
 endef # get_service
 endif # TARGET
@@ -91,38 +92,38 @@ deploy-all: create-build-dir deploy-namespace deploy-postgres deploy-s3 deploy-r
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
-	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" $(DEPLOY_TAG_OPTION)
+	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" $(DEPLOY_TAG_OPTION)
 
 deploy-namespace: create-build-dir
-	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE)
+	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)"
 
 deploy-s3-configmap:
-	python3 ./tools/deploy_scality_configmap.py
+	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)"
 
 deploy-s3: deploy-namespace
-	python3 ./tools/deploy_s3.py
+	python3 ./tools/deploy_s3.py --namespace "$(NAMESPACE)"
 	sleep 5;  # wait for service to get an address
 	make deploy-s3-configmap
 
 deploy-route53: deploy-namespace
-	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)"
+	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)" --namespace "$(NAMESPACE)"
 
 deploy-inventory-service-file: deploy-namespace
-	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)"
+	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)"
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --base-dns-domains "$(BASE_DNS_DOMAINS)" $(DEPLOY_TAG_OPTION)
+	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" $(DEPLOY_TAG_OPTION)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
-	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) $(TEST_FLAGS)
-	python3 ./tools/wait_for_pod.py --app=bm-inventory --state=running
+	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" $(TEST_FLAGS)
+	python3 ./tools/wait_for_pod.py --app=bm-inventory --state=running --namespace "$(NAMESPACE)"
 
 deploy-role: deploy-namespace
-	python3 ./tools/deploy_role.py
+	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)"
 
 deploy-postgres: deploy-namespace
-	python3 ./tools/deploy_postgres.py
+	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)"
 
 deploy-test:
 	export SERVICE=quay.io/ocpmetal/bm-inventory:test && export TEST_FLAGS=--subsystem-test && \
@@ -144,10 +145,10 @@ deploy-olm: deploy-namespace
 	python3 ./tools/deploy_olm.py --target $(TARGET)
 
 deploy-prometheus: create-build-dir deploy-namespace 
-	python3 ./tools/deploy_prometheus.py --target $(TARGET)
+	python3 ./tools/deploy_prometheus.py --target $(TARGET) --namespace "$(NAMESPACE)"
 
 deploy-grafana: create-build-dir
-	python3 ./tools/deploy_grafana.py --target $(TARGET)
+	python3 ./tools/deploy_grafana.py --target $(TARGET) --namespace "$(NAMESPACE)"
 
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
@@ -172,4 +173,4 @@ subsystem-clean:
 	-$(KUBECTL) get pod -o name | grep generate-kubeconfig | xargs $(KUBECTL) delete 1> /dev/null || true
 
 clear-deployment:
-	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) || true
+	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" || true
