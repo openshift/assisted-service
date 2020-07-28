@@ -796,8 +796,6 @@ var _ = Describe("cluster install", func() {
 				stateInfo := fmt.Sprintf(clusterErrorInfo, clusterID.String())
 				waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
 					stateInfo)
-				_, err := bmclient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
-				Expect(err).ShouldNot(HaveOccurred())
 				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				c := rep.GetPayload()
@@ -805,10 +803,19 @@ var _ = Describe("cluster install", func() {
 				rep, err = bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				c = rep.GetPayload()
-				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
-				for _, host := range c.Hosts {
-					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusError))
+
+				verifyErrorStates := func() {
+					Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+					for _, host := range c.Hosts {
+						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError,
+							defaultWaitForHostStateTimeout)
+					}
 				}
+
+				verifyErrorStates()
+				_, err = bmclient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).ShouldNot(HaveOccurred())
+				verifyErrorStates()
 			})
 			It("[only_k8s]cancel cluster with various hosts states", func() {
 				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
