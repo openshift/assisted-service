@@ -141,6 +141,7 @@ var clusterFileNames = []string{
 	"metadata.json",
 	"kubeadmin-password",
 	"kubeconfig-noingress",
+	"install-config.yaml",
 }
 
 type debugCmd struct {
