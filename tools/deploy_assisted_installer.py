@@ -17,7 +17,10 @@ def main():
     deploy_options = deployment_options.load_deployment_options(parser)
 
     with open(SRC_FILE, "r") as src:
-        data = yaml.safe_load(src)
+        raw_data = src.read()
+        raw_data = raw_data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+
+        data = yaml.safe_load(raw_data)
 
         image_fqdn = deployment_options.get_image_override(deploy_options, "bm-inventory", "SERVICE")
         data["spec"]["template"]["spec"]["containers"][0]["image"] = image_fqdn

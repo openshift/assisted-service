@@ -14,7 +14,7 @@ def main():
 
     dst_file = os.path.join(os.getcwd(), "build/deploy_ui.yaml")
     image_fqdn = deployment_options.get_image_override(deploy_options, "ocp-metal-ui", "UI_IMAGE")
-    cmd = '{command} run {image} /deploy/deploy_config.sh -i {image}'.format(command=utils.get_runtime_command(), image=image_fqdn)
+    cmd = '{command} run {image} /deploy/deploy_config.sh -i {image} -n {namespace}'.format(command=utils.get_runtime_command(), image=image_fqdn, namespace=deploy_options.namespace)
     cmd += ' > {}'.format(dst_file)
     utils.check_output(cmd)
     print("Deploying {}".format(dst_file))
@@ -27,8 +27,9 @@ def main():
         with open(src_file, "r") as src:
             with open(dst_file, "w+") as dst:
                 data = src.read()
+                data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
                 data = data.replace("REPLACE_HOSTNAME",
-                                    utils.get_service_host("assisted-installer-ui", deploy_options.target, deploy_options.domain))
+                                    utils.get_service_host("assisted-installer-ui", deploy_options.target, deploy_options.domain, deploy_options.namespace))
                 print("Deploying {}".format(dst_file))
                 dst.write(data)
         utils.apply(dst_file)
