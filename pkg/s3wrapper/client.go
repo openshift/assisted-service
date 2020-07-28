@@ -30,7 +30,7 @@ func CreateBucket(cfg *Config) error {
 	if _, err = client.CreateBucket(&s3.CreateBucketInput{
 		Bucket: swag.String(cfg.S3Bucket),
 	}); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to create s3 bucket %s", cfg.S3Bucket)
 	}
 	return nil
 }
