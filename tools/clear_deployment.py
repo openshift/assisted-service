@@ -1,15 +1,15 @@
 import utils
 import argparse
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--delete-namespace", type=lambda x: (str(x).lower() == 'true'), default=True)
-args = parser.parse_args()
-
+import deployment_options
 
 def main():
-    print(utils.check_output("kubectl delete all --all -n assisted-installer 1> /dev/null ; true"))
-    if args.delete_namespace is True:
-        print(utils.check_output("kubectl delete namespace assisted-installer 1> /dev/null ; true"))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--delete-namespace", type=lambda x: (str(x).lower() == 'true'), default=True)
+    deploy_options = deployment_options.load_deployment_options(parser)
+
+    print(utils.check_output(f"kubectl delete all --all -n {deploy_options.namespace} 1> /dev/null ; true"))
+    if deploy_options.delete_namespace is True:
+        print(utils.check_output(f"kubectl delete namespace {deploy_options.namespace} 1> /dev/null ; true"))
 
 if __name__ == "__main__":
     main()

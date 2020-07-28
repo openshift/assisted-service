@@ -1,13 +1,17 @@
 import os
 import utils
+import deployment_options
 
 
 def main():
+    deploy_options = deployment_options.load_deployment_options()
+
     src_file = os.path.join(os.getcwd(), "deploy/postgres/postgres-configmap.yaml")
     dst_file = os.path.join(os.getcwd(), "build/postgres-configmap.yaml")
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
+            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
@@ -18,6 +22,7 @@ def main():
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
+            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
             print("Deploying {}".format(dst_file))
             dst.write(data)
     utils.apply(dst_file)
@@ -27,6 +32,7 @@ def main():
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
+            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
             try:
                 size = utils.check_output(
                     "kubectl -n assisted-installer get persistentvolumeclaims postgres-pv-claim " +

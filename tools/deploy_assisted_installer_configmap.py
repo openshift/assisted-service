@@ -33,14 +33,16 @@ def main():
         service_host = "assisted-installer.{}".format(utils.get_domain(deploy_options.domain))
         service_port = "80"
     else:
-        service_host = utils.get_service_host(SERVICE, deploy_options.target)
-        service_port = utils.get_service_port(SERVICE, deploy_options.target)
+        service_host = utils.get_service_host(SERVICE, deploy_options.target, namespace=deploy_options.namespace)
+        service_port = utils.get_service_port(SERVICE, deploy_options.target, namespace=deploy_options.namespace)
+
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:
             data = src.read()
             data = data.replace("REPLACE_URL", '"{}"'.format(service_host))
             data = data.replace("REPLACE_PORT", '"{}"'.format(service_port))
             data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
+            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
             print("Deploying {}".format(DST_FILE))
 
             versions = {"IMAGE_BUILDER": "installer-image-build",

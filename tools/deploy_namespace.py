@@ -1,14 +1,15 @@
 import os
 import utils
 import argparse
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--deploy-namespace", type=lambda x: (str(x).lower() == 'true'), default=True)
-args = parser.parse_args()
+import deployment_options
 
 
 def main():
-    if args.deploy_namespace is False:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--deploy-namespace", type=lambda x: (str(x).lower() == 'true'), default=True)
+    deploy_options = deployment_options.load_deployment_options(parser)
+
+    if deploy_options.deploy_namespace is False:
         print("Not deploying namespace")
         return
     src_file = os.path.join(os.getcwd(), "deploy/namespace/namespace.yaml")
@@ -16,6 +17,7 @@ def main():
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
+            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
