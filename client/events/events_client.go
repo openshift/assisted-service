@@ -54,6 +54,7 @@ func (a *Client) ListEvents(ctx context.Context, params *ListEventsParams) (*Lis
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &ListEventsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})

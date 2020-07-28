@@ -10,3 +10,5 @@ data:
   INVENTORY_PORT: REPLACE_PORT
   NAMESPACE: assisted-installer
   BASE_DNS_DOMAINS: REPLACE_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
+  ENABLE_AUTH: REPLACE_AUTH_ENABLED_FLAG
+  JWKS_URL: REPLACE_JWKS_URL # example https://example.com/.well-known/jwks.json

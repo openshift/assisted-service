@@ -12,16 +12,16 @@ import (
 )
 
 // DeregisterHostHandlerFunc turns a function with the right signature into a deregister host handler
-type DeregisterHostHandlerFunc func(DeregisterHostParams) middleware.Responder
+type DeregisterHostHandlerFunc func(DeregisterHostParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn DeregisterHostHandlerFunc) Handle(params DeregisterHostParams) middleware.Responder {
-	return fn(params)
+func (fn DeregisterHostHandlerFunc) Handle(params DeregisterHostParams, principal interface{}) middleware.Responder {
+	return fn(params, principal)
 }
 
 // DeregisterHostHandler interface for that can handle valid deregister host params
 type DeregisterHostHandler interface {
-	Handle(DeregisterHostParams) middleware.Responder
+	Handle(DeregisterHostParams, interface{}) middleware.Responder
 }
 
 // NewDeregisterHost creates a new http.Handler for the deregister host operation
@@ -46,12 +46,25 @@ func (o *DeregisterHost) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	var Params = NewDeregisterHostParams()
 
+	uprinc, aCtx, err := o.Context.Authorize(r, route)
+	if err != nil {
+		o.Context.Respond(rw, r, route.Produces, route, err)
+		return
+	}
+	if aCtx != nil {
+		r = aCtx
+	}
+	var principal interface{}
+	if uprinc != nil {
+		principal = uprinc
+	}
+
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params) // actually handle the request
+	res := o.Handler.Handle(Params, principal) // actually handle the request
 
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
