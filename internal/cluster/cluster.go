@@ -133,25 +133,24 @@ func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 
 func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error {
 	err := m.registrationAPI.RegisterCluster(ctx, c)
-	var msg string
 	if err != nil {
-		msg = fmt.Sprintf("Failed to register cluster. Error: %s", err.Error())
+		m.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityError,
+			fmt.Sprintf("Failed to register cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())
 	} else {
-		msg = "Registered cluster"
+		m.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityInfo,
+			fmt.Sprintf("Registered cluster \"%s\"", c.Name), time.Now())
 	}
-	m.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityInfo, msg, time.Now())
 	return err
 }
 
 func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
 	err := m.registrationAPI.DeregisterCluster(ctx, c)
-	var msg string
 	if err != nil {
-		msg = fmt.Sprintf("Failed to deregister cluster. Error: %s", err.Error())
+		m.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityError,
+			fmt.Sprintf("Failed to deregister cluster. Error: %s", err.Error()), time.Now())
 	} else {
-		msg = "Deregistered cluster"
+		m.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityError, "Deregistered cluster", time.Now())
 	}
-	m.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityInfo, msg, time.Now())
 	return err
 }
 
