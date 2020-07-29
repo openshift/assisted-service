@@ -823,20 +823,20 @@ var _ = Describe("cluster install", func() {
 				c := rep.GetPayload()
 				Expect(len(c.Hosts)).Should(Equal(4))
 
-				checkHostsStatuses := func() {
-					h2 := getHost(clusterID, *c.Hosts[0].ID)
-					Expect(*h2.Status).Should(Equal(models.HostStatusInstallingInProgress))
-					h3 := getHost(clusterID, *c.Hosts[1].ID)
-					Expect(*h3.Status).Should(Equal(models.HostStatusInstalled))
-				}
-
 				updateProgress(*c.Hosts[0].ID, clusterID, "Installing")
 				updateProgress(*c.Hosts[1].ID, clusterID, "Done")
-				checkHostsStatuses()
+
+				h1 := getHost(clusterID, *c.Hosts[0].ID)
+				Expect(*h1.Status).Should(Equal(models.HostStatusInstallingInProgress))
+				h2 := getHost(clusterID, *c.Hosts[1].ID)
+				Expect(*h2.Status).Should(Equal(models.HostStatusInstalled))
 
 				_, err = bmclient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
-				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewCancelInstallationConflict())))
-				checkHostsStatuses()
+				Expect(err).ShouldNot(HaveOccurred())
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError,
+						defaultWaitForClusterStateTimeout)
+				}
 			})
 			It("[only_k8s]cancel installation with a disabled host", func() {
 				By("register a new worker")

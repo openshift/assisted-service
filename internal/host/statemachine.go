@@ -77,8 +77,13 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 
 	// Cancel installation
 	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType:   TransitionTypeCancelInstallation,
-		SourceStates:     []stateswitch.State{HostStatusInstalling, HostStatusInstallingInProgress, HostStatusError},
+		TransitionType: TransitionTypeCancelInstallation,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstalling),
+			stateswitch.State(models.HostStatusInstallingInProgress),
+			stateswitch.State(models.HostStatusInstalled),
+			stateswitch.State(models.HostStatusError),
+		},
 		DestinationState: HostStatusError,
 		PostTransition:   th.PostCancelInstallation,
 	})
