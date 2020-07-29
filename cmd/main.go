@@ -63,6 +63,7 @@ var Options struct {
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
 	UseK8s                      bool          `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
+	CreateS3Bucket              bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
 	ImageExpirationTime         time.Duration `envconfig:"IMAGE_EXPIRATION_TIME" default:"60m"`
 	ClusterConfig               cluster.Config
@@ -84,8 +85,11 @@ func main() {
 
 	var kclient client.Client
 	if Options.UseK8s {
-		if err = s3wrapper.CreateBucket(&Options.S3Config); err != nil {
-			log.Fatal(err)
+
+		if Options.CreateS3Bucket {
+			if err = s3wrapper.CreateBucket(&Options.S3Config); err != nil {
+				log.Fatal(err)
+			}
 		}
 
 		scheme := runtime.NewScheme()
