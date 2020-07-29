@@ -93,7 +93,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		cluster := common.Cluster{Cluster: models.Cluster{
 			ID:            &clusterId,
 			PullSecretSet: pullSecretSet,
-		}}
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		return &cluster
 	}
@@ -166,6 +166,21 @@ var _ = Describe("GenerateClusterISO", func() {
 			ImageCreateParams: &models.ImageCreateParams{},
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOBadRequest()))
+	})
+
+	It("failed_missing_openshift_token", func() {
+		cluster := registerCluster(true)
+		cluster.PullSecret = "{\"auths\":{\"another.cloud.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"
+		clusterId := cluster.ID
+		mockJob.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).Times(1)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), models.EventSeverityError, gomock.Any(), gomock.Any())
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOInternalServerError()))
 	})
 })
 

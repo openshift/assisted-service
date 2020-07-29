@@ -46,7 +46,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"github.com/vincent-petithory/dataurl"
 	batch "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -112,17 +111,11 @@ const ignitionConfigFormat = `{
 "units": [{
 "name": "agent.service",
 "enabled": true,
-"contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTPS_PROXY={{.ProxyURL}}\nEnvironment=HTTP_PROXY={{.ProxyURL}}\nEnvironment=http_proxy={{.ProxyURL}}\nEnvironment=https_proxy={{.ProxyURL}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}}\n\n[Install]\nWantedBy=multi-user.target"
+"contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTPS_PROXY={{.ProxyURL}}\nEnvironment=HTTP_PROXY={{.ProxyURL}}\nEnvironment=http_proxy={{.ProxyURL}}\nEnvironment=https_proxy={{.ProxyURL}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}}\n\n[Install]\nWantedBy=multi-user.target"
 }]
 },
 "storage": {
     "files": [{
-      "filesystem": "root",
-      "path": "/etc/assisted-installer.ps",
-      "mode": 420,
-      "contents": { "source": "{{.PULL_SECRET}}" }
-    },
-	{
       "filesystem": "root",
       "path": "/etc/motd",
       "mode": 644,
@@ -290,15 +283,24 @@ func (b *bareMetalInventory) createImageJob(jobName, imgName, ignitionConfig str
 }
 
 func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams) (string, error) {
+	creds, err := validations.ParsePullSecret(cluster.PullSecret)
+	if err != nil {
+		return "", err
+	}
+	r, ok := creds["cloud.openshift.com"]
+	if !ok {
+		return "", fmt.Errorf("Pull secret does not contain auth for cloud.openshift.com")
+	}
+
 	var ignitionParams = map[string]string{
-		"userSshKey":     b.getUserSshKey(params),
-		"AgentDockerImg": b.AgentDockerImg,
-		"InventoryURL":   strings.TrimSpace(b.InventoryURL),
-		"InventoryPort":  strings.TrimSpace(b.InventoryPort),
-		"clusterId":      cluster.ID.String(),
-		"ProxyURL":       params.ImageCreateParams.ProxyURL,
-		"PULL_SECRET":    dataurl.EncodeBytes([]byte(cluster.PullSecret)),
-		"AGENT_MOTD":     url.PathEscape(agentMessageOfTheDay),
+		"userSshKey":      b.getUserSshKey(params),
+		"AgentDockerImg":  b.AgentDockerImg,
+		"InventoryURL":    strings.TrimSpace(b.InventoryURL),
+		"InventoryPort":   strings.TrimSpace(b.InventoryPort),
+		"clusterId":       cluster.ID.String(),
+		"ProxyURL":        params.ImageCreateParams.ProxyURL,
+		"PullSecretToken": r.AuthRaw,
+		"AGENT_MOTD":      url.PathEscape(agentMessageOfTheDay),
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
