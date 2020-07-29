@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - master
-
+  pull_request:
+    branches:
+      - master
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,6 +34,7 @@ jobs:
       run: |
         skipper make create-python-client
     - name: Publish bm-inventory to Registry
+      if: github.event_name != 'pull_request'
       uses: elgohr/Publish-Docker-Github-Action@2.15
       with:
         name: bm-inventory
@@ -41,3 +44,14 @@ jobs:
         dockerfile: "Dockerfile.bm-inventory"
         buildargs: GIT_REVISION
         tags: "latest,${{ env.GIT_REVISION }}"
+    - name: Publish bm-inventory PR image to Registry
+      if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      uses: elgohr/Publish-Docker-Github-Action@2.15
+      with:
+        name: bm-inventory
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        REGISTRY: 'quay.io/ocpmetal'
+        dockerfile: "Dockerfile.bm-inventory"
+        buildargs: GIT_REVISION, QUAY_TAG_EXPIRATION
+        tags: "PR_${{ env.GIT_REVISION }}"
