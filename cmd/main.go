@@ -6,43 +6,38 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-
-	"github.com/openshift/assisted-service/internal/connectivity"
-	"github.com/openshift/assisted-service/internal/domains"
-	"github.com/openshift/assisted-service/internal/versions"
-
-	"github.com/openshift/assisted-service/internal/bminventory"
-	"github.com/openshift/assisted-service/internal/cluster"
-	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/imgexpirer"
-	"github.com/openshift/assisted-service/internal/metrics"
-
-	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/internal/hardware"
-	"github.com/openshift/assisted-service/internal/host"
-	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/pkg/app"
-	"github.com/openshift/assisted-service/pkg/auth"
-	"github.com/openshift/assisted-service/pkg/job"
-	"github.com/openshift/assisted-service/pkg/requestid"
-	awsS3Client "github.com/openshift/assisted-service/pkg/s3Client"
-	"github.com/openshift/assisted-service/pkg/s3wrapper"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/cluster"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/connectivity"
+	"github.com/openshift/assisted-service/internal/domains"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/imgexpirer"
+	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/versions"
+	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/app"
+	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/db"
+	"github.com/openshift/assisted-service/pkg/job"
+	"github.com/openshift/assisted-service/pkg/requestid"
+	awsS3Client "github.com/openshift/assisted-service/pkg/s3Client"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/openshift/assisted-service/pkg/thread"
+	"github.com/openshift/assisted-service/restapi"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
-	"github.com/openshift/assisted-service/pkg/thread"
-	"github.com/openshift/assisted-service/restapi"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 func init() {
@@ -51,10 +46,7 @@ func init() {
 
 var Options struct {
 	BMConfig                    bminventory.Config
-	DBHost                      string `envconfig:"DB_HOST" default:"postgres"`
-	DBPort                      string `envconfig:"DB_PORT" default:"5432"`
-	DBUser                      string `envconfig:"DB_USER" default:"admin"`
-	DBPass                      string `envconfig:"DB_PASS" default:"admin"`
+	DBConfig                    db.Config
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           host.InstructionConfig
@@ -108,9 +100,9 @@ func main() {
 	}
 
 	// Connect to db
-	db, err := gorm.Open("postgres",
-		fmt.Sprintf("host=%s port=%s user=%s dbname=installer password=%s sslmode=disable",
-			Options.DBHost, Options.DBPort, Options.DBUser, Options.DBPass))
+	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
+	db, err := gorm.Open("postgres", dbConnectionStr)
 	if err != nil {
 		log.Fatal("Fail to connect to DB, ", err)
 	}
