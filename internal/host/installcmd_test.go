@@ -148,9 +148,9 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 
 func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId string, hostId string, hostname string) {
 	if hostname != "" {
-		installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
+		installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 			"--privileged --pid=host " +
-			"--net=host -v /var/log:/var/log:rw " +
+			"--net=host -v /var/log:/var/log:rw --env PULL_SECRET_TOKEN " +
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s --host %s --port %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
@@ -159,9 +159,9 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			defaultInstructionConfig.InventoryURL, defaultInstructionConfig.InventoryPort, hostId,
 			defaultInstructionConfig.ControllerImage, hostname)))
 	} else {
-		installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
+		installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 			"--privileged --pid=host " +
-			"--net=host -v /var/log:/var/log:rw " +
+			"--net=host -v /var/log:/var/log:rw --env PULL_SECRET_TOKEN " +
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s --host %s --port %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +

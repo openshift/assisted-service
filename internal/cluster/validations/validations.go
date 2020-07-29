@@ -21,9 +21,10 @@ type PullSecretCreds struct {
 	Username string
 	Password string
 	Registry string
+	AuthRaw  string
 }
 
-func parsePullSecret(secret string) (map[string]PullSecretCreds, error) {
+func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 	result := make(map[string]PullSecretCreds)
 	var s imagePullSecret
 	err := json.Unmarshal([]byte(secret), &s)
@@ -51,6 +52,7 @@ func parsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 		result[d] = PullSecretCreds{
 			Password: string(res[1]),
 			Username: string(res[0]),
+			AuthRaw:  a["auth"].(string),
 			Registry: d,
 		}
 
@@ -65,7 +67,7 @@ const (
 */
 
 func ValidatePullSecret(secret string) error {
-	_, err := parsePullSecret(secret)
+	_, err := ParsePullSecret(secret)
 	if err != nil {
 		return err
 	}
