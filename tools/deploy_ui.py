@@ -14,7 +14,9 @@ def main():
 
     dst_file = os.path.join(os.getcwd(), "build/deploy_ui.yaml")
     image_fqdn = deployment_options.get_image_override(deploy_options, "ocp-metal-ui", "UI_IMAGE")
-    cmd = '{command} run {image} /deploy/deploy_config.sh -i {image} -n {namespace}'.format(command=utils.get_runtime_command(), image=image_fqdn, namespace=deploy_options.namespace)
+    runtime_cmd = utils.get_runtime_command()
+    utils.check_output(f'{runtime_cmd} pull {image_fqdn}')
+    cmd = f'{runtime_cmd} run {image_fqdn} /deploy/deploy_config.sh -i {image_fqdn} -n {deploy_options.namespace}'
     cmd += ' > {}'.format(dst_file)
     utils.check_output(cmd)
     print("Deploying {}".format(dst_file))
