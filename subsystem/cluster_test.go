@@ -51,6 +51,7 @@ var (
 				},
 			},
 		},
+		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
 	}
 	validFreeAddresses = models.FreeNetworksAddresses{
 		{
