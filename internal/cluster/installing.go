@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/filanov/bm-inventory/models"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
 	"github.com/filanov/bm-inventory/internal/common"
@@ -71,7 +72,16 @@ func (i *installingState) getClusterInstallationState(ctx context.Context, c *co
 	}
 
 	// Cluster is in error
-	log.Infof("Cluster %s hosts status map is %+v", c.ID, mappedMastersByRole)
-	log.Warningf("Cluster %s has hosts in error.", c.ID)
+	mappedHostsRolesToIds := make(map[string][]strfmt.UUID, len(mappedMastersByRole))
+	for role, hosts := range mappedMastersByRole {
+		ids := make([]strfmt.UUID, 0)
+		for _, h := range hosts {
+			ids = append(ids, *h.ID)
+		}
+
+		mappedHostsRolesToIds[role] = ids
+	}
+
+	log.Warningf("Cluster %s hosts status map is %+v", c.ID, mappedHostsRolesToIds)
 	return clusterStatusError, fmt.Sprintf("cluster %s has hosts in error", c.ID), nil
 }
