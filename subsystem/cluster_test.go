@@ -486,7 +486,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			waitForClusterInstallationToStart(clusterID)
 
-			hosts := c.GetPayload().Hosts
+			hosts := getClusterMasters(c.GetPayload())
 
 			By("invalid_report", func() {
 				step := models.HostStage("INVALID REPORT")
@@ -589,7 +589,7 @@ var _ = Describe("cluster install", func() {
 				_, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
 					ClusterID:    clusterID,
 					HostProgress: installProgress,
-					HostID:       *hosts[0].ID,
+					HostID:       *hosts[1].ID,
 				})
 
 				Expect(err).Should(HaveOccurred())
@@ -1626,13 +1626,7 @@ func FailCluster(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
 	c, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 	waitForClusterInstallationToStart(clusterID)
-	var masterHostID strfmt.UUID
-	for _, host := range c.GetPayload().Hosts {
-		if host.Role == models.HostRoleMaster {
-			masterHostID = *host.ID
-			break
-		}
-	}
+	var masterHostID strfmt.UUID = *getClusterMasters(c.GetPayload())[0].ID
 
 	installStep := models.HostStageFailed
 	installInfo := "because some error"
@@ -1790,4 +1784,14 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 	waitForClusterState(ctx, clusterID, "ready", 60*time.Second, clusterReadyStateInfo)
 
 	return hosts
+}
+
+func getClusterMasters(c *models.Cluster) (masters []*models.Host) {
+	for _, host := range c.Hosts {
+		if host.Role == models.HostRoleMaster {
+			masters = append(masters, host)
+		}
+	}
+
+	return
 }
