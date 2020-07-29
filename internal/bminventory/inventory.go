@@ -295,8 +295,8 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	var ignitionParams = map[string]string{
 		"userSshKey":     b.getUserSshKey(params),
 		"AgentDockerImg": b.AgentDockerImg,
-		"InventoryURL":   b.InventoryURL,
-		"InventoryPort":  b.InventoryPort,
+		"InventoryURL":   strings.TrimSpace(b.InventoryURL),
+		"InventoryPort":  strings.TrimSpace(b.InventoryPort),
 		"clusterId":      cluster.ID.String(),
 		"ProxyURL":       params.ImageCreateParams.ProxyURL,
 		"PULL_SECRET":    dataurl.EncodeBytes([]byte(cluster.PullSecret)),
