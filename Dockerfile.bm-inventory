@@ -5,9 +5,6 @@ COPY --from=certs /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/ssl/cer
 COPY --from=certs /etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt /etc/ssl/certs/ca-bundle.trust.crt
 ARG GIT_REVISION
 LABEL "git_revision"=${GIT_REVISION}
-ARG QUAY_TAG_EXPIRATION
-LABEL "quay.expires-after"=${QUAY_TAG_EXPIRATION}
-
 ADD build/bm-inventory /bm-inventory
 ADD build/bm-inventory-client-1.0.0.tar.gz /clients/bm-inventory-client-1.0.0.tar.gz
 CMD ["/bm-inventory"]
