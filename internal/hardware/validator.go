@@ -3,16 +3,16 @@ package hardware
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"sort"
+	"strings"
+
+	"github.com/thoas/go-funk"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/alecthomas/units"
 	"github.com/openshift/assisted-service/models"
 )
-
-const diskNameFilterRegex = "nvme"
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
@@ -57,17 +57,33 @@ func gbToBytes(gb int64) int64 {
 	return gb * int64(units.GB)
 }
 
+func isNvme(name string) bool {
+	return strings.HasPrefix(name, "nvme")
+}
+
 func ListValidDisks(inventory *models.Inventory, minSizeRequiredInBytes int64) []*models.Disk {
 	var disks []*models.Disk
-	filter, _ := regexp.Compile(diskNameFilterRegex)
 	for _, disk := range inventory.Disks {
-		if disk.SizeBytes >= minSizeRequiredInBytes && disk.DriveType == "HDD" && !filter.MatchString(disk.Name) {
+		if disk.SizeBytes >= minSizeRequiredInBytes && funk.ContainsString([]string{"HDD", "SSD"}, disk.DriveType) {
 			disks = append(disks, disk)
 		}
 	}
+
 	// Sorting list by size increase
 	sort.Slice(disks, func(i, j int) bool {
-		return disks[i].SizeBytes < disks[j].SizeBytes
+		isNvme1 := isNvme(disks[i].Name)
+		isNvme2 := isNvme(disks[j].Name)
+		if isNvme1 != isNvme2 {
+			return isNvme2
+		}
+
+		// HDD is before SSD
+		switch v := strings.Compare(disks[i].DriveType, disks[j].DriveType); v {
+		case 0:
+			return disks[i].SizeBytes < disks[j].SizeBytes
+		default:
+			return v < 0
+		}
 	})
 	return disks
 }

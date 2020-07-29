@@ -72,10 +72,11 @@ var _ = Describe("hardware_validator", func() {
 		inventory.Disks = []*models.Disk{
 			// Not disk type
 			{DriveType: "ODD", Name: "aaa", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize + 1},
+			{DriveType: "SSD", Name: nvmename, SizeBytes: validDiskSize + 1},
+			{DriveType: "SSD", Name: "stam", SizeBytes: validDiskSize},
+			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize + 2},
 			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize + 100},
-			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize},
-			{DriveType: "SDD", Name: nvmename, SizeBytes: validDiskSize},
+			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize + 1},
 		}
 		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
@@ -83,8 +84,11 @@ var _ = Describe("hardware_validator", func() {
 		disks, err := hwvalidator.GetHostValidDisks(host1)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(disks[0].Name).Should(Equal("sdh"))
-		Expect(len(disks)).Should(Equal(3))
-		Expect(isBlockDeviceNameInlist(disks, nvmename)).Should(Equal(false))
+		Expect(len(disks)).Should(Equal(5))
+		Expect(isBlockDeviceNameInlist(disks, nvmename)).Should(BeTrue())
+		Expect(disks[3].DriveType).To(Equal("SSD"))
+		Expect(disks[4].DriveType).To(Equal("SSD"))
+		Expect(disks[4].Name).To(HavePrefix("nvme"))
 	})
 })
 
