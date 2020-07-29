@@ -854,7 +854,10 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		log.WithError(err).Errorf("failed to get install config for cluster %s", cluster.ID)
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
-	jobName := fmt.Sprintf("%s-%s-%s", kubeconfigPrefix, cluster.ID.String(), uuid.New().String())[:63]
+
+	ctime := time.Time(cluster.CreatedAt)
+	cTimestamp := strconv.FormatInt(ctime.Unix(), 10)
+	jobName := fmt.Sprintf("%s-%s-%s", kubeconfigPrefix, cluster.ID.String(), cTimestamp)[:63]
 	if err := b.job.Create(ctx, b.createKubeconfigJob(&cluster, jobName, cfg)); err != nil {
 		log.WithError(err).Errorf("Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
 		return errors.Wrapf(err, "Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
@@ -1985,6 +1988,15 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 	if err := b.clusterApi.ResetCluster(ctx, &c, "cluster was reset by user", tx); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+
+	// abort installation files generation job if running.
+	ctime := time.Time(c.CreatedAt)
+	cTimestamp := strconv.FormatInt(ctime.Unix(), 10)
+	jobName := fmt.Sprintf("%s-%s-%s", kubeconfigPrefix, c.ID.String(), cTimestamp)[:63]
+	if err := b.job.Delete(ctx, jobName, b.Namespace); err != nil {
+		return installer.NewResetClusterInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
 	for _, h := range c.Hosts {
 		if err := b.hostApi.ResetHost(ctx, h, "cluster was reset by user", tx); err != nil {
 			return common.GenerateErrorResponder(err)
