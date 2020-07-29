@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 
@@ -54,8 +55,8 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"--controller-image {{.CONTROLLER_IMAGE}}"
 
 	data := map[string]string{
-		"HOST":              i.instructionConfig.InventoryURL,
-		"PORT":              i.instructionConfig.InventoryPort,
+		"HOST":              strings.TrimSpace(i.instructionConfig.InventoryURL),
+		"PORT":              strings.TrimSpace(i.instructionConfig.InventoryPort),
 		"CLUSTER_ID":        string(host.ClusterID),
 		"HOST_ID":           string(*host.ID),
 		"ROLE":              string(role),

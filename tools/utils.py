@@ -17,23 +17,25 @@ def check_output(cmd):
 def get_service_host(service, target=None, domain="", namespace='assisted-installer'):
     if target is None or target == "minikube":
         reply = check_output("{} -n {} service --url {}".format(MINIKUBE_CMD, namespace, service))
-        return re.sub("http://(.*):.*", r'\1', reply)
+        host = re.sub("http://(.*):.*", r'\1', reply)
     elif target == "oc-ingress":
-        return "{}.{}".format(service, get_domain(domain, namespace))
+        host = "{}.{}".format(service, get_domain(domain, namespace))
     else:
         cmd = '{kubecmd} -n {ns} get service {service} | grep {service}'.format(kubecmd=KUBECTL_CMD, ns=namespace, service=service)
         reply = check_output(cmd)[:-1].split()
-        return reply[3]
+        host = reply[3]
+    return host.strip()
 
 
 def get_service_port(service, target=None, namespace='assisted-installer'):
     if target is None or target == "minikube":
         reply = check_output("{} -n {} service --url {}".format(MINIKUBE_CMD, namespace, service))
-        return reply.split(":")[-1]
+        port = reply.split(":")[-1]
     else:
         cmd = '{kubecmd} -n {ns} get service {service} | grep {service}'.format(kubecmd=KUBECTL_CMD, ns=namespace, service=service)
         reply = check_output(cmd)[:-1].split()
-        return reply[4].split(":")[0]
+        port = reply[4].split(":")[0]
+    return port.strip()
 
 
 def apply(file):
