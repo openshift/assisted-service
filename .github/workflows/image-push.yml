@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -30,14 +28,10 @@ jobs:
     - name: Get release version
       id: get_version
       run: echo ::set-env name=GIT_REVISION::$(echo ${GITHUB_SHA})
-    - name: Set image experation env
-      id: get_experation
-      run: echo '::set-env name=QUAY_TAG_EXPIRATION::2d'
     - name: create python client
       run: |
         skipper make create-python-client
     - name: Publish bm-inventory to Registry
-      if: github.event_name != 'pull_request'
       uses: elgohr/Publish-Docker-Github-Action@2.15
       with:
         name: bm-inventory
@@ -47,14 +41,3 @@ jobs:
         dockerfile: "Dockerfile.bm-inventory"
         buildargs: GIT_REVISION
         tags: "latest,${{ env.GIT_REVISION }}"
-    - name: Publish bm-inventory PR image to Registry
-      if: github.event_name == 'pull_request'
-      uses: elgohr/Publish-Docker-Github-Action@2.15
-      with:
-        name: bm-inventory
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        REGISTRY: 'quay.io/ocpmetal'
-        dockerfile: "Dockerfile.bm-inventory"
-        buildargs: GIT_REVISION, QUAY_TAG_EXPIRATION
-        tags: "PR_${{ env.GIT_REVISION }}"
