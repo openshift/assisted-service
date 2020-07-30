@@ -148,7 +148,8 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 
 func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId string, hostId string, hostname string) {
 	if hostname != "" {
-		installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host " +
+		installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
+			"--privileged --pid=host " +
 			"--net=host -v /var/log:/var/log:rw " +
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s --host %s --port %s " +
@@ -158,7 +159,8 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			defaultInstructionConfig.InventoryURL, defaultInstructionConfig.InventoryPort, hostId,
 			defaultInstructionConfig.ControllerImage, hostname)))
 	} else {
-		installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw --privileged --pid=host " +
+		installCommand := "sudo podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
+			"--privileged --pid=host " +
 			"--net=host -v /var/log:/var/log:rw " +
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s --host %s --port %s " +
