@@ -28,6 +28,7 @@ objects:
         labels:
           app: assisted-service
       spec:
+        serviceAccountName: assisted-service
         containers:
           - name: assisted-service
             image: ${ASSISTED_SERVICE_IMAGE}:${ASSISTED_SERVICE_IMAGE_TAG}
