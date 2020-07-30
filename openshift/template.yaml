@@ -29,6 +29,7 @@ objects:
         labels:
           app: assisted-service
       spec:
+        serviceAccountName: assisted-service
         containers:
           - name: assisted-service
             image: ${BM_INVENTORY_IMAGE}:${IMAGE_TAG}
