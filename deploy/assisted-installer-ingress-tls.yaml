@@ -1,0 +1,21 @@
+kind: Ingress
+apiVersion: networking.k8s.io/v1beta1
+metadata:
+  name: assisted-installer
+  namespace: REPLACE_NAMESPACE
+  annotations:
+    haproxy.router.openshift.io/timeout: 120s
+    ingress.kubernetes.io/ssl-redirect: "false" # for haproxy
+    nginx.ingress.kubernetes.io/ssl-redirect: "false" # for nginx
+spec:
+  tls:
+    - hosts:
+        - REPLACE_HOSTNAME
+      secretName: bm-inventory-tls
+  rules:
+    - host: REPLACE_HOSTNAME
+      http:
+        paths:
+          - backend:
+              serviceName: bm-inventory
+              servicePort: 8090
