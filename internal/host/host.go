@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/filanov/bm-inventory/internal/common"
@@ -38,7 +39,7 @@ const (
 
 var BootstrapStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
-	models.HostStageWritingImageToDisk, models.HostStageStartWaitingForControlPlane,
+	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane,
 	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageDone,
 }
 var MasterStages = [...]models.HostStage{
@@ -224,10 +225,16 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	}
 	previousProgress := h.Progress
 	if h.Progress.CurrentStage != "" && progress.CurrentStage != models.HostStageFailed {
-
 		// Verify the new stage is higher or equal to the current host stage according to its role stages array
-		if stages := m.GetStagesByRole(h.Role, h.Bootstrap); indexOfStage(progress.CurrentStage, stages) < indexOfStage(h.Progress.CurrentStage, stages) {
-			return errors.Errorf("can't assign lower %s stage after host has been in stage %s",
+		stages := m.GetStagesByRole(h.Role, h.Bootstrap)
+		currentIndex := indexOfStage(progress.CurrentStage, stages)
+
+		if currentIndex == -1 {
+			return errors.Errorf("Stages %s isn't available for host role %s bootstrap %s",
+				progress.CurrentStage, h.Role, strconv.FormatBool(h.Bootstrap))
+		}
+		if currentIndex < indexOfStage(h.Progress.CurrentStage, stages) {
+			return errors.Errorf("Can't assign lower stage \"%s\" after host has been in stage \"%s\"",
 				progress.CurrentStage, h.Progress.CurrentStage)
 		}
 	}
