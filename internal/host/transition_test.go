@@ -641,15 +641,24 @@ var _ = Describe("Disable", func() {
 			Expect(*h.Status).Should(Equal(srcState))
 		}
 
+		mockEventsUpdateStatus := func(srcState string) {
+			mockEvents.EXPECT().AddEvent(gomock.Any(), hostId.String(), models.EventSeverityInfo,
+				fmt.Sprintf(`Host %s: updated status from "%s" to "disabled" (Host is disabled)`,
+					host.ID.String(), srcState),
+				gomock.Any(), host.ClusterID.String()).Times(1)
+		}
+
 		tests := []struct {
 			name       string
 			srcState   string
 			validation func(error)
+			mocks      []func(string)
 		}{
 			{
 				name:       "known",
 				srcState:   HostStatusKnown,
 				validation: success,
+				mocks:      []func(string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "disabled nothing change",
@@ -660,11 +669,13 @@ var _ = Describe("Disable", func() {
 				name:       "disconnected",
 				srcState:   HostStatusDisconnected,
 				validation: success,
+				mocks:      []func(string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "discovering",
 				srcState:   HostStatusDiscovering,
 				validation: success,
+				mocks:      []func(string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "error",
@@ -690,11 +701,18 @@ var _ = Describe("Disable", func() {
 				name:       "insufficient",
 				srcState:   HostStatusInsufficient,
 				validation: success,
+				mocks:      []func(string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "resetting",
 				srcState:   HostStatusResetting,
 				validation: failure,
+			},
+			{
+				name:       models.HostStatusPendingForInput,
+				srcState:   models.HostStatusPendingForInput,
+				validation: success,
+				mocks:      []func(string){mockEventsUpdateStatus},
 			},
 		}
 
@@ -703,16 +721,17 @@ var _ = Describe("Disable", func() {
 			It(t.name, func() {
 				srcState = t.srcState
 				host = getTestHost(hostId, clusterId, srcState)
+				for _, m := range t.mocks {
+					m(t.srcState)
+				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				mockEvents.EXPECT().AddEvent(gomock.Any(), hostId.String(), models.EventSeverityInfo,
-					fmt.Sprintf("Host %s: updated status from \"%s\" to \"disabled\" (Host is disabled)", host.ID.String(), t.srcState),
-					gomock.Any(), host.ClusterID.String())
 				t.validation(hapi.DisableHost(ctx, &host))
 			})
 		}
 	})
 
 	AfterEach(func() {
+		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
 })

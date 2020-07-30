@@ -129,10 +129,11 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeDisableHost,
 		SourceStates: []stateswitch.State{
-			HostStatusDisconnected,
-			HostStatusDiscovering,
-			HostStatusInsufficient,
-			HostStatusKnown,
+			stateswitch.State(models.HostStatusDisconnected),
+			stateswitch.State(models.HostStatusDiscovering),
+			stateswitch.State(models.HostStatusInsufficient),
+			stateswitch.State(models.HostStatusKnown),
+			stateswitch.State(models.HostStatusPendingForInput),
 		},
 		DestinationState: HostStatusDisabled,
 		PostTransition:   th.PostDisableHost,
