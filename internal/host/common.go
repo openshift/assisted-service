@@ -70,6 +70,7 @@ func updateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 		eventsHandler.AddEvent(ctx, hostId.String(), common.GetEventSeverityFromHostStatus(newStatus),
 			fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\" (%s)", common.GetHostnameForMsg(host), srcStatus, newStatus, statusInfo),
 			time.Now(), clusterId.String())
+		log.Infof("host %s from cluster %s has been updated with the following updates %+v", hostId, clusterId, extra)
 	}
 
 	return host, nil
@@ -102,7 +103,6 @@ func UpdateHost(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, host
 	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !hostExistsInDB(db, hostId, clusterId, updates)) {
 		return nil, errors.Errorf("failed to update host %s from cluster %s. nothing have changed", hostId, clusterId)
 	}
-	log.Infof("host %s from cluster %s has been updated with the following updateds %+v", hostId, clusterId, extra)
 
 	var host models.Host
 
