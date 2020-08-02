@@ -97,13 +97,13 @@ deploy-ui: deploy-namespace
 deploy-namespace: create-build-dir
 	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)"
 
-deploy-s3-configmap:
+deploy-s3-secret:
 	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)"
 
 deploy-s3: deploy-namespace
 	python3 ./tools/deploy_s3.py --namespace "$(NAMESPACE)"
 	sleep 5;  # wait for service to get an address
-	make deploy-s3-configmap
+	make deploy-s3-secret
 
 deploy-route53: deploy-namespace
 	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)" --namespace "$(NAMESPACE)"
