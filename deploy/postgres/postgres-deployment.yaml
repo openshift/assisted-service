@@ -19,9 +19,22 @@ spec:
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 5432
-          envFrom:
-            - configMapRef:
-                name: postgres-config
+          env:
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-rds
+                  key: db.name
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-rds
+                  key: db.user
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-rds
+                  key: db.password
           volumeMounts:
             - mountPath: /var/lib/postgress
               name: postgredb

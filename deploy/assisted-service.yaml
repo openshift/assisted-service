@@ -31,6 +31,32 @@ spec:
                 name: s3-config
             - configMapRef:
                 name: assisted-service-config
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-rds
+                  key: db.host
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-rds
+                  key: db.name
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-rds
+                  key: db.password
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-rds
+                  key: db.port
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-rds
+                  key: db.user
           volumeMounts:
             - name: route53-creds
               mountPath: "/.aws"
