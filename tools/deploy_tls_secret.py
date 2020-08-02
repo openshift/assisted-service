@@ -1,5 +1,6 @@
 import argparse
 import os
+import textwrap
 
 import deployment_options
 import utils
@@ -38,23 +39,22 @@ def generate_secret(output_dir, service, san, namespace, expiration=120, keep_fi
                              f'-in "{server_csr_path}" -outform PEM -out "{server_cert_path}"'))
 
     secret_name = f'{service}-tls'
-    print(utils.check_output('cat <<EOF | kubectl apply -f -\n'
-                             'apiVersion: v1\n'
-                             'kind: Secret\n'
-                             'metadata:\n'
-                             f'    name: {secret_name}\n'
-                             f'    namespace: {namespace}\n'
-                             'type: kubernetes.io/tls\n'
-                             'data:\n'
-                             f'    tls.crt: $(cat {server_cert_path} | base64 -w 0)\n'
-                             f'    tls.key: $(cat {server_key_path} | base64 -w 0)\n'
-                             'EOF'))
+    print(utils.check_output(textwrap.dedent(f"""
+                             cat <<EOF | kubectl apply -f -
+                             apiVersion: v1
+                             kind: Secret
+                             metadata:
+                                 name: {secret_name}
+                                 namespace: {namespace}
+                             type: kubernetes.io/tls
+                             data:
+                                 tls.crt: $(cat {server_cert_path} | base64 -w 0)
+                                 tls.key: $(cat {server_key_path} | base64 -w 0)
+                             EOF""")))
 
     if not keep_files:
-        os.remove(server_csr_path)
-        os.remove(server_cert_path)
-        os.remove(server_key_path)
-        os.remove(ext_file)
+        for file_name in [server_csr_path, server_cert_path, server_key_path, ext_file]:
+            os.remove(file_name)
 
     return secret_name
 
