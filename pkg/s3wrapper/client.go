@@ -15,11 +15,11 @@ import (
 )
 
 type Config struct {
-	S3EndpointURL      string `envconfig:"S3_ENDPOINT_URL" default:"http://cloudserver-front:8000"`
-	Region             string `envconfig:"S3_REGION" default:"us-east-1"`
-	S3Bucket           string `envconfig:"S3_BUCKET" default:"test"`
-	AwsAccessKeyID     string `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
-	AwsSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	S3EndpointURL      string `envconfig:"S3_ENDPOINT_URL"`
+	Region             string `envconfig:"S3_REGION"`
+	S3Bucket           string `envconfig:"S3_BUCKET"`
+	AwsAccessKeyID     string `envconfig:"AWS_ACCESS_KEY_ID"`
+	AwsSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY"`
 }
 
 func CreateBucket(cfg *Config) error {
