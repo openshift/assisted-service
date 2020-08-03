@@ -332,6 +332,7 @@ var _ = Describe("Cancel host installation", func() {
 		success    bool
 		statusCode int32
 	}{
+		{state: models.HostStatusPreparingForInstallation, success: true},
 		{state: models.HostStatusInstalling, success: true},
 		{state: models.HostStatusInstallingInProgress, success: true},
 		{state: models.HostStatusInstalled, success: true},
@@ -339,7 +340,6 @@ var _ = Describe("Cancel host installation", func() {
 		{state: models.HostStatusDisabled, success: true},
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusPreparingForInstallation, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusInstallingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict},
@@ -376,6 +376,7 @@ var _ = Describe("Cancel host installation", func() {
 	}
 
 	AfterEach(func() {
+		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
 })
@@ -404,6 +405,7 @@ var _ = Describe("Reset host", func() {
 		success    bool
 		statusCode int32
 	}{
+		{state: models.HostStatusPreparingForInstallation, success: true},
 		{state: models.HostStatusInstalling, success: true},
 		{state: models.HostStatusInstallingInProgress, success: true},
 		{state: models.HostStatusInstalled, success: true},
@@ -411,7 +413,6 @@ var _ = Describe("Reset host", func() {
 		{state: models.HostStatusDisabled, success: true},
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusPreparingForInstallation, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusInstallingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict},
@@ -448,6 +449,7 @@ var _ = Describe("Reset host", func() {
 	}
 
 	AfterEach(func() {
+		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
 })

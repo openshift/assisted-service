@@ -895,6 +895,22 @@ var _ = Describe("cluster install", func() {
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusError))
 				}
 			})
+			It("[only_k8s]cancel preparing installation", func() {
+				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				waitForClusterState(context.Background(), clusterID, models.ClusterStatusPreparingForInstallation,
+					10*time.Second, IgnoreStateInfo)
+				_, err = bmclient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				Expect(len(c.Hosts)).Should(Equal(4))
+				for _, host := range c.Hosts {
+					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusError))
+				}
+			})
 		})
 		Context("reset installation", func() {
 			It("[only_k8s]reset cluster and register hosts", func() {
@@ -1152,6 +1168,22 @@ var _ = Describe("cluster install", func() {
 						continue
 					}
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+				}
+			})
+			It("[only_k8s]reset preparing installation", func() {
+				_, err := bmclient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				waitForClusterState(context.Background(), clusterID, models.ClusterStatusPreparingForInstallation,
+					10*time.Second, IgnoreStateInfo)
+				_, err = bmclient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				rep, err := bmclient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
+				Expect(len(c.Hosts)).Should(Equal(4))
+				for _, h := range c.Hosts {
+					Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusResetting))
 				}
 			})
 		})

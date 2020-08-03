@@ -79,6 +79,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeCancelInstallation,
 		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusInstalling),
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
@@ -102,6 +103,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		TransitionType: TransitionTypeResetHost,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstalling),
+			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),

@@ -19,16 +19,18 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeCancelInstallation,
 		SourceStates: []stateswitch.State{
-			clusterStatusInstalling,
-			clusterStatusError,
+			stateswitch.State(models.ClusterStatusPreparingForInstallation),
+			stateswitch.State(models.ClusterStatusInstalling),
+			stateswitch.State(models.ClusterStatusError),
 		},
-		DestinationState: clusterStatusError,
+		DestinationState: stateswitch.State(models.ClusterStatusError),
 		PostTransition:   th.PostCancelInstallation,
 	})
 
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeResetCluster,
 		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusPreparingForInstallation),
 			stateswitch.State(models.ClusterStatusInstalling),
 			stateswitch.State(models.ClusterStatusError),
 		},
