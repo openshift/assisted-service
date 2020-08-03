@@ -144,6 +144,76 @@ var _ = Describe("Transition tests", func() {
 	})
 })
 
+var _ = Describe("Cancel cluster installation", func() {
+	var (
+		ctx               = context.Background()
+		dbName            = "cancel_cluster_installation_test"
+		capi              API
+		db                *gorm.DB
+		ctrl              *gomock.Controller
+		mockEventsHandler *events.MockHandler
+		mockMetric        *metrics.MockAPI
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		ctrl = gomock.NewController(GinkgoT())
+		mockEventsHandler = events.NewMockHandler(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		capi = NewManager(defaultTestConfig, getTestLog(), db, mockEventsHandler, nil, mockMetric)
+	})
+
+	acceptNewEvents := func(times int) {
+		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
+	}
+
+	acceptClusterInstallationFinished := func(times int) {
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
+	}
+
+	tests := []struct {
+		state      string
+		success    bool
+		statusCode int32
+	}{
+		{state: models.ClusterStatusPreparingForInstallation, success: true},
+		{state: models.ClusterStatusInstalling, success: true},
+		{state: models.ClusterStatusError, success: true},
+		{state: models.ClusterStatusInsufficient, success: false, statusCode: http.StatusConflict},
+		{state: models.ClusterStatusReady, success: false, statusCode: http.StatusConflict},
+		{state: models.ClusterStatusFinalizing, success: false, statusCode: http.StatusConflict},
+		{state: models.ClusterStatusInstalled, success: false, statusCode: http.StatusConflict},
+	}
+
+	for _, t := range tests {
+		It(fmt.Sprintf("cancel from state %s", t.state), func() {
+			clusterId := strfmt.UUID(uuid.New().String())
+			cluster := common.Cluster{
+				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.state)},
+			}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			eventsNum := 1
+			if t.success {
+				eventsNum++
+				acceptClusterInstallationFinished(1)
+			}
+			acceptNewEvents(eventsNum)
+			err := capi.CancelInstallation(ctx, &cluster, "reason", db)
+			if t.success {
+				Expect(err).ShouldNot(HaveOccurred())
+			} else {
+				Expect(err).Should(HaveOccurred())
+				Expect(err.StatusCode()).Should(Equal(t.statusCode))
+			}
+		})
+	}
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
 var _ = Describe("Reset cluster", func() {
 	var (
 		ctx               = context.Background()
@@ -161,7 +231,7 @@ var _ = Describe("Reset cluster", func() {
 		capi = NewManager(defaultTestConfig, getTestLog(), db, mockEventsHandler, nil, nil)
 	})
 
-	acceptResetEvent := func(times int) {
+	acceptNewEvents := func(times int) {
 		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
 	}
 
@@ -170,25 +240,27 @@ var _ = Describe("Reset cluster", func() {
 		success    bool
 		statusCode int32
 	}{
+		{state: models.ClusterStatusPreparingForInstallation, success: true},
 		{state: models.ClusterStatusInstalling, success: true},
 		{state: models.ClusterStatusError, success: true},
 		{state: models.ClusterStatusInsufficient, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusReady, success: false, statusCode: http.StatusConflict},
-		{state: models.ClusterStatusPreparingForInstallation, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusFinalizing, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusInstalled, success: false, statusCode: http.StatusConflict},
 	}
 
-	It("reset_cluster_cases", func() {
-		acceptResetEvent(len(tests))
-
-		for _, t := range tests {
-			By(fmt.Sprintf("reset from state %s", t.state))
+	for _, t := range tests {
+		It(fmt.Sprintf("reset from state %s", t.state), func() {
 			clusterId := strfmt.UUID(uuid.New().String())
 			cluster := common.Cluster{
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.state)},
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			eventsNum := 1
+			if t.success {
+				eventsNum++
+			}
+			acceptNewEvents(eventsNum)
 			err := capi.ResetCluster(ctx, &cluster, "reason", db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
@@ -196,10 +268,11 @@ var _ = Describe("Reset cluster", func() {
 				Expect(err).Should(HaveOccurred())
 				Expect(err.StatusCode()).Should(Equal(t.statusCode))
 			}
-		}
-	})
+		})
+	}
 
 	AfterEach(func() {
+		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
 })
