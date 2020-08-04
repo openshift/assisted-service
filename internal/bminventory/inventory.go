@@ -1362,6 +1362,47 @@ func (b *bareMetalInventory) updateFreeAddressesReport(ctx context.Context, host
 	return nil
 }
 
+func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, host *models.Host, dhcpAllocationResponseStr string) error {
+	var (
+		err                   error
+		dhcpAllocationReponse models.DhcpAllocationResponse
+		cluster               common.Cluster
+	)
+	log := logutil.FromContext(ctx, b.log)
+	if err = b.db.Take(&cluster, "id = ?", host.ClusterID.String()).Error; err != nil {
+		log.WithError(err).Warnf("Get cluster %s", host.ClusterID.String())
+		return err
+	}
+	if !swag.BoolValue(cluster.VipDhcpAllocation) {
+		log.Warnf("DHCP not enabled in cluster %s", host.ClusterID.String())
+		return nil
+	}
+	if err = json.Unmarshal([]byte(dhcpAllocationResponseStr), &dhcpAllocationReponse); err != nil {
+		log.WithError(err).Warnf("Json unmarshal dhcp allocation from host %s", host.ID.String())
+		return err
+	}
+	apiVip := dhcpAllocationReponse.APIVipAddress.String()
+	ingressVip := dhcpAllocationReponse.IngressVipAddress.String()
+	isApiVipInMachineCIDR, err := network.IpInCidr(apiVip, cluster.MachineNetworkCidr)
+	if err != nil {
+		log.WithError(err).Warn("Ip in CIDR for API VIP")
+		return err
+	}
+
+	isIngressVipInMachineCIDR, err := network.IpInCidr(ingressVip, cluster.MachineNetworkCidr)
+	if err != nil {
+		log.WithError(err).Warn("Ip in CIDR for Ingress VIP")
+		return err
+	}
+
+	if !(isApiVipInMachineCIDR && isIngressVipInMachineCIDR) {
+		err = errors.Errorf("At least of the IPs (%s, %s) is not in machine CIDR %s", apiVip, ingressVip, cluster.MachineNetworkCidr)
+		log.WithError(err).Warn("IP in CIDR")
+		return err
+	}
+	return b.clusterApi.SetVips(ctx, &cluster, apiVip, ingressVip, b.db)
+}
+
 func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {
 	var err error
 	switch params.Reply.StepType {
@@ -1371,6 +1412,8 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.hostApi.UpdateConnectivityReport(ctx, &host, stepReply)
 	case models.StepTypeFreeNetworkAddresses:
 		err = b.updateFreeAddressesReport(ctx, &host, stepReply)
+	case models.StepTypeDhcpLeaseAllocate:
+		err = b.processDhcpAllocationResponse(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -1387,6 +1430,8 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.ConnectivityReport{}, params.Reply.Output)
 	case models.StepTypeFreeNetworkAddresses:
 		stepReply, err = filterReply(&models.FreeNetworksAddresses{}, params.Reply.Output)
+	case models.StepTypeDhcpLeaseAllocate:
+		stepReply, err = filterReply(&models.DhcpAllocationResponse{}, params.Reply.Output)
 	}
 	return stepReply, err
 }

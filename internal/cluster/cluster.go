@@ -62,6 +62,7 @@ type API interface {
 	PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	HandlePreInstallError(ctx context.Context, c *common.Cluster, err error)
 	CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse
+	SetVips(ctx context.Context, c *common.Cluster, apiVip, ingressVip string, db *gorm.DB) error
 }
 
 type Config struct {
@@ -360,4 +361,38 @@ func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, 
 	} else {
 		log.Infof("Successfully handled pre-installation error, cluster %s", c.ID.String())
 	}
+}
+
+func vipMismatchError(apiVip, ingressVip string, cluster *common.Cluster) error {
+	return errors.Errorf("Got VIPs different than those that are stored in the DB for cluster %s. APIVip = %s @db = %s, IngressVIP = %s @db = %s",
+		cluster.ID.String(), apiVip, cluster.APIVip, ingressVip, cluster.IngressVip)
+}
+
+func (m *Manager) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingressVip string, db *gorm.DB) error {
+	var err error
+	if db == nil {
+		db = m.db
+	}
+	log := logutil.FromContext(ctx, m.log)
+	switch swag.StringValue(c.Status) {
+	case models.ClusterStatusInsufficient, models.ClusterStatusReady:
+		if (c.APIVip != "" && apiVip != c.APIVip) || (c.IngressVip != "" && c.IngressVip != ingressVip) {
+			log.WithError(vipMismatchError(apiVip, ingressVip, c)).Warn("VIPs changed")
+		}
+		if err = db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
+			Updates(map[string]interface{}{"api_vip": apiVip,
+				"ingress_vip": ingressVip}).Error; err != nil {
+			log.WithError(err).Warnf("Update vips of cluster %s", c.ID.String())
+			return err
+		}
+	case models.ClusterStatusInstalling, models.ClusterStatusPreparingForInstallation, models.ClusterStatusFinalizing:
+		if c.APIVip != apiVip || c.IngressVip != ingressVip {
+			err = vipMismatchError(apiVip, ingressVip, c)
+			log.WithError(err).Error("VIPs changed during installation")
+
+			// TODO move cluster to error
+			return err
+		}
+	}
+	return nil
 }

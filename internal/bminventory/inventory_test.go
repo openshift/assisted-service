@@ -374,15 +374,16 @@ func makeFreeNetworksAddressesStr(elems ...*models.FreeNetworkAddresses) string 
 
 var _ = Describe("PostStepReply", func() {
 	var (
-		bm          *bareMetalInventory
-		cfg         Config
-		db          *gorm.DB
-		ctx         = context.Background()
-		ctrl        *gomock.Controller
-		mockHostApi *host.MockAPI
-		mockJob     *job.MockAPI
-		mockEvents  *events.MockHandler
-		dbName      = "post_step_reply"
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		ctrl           *gomock.Controller
+		mockClusterApi *cluster.MockAPI
+		mockHostApi    *host.MockAPI
+		mockJob        *job.MockAPI
+		mockEvents     *events.MockHandler
+		dbName         = "post_step_reply"
 	)
 
 	BeforeEach(func() {
@@ -392,8 +393,9 @@ var _ = Describe("PostStepReply", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
+		mockClusterApi = cluster.NewMockAPI(ctrl)
 		mockGenerateISO(mockJob, 1)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, nil, nil)
 	})
 
 	AfterEach(func() {
@@ -401,56 +403,171 @@ var _ = Describe("PostStepReply", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	var makeStepReply = func(clusterID, hostID strfmt.UUID, freeAddresses models.FreeNetworksAddresses) installer.PostStepReplyParams {
-		b, _ := json.Marshal(&freeAddresses)
-		return installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    hostID,
-			Reply: &models.StepReply{
-				Output:   string(b),
-				StepType: models.StepTypeFreeNetworkAddresses,
-			},
+	Context("Free addresses", func() {
+		var makeStepReply = func(clusterID, hostID strfmt.UUID, freeAddresses models.FreeNetworksAddresses) installer.PostStepReplyParams {
+			b, _ := json.Marshal(&freeAddresses)
+			return installer.PostStepReplyParams{
+				ClusterID: clusterID,
+				HostID:    hostID,
+				Reply: &models.StepReply{
+					Output:   string(b),
+					StepType: models.StepTypeFreeNetworkAddresses,
+				},
+			}
 		}
-	}
 
-	It("free addresses success", func() {
-		clusterId := strToUUID(uuid.New().String())
-		hostId := strToUUID(uuid.New().String())
-		host := models.Host{
-			ID:        hostId,
-			ClusterID: *clusterId,
-			Status:    swag.String("discovering"),
-		}
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		toMarshal := makeFreeNetworksAddresses(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1"))
-		params := makeStepReply(*clusterId, *hostId, toMarshal)
-		reply := bm.PostStepReply(ctx, params)
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
-		var h models.Host
-		Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
-		var f models.FreeNetworksAddresses
-		Expect(json.Unmarshal([]byte(h.FreeAddresses), &f)).ToNot(HaveOccurred())
-		Expect(&f).To(Equal(&toMarshal))
+		It("free addresses success", func() {
+			clusterId := strToUUID(uuid.New().String())
+			hostId := strToUUID(uuid.New().String())
+			host := models.Host{
+				ID:        hostId,
+				ClusterID: *clusterId,
+				Status:    swag.String("discovering"),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			toMarshal := makeFreeNetworksAddresses(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1"))
+			params := makeStepReply(*clusterId, *hostId, toMarshal)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			var h models.Host
+			Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+			var f models.FreeNetworksAddresses
+			Expect(json.Unmarshal([]byte(h.FreeAddresses), &f)).ToNot(HaveOccurred())
+			Expect(&f).To(Equal(&toMarshal))
+		})
+
+		It("free addresses empty", func() {
+			clusterId := strToUUID(uuid.New().String())
+			hostId := strToUUID(uuid.New().String())
+			host := models.Host{
+				ID:        hostId,
+				ClusterID: *clusterId,
+				Status:    swag.String("discovering"),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			toMarshal := makeFreeNetworksAddresses()
+			params := makeStepReply(*clusterId, *hostId, toMarshal)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+			var h models.Host
+			Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+			Expect(h.FreeAddresses).To(BeEmpty())
+		})
 	})
 
-	It("free addresses empty", func() {
-		clusterId := strToUUID(uuid.New().String())
-		hostId := strToUUID(uuid.New().String())
-		host := models.Host{
-			ID:        hostId,
-			ClusterID: *clusterId,
-			Status:    swag.String("discovering"),
-		}
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		toMarshal := makeFreeNetworksAddresses()
-		params := makeStepReply(*clusterId, *hostId, toMarshal)
-		reply := bm.PostStepReply(ctx, params)
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
-		var h models.Host
-		Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
-		Expect(h.FreeAddresses).To(BeEmpty())
+	Context("Dhcp allocation", func() {
+		var (
+			clusterId, hostId *strfmt.UUID
+			makeStepReply     = func(clusterID, hostID strfmt.UUID, dhcpAllocationResponse *models.DhcpAllocationResponse) installer.PostStepReplyParams {
+				b, err := json.Marshal(dhcpAllocationResponse)
+				Expect(err).ToNot(HaveOccurred())
+				return installer.PostStepReplyParams{
+					ClusterID: clusterID,
+					HostID:    hostID,
+					Reply: &models.StepReply{
+						Output:   string(b),
+						StepType: models.StepTypeDhcpLeaseAllocate,
+					},
+				}
+			}
+			makeResponse = func(apiVipStr, ingressVipStr string) *models.DhcpAllocationResponse {
+				apiVip := strfmt.IPv4(apiVipStr)
+				ingressVip := strfmt.IPv4(ingressVipStr)
+				ret := models.DhcpAllocationResponse{
+					APIVipAddress:     &apiVip,
+					IngressVipAddress: &ingressVip,
+				}
+				return &ret
+			}
+		)
+		BeforeEach(func() {
+			clusterId = strToUUID(uuid.New().String())
+			hostId = strToUUID(uuid.New().String())
+			host := models.Host{
+				ID:        hostId,
+				ClusterID: *clusterId,
+				Status:    swag.String("insufficient"),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
+		It("Happy flow", func() {
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 clusterId,
+					VipDhcpAllocation:  swag.Bool(true),
+					MachineNetworkCidr: "1.2.3.0/24",
+					Status:             swag.String(models.ClusterStatusInsufficient),
+				},
+			}
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			mockClusterApi.EXPECT().SetVips(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		})
+		It("DHCP not enabled", func() {
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 clusterId,
+					VipDhcpAllocation:  swag.Bool(false),
+					MachineNetworkCidr: "1.2.3.0/24",
+					Status:             swag.String(models.ClusterStatusInsufficient),
+				},
+			}
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		})
+		It("Bad ingress VIP", func() {
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 clusterId,
+					VipDhcpAllocation:  swag.Bool(true),
+					MachineNetworkCidr: "1.2.3.0/24",
+					Status:             swag.String(models.ClusterStatusInsufficient),
+				},
+			}
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.4.11"))
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+		})
+		It("New IPs while in insufficient", func() {
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 clusterId,
+					VipDhcpAllocation:  swag.Bool(true),
+					MachineNetworkCidr: "1.2.3.0/24",
+					APIVip:             "1.2.3.20",
+					IngressVip:         "1.2.3.11",
+					Status:             swag.String(models.ClusterStatusInsufficient),
+				},
+			}
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			mockClusterApi.EXPECT().SetVips(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		})
+		It("New IPs while in installing", func() {
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 clusterId,
+					VipDhcpAllocation:  swag.Bool(true),
+					MachineNetworkCidr: "1.2.3.0/24",
+					APIVip:             "1.2.3.20",
+					IngressVip:         "1.2.3.11",
+					Status:             swag.String(models.ClusterStatusInstalling),
+				},
+			}
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			mockClusterApi.EXPECT().SetVips(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("Stam"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+		})
 	})
-
 })
 
 var _ = Describe("GetFreeAddresses", func() {

@@ -793,3 +793,121 @@ var _ = Describe("HandlePreInstallationError", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 })
+
+var _ = Describe("SetVips", func() {
+	var (
+		ctx       = context.Background()
+		capi      API
+		db        *gorm.DB
+		clusterId strfmt.UUID
+		dbName    = "set_vips"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		capi = NewManager(defaultTestConfig, getTestLog(), db, nil, nil, nil)
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	tests := []struct {
+		name               string
+		srcState           string
+		clusterApiVip      string
+		clusterIngressVip  string
+		apiVip             string
+		ingressVip         string
+		expectedApiVip     string
+		expectedIngressVip string
+		expectedState      string
+		errorExpected      bool
+	}{
+		{
+			name:               "success-empty",
+			srcState:           models.ClusterStatusInsufficient,
+			apiVip:             "1.2.3.4",
+			ingressVip:         "1.2.3.5",
+			expectedApiVip:     "1.2.3.4",
+			expectedIngressVip: "1.2.3.5",
+			errorExpected:      false,
+			expectedState:      models.ClusterStatusInsufficient,
+		},
+		{
+			name:               "success-empty from ready",
+			srcState:           models.ClusterStatusReady,
+			apiVip:             "1.2.3.4",
+			ingressVip:         "1.2.3.5",
+			expectedApiVip:     "1.2.3.4",
+			expectedIngressVip: "1.2.3.5",
+			errorExpected:      false,
+			expectedState:      models.ClusterStatusReady,
+		},
+		{
+			name:               "success- insufficient",
+			srcState:           models.ClusterStatusInsufficient,
+			clusterApiVip:      "1.1.1.1",
+			clusterIngressVip:  "2.2.2.2",
+			apiVip:             "1.2.3.4",
+			ingressVip:         "1.2.3.5",
+			expectedApiVip:     "1.2.3.4",
+			expectedIngressVip: "1.2.3.5",
+			errorExpected:      false,
+			expectedState:      models.ClusterStatusInsufficient,
+		},
+		{
+			name:               "success- ready same",
+			srcState:           models.ClusterStatusReady,
+			clusterApiVip:      "1.2.3.4",
+			clusterIngressVip:  "1.2.3.5",
+			apiVip:             "1.2.3.4",
+			ingressVip:         "1.2.3.5",
+			expectedApiVip:     "1.2.3.4",
+			expectedIngressVip: "1.2.3.5",
+			errorExpected:      false,
+			expectedState:      models.ClusterStatusReady,
+		},
+		{
+			name:               "failure- installing",
+			srcState:           models.ClusterStatusInstalling,
+			clusterApiVip:      "1.1.1.1",
+			clusterIngressVip:  "2.2.2.2",
+			apiVip:             "1.2.3.4",
+			ingressVip:         "1.2.3.5",
+			expectedApiVip:     "1.1.1.1",
+			expectedIngressVip: "2.2.2.2",
+			errorExpected:      true,
+			expectedState:      models.ClusterStatusInstalling,
+		},
+		{
+			name:               "success- ready same",
+			srcState:           models.ClusterStatusInstalling,
+			clusterApiVip:      "1.2.3.4",
+			clusterIngressVip:  "1.2.3.5",
+			apiVip:             "1.2.3.4",
+			ingressVip:         "1.2.3.5",
+			expectedApiVip:     "1.2.3.4",
+			expectedIngressVip: "1.2.3.5",
+			errorExpected:      false,
+			expectedState:      models.ClusterStatusInstalling,
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.srcState)}}
+			cluster.APIVip = t.clusterApiVip
+			cluster.IngressVip = t.clusterIngressVip
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			err := capi.SetVips(ctx, &cluster, t.apiVip, t.ingressVip, db)
+			Expect(err != nil).To(Equal(t.errorExpected))
+			var c common.Cluster
+			Expect(db.Take(&c, "id = ?", clusterId.String()).Error).ToNot(HaveOccurred())
+			Expect(c.APIVip).To(Equal(t.expectedApiVip))
+			Expect(c.IngressVip).To(Equal(t.expectedIngressVip))
+			Expect(swag.StringValue(c.Status)).To(Equal(t.expectedState))
+		})
+	}
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+})

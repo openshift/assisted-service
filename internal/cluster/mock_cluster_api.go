@@ -427,3 +427,17 @@ func (mr *MockAPIMockRecorder) CompleteInstallation(ctx, c, successfullyFinished
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteInstallation", reflect.TypeOf((*MockAPI)(nil).CompleteInstallation), ctx, c, successfullyFinished, reason)
 }
+
+// SetVips mocks base method
+func (m *MockAPI) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingressVip string, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetVips", ctx, c, apiVip, ingressVip, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetVips indicates an expected call of SetVips
+func (mr *MockAPIMockRecorder) SetVips(ctx, c, apiVip, ingressVip, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetVips", reflect.TypeOf((*MockAPI)(nil).SetVips), ctx, c, apiVip, ingressVip, db)
+}

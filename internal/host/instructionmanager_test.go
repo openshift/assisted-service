@@ -40,50 +40,104 @@ var _ = Describe("instructionmanager", func() {
 		instMng = NewInstructionManager(getTestLog(), db, hwValidator, instructionConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId}}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		host = getTestHost(hostId, clusterId, "unknown invalid state")
 		host.Role = models.HostRoleMaster
+		host.Inventory = masterInventory()
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
+	Context("No DHCP", func() {
+		BeforeEach(func() {
+			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(false), MachineNetworkCidr: "1.2.3.0/24"}}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		})
+		Context("get_next_steps", func() {
+			It("invalid_host_state", func() {
+				stepsReply, stepsErr = instMng.GetNextSteps(ctx, &host)
+				Expect(stepsReply.Instructions).To(HaveLen(0))
+				Expect(stepsErr).Should(BeNil())
+			})
+			It("discovering", func() {
+				checkStepsByState(HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
+			})
+			It("known", func() {
+				checkStepsByState(HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
+			})
+			It("disconnected", func() {
+				checkStepsByState(HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
+			})
+			It("insufficient", func() {
+				checkStepsByState(HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
+			})
+			It("pending-for-input", func() {
+				checkStepsByState(HostStatusPendingForInput, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
+			})
+			It("error", func() {
+				checkStepsByState(HostStatusError, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeExecute})
+			})
+			It("installing", func() {
+				checkStepsByState(HostStatusInstalling, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeInstall})
+			})
+			It("reset", func() {
+				checkStepsByState(HostStatusResetting, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeResetInstallation})
+			})
+		})
+	})
 
-	Context("get_next_steps", func() {
-		It("invalid_host_state", func() {
-			stepsReply, stepsErr = instMng.GetNextSteps(ctx, &host)
-			Expect(stepsReply.Instructions).To(HaveLen(0))
-			Expect(stepsErr).Should(BeNil())
+	Context("With DHCP", func() {
+		BeforeEach(func() {
+			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(true), MachineNetworkCidr: "1.2.3.0/24"}}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		})
-		It("discovering", func() {
-			checkStepsByState(HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
-		})
-		It("known", func() {
-			checkStepsByState(HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
-		})
-		It("disconnected", func() {
-			checkStepsByState(HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
-		})
-		It("insufficient", func() {
-			checkStepsByState(HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
-		})
-		It("pending-for-input", func() {
-			checkStepsByState(HostStatusPendingForInput, &host, db, mockEvents, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
-		})
-		It("error", func() {
-			checkStepsByState(HostStatusError, &host, db, mockEvents, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeExecute})
-		})
-		It("installing", func() {
-			checkStepsByState(HostStatusInstalling, &host, db, mockEvents, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeInstall})
-		})
-		It("reset", func() {
-			checkStepsByState(HostStatusResetting, &host, db, mockEvents, instMng, hwValidator, ctx,
-				[]models.StepType{models.StepTypeResetInstallation})
+		Context("get_next_steps", func() {
+			It("invalid_host_state", func() {
+				stepsReply, stepsErr = instMng.GetNextSteps(ctx, &host)
+				Expect(stepsReply.Instructions).To(HaveLen(0))
+				Expect(stepsErr).Should(BeNil())
+			})
+			It("discovering", func() {
+				checkStepsByState(HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
+			})
+			It("known", func() {
+				checkStepsByState(HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate})
+			})
+			It("disconnected", func() {
+				checkStepsByState(HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
+			})
+			It("insufficient", func() {
+				checkStepsByState(HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate})
+			})
+			It("pending-for-input", func() {
+				checkStepsByState(HostStatusPendingForInput, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate})
+			})
+			It("error", func() {
+				checkStepsByState(HostStatusError, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeExecute})
+			})
+			It("installing", func() {
+				checkStepsByState(HostStatusInstalling, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeInstall, models.StepTypeDhcpLeaseAllocate})
+			})
+			It("installing-in-progress", func() {
+				checkStepsByState(models.HostStatusInstallingInProgress, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeDhcpLeaseAllocate})
+			})
+			It("reset", func() {
+				checkStepsByState(HostStatusResetting, &host, db, mockEvents, instMng, hwValidator, ctx,
+					[]models.StepType{models.StepTypeResetInstallation})
+			})
 		})
 	})
 
