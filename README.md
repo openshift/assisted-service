@@ -1,8 +1,8 @@
 [![Actions Status](https://github.com/openshift/assisted-service/workflows/unit-test/badge.svg)](https://github.com/openshift/assisted-service/actions)
 
 
-[![Actions Status](https://raw.githubusercontent.com/swagger-api/swagger-ui/master/src/img/logo_small.png)](https://filanov.github.io/bm-inventory/)
-# bm-inventory
+[![Actions Status](https://raw.githubusercontent.com/swagger-api/swagger-ui/master/src/img/logo_small.png)](https://filanov.github.io/assisted-service/)
+# assisted-service
 
 ## Prerequisites
 
@@ -16,18 +16,18 @@
 
 To push your build target to a Docker registry you first need to change the default target.
 1. Create a quay.io or Docker Hub account if you don't already have one. These instructions refer to quay.io, Docker Hub is similar.
-1. Create a repository called bm-inventory.
+1. Create a repository called assisted-service.
 1. Make sure you have your `~/.docker/config.json` file set up to point to your account. For quay.io, you can go to quay.io -> User Settings, and click "Generate Encrypted Password" under "Docker CLI Password".
 1. Login to quay.io using `docker login quay.io`.
 1. Export the `SERVICE` environment variable to your Docker registry, and pass a tag of your choice, e.g., "test":
 
 ```sh
-export SERVICE=quay.io/<username>/bm-inventory:<tag>
+export SERVICE=quay.io/<username>/assisted-service:<tag>
 ```
 
 For the first build of the build container run:
 ```shell
-skipper build bm-inventory-build
+skipper build assisted-service-build
 ```
 
 ## Build
@@ -79,7 +79,7 @@ skipper make unit-test TEST=./internal/host
 if you are making changes and don't want to deploy everything once again you can simply run this command:
 
 ```shell
-skipper make update && kubectl get pod --namespace assisted-installer -o name | grep bm-inventory | xargs kubectl delete --namespace assisted-installer
+skipper make update && kubectl get pod --namespace assisted-installer -o name | grep assisted-service | xargs kubectl delete --namespace assisted-installer
 ```
 
 It will build and push a new image of the service to your Docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.

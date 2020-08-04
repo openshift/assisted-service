@@ -86,7 +86,7 @@ var _ = Describe("Host tests", func() {
 				},
 			},
 
-			// CPU, Disks, and Memory were added here to prevent the case that bm-inventory crashes in case the monitor starts
+			// CPU, Disks, and Memory were added here to prevent the case that assisted-service crashes in case the monitor starts
 			// working in the middle of the test and this inventory is in the database.
 			CPU: &models.CPU{
 				Count: 4,

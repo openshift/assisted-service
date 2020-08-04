@@ -1,9 +1,9 @@
 registry: quay.io
-build-container-image: bm-inventory-build
+build-container-image: assisted-service-build
 
 containers:
-    bm-inventory-build: Dockerfile.bm-inventory-build
-    bm-inventory: Dockerfile.bm-inventory
+    assisted-service-build: Dockerfile.assisted-service-build
+    assisted-service: Dockerfile.assisted-service
 volumes:
     - $HOME/.cache/go-build:/go/pkg/mod
     - $HOME/.cache/golangci-lint:$HOME/.cache/golangci-lint
