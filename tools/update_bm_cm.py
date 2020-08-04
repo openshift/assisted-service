@@ -4,7 +4,7 @@
 import os
 import yaml
 
-CM_PATH = "deploy/bm-inventory-configmap.yaml"
+CM_PATH = "deploy/assisted-service-configmap.yaml"
 ENVS = [
     ("HW_VALIDATOR_MIN_CPU_CORES", "2"),
     ("HW_VALIDATOR_MIN_CPU_CORES_WORKER", "2"),
