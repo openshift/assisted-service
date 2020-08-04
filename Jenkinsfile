@@ -20,7 +20,22 @@ pipeline {
         sh '''export PATH=$PATH:/usr/local/go/bin;make subsystem-run'''
       }
     }
-  }
+
+
+  stage('Deploy to prod') {
+    when {
+      branch 'master'
+    }
+    agent any
+        steps {
+         withCredentials([usernameColonPassword(credentialsId: '603600b1-7ba3-471f-be8f-0f7a1ec4871c', variable: 'PASS')]) {
+          sh '''docker login quay.io -u ocpmetal -p $PASS'''
+        }
+          sh '''docker push quay.io/ocpmetal/bm-inventory'''
+
+        }
+    }
+}
   post {
           failure {
               echo 'Get assisted-service log'
