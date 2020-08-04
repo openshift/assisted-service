@@ -21,7 +21,7 @@ jobs:
         mkdir -p ~/.docker
         echo "{}" > ~/.docker/config.json
         touch ${HOME}/.gitconfig
-        ln -s Dockerfile.bm-inventory Dockerfile
+        ln -s Dockerfile.assisted-service Dockerfile
     - name: build
       run: |
         skipper make build
@@ -34,13 +34,13 @@ jobs:
     - name: Get tag
       id: get_tag
       run: echo ::set-env name=GIT_TAG::${GITHUB_REF/refs\/tags\//}
-    - name: Publish bm-inventory to Registry
+    - name: Publish assisted-service to Registry
       uses: elgohr/Publish-Docker-Github-Action@2.15
       with:
-        name: bm-inventory
+        name: assisted-service
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         REGISTRY: 'quay.io/ocpmetal'
-        dockerfile: "Dockerfile.bm-inventory"
+        dockerfile: "Dockerfile.assisted-service"
         buildargs: GIT_REVISION
         tags: "${{ env.GIT_TAG }},${{ env.GIT_REVISION }}"
