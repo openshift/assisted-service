@@ -35,8 +35,26 @@ func (o *DeregisterHostReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewDeregisterHostUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewDeregisterHostForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDeregisterHostNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewDeregisterHostMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,7 +67,7 @@ func (o *DeregisterHostReader) ReadResponse(response runtime.ClientResponse, con
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -107,6 +125,72 @@ func (o *DeregisterHostBadRequest) readResponse(response runtime.ClientResponse,
 	return nil
 }
 
+// NewDeregisterHostUnauthorized creates a DeregisterHostUnauthorized with default headers values
+func NewDeregisterHostUnauthorized() *DeregisterHostUnauthorized {
+	return &DeregisterHostUnauthorized{}
+}
+
+/*DeregisterHostUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type DeregisterHostUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *DeregisterHostUnauthorized) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeregisterHostUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeregisterHostUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDeregisterHostForbidden creates a DeregisterHostForbidden with default headers values
+func NewDeregisterHostForbidden() *DeregisterHostForbidden {
+	return &DeregisterHostForbidden{}
+}
+
+/*DeregisterHostForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type DeregisterHostForbidden struct {
+	Payload *models.Error
+}
+
+func (o *DeregisterHostForbidden) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostForbidden  %+v", 403, o.Payload)
+}
+
+func (o *DeregisterHostForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeregisterHostForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewDeregisterHostNotFound creates a DeregisterHostNotFound with default headers values
 func NewDeregisterHostNotFound() *DeregisterHostNotFound {
 	return &DeregisterHostNotFound{}
@@ -129,6 +213,39 @@ func (o *DeregisterHostNotFound) GetPayload() *models.Error {
 }
 
 func (o *DeregisterHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDeregisterHostMethodNotAllowed creates a DeregisterHostMethodNotAllowed with default headers values
+func NewDeregisterHostMethodNotAllowed() *DeregisterHostMethodNotAllowed {
+	return &DeregisterHostMethodNotAllowed{}
+}
+
+/*DeregisterHostMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type DeregisterHostMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *DeregisterHostMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *DeregisterHostMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeregisterHostMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

@@ -35,8 +35,26 @@ func (o *UploadClusterIngressCertReader) ReadResponse(response runtime.ClientRes
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewUploadClusterIngressCertUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewUploadClusterIngressCertForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewUploadClusterIngressCertNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewUploadClusterIngressCertMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,7 +67,7 @@ func (o *UploadClusterIngressCertReader) ReadResponse(response runtime.ClientRes
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -107,6 +125,72 @@ func (o *UploadClusterIngressCertBadRequest) readResponse(response runtime.Clien
 	return nil
 }
 
+// NewUploadClusterIngressCertUnauthorized creates a UploadClusterIngressCertUnauthorized with default headers values
+func NewUploadClusterIngressCertUnauthorized() *UploadClusterIngressCertUnauthorized {
+	return &UploadClusterIngressCertUnauthorized{}
+}
+
+/*UploadClusterIngressCertUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type UploadClusterIngressCertUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *UploadClusterIngressCertUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *UploadClusterIngressCertUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UploadClusterIngressCertUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUploadClusterIngressCertForbidden creates a UploadClusterIngressCertForbidden with default headers values
+func NewUploadClusterIngressCertForbidden() *UploadClusterIngressCertForbidden {
+	return &UploadClusterIngressCertForbidden{}
+}
+
+/*UploadClusterIngressCertForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type UploadClusterIngressCertForbidden struct {
+	Payload *models.Error
+}
+
+func (o *UploadClusterIngressCertForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertForbidden  %+v", 403, o.Payload)
+}
+
+func (o *UploadClusterIngressCertForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UploadClusterIngressCertForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewUploadClusterIngressCertNotFound creates a UploadClusterIngressCertNotFound with default headers values
 func NewUploadClusterIngressCertNotFound() *UploadClusterIngressCertNotFound {
 	return &UploadClusterIngressCertNotFound{}
@@ -129,6 +213,39 @@ func (o *UploadClusterIngressCertNotFound) GetPayload() *models.Error {
 }
 
 func (o *UploadClusterIngressCertNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUploadClusterIngressCertMethodNotAllowed creates a UploadClusterIngressCertMethodNotAllowed with default headers values
+func NewUploadClusterIngressCertMethodNotAllowed() *UploadClusterIngressCertMethodNotAllowed {
+	return &UploadClusterIngressCertMethodNotAllowed{}
+}
+
+/*UploadClusterIngressCertMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type UploadClusterIngressCertMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *UploadClusterIngressCertMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *UploadClusterIngressCertMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UploadClusterIngressCertMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

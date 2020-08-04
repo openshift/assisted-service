@@ -36,8 +36,26 @@ func (o *DownloadClusterISOReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewDownloadClusterISOUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewDownloadClusterISOForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDownloadClusterISONotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewDownloadClusterISOMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -50,7 +68,7 @@ func (o *DownloadClusterISOReader) ReadResponse(response runtime.ClientResponse,
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -120,6 +138,72 @@ func (o *DownloadClusterISOBadRequest) readResponse(response runtime.ClientRespo
 	return nil
 }
 
+// NewDownloadClusterISOUnauthorized creates a DownloadClusterISOUnauthorized with default headers values
+func NewDownloadClusterISOUnauthorized() *DownloadClusterISOUnauthorized {
+	return &DownloadClusterISOUnauthorized{}
+}
+
+/*DownloadClusterISOUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type DownloadClusterISOUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *DownloadClusterISOUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DownloadClusterISOUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadClusterISOUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDownloadClusterISOForbidden creates a DownloadClusterISOForbidden with default headers values
+func NewDownloadClusterISOForbidden() *DownloadClusterISOForbidden {
+	return &DownloadClusterISOForbidden{}
+}
+
+/*DownloadClusterISOForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type DownloadClusterISOForbidden struct {
+	Payload *models.Error
+}
+
+func (o *DownloadClusterISOForbidden) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOForbidden  %+v", 403, o.Payload)
+}
+
+func (o *DownloadClusterISOForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadClusterISOForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewDownloadClusterISONotFound creates a DownloadClusterISONotFound with default headers values
 func NewDownloadClusterISONotFound() *DownloadClusterISONotFound {
 	return &DownloadClusterISONotFound{}
@@ -142,6 +226,39 @@ func (o *DownloadClusterISONotFound) GetPayload() *models.Error {
 }
 
 func (o *DownloadClusterISONotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDownloadClusterISOMethodNotAllowed creates a DownloadClusterISOMethodNotAllowed with default headers values
+func NewDownloadClusterISOMethodNotAllowed() *DownloadClusterISOMethodNotAllowed {
+	return &DownloadClusterISOMethodNotAllowed{}
+}
+
+/*DownloadClusterISOMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type DownloadClusterISOMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *DownloadClusterISOMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *DownloadClusterISOMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadClusterISOMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

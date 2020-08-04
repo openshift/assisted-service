@@ -60,6 +60,94 @@ func (o *GetFreeAddressesOK) WriteResponse(rw http.ResponseWriter, producer runt
 	}
 }
 
+// GetFreeAddressesUnauthorizedCode is the HTTP code returned for type GetFreeAddressesUnauthorized
+const GetFreeAddressesUnauthorizedCode int = 401
+
+/*GetFreeAddressesUnauthorized Unauthorized.
+
+swagger:response getFreeAddressesUnauthorized
+*/
+type GetFreeAddressesUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetFreeAddressesUnauthorized creates GetFreeAddressesUnauthorized with default headers values
+func NewGetFreeAddressesUnauthorized() *GetFreeAddressesUnauthorized {
+
+	return &GetFreeAddressesUnauthorized{}
+}
+
+// WithPayload adds the payload to the get free addresses unauthorized response
+func (o *GetFreeAddressesUnauthorized) WithPayload(payload *models.Error) *GetFreeAddressesUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get free addresses unauthorized response
+func (o *GetFreeAddressesUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetFreeAddressesUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetFreeAddressesForbiddenCode is the HTTP code returned for type GetFreeAddressesForbidden
+const GetFreeAddressesForbiddenCode int = 403
+
+/*GetFreeAddressesForbidden Forbidden.
+
+swagger:response getFreeAddressesForbidden
+*/
+type GetFreeAddressesForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetFreeAddressesForbidden creates GetFreeAddressesForbidden with default headers values
+func NewGetFreeAddressesForbidden() *GetFreeAddressesForbidden {
+
+	return &GetFreeAddressesForbidden{}
+}
+
+// WithPayload adds the payload to the get free addresses forbidden response
+func (o *GetFreeAddressesForbidden) WithPayload(payload *models.Error) *GetFreeAddressesForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get free addresses forbidden response
+func (o *GetFreeAddressesForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetFreeAddressesForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetFreeAddressesNotFoundCode is the HTTP code returned for type GetFreeAddressesNotFound
 const GetFreeAddressesNotFoundCode int = 404
 
@@ -96,6 +184,50 @@ func (o *GetFreeAddressesNotFound) SetPayload(payload *models.Error) {
 func (o *GetFreeAddressesNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetFreeAddressesMethodNotAllowedCode is the HTTP code returned for type GetFreeAddressesMethodNotAllowed
+const GetFreeAddressesMethodNotAllowedCode int = 405
+
+/*GetFreeAddressesMethodNotAllowed Method Not Allowed.
+
+swagger:response getFreeAddressesMethodNotAllowed
+*/
+type GetFreeAddressesMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetFreeAddressesMethodNotAllowed creates GetFreeAddressesMethodNotAllowed with default headers values
+func NewGetFreeAddressesMethodNotAllowed() *GetFreeAddressesMethodNotAllowed {
+
+	return &GetFreeAddressesMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the get free addresses method not allowed response
+func (o *GetFreeAddressesMethodNotAllowed) WithPayload(payload *models.Error) *GetFreeAddressesMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get free addresses method not allowed response
+func (o *GetFreeAddressesMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetFreeAddressesMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

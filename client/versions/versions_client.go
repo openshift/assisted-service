@@ -54,6 +54,7 @@ func (a *Client) ListComponentVersions(ctx context.Context, params *ListComponen
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &ListComponentVersionsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})

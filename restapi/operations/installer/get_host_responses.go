@@ -57,6 +57,94 @@ func (o *GetHostOK) WriteResponse(rw http.ResponseWriter, producer runtime.Produ
 	}
 }
 
+// GetHostUnauthorizedCode is the HTTP code returned for type GetHostUnauthorized
+const GetHostUnauthorizedCode int = 401
+
+/*GetHostUnauthorized Unauthorized.
+
+swagger:response getHostUnauthorized
+*/
+type GetHostUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetHostUnauthorized creates GetHostUnauthorized with default headers values
+func NewGetHostUnauthorized() *GetHostUnauthorized {
+
+	return &GetHostUnauthorized{}
+}
+
+// WithPayload adds the payload to the get host unauthorized response
+func (o *GetHostUnauthorized) WithPayload(payload *models.Error) *GetHostUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get host unauthorized response
+func (o *GetHostUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetHostUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetHostForbiddenCode is the HTTP code returned for type GetHostForbidden
+const GetHostForbiddenCode int = 403
+
+/*GetHostForbidden Forbidden.
+
+swagger:response getHostForbidden
+*/
+type GetHostForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetHostForbidden creates GetHostForbidden with default headers values
+func NewGetHostForbidden() *GetHostForbidden {
+
+	return &GetHostForbidden{}
+}
+
+// WithPayload adds the payload to the get host forbidden response
+func (o *GetHostForbidden) WithPayload(payload *models.Error) *GetHostForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get host forbidden response
+func (o *GetHostForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetHostForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetHostNotFoundCode is the HTTP code returned for type GetHostNotFound
 const GetHostNotFoundCode int = 404
 
@@ -93,6 +181,50 @@ func (o *GetHostNotFound) SetPayload(payload *models.Error) {
 func (o *GetHostNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetHostMethodNotAllowedCode is the HTTP code returned for type GetHostMethodNotAllowed
+const GetHostMethodNotAllowedCode int = 405
+
+/*GetHostMethodNotAllowed Method Not Allowed.
+
+swagger:response getHostMethodNotAllowed
+*/
+type GetHostMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetHostMethodNotAllowed creates GetHostMethodNotAllowed with default headers values
+func NewGetHostMethodNotAllowed() *GetHostMethodNotAllowed {
+
+	return &GetHostMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the get host method not allowed response
+func (o *GetHostMethodNotAllowed) WithPayload(payload *models.Error) *GetHostMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get host method not allowed response
+func (o *GetHostMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

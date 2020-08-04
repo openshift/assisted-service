@@ -30,8 +30,26 @@ func (o *DownloadClusterFilesReader) ReadResponse(response runtime.ClientRespons
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewDownloadClusterFilesUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewDownloadClusterFilesForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDownloadClusterFilesNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewDownloadClusterFilesMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -50,7 +68,7 @@ func (o *DownloadClusterFilesReader) ReadResponse(response runtime.ClientRespons
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -87,6 +105,72 @@ func (o *DownloadClusterFilesOK) readResponse(response runtime.ClientResponse, c
 	return nil
 }
 
+// NewDownloadClusterFilesUnauthorized creates a DownloadClusterFilesUnauthorized with default headers values
+func NewDownloadClusterFilesUnauthorized() *DownloadClusterFilesUnauthorized {
+	return &DownloadClusterFilesUnauthorized{}
+}
+
+/*DownloadClusterFilesUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type DownloadClusterFilesUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *DownloadClusterFilesUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files][%d] downloadClusterFilesUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DownloadClusterFilesUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadClusterFilesUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDownloadClusterFilesForbidden creates a DownloadClusterFilesForbidden with default headers values
+func NewDownloadClusterFilesForbidden() *DownloadClusterFilesForbidden {
+	return &DownloadClusterFilesForbidden{}
+}
+
+/*DownloadClusterFilesForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type DownloadClusterFilesForbidden struct {
+	Payload *models.Error
+}
+
+func (o *DownloadClusterFilesForbidden) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files][%d] downloadClusterFilesForbidden  %+v", 403, o.Payload)
+}
+
+func (o *DownloadClusterFilesForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadClusterFilesForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewDownloadClusterFilesNotFound creates a DownloadClusterFilesNotFound with default headers values
 func NewDownloadClusterFilesNotFound() *DownloadClusterFilesNotFound {
 	return &DownloadClusterFilesNotFound{}
@@ -109,6 +193,39 @@ func (o *DownloadClusterFilesNotFound) GetPayload() *models.Error {
 }
 
 func (o *DownloadClusterFilesNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDownloadClusterFilesMethodNotAllowed creates a DownloadClusterFilesMethodNotAllowed with default headers values
+func NewDownloadClusterFilesMethodNotAllowed() *DownloadClusterFilesMethodNotAllowed {
+	return &DownloadClusterFilesMethodNotAllowed{}
+}
+
+/*DownloadClusterFilesMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type DownloadClusterFilesMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *DownloadClusterFilesMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files][%d] downloadClusterFilesMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *DownloadClusterFilesMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadClusterFilesMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

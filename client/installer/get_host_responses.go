@@ -29,8 +29,26 @@ func (o *GetHostReader) ReadResponse(response runtime.ClientResponse, consumer r
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewGetHostUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewGetHostForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGetHostNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewGetHostMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -43,7 +61,7 @@ func (o *GetHostReader) ReadResponse(response runtime.ClientResponse, consumer r
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -80,6 +98,72 @@ func (o *GetHostOK) readResponse(response runtime.ClientResponse, consumer runti
 	return nil
 }
 
+// NewGetHostUnauthorized creates a GetHostUnauthorized with default headers values
+func NewGetHostUnauthorized() *GetHostUnauthorized {
+	return &GetHostUnauthorized{}
+}
+
+/*GetHostUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type GetHostUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *GetHostUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}][%d] getHostUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetHostUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetHostUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetHostForbidden creates a GetHostForbidden with default headers values
+func NewGetHostForbidden() *GetHostForbidden {
+	return &GetHostForbidden{}
+}
+
+/*GetHostForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type GetHostForbidden struct {
+	Payload *models.Error
+}
+
+func (o *GetHostForbidden) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}][%d] getHostForbidden  %+v", 403, o.Payload)
+}
+
+func (o *GetHostForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetHostForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewGetHostNotFound creates a GetHostNotFound with default headers values
 func NewGetHostNotFound() *GetHostNotFound {
 	return &GetHostNotFound{}
@@ -102,6 +186,39 @@ func (o *GetHostNotFound) GetPayload() *models.Error {
 }
 
 func (o *GetHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetHostMethodNotAllowed creates a GetHostMethodNotAllowed with default headers values
+func NewGetHostMethodNotAllowed() *GetHostMethodNotAllowed {
+	return &GetHostMethodNotAllowed{}
+}
+
+/*GetHostMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type GetHostMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *GetHostMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}][%d] getHostMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *GetHostMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetHostMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

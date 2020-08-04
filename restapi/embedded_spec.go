@@ -50,6 +50,24 @@ func init() {
               "$ref": "#/definitions/cluster-list"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -87,6 +105,24 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -119,8 +155,26 @@ func init() {
               "$ref": "#/definitions/cluster"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -152,8 +206,26 @@ func init() {
           "204": {
             "description": "Success."
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -208,8 +280,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -252,8 +342,26 @@ func init() {
               "$ref": "#/definitions/cluster"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -304,8 +412,26 @@ func init() {
               "$ref": "#/definitions/cluster"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -354,8 +480,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -398,8 +542,26 @@ func init() {
               "$ref": "#/definitions/cluster"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -442,8 +604,26 @@ func init() {
               "$ref": "#/definitions/credentials"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -465,6 +645,14 @@ func init() {
     },
     "/clusters/{cluster_id}/downloads/files": {
       "get": {
+        "security": [
+          {
+            "userAuth": []
+          },
+          {
+            "agentAuth": []
+          }
+        ],
         "produces": [
           "application/octet-stream"
         ],
@@ -505,8 +693,26 @@ func init() {
               "type": "file"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -559,8 +765,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -609,8 +833,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -657,8 +899,26 @@ func init() {
               "format": "binary"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -721,8 +981,26 @@ func init() {
               "$ref": "#/definitions/free-addresses-list"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -759,6 +1037,24 @@ func init() {
               "$ref": "#/definitions/host-list"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -768,6 +1064,11 @@ func init() {
         }
       },
       "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -803,14 +1104,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "403": {
-            "description": "Error.",
+            "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/error"
             }
           },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -854,8 +1167,26 @@ func init() {
               "$ref": "#/definitions/host"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -900,8 +1231,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -950,8 +1299,26 @@ func init() {
           "204": {
             "description": "Success."
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -995,8 +1362,26 @@ func init() {
               "$ref": "#/definitions/host"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -1044,8 +1429,26 @@ func init() {
               "$ref": "#/definitions/host"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -1067,6 +1470,11 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
       "get": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -1095,8 +1503,26 @@ func init() {
               "$ref": "#/definitions/steps"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -1110,6 +1536,11 @@ func init() {
         }
       },
       "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -1148,8 +1579,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -1165,6 +1614,11 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/progress": {
       "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -1201,8 +1655,26 @@ func init() {
           "200": {
             "description": "Update install progress"
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -1218,6 +1690,11 @@ func init() {
     },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -1250,8 +1727,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -1326,6 +1821,24 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/event-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -2515,6 +3028,23 @@ func init() {
       }
     }
   },
+  "securityDefinitions": {
+    "agentAuth": {
+      "type": "apiKey",
+      "name": "X-Secret-Key",
+      "in": "header"
+    },
+    "userAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "userAuth": []
+    }
+  ],
   "tags": [
     {
       "description": "Assisted bare metal installation",
@@ -2555,6 +3085,24 @@ func init() {
               "$ref": "#/definitions/cluster-list"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -2592,6 +3140,24 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -2624,8 +3190,26 @@ func init() {
               "$ref": "#/definitions/cluster"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -2657,8 +3241,26 @@ func init() {
           "204": {
             "description": "Success."
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -2713,8 +3315,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -2757,8 +3377,26 @@ func init() {
               "$ref": "#/definitions/cluster"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -2809,8 +3447,26 @@ func init() {
               "$ref": "#/definitions/cluster"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -2859,8 +3515,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -2903,8 +3577,26 @@ func init() {
               "$ref": "#/definitions/cluster"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -2947,8 +3639,26 @@ func init() {
               "$ref": "#/definitions/credentials"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -2970,6 +3680,14 @@ func init() {
     },
     "/clusters/{cluster_id}/downloads/files": {
       "get": {
+        "security": [
+          {
+            "userAuth": []
+          },
+          {
+            "agentAuth": []
+          }
+        ],
         "produces": [
           "application/octet-stream"
         ],
@@ -3010,8 +3728,26 @@ func init() {
               "type": "file"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3064,8 +3800,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3114,8 +3868,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3162,8 +3934,26 @@ func init() {
               "format": "binary"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3226,8 +4016,26 @@ func init() {
               "$ref": "#/definitions/free-addresses-list"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3264,6 +4072,24 @@ func init() {
               "$ref": "#/definitions/host-list"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -3273,6 +4099,11 @@ func init() {
         }
       },
       "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -3308,14 +4139,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "403": {
-            "description": "Error.",
+            "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/error"
             }
           },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3359,8 +4202,26 @@ func init() {
               "$ref": "#/definitions/host"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3405,8 +4266,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3455,8 +4334,26 @@ func init() {
           "204": {
             "description": "Success."
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3500,8 +4397,26 @@ func init() {
               "$ref": "#/definitions/host"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3549,8 +4464,26 @@ func init() {
               "$ref": "#/definitions/host"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3572,6 +4505,11 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
       "get": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -3600,8 +4538,26 @@ func init() {
               "$ref": "#/definitions/steps"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3615,6 +4571,11 @@ func init() {
         }
       },
       "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -3653,8 +4614,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3670,6 +4649,11 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/progress": {
       "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -3706,8 +4690,26 @@ func init() {
           "200": {
             "description": "Update install progress"
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3723,6 +4725,11 @@ func init() {
     },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -3755,8 +4762,26 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "404": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3831,6 +4856,24 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/event-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -5026,6 +6069,23 @@ func init() {
       }
     }
   },
+  "securityDefinitions": {
+    "agentAuth": {
+      "type": "apiKey",
+      "name": "X-Secret-Key",
+      "in": "header"
+    },
+    "userAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "userAuth": []
+    }
+  ],
   "tags": [
     {
       "description": "Assisted bare metal installation",

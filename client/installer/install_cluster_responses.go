@@ -35,8 +35,26 @@ func (o *InstallClusterReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewInstallClusterUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewInstallClusterForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewInstallClusterNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewInstallClusterMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -55,7 +73,7 @@ func (o *InstallClusterReader) ReadResponse(response runtime.ClientResponse, con
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -125,6 +143,72 @@ func (o *InstallClusterBadRequest) readResponse(response runtime.ClientResponse,
 	return nil
 }
 
+// NewInstallClusterUnauthorized creates a InstallClusterUnauthorized with default headers values
+func NewInstallClusterUnauthorized() *InstallClusterUnauthorized {
+	return &InstallClusterUnauthorized{}
+}
+
+/*InstallClusterUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type InstallClusterUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *InstallClusterUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *InstallClusterUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *InstallClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewInstallClusterForbidden creates a InstallClusterForbidden with default headers values
+func NewInstallClusterForbidden() *InstallClusterForbidden {
+	return &InstallClusterForbidden{}
+}
+
+/*InstallClusterForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type InstallClusterForbidden struct {
+	Payload *models.Error
+}
+
+func (o *InstallClusterForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterForbidden  %+v", 403, o.Payload)
+}
+
+func (o *InstallClusterForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *InstallClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewInstallClusterNotFound creates a InstallClusterNotFound with default headers values
 func NewInstallClusterNotFound() *InstallClusterNotFound {
 	return &InstallClusterNotFound{}
@@ -147,6 +231,39 @@ func (o *InstallClusterNotFound) GetPayload() *models.Error {
 }
 
 func (o *InstallClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewInstallClusterMethodNotAllowed creates a InstallClusterMethodNotAllowed with default headers values
+func NewInstallClusterMethodNotAllowed() *InstallClusterMethodNotAllowed {
+	return &InstallClusterMethodNotAllowed{}
+}
+
+/*InstallClusterMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type InstallClusterMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *InstallClusterMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *InstallClusterMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *InstallClusterMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

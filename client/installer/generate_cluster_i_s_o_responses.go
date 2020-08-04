@@ -35,8 +35,26 @@ func (o *GenerateClusterISOReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewGenerateClusterISOUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewGenerateClusterISOForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGenerateClusterISONotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewGenerateClusterISOMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -55,7 +73,7 @@ func (o *GenerateClusterISOReader) ReadResponse(response runtime.ClientResponse,
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -125,6 +143,72 @@ func (o *GenerateClusterISOBadRequest) readResponse(response runtime.ClientRespo
 	return nil
 }
 
+// NewGenerateClusterISOUnauthorized creates a GenerateClusterISOUnauthorized with default headers values
+func NewGenerateClusterISOUnauthorized() *GenerateClusterISOUnauthorized {
+	return &GenerateClusterISOUnauthorized{}
+}
+
+/*GenerateClusterISOUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type GenerateClusterISOUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *GenerateClusterISOUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GenerateClusterISOUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GenerateClusterISOUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGenerateClusterISOForbidden creates a GenerateClusterISOForbidden with default headers values
+func NewGenerateClusterISOForbidden() *GenerateClusterISOForbidden {
+	return &GenerateClusterISOForbidden{}
+}
+
+/*GenerateClusterISOForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type GenerateClusterISOForbidden struct {
+	Payload *models.Error
+}
+
+func (o *GenerateClusterISOForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOForbidden  %+v", 403, o.Payload)
+}
+
+func (o *GenerateClusterISOForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GenerateClusterISOForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewGenerateClusterISONotFound creates a GenerateClusterISONotFound with default headers values
 func NewGenerateClusterISONotFound() *GenerateClusterISONotFound {
 	return &GenerateClusterISONotFound{}
@@ -147,6 +231,39 @@ func (o *GenerateClusterISONotFound) GetPayload() *models.Error {
 }
 
 func (o *GenerateClusterISONotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGenerateClusterISOMethodNotAllowed creates a GenerateClusterISOMethodNotAllowed with default headers values
+func NewGenerateClusterISOMethodNotAllowed() *GenerateClusterISOMethodNotAllowed {
+	return &GenerateClusterISOMethodNotAllowed{}
+}
+
+/*GenerateClusterISOMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type GenerateClusterISOMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *GenerateClusterISOMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *GenerateClusterISOMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GenerateClusterISOMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

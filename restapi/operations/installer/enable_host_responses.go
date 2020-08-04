@@ -57,6 +57,94 @@ func (o *EnableHostOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pr
 	}
 }
 
+// EnableHostUnauthorizedCode is the HTTP code returned for type EnableHostUnauthorized
+const EnableHostUnauthorizedCode int = 401
+
+/*EnableHostUnauthorized Unauthorized.
+
+swagger:response enableHostUnauthorized
+*/
+type EnableHostUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewEnableHostUnauthorized creates EnableHostUnauthorized with default headers values
+func NewEnableHostUnauthorized() *EnableHostUnauthorized {
+
+	return &EnableHostUnauthorized{}
+}
+
+// WithPayload adds the payload to the enable host unauthorized response
+func (o *EnableHostUnauthorized) WithPayload(payload *models.Error) *EnableHostUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the enable host unauthorized response
+func (o *EnableHostUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *EnableHostUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// EnableHostForbiddenCode is the HTTP code returned for type EnableHostForbidden
+const EnableHostForbiddenCode int = 403
+
+/*EnableHostForbidden Forbidden.
+
+swagger:response enableHostForbidden
+*/
+type EnableHostForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewEnableHostForbidden creates EnableHostForbidden with default headers values
+func NewEnableHostForbidden() *EnableHostForbidden {
+
+	return &EnableHostForbidden{}
+}
+
+// WithPayload adds the payload to the enable host forbidden response
+func (o *EnableHostForbidden) WithPayload(payload *models.Error) *EnableHostForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the enable host forbidden response
+func (o *EnableHostForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *EnableHostForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // EnableHostNotFoundCode is the HTTP code returned for type EnableHostNotFound
 const EnableHostNotFoundCode int = 404
 
@@ -93,6 +181,50 @@ func (o *EnableHostNotFound) SetPayload(payload *models.Error) {
 func (o *EnableHostNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// EnableHostMethodNotAllowedCode is the HTTP code returned for type EnableHostMethodNotAllowed
+const EnableHostMethodNotAllowedCode int = 405
+
+/*EnableHostMethodNotAllowed Method Not Allowed.
+
+swagger:response enableHostMethodNotAllowed
+*/
+type EnableHostMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewEnableHostMethodNotAllowed creates EnableHostMethodNotAllowed with default headers values
+func NewEnableHostMethodNotAllowed() *EnableHostMethodNotAllowed {
+
+	return &EnableHostMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the enable host method not allowed response
+func (o *EnableHostMethodNotAllowed) WithPayload(payload *models.Error) *EnableHostMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the enable host method not allowed response
+func (o *EnableHostMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *EnableHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

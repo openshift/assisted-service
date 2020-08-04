@@ -29,8 +29,26 @@ func (o *ResetClusterReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewResetClusterUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewResetClusterForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewResetClusterNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewResetClusterMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,7 +67,7 @@ func (o *ResetClusterReader) ReadResponse(response runtime.ClientResponse, consu
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -86,6 +104,72 @@ func (o *ResetClusterAccepted) readResponse(response runtime.ClientResponse, con
 	return nil
 }
 
+// NewResetClusterUnauthorized creates a ResetClusterUnauthorized with default headers values
+func NewResetClusterUnauthorized() *ResetClusterUnauthorized {
+	return &ResetClusterUnauthorized{}
+}
+
+/*ResetClusterUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type ResetClusterUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *ResetClusterUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *ResetClusterUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ResetClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewResetClusterForbidden creates a ResetClusterForbidden with default headers values
+func NewResetClusterForbidden() *ResetClusterForbidden {
+	return &ResetClusterForbidden{}
+}
+
+/*ResetClusterForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type ResetClusterForbidden struct {
+	Payload *models.Error
+}
+
+func (o *ResetClusterForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterForbidden  %+v", 403, o.Payload)
+}
+
+func (o *ResetClusterForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ResetClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewResetClusterNotFound creates a ResetClusterNotFound with default headers values
 func NewResetClusterNotFound() *ResetClusterNotFound {
 	return &ResetClusterNotFound{}
@@ -108,6 +192,39 @@ func (o *ResetClusterNotFound) GetPayload() *models.Error {
 }
 
 func (o *ResetClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewResetClusterMethodNotAllowed creates a ResetClusterMethodNotAllowed with default headers values
+func NewResetClusterMethodNotAllowed() *ResetClusterMethodNotAllowed {
+	return &ResetClusterMethodNotAllowed{}
+}
+
+/*ResetClusterMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type ResetClusterMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *ResetClusterMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *ResetClusterMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ResetClusterMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

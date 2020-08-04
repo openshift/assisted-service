@@ -29,8 +29,26 @@ func (o *EnableHostReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewEnableHostUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewEnableHostForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewEnableHostNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewEnableHostMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,7 +67,7 @@ func (o *EnableHostReader) ReadResponse(response runtime.ClientResponse, consume
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -86,6 +104,72 @@ func (o *EnableHostOK) readResponse(response runtime.ClientResponse, consumer ru
 	return nil
 }
 
+// NewEnableHostUnauthorized creates a EnableHostUnauthorized with default headers values
+func NewEnableHostUnauthorized() *EnableHostUnauthorized {
+	return &EnableHostUnauthorized{}
+}
+
+/*EnableHostUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type EnableHostUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *EnableHostUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *EnableHostUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *EnableHostUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewEnableHostForbidden creates a EnableHostForbidden with default headers values
+func NewEnableHostForbidden() *EnableHostForbidden {
+	return &EnableHostForbidden{}
+}
+
+/*EnableHostForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type EnableHostForbidden struct {
+	Payload *models.Error
+}
+
+func (o *EnableHostForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostForbidden  %+v", 403, o.Payload)
+}
+
+func (o *EnableHostForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *EnableHostForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewEnableHostNotFound creates a EnableHostNotFound with default headers values
 func NewEnableHostNotFound() *EnableHostNotFound {
 	return &EnableHostNotFound{}
@@ -108,6 +192,39 @@ func (o *EnableHostNotFound) GetPayload() *models.Error {
 }
 
 func (o *EnableHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewEnableHostMethodNotAllowed creates a EnableHostMethodNotAllowed with default headers values
+func NewEnableHostMethodNotAllowed() *EnableHostMethodNotAllowed {
+	return &EnableHostMethodNotAllowed{}
+}
+
+/*EnableHostMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type EnableHostMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *EnableHostMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *EnableHostMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *EnableHostMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

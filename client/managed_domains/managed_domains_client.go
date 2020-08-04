@@ -54,6 +54,7 @@ func (a *Client) ListManagedDomains(ctx context.Context, params *ListManagedDoma
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &ListManagedDomainsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})

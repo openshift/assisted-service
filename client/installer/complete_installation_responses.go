@@ -29,8 +29,26 @@ func (o *CompleteInstallationReader) ReadResponse(response runtime.ClientRespons
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewCompleteInstallationUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewCompleteInstallationForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewCompleteInstallationNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewCompleteInstallationMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,7 +67,7 @@ func (o *CompleteInstallationReader) ReadResponse(response runtime.ClientRespons
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -86,6 +104,72 @@ func (o *CompleteInstallationAccepted) readResponse(response runtime.ClientRespo
 	return nil
 }
 
+// NewCompleteInstallationUnauthorized creates a CompleteInstallationUnauthorized with default headers values
+func NewCompleteInstallationUnauthorized() *CompleteInstallationUnauthorized {
+	return &CompleteInstallationUnauthorized{}
+}
+
+/*CompleteInstallationUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type CompleteInstallationUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *CompleteInstallationUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *CompleteInstallationUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *CompleteInstallationUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewCompleteInstallationForbidden creates a CompleteInstallationForbidden with default headers values
+func NewCompleteInstallationForbidden() *CompleteInstallationForbidden {
+	return &CompleteInstallationForbidden{}
+}
+
+/*CompleteInstallationForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type CompleteInstallationForbidden struct {
+	Payload *models.Error
+}
+
+func (o *CompleteInstallationForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationForbidden  %+v", 403, o.Payload)
+}
+
+func (o *CompleteInstallationForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *CompleteInstallationForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewCompleteInstallationNotFound creates a CompleteInstallationNotFound with default headers values
 func NewCompleteInstallationNotFound() *CompleteInstallationNotFound {
 	return &CompleteInstallationNotFound{}
@@ -108,6 +192,39 @@ func (o *CompleteInstallationNotFound) GetPayload() *models.Error {
 }
 
 func (o *CompleteInstallationNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewCompleteInstallationMethodNotAllowed creates a CompleteInstallationMethodNotAllowed with default headers values
+func NewCompleteInstallationMethodNotAllowed() *CompleteInstallationMethodNotAllowed {
+	return &CompleteInstallationMethodNotAllowed{}
+}
+
+/*CompleteInstallationMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type CompleteInstallationMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *CompleteInstallationMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *CompleteInstallationMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *CompleteInstallationMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

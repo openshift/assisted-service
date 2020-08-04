@@ -57,6 +57,94 @@ func (o *GetCredentialsOK) WriteResponse(rw http.ResponseWriter, producer runtim
 	}
 }
 
+// GetCredentialsUnauthorizedCode is the HTTP code returned for type GetCredentialsUnauthorized
+const GetCredentialsUnauthorizedCode int = 401
+
+/*GetCredentialsUnauthorized Unauthorized.
+
+swagger:response getCredentialsUnauthorized
+*/
+type GetCredentialsUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetCredentialsUnauthorized creates GetCredentialsUnauthorized with default headers values
+func NewGetCredentialsUnauthorized() *GetCredentialsUnauthorized {
+
+	return &GetCredentialsUnauthorized{}
+}
+
+// WithPayload adds the payload to the get credentials unauthorized response
+func (o *GetCredentialsUnauthorized) WithPayload(payload *models.Error) *GetCredentialsUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get credentials unauthorized response
+func (o *GetCredentialsUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetCredentialsUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetCredentialsForbiddenCode is the HTTP code returned for type GetCredentialsForbidden
+const GetCredentialsForbiddenCode int = 403
+
+/*GetCredentialsForbidden Forbidden.
+
+swagger:response getCredentialsForbidden
+*/
+type GetCredentialsForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetCredentialsForbidden creates GetCredentialsForbidden with default headers values
+func NewGetCredentialsForbidden() *GetCredentialsForbidden {
+
+	return &GetCredentialsForbidden{}
+}
+
+// WithPayload adds the payload to the get credentials forbidden response
+func (o *GetCredentialsForbidden) WithPayload(payload *models.Error) *GetCredentialsForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get credentials forbidden response
+func (o *GetCredentialsForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetCredentialsForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetCredentialsNotFoundCode is the HTTP code returned for type GetCredentialsNotFound
 const GetCredentialsNotFoundCode int = 404
 
@@ -93,6 +181,50 @@ func (o *GetCredentialsNotFound) SetPayload(payload *models.Error) {
 func (o *GetCredentialsNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetCredentialsMethodNotAllowedCode is the HTTP code returned for type GetCredentialsMethodNotAllowed
+const GetCredentialsMethodNotAllowedCode int = 405
+
+/*GetCredentialsMethodNotAllowed Method Not Allowed.
+
+swagger:response getCredentialsMethodNotAllowed
+*/
+type GetCredentialsMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetCredentialsMethodNotAllowed creates GetCredentialsMethodNotAllowed with default headers values
+func NewGetCredentialsMethodNotAllowed() *GetCredentialsMethodNotAllowed {
+
+	return &GetCredentialsMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the get credentials method not allowed response
+func (o *GetCredentialsMethodNotAllowed) WithPayload(payload *models.Error) *GetCredentialsMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get credentials method not allowed response
+func (o *GetCredentialsMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetCredentialsMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

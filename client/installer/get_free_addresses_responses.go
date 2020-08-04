@@ -29,8 +29,26 @@ func (o *GetFreeAddressesReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewGetFreeAddressesUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewGetFreeAddressesForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGetFreeAddressesNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewGetFreeAddressesMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -43,7 +61,7 @@ func (o *GetFreeAddressesReader) ReadResponse(response runtime.ClientResponse, c
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -78,6 +96,72 @@ func (o *GetFreeAddressesOK) readResponse(response runtime.ClientResponse, consu
 	return nil
 }
 
+// NewGetFreeAddressesUnauthorized creates a GetFreeAddressesUnauthorized with default headers values
+func NewGetFreeAddressesUnauthorized() *GetFreeAddressesUnauthorized {
+	return &GetFreeAddressesUnauthorized{}
+}
+
+/*GetFreeAddressesUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type GetFreeAddressesUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *GetFreeAddressesUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetFreeAddressesUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetFreeAddressesUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetFreeAddressesForbidden creates a GetFreeAddressesForbidden with default headers values
+func NewGetFreeAddressesForbidden() *GetFreeAddressesForbidden {
+	return &GetFreeAddressesForbidden{}
+}
+
+/*GetFreeAddressesForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type GetFreeAddressesForbidden struct {
+	Payload *models.Error
+}
+
+func (o *GetFreeAddressesForbidden) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesForbidden  %+v", 403, o.Payload)
+}
+
+func (o *GetFreeAddressesForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetFreeAddressesForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewGetFreeAddressesNotFound creates a GetFreeAddressesNotFound with default headers values
 func NewGetFreeAddressesNotFound() *GetFreeAddressesNotFound {
 	return &GetFreeAddressesNotFound{}
@@ -100,6 +184,39 @@ func (o *GetFreeAddressesNotFound) GetPayload() *models.Error {
 }
 
 func (o *GetFreeAddressesNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetFreeAddressesMethodNotAllowed creates a GetFreeAddressesMethodNotAllowed with default headers values
+func NewGetFreeAddressesMethodNotAllowed() *GetFreeAddressesMethodNotAllowed {
+	return &GetFreeAddressesMethodNotAllowed{}
+}
+
+/*GetFreeAddressesMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type GetFreeAddressesMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *GetFreeAddressesMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *GetFreeAddressesMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetFreeAddressesMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

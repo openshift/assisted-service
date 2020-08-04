@@ -101,6 +101,94 @@ func (o *InstallClusterBadRequest) WriteResponse(rw http.ResponseWriter, produce
 	}
 }
 
+// InstallClusterUnauthorizedCode is the HTTP code returned for type InstallClusterUnauthorized
+const InstallClusterUnauthorizedCode int = 401
+
+/*InstallClusterUnauthorized Unauthorized.
+
+swagger:response installClusterUnauthorized
+*/
+type InstallClusterUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewInstallClusterUnauthorized creates InstallClusterUnauthorized with default headers values
+func NewInstallClusterUnauthorized() *InstallClusterUnauthorized {
+
+	return &InstallClusterUnauthorized{}
+}
+
+// WithPayload adds the payload to the install cluster unauthorized response
+func (o *InstallClusterUnauthorized) WithPayload(payload *models.Error) *InstallClusterUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the install cluster unauthorized response
+func (o *InstallClusterUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *InstallClusterUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// InstallClusterForbiddenCode is the HTTP code returned for type InstallClusterForbidden
+const InstallClusterForbiddenCode int = 403
+
+/*InstallClusterForbidden Forbidden.
+
+swagger:response installClusterForbidden
+*/
+type InstallClusterForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewInstallClusterForbidden creates InstallClusterForbidden with default headers values
+func NewInstallClusterForbidden() *InstallClusterForbidden {
+
+	return &InstallClusterForbidden{}
+}
+
+// WithPayload adds the payload to the install cluster forbidden response
+func (o *InstallClusterForbidden) WithPayload(payload *models.Error) *InstallClusterForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the install cluster forbidden response
+func (o *InstallClusterForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *InstallClusterForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // InstallClusterNotFoundCode is the HTTP code returned for type InstallClusterNotFound
 const InstallClusterNotFoundCode int = 404
 
@@ -137,6 +225,50 @@ func (o *InstallClusterNotFound) SetPayload(payload *models.Error) {
 func (o *InstallClusterNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// InstallClusterMethodNotAllowedCode is the HTTP code returned for type InstallClusterMethodNotAllowed
+const InstallClusterMethodNotAllowedCode int = 405
+
+/*InstallClusterMethodNotAllowed Method Not Allowed.
+
+swagger:response installClusterMethodNotAllowed
+*/
+type InstallClusterMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewInstallClusterMethodNotAllowed creates InstallClusterMethodNotAllowed with default headers values
+func NewInstallClusterMethodNotAllowed() *InstallClusterMethodNotAllowed {
+
+	return &InstallClusterMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the install cluster method not allowed response
+func (o *InstallClusterMethodNotAllowed) WithPayload(payload *models.Error) *InstallClusterMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the install cluster method not allowed response
+func (o *InstallClusterMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *InstallClusterMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

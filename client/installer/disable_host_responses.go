@@ -29,8 +29,26 @@ func (o *DisableHostReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewDisableHostUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewDisableHostForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDisableHostNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewDisableHostMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,7 +67,7 @@ func (o *DisableHostReader) ReadResponse(response runtime.ClientResponse, consum
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -86,6 +104,72 @@ func (o *DisableHostOK) readResponse(response runtime.ClientResponse, consumer r
 	return nil
 }
 
+// NewDisableHostUnauthorized creates a DisableHostUnauthorized with default headers values
+func NewDisableHostUnauthorized() *DisableHostUnauthorized {
+	return &DisableHostUnauthorized{}
+}
+
+/*DisableHostUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type DisableHostUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *DisableHostUnauthorized) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DisableHostUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DisableHostUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDisableHostForbidden creates a DisableHostForbidden with default headers values
+func NewDisableHostForbidden() *DisableHostForbidden {
+	return &DisableHostForbidden{}
+}
+
+/*DisableHostForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type DisableHostForbidden struct {
+	Payload *models.Error
+}
+
+func (o *DisableHostForbidden) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostForbidden  %+v", 403, o.Payload)
+}
+
+func (o *DisableHostForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DisableHostForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewDisableHostNotFound creates a DisableHostNotFound with default headers values
 func NewDisableHostNotFound() *DisableHostNotFound {
 	return &DisableHostNotFound{}
@@ -108,6 +192,39 @@ func (o *DisableHostNotFound) GetPayload() *models.Error {
 }
 
 func (o *DisableHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDisableHostMethodNotAllowed creates a DisableHostMethodNotAllowed with default headers values
+func NewDisableHostMethodNotAllowed() *DisableHostMethodNotAllowed {
+	return &DisableHostMethodNotAllowed{}
+}
+
+/*DisableHostMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type DisableHostMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *DisableHostMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *DisableHostMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DisableHostMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

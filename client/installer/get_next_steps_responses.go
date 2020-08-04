@@ -29,8 +29,26 @@ func (o *GetNextStepsReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewGetNextStepsUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewGetNextStepsForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGetNextStepsNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewGetNextStepsMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -43,7 +61,7 @@ func (o *GetNextStepsReader) ReadResponse(response runtime.ClientResponse, consu
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -80,6 +98,72 @@ func (o *GetNextStepsOK) readResponse(response runtime.ClientResponse, consumer 
 	return nil
 }
 
+// NewGetNextStepsUnauthorized creates a GetNextStepsUnauthorized with default headers values
+func NewGetNextStepsUnauthorized() *GetNextStepsUnauthorized {
+	return &GetNextStepsUnauthorized{}
+}
+
+/*GetNextStepsUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type GetNextStepsUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *GetNextStepsUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetNextStepsUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetNextStepsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetNextStepsForbidden creates a GetNextStepsForbidden with default headers values
+func NewGetNextStepsForbidden() *GetNextStepsForbidden {
+	return &GetNextStepsForbidden{}
+}
+
+/*GetNextStepsForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type GetNextStepsForbidden struct {
+	Payload *models.Error
+}
+
+func (o *GetNextStepsForbidden) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsForbidden  %+v", 403, o.Payload)
+}
+
+func (o *GetNextStepsForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetNextStepsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewGetNextStepsNotFound creates a GetNextStepsNotFound with default headers values
 func NewGetNextStepsNotFound() *GetNextStepsNotFound {
 	return &GetNextStepsNotFound{}
@@ -102,6 +186,39 @@ func (o *GetNextStepsNotFound) GetPayload() *models.Error {
 }
 
 func (o *GetNextStepsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetNextStepsMethodNotAllowed creates a GetNextStepsMethodNotAllowed with default headers values
+func NewGetNextStepsMethodNotAllowed() *GetNextStepsMethodNotAllowed {
+	return &GetNextStepsMethodNotAllowed{}
+}
+
+/*GetNextStepsMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type GetNextStepsMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *GetNextStepsMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *GetNextStepsMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetNextStepsMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

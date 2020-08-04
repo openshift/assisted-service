@@ -35,8 +35,26 @@ func (o *PostStepReplyReader) ReadResponse(response runtime.ClientResponse, cons
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewPostStepReplyUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewPostStepReplyForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewPostStepReplyNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewPostStepReplyMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,7 +67,7 @@ func (o *PostStepReplyReader) ReadResponse(response runtime.ClientResponse, cons
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -107,6 +125,72 @@ func (o *PostStepReplyBadRequest) readResponse(response runtime.ClientResponse, 
 	return nil
 }
 
+// NewPostStepReplyUnauthorized creates a PostStepReplyUnauthorized with default headers values
+func NewPostStepReplyUnauthorized() *PostStepReplyUnauthorized {
+	return &PostStepReplyUnauthorized{}
+}
+
+/*PostStepReplyUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type PostStepReplyUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *PostStepReplyUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PostStepReplyUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PostStepReplyUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPostStepReplyForbidden creates a PostStepReplyForbidden with default headers values
+func NewPostStepReplyForbidden() *PostStepReplyForbidden {
+	return &PostStepReplyForbidden{}
+}
+
+/*PostStepReplyForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type PostStepReplyForbidden struct {
+	Payload *models.Error
+}
+
+func (o *PostStepReplyForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyForbidden  %+v", 403, o.Payload)
+}
+
+func (o *PostStepReplyForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PostStepReplyForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewPostStepReplyNotFound creates a PostStepReplyNotFound with default headers values
 func NewPostStepReplyNotFound() *PostStepReplyNotFound {
 	return &PostStepReplyNotFound{}
@@ -129,6 +213,39 @@ func (o *PostStepReplyNotFound) GetPayload() *models.Error {
 }
 
 func (o *PostStepReplyNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPostStepReplyMethodNotAllowed creates a PostStepReplyMethodNotAllowed with default headers values
+func NewPostStepReplyMethodNotAllowed() *PostStepReplyMethodNotAllowed {
+	return &PostStepReplyMethodNotAllowed{}
+}
+
+/*PostStepReplyMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type PostStepReplyMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *PostStepReplyMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *PostStepReplyMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PostStepReplyMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

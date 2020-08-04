@@ -101,6 +101,94 @@ func (o *GenerateClusterISOBadRequest) WriteResponse(rw http.ResponseWriter, pro
 	}
 }
 
+// GenerateClusterISOUnauthorizedCode is the HTTP code returned for type GenerateClusterISOUnauthorized
+const GenerateClusterISOUnauthorizedCode int = 401
+
+/*GenerateClusterISOUnauthorized Unauthorized.
+
+swagger:response generateClusterISOUnauthorized
+*/
+type GenerateClusterISOUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGenerateClusterISOUnauthorized creates GenerateClusterISOUnauthorized with default headers values
+func NewGenerateClusterISOUnauthorized() *GenerateClusterISOUnauthorized {
+
+	return &GenerateClusterISOUnauthorized{}
+}
+
+// WithPayload adds the payload to the generate cluster i s o unauthorized response
+func (o *GenerateClusterISOUnauthorized) WithPayload(payload *models.Error) *GenerateClusterISOUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the generate cluster i s o unauthorized response
+func (o *GenerateClusterISOUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GenerateClusterISOUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GenerateClusterISOForbiddenCode is the HTTP code returned for type GenerateClusterISOForbidden
+const GenerateClusterISOForbiddenCode int = 403
+
+/*GenerateClusterISOForbidden Forbidden.
+
+swagger:response generateClusterISOForbidden
+*/
+type GenerateClusterISOForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGenerateClusterISOForbidden creates GenerateClusterISOForbidden with default headers values
+func NewGenerateClusterISOForbidden() *GenerateClusterISOForbidden {
+
+	return &GenerateClusterISOForbidden{}
+}
+
+// WithPayload adds the payload to the generate cluster i s o forbidden response
+func (o *GenerateClusterISOForbidden) WithPayload(payload *models.Error) *GenerateClusterISOForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the generate cluster i s o forbidden response
+func (o *GenerateClusterISOForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GenerateClusterISOForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GenerateClusterISONotFoundCode is the HTTP code returned for type GenerateClusterISONotFound
 const GenerateClusterISONotFoundCode int = 404
 
@@ -137,6 +225,50 @@ func (o *GenerateClusterISONotFound) SetPayload(payload *models.Error) {
 func (o *GenerateClusterISONotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GenerateClusterISOMethodNotAllowedCode is the HTTP code returned for type GenerateClusterISOMethodNotAllowed
+const GenerateClusterISOMethodNotAllowedCode int = 405
+
+/*GenerateClusterISOMethodNotAllowed Method Not Allowed.
+
+swagger:response generateClusterISOMethodNotAllowed
+*/
+type GenerateClusterISOMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGenerateClusterISOMethodNotAllowed creates GenerateClusterISOMethodNotAllowed with default headers values
+func NewGenerateClusterISOMethodNotAllowed() *GenerateClusterISOMethodNotAllowed {
+
+	return &GenerateClusterISOMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the generate cluster i s o method not allowed response
+func (o *GenerateClusterISOMethodNotAllowed) WithPayload(payload *models.Error) *GenerateClusterISOMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the generate cluster i s o method not allowed response
+func (o *GenerateClusterISOMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GenerateClusterISOMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

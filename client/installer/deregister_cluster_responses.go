@@ -29,8 +29,26 @@ func (o *DeregisterClusterReader) ReadResponse(response runtime.ClientResponse, 
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewDeregisterClusterUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewDeregisterClusterForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDeregisterClusterNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewDeregisterClusterMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,7 +67,7 @@ func (o *DeregisterClusterReader) ReadResponse(response runtime.ClientResponse, 
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -70,6 +88,72 @@ func (o *DeregisterClusterNoContent) Error() string {
 }
 
 func (o *DeregisterClusterNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeregisterClusterUnauthorized creates a DeregisterClusterUnauthorized with default headers values
+func NewDeregisterClusterUnauthorized() *DeregisterClusterUnauthorized {
+	return &DeregisterClusterUnauthorized{}
+}
+
+/*DeregisterClusterUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type DeregisterClusterUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *DeregisterClusterUnauthorized) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeregisterClusterUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeregisterClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDeregisterClusterForbidden creates a DeregisterClusterForbidden with default headers values
+func NewDeregisterClusterForbidden() *DeregisterClusterForbidden {
+	return &DeregisterClusterForbidden{}
+}
+
+/*DeregisterClusterForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type DeregisterClusterForbidden struct {
+	Payload *models.Error
+}
+
+func (o *DeregisterClusterForbidden) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterForbidden  %+v", 403, o.Payload)
+}
+
+func (o *DeregisterClusterForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeregisterClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -96,6 +180,39 @@ func (o *DeregisterClusterNotFound) GetPayload() *models.Error {
 }
 
 func (o *DeregisterClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDeregisterClusterMethodNotAllowed creates a DeregisterClusterMethodNotAllowed with default headers values
+func NewDeregisterClusterMethodNotAllowed() *DeregisterClusterMethodNotAllowed {
+	return &DeregisterClusterMethodNotAllowed{}
+}
+
+/*DeregisterClusterMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type DeregisterClusterMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *DeregisterClusterMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *DeregisterClusterMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeregisterClusterMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

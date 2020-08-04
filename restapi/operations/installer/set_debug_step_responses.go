@@ -37,6 +37,94 @@ func (o *SetDebugStepNoContent) WriteResponse(rw http.ResponseWriter, producer r
 	rw.WriteHeader(204)
 }
 
+// SetDebugStepUnauthorizedCode is the HTTP code returned for type SetDebugStepUnauthorized
+const SetDebugStepUnauthorizedCode int = 401
+
+/*SetDebugStepUnauthorized Unauthorized.
+
+swagger:response setDebugStepUnauthorized
+*/
+type SetDebugStepUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewSetDebugStepUnauthorized creates SetDebugStepUnauthorized with default headers values
+func NewSetDebugStepUnauthorized() *SetDebugStepUnauthorized {
+
+	return &SetDebugStepUnauthorized{}
+}
+
+// WithPayload adds the payload to the set debug step unauthorized response
+func (o *SetDebugStepUnauthorized) WithPayload(payload *models.Error) *SetDebugStepUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the set debug step unauthorized response
+func (o *SetDebugStepUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *SetDebugStepUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// SetDebugStepForbiddenCode is the HTTP code returned for type SetDebugStepForbidden
+const SetDebugStepForbiddenCode int = 403
+
+/*SetDebugStepForbidden Forbidden.
+
+swagger:response setDebugStepForbidden
+*/
+type SetDebugStepForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewSetDebugStepForbidden creates SetDebugStepForbidden with default headers values
+func NewSetDebugStepForbidden() *SetDebugStepForbidden {
+
+	return &SetDebugStepForbidden{}
+}
+
+// WithPayload adds the payload to the set debug step forbidden response
+func (o *SetDebugStepForbidden) WithPayload(payload *models.Error) *SetDebugStepForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the set debug step forbidden response
+func (o *SetDebugStepForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *SetDebugStepForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // SetDebugStepNotFoundCode is the HTTP code returned for type SetDebugStepNotFound
 const SetDebugStepNotFoundCode int = 404
 
@@ -73,6 +161,50 @@ func (o *SetDebugStepNotFound) SetPayload(payload *models.Error) {
 func (o *SetDebugStepNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// SetDebugStepMethodNotAllowedCode is the HTTP code returned for type SetDebugStepMethodNotAllowed
+const SetDebugStepMethodNotAllowedCode int = 405
+
+/*SetDebugStepMethodNotAllowed Method Not Allowed.
+
+swagger:response setDebugStepMethodNotAllowed
+*/
+type SetDebugStepMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewSetDebugStepMethodNotAllowed creates SetDebugStepMethodNotAllowed with default headers values
+func NewSetDebugStepMethodNotAllowed() *SetDebugStepMethodNotAllowed {
+
+	return &SetDebugStepMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the set debug step method not allowed response
+func (o *SetDebugStepMethodNotAllowed) WithPayload(payload *models.Error) *SetDebugStepMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the set debug step method not allowed response
+func (o *SetDebugStepMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *SetDebugStepMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

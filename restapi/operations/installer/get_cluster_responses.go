@@ -57,6 +57,94 @@ func (o *GetClusterOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pr
 	}
 }
 
+// GetClusterUnauthorizedCode is the HTTP code returned for type GetClusterUnauthorized
+const GetClusterUnauthorizedCode int = 401
+
+/*GetClusterUnauthorized Unauthorized.
+
+swagger:response getClusterUnauthorized
+*/
+type GetClusterUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetClusterUnauthorized creates GetClusterUnauthorized with default headers values
+func NewGetClusterUnauthorized() *GetClusterUnauthorized {
+
+	return &GetClusterUnauthorized{}
+}
+
+// WithPayload adds the payload to the get cluster unauthorized response
+func (o *GetClusterUnauthorized) WithPayload(payload *models.Error) *GetClusterUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get cluster unauthorized response
+func (o *GetClusterUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetClusterUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetClusterForbiddenCode is the HTTP code returned for type GetClusterForbidden
+const GetClusterForbiddenCode int = 403
+
+/*GetClusterForbidden Forbidden.
+
+swagger:response getClusterForbidden
+*/
+type GetClusterForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetClusterForbidden creates GetClusterForbidden with default headers values
+func NewGetClusterForbidden() *GetClusterForbidden {
+
+	return &GetClusterForbidden{}
+}
+
+// WithPayload adds the payload to the get cluster forbidden response
+func (o *GetClusterForbidden) WithPayload(payload *models.Error) *GetClusterForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get cluster forbidden response
+func (o *GetClusterForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetClusterForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetClusterNotFoundCode is the HTTP code returned for type GetClusterNotFound
 const GetClusterNotFoundCode int = 404
 
@@ -93,6 +181,50 @@ func (o *GetClusterNotFound) SetPayload(payload *models.Error) {
 func (o *GetClusterNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetClusterMethodNotAllowedCode is the HTTP code returned for type GetClusterMethodNotAllowed
+const GetClusterMethodNotAllowedCode int = 405
+
+/*GetClusterMethodNotAllowed Method Not Allowed.
+
+swagger:response getClusterMethodNotAllowed
+*/
+type GetClusterMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetClusterMethodNotAllowed creates GetClusterMethodNotAllowed with default headers values
+func NewGetClusterMethodNotAllowed() *GetClusterMethodNotAllowed {
+
+	return &GetClusterMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the get cluster method not allowed response
+func (o *GetClusterMethodNotAllowed) WithPayload(payload *models.Error) *GetClusterMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get cluster method not allowed response
+func (o *GetClusterMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetClusterMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

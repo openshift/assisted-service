@@ -81,6 +81,94 @@ func (o *PostStepReplyBadRequest) WriteResponse(rw http.ResponseWriter, producer
 	}
 }
 
+// PostStepReplyUnauthorizedCode is the HTTP code returned for type PostStepReplyUnauthorized
+const PostStepReplyUnauthorizedCode int = 401
+
+/*PostStepReplyUnauthorized Unauthorized.
+
+swagger:response postStepReplyUnauthorized
+*/
+type PostStepReplyUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostStepReplyUnauthorized creates PostStepReplyUnauthorized with default headers values
+func NewPostStepReplyUnauthorized() *PostStepReplyUnauthorized {
+
+	return &PostStepReplyUnauthorized{}
+}
+
+// WithPayload adds the payload to the post step reply unauthorized response
+func (o *PostStepReplyUnauthorized) WithPayload(payload *models.Error) *PostStepReplyUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post step reply unauthorized response
+func (o *PostStepReplyUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostStepReplyUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// PostStepReplyForbiddenCode is the HTTP code returned for type PostStepReplyForbidden
+const PostStepReplyForbiddenCode int = 403
+
+/*PostStepReplyForbidden Forbidden.
+
+swagger:response postStepReplyForbidden
+*/
+type PostStepReplyForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostStepReplyForbidden creates PostStepReplyForbidden with default headers values
+func NewPostStepReplyForbidden() *PostStepReplyForbidden {
+
+	return &PostStepReplyForbidden{}
+}
+
+// WithPayload adds the payload to the post step reply forbidden response
+func (o *PostStepReplyForbidden) WithPayload(payload *models.Error) *PostStepReplyForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post step reply forbidden response
+func (o *PostStepReplyForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostStepReplyForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // PostStepReplyNotFoundCode is the HTTP code returned for type PostStepReplyNotFound
 const PostStepReplyNotFoundCode int = 404
 
@@ -117,6 +205,50 @@ func (o *PostStepReplyNotFound) SetPayload(payload *models.Error) {
 func (o *PostStepReplyNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// PostStepReplyMethodNotAllowedCode is the HTTP code returned for type PostStepReplyMethodNotAllowed
+const PostStepReplyMethodNotAllowedCode int = 405
+
+/*PostStepReplyMethodNotAllowed Method Not Allowed.
+
+swagger:response postStepReplyMethodNotAllowed
+*/
+type PostStepReplyMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostStepReplyMethodNotAllowed creates PostStepReplyMethodNotAllowed with default headers values
+func NewPostStepReplyMethodNotAllowed() *PostStepReplyMethodNotAllowed {
+
+	return &PostStepReplyMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the post step reply method not allowed response
+func (o *PostStepReplyMethodNotAllowed) WithPayload(payload *models.Error) *PostStepReplyMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post step reply method not allowed response
+func (o *PostStepReplyMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostStepReplyMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

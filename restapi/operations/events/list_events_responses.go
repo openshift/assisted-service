@@ -60,6 +60,138 @@ func (o *ListEventsOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pr
 	}
 }
 
+// ListEventsUnauthorizedCode is the HTTP code returned for type ListEventsUnauthorized
+const ListEventsUnauthorizedCode int = 401
+
+/*ListEventsUnauthorized Unauthorized.
+
+swagger:response listEventsUnauthorized
+*/
+type ListEventsUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListEventsUnauthorized creates ListEventsUnauthorized with default headers values
+func NewListEventsUnauthorized() *ListEventsUnauthorized {
+
+	return &ListEventsUnauthorized{}
+}
+
+// WithPayload adds the payload to the list events unauthorized response
+func (o *ListEventsUnauthorized) WithPayload(payload *models.Error) *ListEventsUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list events unauthorized response
+func (o *ListEventsUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListEventsUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// ListEventsForbiddenCode is the HTTP code returned for type ListEventsForbidden
+const ListEventsForbiddenCode int = 403
+
+/*ListEventsForbidden Forbidden.
+
+swagger:response listEventsForbidden
+*/
+type ListEventsForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListEventsForbidden creates ListEventsForbidden with default headers values
+func NewListEventsForbidden() *ListEventsForbidden {
+
+	return &ListEventsForbidden{}
+}
+
+// WithPayload adds the payload to the list events forbidden response
+func (o *ListEventsForbidden) WithPayload(payload *models.Error) *ListEventsForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list events forbidden response
+func (o *ListEventsForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListEventsForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// ListEventsMethodNotAllowedCode is the HTTP code returned for type ListEventsMethodNotAllowed
+const ListEventsMethodNotAllowedCode int = 405
+
+/*ListEventsMethodNotAllowed Method Not Allowed.
+
+swagger:response listEventsMethodNotAllowed
+*/
+type ListEventsMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListEventsMethodNotAllowed creates ListEventsMethodNotAllowed with default headers values
+func NewListEventsMethodNotAllowed() *ListEventsMethodNotAllowed {
+
+	return &ListEventsMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the list events method not allowed response
+func (o *ListEventsMethodNotAllowed) WithPayload(payload *models.Error) *ListEventsMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list events method not allowed response
+func (o *ListEventsMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListEventsMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // ListEventsInternalServerErrorCode is the HTTP code returned for type ListEventsInternalServerError
 const ListEventsInternalServerErrorCode int = 500
 

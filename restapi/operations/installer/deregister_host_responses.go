@@ -81,6 +81,94 @@ func (o *DeregisterHostBadRequest) WriteResponse(rw http.ResponseWriter, produce
 	}
 }
 
+// DeregisterHostUnauthorizedCode is the HTTP code returned for type DeregisterHostUnauthorized
+const DeregisterHostUnauthorizedCode int = 401
+
+/*DeregisterHostUnauthorized Unauthorized.
+
+swagger:response deregisterHostUnauthorized
+*/
+type DeregisterHostUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeregisterHostUnauthorized creates DeregisterHostUnauthorized with default headers values
+func NewDeregisterHostUnauthorized() *DeregisterHostUnauthorized {
+
+	return &DeregisterHostUnauthorized{}
+}
+
+// WithPayload adds the payload to the deregister host unauthorized response
+func (o *DeregisterHostUnauthorized) WithPayload(payload *models.Error) *DeregisterHostUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the deregister host unauthorized response
+func (o *DeregisterHostUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeregisterHostUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DeregisterHostForbiddenCode is the HTTP code returned for type DeregisterHostForbidden
+const DeregisterHostForbiddenCode int = 403
+
+/*DeregisterHostForbidden Forbidden.
+
+swagger:response deregisterHostForbidden
+*/
+type DeregisterHostForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeregisterHostForbidden creates DeregisterHostForbidden with default headers values
+func NewDeregisterHostForbidden() *DeregisterHostForbidden {
+
+	return &DeregisterHostForbidden{}
+}
+
+// WithPayload adds the payload to the deregister host forbidden response
+func (o *DeregisterHostForbidden) WithPayload(payload *models.Error) *DeregisterHostForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the deregister host forbidden response
+func (o *DeregisterHostForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeregisterHostForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DeregisterHostNotFoundCode is the HTTP code returned for type DeregisterHostNotFound
 const DeregisterHostNotFoundCode int = 404
 
@@ -117,6 +205,50 @@ func (o *DeregisterHostNotFound) SetPayload(payload *models.Error) {
 func (o *DeregisterHostNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DeregisterHostMethodNotAllowedCode is the HTTP code returned for type DeregisterHostMethodNotAllowed
+const DeregisterHostMethodNotAllowedCode int = 405
+
+/*DeregisterHostMethodNotAllowed Method Not Allowed.
+
+swagger:response deregisterHostMethodNotAllowed
+*/
+type DeregisterHostMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeregisterHostMethodNotAllowed creates DeregisterHostMethodNotAllowed with default headers values
+func NewDeregisterHostMethodNotAllowed() *DeregisterHostMethodNotAllowed {
+
+	return &DeregisterHostMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the deregister host method not allowed response
+func (o *DeregisterHostMethodNotAllowed) WithPayload(payload *models.Error) *DeregisterHostMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the deregister host method not allowed response
+func (o *DeregisterHostMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeregisterHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

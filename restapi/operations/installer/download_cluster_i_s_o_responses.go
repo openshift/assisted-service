@@ -100,6 +100,94 @@ func (o *DownloadClusterISOBadRequest) WriteResponse(rw http.ResponseWriter, pro
 	}
 }
 
+// DownloadClusterISOUnauthorizedCode is the HTTP code returned for type DownloadClusterISOUnauthorized
+const DownloadClusterISOUnauthorizedCode int = 401
+
+/*DownloadClusterISOUnauthorized Unauthorized.
+
+swagger:response downloadClusterISOUnauthorized
+*/
+type DownloadClusterISOUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterISOUnauthorized creates DownloadClusterISOUnauthorized with default headers values
+func NewDownloadClusterISOUnauthorized() *DownloadClusterISOUnauthorized {
+
+	return &DownloadClusterISOUnauthorized{}
+}
+
+// WithPayload adds the payload to the download cluster i s o unauthorized response
+func (o *DownloadClusterISOUnauthorized) WithPayload(payload *models.Error) *DownloadClusterISOUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download cluster i s o unauthorized response
+func (o *DownloadClusterISOUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterISOUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DownloadClusterISOForbiddenCode is the HTTP code returned for type DownloadClusterISOForbidden
+const DownloadClusterISOForbiddenCode int = 403
+
+/*DownloadClusterISOForbidden Forbidden.
+
+swagger:response downloadClusterISOForbidden
+*/
+type DownloadClusterISOForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterISOForbidden creates DownloadClusterISOForbidden with default headers values
+func NewDownloadClusterISOForbidden() *DownloadClusterISOForbidden {
+
+	return &DownloadClusterISOForbidden{}
+}
+
+// WithPayload adds the payload to the download cluster i s o forbidden response
+func (o *DownloadClusterISOForbidden) WithPayload(payload *models.Error) *DownloadClusterISOForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download cluster i s o forbidden response
+func (o *DownloadClusterISOForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterISOForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DownloadClusterISONotFoundCode is the HTTP code returned for type DownloadClusterISONotFound
 const DownloadClusterISONotFoundCode int = 404
 
@@ -136,6 +224,50 @@ func (o *DownloadClusterISONotFound) SetPayload(payload *models.Error) {
 func (o *DownloadClusterISONotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DownloadClusterISOMethodNotAllowedCode is the HTTP code returned for type DownloadClusterISOMethodNotAllowed
+const DownloadClusterISOMethodNotAllowedCode int = 405
+
+/*DownloadClusterISOMethodNotAllowed Method Not Allowed.
+
+swagger:response downloadClusterISOMethodNotAllowed
+*/
+type DownloadClusterISOMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterISOMethodNotAllowed creates DownloadClusterISOMethodNotAllowed with default headers values
+func NewDownloadClusterISOMethodNotAllowed() *DownloadClusterISOMethodNotAllowed {
+
+	return &DownloadClusterISOMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the download cluster i s o method not allowed response
+func (o *DownloadClusterISOMethodNotAllowed) WithPayload(payload *models.Error) *DownloadClusterISOMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download cluster i s o method not allowed response
+func (o *DownloadClusterISOMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterISOMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {
