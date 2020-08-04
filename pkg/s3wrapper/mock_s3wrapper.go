@@ -9,6 +9,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	io "io"
 	reflect "reflect"
+	time "time"
 )
 
 // MockAPI is a mock of API interface
@@ -120,4 +121,34 @@ func (m *MockAPI) UpdateObjectTag(ctx context.Context, objectName, key, value st
 func (mr *MockAPIMockRecorder) UpdateObjectTag(ctx, objectName, key, value interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateObjectTag", reflect.TypeOf((*MockAPI)(nil).UpdateObjectTag), ctx, objectName, key, value)
+}
+
+// GetObjectSizeBytes mocks base method
+func (m *MockAPI) GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetObjectSizeBytes", ctx, objectName)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetObjectSizeBytes indicates an expected call of GetObjectSizeBytes
+func (mr *MockAPIMockRecorder) GetObjectSizeBytes(ctx, objectName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjectSizeBytes", reflect.TypeOf((*MockAPI)(nil).GetObjectSizeBytes), ctx, objectName)
+}
+
+// GeneratePresignedDownloadURL mocks base method
+func (m *MockAPI) GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GeneratePresignedDownloadURL", ctx, objectName, duration)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GeneratePresignedDownloadURL indicates an expected call of GeneratePresignedDownloadURL
+func (mr *MockAPIMockRecorder) GeneratePresignedDownloadURL(ctx, objectName, duration interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GeneratePresignedDownloadURL", reflect.TypeOf((*MockAPI)(nil).GeneratePresignedDownloadURL), ctx, objectName, duration)
 }

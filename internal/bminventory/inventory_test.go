@@ -12,14 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/metrics"
-
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/openshift/assisted-service/internal/common"
-
-	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/pkg/filemiddleware"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -27,8 +20,12 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/openshift/assisted-service/internal/cluster"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/job"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -62,14 +59,15 @@ func strToUUID(s string) *strfmt.UUID {
 
 var _ = Describe("GenerateClusterISO", func() {
 	var (
-		bm         *bareMetalInventory
-		cfg        Config
-		db         *gorm.DB
-		ctx        = context.Background()
-		ctrl       *gomock.Controller
-		mockJob    *job.MockAPI
-		mockEvents *events.MockHandler
-		dbName     = "generate_cluster_iso"
+		bm           *bareMetalInventory
+		cfg          Config
+		db           *gorm.DB
+		ctx          = context.Background()
+		ctrl         *gomock.Controller
+		mockJob      *job.MockAPI
+		mockEvents   *events.MockHandler
+		mockS3Client *s3wrapper.MockAPI
+		dbName       = "generate_cluster_iso"
 	)
 
 	BeforeEach(func() {
@@ -78,8 +76,9 @@ var _ = Describe("GenerateClusterISO", func() {
 		db = common.PrepareTestDB(dbName)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, mockEvents, nil, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockJob, mockEvents, mockS3Client, nil)
 	})
 
 	AfterEach(func() {
@@ -102,6 +101,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockJob.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
@@ -110,6 +111,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
 		Expect(getReply.Payload.ImageInfo.GeneratorVersion).To(Equal("quay.io/ocpmetal/installer-image-build:latest"))
+		Expect(*getReply.Payload.ImageInfo.SizeBytes).To(Equal(int64(100)))
 	})
 
 	It("success with proxy", func() {
@@ -119,6 +121,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockJob.EXPECT().Monitor(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", SSH public key "+
 			"is not set)", gomock.Any())
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{ProxyURL: "http://1.1.1.1:1234"},
