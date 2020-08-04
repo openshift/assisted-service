@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: bm-inventory-config
+  name: assisted-service-config
   namespace: REPLACE_NAMESPACE
   labels:
-    app: bm-inventory
+    app: assisted-service
 data:
   INVENTORY_URL: REPLACE_URL
   INVENTORY_PORT: REPLACE_PORT

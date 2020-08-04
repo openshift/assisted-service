@@ -10,8 +10,8 @@ def main():
     parser.add_argument("--domain")
     deploy_options = deployment_options.load_deployment_options(parser)
 
-    src_file = os.path.join(os.getcwd(), "deploy/bm-inventory-service.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/bm-inventory-service.yaml")
+    src_file = os.path.join(os.getcwd(), "deploy/assisted-service-service.yaml")
+    dst_file = os.path.join(os.getcwd(), "build/assisted-service-service.yaml")
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()

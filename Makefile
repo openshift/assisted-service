@@ -17,7 +17,7 @@ kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}'
 endef # get_service
 endif # TARGET
 
-SERVICE := $(or ${SERVICE},quay.io/ocpmetal/bm-inventory:latest)
+SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -29,7 +29,7 @@ lint:
 
 .PHONY: build
 build: create-build-dir lint unit-test
-	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/bm-inventory cmd/main.go
+	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
 create-build-dir:
 	mkdir -p $(BUILD_FOLDER)
@@ -38,7 +38,7 @@ format:
 	goimports -w -l cmd/ internal/ subsystem/
 
 generate:
-	go generate $(shell go list ./... | grep -v 'bm-inventory/models\|bm-inventory/client\|bm-inventory/restapi')
+	go generate $(shell go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi')
 
 generate-from-swagger:
 	rm -rf client models restapi
@@ -54,28 +54,28 @@ generate-from-swagger:
 ##########
 
 update: build create-python-client
-	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.bm-inventory . -t $(SERVICE)
+	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
 	docker push $(SERVICE)
 
 update-minikube: build create-python-client
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube docker-env) && \
-	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.bm-inventory . -t $(SERVICE)
+	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
 
-create-python-client: build/bm-inventory-client-${GIT_REVISION}.tar.gz
+create-python-client: build/assisted-service-client-${GIT_REVISION}.tar.gz
 
-build/bm-inventory-client/setup.py: swagger.yaml
+build/assisted-service-client/setup.py: swagger.yaml
 	cp swagger.yaml $(BUILD_FOLDER)
 	echo '{"packageName" : "bm_inventory_client", "packageVersion": "1.0.0"}' > $(BUILD_FOLDER)/code-gen-config.json
 	sed -i '/pattern:/d' $(BUILD_FOLDER)/swagger.yaml
 	docker run --rm -u $(shell id -u $(USER)) -v $(BUILD_FOLDER):/swagger-api/out:Z \
 		-v $(BUILD_FOLDER)/swagger.yaml:/swagger.yaml:ro,Z -v $(BUILD_FOLDER)/code-gen-config.json:/config.json:ro,Z \
-		jimschubert/swagger-codegen-cli:2.3.1 generate --lang python --config /config.json --output ./bm-inventory-client/ --input-spec /swagger.yaml
+		jimschubert/swagger-codegen-cli:2.3.1 generate --lang python --config /config.json --output ./assisted-service-client/ --input-spec /swagger.yaml
 	rm -f $(BUILD_FOLDER)/swagger.yaml
 
-build/bm-inventory-client-%.tar.gz: build/bm-inventory-client/setup.py
+build/assisted-service-client-%.tar.gz: build/assisted-service-client/setup.py
 	rm -rf $@
-	cd $(BUILD_FOLDER)/bm-inventory-client/ && python3 setup.py sdist --dist-dir $(BUILD_FOLDER)
-	rm -rf bm-inventory-client/bm-inventory-client.egg-info
+	cd $(BUILD_FOLDER)/assisted-service-client/ && python3 setup.py sdist --dist-dir $(BUILD_FOLDER)
+	rm -rf assisted-service-client/assisted-service-client.egg-info
 
 ##########
 # Deploy #
@@ -117,7 +117,7 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" $(TEST_FLAGS)
-	python3 ./tools/wait_for_pod.py --app=bm-inventory --state=running --namespace "$(NAMESPACE)"
+	python3 ./tools/wait_for_pod.py --app=assisted-service --state=running --namespace "$(NAMESPACE)"
 
 deploy-role: deploy-namespace
 	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)"
@@ -126,7 +126,7 @@ deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)"
 
 deploy-test:
-	export SERVICE=quay.io/ocpmetal/bm-inventory:test && export TEST_FLAGS=--subsystem-test && \
+	export SERVICE=quay.io/ocpmetal/assisted-service:test && export TEST_FLAGS=--subsystem-test && \
 	$(MAKE) update-minikube deploy-all
 
 ########
@@ -136,7 +136,7 @@ deploy-test:
 subsystem-run: test subsystem-clean
 
 test:
-	INVENTORY=$(shell $(call get_service,bm-inventory) | sed 's/http:\/\///g') \
+	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
 		DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
 		DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
 		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 20m

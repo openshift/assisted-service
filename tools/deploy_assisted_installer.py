@@ -5,8 +5,8 @@ import yaml
 import deployment_options
 
 
-SRC_FILE = os.path.join(os.getcwd(), "deploy/bm-inventory.yaml")
-DST_FILE = os.path.join(os.getcwd(), "build/bm-inventory.yaml")
+SRC_FILE = os.path.join(os.getcwd(), "deploy/assisted-service.yaml")
+DST_FILE = os.path.join(os.getcwd(), "build/assisted-service.yaml")
 
 TEST_CLUSTER_MONITOR_INTERVAL = "1s"
 TEST_HOST_MONITOR_INTERVAL = "1s"
@@ -22,7 +22,7 @@ def main():
 
         data = yaml.safe_load(raw_data)
 
-        image_fqdn = deployment_options.get_image_override(deploy_options, "bm-inventory", "SERVICE")
+        image_fqdn = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
         data["spec"]["template"]["spec"]["containers"][0]["image"] = image_fqdn
         if deploy_options.subsystem_test:
             if data["spec"]["template"]["spec"]["containers"][0].get("env", None) is None:
