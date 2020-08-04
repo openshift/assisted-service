@@ -1,13 +1,23 @@
 pipeline {
   agent { label 'bm-inventory-subsystem' }
   stages {
-  stage('test login to quay') {
-       steps {
-           withCredentials([usernamePassword(credentialsId: 'ocpmetal_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-            sh '''docker login quay.io -u $USER -p $PASS'''
-          }
-          }
-          }
+          stage('print env') {
+		  steps {
+			  sh "printenv"
+		  }
+	  }
+	  stage('test login to quay') {
+		  steps {
+			  sh '''docker build -f Dockerfile.ronnie-test . -t quay.io/ocpmetal/ronnie-test'''
+			  script {
+				  docker.withRegistry('https://quay.io/', 'ocpmetal_cred') {
+					  def img = docker.image('quay.io/ocpmetal/ronnie-test')
+					  img.push('latest')
+					  img.push('${GIT_COMMIT}')
+			  }
+			  }
+		  }
+	  }
     stage('clear deployment') {
       steps {
         sh 'make clear-deployment'
