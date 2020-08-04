@@ -254,7 +254,7 @@ func (v *validator) printIsMachineCidrDefined(context *validationContext, status
 	case ValidationSuccess:
 		return "Machine network CIDR is defined"
 	case ValidationFailure:
-		return "Machine network CIDR is undefined"
+		return "Machine network CIDR is undefined.  The machine network CIDR is defined by setting either the API vip or the Ingress VIP"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
