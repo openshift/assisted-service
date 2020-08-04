@@ -60,7 +60,7 @@ update: build create-python-client
 	docker push $(SERVICE)
 
 update-minimal: build-minimal create-python-client
-	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.bm-inventory . -t $(SERVICE)
+	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
 
 update-minikube: build create-python-client
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube docker-env) && \
