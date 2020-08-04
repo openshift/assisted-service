@@ -65,7 +65,7 @@ create-python-client: build/assisted-service-client-${GIT_REVISION}.tar.gz
 
 build/assisted-service-client/setup.py: swagger.yaml
 	cp swagger.yaml $(BUILD_FOLDER)
-	echo '{"packageName" : "bm_inventory_client", "packageVersion": "1.0.0"}' > $(BUILD_FOLDER)/code-gen-config.json
+	echo '{"packageName" : "assisted_service_client", "packageVersion": "1.0.0"}' > $(BUILD_FOLDER)/code-gen-config.json
 	sed -i '/pattern:/d' $(BUILD_FOLDER)/swagger.yaml
 	docker run --rm -u $(shell id -u $(USER)) -v $(BUILD_FOLDER):/swagger-api/out:Z \
 		-v $(BUILD_FOLDER)/swagger.yaml:/swagger.yaml:ro,Z -v $(BUILD_FOLDER)/code-gen-config.json:/config.json:ro,Z \
