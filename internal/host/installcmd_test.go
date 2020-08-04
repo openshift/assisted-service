@@ -19,8 +19,8 @@ import (
 )
 
 var defaultInstructionConfig = InstructionConfig{
-	InventoryURL:    "10.35.59.36",
-	InventoryPort:   "30485",
+	ServiceURL:      "10.35.59.36",
+	ServicePort:     "30485",
 	InstallerImage:  "quay.io/ocpmetal/assisted-installer:latest",
 	ControllerImage: "quay.io/ocpmetal/assisted-installer-controller:latest",
 }
@@ -156,7 +156,7 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
 			"--controller-image %s --host-name %s"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			defaultInstructionConfig.InventoryURL, defaultInstructionConfig.InventoryPort, hostId,
+			defaultInstructionConfig.ServiceURL, defaultInstructionConfig.ServicePort, hostId,
 			defaultInstructionConfig.ControllerImage, hostname)))
 	} else {
 		installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
@@ -167,7 +167,7 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
 			"--controller-image %s"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			defaultInstructionConfig.InventoryURL, defaultInstructionConfig.InventoryPort, hostId,
+			defaultInstructionConfig.ServiceURL, defaultInstructionConfig.ServicePort, hostId,
 			defaultInstructionConfig.ControllerImage)))
 	}
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
