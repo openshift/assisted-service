@@ -22,6 +22,8 @@ def handle_arguments():
     parser.add_argument("--target")
     parser.add_argument("--domain")
     parser.add_argument("--base-dns-domains")
+    parser.add_argument("--enable-auth", default="False")
+    parser.add_argument("--jwks-url", default="https://api.openshift.com/.well-known/jwks.json")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -43,6 +45,8 @@ def main():
             data = data.replace("REPLACE_PORT", '"{}"'.format(service_port))
             data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
             data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+            data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
+            data = data.replace('REPLACE_JWKS_URL', deploy_options.jwks_url)
             print("Deploying {}".format(DST_FILE))
 
             versions = {"IMAGE_BUILDER": "installer-image-build",

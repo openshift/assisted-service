@@ -27,7 +27,7 @@ func strToUUID(s string) *strfmt.UUID {
 }
 
 func registerHost(clusterID strfmt.UUID) *models.Host {
-	host, err := bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+	host, err := agentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
 		ClusterID: clusterID,
 		NewHostParams: &models.HostCreateParams{
 			HostID: strToUUID(uuid.New().String()),
@@ -38,7 +38,7 @@ func registerHost(clusterID strfmt.UUID) *models.Host {
 }
 
 func getHost(clusterID, hostID strfmt.UUID) *models.Host {
-	host, err := bmclient.Installer.GetHost(context.Background(), &installer.GetHostParams{
+	host, err := userBMClient.Installer.GetHost(context.Background(), &installer.GetHostParams{
 		ClusterID: clusterID,
 		HostID:    hostID,
 	})
@@ -56,7 +56,7 @@ func getStepInList(steps models.Steps, sType models.StepType) (*models.Step, boo
 }
 
 func getNextSteps(clusterID, hostID strfmt.UUID) models.Steps {
-	steps, err := bmclient.Installer.GetNextSteps(context.Background(), &installer.GetNextStepsParams{
+	steps, err := agentBMClient.Installer.GetNextSteps(context.Background(), &installer.GetNextStepsParams{
 		ClusterID: clusterID,
 		HostID:    hostID,
 	})
@@ -75,7 +75,7 @@ func updateProgressWithInfo(hostID strfmt.UUID, clusterID strfmt.UUID, current_s
 		CurrentStage: current_step,
 		ProgressInfo: info,
 	}
-	updateReply, err := bmclient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
+	updateReply, err := agentBMClient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
 		ClusterID:    clusterID,
 		HostProgress: installProgress,
 		HostID:       hostID,

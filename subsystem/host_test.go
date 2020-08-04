@@ -28,7 +28,7 @@ var _ = Describe("Host tests", func() {
 
 	BeforeEach(func() {
 		var err error
-		cluster, err = bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
@@ -47,20 +47,20 @@ var _ = Describe("Host tests", func() {
 		Expect(*host.Status).Should(Equal("discovering"))
 		Expect(host.StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 
-		list, err := bmclient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
+		list, err := userBMClient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
-		_, err = bmclient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
+		_, err = userBMClient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		list, err = bmclient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
+		list, err = userBMClient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(0))
 
-		_, err = bmclient.Installer.GetHost(ctx, &installer.GetHostParams{
+		_, err = userBMClient.Installer.GetHost(ctx, &installer.GetHostParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 		})
@@ -189,7 +189,7 @@ var _ = Describe("Host tests", func() {
 		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
 		Expect(db.Model(host).Update("role", "worker").Error).NotTo(HaveOccurred())
 
-		_, err := bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 			Reply: &models.StepReply{
@@ -212,7 +212,7 @@ var _ = Describe("Host tests", func() {
 		connectivity := "{\"remote_hosts\":[{\"host_id\":\"b8a1228d-1091-4e79-be66-738a160f9ff7\",\"l2_connectivity\":null,\"l3_connectivity\":null}]}"
 		extraConnectivity := "{\"extra\":\"data\",\"remote_hosts\":[{\"host_id\":\"b8a1228d-1091-4e79-be66-738a160f9ff7\",\"l2_connectivity\":null,\"l3_connectivity\":null}]}"
 
-		_, err := bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 			Reply: &models.StepReply{
@@ -226,7 +226,7 @@ var _ = Describe("Host tests", func() {
 		host = getHost(clusterID, *host.ID)
 		Expect(host.Connectivity).Should(Equal(connectivity))
 
-		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 			Reply: &models.StepReply{
@@ -241,7 +241,7 @@ var _ = Describe("Host tests", func() {
 		Expect(host.Connectivity).Should(Equal(connectivity))
 
 		//exit code is not 0
-		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 			Reply: &models.StepReply{
@@ -262,7 +262,7 @@ var _ = Describe("Host tests", func() {
 
 		free_addresses_report := "[{\"free_addresses\":[\"10.0.0.0\",\"10.0.0.1\"],\"network\":\"10.0.0.0/24\"},{\"free_addresses\":[\"10.0.1.0\"],\"network\":\"10.0.1.0/24\"}]"
 
-		_, err := bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *h.ID,
 			Reply: &models.StepReply{
@@ -277,7 +277,7 @@ var _ = Describe("Host tests", func() {
 		h = getHost(clusterID, *h.ID)
 		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
 
-		freeAddressesReply, err := bmclient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
+		freeAddressesReply, err := userBMClient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
 			ClusterID: clusterID,
 			Network:   "10.0.0.0/24",
 		})
@@ -286,7 +286,7 @@ var _ = Describe("Host tests", func() {
 		Expect(freeAddressesReply.Payload[0]).To(Equal(strfmt.IPv4("10.0.0.0")))
 		Expect(freeAddressesReply.Payload[1]).To(Equal(strfmt.IPv4("10.0.0.1")))
 
-		freeAddressesReply, err = bmclient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
+		freeAddressesReply, err = userBMClient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
 			ClusterID: clusterID,
 			Network:   "10.0.1.0/24",
 		})
@@ -294,14 +294,14 @@ var _ = Describe("Host tests", func() {
 		Expect(freeAddressesReply.Payload).To(HaveLen(1))
 		Expect(freeAddressesReply.Payload[0]).To(Equal(strfmt.IPv4("10.0.1.0")))
 
-		freeAddressesReply, err = bmclient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
+		freeAddressesReply, err = userBMClient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
 			ClusterID: clusterID,
 			Network:   "10.0.2.0/24",
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(freeAddressesReply.Payload).To(BeEmpty())
 
-		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *h.ID,
 			Reply: &models.StepReply{
@@ -316,7 +316,7 @@ var _ = Describe("Host tests", func() {
 		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
 
 		//exit code is not 0
-		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *h.ID,
 			Reply: &models.StepReply{
@@ -333,7 +333,7 @@ var _ = Describe("Host tests", func() {
 
 	It("disable enable", func() {
 		host := registerHost(clusterID)
-		_, err := bmclient.Installer.DisableHost(ctx, &installer.DisableHostParams{
+		_, err := userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 		})
@@ -342,7 +342,7 @@ var _ = Describe("Host tests", func() {
 		Expect(*host.Status).Should(Equal("disabled"))
 		Expect(len(getNextSteps(clusterID, *host.ID).Instructions)).Should(Equal(0))
 
-		_, err = bmclient.Installer.EnableHost(ctx, &installer.EnableHostParams{
+		_, err = userBMClient.Installer.EnableHost(ctx, &installer.EnableHostParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
 		})
@@ -356,7 +356,7 @@ var _ = Describe("Host tests", func() {
 		host1 := registerHost(clusterID)
 		host2 := registerHost(clusterID)
 		// set debug to host1
-		_, err := bmclient.Installer.SetDebugStep(ctx, &installer.SetDebugStepParams{
+		_, err := userBMClient.Installer.SetDebugStep(ctx, &installer.SetDebugStepParams{
 			ClusterID: clusterID,
 			HostID:    *host1.ID,
 			Step:      &models.DebugStep{Command: swag.String("echo hello")},
@@ -378,7 +378,7 @@ var _ = Describe("Host tests", func() {
 		_, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeExecute)
 		Expect(ok).Should(Equal(false))
 
-		_, err = bmclient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 			ClusterID: clusterID,
 			HostID:    *host1.ID,
 			Reply: &models.StepReply{
@@ -393,7 +393,7 @@ var _ = Describe("Host tests", func() {
 	It("register_same_host_id", func() {
 		hostID := strToUUID(uuid.New().String())
 		// register to cluster1
-		_, err := bmclient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+		_, err := agentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
 			ClusterID: clusterID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
@@ -401,7 +401,7 @@ var _ = Describe("Host tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		cluster2, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster2, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("another-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
@@ -410,7 +410,7 @@ var _ = Describe("Host tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// register to cluster2
-		_, err = bmclient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
+		_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
 			ClusterID: *cluster2.GetPayload().ID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
@@ -422,7 +422,7 @@ var _ = Describe("Host tests", func() {
 		_ = getHost(clusterID, *hostID)
 		_ = getHost(*cluster2.GetPayload().ID, *hostID)
 
-		_, err = bmclient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
+		_, err = userBMClient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
 			ClusterID: clusterID,
 			HostID:    *hostID,
 		})
@@ -433,7 +433,7 @@ var _ = Describe("Host tests", func() {
 		Expect(db.Model(h).Update("status", "known").Error).NotTo(HaveOccurred())
 		h = getHost(*cluster2.GetPayload().ID, *hostID)
 		Expect(swag.StringValue(h.Status)).Should(Equal("known"))
-		_, err = bmclient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
+		_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
 			ClusterID: *cluster2.GetPayload().ID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,

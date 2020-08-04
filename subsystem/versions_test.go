@@ -10,7 +10,7 @@ import (
 
 var _ = Describe("test versions", func() {
 	It("get versions list", func() {
-		reply, err := bmclient.Versions.ListComponentVersions(context.Background(),
+		reply, err := userBMClient.Versions.ListComponentVersions(context.Background(),
 			&versions.ListComponentVersionsParams{})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(reply.GetPayload().Versions)).To(Equal(6))
