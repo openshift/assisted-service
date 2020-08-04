@@ -1466,6 +1466,7 @@ definitions:
       - install
       - free-network-addresses
       - reset-installation
+      - dhcp-lease-allocate
 
   step:
     type: object
@@ -1575,6 +1576,12 @@ definitions:
       ssh_public_key:
         type: string
         description: SSH public key for debugging OpenShift nodes.
+      vip_dhcp_allocation:
+        type: boolean
+        description: Indicate if VIP DHCP allocation mode is enabled.
+        x-nullable: true
+        default: false
+
 
   cluster-update-params:
     type: object
@@ -1620,6 +1627,10 @@ definitions:
       ssh_public_key:
         type: string
         description: SSH public key for debugging OpenShift nodes.
+        x-nullable: true
+      vip_dhcp_allocation:
+        type: boolean
+        description: Indicate if VIP DHCP allocation mode is enabled.
         x-nullable: true
       hosts_roles:
         type: array
@@ -1774,6 +1785,10 @@ definitions:
         description: True if the pull-secret has been added to the cluster
       ignition_generator_version:
         type: string
+      vip_dhcp_allocation:
+        type: boolean
+        description: Indicate if VIP DHCP allocation mode is enabled.
+        x-nullable: true
 
   image_info:
     type: object
@@ -2152,3 +2167,38 @@ definitions:
       - 'hostname-unique'
       - 'hostname-valid'
       - 'belongs-to-machine-cidr'
+
+  dhcp_allocation_request:
+    type: object
+    required:
+      - interface
+      - api_vip_mac
+      - ingress_vip_mac
+    properties:
+      interface:
+        type: string
+        description: The interface (NIC) to run the DHCP requests on.
+      api_vip_mac:
+        type: string
+        format: mac
+        description: MAC address for API VIP.
+      ingress_vip_mac:
+        type: string
+        format: mac
+        description: MAC address for Ingress VIP.
+
+  dhcp_allocation_response:
+    type: object
+    required:
+      - api_vip_address
+      - ingress_vip_address
+    properties:
+      api_vip_address:
+        type: string
+        format: ipv4
+        description: The IPv4 address that was allocated by DHCP for API VIP.
+      ingress_vip_address:
+        type: string
+        format: ipv4
+        description: The IPv4 address that was allocated by DHCP for Ingress VIP.
+

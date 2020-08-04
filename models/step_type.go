@@ -37,6 +37,9 @@ const (
 
 	// StepTypeResetInstallation captures enum value "reset-installation"
 	StepTypeResetInstallation StepType = "reset-installation"
+
+	// StepTypeDhcpLeaseAllocate captures enum value "dhcp-lease-allocate"
+	StepTypeDhcpLeaseAllocate StepType = "dhcp-lease-allocate"
 )
 
 // for schema
@@ -44,7 +47,7 @@ var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType
-	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation","dhcp-lease-allocate"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

@@ -2024,6 +2024,11 @@ func init() {
         },
         "user_id": {
           "type": "string"
+        },
+        "vip_dhcp_allocation": {
+          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "type": "boolean",
+          "x-nullable": true
         }
       }
     },
@@ -2081,6 +2086,12 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string"
+        },
+        "vip_dhcp_allocation": {
+          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "type": "boolean",
+          "default": false,
+          "x-nullable": true
         }
       }
     },
@@ -2178,6 +2189,11 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string",
+          "x-nullable": true
+        },
+        "vip_dhcp_allocation": {
+          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "type": "boolean",
           "x-nullable": true
         }
       }
@@ -2311,6 +2327,49 @@ func init() {
       "properties": {
         "command": {
           "type": "string"
+        }
+      }
+    },
+    "dhcp_allocation_request": {
+      "type": "object",
+      "required": [
+        "interface",
+        "api_vip_mac",
+        "ingress_vip_mac"
+      ],
+      "properties": {
+        "api_vip_mac": {
+          "description": "MAC address for API VIP.",
+          "type": "string",
+          "format": "mac"
+        },
+        "ingress_vip_mac": {
+          "description": "MAC address for Ingress VIP.",
+          "type": "string",
+          "format": "mac"
+        },
+        "interface": {
+          "description": "The interface (NIC) to run the DHCP requests on.",
+          "type": "string"
+        }
+      }
+    },
+    "dhcp_allocation_response": {
+      "type": "object",
+      "required": [
+        "api_vip_address",
+        "ingress_vip_address"
+      ],
+      "properties": {
+        "api_vip_address": {
+          "description": "The IPv4 address that was allocated by DHCP for API VIP.",
+          "type": "string",
+          "format": "ipv4"
+        },
+        "ingress_vip_address": {
+          "description": "The IPv4 address that was allocated by DHCP for Ingress VIP.",
+          "type": "string",
+          "format": "ipv4"
         }
       }
     },
@@ -2988,7 +3047,8 @@ func init() {
         "inventory",
         "install",
         "free-network-addresses",
-        "reset-installation"
+        "reset-installation",
+        "dhcp-lease-allocate"
       ]
     },
     "steps": {
@@ -5087,6 +5147,11 @@ func init() {
         },
         "user_id": {
           "type": "string"
+        },
+        "vip_dhcp_allocation": {
+          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "type": "boolean",
+          "x-nullable": true
         }
       }
     },
@@ -5144,6 +5209,12 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string"
+        },
+        "vip_dhcp_allocation": {
+          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "type": "boolean",
+          "default": false,
+          "x-nullable": true
         }
       }
     },
@@ -5223,6 +5294,11 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string",
+          "x-nullable": true
+        },
+        "vip_dhcp_allocation": {
+          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "type": "boolean",
           "x-nullable": true
         }
       }
@@ -5356,6 +5432,49 @@ func init() {
       "properties": {
         "command": {
           "type": "string"
+        }
+      }
+    },
+    "dhcp_allocation_request": {
+      "type": "object",
+      "required": [
+        "interface",
+        "api_vip_mac",
+        "ingress_vip_mac"
+      ],
+      "properties": {
+        "api_vip_mac": {
+          "description": "MAC address for API VIP.",
+          "type": "string",
+          "format": "mac"
+        },
+        "ingress_vip_mac": {
+          "description": "MAC address for Ingress VIP.",
+          "type": "string",
+          "format": "mac"
+        },
+        "interface": {
+          "description": "The interface (NIC) to run the DHCP requests on.",
+          "type": "string"
+        }
+      }
+    },
+    "dhcp_allocation_response": {
+      "type": "object",
+      "required": [
+        "api_vip_address",
+        "ingress_vip_address"
+      ],
+      "properties": {
+        "api_vip_address": {
+          "description": "The IPv4 address that was allocated by DHCP for API VIP.",
+          "type": "string",
+          "format": "ipv4"
+        },
+        "ingress_vip_address": {
+          "description": "The IPv4 address that was allocated by DHCP for Ingress VIP.",
+          "type": "string",
+          "format": "ipv4"
         }
       }
     },
@@ -6033,7 +6152,8 @@ func init() {
         "inventory",
         "install",
         "free-network-addresses",
-        "reset-installation"
+        "reset-installation",
+        "dhcp-lease-allocate"
       ]
     },
     "steps": {
