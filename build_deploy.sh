@@ -5,12 +5,11 @@
 export LC_ALL="en_US.UTF-8"
 export LANG="en_US.UTF-8"
 
+TAG=$(git rev-parse --short=7 HEAD)
 ASSISTED_SERVICE_IMAGE="quay.io/app-sre/assisted-service"
 
-docker build -t "${ASSISTED_SERVICE_IMAGE}:latest" -f Dockerfile.demo .
+SERVICE="${ASSISTED_SERVICE_IMAGE}:latest" skipper make update-minimal
 docker tag "${ASSISTED_SERVICE_IMAGE}:latest" "${ASSISTED_SERVICE_IMAGE}:${TAG}"
-#docker build -t "${ASSISTED_SERVICE_IMAGE}:latest" -f Dockerfile.assisted-service .
-#docker tag "${ASSISTED_SERVICE_IMAGE}:latest" "${ASSISTED_SERVICE_IMAGE}:${TAG}"
 
 #ASSISTED_SERVICE_BUILD_IMAGE="quay.io/app-sre/assisted-service-build"
 #
