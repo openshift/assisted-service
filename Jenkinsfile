@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'assisted-service-subsystem' }
+  agent { label 'bm-inventory-subsystem' }
   stages {
     stage('clear deployment') {
       steps {
