@@ -85,7 +85,7 @@ objects:
                   secretKeyRef:
                     key: db.name
                     name: assisted-installer-rds
-              - name: DB_PASSWORD
+              - name: DB_PASS
                 valueFrom:
                   secretKeyRef:
                     key: db.password
