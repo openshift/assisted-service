@@ -11,11 +11,11 @@ spec:
   tls:
     - hosts:
         - REPLACE_HOSTNAME
-      secretName: bm-inventory-tls
+      secretName: assisted-service-tls
   rules:
     - host: REPLACE_HOSTNAME
       http:
         paths:
           - backend:
-              serviceName: bm-inventory
+              serviceName: assisted-service
               servicePort: 8090

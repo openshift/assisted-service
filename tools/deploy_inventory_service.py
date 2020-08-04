@@ -34,7 +34,7 @@ def main():
                   "spec/tls/insecureEdgeTerminationPolicy (None|Allow|Redirect) "
                   "in the corresponding OpenShift route")
             deploy_tls_secret.generate_secret(output_dir=os.path.join(os.getcwd(), "build"),
-                                              service="bm-inventory", san=hostname, namespace=deploy_options.namespace)
+                                              service="assisted-service", san=hostname, namespace=deploy_options.namespace)
             template = "assisted-installer-ingress-tls.yaml"
         else:
             template = "assisted-installer-ingress.yaml"
