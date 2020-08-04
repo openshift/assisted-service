@@ -102,7 +102,7 @@ const ignitionConfigFormat = `{
 "units": [{
 "name": "agent.service",
 "enabled": true,
-"contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTPS_PROXY={{.ProxyURL}}\nEnvironment=HTTP_PROXY={{.ProxyURL}}\nEnvironment=http_proxy={{.ProxyURL}}\nEnvironment=https_proxy={{.ProxyURL}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}}\n\n[Install]\nWantedBy=multi-user.target"
+"contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}}\n\n[Install]\nWantedBy=multi-user.target"
 }]
 },
 "storage": {
@@ -209,9 +209,11 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"AgentDockerImg":  b.AgentDockerImg,
 		"ServiceBaseURL":  strings.TrimSpace(b.ServiceBaseURL),
 		"clusterId":       cluster.ID.String(),
-		"ProxyURL":        params.ImageCreateParams.ProxyURL,
 		"PullSecretToken": r.AuthRaw,
 		"AGENT_MOTD":      url.PathEscape(agentMessageOfTheDay),
+		"HTTPProxy":       cluster.HTTPProxy,
+		"HTTPSProxy":      cluster.HTTPSProxy,
+		"NoProxy":         cluster.NoProxy,
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
@@ -268,6 +270,9 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		UpdatedAt:                strfmt.DateTime{},
 		UserID:                   auth.UserIDFromContext(ctx),
 		OrgID:                    auth.OrgIDFromContext(ctx),
+		HTTPProxy:                swag.StringValue(params.NewClusterParams.HTTPProxy),
+		HTTPSProxy:               swag.StringValue(params.NewClusterParams.HTTPSProxy),
+		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
 	}}
 	if params.NewClusterParams.PullSecret != "" {
 		err := validations.ValidatePullSecret(params.NewClusterParams.PullSecret)
@@ -442,8 +447,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	just refresh the timestamp.
 	*/
 	var imageExists bool
-	if cluster.ImageInfo.ProxyURL == params.ImageCreateParams.ProxyURL &&
-		cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
+	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
 		cluster.ImageInfo.GeneratorVersion == b.Config.ImageBuilder {
 		var err error
 		imgName := getImageName(params.ClusterID)
@@ -458,7 +462,6 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	}
 
 	updates := map[string]interface{}{}
-	updates["image_proxy_url"] = params.ImageCreateParams.ProxyURL
 	updates["image_ssh_public_key"] = params.ImageCreateParams.SSHPublicKey
 	updates["image_created_at"] = strfmt.DateTime(now)
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
@@ -522,7 +525,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	}
 
 	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfig)
-	msg := fmt.Sprintf("Generated image (proxy URL is \"%s\", ", params.ImageCreateParams.ProxyURL)
+	msg := fmt.Sprintf("Generated image (proxy URL is \"%s\", ", cluster.HTTPProxy)
 	if params.ImageCreateParams.SSHPublicKey != "" {
 		msg += "SSH public key is set)"
 	} else {
@@ -886,6 +889,10 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}
 	txSuccess = true
 
+	if proxySettingsChanged(params.ClusterUpdateParams, &cluster) {
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityInfo, "Proxy settings changed", time.Now())
+	}
+
 	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
@@ -930,6 +937,15 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	}
 	if params.ClusterUpdateParams.SSHPublicKey != nil {
 		updates["ssh_public_key"] = *params.ClusterUpdateParams.SSHPublicKey
+	}
+	if params.ClusterUpdateParams.HTTPProxy != nil {
+		updates["http_proxy"] = swag.StringValue(params.ClusterUpdateParams.HTTPProxy)
+	}
+	if params.ClusterUpdateParams.HTTPSProxy != nil {
+		updates["https_proxy"] = swag.StringValue(params.ClusterUpdateParams.HTTPSProxy)
+	}
+	if params.ClusterUpdateParams.NoProxy != nil {
+		updates["no_proxy"] = swag.StringValue(params.ClusterUpdateParams.NoProxy)
 	}
 
 	var machineCidr string
@@ -2184,4 +2200,13 @@ func (b *bareMetalInventory) customizeHostStages(host *models.Host) {
 
 func (b *bareMetalInventory) customizeHostname(host *models.Host) {
 	host.RequestedHostname = common.GetHostnameForMsg(host)
+}
+
+func proxySettingsChanged(params *models.ClusterUpdateParams, cluster *common.Cluster) bool {
+	if (params.HTTPProxy != nil && cluster.HTTPProxy != swag.StringValue(params.HTTPProxy)) ||
+		(params.HTTPSProxy != nil && cluster.HTTPSProxy != swag.StringValue(params.HTTPSProxy)) ||
+		(params.NoProxy != nil && cluster.NoProxy != swag.StringValue(params.NoProxy)) {
+		return true
+	}
+	return false
 }

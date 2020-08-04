@@ -15,11 +15,6 @@ import (
 // swagger:model image-create-params
 type ImageCreateParams struct {
 
-	// The URL of the HTTP/S proxy that agents should use to access the discovery service
-	// http://\<user\>:\<password\>@\<server\>:\<port\>/
-	//
-	ProxyURL string `json:"proxy_url,omitempty"`
-
 	// SSH public key for debugging the installation.
 	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 }

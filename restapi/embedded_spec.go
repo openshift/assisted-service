@@ -2086,6 +2086,15 @@ func init() {
           "description": "Self link.",
           "type": "string"
         },
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string"
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"column:https_proxy\""
+        },
         "id": {
           "description": "Unique identifier of the object.",
           "type": "string",
@@ -2130,6 +2139,10 @@ func init() {
         },
         "name": {
           "description": "Name of the OpenShift cluster.",
+          "type": "string"
+        },
+        "no_proxy": {
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
           "type": "string"
         },
         "openshift_version": {
@@ -2221,6 +2234,16 @@ func init() {
           "maximum": 32,
           "minimum": 1
         },
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
@@ -2229,6 +2252,11 @@ func init() {
         "name": {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
+        },
+        "no_proxy": {
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
+          "type": "string",
+          "x-nullable": true
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
@@ -2329,6 +2357,16 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\"",
           "x-nullable": true
         },
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
@@ -2337,6 +2375,11 @@ func init() {
         },
         "name": {
           "description": "OpenShift cluster name",
+          "type": "string",
+          "x-nullable": true
+        },
+        "no_proxy": {
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
           "type": "string",
           "x-nullable": true
         },
@@ -2964,10 +3007,6 @@ func init() {
     "image-create-params": {
       "type": "object",
       "properties": {
-        "proxy_url": {
-          "description": "The URL of the HTTP/S proxy that agents should use to access the discovery service\nhttp://\\\u003cuser\\\u003e:\\\u003cpassword\\\u003e@\\\u003cserver\\\u003e:\\\u003cport\\\u003e/\n",
-          "type": "string"
-        },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
@@ -2992,10 +3031,6 @@ func init() {
         },
         "generator_version": {
           "description": "Image generator version",
-          "type": "string"
-        },
-        "proxy_url": {
-          "description": "The URL of the HTTP/S proxy that agents should use to access the discovery service\nhttp://\\\u003cuser\\\u003e:\\\u003cpassword\\\u003e@\\\u003cserver\\\u003e:\\\u003cport\\\u003e/\n",
           "type": "string"
         },
         "size_bytes": {
@@ -5396,6 +5431,15 @@ func init() {
           "description": "Self link.",
           "type": "string"
         },
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string"
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"column:https_proxy\""
+        },
         "id": {
           "description": "Unique identifier of the object.",
           "type": "string",
@@ -5440,6 +5484,10 @@ func init() {
         },
         "name": {
           "description": "Name of the OpenShift cluster.",
+          "type": "string"
+        },
+        "no_proxy": {
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
           "type": "string"
         },
         "openshift_version": {
@@ -5531,6 +5579,16 @@ func init() {
           "maximum": 32,
           "minimum": 1
         },
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
@@ -5539,6 +5597,11 @@ func init() {
         "name": {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
+        },
+        "no_proxy": {
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
+          "type": "string",
+          "x-nullable": true
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
@@ -5621,6 +5684,16 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(64)[]\"",
           "x-nullable": true
         },
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
         "ingress_vip": {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
@@ -5629,6 +5702,11 @@ func init() {
         },
         "name": {
           "description": "OpenShift cluster name",
+          "type": "string",
+          "x-nullable": true
+        },
+        "no_proxy": {
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
           "type": "string",
           "x-nullable": true
         },
@@ -6256,10 +6334,6 @@ func init() {
     "image-create-params": {
       "type": "object",
       "properties": {
-        "proxy_url": {
-          "description": "The URL of the HTTP/S proxy that agents should use to access the discovery service\nhttp://\\\u003cuser\\\u003e:\\\u003cpassword\\\u003e@\\\u003cserver\\\u003e:\\\u003cport\\\u003e/\n",
-          "type": "string"
-        },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
@@ -6284,10 +6358,6 @@ func init() {
         },
         "generator_version": {
           "description": "Image generator version",
-          "type": "string"
-        },
-        "proxy_url": {
-          "description": "The URL of the HTTP/S proxy that agents should use to access the discovery service\nhttp://\\\u003cuser\\\u003e:\\\u003cpassword\\\u003e@\\\u003cserver\\\u003e:\\\u003cport\\\u003e/\n",
           "type": "string"
         },
         "size_bytes": {

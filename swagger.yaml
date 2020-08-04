@@ -1420,11 +1420,6 @@ definitions:
   image-create-params:
     type: object
     properties:
-      proxy_url:
-        type: string
-        description: |
-          The URL of the HTTP/S proxy that agents should use to access the discovery service
-          http://\<user\>:\<password\>@\<server\>:\<port\>/
       ssh_public_key:
         type: string
         description: SSH public key for debugging the installation.
@@ -1685,6 +1680,22 @@ definitions:
         description: Indicate if VIP DHCP allocation mode is enabled.
         x-nullable: true
         default: false
+      http_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTP connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      https_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTPS connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      no_proxy:
+        type: string
+        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
+        x-nullable: true
 
   cluster-update-params:
     type: object
@@ -1734,6 +1745,22 @@ definitions:
       vip_dhcp_allocation:
         type: boolean
         description: Indicate if VIP DHCP allocation mode is enabled.
+        x-nullable: true
+      http_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTP connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      https_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTPS connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      no_proxy:
+        type: string
+        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
         x-nullable: true
       hosts_roles:
         type: array
@@ -1830,6 +1857,20 @@ definitions:
         type: string
         x-go-custom-tag: gorm:"type:varchar(1024)"
         description: SSH public key for debugging OpenShift nodes.
+      http_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTP connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+      https_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTPS connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-go-custom-tag: gorm:"column:https_proxy"
+      no_proxy:
+        type: string
+        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
       status:
         type: string
         description: Status of the OpenShift cluster.
@@ -1896,11 +1937,6 @@ definitions:
   image_info:
     type: object
     properties:
-      proxy_url:
-        type: string
-        description: |
-          The URL of the HTTP/S proxy that agents should use to access the discovery service
-          http://\<user\>:\<password\>@\<server\>:\<port\>/
       ssh_public_key:
         type: string
         x-go-custom-tag: gorm:"type:varchar(1024)"

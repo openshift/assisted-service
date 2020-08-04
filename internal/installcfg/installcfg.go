@@ -39,9 +39,16 @@ type platform struct {
 	Baremetal baremetal `yaml:"baremetal"`
 }
 
+type proxy struct {
+	HTTPProxy  string `yaml:"httpProxy,omitempty"`
+	HTTPSProxy string `yaml:"httpsProxy,omitempty"`
+	NoProxy    string `yaml:"noProxy,omitempty"`
+}
+
 type InstallerConfigBaremetal struct {
 	APIVersion string `yaml:"apiVersion"`
 	BaseDomain string `yaml:"baseDomain"`
+	Proxy      *proxy `yaml:"proxy,omitempty"`
 	Networking struct {
 		NetworkType    string `yaml:"networkType"`
 		ClusterNetwork []struct {
@@ -80,7 +87,7 @@ func countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
 }
 
 func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
-	return &InstallerConfigBaremetal{
+	cfg := &InstallerConfigBaremetal{
 		APIVersion: "v1",
 		BaseDomain: cluster.BaseDNSDomain,
 		Networking: struct {
@@ -132,6 +139,15 @@ func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
 		PullSecret: cluster.PullSecret,
 		SSHKey:     cluster.SSHPublicKey,
 	}
+
+	if cluster.HTTPProxy != "" || cluster.HTTPSProxy != "" {
+		cfg.Proxy = &proxy{
+			HTTPProxy:  cluster.HTTPProxy,
+			HTTPSProxy: cluster.HTTPSProxy,
+			NoProxy:    cluster.NoProxy,
+		}
+	}
+	return cfg
 }
 
 // [TODO] - remove once we decide to use specific values from the hosts of the cluster

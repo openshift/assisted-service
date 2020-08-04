@@ -50,6 +50,16 @@ type Cluster struct {
 	// Required: true
 	Href *string `json:"href"`
 
+	// A proxy URL to use for creating HTTP connections outside the cluster.
+	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+	//
+	HTTPProxy string `json:"http_proxy,omitempty"`
+
+	// A proxy URL to use for creating HTTPS connections outside the cluster.
+	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+	//
+	HTTPSProxy string `json:"https_proxy,omitempty" gorm:"column:https_proxy"`
+
 	// Unique identifier of the object.
 	// Required: true
 	// Format: uuid
@@ -85,6 +95,9 @@ type Cluster struct {
 
 	// Name of the OpenShift cluster.
 	Name string `json:"name,omitempty"`
+
+	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
+	NoProxy string `json:"no_proxy,omitempty"`
 
 	// Version of the OpenShift cluster.
 	// Enum: [4.5 4.6]
