@@ -76,8 +76,8 @@ type Config struct {
 	KubeconfigGenerator string `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:latest"` // TODO: update the latest once the repository has git workflow
 	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
 	ReleaseImage       string            `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
-	InventoryURL       string            `envconfig:"INVENTORY_URL" default:"10.35.59.36"`
-	InventoryPort      string            `envconfig:"INVENTORY_PORT" default:"30485"`
+	ServiceURL         string            `envconfig:"SERVICE_URL"`
+	ServicePort        string            `envconfig:"SERVICE_PORT"`
 	S3EndpointURL      string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
 	S3Bucket           string            `envconfig:"S3_BUCKET" default:"test"`
 	AwsAccessKeyID     string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
@@ -111,7 +111,7 @@ const ignitionConfigFormat = `{
 "units": [{
 "name": "agent.service",
 "enabled": true,
-"contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTPS_PROXY={{.ProxyURL}}\nEnvironment=HTTP_PROXY={{.ProxyURL}}\nEnvironment=http_proxy={{.ProxyURL}}\nEnvironment=https_proxy={{.ProxyURL}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.InventoryURL}} --port {{.InventoryPort}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}}\n\n[Install]\nWantedBy=multi-user.target"
+"contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTPS_PROXY={{.ProxyURL}}\nEnvironment=HTTP_PROXY={{.ProxyURL}}\nEnvironment=http_proxy={{.ProxyURL}}\nEnvironment=https_proxy={{.ProxyURL}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --host {{.ServiceURL}} --port {{.ServicePort}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}}\n\n[Install]\nWantedBy=multi-user.target"
 }]
 },
 "storage": {
@@ -295,8 +295,8 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	var ignitionParams = map[string]string{
 		"userSshKey":      b.getUserSshKey(params),
 		"AgentDockerImg":  b.AgentDockerImg,
-		"InventoryURL":    strings.TrimSpace(b.InventoryURL),
-		"InventoryPort":   strings.TrimSpace(b.InventoryPort),
+		"ServiceURL":      strings.TrimSpace(b.ServiceURL),
+		"ServicePort":     strings.TrimSpace(b.ServicePort),
 		"clusterId":       cluster.ID.String(),
 		"ProxyURL":        params.ImageCreateParams.ProxyURL,
 		"PullSecretToken": r.AuthRaw,
@@ -1601,7 +1601,7 @@ func (b *bareMetalInventory) createKubeconfigJob(cluster *common.Cluster, jobNam
 								},
 								{
 									Name:  "INVENTORY_ENDPOINT",
-									Value: "http://" + strings.TrimSpace(b.InventoryURL) + ":" + strings.TrimSpace(b.InventoryPort) + "/api/assisted-install/v1",
+									Value: "http://" + strings.TrimSpace(b.ServiceURL) + ":" + strings.TrimSpace(b.ServicePort) + "/api/assisted-install/v1",
 								},
 								{
 									Name:  "IMAGE_NAME",
