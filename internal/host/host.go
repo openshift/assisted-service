@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/common"
-	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/filanov/bm-inventory/internal/hardware"
-	"github.com/filanov/bm-inventory/internal/metrics"
-	"github.com/filanov/bm-inventory/models"
-	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/stateswitch"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -61,7 +61,7 @@ var manualRebootStages = [...]models.HostStage{
 	models.HostStageDone,
 }
 
-//go:generate mockgen -source=host.go -package=host -aux_files=github.com/filanov/bm-inventory/internal/host=instructionmanager.go -destination=mock_host_api.go
+//go:generate mockgen -source=host.go -package=host -aux_files=github.com/openshift/assisted-service/internal/host=instructionmanager.go -destination=mock_host_api.go
 type API interface {
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host) error

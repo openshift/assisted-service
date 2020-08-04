@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/filanov/bm-inventory/pkg/requestid"
+	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/sirupsen/logrus"
 )
 

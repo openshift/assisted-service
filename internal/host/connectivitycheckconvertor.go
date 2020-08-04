@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/filanov/bm-inventory/internal/connectivity"
+	"github.com/openshift/assisted-service/internal/connectivity"
 
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
+	"github.com/openshift/assisted-service/models"
 )
 
 func convertHostsToConnectivityCheckParams(currentHostId *strfmt.UUID, hosts []*models.Host, connectivityValidator connectivity.Validator) (string, error) {

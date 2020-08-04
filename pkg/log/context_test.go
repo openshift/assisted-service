@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/filanov/bm-inventory/pkg/requestid"
-	"github.com/filanov/bm-inventory/pkg/testutil"
+	"github.com/openshift/assisted-service/pkg/requestid"
+	"github.com/openshift/assisted-service/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 )
 

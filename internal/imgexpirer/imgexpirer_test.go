@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/filanov/bm-inventory/models"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
 

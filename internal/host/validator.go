@@ -10,16 +10,16 @@ import (
 
 	"github.com/alecthomas/units"
 
-	"github.com/filanov/bm-inventory/internal/network"
+	"github.com/openshift/assisted-service/internal/network"
 
-	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/internal/common"
 
-	"github.com/filanov/bm-inventory/models"
+	"github.com/openshift/assisted-service/models"
 )
 
 type validationStatus string

@@ -7,10 +7,9 @@ import (
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/ory/dockertest/v3"
-
-	"github.com/filanov/bm-inventory/models"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/models"
+	"github.com/ory/dockertest/v3"
 )
 
 const (

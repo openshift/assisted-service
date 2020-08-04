@@ -1,9 +1,9 @@
 package host
 
 import (
-	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/models"
 )
 
 type stateHost struct {

@@ -1,8 +1,8 @@
 package host
 
 import (
-	"github.com/filanov/bm-inventory/models"
 	"github.com/filanov/stateswitch"
+	"github.com/openshift/assisted-service/models"
 )
 
 const (

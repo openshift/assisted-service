@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	logutil "github.com/filanov/bm-inventory/pkg/log"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 
 	"github.com/minio/minio-go/v6"
 	"github.com/pkg/errors"

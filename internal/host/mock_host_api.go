@@ -6,12 +6,11 @@ package host
 
 import (
 	context "context"
-	reflect "reflect"
-
-	common "github.com/filanov/bm-inventory/internal/common"
-	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
+	common "github.com/openshift/assisted-service/internal/common"
+	models "github.com/openshift/assisted-service/models"
+	reflect "reflect"
 )
 
 // MockAPI is a mock of API interface
@@ -230,20 +229,6 @@ func (m *MockAPI) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 func (mr *MockAPIMockRecorder) ResetPendingUserAction(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetPendingUserAction", reflect.TypeOf((*MockAPI)(nil).ResetPendingUserAction), ctx, h, db)
-}
-
-// GetHostname mocks base method
-func (m *MockAPI) GetHostname(h *models.Host) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostname", h)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetHostname indicates an expected call of GetHostname
-func (mr *MockAPIMockRecorder) GetHostname(h interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostname", reflect.TypeOf((*MockAPI)(nil).GetHostname), h)
 }
 
 // DisableHost mocks base method

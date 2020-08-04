@@ -3,13 +3,13 @@ package host
 import (
 	"context"
 
-	"github.com/filanov/bm-inventory/internal/connectivity"
+	"github.com/openshift/assisted-service/internal/connectivity"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/gorm"
 
-	"github.com/filanov/bm-inventory/models"
+	"github.com/openshift/assisted-service/models"
 )
 
 type connectivityCheckCmd struct {

@@ -3,10 +3,10 @@ package versions
 import (
 	"context"
 
-	"github.com/filanov/bm-inventory/models"
-	"github.com/filanov/bm-inventory/restapi"
-	operations "github.com/filanov/bm-inventory/restapi/operations/versions"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/restapi"
+	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 )
 
 type Versions struct {

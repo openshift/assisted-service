@@ -13,10 +13,10 @@ import (
 	rtclient "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
-	"github.com/filanov/bm-inventory/client/events"
-	"github.com/filanov/bm-inventory/client/installer"
-	"github.com/filanov/bm-inventory/client/managed_domains"
-	"github.com/filanov/bm-inventory/client/versions"
+	"github.com/openshift/assisted-service/client/events"
+	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/client/managed_domains"
+	"github.com/openshift/assisted-service/client/versions"
 )
 
 const (

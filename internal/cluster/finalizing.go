@@ -3,7 +3,7 @@ package cluster
 import (
 	context "context"
 
-	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/gorm"

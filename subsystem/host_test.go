@@ -10,11 +10,11 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 
-	"github.com/filanov/bm-inventory/client/installer"
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("Host tests", func() {

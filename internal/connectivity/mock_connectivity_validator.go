@@ -5,10 +5,9 @@
 package connectivity
 
 import (
-	reflect "reflect"
-
-	models "github.com/filanov/bm-inventory/models"
 	gomock "github.com/golang/mock/gomock"
+	models "github.com/openshift/assisted-service/models"
+	reflect "reflect"
 )
 
 // MockValidator is a mock of Validator interface

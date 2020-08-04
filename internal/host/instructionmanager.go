@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/filanov/bm-inventory/internal/connectivity"
+	"github.com/openshift/assisted-service/internal/connectivity"
 
 	"github.com/jinzhu/gorm"
 
-	"github.com/filanov/bm-inventory/internal/hardware"
-	"github.com/filanov/bm-inventory/models"
-	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
+	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/sirupsen/logrus"
 )
 

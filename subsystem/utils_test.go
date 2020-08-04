@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/filanov/bm-inventory/client/installer"
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/models"
 )
 
 const (

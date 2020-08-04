@@ -12,27 +12,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/metrics"
+	"github.com/openshift/assisted-service/internal/metrics"
 
-	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/openshift/assisted-service/internal/common"
 
-	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/filanov/bm-inventory/pkg/filemiddleware"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/pkg/filemiddleware"
 
-	awsS3Client "github.com/filanov/bm-inventory/pkg/s3Client"
+	awsS3Client "github.com/openshift/assisted-service/pkg/s3Client"
 
-	"github.com/filanov/bm-inventory/internal/cluster"
-	"github.com/filanov/bm-inventory/internal/host"
-	"github.com/filanov/bm-inventory/models"
-	"github.com/filanov/bm-inventory/pkg/job"
-	"github.com/filanov/bm-inventory/restapi/operations/installer"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/openshift/assisted-service/internal/cluster"
+	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/job"
+	"github.com/openshift/assisted-service/restapi/operations/installer"
 
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"

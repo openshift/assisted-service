@@ -3,8 +3,8 @@ package host
 import (
 	"context"
 
-	"github.com/filanov/bm-inventory/models"
-	"github.com/filanov/bm-inventory/pkg/requestid"
+	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/requestid"
 )
 
 func (m *Manager) HostMonitoring() {

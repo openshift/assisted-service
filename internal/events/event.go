@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	logutil "github.com/filanov/bm-inventory/pkg/log"
-	"github.com/filanov/bm-inventory/pkg/requestid"
+	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/requestid"
 
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
 

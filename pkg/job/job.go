@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/go-openapi/swag"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	batch "k8s.io/api/batch/v1"
