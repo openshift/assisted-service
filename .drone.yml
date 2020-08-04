@@ -9,8 +9,8 @@ steps:
   - name: build
     image: golang
     commands:
-      - CGO_ENABLED=0 go build -o build/bm-inventory cmd/main.go
-      - ./build/bm-inventory &
+      - CGO_ENABLED=0 go build -o build/assisted-service cmd/main.go
+      - ./build/assisted-service &
       - sleep 10
       - go test -v ./subsystem/... -count=1 -ginkgo.skip=only_k8s -ginkgo.v
     environment:
