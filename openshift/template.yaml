@@ -5,10 +5,6 @@ parameters:
 - name: IMAGE_TAG
   value: ''
   required: true
-- name: OBJ_EXPIRER_IMAGE
-  value: quay.io/ocpmetal/s3-object-expirer
-- name: OBJ_EXPIRER_IMAGE_TAG
-  value: latest
 apiVersion: v1
 kind: Template
 metadata:
