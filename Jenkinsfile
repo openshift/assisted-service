@@ -28,8 +28,8 @@ pipeline {
     }
     agent any
         steps {
-         withCredentials([usernameColonPassword(credentialsId: '603600b1-7ba3-471f-be8f-0f7a1ec4871c', variable: 'PASS')]) {
-          sh '''docker login quay.io -u ocpmetal -p $PASS'''
+         withCredentials([usernamePassword(credentialsId: 'ocpmetal_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+          sh '''docker login quay.io -u $USER -p $PASS'''
         }
           sh '''docker push quay.io/ocpmetal/assisted-service'''
 
