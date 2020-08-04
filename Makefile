@@ -72,9 +72,9 @@ build/assisted-service-client/setup.py: swagger.yaml
 	cp swagger.yaml $(BUILD_FOLDER)
 	echo '{"packageName" : "assisted_service_client", "packageVersion": "1.0.0"}' > $(BUILD_FOLDER)/code-gen-config.json
 	sed -i '/pattern:/d' $(BUILD_FOLDER)/swagger.yaml
-	docker run --rm -u $(shell id -u $(USER)) -v $(BUILD_FOLDER):/swagger-api/out:Z \
+	docker run --rm -u $(shell id -u $(USER)) -v $(BUILD_FOLDER):/local:Z \
 		-v $(BUILD_FOLDER)/swagger.yaml:/swagger.yaml:ro,Z -v $(BUILD_FOLDER)/code-gen-config.json:/config.json:ro,Z \
-		jimschubert/swagger-codegen-cli:2.3.1 generate --lang python --config /config.json --output ./assisted-service-client/ --input-spec /swagger.yaml
+		swaggerapi/swagger-codegen-cli:2.4.15 generate --lang python --config /config.json --output /local/assisted-service-client/ --input-spec /swagger.yaml
 	rm -f $(BUILD_FOLDER)/swagger.yaml
 
 build/assisted-service-client-%.tar.gz: build/assisted-service-client/setup.py
