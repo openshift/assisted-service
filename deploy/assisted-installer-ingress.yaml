@@ -11,5 +11,5 @@ spec:
       http:
         paths:
           - backend:
-              serviceName: bm-inventory
+              serviceName: assisted-service
               servicePort: 8090

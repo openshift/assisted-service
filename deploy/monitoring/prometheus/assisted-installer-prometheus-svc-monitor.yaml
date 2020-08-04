@@ -9,7 +9,7 @@ spec:
   endpoints:
   - interval: 30s
     scrapeTimeout: 30s
-    port: bm-inventory
+    port: assisted-service
     path: /metrics
     params:
       'match[]': 
@@ -20,4 +20,4 @@ spec:
     - REPLACE_NAMESPACE
   selector:
     matchLabels:
-      app: "bm-inventory"
+      app: "assisted-service"

@@ -5,9 +5,9 @@ import yaml
 import deployment_options
 
 
-SRC_FILE = os.path.join(os.getcwd(), "deploy/bm-inventory-configmap.yaml")
-DST_FILE = os.path.join(os.getcwd(), "build/bm-inventory-configmap.yaml")
-SERVICE = "bm-inventory"
+SRC_FILE = os.path.join(os.getcwd(), "deploy/assisted-service-configmap.yaml")
+DST_FILE = os.path.join(os.getcwd(), "build/assisted-service-configmap.yaml")
+SERVICE = "assisted-service"
 
 
 def get_deployment_tag(args):
@@ -61,7 +61,7 @@ def main():
                 versions["CONTROLLER_IMAGE"] = deployment_options.IMAGE_FQDN_TEMPLATE.format("assisted-installer-controller",
                     deployment_options.get_tag(versions["INSTALLER_IMAGE"]))
 
-            versions["SELF_VERSION"] = deployment_options.get_image_override(deploy_options, "bm-inventory", "SERVICE")
+            versions["SELF_VERSION"] = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
             deploy_tag = get_deployment_tag(deploy_options)
             if deploy_tag:
                 versions["RELEASE_TAG"] = deploy_tag

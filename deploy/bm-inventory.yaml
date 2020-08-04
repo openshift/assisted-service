@@ -1,20 +1,20 @@
 apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
 kind: Deployment
 metadata:
-  name: bm-inventory
+  name: assisted-service
   namespace: REPLACE_NAMESPACE
 spec:
   selector:
     matchLabels:
-      app: bm-inventory
+      app: assisted-service
   replicas: 1
   template:
     metadata:
       labels:
-        app: bm-inventory
+        app: assisted-service
     spec:
       containers:
-        - name: bm-inventory
+        - name: assisted-service
           resources:
             limits:
               cpu: 200m
@@ -30,7 +30,7 @@ spec:
             - configMapRef:
                 name: s3-config
             - configMapRef:
-                name: bm-inventory-config
+                name: assisted-service-config
           volumeMounts:
             - name: route53-creds
               mountPath: "/.aws"
