@@ -2,16 +2,16 @@
 
 TAG=$(git rev-parse --short=7 HEAD)
 
-BM_INVENTORY_IMAGE="quay.io/app-sre/bm-inventory"
+BM_INVENTORY_IMAGE="quay.io/app-sre/assisted-service"
 
 docker build -t "${BM_INVENTORY_IMAGE}:latest" -f Dockerfile.demo .
 docker tag "${BM_INVENTORY_IMAGE}:latest" "${BM_INVENTORY_IMAGE}:${TAG}"
-#docker build -t "${BM_INVENTORY_IMAGE}:latest" -f Dockerfile.bm-inventory .
+#docker build -t "${BM_INVENTORY_IMAGE}:latest" -f Dockerfile.assisted-service .
 #docker tag "${BM_INVENTORY_IMAGE}:latest" "${BM_INVENTORY_IMAGE}:${TAG}"
 
-#BM_INVENTORY_BUILD_IMAGE="quay.io/app-sre/bm-inventory-build"
+#BM_INVENTORY_BUILD_IMAGE="quay.io/app-sre/assisted-service-build"
 #
-#docker build -t "${BM_INVENTORY_BUILD_IMAGE}:latest" -f Dockerfile.bm-inventory-build .
+#docker build -t "${BM_INVENTORY_BUILD_IMAGE}:latest" -f Dockerfile.assisted-service-build .
 #docker tag "${BM_INVENTORY_BUILD_IMAGE}:latest" "${BM_INVENTORY_BUILD_IMAGE}:${TAG}"
 
 #OBJ_EXPIRER_IMAGE="quay.io/app-sre/s3-object-expirer"

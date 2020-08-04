@@ -1,7 +1,7 @@
 ---
 parameters:
 - name: BM_INVENTORY_IMAGE
-  value: quay.io/app-sre/bm-inventory
+  value: quay.io/app-sre/assisted-service
 - name: BM_INVENTORY_IMAGE_TAG
   value: latest
 - name: OBJ_EXPIRER_IMAGE
@@ -16,20 +16,20 @@ objects:
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
-    name: bm-inventory
+    name: assisted-service
     namespace: assisted-installer
   spec:
     selector:
       matchLabels:
-        app: bm-inventory
+        app: assisted-service
     replicas: 1
     template:
       metadata:
         labels:
-          app: bm-inventory
+          app: assisted-service
       spec:
         containers:
-          - name: bm-inventory
+          - name: assisted-service
             image: ${BM_INVENTORY_IMAGE}:${BM_INVENTORY_IMAGE_TAG}
             imagePullPolicy: Always
             resources:
@@ -40,7 +40,7 @@ objects:
                 cpu: 100m
                 memory: 400Mi
             ports:
-              - name: bm-inventory
+              - name: assisted-service
                 containerPort: 8090
             env:
               - name: ROUTE53_CREDS

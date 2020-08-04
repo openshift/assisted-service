@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'bm-inventory-subsystem' }
+  agent { label 'assisted-service-subsystem' }
   stages {
     stage('clear deployment') {
       steps {
@@ -23,10 +23,10 @@ pipeline {
   }
   post {
           failure {
-              echo 'Get bm-inventory log'
+              echo 'Get assisted-service log'
               sh '''
-              kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep bm-inventory | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
-              mv test_dd.log $WORKSPACE/bm-inventory.log || true
+              kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep assisted-service | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+              mv test_dd.log $WORKSPACE/assisted-service.log || true
               '''
 
               echo 'Get mariadb log'
