@@ -1,0 +1,36 @@
+# ISO
+FROM quay.io/coreos/coreos-installer:release AS coreos-installer
+FROM quay.io/ocpmetal/livecd-iso:rhcos-livecd AS livecd
+FROM quay.io/ocpmetal/installer-image-build:stable AS installer-image-build
+
+# install config
+# [TODO] - remove this line, once we are ready to use openshift-installer from the release
+FROM quay.io/ocpmetal/openshift-installer  AS openshift-installer
+FROM quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:stable as config-gen
+
+FROM fedora:31
+
+ARG GIT_REVISION
+ARG WORK_DIR=/data
+
+LABEL "git_revision"=${GIT_REVISION}
+
+RUN dnf install -y python pip libvirt-devel && dnf clean all && pip install boto3 botocore
+
+RUN mkdir $WORK_DIR && chmod 777 $WORK_DIR
+
+# ISO
+COPY --from=coreos-installer /usr/sbin/coreos-installer $WORK_DIR
+COPY --from=livecd /root/image/livecd.iso $WORK_DIR/livecd.iso
+COPY --from=installer-image-build /data/install_process.py $WORK_DIR
+ENV COREOS_IMAGE=$WORK_DIR/livecd.iso
+
+# install config
+# [TODO] - change this line to use openshift-installer from the release, once we are ready
+COPY --from=openshift-installer /root/installer/openshift-install $WORK_DIR
+COPY --from=config-gen $WORK_DIR/process-ignition-manifests-and-kubeconfig.py $WORK_DIR
+
+ENV WORK_DIR=$WORK_DIR
+
+ADD build/assisted-service /assisted-service
+CMD ["/assisted-service"]
