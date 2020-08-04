@@ -1,8 +1,8 @@
 ---
 parameters:
-- name: BM_INVENTORY_IMAGE
+- name: ASSISTED_SERVICE_IMAGE
   value: quay.io/app-sre/assisted-service
-- name: BM_INVENTORY_IMAGE_TAG
+- name: ASSISTED_SERVICE_IMAGE_TAG
   value: latest
 - name: OBJ_EXPIRER_IMAGE
   value: quay.io/ocpmetal/s3-object-expirer
@@ -30,7 +30,7 @@ objects:
       spec:
         containers:
           - name: assisted-service
-            image: ${BM_INVENTORY_IMAGE}:${BM_INVENTORY_IMAGE_TAG}
+            image: ${ASSISTED_SERVICE_IMAGE}:${ASSISTED_SERVICE_IMAGE_TAG}
             imagePullPolicy: Always
             resources:
               limits:
