@@ -7,9 +7,9 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
-	operations "github.com/filanov/bm-inventory/restapi/operations/versions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 )
 
 func TestHandler_ListComponentVersions(t *testing.T) {

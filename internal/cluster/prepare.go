@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/common"
-	"github.com/filanov/bm-inventory/models"
-	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/sirupsen/logrus"
 )
 

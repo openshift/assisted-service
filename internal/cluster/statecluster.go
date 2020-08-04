@@ -1,9 +1,9 @@
 package cluster
 
 import (
-	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 type stateCluster struct {

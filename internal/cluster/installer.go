@@ -3,12 +3,12 @@ package cluster
 import (
 	context "context"
 
-	"github.com/filanov/bm-inventory/models"
+	"github.com/openshift/assisted-service/models"
 
-	logutil "github.com/filanov/bm-inventory/pkg/log"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 
-	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/go-openapi/strfmt"
+	"github.com/openshift/assisted-service/internal/common"
 
 	"github.com/pkg/errors"
 

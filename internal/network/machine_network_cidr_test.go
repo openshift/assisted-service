@@ -6,13 +6,13 @@ import (
 
 	"github.com/go-openapi/swag"
 
-	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/openshift/assisted-service/internal/common"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/filanov/bm-inventory/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("inventory", func() {

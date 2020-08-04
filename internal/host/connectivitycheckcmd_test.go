@@ -3,14 +3,14 @@ package host
 import (
 	"context"
 
-	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/openshift/assisted-service/internal/common"
 
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("connectivitycheckcmd", func() {

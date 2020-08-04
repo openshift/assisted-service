@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/filanov/bm-inventory/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/auth"
 )
 
 func IsAdmin(ctx context.Context) bool {

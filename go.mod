@@ -1,4 +1,4 @@
-module github.com/filanov/bm-inventory
+module github.com/openshift/assisted-service
 
 go 1.13
 

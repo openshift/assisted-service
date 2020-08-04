@@ -1,7 +1,7 @@
 package host
 
 import (
-	"github.com/filanov/bm-inventory/internal/hardware"
+	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/sirupsen/logrus"
 )
 

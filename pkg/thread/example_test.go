@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/filanov/bm-inventory/pkg/thread"
+	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/sirupsen/logrus"
 )
 

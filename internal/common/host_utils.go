@@ -3,7 +3,7 @@ package common
 import (
 	"encoding/json"
 
-	"github.com/filanov/bm-inventory/models"
+	"github.com/openshift/assisted-service/models"
 )
 
 func GetCurrentHostName(host *models.Host) (string, error) {

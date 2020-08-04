@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/filanov/bm-inventory/internal/common"
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"

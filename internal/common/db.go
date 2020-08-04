@@ -1,6 +1,6 @@
 package common
 
-import "github.com/filanov/bm-inventory/models"
+import "github.com/openshift/assisted-service/models"
 
 type Cluster struct {
 	models.Cluster

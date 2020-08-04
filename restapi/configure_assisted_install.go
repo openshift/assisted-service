@@ -13,11 +13,11 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 
-	"github.com/filanov/bm-inventory/restapi/operations"
-	"github.com/filanov/bm-inventory/restapi/operations/events"
-	"github.com/filanov/bm-inventory/restapi/operations/installer"
-	"github.com/filanov/bm-inventory/restapi/operations/managed_domains"
-	"github.com/filanov/bm-inventory/restapi/operations/versions"
+	"github.com/openshift/assisted-service/restapi/operations"
+	"github.com/openshift/assisted-service/restapi/operations/events"
+	"github.com/openshift/assisted-service/restapi/operations/installer"
+	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
+	"github.com/openshift/assisted-service/restapi/operations/versions"
 )
 
 type contextKey string

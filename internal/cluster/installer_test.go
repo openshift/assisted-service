@@ -3,15 +3,15 @@ package cluster
 import (
 	"context"
 
-	"github.com/filanov/bm-inventory/internal/common"
-	"github.com/filanov/bm-inventory/internal/host"
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
 

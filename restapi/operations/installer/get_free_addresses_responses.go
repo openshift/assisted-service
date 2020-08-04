@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	"github.com/filanov/bm-inventory/models"
+	"github.com/openshift/assisted-service/models"
 )
 
 // GetFreeAddressesOKCode is the HTTP code returned for type GetFreeAddressesOK

@@ -3,10 +3,10 @@ package host
 import (
 	"net/http"
 
-	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/pkg/errors"
 
-	"github.com/filanov/bm-inventory/models"
+	"github.com/openshift/assisted-service/models"
 )
 
 type validationID models.HostValidationID

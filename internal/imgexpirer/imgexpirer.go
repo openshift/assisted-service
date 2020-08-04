@@ -7,10 +7,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
-	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/filanov/bm-inventory/models"
-	logutil "github.com/filanov/bm-inventory/pkg/log"
-	"github.com/filanov/bm-inventory/pkg/requestid"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/sirupsen/logrus"
 )
 

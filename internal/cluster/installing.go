@@ -4,14 +4,14 @@ import (
 	context "context"
 	"fmt"
 
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/models"
 
-	"github.com/filanov/bm-inventory/internal/common"
-	intenralhost "github.com/filanov/bm-inventory/internal/host"
+	"github.com/openshift/assisted-service/internal/common"
+	intenralhost "github.com/openshift/assisted-service/internal/host"
 
-	logutil "github.com/filanov/bm-inventory/pkg/log"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 
 	"github.com/sirupsen/logrus"
 

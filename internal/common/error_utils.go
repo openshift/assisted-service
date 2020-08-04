@@ -6,9 +6,8 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
-
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/models"
 )
 
 func GenerateError(id int32, err error) *models.Error {

@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 func TestCluster(t *testing.T) {

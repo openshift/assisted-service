@@ -19,10 +19,10 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"github.com/filanov/bm-inventory/restapi/operations/events"
-	"github.com/filanov/bm-inventory/restapi/operations/installer"
-	"github.com/filanov/bm-inventory/restapi/operations/managed_domains"
-	"github.com/filanov/bm-inventory/restapi/operations/versions"
+	"github.com/openshift/assisted-service/restapi/operations/events"
+	"github.com/openshift/assisted-service/restapi/operations/installer"
+	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
+	"github.com/openshift/assisted-service/restapi/operations/versions"
 )
 
 // NewAssistedInstallAPI creates a new AssistedInstall instance

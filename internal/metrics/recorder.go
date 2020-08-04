@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/metrics/matchedRouteContext"
+	"github.com/openshift/assisted-service/internal/metrics/matchedRouteContext"
 	"github.com/sirupsen/logrus"
 
 	"github.com/prometheus/client_golang/prometheus"

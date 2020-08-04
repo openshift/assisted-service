@@ -13,7 +13,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 
-	"github.com/filanov/bm-inventory/models"
+	"github.com/openshift/assisted-service/models"
 )
 
 // NewRegisterClusterParams creates a new RegisterClusterParams object

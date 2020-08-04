@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 func TestValidator(t *testing.T) {

@@ -4,11 +4,11 @@ import (
 	"context"
 	"regexp"
 
-	"github.com/filanov/bm-inventory/internal/common"
-	"github.com/filanov/bm-inventory/models"
-	"github.com/filanov/bm-inventory/restapi"
-	operations "github.com/filanov/bm-inventory/restapi/operations/managed_domains"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/restapi"
+	operations "github.com/openshift/assisted-service/restapi/operations/managed_domains"
 	"github.com/pkg/errors"
 )
 

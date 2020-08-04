@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/common"
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
@@ -13,6 +11,8 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("prepare-for-installation refresh status", func() {

@@ -6,8 +6,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/filanov/bm-inventory/internal/metrics/matchedRouteContext"
 	rmiddleware "github.com/go-openapi/runtime/middleware"
+	"github.com/openshift/assisted-service/internal/metrics/matchedRouteContext"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	goMiddleware "github.com/slok/go-http-metrics/middleware"

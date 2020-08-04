@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/bminventory"
-	"github.com/filanov/bm-inventory/internal/host"
+	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/host"
 
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
@@ -19,8 +19,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/filanov/bm-inventory/client/installer"
-	"github.com/filanov/bm-inventory/models"
+	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/models"
 )
 
 // #nosec

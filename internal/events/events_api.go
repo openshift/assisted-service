@@ -3,13 +3,13 @@ package events
 import (
 	"context"
 
-	"github.com/filanov/bm-inventory/models"
+	"github.com/openshift/assisted-service/models"
 
-	"github.com/filanov/bm-inventory/internal/common"
-	logutil "github.com/filanov/bm-inventory/pkg/log"
-	"github.com/filanov/bm-inventory/restapi"
-	"github.com/filanov/bm-inventory/restapi/operations/events"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/openshift/assisted-service/internal/common"
+	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/restapi"
+	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/sirupsen/logrus"
 )
 

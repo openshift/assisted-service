@@ -5,19 +5,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/common"
+	"github.com/openshift/assisted-service/internal/common"
 
-	"github.com/filanov/bm-inventory/pkg/requestid"
+	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/pborman/uuid"
 
-	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/filanov/bm-inventory/models"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
 

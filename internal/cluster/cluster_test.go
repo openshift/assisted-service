@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/common"
-	"github.com/filanov/bm-inventory/internal/events"
-	"github.com/filanov/bm-inventory/internal/host"
-	"github.com/filanov/bm-inventory/internal/metrics"
-	"github.com/filanov/bm-inventory/models"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/models"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"

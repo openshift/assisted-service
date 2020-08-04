@@ -3,9 +3,9 @@ package subsystem
 import (
 	"context"
 
-	"github.com/filanov/bm-inventory/client/versions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client/versions"
 )
 
 var _ = Describe("test versions", func() {

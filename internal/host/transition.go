@@ -6,16 +6,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/filanov/bm-inventory/internal/events"
+	"github.com/openshift/assisted-service/internal/events"
 
-	"github.com/filanov/bm-inventory/internal/common"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/common"
 
-	"github.com/filanov/bm-inventory/models"
-	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/stateswitch"
 	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"

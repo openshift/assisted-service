@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	logutil "github.com/filanov/bm-inventory/pkg/log"
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

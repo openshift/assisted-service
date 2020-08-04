@@ -5,12 +5,12 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/filanov/bm-inventory/client"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client"
 	"github.com/sirupsen/logrus"
 )
 

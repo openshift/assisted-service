@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	operations "github.com/filanov/bm-inventory/restapi/operations/managed_domains"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	operations "github.com/openshift/assisted-service/restapi/operations/managed_domains"
 )
 
 func TestHandler_ListManagedDomains(t *testing.T) {
