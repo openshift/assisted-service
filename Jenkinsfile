@@ -30,7 +30,8 @@ pipeline {
          withCredentials([usernamePassword(credentialsId: 'ocpmetal_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
           sh '''docker login quay.io -u $USER -p $PASS'''
         }
-          sh '''docker tag  quay.io/ocpmetal/assisted-service quay.io/ocpmetal/assisted-service:$(git rev-parse --verify HEAD)'''
+          sh '''docker tag  quay.io/ocpmetal/assisted-service:test quay.io/ocpmetal/assisted-service:$(git rev-parse --verify HEAD)'''
+          sh '''docker tag  quay.io/ocpmetal/assisted-service:test quay.io/ocpmetal/assisted-service:latest'''
           sh '''docker push quay.io/ocpmetal/assisted-service:latest'''
           sh '''docker push quay.io/ocpmetal/assisted-service:$(git rev-parse --verify HEAD)'''
 
