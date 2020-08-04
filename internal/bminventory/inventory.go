@@ -75,6 +75,7 @@ type Config struct {
 	ServiceBaseURL      string            `envconfig:"SERVICE_BASE_URL"`
 	S3EndpointURL       string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
 	S3Bucket            string            `envconfig:"S3_BUCKET" default:"test"`
+	ImageExpirationTime time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"60m"`
 	AwsAccessKeyID      string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
 	AwsSecretAccessKey  string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
 	DeployTarget        string            `envconfig:"DEPLOY_TARGET" default:"k8s"`
@@ -318,18 +319,23 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params insta
 
 func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	if err := b.db.First(&common.Cluster{}, "id = ?", params.ClusterID).Error; err != nil {
+	var cluster common.Cluster
+
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
 		return installer.NewDownloadClusterISONotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
-	imgName := getImageName(params.ClusterID)
-	imageURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket, imgName)
+	if cluster.ImageInfo.DownloadURL == "" {
+		log.Errorf("no download URL set for cluster %s", params.ClusterID)
+		return installer.NewDownloadClusterISOConflict().
+			WithPayload(common.GenerateError(http.StatusConflict, errors.New("No download URL set for cluster")))
+	}
 
-	log.Info("Image URL: ", imageURL)
-	resp, err := http.Get(imageURL)
+	log.Info("Image URL: ", cluster.ImageInfo.DownloadURL)
+	resp, err := http.Get(cluster.ImageInfo.DownloadURL)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get ISO: %s", imgName)
+		log.WithError(err).Errorf("Failed to get ISO for cluster %s", cluster.ID.String())
 		msg := "Failed to download image: error fetching from storage backend"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewDownloadClusterISOInternalServerError().
@@ -339,7 +345,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
 		log.WithError(fmt.Errorf("%d - %s", resp.StatusCode, string(body))).
-			Errorf("Failed to get ISO: %s", imgName)
+			Errorf("Failed to get ISO for cluster %s", cluster.ID.String())
 		if resp.StatusCode == http.StatusNotFound {
 			msg := "Failed to download image: the image was not found (perhaps it expired) - please generate the image and try again"
 			b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
@@ -357,6 +363,30 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(resp.Body),
 		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()),
 		resp.ContentLength)
+}
+
+func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster) error {
+	imgName := getImageName(*cluster.ID)
+	imgSize, err := b.s3Client.GetObjectSizeBytes(ctx, imgName)
+	if err != nil {
+		return errors.New("Failed to generate image: error fetching size")
+	}
+
+	signedURL, err := b.s3Client.GeneratePresignedDownloadURL(ctx, imgName, b.Config.ImageExpirationTime)
+	if err != nil {
+		return errors.New("Failed to generate image: error generating URL")
+	}
+
+	updates := map[string]interface{}{}
+	updates["image_size_bytes"] = imgSize
+	updates["image_download_url"] = signedURL
+	dbReply := b.db.Model(&models.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
+	if dbReply.Error != nil {
+		return errors.New("Failed to generate image: error updating image record")
+	}
+	cluster.ImageInfo.SizeBytes = &imgSize
+	cluster.ImageInfo.DownloadURL = signedURL
+	return nil
 }
 
 func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params installer.GenerateClusterISOParams) middleware.Responder {
@@ -435,7 +465,9 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	updates["image_proxy_url"] = params.ImageCreateParams.ProxyURL
 	updates["image_ssh_public_key"] = params.ImageCreateParams.SSHPublicKey
 	updates["image_created_at"] = strfmt.DateTime(now)
+	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
 	updates["image_generator_version"] = b.Config.ImageBuilder
+	updates["image_download_url"] = ""
 	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
@@ -460,6 +492,11 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	}
 
 	if imageExists {
+		if err := b.updateImageInfoPostUpload(ctx, &cluster); err != nil {
+			return installer.NewGenerateClusterISOInternalServerError().
+				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+
 		log.Infof("Re-used existing cluster <%s> image", params.ClusterID)
 		b.eventsHandler.AddEvent(ctx, cluster.ID.String(), models.EventSeverityInfo, "Re-used existing image rather than generating a new one", time.Now())
 		return installer.NewGenerateClusterISOCreated().WithPayload(&cluster.Cluster)
@@ -481,6 +518,11 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		msg := "Failed to generate image: error in generator.GenerateISO"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
 		return installer.NewGenerateClusterISOInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	if err := b.updateImageInfoPostUpload(ctx, &cluster); err != nil {
+		return installer.NewGenerateClusterISOInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
 	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfig)
