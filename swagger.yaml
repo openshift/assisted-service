@@ -311,6 +311,8 @@ paths:
             $ref: '#/definitions/error'
         405:
           description: Method Not Allowed.
+        409:
+          description: Error.
           schema:
             $ref: '#/definitions/error'
         500:
@@ -1802,10 +1804,19 @@ definitions:
         type: string
         x-go-custom-tag: gorm:"type:varchar(1024)"
         description: SSH public key for debugging the installation
+      size_bytes:
+        type: integer
+        minimum: 0
+      download_url:
+        type: string
       generator_version:
         type: string
         description: Image generator version
       created_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+      expires_at:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
