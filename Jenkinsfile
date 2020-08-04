@@ -31,7 +31,7 @@ pipeline {
          withCredentials([usernameColonPassword(credentialsId: '603600b1-7ba3-471f-be8f-0f7a1ec4871c', variable: 'PASS')]) {
           sh '''docker login quay.io -u ocpmetal -p $PASS'''
         }
-          sh '''docker push quay.io/ocpmetal/bm-inventory'''
+          sh '''docker push quay.io/ocpmetal/assisted-service'''
 
         }
     }
