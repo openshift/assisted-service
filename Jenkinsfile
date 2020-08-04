@@ -26,7 +26,6 @@ pipeline {
     when {
       branch 'master'
     }
-    agent any
         steps {
          withCredentials([usernamePassword(credentialsId: 'ocpmetal_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
           sh '''docker login quay.io -u $USER -p $PASS'''
