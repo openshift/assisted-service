@@ -39,9 +39,8 @@ def main():
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:
             data = src.read()
-            data = data.replace("REPLACE_URL", '"{}"'.format(service_host))
-            data = data.replace("REPLACE_PORT", '"{}"'.format(service_port))
             data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
+            data = data.replace("REPLACE_BASE_URL", f'http://{service_host}:{service_port}')
             data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
             print("Deploying {}".format(DST_FILE))
 

@@ -19,8 +19,7 @@ import (
 )
 
 var defaultInstructionConfig = InstructionConfig{
-	ServiceURL:      "10.35.59.36",
-	ServicePort:     "30485",
+	ServiceBaseURL:  "http://10.35.59.36:30485",
 	InstallerImage:  "quay.io/ocpmetal/assisted-installer:latest",
 	ControllerImage: "quay.io/ocpmetal/assisted-installer-controller:latest",
 }
@@ -152,23 +151,21 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--privileged --pid=host " +
 			"--net=host -v /var/log:/var/log:rw --env PULL_SECRET_TOKEN " +
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
-			"--cluster-id %s --host %s --port %s " +
+			"--cluster-id %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --host-name %s"
+			"--controller-image %s --url %s --host-name %s"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			defaultInstructionConfig.ServiceURL, defaultInstructionConfig.ServicePort, hostId,
-			defaultInstructionConfig.ControllerImage, hostname)))
+			hostId, defaultInstructionConfig.ControllerImage, defaultInstructionConfig.ServiceBaseURL, hostname)))
 	} else {
 		installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 			"--privileged --pid=host " +
 			"--net=host -v /var/log:/var/log:rw --env PULL_SECRET_TOKEN " +
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
-			"--cluster-id %s --host %s --port %s " +
+			"--cluster-id %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s"
+			"--controller-image %s --url %s"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			defaultInstructionConfig.ServiceURL, defaultInstructionConfig.ServicePort, hostId,
-			defaultInstructionConfig.ControllerImage)))
+			hostId, defaultInstructionConfig.ControllerImage, defaultInstructionConfig.ServiceBaseURL)))
 	}
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
 }
