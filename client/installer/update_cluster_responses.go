@@ -35,8 +35,26 @@ func (o *UpdateClusterReader) ReadResponse(response runtime.ClientResponse, cons
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewUpdateClusterUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewUpdateClusterForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewUpdateClusterNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewUpdateClusterMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -55,7 +73,7 @@ func (o *UpdateClusterReader) ReadResponse(response runtime.ClientResponse, cons
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -125,6 +143,72 @@ func (o *UpdateClusterBadRequest) readResponse(response runtime.ClientResponse, 
 	return nil
 }
 
+// NewUpdateClusterUnauthorized creates a UpdateClusterUnauthorized with default headers values
+func NewUpdateClusterUnauthorized() *UpdateClusterUnauthorized {
+	return &UpdateClusterUnauthorized{}
+}
+
+/*UpdateClusterUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type UpdateClusterUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *UpdateClusterUnauthorized) Error() string {
+	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *UpdateClusterUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UpdateClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUpdateClusterForbidden creates a UpdateClusterForbidden with default headers values
+func NewUpdateClusterForbidden() *UpdateClusterForbidden {
+	return &UpdateClusterForbidden{}
+}
+
+/*UpdateClusterForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type UpdateClusterForbidden struct {
+	Payload *models.Error
+}
+
+func (o *UpdateClusterForbidden) Error() string {
+	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterForbidden  %+v", 403, o.Payload)
+}
+
+func (o *UpdateClusterForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UpdateClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewUpdateClusterNotFound creates a UpdateClusterNotFound with default headers values
 func NewUpdateClusterNotFound() *UpdateClusterNotFound {
 	return &UpdateClusterNotFound{}
@@ -147,6 +231,39 @@ func (o *UpdateClusterNotFound) GetPayload() *models.Error {
 }
 
 func (o *UpdateClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUpdateClusterMethodNotAllowed creates a UpdateClusterMethodNotAllowed with default headers values
+func NewUpdateClusterMethodNotAllowed() *UpdateClusterMethodNotAllowed {
+	return &UpdateClusterMethodNotAllowed{}
+}
+
+/*UpdateClusterMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type UpdateClusterMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *UpdateClusterMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *UpdateClusterMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UpdateClusterMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

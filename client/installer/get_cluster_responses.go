@@ -29,8 +29,26 @@ func (o *GetClusterReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewGetClusterUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewGetClusterForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGetClusterNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewGetClusterMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -43,7 +61,7 @@ func (o *GetClusterReader) ReadResponse(response runtime.ClientResponse, consume
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -80,6 +98,72 @@ func (o *GetClusterOK) readResponse(response runtime.ClientResponse, consumer ru
 	return nil
 }
 
+// NewGetClusterUnauthorized creates a GetClusterUnauthorized with default headers values
+func NewGetClusterUnauthorized() *GetClusterUnauthorized {
+	return &GetClusterUnauthorized{}
+}
+
+/*GetClusterUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type GetClusterUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *GetClusterUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetClusterUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetClusterForbidden creates a GetClusterForbidden with default headers values
+func NewGetClusterForbidden() *GetClusterForbidden {
+	return &GetClusterForbidden{}
+}
+
+/*GetClusterForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type GetClusterForbidden struct {
+	Payload *models.Error
+}
+
+func (o *GetClusterForbidden) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterForbidden  %+v", 403, o.Payload)
+}
+
+func (o *GetClusterForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewGetClusterNotFound creates a GetClusterNotFound with default headers values
 func NewGetClusterNotFound() *GetClusterNotFound {
 	return &GetClusterNotFound{}
@@ -102,6 +186,39 @@ func (o *GetClusterNotFound) GetPayload() *models.Error {
 }
 
 func (o *GetClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetClusterMethodNotAllowed creates a GetClusterMethodNotAllowed with default headers values
+func NewGetClusterMethodNotAllowed() *GetClusterMethodNotAllowed {
+	return &GetClusterMethodNotAllowed{}
+}
+
+/*GetClusterMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type GetClusterMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *GetClusterMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *GetClusterMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetClusterMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

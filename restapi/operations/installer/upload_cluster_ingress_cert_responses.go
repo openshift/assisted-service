@@ -81,6 +81,94 @@ func (o *UploadClusterIngressCertBadRequest) WriteResponse(rw http.ResponseWrite
 	}
 }
 
+// UploadClusterIngressCertUnauthorizedCode is the HTTP code returned for type UploadClusterIngressCertUnauthorized
+const UploadClusterIngressCertUnauthorizedCode int = 401
+
+/*UploadClusterIngressCertUnauthorized Unauthorized.
+
+swagger:response uploadClusterIngressCertUnauthorized
+*/
+type UploadClusterIngressCertUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUploadClusterIngressCertUnauthorized creates UploadClusterIngressCertUnauthorized with default headers values
+func NewUploadClusterIngressCertUnauthorized() *UploadClusterIngressCertUnauthorized {
+
+	return &UploadClusterIngressCertUnauthorized{}
+}
+
+// WithPayload adds the payload to the upload cluster ingress cert unauthorized response
+func (o *UploadClusterIngressCertUnauthorized) WithPayload(payload *models.Error) *UploadClusterIngressCertUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the upload cluster ingress cert unauthorized response
+func (o *UploadClusterIngressCertUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UploadClusterIngressCertUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// UploadClusterIngressCertForbiddenCode is the HTTP code returned for type UploadClusterIngressCertForbidden
+const UploadClusterIngressCertForbiddenCode int = 403
+
+/*UploadClusterIngressCertForbidden Forbidden.
+
+swagger:response uploadClusterIngressCertForbidden
+*/
+type UploadClusterIngressCertForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUploadClusterIngressCertForbidden creates UploadClusterIngressCertForbidden with default headers values
+func NewUploadClusterIngressCertForbidden() *UploadClusterIngressCertForbidden {
+
+	return &UploadClusterIngressCertForbidden{}
+}
+
+// WithPayload adds the payload to the upload cluster ingress cert forbidden response
+func (o *UploadClusterIngressCertForbidden) WithPayload(payload *models.Error) *UploadClusterIngressCertForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the upload cluster ingress cert forbidden response
+func (o *UploadClusterIngressCertForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UploadClusterIngressCertForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // UploadClusterIngressCertNotFoundCode is the HTTP code returned for type UploadClusterIngressCertNotFound
 const UploadClusterIngressCertNotFoundCode int = 404
 
@@ -117,6 +205,50 @@ func (o *UploadClusterIngressCertNotFound) SetPayload(payload *models.Error) {
 func (o *UploadClusterIngressCertNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// UploadClusterIngressCertMethodNotAllowedCode is the HTTP code returned for type UploadClusterIngressCertMethodNotAllowed
+const UploadClusterIngressCertMethodNotAllowedCode int = 405
+
+/*UploadClusterIngressCertMethodNotAllowed Method Not Allowed.
+
+swagger:response uploadClusterIngressCertMethodNotAllowed
+*/
+type UploadClusterIngressCertMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUploadClusterIngressCertMethodNotAllowed creates UploadClusterIngressCertMethodNotAllowed with default headers values
+func NewUploadClusterIngressCertMethodNotAllowed() *UploadClusterIngressCertMethodNotAllowed {
+
+	return &UploadClusterIngressCertMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the upload cluster ingress cert method not allowed response
+func (o *UploadClusterIngressCertMethodNotAllowed) WithPayload(payload *models.Error) *UploadClusterIngressCertMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the upload cluster ingress cert method not allowed response
+func (o *UploadClusterIngressCertMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UploadClusterIngressCertMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

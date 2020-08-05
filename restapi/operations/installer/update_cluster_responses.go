@@ -101,6 +101,94 @@ func (o *UpdateClusterBadRequest) WriteResponse(rw http.ResponseWriter, producer
 	}
 }
 
+// UpdateClusterUnauthorizedCode is the HTTP code returned for type UpdateClusterUnauthorized
+const UpdateClusterUnauthorizedCode int = 401
+
+/*UpdateClusterUnauthorized Unauthorized.
+
+swagger:response updateClusterUnauthorized
+*/
+type UpdateClusterUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUpdateClusterUnauthorized creates UpdateClusterUnauthorized with default headers values
+func NewUpdateClusterUnauthorized() *UpdateClusterUnauthorized {
+
+	return &UpdateClusterUnauthorized{}
+}
+
+// WithPayload adds the payload to the update cluster unauthorized response
+func (o *UpdateClusterUnauthorized) WithPayload(payload *models.Error) *UpdateClusterUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update cluster unauthorized response
+func (o *UpdateClusterUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UpdateClusterUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// UpdateClusterForbiddenCode is the HTTP code returned for type UpdateClusterForbidden
+const UpdateClusterForbiddenCode int = 403
+
+/*UpdateClusterForbidden Forbidden.
+
+swagger:response updateClusterForbidden
+*/
+type UpdateClusterForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUpdateClusterForbidden creates UpdateClusterForbidden with default headers values
+func NewUpdateClusterForbidden() *UpdateClusterForbidden {
+
+	return &UpdateClusterForbidden{}
+}
+
+// WithPayload adds the payload to the update cluster forbidden response
+func (o *UpdateClusterForbidden) WithPayload(payload *models.Error) *UpdateClusterForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update cluster forbidden response
+func (o *UpdateClusterForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UpdateClusterForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // UpdateClusterNotFoundCode is the HTTP code returned for type UpdateClusterNotFound
 const UpdateClusterNotFoundCode int = 404
 
@@ -137,6 +225,50 @@ func (o *UpdateClusterNotFound) SetPayload(payload *models.Error) {
 func (o *UpdateClusterNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// UpdateClusterMethodNotAllowedCode is the HTTP code returned for type UpdateClusterMethodNotAllowed
+const UpdateClusterMethodNotAllowedCode int = 405
+
+/*UpdateClusterMethodNotAllowed Method Not Allowed.
+
+swagger:response updateClusterMethodNotAllowed
+*/
+type UpdateClusterMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUpdateClusterMethodNotAllowed creates UpdateClusterMethodNotAllowed with default headers values
+func NewUpdateClusterMethodNotAllowed() *UpdateClusterMethodNotAllowed {
+
+	return &UpdateClusterMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the update cluster method not allowed response
+func (o *UpdateClusterMethodNotAllowed) WithPayload(payload *models.Error) *UpdateClusterMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update cluster method not allowed response
+func (o *UpdateClusterMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UpdateClusterMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

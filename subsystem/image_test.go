@@ -30,7 +30,7 @@ var _ = Describe("system-test image tests", func() {
 
 	BeforeEach(func() {
 		var err error
-		cluster, err = bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
@@ -48,19 +48,19 @@ var _ = Describe("system-test image tests", func() {
 		}
 		defer os.Remove(file.Name())
 
-		_, err = bmclient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+		_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
 			ClusterID:         clusterID,
 			ImageCreateParams: &models.ImageCreateParams{},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		_, err = bmclient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
+		_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
 			ClusterID: clusterID,
 		}, file)
 		Expect(err).NotTo(HaveOccurred())
 		s, err := file.Stat()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(s.Size()).ShouldNot(Equal(0))
-		eventsReply, err := bmclient.Events.ListEvents(context.TODO(), &events.ListEventsParams{
+		eventsReply, err := userBMClient.Events.ListEvents(context.TODO(), &events.ListEventsParams{
 			EntityID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -94,19 +94,19 @@ var _ = Describe("image tests", func() {
 	})
 
 	It("download_non_existing_cluster", func() {
-		_, err = bmclient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: *strToUUID(uuid.New().String())}, file)
+		_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: *strToUUID(uuid.New().String())}, file)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("[only_k8s]download_non_existing_image", func() {
-		cluster, err := bmclient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		_, err = bmclient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
+		_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
 			ClusterID: *cluster.GetPayload().ID,
 		}, file)
 		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterISONotFound())))

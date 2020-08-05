@@ -57,6 +57,94 @@ func (o *DisableHostOK) WriteResponse(rw http.ResponseWriter, producer runtime.P
 	}
 }
 
+// DisableHostUnauthorizedCode is the HTTP code returned for type DisableHostUnauthorized
+const DisableHostUnauthorizedCode int = 401
+
+/*DisableHostUnauthorized Unauthorized.
+
+swagger:response disableHostUnauthorized
+*/
+type DisableHostUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDisableHostUnauthorized creates DisableHostUnauthorized with default headers values
+func NewDisableHostUnauthorized() *DisableHostUnauthorized {
+
+	return &DisableHostUnauthorized{}
+}
+
+// WithPayload adds the payload to the disable host unauthorized response
+func (o *DisableHostUnauthorized) WithPayload(payload *models.Error) *DisableHostUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the disable host unauthorized response
+func (o *DisableHostUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DisableHostUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DisableHostForbiddenCode is the HTTP code returned for type DisableHostForbidden
+const DisableHostForbiddenCode int = 403
+
+/*DisableHostForbidden Forbidden.
+
+swagger:response disableHostForbidden
+*/
+type DisableHostForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDisableHostForbidden creates DisableHostForbidden with default headers values
+func NewDisableHostForbidden() *DisableHostForbidden {
+
+	return &DisableHostForbidden{}
+}
+
+// WithPayload adds the payload to the disable host forbidden response
+func (o *DisableHostForbidden) WithPayload(payload *models.Error) *DisableHostForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the disable host forbidden response
+func (o *DisableHostForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DisableHostForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DisableHostNotFoundCode is the HTTP code returned for type DisableHostNotFound
 const DisableHostNotFoundCode int = 404
 
@@ -93,6 +181,50 @@ func (o *DisableHostNotFound) SetPayload(payload *models.Error) {
 func (o *DisableHostNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DisableHostMethodNotAllowedCode is the HTTP code returned for type DisableHostMethodNotAllowed
+const DisableHostMethodNotAllowedCode int = 405
+
+/*DisableHostMethodNotAllowed Method Not Allowed.
+
+swagger:response disableHostMethodNotAllowed
+*/
+type DisableHostMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDisableHostMethodNotAllowed creates DisableHostMethodNotAllowed with default headers values
+func NewDisableHostMethodNotAllowed() *DisableHostMethodNotAllowed {
+
+	return &DisableHostMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the disable host method not allowed response
+func (o *DisableHostMethodNotAllowed) WithPayload(payload *models.Error) *DisableHostMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the disable host method not allowed response
+func (o *DisableHostMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DisableHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

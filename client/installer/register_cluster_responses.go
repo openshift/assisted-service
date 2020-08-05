@@ -35,6 +35,24 @@ func (o *RegisterClusterReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewRegisterClusterUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewRegisterClusterForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewRegisterClusterMethodNotAllowed()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewRegisterClusterInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -43,7 +61,7 @@ func (o *RegisterClusterReader) ReadResponse(response runtime.ClientResponse, co
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -102,6 +120,105 @@ func (o *RegisterClusterBadRequest) GetPayload() *models.Error {
 }
 
 func (o *RegisterClusterBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewRegisterClusterUnauthorized creates a RegisterClusterUnauthorized with default headers values
+func NewRegisterClusterUnauthorized() *RegisterClusterUnauthorized {
+	return &RegisterClusterUnauthorized{}
+}
+
+/*RegisterClusterUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type RegisterClusterUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *RegisterClusterUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters][%d] registerClusterUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *RegisterClusterUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *RegisterClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewRegisterClusterForbidden creates a RegisterClusterForbidden with default headers values
+func NewRegisterClusterForbidden() *RegisterClusterForbidden {
+	return &RegisterClusterForbidden{}
+}
+
+/*RegisterClusterForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type RegisterClusterForbidden struct {
+	Payload *models.Error
+}
+
+func (o *RegisterClusterForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters][%d] registerClusterForbidden  %+v", 403, o.Payload)
+}
+
+func (o *RegisterClusterForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *RegisterClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewRegisterClusterMethodNotAllowed creates a RegisterClusterMethodNotAllowed with default headers values
+func NewRegisterClusterMethodNotAllowed() *RegisterClusterMethodNotAllowed {
+	return &RegisterClusterMethodNotAllowed{}
+}
+
+/*RegisterClusterMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type RegisterClusterMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *RegisterClusterMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters][%d] registerClusterMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *RegisterClusterMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *RegisterClusterMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

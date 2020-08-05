@@ -29,8 +29,26 @@ func (o *CancelInstallationReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewCancelInstallationUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewCancelInstallationForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewCancelInstallationNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewCancelInstallationMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,7 +67,7 @@ func (o *CancelInstallationReader) ReadResponse(response runtime.ClientResponse,
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -86,6 +104,72 @@ func (o *CancelInstallationAccepted) readResponse(response runtime.ClientRespons
 	return nil
 }
 
+// NewCancelInstallationUnauthorized creates a CancelInstallationUnauthorized with default headers values
+func NewCancelInstallationUnauthorized() *CancelInstallationUnauthorized {
+	return &CancelInstallationUnauthorized{}
+}
+
+/*CancelInstallationUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type CancelInstallationUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *CancelInstallationUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *CancelInstallationUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *CancelInstallationUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewCancelInstallationForbidden creates a CancelInstallationForbidden with default headers values
+func NewCancelInstallationForbidden() *CancelInstallationForbidden {
+	return &CancelInstallationForbidden{}
+}
+
+/*CancelInstallationForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type CancelInstallationForbidden struct {
+	Payload *models.Error
+}
+
+func (o *CancelInstallationForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationForbidden  %+v", 403, o.Payload)
+}
+
+func (o *CancelInstallationForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *CancelInstallationForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewCancelInstallationNotFound creates a CancelInstallationNotFound with default headers values
 func NewCancelInstallationNotFound() *CancelInstallationNotFound {
 	return &CancelInstallationNotFound{}
@@ -108,6 +192,39 @@ func (o *CancelInstallationNotFound) GetPayload() *models.Error {
 }
 
 func (o *CancelInstallationNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewCancelInstallationMethodNotAllowed creates a CancelInstallationMethodNotAllowed with default headers values
+func NewCancelInstallationMethodNotAllowed() *CancelInstallationMethodNotAllowed {
+	return &CancelInstallationMethodNotAllowed{}
+}
+
+/*CancelInstallationMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type CancelInstallationMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *CancelInstallationMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *CancelInstallationMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *CancelInstallationMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

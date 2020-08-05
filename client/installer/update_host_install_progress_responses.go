@@ -29,8 +29,26 @@ func (o *UpdateHostInstallProgressReader) ReadResponse(response runtime.ClientRe
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewUpdateHostInstallProgressUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewUpdateHostInstallProgressForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewUpdateHostInstallProgressNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewUpdateHostInstallProgressMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -43,7 +61,7 @@ func (o *UpdateHostInstallProgressReader) ReadResponse(response runtime.ClientRe
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -64,6 +82,72 @@ func (o *UpdateHostInstallProgressOK) Error() string {
 }
 
 func (o *UpdateHostInstallProgressOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewUpdateHostInstallProgressUnauthorized creates a UpdateHostInstallProgressUnauthorized with default headers values
+func NewUpdateHostInstallProgressUnauthorized() *UpdateHostInstallProgressUnauthorized {
+	return &UpdateHostInstallProgressUnauthorized{}
+}
+
+/*UpdateHostInstallProgressUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type UpdateHostInstallProgressUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *UpdateHostInstallProgressUnauthorized) Error() string {
+	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *UpdateHostInstallProgressUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UpdateHostInstallProgressUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUpdateHostInstallProgressForbidden creates a UpdateHostInstallProgressForbidden with default headers values
+func NewUpdateHostInstallProgressForbidden() *UpdateHostInstallProgressForbidden {
+	return &UpdateHostInstallProgressForbidden{}
+}
+
+/*UpdateHostInstallProgressForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type UpdateHostInstallProgressForbidden struct {
+	Payload *models.Error
+}
+
+func (o *UpdateHostInstallProgressForbidden) Error() string {
+	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressForbidden  %+v", 403, o.Payload)
+}
+
+func (o *UpdateHostInstallProgressForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UpdateHostInstallProgressForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -90,6 +174,39 @@ func (o *UpdateHostInstallProgressNotFound) GetPayload() *models.Error {
 }
 
 func (o *UpdateHostInstallProgressNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUpdateHostInstallProgressMethodNotAllowed creates a UpdateHostInstallProgressMethodNotAllowed with default headers values
+func NewUpdateHostInstallProgressMethodNotAllowed() *UpdateHostInstallProgressMethodNotAllowed {
+	return &UpdateHostInstallProgressMethodNotAllowed{}
+}
+
+/*UpdateHostInstallProgressMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type UpdateHostInstallProgressMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *UpdateHostInstallProgressMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *UpdateHostInstallProgressMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UpdateHostInstallProgressMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

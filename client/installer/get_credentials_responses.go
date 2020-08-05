@@ -29,8 +29,26 @@ func (o *GetCredentialsReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewGetCredentialsUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewGetCredentialsForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGetCredentialsNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewGetCredentialsMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -49,7 +67,7 @@ func (o *GetCredentialsReader) ReadResponse(response runtime.ClientResponse, con
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -86,6 +104,72 @@ func (o *GetCredentialsOK) readResponse(response runtime.ClientResponse, consume
 	return nil
 }
 
+// NewGetCredentialsUnauthorized creates a GetCredentialsUnauthorized with default headers values
+func NewGetCredentialsUnauthorized() *GetCredentialsUnauthorized {
+	return &GetCredentialsUnauthorized{}
+}
+
+/*GetCredentialsUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type GetCredentialsUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *GetCredentialsUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetCredentialsUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetCredentialsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetCredentialsForbidden creates a GetCredentialsForbidden with default headers values
+func NewGetCredentialsForbidden() *GetCredentialsForbidden {
+	return &GetCredentialsForbidden{}
+}
+
+/*GetCredentialsForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type GetCredentialsForbidden struct {
+	Payload *models.Error
+}
+
+func (o *GetCredentialsForbidden) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsForbidden  %+v", 403, o.Payload)
+}
+
+func (o *GetCredentialsForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetCredentialsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewGetCredentialsNotFound creates a GetCredentialsNotFound with default headers values
 func NewGetCredentialsNotFound() *GetCredentialsNotFound {
 	return &GetCredentialsNotFound{}
@@ -108,6 +192,39 @@ func (o *GetCredentialsNotFound) GetPayload() *models.Error {
 }
 
 func (o *GetCredentialsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetCredentialsMethodNotAllowed creates a GetCredentialsMethodNotAllowed with default headers values
+func NewGetCredentialsMethodNotAllowed() *GetCredentialsMethodNotAllowed {
+	return &GetCredentialsMethodNotAllowed{}
+}
+
+/*GetCredentialsMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type GetCredentialsMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *GetCredentialsMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *GetCredentialsMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetCredentialsMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

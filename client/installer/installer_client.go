@@ -130,6 +130,7 @@ func (a *Client) CancelInstallation(ctx context.Context, params *CancelInstallat
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &CancelInstallationReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -154,6 +155,7 @@ func (a *Client) CompleteInstallation(ctx context.Context, params *CompleteInsta
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &CompleteInstallationReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -178,6 +180,7 @@ func (a *Client) DeregisterCluster(ctx context.Context, params *DeregisterCluste
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &DeregisterClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -202,6 +205,7 @@ func (a *Client) DeregisterHost(ctx context.Context, params *DeregisterHostParam
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &DeregisterHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -226,6 +230,7 @@ func (a *Client) DisableHost(ctx context.Context, params *DisableHostParams) (*D
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &DisableHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -250,6 +255,7 @@ func (a *Client) DownloadClusterFiles(ctx context.Context, params *DownloadClust
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &DownloadClusterFilesReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -274,6 +280,7 @@ func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadCluster
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &DownloadClusterISOReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -298,6 +305,7 @@ func (a *Client) DownloadClusterKubeconfig(ctx context.Context, params *Download
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &DownloadClusterKubeconfigReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -322,6 +330,7 @@ func (a *Client) EnableHost(ctx context.Context, params *EnableHostParams) (*Ena
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &EnableHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -346,6 +355,7 @@ func (a *Client) GenerateClusterISO(ctx context.Context, params *GenerateCluster
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GenerateClusterISOReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -370,6 +380,7 @@ func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*Get
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GetClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -394,6 +405,7 @@ func (a *Client) GetCredentials(ctx context.Context, params *GetCredentialsParam
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GetCredentialsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -418,6 +430,7 @@ func (a *Client) GetFreeAddresses(ctx context.Context, params *GetFreeAddressesP
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GetFreeAddressesReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -442,6 +455,7 @@ func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GetHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -466,6 +480,7 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GetNextStepsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -490,6 +505,7 @@ func (a *Client) InstallCluster(ctx context.Context, params *InstallClusterParam
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &InstallClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -514,6 +530,7 @@ func (a *Client) ListClusters(ctx context.Context, params *ListClustersParams) (
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &ListClustersReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -538,6 +555,7 @@ func (a *Client) ListHosts(ctx context.Context, params *ListHostsParams) (*ListH
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &ListHostsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -562,6 +580,7 @@ func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams)
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &PostStepReplyReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -586,6 +605,7 @@ func (a *Client) RegisterCluster(ctx context.Context, params *RegisterClusterPar
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &RegisterClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -610,6 +630,7 @@ func (a *Client) RegisterHost(ctx context.Context, params *RegisterHostParams) (
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &RegisterHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -634,6 +655,7 @@ func (a *Client) ResetCluster(ctx context.Context, params *ResetClusterParams) (
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &ResetClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -658,6 +680,7 @@ func (a *Client) SetDebugStep(ctx context.Context, params *SetDebugStepParams) (
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &SetDebugStepReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -682,6 +705,7 @@ func (a *Client) UpdateCluster(ctx context.Context, params *UpdateClusterParams)
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &UpdateClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -706,6 +730,7 @@ func (a *Client) UpdateHostInstallProgress(ctx context.Context, params *UpdateHo
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &UpdateHostInstallProgressReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -730,6 +755,7 @@ func (a *Client) UploadClusterIngressCert(ctx context.Context, params *UploadClu
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &UploadClusterIngressCertReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})

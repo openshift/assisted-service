@@ -35,6 +35,12 @@ func (o *RegisterHostReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewRegisterHostUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewRegisterHostForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -47,6 +53,12 @@ func (o *RegisterHostReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
+	case 405:
+		result := NewRegisterHostMethodNotAllowed()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewRegisterHostInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -55,7 +67,7 @@ func (o *RegisterHostReader) ReadResponse(response runtime.ClientResponse, consu
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -125,6 +137,39 @@ func (o *RegisterHostBadRequest) readResponse(response runtime.ClientResponse, c
 	return nil
 }
 
+// NewRegisterHostUnauthorized creates a RegisterHostUnauthorized with default headers values
+func NewRegisterHostUnauthorized() *RegisterHostUnauthorized {
+	return &RegisterHostUnauthorized{}
+}
+
+/*RegisterHostUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type RegisterHostUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *RegisterHostUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *RegisterHostUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *RegisterHostUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewRegisterHostForbidden creates a RegisterHostForbidden with default headers values
 func NewRegisterHostForbidden() *RegisterHostForbidden {
 	return &RegisterHostForbidden{}
@@ -132,7 +177,7 @@ func NewRegisterHostForbidden() *RegisterHostForbidden {
 
 /*RegisterHostForbidden handles this case with default header values.
 
-Error.
+Forbidden.
 */
 type RegisterHostForbidden struct {
 	Payload *models.Error
@@ -180,6 +225,39 @@ func (o *RegisterHostNotFound) GetPayload() *models.Error {
 }
 
 func (o *RegisterHostNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewRegisterHostMethodNotAllowed creates a RegisterHostMethodNotAllowed with default headers values
+func NewRegisterHostMethodNotAllowed() *RegisterHostMethodNotAllowed {
+	return &RegisterHostMethodNotAllowed{}
+}
+
+/*RegisterHostMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type RegisterHostMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *RegisterHostMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *RegisterHostMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *RegisterHostMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

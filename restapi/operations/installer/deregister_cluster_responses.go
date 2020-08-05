@@ -37,6 +37,94 @@ func (o *DeregisterClusterNoContent) WriteResponse(rw http.ResponseWriter, produ
 	rw.WriteHeader(204)
 }
 
+// DeregisterClusterUnauthorizedCode is the HTTP code returned for type DeregisterClusterUnauthorized
+const DeregisterClusterUnauthorizedCode int = 401
+
+/*DeregisterClusterUnauthorized Unauthorized.
+
+swagger:response deregisterClusterUnauthorized
+*/
+type DeregisterClusterUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeregisterClusterUnauthorized creates DeregisterClusterUnauthorized with default headers values
+func NewDeregisterClusterUnauthorized() *DeregisterClusterUnauthorized {
+
+	return &DeregisterClusterUnauthorized{}
+}
+
+// WithPayload adds the payload to the deregister cluster unauthorized response
+func (o *DeregisterClusterUnauthorized) WithPayload(payload *models.Error) *DeregisterClusterUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the deregister cluster unauthorized response
+func (o *DeregisterClusterUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeregisterClusterUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DeregisterClusterForbiddenCode is the HTTP code returned for type DeregisterClusterForbidden
+const DeregisterClusterForbiddenCode int = 403
+
+/*DeregisterClusterForbidden Forbidden.
+
+swagger:response deregisterClusterForbidden
+*/
+type DeregisterClusterForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeregisterClusterForbidden creates DeregisterClusterForbidden with default headers values
+func NewDeregisterClusterForbidden() *DeregisterClusterForbidden {
+
+	return &DeregisterClusterForbidden{}
+}
+
+// WithPayload adds the payload to the deregister cluster forbidden response
+func (o *DeregisterClusterForbidden) WithPayload(payload *models.Error) *DeregisterClusterForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the deregister cluster forbidden response
+func (o *DeregisterClusterForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeregisterClusterForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DeregisterClusterNotFoundCode is the HTTP code returned for type DeregisterClusterNotFound
 const DeregisterClusterNotFoundCode int = 404
 
@@ -73,6 +161,50 @@ func (o *DeregisterClusterNotFound) SetPayload(payload *models.Error) {
 func (o *DeregisterClusterNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DeregisterClusterMethodNotAllowedCode is the HTTP code returned for type DeregisterClusterMethodNotAllowed
+const DeregisterClusterMethodNotAllowedCode int = 405
+
+/*DeregisterClusterMethodNotAllowed Method Not Allowed.
+
+swagger:response deregisterClusterMethodNotAllowed
+*/
+type DeregisterClusterMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeregisterClusterMethodNotAllowed creates DeregisterClusterMethodNotAllowed with default headers values
+func NewDeregisterClusterMethodNotAllowed() *DeregisterClusterMethodNotAllowed {
+
+	return &DeregisterClusterMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the deregister cluster method not allowed response
+func (o *DeregisterClusterMethodNotAllowed) WithPayload(payload *models.Error) *DeregisterClusterMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the deregister cluster method not allowed response
+func (o *DeregisterClusterMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeregisterClusterMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

@@ -29,6 +29,24 @@ func (o *ListHostsReader) ReadResponse(response runtime.ClientResponse, consumer
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewListHostsUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewListHostsForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewListHostsMethodNotAllowed()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewListHostsInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -37,7 +55,7 @@ func (o *ListHostsReader) ReadResponse(response runtime.ClientResponse, consumer
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -66,6 +84,105 @@ func (o *ListHostsOK) readResponse(response runtime.ClientResponse, consumer run
 
 	// response payload
 	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewListHostsUnauthorized creates a ListHostsUnauthorized with default headers values
+func NewListHostsUnauthorized() *ListHostsUnauthorized {
+	return &ListHostsUnauthorized{}
+}
+
+/*ListHostsUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type ListHostsUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *ListHostsUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *ListHostsUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ListHostsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewListHostsForbidden creates a ListHostsForbidden with default headers values
+func NewListHostsForbidden() *ListHostsForbidden {
+	return &ListHostsForbidden{}
+}
+
+/*ListHostsForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type ListHostsForbidden struct {
+	Payload *models.Error
+}
+
+func (o *ListHostsForbidden) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsForbidden  %+v", 403, o.Payload)
+}
+
+func (o *ListHostsForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ListHostsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewListHostsMethodNotAllowed creates a ListHostsMethodNotAllowed with default headers values
+func NewListHostsMethodNotAllowed() *ListHostsMethodNotAllowed {
+	return &ListHostsMethodNotAllowed{}
+}
+
+/*ListHostsMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type ListHostsMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *ListHostsMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *ListHostsMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ListHostsMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

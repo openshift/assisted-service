@@ -7,9 +7,21 @@ import deployment_options
 
 SRC_FILE = os.path.join(os.getcwd(), "deploy/assisted-service.yaml")
 DST_FILE = os.path.join(os.getcwd(), "build/assisted-service.yaml")
+KEY_FILE = os.path.join(os.getcwd(), "build/auth-test-pub.json")
 
 TEST_CLUSTER_MONITOR_INTERVAL = "1s"
 TEST_HOST_MONITOR_INTERVAL = "1s"
+
+
+def load_key():
+    try:
+        with open(KEY_FILE, "r") as f:
+            return f.read()
+    except Exception as e:
+        print("Got exception {}, when tried to read key file at {}."
+              "Make sure you used tools/auth_keys_generator.go before running subsystem tests".format(e, KEY_FILE))
+        return ""
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -29,6 +41,7 @@ def main():
                 data["spec"]["template"]["spec"]["containers"][0]["env"] = []
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'CLUSTER_MONITOR_INTERVAL', 'value': TEST_CLUSTER_MONITOR_INTERVAL})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'HOST_MONITOR_INTERVAL', 'value': TEST_HOST_MONITOR_INTERVAL})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'JWKS_CERT', 'value': load_key()})
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
         else:
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Always"

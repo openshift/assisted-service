@@ -101,10 +101,54 @@ func (o *RegisterHostBadRequest) WriteResponse(rw http.ResponseWriter, producer 
 	}
 }
 
+// RegisterHostUnauthorizedCode is the HTTP code returned for type RegisterHostUnauthorized
+const RegisterHostUnauthorizedCode int = 401
+
+/*RegisterHostUnauthorized Unauthorized.
+
+swagger:response registerHostUnauthorized
+*/
+type RegisterHostUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewRegisterHostUnauthorized creates RegisterHostUnauthorized with default headers values
+func NewRegisterHostUnauthorized() *RegisterHostUnauthorized {
+
+	return &RegisterHostUnauthorized{}
+}
+
+// WithPayload adds the payload to the register host unauthorized response
+func (o *RegisterHostUnauthorized) WithPayload(payload *models.Error) *RegisterHostUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register host unauthorized response
+func (o *RegisterHostUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterHostUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // RegisterHostForbiddenCode is the HTTP code returned for type RegisterHostForbidden
 const RegisterHostForbiddenCode int = 403
 
-/*RegisterHostForbidden Error.
+/*RegisterHostForbidden Forbidden.
 
 swagger:response registerHostForbidden
 */
@@ -181,6 +225,50 @@ func (o *RegisterHostNotFound) SetPayload(payload *models.Error) {
 func (o *RegisterHostNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// RegisterHostMethodNotAllowedCode is the HTTP code returned for type RegisterHostMethodNotAllowed
+const RegisterHostMethodNotAllowedCode int = 405
+
+/*RegisterHostMethodNotAllowed Method Not Allowed.
+
+swagger:response registerHostMethodNotAllowed
+*/
+type RegisterHostMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewRegisterHostMethodNotAllowed creates RegisterHostMethodNotAllowed with default headers values
+func NewRegisterHostMethodNotAllowed() *RegisterHostMethodNotAllowed {
+
+	return &RegisterHostMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the register host method not allowed response
+func (o *RegisterHostMethodNotAllowed) WithPayload(payload *models.Error) *RegisterHostMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register host method not allowed response
+func (o *RegisterHostMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

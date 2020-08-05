@@ -60,6 +60,138 @@ func (o *ListClustersOK) WriteResponse(rw http.ResponseWriter, producer runtime.
 	}
 }
 
+// ListClustersUnauthorizedCode is the HTTP code returned for type ListClustersUnauthorized
+const ListClustersUnauthorizedCode int = 401
+
+/*ListClustersUnauthorized Unauthorized.
+
+swagger:response listClustersUnauthorized
+*/
+type ListClustersUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListClustersUnauthorized creates ListClustersUnauthorized with default headers values
+func NewListClustersUnauthorized() *ListClustersUnauthorized {
+
+	return &ListClustersUnauthorized{}
+}
+
+// WithPayload adds the payload to the list clusters unauthorized response
+func (o *ListClustersUnauthorized) WithPayload(payload *models.Error) *ListClustersUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list clusters unauthorized response
+func (o *ListClustersUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListClustersUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// ListClustersForbiddenCode is the HTTP code returned for type ListClustersForbidden
+const ListClustersForbiddenCode int = 403
+
+/*ListClustersForbidden Forbidden.
+
+swagger:response listClustersForbidden
+*/
+type ListClustersForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListClustersForbidden creates ListClustersForbidden with default headers values
+func NewListClustersForbidden() *ListClustersForbidden {
+
+	return &ListClustersForbidden{}
+}
+
+// WithPayload adds the payload to the list clusters forbidden response
+func (o *ListClustersForbidden) WithPayload(payload *models.Error) *ListClustersForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list clusters forbidden response
+func (o *ListClustersForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListClustersForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// ListClustersMethodNotAllowedCode is the HTTP code returned for type ListClustersMethodNotAllowed
+const ListClustersMethodNotAllowedCode int = 405
+
+/*ListClustersMethodNotAllowed Method Not Allowed.
+
+swagger:response listClustersMethodNotAllowed
+*/
+type ListClustersMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListClustersMethodNotAllowed creates ListClustersMethodNotAllowed with default headers values
+func NewListClustersMethodNotAllowed() *ListClustersMethodNotAllowed {
+
+	return &ListClustersMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the list clusters method not allowed response
+func (o *ListClustersMethodNotAllowed) WithPayload(payload *models.Error) *ListClustersMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list clusters method not allowed response
+func (o *ListClustersMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListClustersMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // ListClustersInternalServerErrorCode is the HTTP code returned for type ListClustersInternalServerError
 const ListClustersInternalServerErrorCode int = 500
 

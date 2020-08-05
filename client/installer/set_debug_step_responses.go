@@ -29,8 +29,26 @@ func (o *SetDebugStepReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewSetDebugStepUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewSetDebugStepForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewSetDebugStepNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewSetDebugStepMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -43,7 +61,7 @@ func (o *SetDebugStepReader) ReadResponse(response runtime.ClientResponse, consu
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -64,6 +82,72 @@ func (o *SetDebugStepNoContent) Error() string {
 }
 
 func (o *SetDebugStepNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewSetDebugStepUnauthorized creates a SetDebugStepUnauthorized with default headers values
+func NewSetDebugStepUnauthorized() *SetDebugStepUnauthorized {
+	return &SetDebugStepUnauthorized{}
+}
+
+/*SetDebugStepUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type SetDebugStepUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *SetDebugStepUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/debug][%d] setDebugStepUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *SetDebugStepUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *SetDebugStepUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewSetDebugStepForbidden creates a SetDebugStepForbidden with default headers values
+func NewSetDebugStepForbidden() *SetDebugStepForbidden {
+	return &SetDebugStepForbidden{}
+}
+
+/*SetDebugStepForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type SetDebugStepForbidden struct {
+	Payload *models.Error
+}
+
+func (o *SetDebugStepForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/debug][%d] setDebugStepForbidden  %+v", 403, o.Payload)
+}
+
+func (o *SetDebugStepForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *SetDebugStepForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -90,6 +174,39 @@ func (o *SetDebugStepNotFound) GetPayload() *models.Error {
 }
 
 func (o *SetDebugStepNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewSetDebugStepMethodNotAllowed creates a SetDebugStepMethodNotAllowed with default headers values
+func NewSetDebugStepMethodNotAllowed() *SetDebugStepMethodNotAllowed {
+	return &SetDebugStepMethodNotAllowed{}
+}
+
+/*SetDebugStepMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type SetDebugStepMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *SetDebugStepMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/debug][%d] setDebugStepMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *SetDebugStepMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *SetDebugStepMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

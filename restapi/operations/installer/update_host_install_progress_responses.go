@@ -37,6 +37,94 @@ func (o *UpdateHostInstallProgressOK) WriteResponse(rw http.ResponseWriter, prod
 	rw.WriteHeader(200)
 }
 
+// UpdateHostInstallProgressUnauthorizedCode is the HTTP code returned for type UpdateHostInstallProgressUnauthorized
+const UpdateHostInstallProgressUnauthorizedCode int = 401
+
+/*UpdateHostInstallProgressUnauthorized Unauthorized.
+
+swagger:response updateHostInstallProgressUnauthorized
+*/
+type UpdateHostInstallProgressUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUpdateHostInstallProgressUnauthorized creates UpdateHostInstallProgressUnauthorized with default headers values
+func NewUpdateHostInstallProgressUnauthorized() *UpdateHostInstallProgressUnauthorized {
+
+	return &UpdateHostInstallProgressUnauthorized{}
+}
+
+// WithPayload adds the payload to the update host install progress unauthorized response
+func (o *UpdateHostInstallProgressUnauthorized) WithPayload(payload *models.Error) *UpdateHostInstallProgressUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update host install progress unauthorized response
+func (o *UpdateHostInstallProgressUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UpdateHostInstallProgressUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// UpdateHostInstallProgressForbiddenCode is the HTTP code returned for type UpdateHostInstallProgressForbidden
+const UpdateHostInstallProgressForbiddenCode int = 403
+
+/*UpdateHostInstallProgressForbidden Forbidden.
+
+swagger:response updateHostInstallProgressForbidden
+*/
+type UpdateHostInstallProgressForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUpdateHostInstallProgressForbidden creates UpdateHostInstallProgressForbidden with default headers values
+func NewUpdateHostInstallProgressForbidden() *UpdateHostInstallProgressForbidden {
+
+	return &UpdateHostInstallProgressForbidden{}
+}
+
+// WithPayload adds the payload to the update host install progress forbidden response
+func (o *UpdateHostInstallProgressForbidden) WithPayload(payload *models.Error) *UpdateHostInstallProgressForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update host install progress forbidden response
+func (o *UpdateHostInstallProgressForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UpdateHostInstallProgressForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // UpdateHostInstallProgressNotFoundCode is the HTTP code returned for type UpdateHostInstallProgressNotFound
 const UpdateHostInstallProgressNotFoundCode int = 404
 
@@ -73,6 +161,50 @@ func (o *UpdateHostInstallProgressNotFound) SetPayload(payload *models.Error) {
 func (o *UpdateHostInstallProgressNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// UpdateHostInstallProgressMethodNotAllowedCode is the HTTP code returned for type UpdateHostInstallProgressMethodNotAllowed
+const UpdateHostInstallProgressMethodNotAllowedCode int = 405
+
+/*UpdateHostInstallProgressMethodNotAllowed Method Not Allowed.
+
+swagger:response updateHostInstallProgressMethodNotAllowed
+*/
+type UpdateHostInstallProgressMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUpdateHostInstallProgressMethodNotAllowed creates UpdateHostInstallProgressMethodNotAllowed with default headers values
+func NewUpdateHostInstallProgressMethodNotAllowed() *UpdateHostInstallProgressMethodNotAllowed {
+
+	return &UpdateHostInstallProgressMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the update host install progress method not allowed response
+func (o *UpdateHostInstallProgressMethodNotAllowed) WithPayload(payload *models.Error) *UpdateHostInstallProgressMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update host install progress method not allowed response
+func (o *UpdateHostInstallProgressMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UpdateHostInstallProgressMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

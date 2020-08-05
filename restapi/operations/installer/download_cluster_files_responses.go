@@ -56,6 +56,94 @@ func (o *DownloadClusterFilesOK) WriteResponse(rw http.ResponseWriter, producer 
 	}
 }
 
+// DownloadClusterFilesUnauthorizedCode is the HTTP code returned for type DownloadClusterFilesUnauthorized
+const DownloadClusterFilesUnauthorizedCode int = 401
+
+/*DownloadClusterFilesUnauthorized Unauthorized.
+
+swagger:response downloadClusterFilesUnauthorized
+*/
+type DownloadClusterFilesUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterFilesUnauthorized creates DownloadClusterFilesUnauthorized with default headers values
+func NewDownloadClusterFilesUnauthorized() *DownloadClusterFilesUnauthorized {
+
+	return &DownloadClusterFilesUnauthorized{}
+}
+
+// WithPayload adds the payload to the download cluster files unauthorized response
+func (o *DownloadClusterFilesUnauthorized) WithPayload(payload *models.Error) *DownloadClusterFilesUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download cluster files unauthorized response
+func (o *DownloadClusterFilesUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterFilesUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DownloadClusterFilesForbiddenCode is the HTTP code returned for type DownloadClusterFilesForbidden
+const DownloadClusterFilesForbiddenCode int = 403
+
+/*DownloadClusterFilesForbidden Forbidden.
+
+swagger:response downloadClusterFilesForbidden
+*/
+type DownloadClusterFilesForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterFilesForbidden creates DownloadClusterFilesForbidden with default headers values
+func NewDownloadClusterFilesForbidden() *DownloadClusterFilesForbidden {
+
+	return &DownloadClusterFilesForbidden{}
+}
+
+// WithPayload adds the payload to the download cluster files forbidden response
+func (o *DownloadClusterFilesForbidden) WithPayload(payload *models.Error) *DownloadClusterFilesForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download cluster files forbidden response
+func (o *DownloadClusterFilesForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterFilesForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DownloadClusterFilesNotFoundCode is the HTTP code returned for type DownloadClusterFilesNotFound
 const DownloadClusterFilesNotFoundCode int = 404
 
@@ -92,6 +180,50 @@ func (o *DownloadClusterFilesNotFound) SetPayload(payload *models.Error) {
 func (o *DownloadClusterFilesNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DownloadClusterFilesMethodNotAllowedCode is the HTTP code returned for type DownloadClusterFilesMethodNotAllowed
+const DownloadClusterFilesMethodNotAllowedCode int = 405
+
+/*DownloadClusterFilesMethodNotAllowed Method Not Allowed.
+
+swagger:response downloadClusterFilesMethodNotAllowed
+*/
+type DownloadClusterFilesMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterFilesMethodNotAllowed creates DownloadClusterFilesMethodNotAllowed with default headers values
+func NewDownloadClusterFilesMethodNotAllowed() *DownloadClusterFilesMethodNotAllowed {
+
+	return &DownloadClusterFilesMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the download cluster files method not allowed response
+func (o *DownloadClusterFilesMethodNotAllowed) WithPayload(payload *models.Error) *DownloadClusterFilesMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download cluster files method not allowed response
+func (o *DownloadClusterFilesMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterFilesMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

@@ -29,6 +29,24 @@ func (o *ListEventsReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewListEventsUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewListEventsForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewListEventsMethodNotAllowed()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewListEventsInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -37,7 +55,7 @@ func (o *ListEventsReader) ReadResponse(response runtime.ClientResponse, consume
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -66,6 +84,105 @@ func (o *ListEventsOK) readResponse(response runtime.ClientResponse, consumer ru
 
 	// response payload
 	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewListEventsUnauthorized creates a ListEventsUnauthorized with default headers values
+func NewListEventsUnauthorized() *ListEventsUnauthorized {
+	return &ListEventsUnauthorized{}
+}
+
+/*ListEventsUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type ListEventsUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *ListEventsUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /events/{entity_id}][%d] listEventsUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *ListEventsUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ListEventsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewListEventsForbidden creates a ListEventsForbidden with default headers values
+func NewListEventsForbidden() *ListEventsForbidden {
+	return &ListEventsForbidden{}
+}
+
+/*ListEventsForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type ListEventsForbidden struct {
+	Payload *models.Error
+}
+
+func (o *ListEventsForbidden) Error() string {
+	return fmt.Sprintf("[GET /events/{entity_id}][%d] listEventsForbidden  %+v", 403, o.Payload)
+}
+
+func (o *ListEventsForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ListEventsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewListEventsMethodNotAllowed creates a ListEventsMethodNotAllowed with default headers values
+func NewListEventsMethodNotAllowed() *ListEventsMethodNotAllowed {
+	return &ListEventsMethodNotAllowed{}
+}
+
+/*ListEventsMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type ListEventsMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *ListEventsMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[GET /events/{entity_id}][%d] listEventsMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *ListEventsMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ListEventsMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

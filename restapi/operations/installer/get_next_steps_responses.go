@@ -57,6 +57,94 @@ func (o *GetNextStepsOK) WriteResponse(rw http.ResponseWriter, producer runtime.
 	}
 }
 
+// GetNextStepsUnauthorizedCode is the HTTP code returned for type GetNextStepsUnauthorized
+const GetNextStepsUnauthorizedCode int = 401
+
+/*GetNextStepsUnauthorized Unauthorized.
+
+swagger:response getNextStepsUnauthorized
+*/
+type GetNextStepsUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetNextStepsUnauthorized creates GetNextStepsUnauthorized with default headers values
+func NewGetNextStepsUnauthorized() *GetNextStepsUnauthorized {
+
+	return &GetNextStepsUnauthorized{}
+}
+
+// WithPayload adds the payload to the get next steps unauthorized response
+func (o *GetNextStepsUnauthorized) WithPayload(payload *models.Error) *GetNextStepsUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get next steps unauthorized response
+func (o *GetNextStepsUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetNextStepsUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetNextStepsForbiddenCode is the HTTP code returned for type GetNextStepsForbidden
+const GetNextStepsForbiddenCode int = 403
+
+/*GetNextStepsForbidden Forbidden.
+
+swagger:response getNextStepsForbidden
+*/
+type GetNextStepsForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetNextStepsForbidden creates GetNextStepsForbidden with default headers values
+func NewGetNextStepsForbidden() *GetNextStepsForbidden {
+
+	return &GetNextStepsForbidden{}
+}
+
+// WithPayload adds the payload to the get next steps forbidden response
+func (o *GetNextStepsForbidden) WithPayload(payload *models.Error) *GetNextStepsForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get next steps forbidden response
+func (o *GetNextStepsForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetNextStepsForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetNextStepsNotFoundCode is the HTTP code returned for type GetNextStepsNotFound
 const GetNextStepsNotFoundCode int = 404
 
@@ -93,6 +181,50 @@ func (o *GetNextStepsNotFound) SetPayload(payload *models.Error) {
 func (o *GetNextStepsNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetNextStepsMethodNotAllowedCode is the HTTP code returned for type GetNextStepsMethodNotAllowed
+const GetNextStepsMethodNotAllowedCode int = 405
+
+/*GetNextStepsMethodNotAllowed Method Not Allowed.
+
+swagger:response getNextStepsMethodNotAllowed
+*/
+type GetNextStepsMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetNextStepsMethodNotAllowed creates GetNextStepsMethodNotAllowed with default headers values
+func NewGetNextStepsMethodNotAllowed() *GetNextStepsMethodNotAllowed {
+
+	return &GetNextStepsMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the get next steps method not allowed response
+func (o *GetNextStepsMethodNotAllowed) WithPayload(payload *models.Error) *GetNextStepsMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get next steps method not allowed response
+func (o *GetNextStepsMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetNextStepsMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

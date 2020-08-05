@@ -60,6 +60,138 @@ func (o *ListHostsOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pro
 	}
 }
 
+// ListHostsUnauthorizedCode is the HTTP code returned for type ListHostsUnauthorized
+const ListHostsUnauthorizedCode int = 401
+
+/*ListHostsUnauthorized Unauthorized.
+
+swagger:response listHostsUnauthorized
+*/
+type ListHostsUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListHostsUnauthorized creates ListHostsUnauthorized with default headers values
+func NewListHostsUnauthorized() *ListHostsUnauthorized {
+
+	return &ListHostsUnauthorized{}
+}
+
+// WithPayload adds the payload to the list hosts unauthorized response
+func (o *ListHostsUnauthorized) WithPayload(payload *models.Error) *ListHostsUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list hosts unauthorized response
+func (o *ListHostsUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListHostsUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// ListHostsForbiddenCode is the HTTP code returned for type ListHostsForbidden
+const ListHostsForbiddenCode int = 403
+
+/*ListHostsForbidden Forbidden.
+
+swagger:response listHostsForbidden
+*/
+type ListHostsForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListHostsForbidden creates ListHostsForbidden with default headers values
+func NewListHostsForbidden() *ListHostsForbidden {
+
+	return &ListHostsForbidden{}
+}
+
+// WithPayload adds the payload to the list hosts forbidden response
+func (o *ListHostsForbidden) WithPayload(payload *models.Error) *ListHostsForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list hosts forbidden response
+func (o *ListHostsForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListHostsForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// ListHostsMethodNotAllowedCode is the HTTP code returned for type ListHostsMethodNotAllowed
+const ListHostsMethodNotAllowedCode int = 405
+
+/*ListHostsMethodNotAllowed Method Not Allowed.
+
+swagger:response listHostsMethodNotAllowed
+*/
+type ListHostsMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListHostsMethodNotAllowed creates ListHostsMethodNotAllowed with default headers values
+func NewListHostsMethodNotAllowed() *ListHostsMethodNotAllowed {
+
+	return &ListHostsMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the list hosts method not allowed response
+func (o *ListHostsMethodNotAllowed) WithPayload(payload *models.Error) *ListHostsMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list hosts method not allowed response
+func (o *ListHostsMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListHostsMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // ListHostsInternalServerErrorCode is the HTTP code returned for type ListHostsInternalServerError
 const ListHostsInternalServerErrorCode int = 500
 

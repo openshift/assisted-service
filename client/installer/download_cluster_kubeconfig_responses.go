@@ -30,8 +30,26 @@ func (o *DownloadClusterKubeconfigReader) ReadResponse(response runtime.ClientRe
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewDownloadClusterKubeconfigUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewDownloadClusterKubeconfigForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDownloadClusterKubeconfigNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 405:
+		result := NewDownloadClusterKubeconfigMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -50,7 +68,7 @@ func (o *DownloadClusterKubeconfigReader) ReadResponse(response runtime.ClientRe
 		return nil, result
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -87,6 +105,72 @@ func (o *DownloadClusterKubeconfigOK) readResponse(response runtime.ClientRespon
 	return nil
 }
 
+// NewDownloadClusterKubeconfigUnauthorized creates a DownloadClusterKubeconfigUnauthorized with default headers values
+func NewDownloadClusterKubeconfigUnauthorized() *DownloadClusterKubeconfigUnauthorized {
+	return &DownloadClusterKubeconfigUnauthorized{}
+}
+
+/*DownloadClusterKubeconfigUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type DownloadClusterKubeconfigUnauthorized struct {
+	Payload *models.Error
+}
+
+func (o *DownloadClusterKubeconfigUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DownloadClusterKubeconfigUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadClusterKubeconfigUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDownloadClusterKubeconfigForbidden creates a DownloadClusterKubeconfigForbidden with default headers values
+func NewDownloadClusterKubeconfigForbidden() *DownloadClusterKubeconfigForbidden {
+	return &DownloadClusterKubeconfigForbidden{}
+}
+
+/*DownloadClusterKubeconfigForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type DownloadClusterKubeconfigForbidden struct {
+	Payload *models.Error
+}
+
+func (o *DownloadClusterKubeconfigForbidden) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigForbidden  %+v", 403, o.Payload)
+}
+
+func (o *DownloadClusterKubeconfigForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadClusterKubeconfigForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewDownloadClusterKubeconfigNotFound creates a DownloadClusterKubeconfigNotFound with default headers values
 func NewDownloadClusterKubeconfigNotFound() *DownloadClusterKubeconfigNotFound {
 	return &DownloadClusterKubeconfigNotFound{}
@@ -109,6 +193,39 @@ func (o *DownloadClusterKubeconfigNotFound) GetPayload() *models.Error {
 }
 
 func (o *DownloadClusterKubeconfigNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDownloadClusterKubeconfigMethodNotAllowed creates a DownloadClusterKubeconfigMethodNotAllowed with default headers values
+func NewDownloadClusterKubeconfigMethodNotAllowed() *DownloadClusterKubeconfigMethodNotAllowed {
+	return &DownloadClusterKubeconfigMethodNotAllowed{}
+}
+
+/*DownloadClusterKubeconfigMethodNotAllowed handles this case with default header values.
+
+Method Not Allowed.
+*/
+type DownloadClusterKubeconfigMethodNotAllowed struct {
+	Payload *models.Error
+}
+
+func (o *DownloadClusterKubeconfigMethodNotAllowed) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigMethodNotAllowed  %+v", 405, o.Payload)
+}
+
+func (o *DownloadClusterKubeconfigMethodNotAllowed) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadClusterKubeconfigMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

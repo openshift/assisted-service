@@ -101,6 +101,138 @@ func (o *RegisterClusterBadRequest) WriteResponse(rw http.ResponseWriter, produc
 	}
 }
 
+// RegisterClusterUnauthorizedCode is the HTTP code returned for type RegisterClusterUnauthorized
+const RegisterClusterUnauthorizedCode int = 401
+
+/*RegisterClusterUnauthorized Unauthorized.
+
+swagger:response registerClusterUnauthorized
+*/
+type RegisterClusterUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewRegisterClusterUnauthorized creates RegisterClusterUnauthorized with default headers values
+func NewRegisterClusterUnauthorized() *RegisterClusterUnauthorized {
+
+	return &RegisterClusterUnauthorized{}
+}
+
+// WithPayload adds the payload to the register cluster unauthorized response
+func (o *RegisterClusterUnauthorized) WithPayload(payload *models.Error) *RegisterClusterUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register cluster unauthorized response
+func (o *RegisterClusterUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterClusterUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// RegisterClusterForbiddenCode is the HTTP code returned for type RegisterClusterForbidden
+const RegisterClusterForbiddenCode int = 403
+
+/*RegisterClusterForbidden Forbidden.
+
+swagger:response registerClusterForbidden
+*/
+type RegisterClusterForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewRegisterClusterForbidden creates RegisterClusterForbidden with default headers values
+func NewRegisterClusterForbidden() *RegisterClusterForbidden {
+
+	return &RegisterClusterForbidden{}
+}
+
+// WithPayload adds the payload to the register cluster forbidden response
+func (o *RegisterClusterForbidden) WithPayload(payload *models.Error) *RegisterClusterForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register cluster forbidden response
+func (o *RegisterClusterForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterClusterForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// RegisterClusterMethodNotAllowedCode is the HTTP code returned for type RegisterClusterMethodNotAllowed
+const RegisterClusterMethodNotAllowedCode int = 405
+
+/*RegisterClusterMethodNotAllowed Method Not Allowed.
+
+swagger:response registerClusterMethodNotAllowed
+*/
+type RegisterClusterMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewRegisterClusterMethodNotAllowed creates RegisterClusterMethodNotAllowed with default headers values
+func NewRegisterClusterMethodNotAllowed() *RegisterClusterMethodNotAllowed {
+
+	return &RegisterClusterMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the register cluster method not allowed response
+func (o *RegisterClusterMethodNotAllowed) WithPayload(payload *models.Error) *RegisterClusterMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register cluster method not allowed response
+func (o *RegisterClusterMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterClusterMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // RegisterClusterInternalServerErrorCode is the HTTP code returned for type RegisterClusterInternalServerError
 const RegisterClusterInternalServerErrorCode int = 500
 

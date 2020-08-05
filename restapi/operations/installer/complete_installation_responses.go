@@ -57,6 +57,94 @@ func (o *CompleteInstallationAccepted) WriteResponse(rw http.ResponseWriter, pro
 	}
 }
 
+// CompleteInstallationUnauthorizedCode is the HTTP code returned for type CompleteInstallationUnauthorized
+const CompleteInstallationUnauthorizedCode int = 401
+
+/*CompleteInstallationUnauthorized Unauthorized.
+
+swagger:response completeInstallationUnauthorized
+*/
+type CompleteInstallationUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewCompleteInstallationUnauthorized creates CompleteInstallationUnauthorized with default headers values
+func NewCompleteInstallationUnauthorized() *CompleteInstallationUnauthorized {
+
+	return &CompleteInstallationUnauthorized{}
+}
+
+// WithPayload adds the payload to the complete installation unauthorized response
+func (o *CompleteInstallationUnauthorized) WithPayload(payload *models.Error) *CompleteInstallationUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the complete installation unauthorized response
+func (o *CompleteInstallationUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *CompleteInstallationUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// CompleteInstallationForbiddenCode is the HTTP code returned for type CompleteInstallationForbidden
+const CompleteInstallationForbiddenCode int = 403
+
+/*CompleteInstallationForbidden Forbidden.
+
+swagger:response completeInstallationForbidden
+*/
+type CompleteInstallationForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewCompleteInstallationForbidden creates CompleteInstallationForbidden with default headers values
+func NewCompleteInstallationForbidden() *CompleteInstallationForbidden {
+
+	return &CompleteInstallationForbidden{}
+}
+
+// WithPayload adds the payload to the complete installation forbidden response
+func (o *CompleteInstallationForbidden) WithPayload(payload *models.Error) *CompleteInstallationForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the complete installation forbidden response
+func (o *CompleteInstallationForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *CompleteInstallationForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // CompleteInstallationNotFoundCode is the HTTP code returned for type CompleteInstallationNotFound
 const CompleteInstallationNotFoundCode int = 404
 
@@ -93,6 +181,50 @@ func (o *CompleteInstallationNotFound) SetPayload(payload *models.Error) {
 func (o *CompleteInstallationNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// CompleteInstallationMethodNotAllowedCode is the HTTP code returned for type CompleteInstallationMethodNotAllowed
+const CompleteInstallationMethodNotAllowedCode int = 405
+
+/*CompleteInstallationMethodNotAllowed Method Not Allowed.
+
+swagger:response completeInstallationMethodNotAllowed
+*/
+type CompleteInstallationMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewCompleteInstallationMethodNotAllowed creates CompleteInstallationMethodNotAllowed with default headers values
+func NewCompleteInstallationMethodNotAllowed() *CompleteInstallationMethodNotAllowed {
+
+	return &CompleteInstallationMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the complete installation method not allowed response
+func (o *CompleteInstallationMethodNotAllowed) WithPayload(payload *models.Error) *CompleteInstallationMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the complete installation method not allowed response
+func (o *CompleteInstallationMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *CompleteInstallationMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

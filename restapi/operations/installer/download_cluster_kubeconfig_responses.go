@@ -56,6 +56,94 @@ func (o *DownloadClusterKubeconfigOK) WriteResponse(rw http.ResponseWriter, prod
 	}
 }
 
+// DownloadClusterKubeconfigUnauthorizedCode is the HTTP code returned for type DownloadClusterKubeconfigUnauthorized
+const DownloadClusterKubeconfigUnauthorizedCode int = 401
+
+/*DownloadClusterKubeconfigUnauthorized Unauthorized.
+
+swagger:response downloadClusterKubeconfigUnauthorized
+*/
+type DownloadClusterKubeconfigUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterKubeconfigUnauthorized creates DownloadClusterKubeconfigUnauthorized with default headers values
+func NewDownloadClusterKubeconfigUnauthorized() *DownloadClusterKubeconfigUnauthorized {
+
+	return &DownloadClusterKubeconfigUnauthorized{}
+}
+
+// WithPayload adds the payload to the download cluster kubeconfig unauthorized response
+func (o *DownloadClusterKubeconfigUnauthorized) WithPayload(payload *models.Error) *DownloadClusterKubeconfigUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download cluster kubeconfig unauthorized response
+func (o *DownloadClusterKubeconfigUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterKubeconfigUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DownloadClusterKubeconfigForbiddenCode is the HTTP code returned for type DownloadClusterKubeconfigForbidden
+const DownloadClusterKubeconfigForbiddenCode int = 403
+
+/*DownloadClusterKubeconfigForbidden Forbidden.
+
+swagger:response downloadClusterKubeconfigForbidden
+*/
+type DownloadClusterKubeconfigForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterKubeconfigForbidden creates DownloadClusterKubeconfigForbidden with default headers values
+func NewDownloadClusterKubeconfigForbidden() *DownloadClusterKubeconfigForbidden {
+
+	return &DownloadClusterKubeconfigForbidden{}
+}
+
+// WithPayload adds the payload to the download cluster kubeconfig forbidden response
+func (o *DownloadClusterKubeconfigForbidden) WithPayload(payload *models.Error) *DownloadClusterKubeconfigForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download cluster kubeconfig forbidden response
+func (o *DownloadClusterKubeconfigForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterKubeconfigForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DownloadClusterKubeconfigNotFoundCode is the HTTP code returned for type DownloadClusterKubeconfigNotFound
 const DownloadClusterKubeconfigNotFoundCode int = 404
 
@@ -92,6 +180,50 @@ func (o *DownloadClusterKubeconfigNotFound) SetPayload(payload *models.Error) {
 func (o *DownloadClusterKubeconfigNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// DownloadClusterKubeconfigMethodNotAllowedCode is the HTTP code returned for type DownloadClusterKubeconfigMethodNotAllowed
+const DownloadClusterKubeconfigMethodNotAllowedCode int = 405
+
+/*DownloadClusterKubeconfigMethodNotAllowed Method Not Allowed.
+
+swagger:response downloadClusterKubeconfigMethodNotAllowed
+*/
+type DownloadClusterKubeconfigMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterKubeconfigMethodNotAllowed creates DownloadClusterKubeconfigMethodNotAllowed with default headers values
+func NewDownloadClusterKubeconfigMethodNotAllowed() *DownloadClusterKubeconfigMethodNotAllowed {
+
+	return &DownloadClusterKubeconfigMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the download cluster kubeconfig method not allowed response
+func (o *DownloadClusterKubeconfigMethodNotAllowed) WithPayload(payload *models.Error) *DownloadClusterKubeconfigMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download cluster kubeconfig method not allowed response
+func (o *DownloadClusterKubeconfigMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterKubeconfigMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

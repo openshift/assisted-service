@@ -57,6 +57,94 @@ func (o *CancelInstallationAccepted) WriteResponse(rw http.ResponseWriter, produ
 	}
 }
 
+// CancelInstallationUnauthorizedCode is the HTTP code returned for type CancelInstallationUnauthorized
+const CancelInstallationUnauthorizedCode int = 401
+
+/*CancelInstallationUnauthorized Unauthorized.
+
+swagger:response cancelInstallationUnauthorized
+*/
+type CancelInstallationUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewCancelInstallationUnauthorized creates CancelInstallationUnauthorized with default headers values
+func NewCancelInstallationUnauthorized() *CancelInstallationUnauthorized {
+
+	return &CancelInstallationUnauthorized{}
+}
+
+// WithPayload adds the payload to the cancel installation unauthorized response
+func (o *CancelInstallationUnauthorized) WithPayload(payload *models.Error) *CancelInstallationUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the cancel installation unauthorized response
+func (o *CancelInstallationUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *CancelInstallationUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// CancelInstallationForbiddenCode is the HTTP code returned for type CancelInstallationForbidden
+const CancelInstallationForbiddenCode int = 403
+
+/*CancelInstallationForbidden Forbidden.
+
+swagger:response cancelInstallationForbidden
+*/
+type CancelInstallationForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewCancelInstallationForbidden creates CancelInstallationForbidden with default headers values
+func NewCancelInstallationForbidden() *CancelInstallationForbidden {
+
+	return &CancelInstallationForbidden{}
+}
+
+// WithPayload adds the payload to the cancel installation forbidden response
+func (o *CancelInstallationForbidden) WithPayload(payload *models.Error) *CancelInstallationForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the cancel installation forbidden response
+func (o *CancelInstallationForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *CancelInstallationForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // CancelInstallationNotFoundCode is the HTTP code returned for type CancelInstallationNotFound
 const CancelInstallationNotFoundCode int = 404
 
@@ -93,6 +181,50 @@ func (o *CancelInstallationNotFound) SetPayload(payload *models.Error) {
 func (o *CancelInstallationNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// CancelInstallationMethodNotAllowedCode is the HTTP code returned for type CancelInstallationMethodNotAllowed
+const CancelInstallationMethodNotAllowedCode int = 405
+
+/*CancelInstallationMethodNotAllowed Method Not Allowed.
+
+swagger:response cancelInstallationMethodNotAllowed
+*/
+type CancelInstallationMethodNotAllowed struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewCancelInstallationMethodNotAllowed creates CancelInstallationMethodNotAllowed with default headers values
+func NewCancelInstallationMethodNotAllowed() *CancelInstallationMethodNotAllowed {
+
+	return &CancelInstallationMethodNotAllowed{}
+}
+
+// WithPayload adds the payload to the cancel installation method not allowed response
+func (o *CancelInstallationMethodNotAllowed) WithPayload(payload *models.Error) *CancelInstallationMethodNotAllowed {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the cancel installation method not allowed response
+func (o *CancelInstallationMethodNotAllowed) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *CancelInstallationMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(405)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

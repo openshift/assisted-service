@@ -28,7 +28,7 @@ lint:
 	golangci-lint run -v
 
 .PHONY: build
-build: lint unit-test build-minimal
+build: lint unit-test build-minimal generate-keys
 
 build-minimal: create-build-dir
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
@@ -45,10 +45,10 @@ generate:
 generate-from-swagger:
 	rm -rf client models restapi
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
-		quay.io/goswagger/swagger:v0.24.0 generate server	--template=stratoscale -f swagger.yaml \
+		quay.io/goswagger/swagger:v0.25.0 generate server	--template=stratoscale -f swagger.yaml \
 		--template-dir=/templates/contrib
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
-		quay.io/goswagger/swagger:v0.24.0 generate client	--template=stratoscale -f swagger.yaml \
+		quay.io/goswagger/swagger:v0.25.0 generate client	--template=stratoscale -f swagger.yaml \
 		--template-dir=/templates/contrib
 
 ##########
@@ -118,7 +118,7 @@ deploy-inventory-service-file: deploy-namespace
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" $(DEPLOY_TAG_OPTION)
+	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)"
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" $(TEST_FLAGS)
@@ -131,8 +131,8 @@ deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)"
 
 deploy-test:
-	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && \
-	$(MAKE) update-minikube deploy-all
+	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
+	&& $(MAKE) update-minikube deploy-all
 
 ########
 # Test #
@@ -140,10 +140,15 @@ deploy-test:
 
 subsystem-run: test subsystem-clean
 
+generate-keys:
+	cd tools && go run auth_keys_generator.go -keys-dir=$(BUILD_FOLDER)
+
 test:
 	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
 		DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
 		DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
+		TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
+		ENABLE_AUTH="true" \
 		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 20m
 
 deploy-olm: deploy-namespace
