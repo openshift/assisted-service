@@ -27,7 +27,7 @@ type AuthPayload struct {
 }
 
 type Config struct {
-	EnableAuth bool   `envconfig:"ENABLE_AUTH" default:"true"`
+	EnableAuth bool   `envconfig:"ENABLE_AUTH" default:"false"`
 	JwkCert    string `envconfig:"JWKS_CERT"`
 	JwkCertURL string `envconfig:"JWKS_URL" default:"https://api.openshift.com/.well-known/jwks.json"`
 }
