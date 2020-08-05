@@ -106,7 +106,7 @@ func TestAuth(t *testing.T) {
 				JwkCertURL: "",
 				JwkCert:    string(JwkCert),
 			}
-			AuthHandler := NewAuthHandler(fakeConfig, log.WithField("pkg", "auth"))
+			AuthHandler := NewAuthHandler(fakeConfig, nil, log.WithField("pkg", "auth"))
 
 			h, _ := restapi.Handler(restapi.Config{
 				AuthAgentAuth:       AuthHandler.AuthAgentAuth,

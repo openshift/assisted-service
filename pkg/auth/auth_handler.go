@@ -1,11 +1,14 @@
 package auth
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/openshift/assisted-service/pkg/ocm"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
@@ -13,18 +16,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/sirupsen/logrus"
 )
-
-// AuthPayload defines the structure of the JWT payload we expect from
-// RHD JWT tokens
-type AuthPayload struct {
-	Username     string `json:"username"`
-	FirstName    string `json:"first_name"`
-	LastName     string `json:"last_name"`
-	Organization string `json:"org_id"`
-	Email        string `json:"email"`
-	Issuer       string `json:"iss"`
-	ClientID     string `json:"clientId"`
-}
 
 type Config struct {
 	EnableAuth bool   `envconfig:"ENABLE_AUTH" default:"false"`
@@ -39,12 +30,14 @@ type AuthHandler struct {
 	KeyMap     map[string]*rsa.PublicKey
 	utils      AUtilsInteface
 	log        logrus.FieldLogger
+	client     *ocm.Client
 }
 
-func NewAuthHandler(cfg Config, log logrus.FieldLogger) *AuthHandler {
+func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthHandler {
 	a := &AuthHandler{
 		EnableAuth: cfg.EnableAuth,
 		utils:      NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
+		client:     ocmCLient,
 		log:        log,
 	}
 	if a.EnableAuth {
@@ -85,18 +78,25 @@ func (a *AuthHandler) getValidationToken(token *jwt.Token) (interface{}, error) 
 }
 
 func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
-	//TODO: Validate agent pull secret
-	return "user_foo", nil
+	if a.client == nil {
+		return nil, fmt.Errorf("OCM client unavailable")
+	}
+	user, err := a.client.Authentication.AuthenticatePullSecret(context.Background(), token)
+	if err != nil {
+		a.log.Error("Error Authenticating PullSecret token: %e", err)
+		return nil, err
+	}
+	return user, nil
 }
 
-func parsePayload(userToken *jwt.Token) (*AuthPayload, error) {
+func parsePayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
 	claims, ok := userToken.Claims.(jwt.MapClaims)
 	if !ok {
 		err := fmt.Errorf("Unable to parse JWT token claims")
 		return nil, err
 	}
 
-	payload := &AuthPayload{}
+	payload := &ocm.AuthPayload{}
 	// default to the values we expect from RHSSO
 	payload.Username, _ = claims["username"].(string)
 	payload.FirstName, _ = claims["first_name"].(string)
