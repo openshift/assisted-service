@@ -28,7 +28,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/job"
 	"github.com/openshift/assisted-service/pkg/requestid"
-	awsS3Client "github.com/openshift/assisted-service/pkg/s3Client"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
@@ -75,11 +74,16 @@ func main() {
 
 	log.Println("Starting bm service")
 
+	s3Client := s3wrapper.NewS3Client(&Options.S3Config, log)
+	if s3Client == nil {
+		log.Fatal("failed to create S3 client, ", err)
+	}
+
 	var kclient client.Client
 	if Options.UseK8s {
 
 		if Options.CreateS3Bucket {
-			if err = s3wrapper.CreateBucket(&Options.S3Config); err != nil {
+			if err = s3Client.CreateBucket(); err != nil {
 				log.Fatal(err)
 			}
 		}
@@ -137,11 +141,6 @@ func main() {
 	hostStateMonitor.Start()
 	defer hostStateMonitor.Stop()
 
-	s3Client, err := awsS3Client.NewS3Client(Options.BMConfig.S3EndpointURL, Options.BMConfig.AwsAccessKeyID, Options.BMConfig.AwsSecretAccessKey, log)
-	if err != nil {
-		log.Fatal("Failed to setup S3 client", err)
-	}
-
 	jobApi := job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, jobApi, eventsHandler, s3Client, metricsManager)
@@ -149,11 +148,7 @@ func main() {
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
 	if Options.UseK8s {
-		s3WrapperClient, s3Err := s3wrapper.NewS3Client(&Options.S3Config)
-		if s3Err != nil {
-			log.Fatal("failed to create S3 client, ", err)
-		}
-		expirer := imgexpirer.NewManager(log, s3WrapperClient, Options.S3Config.S3Bucket, Options.ImageExpirationTime, eventsHandler)
+		expirer := imgexpirer.NewManager(log, s3Client.Client, Options.S3Config.S3Bucket, Options.ImageExpirationTime, eventsHandler)
 		imageExpirationMonitor := thread.New(
 			log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
 		imageExpirationMonitor.Start()
