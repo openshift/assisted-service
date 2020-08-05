@@ -1425,6 +1425,9 @@ definitions:
       installer_version:
         type: string
         description: Installer version
+      installation_disk_path:
+        type: string
+        description: Host installation path
       updated_at:
         type: string
         format: date-time
