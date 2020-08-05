@@ -22,19 +22,18 @@ pipeline {
 		}
 
 
-		stage('Deploy to prod') {
+		stage('publish images on push to master') {
 			when {
 				branch 'master'
 			}
 			steps {
-				withCredentials([usernamePassword(credentialsId: 'ocpmetal_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-					sh '''docker login quay.io -u $USER -p $PASS'''
+				script {
+					docker.withRegistry('https://quay.io/', 'ocpmetal_cred') {
+						def img = docker.image('quay.io/ocpmetal/assisted-service:latest')
+						img.push('latest')
+						img.push('${GIT_COMMIT}')
 				}
-				sh '''docker tag  quay.io/ocpmetal/assisted-service:test quay.io/ocpmetal/assisted-service:$(git rev-parse --verify HEAD)'''
-					sh '''docker tag  quay.io/ocpmetal/assisted-service:test quay.io/ocpmetal/assisted-service:latest'''
-					sh '''docker push quay.io/ocpmetal/assisted-service:latest'''
-					sh '''docker push quay.io/ocpmetal/assisted-service:$(git rev-parse --verify HEAD)'''
-
+				}
 			}
 		}
 	}
@@ -46,9 +45,14 @@ pipeline {
 				mv test_dd.log $WORKSPACE/assisted-service.log || true
 				'''
 
-				echo 'Get mariadb log'
-				sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep mariadb | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
-				mv test_dd.log $WORKSPACE/mariadb.log || true
+				echo 'Get postgres log'
+				sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep postgres | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+				mv test_dd.log $WORKSPACE/postgres.log || true
+				'''
+
+				echo 'Get scality log'
+				sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep scality | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+				mv test_dd.log $WORKSPACE/scality.log || true
 				'''
 
 				echo 'Get createimage log'
