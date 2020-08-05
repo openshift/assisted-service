@@ -40,8 +40,7 @@ type InstructionManager struct {
 	stateToSteps stateToStepsMap
 }
 type InstructionConfig struct {
-	ServiceURL             string `envconfig:"SERVICE_URL"`
-	ServicePort            string `envconfig:"SERVICE_PORT"`
+	ServiceBaseURL         string `envconfig:"SERVICE_BASE_URL"`
 	InstallerImage         string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
 	ControllerImage        string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
 	ConnectivityCheckImage string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/connectivity_check:latest"`
