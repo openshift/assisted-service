@@ -60,6 +60,12 @@ func (o *DownloadClusterISOReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
+	case 409:
+		result := NewDownloadClusterISOConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewDownloadClusterISOInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -247,18 +253,39 @@ func NewDownloadClusterISOMethodNotAllowed() *DownloadClusterISOMethodNotAllowed
 Method Not Allowed.
 */
 type DownloadClusterISOMethodNotAllowed struct {
-	Payload *models.Error
 }
 
 func (o *DownloadClusterISOMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOMethodNotAllowed  %+v", 405, o.Payload)
-}
-
-func (o *DownloadClusterISOMethodNotAllowed) GetPayload() *models.Error {
-	return o.Payload
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOMethodNotAllowed ", 405)
 }
 
 func (o *DownloadClusterISOMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDownloadClusterISOConflict creates a DownloadClusterISOConflict with default headers values
+func NewDownloadClusterISOConflict() *DownloadClusterISOConflict {
+	return &DownloadClusterISOConflict{}
+}
+
+/*DownloadClusterISOConflict handles this case with default header values.
+
+Error.
+*/
+type DownloadClusterISOConflict struct {
+	Payload *models.Error
+}
+
+func (o *DownloadClusterISOConflict) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOConflict  %+v", 409, o.Payload)
+}
+
+func (o *DownloadClusterISOConflict) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DownloadClusterISOConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 
