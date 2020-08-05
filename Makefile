@@ -23,6 +23,8 @@ ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/installer-image-build:late
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
+OCM_CLIENT_ID := ${OCM_CLIENT_ID}
+OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 
 all: build
@@ -118,7 +120,7 @@ else ifdef DEPLOY_MANIFEST_TAG
   DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
 endif
 
-deploy-all: $(BUILD_FOLDER) deploy-namespace deploy-postgres deploy-s3 deploy-route53 deploy-service
+deploy-all: $(BUILD_FOLDER) deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
@@ -137,6 +139,9 @@ deploy-s3: deploy-namespace
 
 deploy-route53: deploy-namespace
 	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)" --namespace "$(NAMESPACE)"
+
+deploy-ocm-secret: deploy-namespace
+	python3 ./tools/deploy_sso_secret.py --secret "$(OCM_CLIENT_SECRET)" --id "$(OCM_CLIENT_ID)" --namespace "$(NAMESPACE)"
 
 deploy-inventory-service-file: deploy-namespace
 	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)"

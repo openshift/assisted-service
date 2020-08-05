@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: assisted-installer-sso
+  namespace: REPLACE_NAMESPACE
+  labels:
+    app: assisted-service
+type: Opaque
+stringData:
+  ocm-service.clientId: REPLACE_OCM_ID
+  ocm-service.clientSecret: REPLACE_OCM_SECRET
