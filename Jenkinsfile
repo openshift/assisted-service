@@ -1,5 +1,9 @@
 pipeline {
 	agent { label 'bm-inventory-subsystem' }
+	environment {
+		SERVICE = 'ocpmetal/assisted-service'
+	}
+
 	stages {
 		stage('clear deployment') {
 			steps {
@@ -9,7 +13,7 @@ pipeline {
 
 		stage('Build') {
 			steps {
-				sh '''export SERVICE=ocpmetal/assisted-service; export PATH=$PATH:/usr/local/go/bin; make build-image'''
+				sh '''export PATH=$PATH:/usr/local/go/bin; make build-image'''
 			}
 		}
 
@@ -17,7 +21,7 @@ pipeline {
 			steps {
 				script {
 					docker.withRegistry('https://docker.io/', 'dockerio_cred') {
-						sh '''export SERVICE=ocpmetal/assisted-service; export PATH=$PATH:/usr/local/go/bin; make jenkins-deploy-for-subsystem'''
+						sh '''export PATH=$PATH:/usr/local/go/bin; make jenkins-deploy-for-subsystem'''
 						sleep 60
 						sh '''# Dump pod statuses;kubectl  get pods -A'''
 				}
@@ -39,7 +43,7 @@ pipeline {
 			steps {
 				script {
 					docker.withRegistry('https://quay.io/', 'ocpmetal_cred') {
-						def img = docker.image('ocpmetal/assisted-service')
+						def img = docker.image(${SERVICE})
 						img.push('latest')
 						img.push('${GIT_COMMIT}')
 				}
