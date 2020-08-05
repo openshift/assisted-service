@@ -9,9 +9,13 @@ pipeline {
 
 		stage('Deploy') {
 			steps {
-				sh '''export PATH=$PATH:/usr/local/go/bin; make deploy-test'''
-					sleep 60
-					sh '''# Dump pod statuses;kubectl  get pods -A'''
+				script {
+					docker.withRegistry('https://docker.io/', 'dockerio_cred') {
+						sh '''export PATH=$PATH:/usr/local/go/bin; make deploy-test'''
+						sleep 60
+						sh '''# Dump pod statuses;kubectl  get pods -A'''
+				}
+				}
 			}
 		}
 
