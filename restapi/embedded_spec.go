@@ -2520,6 +2520,10 @@ func init() {
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
         },
+        "installation_disk_path": {
+          "description": "Host installation path",
+          "type": "string"
+        },
         "installer_version": {
           "description": "Installer version",
           "type": "string"
@@ -5560,6 +5564,10 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "installation_disk_path": {
+          "description": "Host installation path",
+          "type": "string"
         },
         "installer_version": {
           "description": "Installer version",

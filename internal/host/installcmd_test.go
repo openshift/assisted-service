@@ -58,17 +58,23 @@ var _ = Describe("installcmd", func() {
 
 	})
 
-	It("get_step_one_master", func() {
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, errors.New("error")).Times(1)
-		stepReply, stepErr = installCmd.GetStep(ctx, &host)
-		postvalidation(true, true, stepReply, stepErr, "")
-	})
+	Context("negative", func() {
+		It("get_step_one_master", func() {
+			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, errors.New("error")).Times(1)
+		})
 
-	It("get_step_one_master_no_disks", func() {
-		var emptydisks []*models.Disk
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(emptydisks, nil).Times(1)
-		stepReply, stepErr = installCmd.GetStep(ctx, &host)
-		postvalidation(true, true, stepReply, stepErr, "")
+		It("get_step_one_master_no_disks", func() {
+			var emptydisks []*models.Disk
+			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(emptydisks, nil).Times(1)
+		})
+
+		AfterEach(func() {
+			stepReply, stepErr = installCmd.GetStep(ctx, &host)
+			postvalidation(true, true, stepReply, stepErr, "")
+			hostFromDb := getHost(*host.ID, clusterId, db)
+			Expect(hostFromDb.InstallerVersion).Should(BeEmpty())
+			Expect(hostFromDb.InstallationDiskPath).Should(BeEmpty())
+		})
 	})
 
 	It("get_step_one_master_success", func() {
@@ -76,8 +82,10 @@ var _ = Describe("installcmd", func() {
 		stepReply, stepErr = installCmd.GetStep(ctx, &host)
 		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
 		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "")
-		Expect(getHost(*host.ID, clusterId, db).InstallerVersion).
-			To(Equal(defaultInstructionConfig.InstallerImage))
+
+		hostFromDb := getHost(*host.ID, clusterId, db)
+		Expect(hostFromDb.InstallerVersion).Should(Equal(defaultInstructionConfig.InstallerImage))
+		Expect(hostFromDb.InstallationDiskPath).Should(Equal(GetDeviceFullName(disks[0].Name)))
 	})
 
 	It("get_step_three_master_success", func() {
@@ -97,7 +105,6 @@ var _ = Describe("installcmd", func() {
 	})
 
 	AfterEach(func() {
-
 		// cleanup
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()

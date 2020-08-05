@@ -25,8 +25,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var defaultHwInfo = "default hw info"                                 // invalid hw info used only for tests
-var defaultInventoryS = "default inventory"                           // invalid inventory info used only for tests
+var defaultHwInfo = "default hw info" // invalid hw info used only for tests
+var defaultDisk = models.Disk{        // invalid disk used only for tests
+	Name:   "test-disk",
+	Serial: "test-serial",
+}
 var defaultProgressStage = models.HostStage("default progress stage") // invalid progress stage used only for tests
 
 var _ = Describe("update_role", func() {
@@ -612,6 +615,9 @@ func defaultInventory() string {
 				},
 			},
 		},
+		Disks: []*models.Disk{
+			&defaultDisk,
+		},
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -727,7 +733,7 @@ var _ = Describe("UpdateInventory", func() {
 		failure := func(reply error) {
 			Expect(reply).To(HaveOccurred())
 			h := getHost(hostId, clusterId, db)
-			Expect(h.Inventory).To(Equal(defaultInventoryS))
+			Expect(h.Inventory).To(Equal(defaultInventory()))
 		}
 
 		tests := []struct {
@@ -801,7 +807,7 @@ var _ = Describe("UpdateInventory", func() {
 			t := tests[i]
 			It(t.name, func() {
 				host = getTestHost(hostId, clusterId, t.srcState)
-				host.Inventory = defaultInventoryS
+				host.Inventory = defaultInventory()
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				t.validation(hapi.UpdateInventory(ctx, &host, newInventory))

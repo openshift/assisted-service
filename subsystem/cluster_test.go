@@ -365,6 +365,9 @@ var _ = Describe("cluster install", func() {
 			waitForClusterInstallationToStart(clusterID)
 			hostID := c.GetPayload().Hosts[0].ID
 
+			_, ok := getStepInList(getNextSteps(clusterID, *hostID), models.StepTypeInstall)
+			Expect(ok).Should(Equal(true))
+
 			installProgress := models.HostStageRebooting
 			updateProgress(*hostID, clusterID, installProgress)
 
@@ -372,6 +375,8 @@ var _ = Describe("cluster install", func() {
 				hostInDb := getHost(clusterID, *hostID)
 				Expect(*hostInDb.Status).Should(Equal(host.HostStatusInstallingInProgress))
 				Expect(*hostInDb.StatusInfo).Should(Equal(string(installProgress)))
+				Expect(hostInDb.InstallationDiskPath).ShouldNot(BeEmpty())
+				Expect(hostInDb.Inventory).ShouldNot(BeEmpty())
 			})
 
 			By("Try to register", func() {

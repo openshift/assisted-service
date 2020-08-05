@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -95,15 +96,45 @@ func (th *transitionHandler) IsHostInReboot(sw stateswitch.StateSwitch, _ states
 func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
-		return errors.New("RegisterNewHost incompatible type of StateSwitch")
+		return errors.New("PostRegisterDuringReboot incompatible type of StateSwitch")
 	}
 	params, ok := args.(*TransitionArgsRegisterHost)
 	if !ok {
 		return errors.New("PostRegisterDuringReboot invalid argument")
 	}
 
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
-		"Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot order to boot from disk")
+	if sHost.host.InstallationDiskPath == "" || sHost.host.Inventory == "" {
+		return errors.New(fmt.Sprintf("PostRegisterDuringReboot host %s doesn't have installation_disk_path or inventory", *sHost.host.ID))
+	}
+
+	var installationDisk *models.Disk = nil
+
+	var inventory models.Inventory
+	err := json.Unmarshal([]byte(sHost.host.Inventory), &inventory)
+	if err != nil {
+		return errors.New(fmt.Sprintf("PostRegisterDuringReboot Could not parse inventory of host %s", *sHost.host.ID))
+	}
+
+	for _, disk := range inventory.Disks {
+		if GetDeviceFullName(disk.Name) == sHost.host.InstallationDiskPath {
+			installationDisk = disk
+			break
+		}
+	}
+
+	if installationDisk == nil {
+		return errors.New(fmt.Sprintf("PostRegisterDuringReboot Could not find installation disk %s for host %s",
+			sHost.host.InstallationDiskPath, *sHost.host.ID))
+	}
+
+	statusInfo := fmt.Sprintf("Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot order to boot from disk %s",
+		sHost.host.InstallationDiskPath)
+
+	if installationDisk != nil && installationDisk.Serial != "" {
+		statusInfo += fmt.Sprintf(" (%s)", installationDisk.Serial)
+	}
+
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost, statusInfo)
 }
 
 ////////////////////////////////////////////////////////////////////////////

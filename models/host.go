@@ -53,6 +53,9 @@ type Host struct {
 	// Format: uuid
 	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
 
+	// Host installation path
+	InstallationDiskPath string `json:"installation_disk_path,omitempty"`
+
 	// Installer version
 	InstallerVersion string `json:"installer_version,omitempty"`
 

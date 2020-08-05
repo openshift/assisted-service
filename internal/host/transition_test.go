@@ -230,7 +230,7 @@ var _ = Describe("RegisterHost", func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusInstallingPendingUserAction))
 			Expect(h.Role).Should(Equal(models.HostRoleMaster))
-			Expect(h.Inventory).Should(Equal(defaultHwInfo))
+			Expect(h.Inventory).Should(Equal(defaultInventory()))
 			Expect(h.StatusInfo).NotTo(BeNil())
 		})
 
@@ -239,17 +239,18 @@ var _ = Describe("RegisterHost", func() {
 
 			It(t.name, func() {
 				Expect(db.Create(&models.Host{
-					ID:        &hostId,
-					ClusterID: clusterId,
-					Role:      models.HostRoleMaster,
-					Inventory: defaultHwInfo,
-					Status:    swag.String(t.srcState),
-					Progress:  &t.progress,
+					ID:                   &hostId,
+					ClusterID:            clusterId,
+					Role:                 models.HostRoleMaster,
+					Inventory:            defaultInventory(),
+					Status:               swag.String(t.srcState),
+					Progress:             &t.progress,
+					InstallationDiskPath: GetDeviceFullName(defaultDisk.Name),
 				}).Error).ShouldNot(HaveOccurred())
 				mockEvents.EXPECT().AddEvent(gomock.Any(), hostId.String(), models.EventSeverityWarning,
 					fmt.Sprintf("Host %s: updated status from \"installing-in-progress\" to \"installing-pending-user-action\" "+
 						"(Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot order "+
-						"to boot from disk)", hostId.String()),
+						"to boot from disk %s (%s))", hostId.String(), GetDeviceFullName(defaultDisk.Name), defaultDisk.Serial),
 					gomock.Any(), clusterId.String())
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
