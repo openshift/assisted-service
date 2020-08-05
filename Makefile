@@ -21,6 +21,7 @@ SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
+ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 
 all: build
 
