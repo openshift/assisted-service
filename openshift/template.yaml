@@ -96,6 +96,16 @@ objects:
                   secretKeyRef:
                     key: db.user
                     name: assisted-installer-rds
+              - name: OCM_SERVICE_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    key: ocm-service.clientId
+                    name: assisted-installer-sso
+              - name: OCM_SERVICE_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    key: ocm-service.clientSecret
+                    name: assisted-installer-sso
               - name: IMAGE_BUILDER_CMD
                 value: ""
               - name: NAMESPACE

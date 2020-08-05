@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/thread"
@@ -62,6 +63,7 @@ var Options struct {
 	ImageExpirationTime         time.Duration `envconfig:"IMAGE_EXPIRATION_TIME" default:"60m"`
 	ClusterConfig               cluster.Config
 	DeployTarget                string `envconfig:"DEPLOY_TARGET" default:"k8s"`
+	OCMConfig                   ocm.Config
 }
 
 func main() {
@@ -94,7 +96,13 @@ func main() {
 		log.Fatal("failed to auto migrate, ", err)
 	}
 
-	authHandler := auth.NewAuthHandler(Options.Auth, log.WithField("pkg", "auth"))
+	ocmClient, err := ocm.NewClient(Options.OCMConfig)
+
+	if err != nil {
+		log.Warn("Failed to Create OCM Client,", err)
+	}
+
+	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"))
 	versionHandler := versions.NewHandler(Options.Versions)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))

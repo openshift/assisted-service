@@ -13,3 +13,5 @@ data:
   CREATE_S3_BUCKET: "true"
   ENABLE_AUTH: REPLACE_AUTH_ENABLED_FLAG
   JWKS_URL: REPLACE_JWKS_URL # example https://example.com/.well-known/jwks.json
+  OCM_BASE_URL: "https://api-integration.6943.hive-integration.openshiftapps.com"
+  OCM_DEBUG: "false"
