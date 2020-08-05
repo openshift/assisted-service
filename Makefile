@@ -56,8 +56,10 @@ generate-from-swagger:
 # Update #
 ##########
 
-update: build create-python-client
+build-image: build create-python-client
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
+
+update: build-image
 	docker push $(SERVICE)
 
 update-minimal: build-minimal create-python-client
@@ -130,6 +132,9 @@ deploy-role: deploy-namespace
 
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)"
+
+jenkins-deploy-for-subsystem:
+	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && $(MAKE) deploy-all
 
 deploy-test:
 	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \

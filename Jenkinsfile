@@ -7,11 +7,17 @@ pipeline {
 			}
 		}
 
-		stage('Deploy') {
+		stage('Build') {
+			steps {
+				sh '''export SERVICE=ocpmetal/assisted-service; export PATH=$PATH:/usr/local/go/bin; make build-image'''
+			}
+		}
+
+		stage('Deploy for subsystem') {
 			steps {
 				script {
 					docker.withRegistry('https://docker.io/', 'dockerio_cred') {
-						sh '''export PATH=$PATH:/usr/local/go/bin; make deploy-test'''
+						sh '''export SERVICE=ocpmetal/assisted-service; export PATH=$PATH:/usr/local/go/bin; make jenkins-deploy-for-subsystem'''
 						sleep 60
 						sh '''# Dump pod statuses;kubectl  get pods -A'''
 				}
@@ -19,7 +25,7 @@ pipeline {
 			}
 		}
 
-		stage('test') {
+		stage('Subsystem-test') {
 			steps {
 				sh '''export PATH=$PATH:/usr/local/go/bin;make subsystem-run'''
 			}
@@ -33,7 +39,7 @@ pipeline {
 			steps {
 				script {
 					docker.withRegistry('https://quay.io/', 'ocpmetal_cred') {
-						def img = docker.image('quay.io/ocpmetal/assisted-service:latest')
+						def img = docker.image('ocpmetal/assisted-service')
 						img.push('latest')
 						img.push('${GIT_COMMIT}')
 				}
