@@ -45,9 +45,11 @@ func NewAuthHandler(cfg Config, log logrus.FieldLogger) *AuthHandler {
 		utils:      NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
 		log:        log,
 	}
-	err := a.populateKeyMap()
-	if err != nil {
-		log.Fatalln("Failed to init auth handler,", err)
+	if a.EnableAuth {
+		err := a.populateKeyMap()
+		if err != nil {
+			log.Fatalln("Failed to init auth handler,", err)
+		}
 	}
 	return a
 }
