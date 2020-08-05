@@ -34,6 +34,9 @@ build: lint unit-test build-minimal generate-keys
 build-minimal: create-build-dir
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
+echo-build:
+	echo $(SERVICE)
+
 create-build-dir:
 	mkdir -p $(BUILD_FOLDER)
 
