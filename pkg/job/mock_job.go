@@ -6,6 +6,8 @@ package job
 
 import (
 	context "context"
+	common "github.com/openshift/assisted-service/internal/common"
+	events "github.com/openshift/assisted-service/internal/events"
 	gomock "github.com/golang/mock/gomock"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
@@ -80,4 +82,46 @@ func (m *MockAPI) Delete(ctx context.Context, name, namespace string) error {
 func (mr *MockAPIMockRecorder) Delete(ctx, name, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockAPI)(nil).Delete), ctx, name, namespace)
+}
+
+// GenerateISO mocks base method
+func (m *MockAPI) GenerateISO(ctx context.Context, cluster common.Cluster, jobName, imageName, ignitionConfig string, eventsHandler events.Handler) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateISO", ctx, cluster, jobName, imageName, ignitionConfig, eventsHandler)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GenerateISO indicates an expected call of GenerateISO
+func (mr *MockAPIMockRecorder) GenerateISO(ctx, cluster, jobName, imageName, ignitionConfig, eventsHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateISO", reflect.TypeOf((*MockAPI)(nil).GenerateISO), ctx, cluster, jobName, imageName, ignitionConfig, eventsHandler)
+}
+
+// GenerateInstallConfig mocks base method
+func (m *MockAPI) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateInstallConfig", ctx, cluster, cfg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GenerateInstallConfig indicates an expected call of GenerateInstallConfig
+func (mr *MockAPIMockRecorder) GenerateInstallConfig(ctx, cluster, cfg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockAPI)(nil).GenerateInstallConfig), ctx, cluster, cfg)
+}
+
+// AbortInstallConfig mocks base method
+func (m *MockAPI) AbortInstallConfig(ctx context.Context, cluster common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AbortInstallConfig", ctx, cluster)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AbortInstallConfig indicates an expected call of AbortInstallConfig
+func (mr *MockAPIMockRecorder) AbortInstallConfig(ctx, cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortInstallConfig", reflect.TypeOf((*MockAPI)(nil).AbortInstallConfig), ctx, cluster)
 }

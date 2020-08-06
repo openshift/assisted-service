@@ -35,6 +35,11 @@ pipeline {
 			}
 		}
 
+		stage('clear deployment after subsystem test') {
+			steps {
+				sh 'make clear-deployment'
+			}
+		}
 
 		stage('publish images on push to master') {
 			when {
@@ -51,28 +56,29 @@ pipeline {
 			}
 		}
 	}
+
 	post {
 		failure {
 			echo 'Get assisted-service log'
-				sh '''
-				kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep assisted-service | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
-				mv test_dd.log $WORKSPACE/assisted-service.log || true
-				'''
+			sh '''
+			kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep assisted-service | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+			mv test_dd.log $WORKSPACE/assisted-service.log || true
+			'''
 
-				echo 'Get postgres log'
-				sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep postgres | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
-				mv test_dd.log $WORKSPACE/postgres.log || true
-				'''
+			echo 'Get postgres log'
+			sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep postgres | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+			mv test_dd.log $WORKSPACE/postgres.log || true
+			'''
 
-				echo 'Get scality log'
-				sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep scality | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
-				mv test_dd.log $WORKSPACE/scality.log || true
-				'''
+			echo 'Get scality log'
+			sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep scality | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+			mv test_dd.log $WORKSPACE/scality.log || true
+			'''
 
-				echo 'Get createimage log'
-				sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep createimage | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
-				mv test_dd.log $WORKSPACE/createimage.log || true
-				'''
+			echo 'Get createimage log'
+			sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep createimage | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+			mv test_dd.log $WORKSPACE/createimage.log || true
+			'''
 		}
 	}
 }

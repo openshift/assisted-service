@@ -2,18 +2,35 @@ package job
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/generator"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	batch "k8s.io/api/batch/v1"
+	core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const kubeconfigPrefix = "generate-kubeconfig"
+
+// Dummy is used to represent the ignition config for the dummy ISO that is kicked off in
+// inventory.go to pull the base ISO image when the service starts up.
+// It is also used to detect if the image should be uploaded to S3. The dummy image is not
+// uploaded to S3.
+const Dummy = "Dummy"
 
 //go:generate mockgen -source=job.go -package=job -destination=mock_job.go
 type API interface {
@@ -23,12 +40,27 @@ type API interface {
 	Monitor(ctx context.Context, name, namespace string) error
 	// Delete k8s job
 	Delete(ctx context.Context, name, namespace string) error
+	generator.ISOInstallConfigGenerator
 }
 
 type Config struct {
 	MonitorLoopInterval time.Duration `envconfig:"JOB_MONITOR_INTERVAL" default:"500ms"`
 	RetryInterval       time.Duration `envconfig:"JOB_RETRY_INTERVAL" default:"1s"`
 	RetryAttempts       int           `envconfig:"JOB_RETRY_ATTEMPTS" default:"30"`
+	ImageBuilder        string        `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/installer-image-build:latest"`
+	Namespace           string        `envconfig:"NAMESPACE" default:"assisted-installer"`
+	S3EndpointURL       string        `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket            string        `envconfig:"S3_BUCKET" default:"test"`
+	AwsAccessKeyID      string        `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey  string        `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	JobCPULimit         string        `envconfig:"JOB_CPU_LIMIT" default:"500m"`
+	JobMemoryLimit      string        `envconfig:"JOB_MEMORY_LIMIT" default:"1000Mi"`
+	JobCPURequests      string        `envconfig:"JOB_CPU_REQUESTS" default:"300m"`
+	JobMemoryRequests   string        `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
+	KubeconfigGenerator string        `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:stable"` // TODO: update the latest once the repository has git workflow
+	ServiceBaseURL      string        `envconfig:"SERVICE_BASE_URL"`
+	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
+	ReleaseImage string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
 }
 
 func New(log logrus.FieldLogger, kube client.Client, cfg Config) *kubeJob {
@@ -125,7 +157,7 @@ func (k *kubeJob) Delete(ctx context.Context, name, namespace string) error {
 		return nil
 	}
 
-	dp := metav1.DeletePropagationForeground
+	dp := meta.DeletePropagationForeground
 	gp := int64(0)
 	log.Infof("Sending request to delete job <%s>", name)
 	if err := k.kube.Delete(ctx, &job, client.PropagationPolicy(dp), client.GracePeriodSeconds(gp)); err != nil {
@@ -139,5 +171,238 @@ func (k *kubeJob) Delete(ctx context.Context, name, namespace string) error {
 		}
 	}
 	log.Infof("Completed deletion of job <%s>", name)
+	return nil
+}
+
+func getQuantity(s string) resource.Quantity {
+	reply, _ := resource.ParseQuantity(s)
+	return reply
+}
+
+// create discovery image generation job, return job name and error
+func (k *kubeJob) createImageJob(jobName, imgName, ignitionConfig string, performUpload bool) *batch.Job {
+	var command []string
+	if !performUpload {
+		command = []string{"echo", "pass"}
+	}
+	return &batch.Job{
+		TypeMeta: meta.TypeMeta{
+			Kind:       "Job",
+			APIVersion: "batch/v1",
+		},
+		ObjectMeta: meta.ObjectMeta{
+			Name:      jobName,
+			Namespace: k.Config.Namespace,
+		},
+		Spec: batch.JobSpec{
+			BackoffLimit: swag.Int32(2),
+			Template: core.PodTemplateSpec{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      jobName,
+					Namespace: k.Config.Namespace,
+				},
+				Spec: core.PodSpec{
+					Containers: []core.Container{
+						{
+							Resources: core.ResourceRequirements{
+								Limits: core.ResourceList{
+									"cpu":    getQuantity(k.Config.JobCPULimit),
+									"memory": getQuantity(k.Config.JobMemoryLimit),
+								},
+								Requests: core.ResourceList{
+									"cpu":    getQuantity(k.Config.JobCPURequests),
+									"memory": getQuantity(k.Config.JobMemoryRequests),
+								},
+							},
+							Command:         command,
+							Name:            "image-creator",
+							Image:           k.Config.ImageBuilder,
+							ImagePullPolicy: "IfNotPresent",
+							Env: []core.EnvVar{
+								{
+									Name:  "S3_ENDPOINT_URL",
+									Value: k.Config.S3EndpointURL,
+								},
+								{
+									Name:  "IGNITION_CONFIG",
+									Value: ignitionConfig,
+								},
+								{
+									Name:  "IMAGE_NAME",
+									Value: imgName,
+								},
+								{
+									Name:  "S3_BUCKET",
+									Value: k.Config.S3Bucket,
+								},
+								{
+									Name:  "aws_access_key_id",
+									Value: k.Config.AwsAccessKeyID,
+								},
+								{
+									Name:  "aws_secret_access_key",
+									Value: k.Config.AwsSecretAccessKey,
+								},
+							},
+						},
+					},
+					RestartPolicy: "Never",
+				},
+			},
+		},
+	}
+}
+
+// creates iso
+func (k *kubeJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobName string, imageName string, ignitionConfig string, eventsHandler events.Handler) error {
+	log := logutil.FromContext(ctx, k.log)
+	if cluster.ID != nil {
+		previousCreatedAt := time.Time(cluster.ImageInfo.CreatedAt)
+		// Kill the previous job in case it's still running
+		prevJobName := fmt.Sprintf("createimage-%s-%s", cluster.ID, previousCreatedAt.Format("20060102150405"))
+		log.Info("Attempting to delete job %s", prevJobName)
+		if err := k.Delete(ctx, prevJobName, k.Namespace); err != nil {
+			log.WithError(err).Errorf("failed to kill previous job in cluster %s", cluster.ID)
+			msg := "Failed to generate image: error stopping previous image generation"
+			eventsHandler.AddEvent(ctx, cluster.ID.String(), models.EventSeverityError, msg, time.Now())
+			return err
+		}
+		log.Info("Finished attempting to delete job %s", prevJobName)
+	}
+
+	// This job name is exactly 63 characters which is the maximum for a job - be careful if modifying
+	log.Infof("Creating job %s", jobName)
+	performUpload := true
+	if ignitionConfig == Dummy {
+		performUpload = false
+	}
+	if err := k.Create(ctx, k.createImageJob(jobName, imageName, ignitionConfig, performUpload)); err != nil {
+		log.WithError(err).Error("failed to create image job")
+		msg := "Failed to generate image: error creating image generation job"
+		eventsHandler.AddEvent(ctx, cluster.ID.String(), models.EventSeverityError, msg, time.Now())
+		return err
+	}
+
+	if err := k.Monitor(ctx, jobName, k.Namespace); err != nil {
+		log.WithError(err).Error("image creation failed")
+		msg := "Failed to generate image: error during image generation job"
+		eventsHandler.AddEvent(ctx, cluster.ID.String(), models.EventSeverityError, msg, time.Now())
+		return err
+	}
+	return nil
+}
+
+func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, cfg []byte) *batch.Job {
+	id := cluster.ID
+	kubeConfigGeneratorImage := k.Config.KubeconfigGenerator
+	return &batch.Job{
+		TypeMeta: meta.TypeMeta{
+			Kind:       "Job",
+			APIVersion: "batch/v1",
+		},
+		ObjectMeta: meta.ObjectMeta{
+			Name:      jobName,
+			Namespace: k.Config.Namespace,
+		},
+		Spec: batch.JobSpec{
+			BackoffLimit: swag.Int32(2),
+			Template: core.PodTemplateSpec{
+				ObjectMeta: meta.ObjectMeta{
+					Name:      jobName,
+					Namespace: k.Config.Namespace,
+				},
+				Spec: core.PodSpec{
+					Containers: []core.Container{
+						{
+							Name:            kubeconfigPrefix,
+							Image:           kubeConfigGeneratorImage,
+							ImagePullPolicy: "IfNotPresent",
+							Env: []core.EnvVar{
+								{
+									Name:  "S3_ENDPOINT_URL",
+									Value: k.Config.S3EndpointURL,
+								},
+								{
+									Name:  "INSTALLER_CONFIG",
+									Value: string(cfg),
+								},
+								{
+									Name:  "INVENTORY_ENDPOINT",
+									Value: strings.TrimSpace(k.Config.ServiceBaseURL) + "/api/assisted-install/v1",
+								},
+								{
+									Name:  "IMAGE_NAME",
+									Value: jobName,
+								},
+								{
+									Name:  "S3_BUCKET",
+									Value: k.Config.S3Bucket,
+								},
+								{
+									Name:  "CLUSTER_ID",
+									Value: id.String(),
+								},
+								{
+									Name:  "OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE",
+									Value: k.ReleaseImage, //TODO: change this to match the cluster openshift version
+								},
+								{
+									Name:  "aws_access_key_id",
+									Value: k.Config.AwsAccessKeyID,
+								},
+								{
+									Name:  "aws_secret_access_key",
+									Value: k.Config.AwsSecretAccessKey,
+								},
+							},
+							Resources: core.ResourceRequirements{
+								Limits: core.ResourceList{
+									"cpu":    getQuantity(k.Config.JobCPULimit),
+									"memory": getQuantity(k.Config.JobMemoryLimit),
+								},
+								Requests: core.ResourceList{
+									"cpu":    getQuantity(k.Config.JobCPURequests),
+									"memory": getQuantity(k.Config.JobMemoryRequests),
+								},
+							},
+						},
+					},
+					RestartPolicy: "Never",
+				},
+			},
+		},
+	}
+}
+
+// creates install config
+func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error {
+	log := logutil.FromContext(ctx, k.log)
+
+	ctime := time.Time(cluster.CreatedAt)
+	cTimestamp := strconv.FormatInt(ctime.Unix(), 10)
+	jobName := fmt.Sprintf("%s-%s-%s", kubeconfigPrefix, cluster.ID.String(), cTimestamp)[:63]
+	if err := k.Create(ctx, k.createKubeconfigJob(&cluster, jobName, cfg)); err != nil {
+		log.WithError(err).Errorf("Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
+		return errors.Wrapf(err, "Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
+	}
+
+	if err := k.Monitor(ctx, jobName, k.Config.Namespace); err != nil {
+		log.WithError(err).Errorf("Generating kubeconfig files %s failed for cluster %s", jobName, cluster.ID)
+		return errors.Wrapf(err, "Generating kubeconfig files %s failed for cluster %s", jobName, cluster.ID)
+	}
+	return nil
+}
+
+// abort installation files generation job
+func (k *kubeJob) AbortInstallConfig(ctx context.Context, cluster common.Cluster) error {
+	log := logutil.FromContext(ctx, k.log)
+
+	ctime := time.Time(cluster.CreatedAt)
+	cTimestamp := strconv.FormatInt(ctime.Unix(), 10)
+	jobName := fmt.Sprintf("%s-%s-%s", kubeconfigPrefix, cluster.ID.String(), cTimestamp)[:63]
+	if err := k.Delete(ctx, jobName, k.Namespace); err != nil {
+		log.WithError(err).Errorf("Failed to abort kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
+		return errors.Wrapf(err, "Failed to abort kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
+	}
 	return nil
 }

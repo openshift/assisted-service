@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/app"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/db"
+	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -54,11 +56,11 @@ var Options struct {
 	S3Config                    s3wrapper.Config
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
-	UseK8s                      bool          `envconfig:"USE_K8S" default:"true"` // TODO remove when jobs running deprecated
 	CreateS3Bucket              bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
 	ImageExpirationTime         time.Duration `envconfig:"IMAGE_EXPIRATION_TIME" default:"60m"`
 	ClusterConfig               cluster.Config
+	DeployTarget                string `envconfig:"DEPLOY_TARGET" default:"k8s"`
 }
 
 func main() {
@@ -74,35 +76,6 @@ func main() {
 	flag.Parse()
 
 	log.Println("Starting bm service")
-
-	s3Client := s3wrapper.NewS3Client(&Options.S3Config, log)
-	if s3Client == nil {
-		log.Fatal("failed to create S3 client, ", err)
-	}
-
-	var kclient client.Client
-	if Options.UseK8s {
-
-		if Options.CreateS3Bucket {
-			if err = s3Client.CreateBucket(); err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		scheme := runtime.NewScheme()
-		if err = clientgoscheme.AddToScheme(scheme); err != nil {
-			log.Fatal("Failed to add K8S scheme", err)
-		}
-
-		kclient, err = client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
-		if err != nil && Options.UseK8s {
-			log.Fatal("failed to create client:", err)
-		}
-
-	} else {
-		log.Println("running drone test, skipping S3")
-		kclient = nil
-	}
 
 	// Connect to db
 	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
@@ -143,13 +116,43 @@ func main() {
 	hostStateMonitor.Start()
 	defer hostStateMonitor.Stop()
 
-	jobApi := job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
+	s3Client := s3wrapper.NewS3Client(&Options.S3Config, log)
+	if s3Client == nil {
+		log.Fatal("failed to create S3 client, ", err)
+	}
 
-	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, jobApi, eventsHandler, s3Client, metricsManager)
+	log.Println("DeployTarget: " + Options.DeployTarget)
+
+	var generator generator.ISOInstallConfigGenerator
+
+	switch Options.DeployTarget {
+	case "k8s":
+		var kclient client.Client
+		createS3Bucket(s3Client)
+
+		scheme := runtime.NewScheme()
+		if err = clientgoscheme.AddToScheme(scheme); err != nil {
+			log.Fatal("Failed to add K8S scheme", err)
+		}
+
+		kclient, err = client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
+		if err != nil {
+			log.Fatal("failed to create client:", err)
+		}
+		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
+	case "onprem":
+		// in on-prem mode, setup s3 and use localjob implementation
+		createS3Bucket(s3Client)
+		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
+	default:
+		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
+	}
+
+	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, generator, eventsHandler, s3Client, metricsManager)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
-	if Options.UseK8s {
+	if Options.DeployTarget == "k8s" {
 		expirer := imgexpirer.NewManager(log, s3Client.Client, Options.S3Config.S3Bucket, Options.ImageExpirationTime, eventsHandler)
 		imageExpirationMonitor := thread.New(
 			log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
@@ -180,4 +183,12 @@ func main() {
 	}
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
+}
+
+func createS3Bucket(s3Client *s3wrapper.S3Client) {
+	if Options.CreateS3Bucket {
+		if err := s3Client.CreateBucket(); err != nil {
+			log.Fatal(err)
+		}
+	}
 }
