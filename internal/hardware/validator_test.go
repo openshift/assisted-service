@@ -90,6 +90,27 @@ var _ = Describe("hardware_validator", func() {
 		Expect(disks[4].DriveType).To(Equal("SSD"))
 		Expect(disks[4].Name).To(HavePrefix("nvme"))
 	})
+
+	It("validate_aws_disk_detected", func() {
+		inventory.Disks = []*models.Disk{
+			{
+				Name:      "xvda",
+				SizeBytes: 128849018880,
+				DriveType: "SSD",
+				Vendor:    "unknown",
+				Model:     "unknown",
+				Serial:    "unknown",
+				Wwn:       "unknown",
+			},
+		}
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host1.Inventory = string(hw)
+		disks, err := hwvalidator.GetHostValidDisks(host1)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(disks[0].Name).Should(Equal("xvda"))
+		Expect(len(disks)).Should(Equal(1))
+	})
 })
 
 func isBlockDeviceNameInlist(disks []*models.Disk, name string) bool {
