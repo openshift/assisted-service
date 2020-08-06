@@ -8,7 +8,6 @@ pipeline {
 		stage('clear deployment') {
 			steps {
 				sh 'make clear-deployment'
-				sh 'make clean-onprem || true'
 			}
 		}
 
@@ -42,19 +41,6 @@ pipeline {
 			}
 		}
 
-		stage('test subsystem with podman') {
-				environment {
-					SERVICE = 'ocpmetal/assisted-service:test-onprem'
-				}
-			steps {
-				sh '''export PATH=$PATH:/usr/local/go/bin; make build-onprem'''
-				sh 'make deploy-onprem'
-				sleep 30
-				sh '''export PATH=$PATH:/usr/local/go/bin; make test-onprem'''
-				sh 'make clean-onprem'
-			}
-		}
-
 		stage('publish images on push to master') {
 			when {
 				branch 'master'
@@ -70,6 +56,7 @@ pipeline {
 			}
 		}
 	}
+
 	post {
 		failure {
 			echo 'Get assisted-service log'
@@ -91,13 +78,6 @@ pipeline {
 			echo 'Get createimage log'
 			sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep createimage | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
 			mv test_dd.log $WORKSPACE/createimage.log || true
-			'''
-
-			echo 'Saving logs from onprem deployment'
-			sh '''
-			podman logs installer > $WORKSPACE/podman-assisted-service.log || true
-			podman logs db > $WORKSPACE/podman-postgres.log || true
-			podman logs s3 > $WORKSPACE/podman-s3.log || true
 			'''
 		}
 	}
