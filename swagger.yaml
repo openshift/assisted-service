@@ -732,6 +732,9 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: []
+        - agentAuth: []
       summary: Retrieves the list of OpenShift bare metal hosts.
       operationId: ListHosts
       parameters:
