@@ -35,12 +35,6 @@ pipeline {
 			}
 		}
 
-		stage('clear deployment after subsystem test') {
-			steps {
-				sh 'make clear-deployment'
-			}
-		}
-
 		stage('publish images on push to master') {
 			when {
 				branch 'master'
