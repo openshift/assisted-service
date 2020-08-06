@@ -57,6 +57,9 @@ type ClusterUpdateParams struct {
 
 	// SSH public key for debugging OpenShift nodes.
 	SSHPublicKey *string `json:"ssh_public_key,omitempty"`
+
+	// Indicate if VIP DHCP allocation mode is enabled.
+	VipDhcpAllocation *bool `json:"vip_dhcp_allocation,omitempty"`
 }
 
 // Validate validates this cluster update params
