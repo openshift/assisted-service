@@ -45,15 +45,16 @@ pipeline {
 			when {
 				branch 'master'
 			}
-			steps {
-				script {
-					docker.withRegistry('https://quay.io/', 'ocpmetal_cred') {
-						def img = docker.image(${SERVICE})
-						img.push('latest')
-						img.push('${GIT_COMMIT}')
-				}
-				}
-			}
+        steps {
+            withCredentials([usernamePassword(credentialsId: 'ocpmetal_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+            sh '''docker login quay.io -u $USER -p $PASS'''
+            }
+            sh '''docker tag  quay.io/ocpmetal/assisted-service:test quay.io/ocpmetal/assisted-service:$(git rev-parse --verify HEAD)'''
+            sh '''docker tag  quay.io/ocpmetal/assisted-service:test quay.io/ocpmetal/assisted-service:latest'''
+            sh '''docker push quay.io/ocpmetal/assisted-service:latest'''
+            sh '''docker push quay.io/ocpmetal/assisted-service:$(git rev-parse --verify HEAD)'''
+
+           }
 		}
 	}
 
