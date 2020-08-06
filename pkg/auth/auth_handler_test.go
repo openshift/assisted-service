@@ -10,6 +10,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 
 	"github.com/openshift/assisted-service/client"
+	"github.com/openshift/assisted-service/pkg/ocm"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
@@ -106,7 +107,10 @@ func TestAuth(t *testing.T) {
 				JwkCertURL: "",
 				JwkCert:    string(JwkCert),
 			}
-			AuthHandler := NewAuthHandler(fakeConfig, nil, log.WithField("pkg", "auth"))
+			AuthHandler := NewAuthHandler(fakeConfig, nil, log.WithField("pkg", "auth"), nil)
+			AuthHandler.client = &ocm.Client{
+				Authorization: &mockOCMAuthorization{},
+			}
 
 			h, _ := restapi.Handler(restapi.Config{
 				AuthAgentAuth:       AuthHandler.AuthAgentAuth,

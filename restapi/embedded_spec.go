@@ -2046,7 +2046,7 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
-        "user_id": {
+        "user_name": {
           "type": "string"
         },
         "vip_dhcp_allocation": {
@@ -5204,7 +5204,7 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
-        "user_id": {
+        "user_name": {
           "type": "string"
         },
         "vip_dhcp_allocation": {

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/pkg/ocm"
 
 	"github.com/go-openapi/runtime"
@@ -31,13 +32,15 @@ type AuthHandler struct {
 	utils      AUtilsInteface
 	log        logrus.FieldLogger
 	client     *ocm.Client
+	db         *gorm.DB
 }
 
-func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthHandler {
+func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) *AuthHandler {
 	a := &AuthHandler{
 		EnableAuth: cfg.EnableAuth,
 		utils:      NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
 		client:     ocmCLient,
+		db:         db,
 		log:        log,
 	}
 	if a.EnableAuth {
@@ -86,6 +89,10 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 		a.log.Error("Error Authenticating PullSecret token: %e", err)
 		return nil, err
 	}
+	err = a.storeAdminInPayload(user)
+	if err != nil {
+		return nil, err
+	}
 	return user, nil
 }
 
@@ -129,6 +136,7 @@ func parsePayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
 			payload.FirstName = names[0]
 		}
 	}
+
 	return payload, nil
 }
 
@@ -143,7 +151,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 
 	// Check if there was an error in parsing...
 	if err != nil {
-		a.log.Error("Error parsing token: %e", err)
+		a.log.Errorf("Error parsing token: %e", err)
 		return nil, fmt.Errorf("Error parsing token: %v", err)
 	}
 
@@ -151,7 +159,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 		message := fmt.Sprintf("Expected %s signing method but token specified %s",
 			jwt.SigningMethodRS256.Alg(),
 			parsedToken.Header["alg"])
-		a.log.Error("Error validating token algorithm: %s", message)
+		a.log.Errorf("Error validating token algorithm: %s", message)
 		return nil, fmt.Errorf("Error validating token algorithm: %s", message)
 	}
 
@@ -163,10 +171,27 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 
 	payload, err := parsePayload(parsedToken)
 	if err != nil {
-		a.log.Fatalln("Failed parse payload,", err)
+		a.log.Error("Failed parse payload,", err)
 		return nil, err
 	}
+
+	err = a.storeAdminInPayload(payload)
+	if err != nil {
+		return nil, err
+	}
+
 	return payload, nil
+}
+
+func (a *AuthHandler) storeAdminInPayload(payload *ocm.AuthPayload) error {
+	admin, err := a.isAdmin(payload.Username)
+	if err != nil {
+		return fmt.Errorf("Unable to fetch user's capabilities: %v", err)
+	}
+	payload.IsAdmin = admin
+	logrus.Error("aaa admin:")
+	logrus.Error(admin)
+	return nil
 }
 
 func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate security.TokenAuthentication) runtime.Authenticator {

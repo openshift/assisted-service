@@ -120,8 +120,8 @@ type Cluster struct {
 	// Format: date-time
 	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
-	// user id
-	UserID string `json:"user_id,omitempty"`
+	// user name
+	UserName string `json:"user_name,omitempty"`
 
 	// Indicate if VIP DHCP allocation mode is enabled.
 	VipDhcpAllocation *bool `json:"vip_dhcp_allocation,omitempty"`
