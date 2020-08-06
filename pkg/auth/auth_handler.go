@@ -30,6 +30,8 @@ type Config struct {
 	EnableAuth bool   `envconfig:"ENABLE_AUTH" default:"false"`
 	JwkCert    string `envconfig:"JWKS_CERT"`
 	JwkCertURL string `envconfig:"JWKS_URL" default:"https://api.openshift.com/.well-known/jwks.json"`
+	// Will be split with "," as separator
+	AllowedDomains string `envconfig:"ALLOWED_DOMAINS" default:""`
 }
 
 type AuthHandler struct {
