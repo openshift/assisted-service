@@ -96,11 +96,14 @@ var _ = Describe("hardware_validator", func() {
 			{
 				Name:      "xvda",
 				SizeBytes: 128849018880,
+				ByPath:    "",
 				DriveType: "SSD",
-				Vendor:    "unknown",
-				Model:     "unknown",
-				Serial:    "unknown",
-				Wwn:       "unknown",
+				Hctl:      "",
+				Model:     "",
+				Path:      "/dev/xvda",
+				Serial:    "",
+				Vendor:    "",
+				Wwn:       "",
 			},
 		}
 		hw, err := json.Marshal(&inventory)
