@@ -79,6 +79,7 @@ type Config struct {
 	AwsSecretAccessKey  string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
 	DeployTarget        string            `envconfig:"DEPLOY_TARGET" default:"k8s"`
 	BaseDNSDomains      map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
+	EnableAuth          bool              `envconfig:"ENABLE_AUTH" default:"false"`
 }
 
 const agentMessageOfTheDay = `
@@ -265,7 +266,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		ServiceNetworkCidr:       swag.StringValue(params.NewClusterParams.ServiceNetworkCidr),
 		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
 		UpdatedAt:                strfmt.DateTime{},
-		UserID:                   auth.UserIDFromContext(ctx),
+		UserName:                 auth.UserNameFromContext(ctx),
 		OrgID:                    auth.OrgIDFromContext(ctx),
 	}}
 	if params.NewClusterParams.PullSecret != "" {
@@ -1023,8 +1024,11 @@ func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*m
 func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var clusters []*common.Cluster
-	query := identity.GetUserIDFilter(ctx)
-	if err := b.db.Preload("Hosts").Find(&clusters).Where(query).Error; err != nil {
+	query := ""
+	if b.Config.EnableAuth {
+		query = identity.GetUserNameFilter(ctx)
+	}
+	if err := b.db.Preload("Hosts").Where(query).Find(&clusters).Error; err != nil {
 		log.WithError(err).Error("failed to list clusters")
 		return installer.NewListClustersInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))

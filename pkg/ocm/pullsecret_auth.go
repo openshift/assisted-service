@@ -15,15 +15,12 @@ type OCMAuthentication interface {
 
 type authentication struct {
 	client *Client
-	cache  *cache.Cache
 }
 
 func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret string) (user *AuthPayload, err error) {
 
-	authUser, found := a.cache.Get(pullSecret)
+	authUser, found := a.client.Cache.Get(pullSecret)
 	if found {
-		logrus.Error("Found in cache!!")
-		logrus.Error(authUser.(*AuthPayload))
 		return authUser.(*AuthPayload), nil
 	}
 	con := a.client.connection
@@ -83,6 +80,6 @@ func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret s
 	payload.FirstName = tokenAuthorizationResponse.Account.FirstName
 	payload.LastName = tokenAuthorizationResponse.Account.LastName
 	payload.Email = tokenAuthorizationResponse.Account.Email
-	a.cache.Set(pullSecret, payload, cache.DefaultExpiration)
+	a.client.Cache.Set(pullSecret, payload, cache.DefaultExpiration)
 	return payload, nil
 }

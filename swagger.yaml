@@ -1684,7 +1684,7 @@ definitions:
       name:
         type: string
         description: Name of the OpenShift cluster.
-      user_id:
+      user_name:
         type: string
       org_id:
         type: string

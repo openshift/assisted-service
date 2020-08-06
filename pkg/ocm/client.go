@@ -12,8 +12,10 @@ type Client struct {
 	config     *Config
 	logger     sdkClient.Logger
 	connection *sdkClient.Connection
+	Cache      *cache.Cache
 
 	Authentication OCMAuthentication
+	Authorization  OCMAuthorization
 }
 
 type Config struct {
@@ -32,10 +34,10 @@ func NewClient(config Config) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Unable to build OCM logger: %s", err.Error())
 	}
-	c := cache.New(1*time.Hour, 30*time.Minute)
 	client := &Client{
 		config: &config,
 		logger: logger,
+		Cache:  cache.New(1*time.Minute, 30*time.Minute),
 	}
 	err = client.newConnection()
 	if err != nil {
@@ -43,7 +45,9 @@ func NewClient(config Config) (*Client, error) {
 	}
 	client.Authentication = &authentication{
 		client: client,
-		cache:  c,
+	}
+	client.Authorization = &authorization{
+		client: client,
 	}
 	return client, nil
 }
@@ -86,4 +90,6 @@ type AuthPayload struct {
 	Email        string `json:"email"`
 	Issuer       string `json:"iss"`
 	ClientID     string `json:"clientId"`
+	IsAdmin      bool   `json:"is_admin"`
+	IsUser       bool   `json:"is_user"`
 }

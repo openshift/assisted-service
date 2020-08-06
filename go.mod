@@ -30,10 +30,7 @@ require (
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.6.0
-<<<<<<< HEAD
 	github.com/rs/cors v1.7.0
-=======
->>>>>>> MGMT-1434 Authenticate Agent API calls with OCM
 	github.com/sirupsen/logrus v1.6.0
 	github.com/slok/go-http-metrics v0.8.0
 	github.com/stretchr/testify v1.6.1
