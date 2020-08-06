@@ -1016,6 +1016,14 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts": {
       "get": {
+        "security": [
+          {
+            "userAuth": []
+          },
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -4055,6 +4063,14 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts": {
       "get": {
+        "security": [
+          {
+            "userAuth": []
+          },
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
