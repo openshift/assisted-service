@@ -7,24 +7,22 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-
-	"github.com/openshift/assisted-service/internal/connectivity"
-	"github.com/openshift/assisted-service/internal/domains"
-	"github.com/openshift/assisted-service/internal/versions"
-
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/imgexpirer"
-	"github.com/openshift/assisted-service/internal/metrics"
-
+	"github.com/openshift/assisted-service/internal/connectivity"
+	"github.com/openshift/assisted-service/internal/domains"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/imgexpirer"
+	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/app"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -33,18 +31,14 @@ import (
 	"github.com/openshift/assisted-service/pkg/job"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-
-	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/kelseyhightower/envconfig"
+	"github.com/openshift/assisted-service/pkg/thread"
+	"github.com/openshift/assisted-service/restapi"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
-	"github.com/openshift/assisted-service/pkg/thread"
-	"github.com/openshift/assisted-service/restapi"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 func init() {
@@ -151,9 +145,7 @@ func main() {
 		createS3Bucket(s3Client)
 		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
 	default:
-		// drone/nonk8s
-		log.Println("running drone test, skipping S3")
-		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), nil, Options.JobConfig)
+		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, generator, eventsHandler, s3Client, metricsManager)

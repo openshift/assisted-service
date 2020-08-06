@@ -38,7 +38,7 @@ func (j *localJob) Execute(pythonCommand string, pythonFilePath string, envVars 
 	cmd.Stdout = &out
 	if err := cmd.Run(); err != nil {
 		log.Infoln("envVars: " + strings.Join(envVars, ","))
-		log.WithError(err).Errorf(pythonFilePath + " executed with error: " + err.Error())
+		log.WithError(err).Errorf(pythonFilePath)
 		return err
 	}
 	log.Infoln(cmd.Stdout)
