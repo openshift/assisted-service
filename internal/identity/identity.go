@@ -8,14 +8,21 @@ import (
 )
 
 func IsAdmin(ctx context.Context) bool {
-	return auth.UserRoleFromContext(ctx) == auth.AdminUserRole
+	authPayload := auth.PayloadFromContext(ctx)
+	if authPayload == nil {
+		return false
+	}
+
+	return authPayload.IsAdmin
 }
 
-func GetUserIDFilter(ctx context.Context) string {
-	query := ""
+func AddUserFilter(ctx context.Context, query string) string {
 	if !IsAdmin(ctx) {
-		user_id := auth.UserIDFromContext(ctx)
-		query = fmt.Sprintf("user_id = '%s'", user_id)
+		if query != "" {
+			query += " and "
+		}
+		username := auth.UserNameFromContext(ctx)
+		query += fmt.Sprintf("user_name = '%s'", username)
 	}
 	return query
 }

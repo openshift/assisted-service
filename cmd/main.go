@@ -104,6 +104,7 @@ func main() {
 	}
 
 	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"))
+	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
 	versionHandler := versions.NewHandler(Options.Versions)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
@@ -189,6 +190,7 @@ func main() {
 		AuthAgentAuth:       authHandler.AuthAgentAuth,
 		AuthUserAuth:        authHandler.AuthUserAuth,
 		APIKeyAuthenticator: authHandler.CreateAuthenticator(),
+		Authorizer:          authzHandler.CreateAuthorizer(),
 		InstallerAPI:        bm,
 		EventsAPI:           events,
 		Logger:              log.Printf,
@@ -205,8 +207,6 @@ func main() {
 
 	h = app.WithMetricsResponderMiddleware(h)
 	h = app.WithHealthMiddleware(h)
-	// TODO: replace this with real auth
-	h = auth.GetUserInfoMiddleware(h)
 	h = requestid.Middleware(h)
 	if err != nil {
 		log.Fatal("Failed to init rest handler,", err)
