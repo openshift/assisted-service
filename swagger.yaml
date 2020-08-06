@@ -640,6 +640,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - agentAuth: []
       summary: Agent API to mark a finalizing installation as complete.
       operationId: CompleteInstallation
       parameters:

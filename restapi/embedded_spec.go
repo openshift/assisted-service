@@ -391,6 +391,11 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/complete_installation": {
       "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -3446,6 +3451,11 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/complete_installation": {
       "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
