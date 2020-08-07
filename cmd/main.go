@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -173,6 +174,13 @@ func main() {
 		ManagedDomainsAPI:   domainHandler,
 		InnerMiddleware:     metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry),
 	})
+	if Options.Auth.AllowedDomains != "" {
+		allowedDomains := strings.Split(strings.ReplaceAll(Options.Auth.AllowedDomains, " ", ""), ",")
+		log.Infof("AllowedDomains were provided, enabling CORS with %s as domain list", allowedDomains)
+		// enabling CORS with given domain list
+		h = app.SetupCORSMiddleware(h, allowedDomains)
+	}
+
 	h = app.WithMetricsResponderMiddleware(h)
 	h = app.WithHealthMiddleware(h)
 	// TODO: replace this with real auth

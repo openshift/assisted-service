@@ -2,8 +2,10 @@ package app
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/cors"
 )
 
 // WithMetricsResponderMiddleware Returns middleware which responds to /metrics endpoint with the prometheus metrics
@@ -27,4 +29,24 @@ func WithHealthMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func SetupCORSMiddleware(handler http.Handler, domains []string) http.Handler {
+	corsHandler := cors.New(cors.Options{
+		Debug: false,
+		AllowedMethods: []string{
+			http.MethodDelete,
+			http.MethodGet,
+			http.MethodPatch,
+			http.MethodPost,
+			http.MethodPut,
+		},
+		AllowedOrigins: domains,
+		AllowedHeaders: []string{
+			"Authorization",
+			"Content-Type",
+		},
+		MaxAge: int((10 * time.Minute).Seconds()),
+	})
+	return corsHandler.Handler(handler)
 }
