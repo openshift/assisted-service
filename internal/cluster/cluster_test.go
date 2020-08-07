@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -95,6 +96,7 @@ var _ = Describe("cluster monitor", func() {
 		mockHostAPI       *host.MockAPI
 		mockMetric        *metrics.MockAPI
 		dbName            = "cluster_monitor"
+		mockEvents        *events.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -103,8 +105,9 @@ var _ = Describe("cluster monitor", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
-			nil, mockHostAPI, mockMetric)
+			mockEvents, mockHostAPI, mockMetric)
 		expectedState = ""
 		shouldHaveUpdated = false
 	})
@@ -113,8 +116,9 @@ var _ = Describe("cluster monitor", func() {
 
 		BeforeEach(func() {
 			c = common.Cluster{Cluster: models.Cluster{
-				ID:     &id,
-				Status: swag.String("installing"),
+				ID:                 &id,
+				Status:             swag.String("installing"),
+				MachineNetworkCidr: "1.1.0.0/16",
 			}}
 
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -187,8 +191,8 @@ var _ = Describe("cluster monitor", func() {
 		})
 	})
 
-	mockHostAPIIsRequireUserActionResetFalse := func(times int) {
-		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).Times(times)
+	mockHostAPIIsRequireUserActionResetFalse := func() {
+		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 
 	Context("ghost hosts", func() {
@@ -197,8 +201,12 @@ var _ = Describe("cluster monitor", func() {
 			BeforeEach(func() {
 
 				c = common.Cluster{Cluster: models.Cluster{
-					ID:     &id,
-					Status: swag.String("insufficient"),
+					ID:                 &id,
+					Status:             swag.String("insufficient"),
+					MachineNetworkCidr: "1.2.3.0/24",
+					APIVip:             "1.2.3.5",
+					IngressVip:         "1.2.3.6",
+					StatusInfo:         swag.String(statusInfoInsufficient),
 				}}
 
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -207,16 +215,17 @@ var _ = Describe("cluster monitor", func() {
 
 			It("insufficient -> insufficient", func() {
 				createHost(id, "known", db)
-				mockHostAPIIsRequireUserActionResetFalse(1)
+				mockHostAPIIsRequireUserActionResetFalse()
 
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
 			})
 			It("insufficient -> insufficient", func() {
+				createHost(id, "insufficient", db)
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "known", db)
-				mockHostAPIIsRequireUserActionResetFalse(3)
+				mockHostAPIIsRequireUserActionResetFalse()
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
 			})
@@ -224,17 +233,17 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "known", db)
-				mockHostAPIIsRequireUserActionResetFalse(3)
+				mockHostAPIIsRequireUserActionResetFalse()
 
 				shouldHaveUpdated = true
 				expectedState = "ready"
-				Expect(db.Model(&c).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.5"}).Error).To(Not(HaveOccurred()))
+				Expect(db.Model(&c).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.6"}).Error).To(Not(HaveOccurred()))
 			})
 			It("insufficient -> insufficient including hosts in discovering", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "discovering", db)
-				mockHostAPIIsRequireUserActionResetFalse(3)
+				mockHostAPIIsRequireUserActionResetFalse()
 
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
@@ -243,7 +252,7 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "error", db)
-				mockHostAPIIsRequireUserActionResetFalse(3)
+				mockHostAPIIsRequireUserActionResetFalse()
 
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
@@ -252,7 +261,7 @@ var _ = Describe("cluster monitor", func() {
 				createHost(id, "known", db)
 				createHost(id, "known", db)
 				createHost(id, "disabled", db)
-				mockHostAPIIsRequireUserActionResetFalse(3)
+				mockHostAPIIsRequireUserActionResetFalse()
 
 				shouldHaveUpdated = false
 				expectedState = "insufficient"
@@ -262,8 +271,12 @@ var _ = Describe("cluster monitor", func() {
 			BeforeEach(func() {
 
 				c = common.Cluster{Cluster: models.Cluster{
-					ID:     &id,
-					Status: swag.String("ready"),
+					ID:                 &id,
+					Status:             swag.String("ready"),
+					StatusInfo:         swag.String(statusInfoReady),
+					MachineNetworkCidr: "1.2.3.0/24",
+					APIVip:             "1.2.3.5",
+					IngressVip:         "1.2.3.6",
 				}}
 
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -318,6 +331,8 @@ var _ = Describe("cluster monitor", func() {
 		c = geCluster(id, db)
 		saveUpdatedTime := c.StatusUpdatedAt
 		saveStatusInfo := c.StatusInfo
+		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockHostAPIIsRequireUserActionResetFalse()
 		clusterApi.ClusterMonitoring()
 		after := time.Now().Truncate(10 * time.Millisecond)
 		c = geCluster(id, db)
@@ -336,6 +351,9 @@ var _ = Describe("cluster monitor", func() {
 		ctrl.Finish()
 	})
 
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
 })
 
 var _ = Describe("VerifyRegisterHost", func() {
@@ -343,7 +361,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 		db          *gorm.DB
 		id          strfmt.UUID
 		clusterApi  *Manager
-		errTemplate = "Cluster %s is in %s state, host can register only in one of [insufficient ready]"
+		errTemplate = "Cluster %s is in %s state, host can register only in one of [insufficient ready pending-for-input]"
 		dbName      = "verify_register_host"
 	)
 
@@ -394,7 +412,7 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 		db          *gorm.DB
 		id          strfmt.UUID
 		clusterApi  *Manager
-		errTemplate = "Cluster %s is in %s state, cluster can be updated only in one of [insufficient ready]"
+		errTemplate = "Cluster %s is in %s state, cluster can be updated only in one of [insufficient ready pending-for-input]"
 		dbName      = "verify_cluster_updatability"
 	)
 
@@ -482,9 +500,9 @@ var _ = Describe("CancelInstallation", func() {
 		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler, nil, mockMetric)
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
-			ID:     &id,
-			Status: swag.String(clusterStatusInsufficient),
-		}}
+			ID:         &id,
+			Status:     swag.String(clusterStatusInsufficient),
+			StatusInfo: swag.String(statusInfoInsufficient)}}
 	})
 
 	Context("cancel_installation", func() {
@@ -599,6 +617,7 @@ func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 		ClusterID: clusterId,
 		Role:      models.HostRoleMaster,
 		Status:    swag.String(state),
+		Inventory: defaultInventory(),
 	}
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 }
@@ -624,12 +643,28 @@ func addInstallationRequirements(clusterId strfmt.UUID, db *gorm.DB) {
 			ClusterID: clusterId,
 			Role:      models.HostRoleMaster,
 			Status:    swag.String("known"),
+			Inventory: defaultInventory(),
 		}
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 	}
-	Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.5"}).Error).To(Not(HaveOccurred()))
+	Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.6"}).Error).To(Not(HaveOccurred()))
+}
 
+func defaultInventory() string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
 }
 
 var _ = Describe("PrepareForInstallation", func() {
@@ -909,5 +944,101 @@ var _ = Describe("SetVips", func() {
 	}
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("ready_state", func() {
+	var (
+		ctx        = context.Background()
+		clusterApi *Manager
+		db         *gorm.DB
+		id         strfmt.UUID
+		cluster    common.Cluster
+		dbName     = "cluster_ready_state"
+		ctrl       *gomock.Controller
+		mockEvents *events.MockHandler
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
+			mockEvents, nil, nil)
+
+		id = strfmt.UUID(uuid.New().String())
+		cluster = common.Cluster{Cluster: models.Cluster{
+			ID:                 &id,
+			Status:             swag.String(clusterStatusReady),
+			MachineNetworkCidr: "1.2.3.0/24",
+		}}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		addInstallationRequirements(id, db)
+
+		cluster = geCluster(*cluster.ID, db)
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(clusterStatusReady))
+		Expect(len(cluster.Hosts)).Should(Equal(3))
+		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	})
+
+	Context("refresh_state", func() {
+		It("cluster is satisfying the install requirements", func() {
+			clusterAfterRefresh, updateErr := clusterApi.RefreshStatus(ctx, &cluster, db)
+
+			Expect(updateErr).Should(BeNil())
+			Expect(*clusterAfterRefresh.Status).Should(Equal(clusterStatusReady))
+		})
+
+		It("cluster is not satisfying the install requirements", func() {
+			Expect(db.Where("cluster_id = ?", cluster.ID).Delete(&models.Host{}).Error).NotTo(HaveOccurred())
+
+			cluster = geCluster(*cluster.ID, db)
+			clusterAfterRefresh, updateErr := clusterApi.RefreshStatus(ctx, &cluster, db)
+
+			Expect(updateErr).Should(BeNil())
+			Expect(*clusterAfterRefresh.Status).Should(Equal(clusterStatusInsufficient))
+		})
+	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("insufficient_state", func() {
+	var (
+		ctx          = context.Background()
+		clusterApi   *Manager
+		db           *gorm.DB
+		currentState = models.ClusterStatusInsufficient
+		id           strfmt.UUID
+		cluster      common.Cluster
+		ctrl         *gomock.Controller
+		mockHostAPI  *host.MockAPI
+		dbName       = "cluster_insufficient_state"
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockEvents := events.NewMockHandler(ctrl)
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
+			mockEvents, mockHostAPI, nil)
+
+		id = strfmt.UUID(uuid.New().String())
+		cluster = common.Cluster{Cluster: models.Cluster{
+			ID:                 &id,
+			Status:             swag.String(currentState),
+			MachineNetworkCidr: "1.2.3.0/24",
+			APIVip:             "1.2.3.5",
+			IngressVip:         "1.2.3.6",
+		}}
+
+		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		replyErr := clusterApi.RegisterCluster(ctx, &cluster)
+		Expect(replyErr).Should(BeNil())
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
+		c := geCluster(*cluster.ID, db)
+		Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 	})
 })

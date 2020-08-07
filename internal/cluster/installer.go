@@ -42,7 +42,7 @@ func (i *installer) Install(ctx context.Context, c *common.Cluster, db *gorm.DB)
 		if err != nil {
 			return err
 		}
-		return errors.Errorf("cluster %s is expected to have exactly %d known master to be installed, got %d", c.ID, minHostsNeededForInstallation, len(masterKnownHosts))
+		return errors.Errorf("cluster %s is expected to have exactly %d known master to be installed, got %d", c.ID, MinHostsNeededForInstallation, len(masterKnownHosts))
 	case clusterStatusReady:
 		return errors.Errorf("cluster %s is ready expected %s", c.ID, clusterStatusPrepareForInstallation)
 	case clusterStatusInstalling:

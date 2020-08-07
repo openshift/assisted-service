@@ -26,12 +26,13 @@ import (
 
 // #nosec
 const (
-	clusterInsufficientStateInfo = "cluster is insufficient, exactly 3 known master hosts are needed for installation"
-	clusterReadyStateInfo        = "Cluster ready to be installed"
-	pullSecret                   = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
-	IgnoreStateInfo              = "IgnoreStateInfo"
-	clusterErrorInfo             = "cluster %s has hosts in error"
-	clusterResetStateInfo        = "cluster was reset by user"
+	clusterInsufficientStateInfo    = "Cluster is not ready for install"
+	clusterReadyStateInfo           = "Cluster ready to be installed"
+	pullSecret                      = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
+	IgnoreStateInfo                 = "IgnoreStateInfo"
+	clusterErrorInfo                = "cluster %s has hosts in error"
+	clusterResetStateInfo           = "cluster was reset by user"
+	clusterPendingForInputStateInfo = "User input required"
 )
 
 const (
@@ -1228,32 +1229,42 @@ var _ = Describe("cluster install", func() {
 
 	It("install cluster requirement", func() {
 		clusterID := *cluster.ID
-
-		Expect(swag.StringValue(cluster.Status)).Should(Equal("insufficient"))
-		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
-
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, 60*time.Second, clusterInsufficientStateInfo)
 		hosts := register3nodes(clusterID)
 
 		h4 := registerHost(clusterID)
 
-		// All hosts are masters, one in discovering state  -> state must be insufficient
-		cluster, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		apiVip := "1.2.3.5"
+		ingressVip := "1.2.3.6"
+
+		// Two hosts are masters, one in pending-for-input state since there is no role  -> state must be pending-for-input
+		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
 				{ID: *hosts[1].ID, Role: models.HostRoleUpdateParamsMaster},
-				{ID: *h4.ID, Role: models.HostRoleUpdateParamsMaster},
 			},
+				APIVip:     &apiVip,
+				IngressVip: &ingressVip,
 			},
 			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
-		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+		waitForClusterState(ctx, clusterID, models.ClusterStatusPendingForInput, defaultWaitForClusterStateTimeout, clusterPendingForInputStateInfo)
 
-		// Adding one known host and setting as master -> state must be ready
+		// update role for the host and setting as worker -> state must be insufficient since there is no inventory for h4
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-				{ID: *hosts[2].ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *hosts[2].ID, Role: models.HostRoleUpdateParamsWorker},
+			}},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterInsufficientStateInfo)
+		generateHWPostStepReply(h4, validHwInfo, "h4")
+		// update role for the host4 to master -> state must be ready
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+				{ID: *h4.ID, Role: models.HostRoleUpdateParamsMaster},
 			}},
 			ClusterID: clusterID,
 		})
@@ -1264,9 +1275,7 @@ var _ = Describe("cluster install", func() {
 
 	It("install_cluster_states", func() {
 		clusterID := *cluster.ID
-
-		Expect(swag.StringValue(cluster.Status)).Should(Equal("insufficient"))
-		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+		waitForClusterState(ctx, clusterID, models.ClusterStatusPendingForInput, 60*time.Second, clusterPendingForInputStateInfo)
 
 		wh1 := registerHost(clusterID)
 		generateHWPostStepReply(wh1, validHwInfo, "wh1")
@@ -1275,19 +1284,11 @@ var _ = Describe("cluster install", func() {
 		wh3 := registerHost(clusterID)
 		generateHWPostStepReply(wh3, validHwInfo, "wh3")
 
-		mh1 := registerHost(clusterID)
-		generateHWPostStepReply(mh1, validHwInfo, "mh1")
-		generateFAPostStepReply(mh1, validFreeAddresses)
-		mh2 := registerHost(clusterID)
-		generateHWPostStepReply(mh2, validHwInfo, "mh2")
-		mh3 := registerHost(clusterID)
-		generateHWPostStepReply(mh3, validHwInfo, "mh3")
-
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
 
 		By("All hosts are workers -> state must be insufficient")
-		cluster, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *wh1.ID, Role: models.HostRoleUpdateParamsWorker},
 				{ID: *wh2.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -1299,16 +1300,27 @@ var _ = Describe("cluster install", func() {
 			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
-		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
-		clusterReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterInsufficientStateInfo)
+		clusterReply, getErr := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
 			ClusterID: clusterID,
 		})
-		Expect(err).ToNot(HaveOccurred())
+		Expect(getErr).ToNot(HaveOccurred())
 		Expect(clusterReply.Payload.APIVip).To(Equal(apiVip))
 		Expect(clusterReply.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
 		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
 		Expect(clusterReply.Payload.HostNetworks[0].Cidr).To(Equal("1.2.3.0/24"))
+
+		mh1 := registerHost(clusterID)
+		generateHWPostStepReply(mh1, validHwInfo, "mh1")
+		generateFAPostStepReply(mh1, validFreeAddresses)
+		mh2 := registerHost(clusterID)
+		generateHWPostStepReply(mh2, validHwInfo, "mh2")
+		mh3 := registerHost(clusterID)
+		generateHWPostStepReply(mh3, validHwInfo, "mh3")
+		clusterReply, _ = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+			ClusterID: clusterID,
+		})
+
 		hids := make([]interface{}, 0)
 		for _, h := range clusterReply.Payload.HostNetworks[0].HostIds {
 			hids = append(hids, h)
@@ -1326,12 +1338,12 @@ var _ = Describe("cluster install", func() {
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *mh1.ID, Role: models.HostRoleUpdateParamsMaster},
 				{ID: *mh2.ID, Role: models.HostRoleUpdateParamsMaster},
+				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsWorker},
 			}},
 			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
-		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterInsufficientStateInfo)
 
 		By("Three master hosts -> state must be ready")
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -1346,13 +1358,13 @@ var _ = Describe("cluster install", func() {
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
 
 		By("Back to two master hosts -> state must be insufficient")
-		cluster, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		cluster, updateErr := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *mh3.ID, Role: models.HostRoleUpdateParamsWorker},
 			}},
 			ClusterID: clusterID,
 		})
-		Expect(err).NotTo(HaveOccurred())
+		Expect(updateErr).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
 		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 

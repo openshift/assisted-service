@@ -2,10 +2,12 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/golang/mock/gomock"
+	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/sirupsen/logrus"
 
@@ -276,3 +278,427 @@ var _ = Describe("Reset cluster", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 })
+
+type statusInfoChecker interface {
+	check(statusInfo *string)
+}
+
+type valueChecker struct {
+	value string
+}
+
+func (v *valueChecker) check(value *string) {
+	if value == nil {
+		Expect(v.value).To(Equal(""))
+	} else {
+		Expect(*value).To(Equal(v.value))
+	}
+}
+
+func makeValueChecker(value string) statusInfoChecker {
+	return &valueChecker{value: value}
+}
+
+type validationsChecker struct {
+	expected map[validationID]validationCheckResult
+}
+
+func (j *validationsChecker) check(validationsStr string) {
+	validationMap := make(map[string][]validationResult)
+	Expect(json.Unmarshal([]byte(validationsStr), &validationMap)).ToNot(HaveOccurred())
+next:
+	for id, checkedResult := range j.expected {
+		category, err := id.category()
+		Expect(err).ToNot(HaveOccurred())
+		results, ok := validationMap[category]
+		Expect(ok).To(BeTrue())
+		for _, r := range results {
+			if r.ID == id {
+				Expect(r.Status).To(Equal(checkedResult.status), "id = %s", id.String())
+				Expect(r.Message).To(MatchRegexp(checkedResult.messagePattern))
+				continue next
+			}
+		}
+		// Should not reach here
+		Expect(false).To(BeTrue())
+	}
+}
+
+type validationCheckResult struct {
+	status         validationStatus
+	messagePattern string
+}
+
+func makeJsonChecker(expected map[validationID]validationCheckResult) *validationsChecker {
+	return &validationsChecker{expected: expected}
+}
+
+var _ = Describe("Refresh Cluster", func() {
+	var (
+		ctx                               = context.Background()
+		db                                *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4 strfmt.UUID
+		cluster                           common.Cluster
+		clusterApi                        *Manager
+		mockEvents                        *events.MockHandler
+		mockHostAPI                       *host.MockAPI
+		mockMetric                        *metrics.MockAPI
+		ctrl                              *gomock.Controller
+		dbName                            string = "cluster_transition_test_refresh_host"
+	)
+
+	mockHostAPIIsRequireUserActionResetFalse := func() {
+		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
+	}
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
+			mockEvents, mockHostAPI, mockMetric)
+
+		hid1 = strfmt.UUID(uuid.New().String())
+		hid2 = strfmt.UUID(uuid.New().String())
+		hid3 = strfmt.UUID(uuid.New().String())
+		hid4 = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+	Context("All transitions", func() {
+		var srcState string
+		tests := []struct {
+			name               string
+			srcState           string
+			srcStatusInfo      string
+			machineNetworkCidr string
+			apiVip             string
+			ingressVip         string
+			dstState           string
+			hosts              []models.Host
+			statusInfoChecker  statusInfoChecker
+			validationsChecker *validationsChecker
+			errorExpected      bool
+		}{
+			{
+				name:               "pending-for-input to pending-for-input",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             "",
+				ingressVip:         "",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationPending, messagePattern: "Machine network CIDR or API vip or Ingress vip is undefined"},
+					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API vip is undefined"},
+					isApiVipValid:                       {status: ValidationPending, messagePattern: "Machine network CIDR or API vip or Ingress vip is undefined"},
+					isIngressVipDefined:                 {status: ValidationFailure, messagePattern: "Ingress vip is undefined"},
+					isIngressVipValid:                   {status: ValidationPending, messagePattern: "Machine network CIDR or API vip or Ingress vip is undefined"},
+					NoPendingForInputHost:               {status: ValidationSuccess, messagePattern: "Cluster does not have pending for input hosts"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					HasExactlyThreeMasters:              {status: ValidationFailure, messagePattern: "cluster is expected to have exactly 3 known master to be installed"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "pending-for-input to insufficient - masters > 3",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					NoPendingForInputHost:               {status: ValidationSuccess, messagePattern: "Cluster does not have pending for input hosts"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					HasExactlyThreeMasters:              {status: ValidationFailure, messagePattern: "cluster is expected to have exactly 3 known master to be installed"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "pending-for-input to insufficient - not all hosts are ready to install",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInsufficient), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					NoPendingForInputHost:               {status: ValidationSuccess, messagePattern: "Cluster does not have pending for input hosts"},
+					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "Cluster has hosts that are not ready to install"},
+					HasExactlyThreeMasters:              {status: ValidationSuccess, messagePattern: "Cluster has 3 known master hosts"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "insufficient to pending-for-input - host in pending-for-input",
+				srcState:           models.ClusterStatusInsufficient,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusPendingForInput), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					NoPendingForInputHost:               {status: ValidationFailure, messagePattern: "Cluster has pending for input hosts"},
+					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "Cluster has hosts that are not ready to install"},
+					HasExactlyThreeMasters:              {status: ValidationSuccess, messagePattern: "Cluster has 3 known master hosts"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "ready to pending-for-input - api vip not defined",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationPending, messagePattern: "Machine network CIDR or API vip or Ingress vip is undefined"},
+					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API vip is undefined"},
+					isApiVipValid:                       {status: ValidationPending, messagePattern: "Machine network CIDR or API vip or Ingress vip is undefined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipValid:                   {status: ValidationPending, messagePattern: "Machine network CIDR or API vip or Ingress vip is undefined"},
+					NoPendingForInputHost:               {status: ValidationSuccess, messagePattern: "Cluster does not have pending for input hosts"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					HasExactlyThreeMasters:              {status: ValidationSuccess, messagePattern: "Cluster has 3 known master hosts"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "pending-for-input to ready",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoReady),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					NoPendingForInputHost:               {status: ValidationSuccess, messagePattern: "Cluster does not have pending for input hosts"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					HasExactlyThreeMasters:              {status: ValidationSuccess, messagePattern: "Cluster has 3 known master hosts"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "insufficient to ready",
+				srcState:           models.ClusterStatusInsufficient,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoReady),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					NoPendingForInputHost:               {status: ValidationSuccess, messagePattern: "Cluster does not have pending for input hosts"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					HasExactlyThreeMasters:              {status: ValidationSuccess, messagePattern: "Cluster has 3 known master hosts"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "ready to ready",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoReady),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					NoPendingForInputHost:               {status: ValidationSuccess, messagePattern: "Cluster does not have pending for input hosts"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					HasExactlyThreeMasters:              {status: ValidationSuccess, messagePattern: "Cluster has 3 known master hosts"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "finalizing to finalizing",
+				srcState:           models.ClusterStatusFinalizing,
+				srcStatusInfo:      statusInfoFinalizing,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker:  makeValueChecker(statusInfoFinalizing),
+				validationsChecker: nil,
+				errorExpected:      false,
+			},
+			{
+				name:               "error to error",
+				srcState:           models.ClusterStatusError,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker:  makeValueChecker(""),
+				validationsChecker: nil,
+				errorExpected:      false,
+			},
+			{
+				name:               "installed to installed",
+				srcState:           models.ClusterStatusInstalled,
+				srcStatusInfo:      statusInfoInstalled,
+				dstState:           models.ClusterStatusInstalled,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker:  makeValueChecker(statusInfoInstalled),
+				validationsChecker: nil,
+				errorExpected:      false,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				cluster = common.Cluster{
+					Cluster: models.Cluster{
+						APIVip:             t.apiVip,
+						ID:                 &clusterId,
+						IngressVip:         t.ingressVip,
+						MachineNetworkCidr: t.machineNetworkCidr,
+						Status:             &t.srcState,
+						StatusInfo:         &t.srcStatusInfo,
+					},
+				}
+				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+				for i := range t.hosts {
+					t.hosts[i].ClusterID = clusterId
+					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
+				}
+				cluster = getCluster(clusterId, db)
+				if srcState != t.dstState {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
+						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				}
+				if t.dstState == models.ClusterStatusInsufficient {
+					mockHostAPIIsRequireUserActionResetFalse()
+				}
+				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
+				if t.errorExpected {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+				Expect(clusterAfterRefresh.Status).To(Equal(&t.dstState))
+				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
+				if t.validationsChecker != nil {
+					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+				}
+			})
+		}
+	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+})
+
+func getCluster(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
+	var cluster common.Cluster
+	Expect(db.Preload("Hosts").First(&cluster, "id = ?", clusterId).Error).ShouldNot(HaveOccurred())
+	return cluster
+}

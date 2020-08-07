@@ -20,16 +20,18 @@ const (
 	clusterStatusInstalling             = "installing"
 	clusterStatusInstalled              = "installed"
 	clusterStatusError                  = "error"
+	//clusterStatusPendingForInput        = "pending-for-input
 )
 
 const (
 	statusInfoReady                           = "Cluster ready to be installed"
-	statusInfoInsufficient                    = "cluster is insufficient, exactly 3 known master hosts are needed for installation"
+	statusInfoInsufficient                    = "Cluster is not ready for install"
 	statusInfoInstalling                      = "Installation in progress"
 	statusInfoFinalizing                      = "Finalizing cluster installation"
 	statusInfoInstalled                       = "installed"
 	statusInfoPreparingForInstallation        = "Preparing cluster for installation"
 	statusInfoPreparingForInstallationTimeout = "Preparing cluster for installation timeout"
+	statusInfoPendingForInput                 = "User input required"
 )
 
 type baseState struct {
@@ -79,9 +81,8 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 
 	var cluster common.Cluster
 
-	if err := db.First(&cluster, "id = ?", clusterId).Error; err != nil {
-		return nil, errors.Wrapf(err, "failed to read from cluster %s from the database after the update",
-			clusterId)
+	if err := db.Preload("Hosts").Take(&cluster, "id = ?", clusterId.String()).Error; err != nil {
+		return nil, errors.Wrapf(err, "failed to get cluster %s", clusterId.String())
 	}
 
 	return &cluster, nil
@@ -104,13 +105,26 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 	return masterNodesIds, nil
 }
 
-func mapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
+func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
 	hostMap := make(map[string][]*models.Host)
 
 	for _, host := range c.Hosts {
 		if host.Role != models.HostRoleMaster {
 			continue
 		}
+		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {
+			hostMap[swag.StringValue(host.Status)] = append(hostMap[swag.StringValue(host.Status)], host)
+		} else {
+			hostMap[swag.StringValue(host.Status)] = []*models.Host{host}
+		}
+	}
+	return hostMap
+}
+
+func MapHostsByStatus(c *common.Cluster) map[string][]*models.Host {
+	hostMap := make(map[string][]*models.Host)
+
+	for _, host := range c.Hosts {
 		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {
 			hostMap[swag.StringValue(host.Status)] = append(hostMap[swag.StringValue(host.Status)], host)
 		} else {
