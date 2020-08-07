@@ -12,12 +12,15 @@ FROM fedora:31
 
 ARG GIT_REVISION
 ARG WORK_DIR=/data
+ARG USER=assisted-installer
 
 LABEL "git_revision"=${GIT_REVISION}
 
 RUN dnf install -y python pip libvirt-devel && dnf clean all && pip install boto3 botocore
 
-RUN mkdir $WORK_DIR && chmod 777 $WORK_DIR
+RUN mkdir $WORK_DIR && chmod 755 $WORK_DIR
+RUN useradd $USER
+RUN chown $USER:$USER $WORK_DIR
 
 # ISO
 COPY --from=coreos-installer /usr/sbin/coreos-installer $WORK_DIR
