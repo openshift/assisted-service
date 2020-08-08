@@ -213,31 +213,57 @@ var _ = Describe("RegisterHost", func() {
 
 	Context("register after reboot", func() {
 		tests := []struct {
-			name     string
-			srcState string
-			progress models.HostProgressInfo
+			srcState           string
+			progress           models.HostProgressInfo
+			dstState           string
+			eventSeverity      string
+			eventMessage       string
+			expectedRole       models.HostRole
+			expectedStatusInfo string
+			expectedInventory  string
 		}{
 			{
-				name:     "host in reboot",
-				srcState: HostStatusInstallingInProgress,
+				srcState: models.HostStatusInstallingInProgress,
 				progress: models.HostProgressInfo{
 					CurrentStage: models.HostStageRebooting,
 				},
+				dstState:      models.HostStatusInstallingPendingUserAction,
+				eventSeverity: models.EventSeverityWarning,
+				eventMessage: "Host %s: updated status from \"installing-in-progress\" to \"installing-pending-user-action\" " +
+					"(Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot " +
+					"order to boot from disk /dev/test-disk (test-serial))",
+				expectedStatusInfo: "Expected the host to boot from disk, but it booted the installation image - " +
+					"please reboot and fix boot order to boot from disk /dev/test-disk (test-serial)",
+				expectedRole:      models.HostRoleMaster,
+				expectedInventory: defaultInventory(),
+			},
+			{
+				srcState: models.HostStatusResetting,
+				progress: models.HostProgressInfo{
+					CurrentStage: models.HostStageRebooting,
+				},
+				dstState:          models.HostStatusResetting,
+				expectedRole:      models.HostRoleMaster,
+				expectedInventory: defaultInventory(),
+			},
+			{
+				srcState: models.HostStatusResettingPendingUserAction,
+				progress: models.HostProgressInfo{
+					CurrentStage: models.HostStageRebooting,
+				},
+				dstState:      models.HostStatusDiscovering,
+				eventSeverity: models.EventSeverityInfo,
+				eventMessage: "Host %s: updated status from \"resetting-pending-user-action\" to \"discovering\" " +
+					"(Waiting for host hardware info)",
+				expectedStatusInfo: statusInfoDiscovering,
+				expectedRole:       models.HostRoleMaster,
 			},
 		}
-
-		AfterEach(func() {
-			h := getHost(hostId, clusterId, db)
-			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusInstallingPendingUserAction))
-			Expect(h.Role).Should(Equal(models.HostRoleMaster))
-			Expect(h.Inventory).Should(Equal(defaultInventory()))
-			Expect(h.StatusInfo).NotTo(BeNil())
-		})
 
 		for i := range tests {
 			t := tests[i]
 
-			It(t.name, func() {
+			It(fmt.Sprintf("register %s host in reboot", t.srcState), func() {
 				Expect(db.Create(&models.Host{
 					ID:                   &hostId,
 					ClusterID:            clusterId,
@@ -247,23 +273,35 @@ var _ = Describe("RegisterHost", func() {
 					Progress:             &t.progress,
 					InstallationDiskPath: GetDeviceFullName(defaultDisk.Name),
 				}).Error).ShouldNot(HaveOccurred())
-				mockEvents.EXPECT().AddEvent(gomock.Any(), hostId.String(), models.EventSeverityWarning,
-					fmt.Sprintf("Host %s: updated status from \"installing-in-progress\" to \"installing-pending-user-action\" "+
-						"(Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot order "+
-						"to boot from disk %s (%s))", hostId.String(), GetDeviceFullName(defaultDisk.Name), defaultDisk.Serial),
-					gomock.Any(), clusterId.String())
+
+				if t.eventSeverity != "" && t.eventMessage != "" {
+					mockEvents.EXPECT().AddEvent(
+						gomock.Any(),
+						hostId.String(),
+						t.eventSeverity,
+						fmt.Sprintf(t.eventMessage, hostId.String()),
+						gomock.Any(),
+						clusterId.String())
+				}
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
 					ID:        &hostId,
 					ClusterID: clusterId,
 					Status:    swag.String(t.srcState),
 				})).ShouldNot(HaveOccurred())
+
+				h := getHost(hostId, clusterId, db)
+				Expect(swag.StringValue(h.Status)).Should(Equal(t.dstState))
+				Expect(h.Role).Should(Equal(t.expectedRole))
+				Expect(h.Inventory).Should(Equal(t.expectedInventory))
+				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(t.expectedStatusInfo))
 			})
 		}
 	})
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 })
 

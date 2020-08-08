@@ -30,10 +30,31 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			HostStatusKnown,
 			HostStatusDisconnected,
 			HostStatusInsufficient,
-			HostStatusResetting,
 			stateswitch.State(models.HostStatusResettingPendingUserAction),
 		},
 		DestinationState: HostStatusDiscovering,
+		PostTransition:   th.PostRegisterHost,
+	})
+
+	// Do nothing when host in reboot tries to register from resetting state.
+	// On such cases cluster monitor is responsible to set the host state to
+	// resetting-pending-user-action.
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRegisterHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusResetting),
+		},
+		Condition:        th.IsHostInReboot,
+		DestinationState: stateswitch.State(models.HostStatusResetting),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRegisterHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusResetting),
+		},
+		Condition:        stateswitch.Not(th.IsHostInReboot),
+		DestinationState: stateswitch.State(models.HostStatusDiscovering),
 		PostTransition:   th.PostRegisterHost,
 	})
 
