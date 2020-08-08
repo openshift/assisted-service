@@ -151,9 +151,12 @@ var _ = Describe("RegisterHost", func() {
 					Inventory: defaultHwInfo,
 					Status:    swag.String(t.srcState),
 				}).Error).ShouldNot(HaveOccurred())
-				mockEvents.EXPECT().AddEvent(gomock.Any(), hostId.String(), models.EventSeverityInfo,
-					fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host hardware info)", hostId.String(), t.srcState),
-					gomock.Any(), clusterId.String())
+				if t.srcState != models.HostStatusDiscovering {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), hostId.String(), models.EventSeverityInfo,
+						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host hardware info)",
+							hostId.String(), t.srcState),
+						gomock.Any(), clusterId.String())
+				}
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
 					ID:                    &hostId,
