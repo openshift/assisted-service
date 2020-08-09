@@ -41,10 +41,10 @@ objects:
               - name: assisted-svc
                 containerPort: 8090
             env:
-              - name: ROUTE53_CREDS
+              - name: ROUTE53_SECRET
                 valueFrom:
                   secretKeyRef:
-                    key: creds
+                    key: route53_secret
                     name: route53-creds
               - name: AWS_SECRET_ACCESS_KEY
                 valueFrom:
