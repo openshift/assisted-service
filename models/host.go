@@ -104,11 +104,11 @@ type Host struct {
 	// Format: date-time
 	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
-	// Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)
-	ValidationsInfo string `json:"validations_info,omitempty" gorm:"type:varchar(2048)"`
-
 	// user name
 	UserName string `json:"user_name,omitempty"`
+
+	// Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)
+	ValidationsInfo string `json:"validations_info,omitempty" gorm:"type:varchar(2048)"`
 }
 
 // Validate validates this host

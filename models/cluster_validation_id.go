@@ -41,8 +41,8 @@ const (
 	// ClusterValidationIDAllHostsAreReadyToInstall captures enum value "all-hosts-are-ready-to-install"
 	ClusterValidationIDAllHostsAreReadyToInstall ClusterValidationID = "all-hosts-are-ready-to-install"
 
-	// ClusterValidationIDHasExactlyThreeMasters captures enum value "has-exactly-three-masters"
-	ClusterValidationIDHasExactlyThreeMasters ClusterValidationID = "has-exactly-three-masters"
+	// ClusterValidationIDSufficientMastersCount captures enum value "sufficient-masters-count"
+	ClusterValidationIDSufficientMastersCount ClusterValidationID = "sufficient-masters-count"
 )
 
 // for schema
@@ -50,7 +50,7 @@ var clusterValidationIdEnum []interface{}
 
 func init() {
 	var res []ClusterValidationID
-	if err := json.Unmarshal([]byte(`["machine-cidr-defined","machine-cidr-equals-to-calculated-cidr","api-vip-defined","api-vip-valid","ingress-vip-defined","ingress-vip-valid","all-hosts-are-ready-to-install","has-exactly-three-masters"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["machine-cidr-defined","machine-cidr-equals-to-calculated-cidr","api-vip-defined","api-vip-valid","ingress-vip-defined","ingress-vip-valid","all-hosts-are-ready-to-install","sufficient-masters-count"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
