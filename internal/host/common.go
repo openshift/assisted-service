@@ -3,10 +3,12 @@ package host
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/thoas/go-funk"
 
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
@@ -121,4 +123,31 @@ func indexOfStage(element models.HostStage, data []models.HostStage) int {
 		}
 	}
 	return -1 // not found.
+}
+
+// update host role with an option to update only if the current role is srcRole to prevent races
+func updateRole(h *models.Host, role models.HostRole, db *gorm.DB, srcRole *string) error {
+	hostStatus := swag.StringValue(h.Status)
+	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient, HostStatusPendingForInput}
+	if !funk.ContainsString(allowedStatuses, hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, host role can be set only in one of %s states",
+				hostStatus, allowedStatuses))
+	}
+
+	h.Role = role
+	update := db.Model(h)
+	if srcRole != nil {
+		update = update.Where("role = ?", swag.StringValue(srcRole))
+	}
+	updateReply := update.Update("role", role)
+	if updateReply.RowsAffected == 0 {
+		return errors.Errorf("failed to update host %s from cluster %s role to %s - nothing changed",
+			h.ID.String(), h.ClusterID.String(), role)
+	}
+	if updateReply.Error != nil {
+		return errors.Wrapf(updateReply.Error, "failed to update host %s from cluster %s role to %s",
+			h.ID.String(), h.ClusterID.String(), role)
+	}
+	return nil
 }

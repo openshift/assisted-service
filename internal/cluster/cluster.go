@@ -101,7 +101,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		eventsHandler:   eventsHandler,
 		sm:              NewClusterStateMachine(th),
 		metricAPI:       metricApi,
-		rp:              newRefreshPreprocessor(log),
+		rp:              newRefreshPreprocessor(log, hostAPI),
 		hostAPI:         hostAPI,
 	}
 }

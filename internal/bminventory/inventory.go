@@ -615,9 +615,23 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	var cluster common.Cluster
 	var err error
 
-	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
+	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).
+		First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
+	// auto select hosts roles if not selected yet.
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		for i := range cluster.Hosts {
+			if err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
 	if err = b.refreshAllHosts(ctx, &cluster); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -1142,6 +1156,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
 		UserName:              auth.UserNameFromContext(ctx),
+		Role:                  models.HostRoleAutoAssign,
 	}
 
 	if err := b.hostApi.RegisterHost(ctx, &host); err != nil {

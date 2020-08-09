@@ -238,7 +238,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 
 	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory))
 
-	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined), If(IsRoleDefined))
+	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined))
 
 	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr),
 		If(IsHostnameUnique), If(IsHostnameValid))

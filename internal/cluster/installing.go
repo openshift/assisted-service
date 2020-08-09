@@ -57,7 +57,7 @@ func (i *installingState) getClusterInstallationState(ctx context.Context, c *co
 
 	// Cluster is in finalizing
 	mastersInInstalled, ok := mappedMastersByRole[intenralhost.HostStatusInstalled]
-	if ok && len(mastersInInstalled) >= MinHostsNeededForInstallation {
+	if ok && len(mastersInInstalled) >= common.MinMasterHostsNeededForInstallation {
 		log.Infof("Cluster %s has at least %d installed hosts, cluster is installed.", c.ID, len(mastersInInstalled))
 		return models.ClusterStatusFinalizing, statusInfoFinalizing, nil
 	}
@@ -67,7 +67,7 @@ func (i *installingState) getClusterInstallationState(ctx context.Context, c *co
 		len(mappedMastersByRole[intenralhost.HostStatusInstallingInProgress]) +
 		len(mappedMastersByRole[intenralhost.HostStatusInstalled]) +
 		len(mappedMastersByRole[intenralhost.HostStatusInstallingPendingUserAction])
-	if mastersInSomeInstallingStatus >= MinHostsNeededForInstallation {
+	if mastersInSomeInstallingStatus >= common.MinMasterHostsNeededForInstallation {
 		return clusterStatusInstalling, statusInfoInstalling, nil
 	}
 

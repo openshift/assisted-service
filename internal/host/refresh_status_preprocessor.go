@@ -81,11 +81,6 @@ func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCf
 			formatter: v.printIsMachineCidrDefined,
 		},
 		{
-			id:        IsRoleDefined,
-			condition: v.isRoleDefined,
-			formatter: v.printIsRoleDefined,
-		},
-		{
 			id:        HasCPUCoresForRole,
 			condition: v.hasCpuCoresForRole,
 			formatter: v.printHasCpuCoresForRole,

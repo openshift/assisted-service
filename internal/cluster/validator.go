@@ -3,20 +3,14 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/go-openapi/swag"
-
 	"github.com/go-openapi/strfmt"
-
-	"github.com/openshift/assisted-service/internal/host"
-
-	"github.com/openshift/assisted-service/internal/network"
-
-	"github.com/sirupsen/logrus"
-
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
-
+	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 type validationStatus string
@@ -82,7 +76,8 @@ func boolValue(b bool) validationStatus {
 }
 
 type clusterValidator struct {
-	log logrus.FieldLogger
+	log     logrus.FieldLogger
+	hostAPI host.API
 }
 
 func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) validationStatus {
@@ -199,19 +194,39 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 	}
 }
 
-func (v *clusterValidator) hasExactlyThreeKnownMasters(c *clusterPreprocessContext) validationStatus {
+// conditions to have a valid number of masters
+// 1. have exactly three masters
+// 2. have less then 3 master but enough auto-assign hosts that can become masters
+// having more then 3 known masters is failure
+func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) validationStatus {
 	mappedMastersByRole := MapMasterHostsByStatus(c.cluster)
-
 	mastersInKnown, ok := mappedMastersByRole[models.HostStatusKnown]
-	return boolValue(ok && len(mastersInKnown) == MinHostsNeededForInstallation)
+
+	if ok && len(mastersInKnown) == common.MinMasterHostsNeededForInstallation {
+		return boolValue(true)
+	}
+
+	if ok && len(mastersInKnown) > common.MinMasterHostsNeededForInstallation {
+		return boolValue(false)
+	}
+
+	candidates := 0
+	for _, h := range c.cluster.Hosts {
+		if isValid, err := v.hostAPI.IsValidMasterCandidate(h, c.db, v.log); isValid && err == nil {
+			candidates++
+		}
+	}
+
+	return boolValue(candidates >= common.MinMasterHostsNeededForInstallation)
 }
 
-func (v *clusterValidator) printHasExactlyThreeKnownMasters(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printSufficientMastersCount(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return fmt.Sprintf("Cluster has %d known master hosts", MinHostsNeededForInstallation)
+		return "Cluster has sufficient number of master candidates"
 	case ValidationFailure:
-		return fmt.Sprintf("cluster is expected to have exactly %d known master to be installed", MinHostsNeededForInstallation)
+		return fmt.Sprintf("no sufficient count of master hosts candidates expected %d",
+			common.MinMasterHostsNeededForInstallation)
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}

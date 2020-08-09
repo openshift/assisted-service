@@ -91,7 +91,7 @@ func (c *validationContext) loadInventory() error {
 
 func (c *validationContext) validateRole() error {
 	switch c.host.Role {
-	case models.HostRoleMaster, models.HostRoleWorker, "":
+	case models.HostRoleMaster, models.HostRoleWorker, models.HostRoleAutoAssign:
 		return nil
 	default:
 		return errors.Errorf("Illegal role defined: %s", c.host.Role)
@@ -232,21 +232,6 @@ func (v *validator) printHasMinValidDisks(c *validationContext, status validatio
 	}
 }
 
-func (v *validator) isRoleDefined(c *validationContext) validationStatus {
-	return boolValue(c.host.Role != "")
-}
-
-func (v *validator) printIsRoleDefined(context *validationContext, status validationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "Role is defined"
-	case ValidationFailure:
-		return "Role is undefined"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
 func (v *validator) isMachineCidrDefined(c *validationContext) validationStatus {
 	return boolValue(c.cluster.MachineNetworkCidr != "")
 }
@@ -267,13 +252,13 @@ func (v *validator) printIsMachineCidrDefined(context *validationContext, status
 }
 
 func (v *validator) hasCpuCoresForRole(c *validationContext) validationStatus {
-	if c.inventory == nil || c.host.Role == "" {
+	if c.inventory == nil {
 		return ValidationPending
 	}
 	switch c.host.Role {
 	case models.HostRoleMaster:
 		return boolValue(c.inventory.CPU.Count >= v.hwValidatorCfg.MinCPUCoresMaster)
-	case models.HostRoleWorker:
+	case models.HostRoleWorker, models.HostRoleAutoAssign:
 		return boolValue(c.inventory.CPU.Count >= v.hwValidatorCfg.MinCPUCoresWorker)
 	default:
 		v.log.Errorf("Unexpected role %s", c.host.Role)
@@ -285,7 +270,7 @@ func (v *validator) getCpuCountForRole(role models.HostRole) int64 {
 	switch role {
 	case models.HostRoleMaster:
 		return v.hwValidatorCfg.MinCPUCoresMaster
-	case models.HostRoleWorker:
+	case models.HostRoleWorker, models.HostRoleAutoAssign:
 		return v.hwValidatorCfg.MinCPUCoresWorker
 	default:
 		return v.hwValidatorCfg.MinCPUCores
@@ -307,13 +292,13 @@ func (v *validator) printHasCpuCoresForRole(c *validationContext, status validat
 }
 
 func (v *validator) hasMemoryForRole(c *validationContext) validationStatus {
-	if c.inventory == nil || c.host.Role == "" {
+	if c.inventory == nil {
 		return ValidationPending
 	}
 	switch c.host.Role {
 	case models.HostRoleMaster:
 		return boolValue(c.inventory.Memory.PhysicalBytes >= gibToBytes(v.hwValidatorCfg.MinRamGibMaster))
-	case models.HostRoleWorker:
+	case models.HostRoleWorker, models.HostRoleAutoAssign:
 		return boolValue(c.inventory.Memory.PhysicalBytes >= gibToBytes(v.hwValidatorCfg.MinRamGibWorker))
 	default:
 		v.log.Errorf("Unexpected role %s", c.host.Role)
@@ -325,7 +310,7 @@ func (v *validator) getMemoryForRole(role models.HostRole) int64 {
 	switch role {
 	case models.HostRoleMaster:
 		return v.hwValidatorCfg.MinRamGibMaster
-	case models.HostRoleWorker:
+	case models.HostRoleWorker, models.HostRoleAutoAssign:
 		return v.hwValidatorCfg.MinRamGibWorker
 	default:
 		return v.hwValidatorCfg.MinRamGib

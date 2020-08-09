@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"github.com/openshift/assisted-service/internal/host"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,10 +21,10 @@ type refreshPreprocessor struct {
 	conditions  []condition
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API) *refreshPreprocessor {
 	return &refreshPreprocessor{
 		log:         log,
-		validations: newValidations(log),
+		validations: newValidations(log, hostAPI),
 		conditions:  newConditions(),
 	}
 }
@@ -52,9 +53,10 @@ func (r *refreshPreprocessor) preprocess(c *clusterPreprocessContext) (map[strin
 	return stateMachineInput, validationsOutput, nil
 }
 
-func newValidations(log logrus.FieldLogger) []validation {
+func newValidations(log logrus.FieldLogger, api host.API) []validation {
 	v := clusterValidator{
-		log: log,
+		log:     log,
+		hostAPI: api,
 	}
 	ret := []validation{
 		{
@@ -93,9 +95,9 @@ func newValidations(log logrus.FieldLogger) []validation {
 			formatter: v.printAllHostsAreReadyToInstall,
 		},
 		{
-			id:        HasExactlyThreeMasters,
-			condition: v.hasExactlyThreeKnownMasters,
-			formatter: v.printHasExactlyThreeKnownMasters,
+			id:        SufficientMastersCount,
+			condition: v.sufficientMastersCount,
+			formatter: v.printSufficientMastersCount,
 		},
 	}
 	return ret

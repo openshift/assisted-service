@@ -989,7 +989,7 @@ var _ = Describe("Refresh Host", func() {
 			name               string
 			srcState           string
 			inventory          string
-			role               string
+			role               models.HostRole
 			machineNetworkCidr string
 			validCheckInTime   bool
 			dstState           string
@@ -999,6 +999,7 @@ var _ = Describe("Refresh Host", func() {
 		}{
 			{
 				name:              "discovering to disconnected",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  false,
 				srcState:          HostStatusDiscovering,
 				dstState:          HostStatusDisconnected,
@@ -1010,7 +1011,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationPending, messagePattern: "Missing inventory"},
 					HasMinValidDisks:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
 					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
@@ -1020,6 +1020,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "insufficient to disconnected",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  false,
 				srcState:          HostStatusInsufficient,
 				dstState:          HostStatusDisconnected,
@@ -1031,7 +1032,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationPending, messagePattern: "Missing inventory"},
 					HasMinValidDisks:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
 					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
@@ -1041,6 +1041,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "known to disconnected",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  false,
 				srcState:          HostStatusKnown,
 				dstState:          HostStatusDisconnected,
@@ -1049,6 +1050,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "pending to disconnected",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  false,
 				srcState:          HostStatusPendingForInput,
 				dstState:          HostStatusDisconnected,
@@ -1060,7 +1062,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationPending, messagePattern: "Missing inventory"},
 					HasMinValidDisks:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
 					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
@@ -1070,6 +1071,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "disconnected to disconnected",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  false,
 				srcState:          HostStatusDisconnected,
 				dstState:          HostStatusDisconnected,
@@ -1081,7 +1083,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationPending, messagePattern: "Missing inventory"},
 					HasMinValidDisks:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
 					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
@@ -1091,6 +1092,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "disconnected to discovering",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
 				srcState:          HostStatusDisconnected,
 				dstState:          HostStatusDiscovering,
@@ -1102,7 +1104,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationPending, messagePattern: "Missing inventory"},
 					HasMinValidDisks:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
 					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
@@ -1112,6 +1113,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "discovering to discovering",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
 				srcState:          HostStatusDiscovering,
 				dstState:          HostStatusDiscovering,
@@ -1123,7 +1125,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationPending, messagePattern: "Missing inventory"},
 					HasMinValidDisks:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
 					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
@@ -1133,6 +1134,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "disconnected to insufficient (1)",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
 				srcState:          HostStatusDisconnected,
 				dstState:          HostStatusInsufficient,
@@ -1145,9 +1147,8 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM, found only 0 GiB"},
 					HasMinValidDisks:     {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
-					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
-					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role auto-assign"},
+					HasMemoryForRole:     {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role auto-assign, found only 0"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 				}),
@@ -1155,6 +1156,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "insufficient to insufficient (1)",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
 				srcState:          HostStatusInsufficient,
 				dstState:          HostStatusInsufficient,
@@ -1166,9 +1168,8 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM, found only 0 GiB"},
 					HasMinValidDisks:     {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
-					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
-					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role auto-assign"},
+					HasMemoryForRole:     {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role auto-assign, found only 0"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 				}),
@@ -1177,6 +1178,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "discovering to insufficient (1)",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
 				srcState:          HostStatusDiscovering,
 				dstState:          HostStatusInsufficient,
@@ -1188,9 +1190,8 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM, found only 0 GiB"},
 					HasMinValidDisks:     {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
-					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
-					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role"},
+					HasMemoryForRole:     {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 				}),
@@ -1199,6 +1200,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "pending to insufficient (1)",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
 				srcState:          HostStatusPendingForInput,
 				dstState:          HostStatusPendingForInput,
@@ -1208,6 +1210,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:              "known to insufficient (1)",
+				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
 				srcState:          HostStatusKnown,
 				dstState:          HostStatusKnown,
@@ -1216,79 +1219,11 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:     true,
 			},
 			{
-				name:              "disconnected to pending",
-				validCheckInTime:  true,
-				srcState:          HostStatusDisconnected,
-				dstState:          HostStatusPendingForInput,
-				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
-				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
-					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
-					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
-					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
-					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
-					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
-					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
-					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
-					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
-					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
-				}),
-				inventory:     workerInventory(),
-				errorExpected: false,
-			},
-			{
-				name:               "discovering to pending",
-				validCheckInTime:   true,
-				srcState:           HostStatusDiscovering,
-				dstState:           HostStatusPendingForInput,
-				machineNetworkCidr: "5.6.7.0/24",
-				statusInfoChecker:  makeValueChecker(statusInfoPendingForInput),
-				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
-					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
-					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
-					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
-					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
-					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
-					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
-					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
-					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
-					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDR"},
-				}),
-				inventory:     workerInventory(),
-				errorExpected: false,
-			},
-			{
-				name:               "insufficient to pending",
-				validCheckInTime:   true,
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusPendingForInput,
-				machineNetworkCidr: "5.6.7.0/24",
-				statusInfoChecker:  makeValueChecker(statusInfoPendingForInput),
-				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
-					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
-					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
-					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
-					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
-					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationFailure, messagePattern: "Role is undefined"},
-					HasCPUCoresForRole:   {status: ValidationPending, messagePattern: "Missing inventory or role"},
-					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
-					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
-					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDR"},
-				}),
-				inventory:     workerInventory(),
-				errorExpected: false,
-			},
-			{
 				name:              "known to pending",
 				validCheckInTime:  true,
 				srcState:          HostStatusKnown,
 				dstState:          HostStatusPendingForInput,
-				role:              "worker",
+				role:              models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1297,7 +1232,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
@@ -1311,7 +1245,7 @@ var _ = Describe("Refresh Host", func() {
 				validCheckInTime:  true,
 				srcState:          HostStatusPendingForInput,
 				dstState:          HostStatusPendingForInput,
-				role:              "worker",
+				role:              models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1320,7 +1254,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
@@ -1335,7 +1268,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusDisconnected,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1344,7 +1277,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
@@ -1359,7 +1291,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusDiscovering,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
-				role:               "master",
+				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1368,7 +1300,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for master role, found only 2"},
 					HasMemoryForRole:     {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
@@ -1383,7 +1314,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusInsufficient,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "master",
+				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1392,7 +1323,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for master role, found only 2"},
 					HasMemoryForRole:     {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
@@ -1407,7 +1337,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusPendingForInput,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "master",
+				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				inventory:          workerInventory(),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1417,7 +1347,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for master role, found only 2"},
 					HasMemoryForRole:     {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
@@ -1431,7 +1360,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusKnown,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
-				role:               "master",
+				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1440,7 +1369,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
@@ -1455,7 +1383,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusInsufficient,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
-				role:               "master",
+				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1464,7 +1392,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
@@ -1479,7 +1406,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusInsufficient,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "master",
+				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1488,7 +1415,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
@@ -1504,7 +1430,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusDiscovering,
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "master",
+				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(""),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1513,7 +1439,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
@@ -1529,7 +1454,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusInsufficient,
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(""),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1538,7 +1463,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
@@ -1554,7 +1478,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusPendingForInput,
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(""),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1563,7 +1487,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
@@ -1579,7 +1502,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusKnown,
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "master",
+				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(""),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1588,7 +1511,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
@@ -1622,7 +1544,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState = t.srcState
 				host = getTestHost(hostId, clusterId, srcState)
 				host.Inventory = t.inventory
-				host.Role = models.HostRole(t.role)
+				host.Role = t.role
 				host.CheckedInAt = hostCheckInAt
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
@@ -1639,7 +1561,7 @@ var _ = Describe("Refresh Host", func() {
 				}
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
-				Expect(resultHost.Role).To(Equal(models.HostRole(t.role)))
+				Expect(resultHost.Role).To(Equal(t.role))
 				Expect(resultHost.Status).To(Equal(&t.dstState))
 				t.statusInfoChecker.check(resultHost.StatusInfo)
 				if t.validationsChecker != nil {
@@ -1708,7 +1630,7 @@ var _ = Describe("Refresh Host", func() {
 			name                   string
 			srcState               string
 			inventory              string
-			role                   string
+			role                   models.HostRole
 			machineNetworkCidr     string
 			dstState               string
 			requestedHostname      string
@@ -1724,7 +1646,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusInsufficient,
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(""),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1733,7 +1655,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
@@ -1749,7 +1670,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusInsufficient,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1758,7 +1679,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
@@ -1774,7 +1694,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusInsufficient,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1783,7 +1703,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
@@ -1800,7 +1719,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusInsufficient,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1809,7 +1728,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
@@ -1826,7 +1744,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusInsufficient,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1835,7 +1753,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
@@ -1853,7 +1770,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusInsufficient,
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(""),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1862,7 +1779,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
@@ -1881,7 +1797,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusKnown,
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(""),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1890,7 +1806,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
@@ -1906,7 +1821,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusKnown,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1915,7 +1830,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
@@ -1931,7 +1845,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusKnown,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1940,7 +1854,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
@@ -1957,7 +1870,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusKnown,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1966,7 +1879,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
@@ -1983,7 +1895,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusKnown,
 				dstState:           HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1992,7 +1904,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
@@ -2010,7 +1921,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           HostStatusKnown,
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				role:               "worker",
+				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(""),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -2019,9 +1930,6 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
-					IsRoleDefined:        {status: ValidationSuccess, messagePattern: "Role is defined"},
-					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
-					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 				}),
@@ -2040,7 +1948,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState = t.srcState
 				host = getTestHost(hostId, clusterId, srcState)
 				host.Inventory = t.inventory
-				host.Role = models.HostRole(t.role)
+				host.Role = t.role
 				host.CheckedInAt = strfmt.DateTime(time.Now())
 				host.RequestedHostname = t.requestedHostname
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -2063,7 +1971,7 @@ var _ = Describe("Refresh Host", func() {
 				}
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
-				Expect(resultHost.Role).To(Equal(models.HostRole(t.role)))
+				Expect(resultHost.Role).To(Equal(t.role))
 				Expect(resultHost.Status).To(Equal(&t.dstState))
 				t.statusInfoChecker.check(resultHost.StatusInfo)
 				if t.validationsChecker != nil {

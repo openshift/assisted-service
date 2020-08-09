@@ -9,11 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/internal/metrics"
-	"github.com/openshift/assisted-service/models"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -22,6 +17,10 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
 
@@ -1049,5 +1048,200 @@ var _ = Describe("PrepareForInstallation", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("AutoAssignRole", func() {
+	var (
+		ctx       = context.Background()
+		clusterId strfmt.UUID
+		hapi      API
+		db        *gorm.DB
+		dbName    = "host_auto_assign_role"
+	)
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		clusterId = strfmt.UUID(uuid.New().String())
+		hapi = NewManager(
+			getTestLog(),
+			db,
+			nil,
+			nil,
+			nil,
+			createValidatorCfg(),
+			nil,
+		)
+		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		db.Close()
+	})
+
+	Context("single host role selection", func() {
+		tests := []struct {
+			name         string
+			srcRole      models.HostRole
+			inventory    string
+			expectError  bool
+			expectedRole models.HostRole
+		}{
+			{
+				name:         "role already set to worker",
+				srcRole:      models.HostRoleWorker,
+				inventory:    masterInventory(),
+				expectError:  false,
+				expectedRole: models.HostRoleWorker,
+			}, {
+				name:         "role already set to master",
+				srcRole:      models.HostRoleMaster,
+				inventory:    masterInventory(),
+				expectError:  false,
+				expectedRole: models.HostRoleMaster,
+			}, {
+				name:         "no inventory",
+				srcRole:      models.HostRoleAutoAssign,
+				inventory:    "",
+				expectError:  true,
+				expectedRole: models.HostRoleAutoAssign,
+			}, {
+				name:         "auto-assign master",
+				srcRole:      models.HostRoleAutoAssign,
+				inventory:    masterInventory(),
+				expectError:  false,
+				expectedRole: models.HostRoleMaster,
+			}, {
+				name:         "auto-assign worker",
+				srcRole:      models.HostRoleAutoAssign,
+				inventory:    workerInventory(),
+				expectError:  false,
+				expectedRole: models.HostRoleWorker,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				h := getTestHost(strfmt.UUID(uuid.New().String()), clusterId, models.HostStatusKnown)
+				h.Inventory = t.inventory
+				h.Role = t.srcRole
+				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+				err := hapi.AutoAssignRole(ctx, &h, db)
+				if t.expectError {
+					Expect(err).Should(HaveOccurred())
+				} else {
+					Expect(err).ShouldNot(HaveOccurred())
+				}
+				Expect(getHost(*h.ID, clusterId, db).Role).Should(Equal(t.expectedRole))
+			})
+		}
+	})
+
+	It("cluster already have enough master nodes", func() {
+		for i := 0; i < common.MinMasterHostsNeededForInstallation; i++ {
+			h := getTestHost(strfmt.UUID(uuid.New().String()), clusterId, models.HostStatusKnown)
+			h.Inventory = masterInventory()
+			h.Role = models.HostRoleAutoAssign
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			Expect(hapi.AutoAssignRole(ctx, &h, db)).ShouldNot(HaveOccurred())
+			Expect(getHost(*h.ID, clusterId, db).Role).Should(Equal(models.HostRoleMaster))
+		}
+
+		h := getTestHost(strfmt.UUID(uuid.New().String()), clusterId, models.HostStatusKnown)
+		h.Inventory = masterInventory()
+		h.Role = models.HostRoleAutoAssign
+		Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+		Expect(hapi.AutoAssignRole(ctx, &h, db)).ShouldNot(HaveOccurred())
+		Expect(getHost(*h.ID, clusterId, db).Role).Should(Equal(models.HostRoleWorker))
+	})
+})
+
+var _ = Describe("IsValidMasterCandidate", func() {
+	var (
+		clusterId strfmt.UUID
+		hapi      API
+		db        *gorm.DB
+		dbName    = "host_is_valid_master_candidate"
+	)
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		clusterId = strfmt.UUID(uuid.New().String())
+		hapi = NewManager(
+			getTestLog(),
+			db,
+			nil,
+			nil,
+			nil,
+			createValidatorCfg(),
+			nil,
+		)
+		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		db.Close()
+	})
+
+	Context("single host role selection", func() {
+		tests := []struct {
+			name      string
+			srcState  string
+			srcRole   models.HostRole
+			inventory string
+			isValid   bool
+		}{
+			{
+				name:      "not ready host",
+				srcState:  models.HostStatusPendingForInput,
+				srcRole:   models.HostRoleAutoAssign,
+				inventory: masterInventory(),
+				isValid:   false,
+			}, {
+				name:      "role is already assigned as worker",
+				srcState:  models.HostStatusKnown,
+				srcRole:   models.HostRoleWorker,
+				inventory: masterInventory(),
+				isValid:   false,
+			}, {
+				name:      "master but insufficient hw",
+				srcState:  models.HostStatusKnown,
+				srcRole:   models.HostRoleMaster,
+				inventory: workerInventory(),
+				isValid:   false,
+			}, {
+				name:      "valid master",
+				srcState:  models.HostStatusKnown,
+				srcRole:   models.HostRoleMaster,
+				inventory: masterInventory(),
+				isValid:   true,
+			}, {
+				name:      "valid for master with auto-assign role",
+				srcState:  models.HostStatusKnown,
+				srcRole:   models.HostRoleAutoAssign,
+				inventory: masterInventory(),
+				isValid:   true,
+			}, {
+				name:      "worker inventory",
+				srcState:  models.HostStatusKnown,
+				srcRole:   models.HostRoleAutoAssign,
+				inventory: workerInventory(),
+				isValid:   false,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				h := getTestHost(strfmt.UUID(uuid.New().String()), clusterId, t.srcState)
+				h.Inventory = t.inventory
+				h.Role = t.srcRole
+				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+				isValidReply, err := hapi.IsValidMasterCandidate(&h, db, getTestLog())
+				Expect(isValidReply).Should(Equal(t.isValid))
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+		}
 	})
 })

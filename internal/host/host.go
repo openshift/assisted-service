@@ -8,15 +8,14 @@ import (
 	"time"
 
 	"github.com/filanov/stateswitch"
+	"github.com/go-openapi/swag"
+	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-
-	"github.com/go-openapi/swag"
-	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -89,6 +88,9 @@ type API interface {
 	GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage
 	IsInstallable(h *models.Host) bool
 	PrepareForInstallation(ctx context.Context, h *models.Host, db *gorm.DB) error
+	// auto assign host role
+	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error
+	IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 }
 
 type Manager struct {
@@ -286,20 +288,11 @@ func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, 
 }
 
 func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error {
-	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient, HostStatusPendingForInput}
-	if !funk.ContainsString(allowedStatuses, hostStatus) {
-		return common.NewApiError(http.StatusBadRequest,
-			errors.Errorf("Host is in %s state, host role can be set only in one of %s states",
-				hostStatus, allowedStatuses))
-	}
-
-	h.Role = role
 	cdb := m.db
 	if db != nil {
 		cdb = db
 	}
-	return cdb.Model(h).Update("role", role).Error
+	return updateRole(h, role, cdb, nil)
 }
 
 func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
@@ -418,4 +411,99 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 	} else {
 		m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h, previousProgress, CurrentStage)
 	}
+}
+
+func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	// select role if needed
+	if h.Role == models.HostRoleAutoAssign {
+		return m.autoRoleSelection(ctx, h, db)
+	}
+	return nil
+}
+
+func (m *Manager) autoRoleSelection(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, m.log)
+	if h.Inventory == "" {
+		return errors.Errorf("host %s from cluster %s don't have hardware info",
+			h.ID.String(), h.ClusterID.String())
+	}
+	role, err := m.selectRole(ctx, h, db)
+	if err != nil {
+		return err
+	}
+	// use sourced role to prevent races with user role setting
+	if err := updateRole(h, role, db, swag.String(string(models.HostRoleAutoAssign))); err != nil {
+		log.WithError(err).Errorf("failed to update role %s for host %s cluster %s",
+			role, h.ID.String(), h.ClusterID.String())
+	}
+	log.Infof("Auto selected role %s for host %s cluster %s", role, h.ID.String(), h.ClusterID.String())
+	// pointer was changed in selectRole or after the update - need to take the host again
+	return db.Model(&models.Host{}).
+		Take(h, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error
+}
+
+func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (models.HostRole, error) {
+	var (
+		autoSelectedRole = models.HostRoleWorker
+		log              = logutil.FromContext(ctx, m.log)
+	)
+
+	// count already existing masters
+	mastersCount := 0
+	if err := db.Model(&models.Host{}).Where("cluster_id = ? and status != ? and role = ?",
+		h.ClusterID, models.HostStatusDisabled, models.HostRoleMaster).Count(&mastersCount).Error; err != nil {
+		log.WithError(err).Errorf("failed to count masters in cluster %s", h.ClusterID.String())
+		return autoSelectedRole, err
+	}
+
+	if mastersCount < common.MinMasterHostsNeededForInstallation {
+		h.Role = models.HostRoleMaster
+		vc, err := newValidationContext(h, db)
+		if err != nil {
+			log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
+			return autoSelectedRole, err
+		}
+		conditions, _, err := m.rp.preprocess(vc)
+		if err != nil {
+			log.WithError(err).Errorf("failed to run validations on host %s", h.ID.String())
+			return autoSelectedRole, err
+		}
+		if m.canBeMaster(conditions) {
+			return models.HostRoleMaster, nil
+		}
+	}
+
+	return autoSelectedRole, nil
+}
+
+func (m *Manager) IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error) {
+	if swag.StringValue(h.Status) != models.HostStatusKnown || h.Role == models.HostRoleWorker {
+		return false, nil
+	}
+
+	h.Role = models.HostRoleMaster
+	vc, err := newValidationContext(h, db)
+	if err != nil {
+		log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
+		return false, err
+	}
+
+	conditions, _, err := m.rp.preprocess(vc)
+	if err != nil {
+		log.WithError(err).Errorf("failed to run validations on host %s", h.ID.String())
+		return false, err
+	}
+
+	if m.canBeMaster(conditions) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (m *Manager) canBeMaster(conditions map[validationID]bool) bool {
+	if conditions[HasCPUCoresForRole] && conditions[HasMemoryForRole] {
+		return true
+	}
+	return false
 }

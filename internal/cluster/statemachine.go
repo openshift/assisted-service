@@ -86,14 +86,14 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	// Refresh cluster status conditions - Non DHCP
 	var requiredInputFieldsExistNonDhcp = stateswitch.And(If(IsMachineCidrDefined), If(isApiVipDefined), If(isIngressVipDefined))
 	var isSufficientForInstallNonDhcp = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid),
-		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(HasExactlyThreeMasters))
+		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(SufficientMastersCount))
 
 	// Refresh cluster status conditions - DHCP
 	var isSufficientForInstallDhcp = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid),
-		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(HasExactlyThreeMasters), If(isApiVipDefined), If(isIngressVipDefined))
+		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(SufficientMastersCount), If(isApiVipDefined), If(isIngressVipDefined))
 
 	var allRefreshStatusConditions = stateswitch.And(If(IsMachineCidrDefined), If(isApiVipDefined), If(isIngressVipDefined),
-		If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid), If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(HasExactlyThreeMasters))
+		If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid), If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(SufficientMastersCount))
 
 	// Non DHCP transitions
 
