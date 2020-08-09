@@ -1,6 +1,7 @@
 PWD = $(shell pwd)
 UID = $(shell id -u)
 BUILD_FOLDER = $(PWD)/build
+ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 TARGET := $(or ${TARGET},minikube)
 NAMESPACE := $(or ${NAMESPACE},assisted-installer)
@@ -28,65 +29,71 @@ all: build
 lint:
 	golangci-lint run -v
 
-.PHONY: build
-build: lint unit-test build-minimal generate-keys
-
-build-minimal: create-build-dir
-	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
-
-create-build-dir:
+$(BUILD_FOLDER):
 	mkdir -p $(BUILD_FOLDER)
 
 format:
 	goimports -w -l cmd/ internal/ subsystem/
 
+############
+# Generate #
+############
+
 generate:
 	go generate $(shell go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi')
 
-generate-from-swagger:
-	rm -rf client models restapi
+generate-from-swagger: generate-go-client generate-go-server
+
+generate-go-server:
+	rm -rf restapi
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
-		quay.io/goswagger/swagger:v0.25.0 generate server	--template=stratoscale -f swagger.yaml \
+		quay.io/goswagger/swagger:v0.25.0 generate server --template=stratoscale -f swagger.yaml \
 		--template-dir=/templates/contrib
+
+generate-go-client:
+	rm -rf client models
 	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
-		quay.io/goswagger/swagger:v0.25.0 generate client	--template=stratoscale -f swagger.yaml \
+		quay.io/goswagger/swagger:v0.25.0 generate client --template=stratoscale -f swagger.yaml \
 		--template-dir=/templates/contrib
+
+generate-python-client: $(BUILD_FOLDER)
+	rm -rf $(BUILD_FOLDER)/assisted-service-client*
+	docker run --rm -u ${UID} --entrypoint /bin/sh \
+		-v $(BUILD_FOLDER):/local:Z \
+		-v $(ROOT_DIR)/swagger.yaml:/swagger.yaml:ro,Z \
+		-v $(ROOT_DIR)/tools/generate_python_client.sh:/script.sh:ro,Z \
+		-e SWAGGER_FILE=/swagger.yaml -e OUTPUT=/local/assisted-service-client/ \
+		swaggerapi/swagger-codegen-cli:2.4.15 /script.sh
+	cd $(BUILD_FOLDER)/assisted-service-client/ && python3 setup.py sdist --dist-dir $(BUILD_FOLDER)
+
+generate-keys:
+	cd tools && go run auth_keys_generator.go -keys-dir=$(BUILD_FOLDER)
+
+##################
+# Build & Update #
+##################
+
+.PHONY: build
+build: lint unit-test build-minimal generate-keys
+
+build-minimal: $(BUILD_FOLDER)
+	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
 build-onprem: build
 	podman build -f Dockerfile.assisted-service-onprem -t ${SERVICE} .
 
-##########
-# Update #
-##########
-
-build-image: build create-python-client
+build-image: build
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
 
 update: build-image
 	docker push $(SERVICE)
 
-update-minimal: build-minimal create-python-client
+update-minimal: build-minimal
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
 
-update-minikube: build create-python-client
+update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube docker-env) && \
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
-
-create-python-client: build/assisted-service-client-${GIT_REVISION}.tar.gz
-
-build/assisted-service-client/setup.py: swagger.yaml
-	cp swagger.yaml $(BUILD_FOLDER)
-	echo '{"packageName" : "assisted_service_client", "packageVersion": "1.0.0"}' > $(BUILD_FOLDER)/code-gen-config.json
-	sed -i '/pattern:/d' $(BUILD_FOLDER)/swagger.yaml
-	docker run --rm -u $(shell id -u $(USER)) -v $(BUILD_FOLDER):/local:Z \
-		-v $(BUILD_FOLDER)/swagger.yaml:/swagger.yaml:ro,Z -v $(BUILD_FOLDER)/code-gen-config.json:/config.json:ro,Z \
-		swaggerapi/swagger-codegen-cli:2.4.15 generate --lang python --config /config.json --output /local/assisted-service-client/ --input-spec /swagger.yaml
-	rm -f $(BUILD_FOLDER)/swagger.yaml
-
-build/assisted-service-client-%.tar.gz: build/assisted-service-client/setup.py
-	rm -rf $@
-	cd $(BUILD_FOLDER)/assisted-service-client/ && python3 setup.py sdist --dist-dir $(BUILD_FOLDER)
-	rm -rf assisted-service-client/assisted-service-client.egg-info
 
 ##########
 # Deploy #
@@ -99,13 +106,13 @@ else ifdef DEPLOY_MANIFEST_TAG
   DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
 endif
 
-deploy-all: create-build-dir deploy-namespace deploy-postgres deploy-s3 deploy-route53 deploy-service
+deploy-all: $(BUILD_FOLDER) deploy-namespace deploy-postgres deploy-s3 deploy-route53 deploy-service
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
 	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" $(DEPLOY_TAG_OPTION)
 
-deploy-namespace: create-build-dir
+deploy-namespace: $(BUILD_FOLDER)
 	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)"
 
 deploy-s3-secret:
@@ -157,9 +164,6 @@ deploy-onprem:
 
 subsystem-run: test subsystem-clean
 
-generate-keys:
-	cd tools && go run auth_keys_generator.go -keys-dir=$(BUILD_FOLDER)
-
 test:
 	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
 		DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
@@ -171,10 +175,10 @@ test:
 deploy-olm: deploy-namespace
 	python3 ./tools/deploy_olm.py --target $(TARGET)
 
-deploy-prometheus: create-build-dir deploy-namespace 
+deploy-prometheus: $(BUILD_FOLDER) deploy-namespace
 	python3 ./tools/deploy_prometheus.py --target $(TARGET) --namespace "$(NAMESPACE)"
 
-deploy-grafana: create-build-dir
+deploy-grafana: $(BUILD_FOLDER)
 	python3 ./tools/deploy_grafana.py --target $(TARGET) --namespace "$(NAMESPACE)"
 
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
