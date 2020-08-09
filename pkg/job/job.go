@@ -217,7 +217,7 @@ func (k *kubeJob) createImageJob(jobName, imgName, ignitionConfig string, perfor
 							Command:         command,
 							Name:            "image-creator",
 							Image:           k.Config.ImageBuilder,
-							ImagePullPolicy: "IfNotPresent",
+							ImagePullPolicy: "Always",
 							Env: []core.EnvVar{
 								{
 									Name:  "S3_ENDPOINT_URL",
@@ -316,7 +316,7 @@ func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, c
 						{
 							Name:            kubeconfigPrefix,
 							Image:           kubeConfigGeneratorImage,
-							ImagePullPolicy: "IfNotPresent",
+							ImagePullPolicy: "Always",
 							Env: []core.EnvVar{
 								{
 									Name:  "S3_ENDPOINT_URL",
