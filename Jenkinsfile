@@ -5,6 +5,11 @@ pipeline {
     }
 
     stages {
+	stage('print environment') {
+		steps {
+		 sh 'printenv'
+		}
+	}
         stage('clear deployment') {
             steps {
                 sh 'make clear-deployment'
