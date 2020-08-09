@@ -270,4 +270,8 @@ func (f fakeInventory) UploadClusterIngressCert(ctx context.Context, params inst
 	panic("Implement Me!")
 }
 
+func (f fakeInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
