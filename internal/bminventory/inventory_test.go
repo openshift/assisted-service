@@ -12,13 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/cluster"
-	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/metrics"
-	"github.com/pkg/errors"
-
-	"github.com/openshift/assisted-service/internal/events"
-
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -26,7 +19,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/pkg/errors"
+
+	"github.com/openshift/assisted-service/internal/cluster"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/job"
@@ -109,6 +108,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockKubeJob  *job.MockAPI
 		mockLocalJob *job.MockLocalJob
 		mockEvents   *events.MockHandler
+		mockS3Client *s3wrapper.MockAPI
 		dbName       = "generate_cluster_iso"
 	)
 
@@ -117,6 +117,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		mockEvents = events.NewMockHandler(ctrl)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 	})
 
 	AfterEach(func() {
@@ -138,6 +139,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		It("success", func() {
 			clusterId := registerCluster(true).ID
 			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
@@ -151,6 +154,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		It("success with proxy", func() {
 			clusterId := registerCluster(true).ID
 			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", SSH public key "+
 				"is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -158,6 +163,7 @@ var _ = Describe("GenerateClusterISO", func() {
 				ImageCreateParams: &models.ImageCreateParams{ProxyURL: "http://1.1.1.1:1234"},
 			})
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+
 		})
 		It("cluster_not_exists", func() {
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -216,7 +222,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		BeforeEach(func() {
 			mockKubeJob = job.NewMockAPI(ctrl)
 			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
-			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockKubeJob, mockEvents, nil, nil)
+			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockKubeJob, mockEvents, mockS3Client, nil)
 		})
 		RunGenerateClusterISOTests()
 	})
@@ -225,7 +231,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		BeforeEach(func() {
 			mockLocalJob = job.NewMockLocalJob(ctrl)
 			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
-			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockLocalJob, mockEvents, nil, nil)
+			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockLocalJob, mockEvents, mockS3Client, nil)
 		})
 		RunGenerateClusterISOTests()
 	})

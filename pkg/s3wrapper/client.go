@@ -31,6 +31,8 @@ type API interface {
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
 	DeleteObject(ctx context.Context, objectName string) error
 	UpdateObjectTag(ctx context.Context, objectName, key, value string) (bool, error)
+	GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error)
+	GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error)
 }
 
 var _ API = &S3Client{}
@@ -128,16 +130,13 @@ func (c *S3Client) Upload(ctx context.Context, data []byte, objectName string) e
 func (c *S3Client) Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
 	log := logutil.FromContext(ctx, c.log)
 	log.Infof("Downloading %s from bucket %s", objectName, c.cfg.S3Bucket)
-	headResp, err := c.Client.HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(c.cfg.S3Bucket),
-		Key:    aws.String(objectName),
-	})
+
+	contentLength, err := c.GetObjectSizeBytes(ctx, objectName)
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to fetch metadata for object %s in bucket %s", objectName, c.cfg.S3Bucket)
 		log.Error(err)
 		return nil, 0, err
 	}
-	contentLength := *headResp.ContentLength
 
 	getResp, err := c.Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(c.cfg.S3Bucket),
@@ -216,4 +215,33 @@ func (c *S3Client) UpdateObjectTag(ctx context.Context, objectName, key, value s
 		}
 	}
 	return true, nil
+}
+
+func (c *S3Client) GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error) {
+	log := logutil.FromContext(ctx, c.log)
+	headResp, err := c.Client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(c.cfg.S3Bucket),
+		Key:    aws.String(objectName),
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to fetch metadata for object %s in bucket %s", objectName, c.cfg.S3Bucket)
+		log.Error(err)
+		return 0, err
+	}
+	return *headResp.ContentLength, nil
+}
+
+func (c *S3Client) GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error) {
+	log := logutil.FromContext(ctx, c.log)
+	req, _ := c.Client.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(c.cfg.S3Bucket),
+		Key:    aws.String(objectName),
+	})
+	urlStr, err := req.Presign(duration)
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to create presigned download URL for object %s in bucket %s", objectName, c.cfg.S3Bucket)
+		log.Error(err)
+		return "", err
+	}
+	return urlStr, nil
 }
