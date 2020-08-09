@@ -200,10 +200,12 @@ The assisted installer can also be deployed without using a Kubernetes cluster. 
 
 This type of deployment requires a different installer image that combines components that are used to generate the installer ISO and configuration files. First build and push this image to a repository using Dockerfile.assisted-service-onprem:
 
-`export SERVICE=quay.io/<your-org>/assisted-service:latest`
-`skipper make all`
-`podman build -f Dockerfile.assisted-service-onprem -t $SERVICE . `
-`podman push $SERVICE`
+'''
+export SERVICE=quay.io/<your-org>/assisted-service:latest
+skipper make all
+podman build -f Dockerfile.assisted-service-onprem -t $SERVICE .
+podman push $SERVICE
+'''
 
 Update SERVICE_BASE_URL in onprem-environment to match the IP address of your host.
 
