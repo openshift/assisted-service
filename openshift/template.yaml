@@ -5,17 +5,26 @@ parameters:
 - name: IMAGE_TAG
   value: ''
   required: true
-#- name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
-#  value: ''
-#  required: true
+- name: SERVICE_BASE_URL
+  value: ''
+  required: true
+- name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
+  value: ''
+  required: true
 - name: OPENSHIFT_INSTALL_RELEASE_IMAGE
-  value: "quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"
+  value: ''
   required: true
 - name: JWKS_URL # example https://example.com/.well-known/jwks.json
-  value: "https://api.openshift.com/.well-known/jwks.json"
+  value: ''
   required: true
 - name: ALLOWED_DOMAINS
-  value: 'https://qaprodauth.cloud.redhat.com' #FIXME:yoni, change to empty string
+  value: ''
+  required: true
+- name: ENABLE_AUTH
+  value: ''
+  required: true
+- name: OCM_BASE_URL
+  value: ''
   required: true
 apiVersion: v1
 kind: Template
@@ -150,9 +159,10 @@ objects:
     labels:
       app: assisted-service
   data:
-    SERVICE_BASE_URL: "http://assisted-service:8090"
-    #BASE_DNS_DOMAINS: ${DOMAINS}
+    SERVICE_BASE_URL: ${SERVICE_BASE_URL}
+    BASE_DNS_DOMAINS: ${DOMAINS}
     OPENSHIFT_INSTALL_RELEASE_IMAGE: ${OPENSHIFT_INSTALL_RELEASE_IMAGE}
-    ENABLE_AUTH: "true"
+    ENABLE_AUTH: ${ENABLE_AUTH}
     JWKS_URL: ${JWKS_URL}
     ALLOWED_DOMAINS: ${ALLOWED_DOMAINS}
+    OCM_BASE_URL: ${OCM_BASE_URL}
