@@ -98,7 +98,10 @@ var _ = Describe("Cluster tests", func() {
 
 		getReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
+		Expect(getReply.GetPayload().Hosts[0].ClusterID.String()).Should(Equal(clusterID.String()))
 
+		getReply, err = agentBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
 		Expect(getReply.GetPayload().Hosts[0].ClusterID.String()).Should(Equal(clusterID.String()))
 
 		list, err := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
@@ -214,7 +217,7 @@ func installCluster(clusterID strfmt.UUID) {
 	waitForClusterState(ctx, clusterID, "finalizing", defaultWaitForClusterStateTimeout, "Finalizing cluster installation")
 
 	success := true
-	_, err = userBMClient.Installer.CompleteInstallation(ctx,
+	_, err = agentBMClient.Installer.CompleteInstallation(ctx,
 		&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: ""}})
 	Expect(err).NotTo(HaveOccurred())
 
@@ -432,7 +435,7 @@ var _ = Describe("cluster install", func() {
 			waitForClusterState(ctx, clusterID, "finalizing", defaultWaitForClusterStateTimeout, "Finalizing cluster installation")
 			By("Completing installation installation")
 			success := true
-			_, err = userBMClient.Installer.CompleteInstallation(ctx,
+			_, err = agentBMClient.Installer.CompleteInstallation(ctx,
 				&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: ""}})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -463,7 +466,7 @@ var _ = Describe("cluster install", func() {
 			waitForClusterState(ctx, clusterID, "finalizing", defaultWaitForClusterStateTimeout, "Finalizing cluster installation")
 			By("Failing installation")
 			success := false
-			_, err = userBMClient.Installer.CompleteInstallation(ctx,
+			_, err = agentBMClient.Installer.CompleteInstallation(ctx,
 				&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: "failed"}})
 			Expect(err).NotTo(HaveOccurred())
 			By("Verifying installation failed")
@@ -1729,7 +1732,7 @@ var _ = Describe("cluster install, with default network params", func() {
 
 		waitForClusterState(ctx, clusterID, "finalizing", defaultWaitForClusterStateTimeout, "Finalizing cluster installation")
 		success := true
-		_, err = userBMClient.Installer.CompleteInstallation(ctx,
+		_, err = agentBMClient.Installer.CompleteInstallation(ctx,
 			&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: ""}})
 		Expect(err).NotTo(HaveOccurred())
 

@@ -134,6 +134,14 @@ func init() {
     },
     "/clusters/{cluster_id}": {
       "get": {
+        "security": [
+          {
+            "userAuth": []
+          },
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -383,6 +391,11 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/complete_installation": {
       "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -1016,6 +1029,14 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts": {
       "get": {
+        "security": [
+          {
+            "userAuth": []
+          },
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -3233,6 +3254,14 @@ func init() {
     },
     "/clusters/{cluster_id}": {
       "get": {
+        "security": [
+          {
+            "userAuth": []
+          },
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -3482,6 +3511,11 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/complete_installation": {
       "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -4115,6 +4149,14 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts": {
       "get": {
+        "security": [
+          {
+            "userAuth": []
+          },
+          {
+            "agentAuth": []
+          }
+        ],
         "tags": [
           "installer"
         ],

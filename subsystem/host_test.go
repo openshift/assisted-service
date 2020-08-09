@@ -51,6 +51,10 @@ var _ = Describe("Host tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
+		list, err = agentBMClient.Installer.ListHosts(ctx, &installer.ListHostsParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(list.GetPayload())).Should(Equal(1))
+
 		_, err = userBMClient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
