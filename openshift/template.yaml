@@ -52,6 +52,9 @@ objects:
             ports:
               - name: assisted-svc
                 containerPort: 8090
+            envFrom:
+              - configMapRef:
+                  name: assisted-service-config
             env:
               - name: ROUTE53_SECRET
                 valueFrom:
