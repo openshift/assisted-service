@@ -21,6 +21,13 @@ type ImageInfo struct {
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// download url
+	DownloadURL string `json:"download_url,omitempty"`
+
+	// expires at
+	// Format: date-time
+	ExpiresAt strfmt.DateTime `json:"expires_at,omitempty" gorm:"type:timestamp with time zone"`
+
 	// Image generator version
 	GeneratorVersion string `json:"generator_version,omitempty"`
 
@@ -28,6 +35,10 @@ type ImageInfo struct {
 	// http://\<user\>:\<password\>@\<server\>:\<port\>/
 	//
 	ProxyURL string `json:"proxy_url,omitempty"`
+
+	// size bytes
+	// Minimum: 0
+	SizeBytes *int64 `json:"size_bytes,omitempty"`
 
 	// SSH public key for debugging the installation
 	SSHPublicKey string `json:"ssh_public_key,omitempty" gorm:"type:varchar(1024)"`
@@ -38,6 +49,14 @@ func (m *ImageInfo) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateExpiresAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSizeBytes(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -54,6 +73,32 @@ func (m *ImageInfo) validateCreatedAt(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ImageInfo) validateExpiresAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ExpiresAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("expires_at", "body", "date-time", m.ExpiresAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ImageInfo) validateSizeBytes(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.SizeBytes) { // not required
+		return nil
+	}
+
+	if err := validate.MinimumInt("size_bytes", "body", int64(*m.SizeBytes), 0, false); err != nil {
 		return err
 	}
 

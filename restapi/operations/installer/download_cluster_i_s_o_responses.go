@@ -240,11 +240,6 @@ const DownloadClusterISOMethodNotAllowedCode int = 405
 swagger:response downloadClusterISOMethodNotAllowed
 */
 type DownloadClusterISOMethodNotAllowed struct {
-
-	/*
-	  In: Body
-	*/
-	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewDownloadClusterISOMethodNotAllowed creates DownloadClusterISOMethodNotAllowed with default headers values
@@ -253,21 +248,50 @@ func NewDownloadClusterISOMethodNotAllowed() *DownloadClusterISOMethodNotAllowed
 	return &DownloadClusterISOMethodNotAllowed{}
 }
 
-// WithPayload adds the payload to the download cluster i s o method not allowed response
-func (o *DownloadClusterISOMethodNotAllowed) WithPayload(payload *models.Error) *DownloadClusterISOMethodNotAllowed {
+// WriteResponse to the client
+func (o *DownloadClusterISOMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(405)
+}
+
+// DownloadClusterISOConflictCode is the HTTP code returned for type DownloadClusterISOConflict
+const DownloadClusterISOConflictCode int = 409
+
+/*DownloadClusterISOConflict Error.
+
+swagger:response downloadClusterISOConflict
+*/
+type DownloadClusterISOConflict struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterISOConflict creates DownloadClusterISOConflict with default headers values
+func NewDownloadClusterISOConflict() *DownloadClusterISOConflict {
+
+	return &DownloadClusterISOConflict{}
+}
+
+// WithPayload adds the payload to the download cluster i s o conflict response
+func (o *DownloadClusterISOConflict) WithPayload(payload *models.Error) *DownloadClusterISOConflict {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the download cluster i s o method not allowed response
-func (o *DownloadClusterISOMethodNotAllowed) SetPayload(payload *models.Error) {
+// SetPayload sets the payload to the download cluster i s o conflict response
+func (o *DownloadClusterISOConflict) SetPayload(payload *models.Error) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *DownloadClusterISOMethodNotAllowed) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *DownloadClusterISOConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.WriteHeader(405)
+	rw.WriteHeader(409)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {
