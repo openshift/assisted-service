@@ -43,7 +43,8 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		APIKeyAuthenticator: security.APIKeyAuth,
 		BearerAuthenticator: security.BearerAuth,
 
-		JSONConsumer: runtime.JSONConsumer(),
+		JSONConsumer:          runtime.JSONConsumer(),
+		MultipartformConsumer: runtime.DiscardConsumer,
 
 		BinProducer:  runtime.ByteStreamProducer(),
 		JSONProducer: runtime.JSONProducer(),
@@ -135,6 +136,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerUploadClusterIngressCertHandler: installer.UploadClusterIngressCertHandlerFunc(func(params installer.UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UploadClusterIngressCert has not yet been implemented")
 		}),
+		InstallerUploadHostLogsHandler: installer.UploadHostLogsHandlerFunc(func(params installer.UploadHostLogsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.UploadHostLogs has not yet been implemented")
+		}),
 
 		// Applies when the "X-Secret-Key" header is set
 		AgentAuthAuth: func(token string) (interface{}, error) {
@@ -175,6 +179,9 @@ type AssistedInstallAPI struct {
 	// JSONConsumer registers a consumer for the following mime types:
 	//   - application/json
 	JSONConsumer runtime.Consumer
+	// MultipartformConsumer registers a consumer for the following mime types:
+	//   - multipart/form-data
+	MultipartformConsumer runtime.Consumer
 
 	// BinProducer registers a producer for the following mime types:
 	//   - application/octet-stream
@@ -252,6 +259,8 @@ type AssistedInstallAPI struct {
 	InstallerUpdateHostInstallProgressHandler installer.UpdateHostInstallProgressHandler
 	// InstallerUploadClusterIngressCertHandler sets the operation handler for the upload cluster ingress cert operation
 	InstallerUploadClusterIngressCertHandler installer.UploadClusterIngressCertHandler
+	// InstallerUploadHostLogsHandler sets the operation handler for the upload host logs operation
+	InstallerUploadHostLogsHandler installer.UploadHostLogsHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -322,6 +331,9 @@ func (o *AssistedInstallAPI) Validate() error {
 
 	if o.JSONConsumer == nil {
 		unregistered = append(unregistered, "JSONConsumer")
+	}
+	if o.MultipartformConsumer == nil {
+		unregistered = append(unregistered, "MultipartformConsumer")
 	}
 
 	if o.BinProducer == nil {
@@ -425,6 +437,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerUploadClusterIngressCertHandler == nil {
 		unregistered = append(unregistered, "installer.UploadClusterIngressCertHandler")
 	}
+	if o.InstallerUploadHostLogsHandler == nil {
+		unregistered = append(unregistered, "installer.UploadHostLogsHandler")
+	}
 
 	if len(unregistered) > 0 {
 		return fmt.Errorf("missing registration: %s", strings.Join(unregistered, ", "))
@@ -469,6 +484,8 @@ func (o *AssistedInstallAPI) ConsumersFor(mediaTypes []string) map[string]runtim
 		switch mt {
 		case "application/json":
 			result["application/json"] = o.JSONConsumer
+		case "multipart/form-data":
+			result["multipart/form-data"] = o.MultipartformConsumer
 		}
 
 		if c, ok := o.customConsumers[mt]; ok {
@@ -644,6 +661,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/uploads/ingress-cert"] = installer.NewUploadClusterIngressCert(o.context, o.InstallerUploadClusterIngressCertHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewUploadHostLogs(o.context, o.InstallerUploadHostLogsHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

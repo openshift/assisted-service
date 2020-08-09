@@ -96,6 +96,9 @@ type API interface {
 	/*
 	   UploadClusterIngressCert transfers the ingress certificate for the cluster*/
 	UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error)
+	/*
+	   UploadHostLogs agents API to upload logs*/
+	UploadHostLogs(ctx context.Context, params *UploadHostLogsParams) (*UploadHostLogsNoContent, error)
 }
 
 // New creates a new installer API client.
@@ -763,5 +766,30 @@ func (a *Client) UploadClusterIngressCert(ctx context.Context, params *UploadClu
 		return nil, err
 	}
 	return result.(*UploadClusterIngressCertCreated), nil
+
+}
+
+/*
+UploadHostLogs agents API to upload logs
+*/
+func (a *Client) UploadHostLogs(ctx context.Context, params *UploadHostLogsParams) (*UploadHostLogsNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UploadHostLogs",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/logs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"multipart/form-data"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &UploadHostLogsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UploadHostLogsNoContent), nil
 
 }
