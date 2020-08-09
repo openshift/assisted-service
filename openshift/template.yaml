@@ -5,6 +5,27 @@ parameters:
 - name: IMAGE_TAG
   value: ''
   required: true
+- name: SERVICE_BASE_URL
+  value: ''
+  required: true
+- name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
+  value: ''
+  required: true
+- name: OPENSHIFT_INSTALL_RELEASE_IMAGE
+  value: ''
+  required: true
+- name: JWKS_URL # example https://example.com/.well-known/jwks.json
+  value: ''
+  required: true
+- name: ALLOWED_DOMAINS
+  value: ''
+  required: true
+- name: ENABLE_AUTH
+  value: ''
+  required: true
+- name: OCM_BASE_URL
+  value: ''
+  required: true
 apiVersion: v1
 kind: Template
 metadata:
@@ -40,6 +61,9 @@ objects:
             ports:
               - name: assisted-svc
                 containerPort: 8090
+            envFrom:
+              - configMapRef:
+                  name: assisted-service-config
             env:
               - name: ROUTE53_SECRET
                 valueFrom:
@@ -117,3 +141,18 @@ objects:
         targetPort: 8090
     selector:
       app: assisted-service
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: assisted-service-config
+    namespace: assisted-installer
+    labels:
+      app: assisted-service
+  data:
+    SERVICE_BASE_URL: ${SERVICE_BASE_URL}
+    BASE_DNS_DOMAINS: ${BASE_DNS_DOMAINS}
+    OPENSHIFT_INSTALL_RELEASE_IMAGE: ${OPENSHIFT_INSTALL_RELEASE_IMAGE}
+    ENABLE_AUTH: ${ENABLE_AUTH}
+    JWKS_URL: ${JWKS_URL}
+    ALLOWED_DOMAINS: ${ALLOWED_DOMAINS}
+    OCM_BASE_URL: ${OCM_BASE_URL}
