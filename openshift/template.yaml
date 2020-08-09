@@ -5,9 +5,9 @@ parameters:
 - name: IMAGE_TAG
   value: ''
   required: true
-- name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
-  value: ''
-  required: true
+#- name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
+#  value: ''
+#  required: true
 - name: OPENSHIFT_INSTALL_RELEASE_IMAGE
   value: "quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"
   required: true
@@ -15,7 +15,7 @@ parameters:
   value: "https://api.openshift.com/.well-known/jwks.json"
   required: true
 - name: ALLOWED_DOMAINS
-  value: ''
+  value: 'https://qaprodauth.cloud.redhat.com/' #FIXME:yoni, change to empty string
   required: true
 apiVersion: v1
 kind: Template
@@ -138,7 +138,7 @@ objects:
       app: assisted-service
   data:
     SERVICE_BASE_URL: "http://assisted-service:8090"
-    BASE_DNS_DOMAINS: ${DOMAINS}
+    #BASE_DNS_DOMAINS: ${DOMAINS}
     OPENSHIFT_INSTALL_RELEASE_IMAGE: ${OPENSHIFT_INSTALL_RELEASE_IMAGE}
     ENABLE_AUTH: "true"
     JWKS_URL: ${JWKS_URL}
