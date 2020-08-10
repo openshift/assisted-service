@@ -58,11 +58,15 @@ var _ = Describe("job_test", func() {
 
 	Context("simple", func() {
 		BeforeEach(func() {
-			j = New(log, kube, Config{
+			var err error
+			j, err = New(log, kube, Config{
 				MonitorLoopInterval: 0,
 				RetryInterval:       0,
 				RetryAttempts:       1,
 			})
+			if err != nil {
+				Fail("couldn't create new job")
+			}
 		})
 
 		It("create_job_failure", func() {
@@ -111,11 +115,15 @@ var _ = Describe("job_test", func() {
 
 	Context("monitor_retry", func() {
 		BeforeEach(func() {
-			j = New(log, kube, Config{
+			var err error
+			j, err = New(log, kube, Config{
 				MonitorLoopInterval: 0,
 				RetryInterval:       0,
 				RetryAttempts:       3,
 			})
+			if err != nil {
+				Fail("couldn't create new job")
+			}
 		})
 
 		It("monitor_retry_only_failure", func() {

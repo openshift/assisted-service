@@ -26,6 +26,8 @@ parameters:
 - name: OCM_BASE_URL
   value: ''
   required: true
+- name: S3_USE_SSL
+  value: "true"
 apiVersion: v1
 kind: Template
 metadata:
@@ -95,6 +97,8 @@ objects:
                   secretKeyRef:
                     key: endpoint
                     name: assisted-installer-s3
+              - name: S3_USE_SSL
+                value: ${S3_USE_SSL}
               - name: DB_HOST
                 valueFrom:
                   secretKeyRef:

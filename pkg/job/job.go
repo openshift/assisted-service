@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/generator"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	batch "k8s.io/api/batch/v1"
@@ -63,12 +64,25 @@ type Config struct {
 	ReleaseImage string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
 }
 
-func New(log logrus.FieldLogger, kube client.Client, cfg Config) *kubeJob {
+func (c *Config) FixEndpointURL() error {
+	new_url, err := s3wrapper.FixEndpointURL(c.S3EndpointURL)
+	if err != nil {
+		return err
+	}
+	c.S3EndpointURL = new_url
+	return nil
+}
+
+func New(log logrus.FieldLogger, kube client.Client, cfg Config) (*kubeJob, error) {
+	if err := cfg.FixEndpointURL(); err != nil {
+		return nil, err
+	}
+
 	return &kubeJob{
 		Config: cfg,
 		log:    log,
 		kube:   kube,
-	}
+	}, nil
 }
 
 type kubeJob struct {

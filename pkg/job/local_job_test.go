@@ -14,7 +14,11 @@ var _ = Describe("local_job_test", func() {
 
 	Context("Execute", func() {
 		BeforeEach(func() {
-			j = NewLocalJob(log, Config{})
+			var err error
+			j, err = NewLocalJob(log, Config{})
+			if err != nil {
+				Fail("couldn't create new local job")
+			}
 
 		})
 

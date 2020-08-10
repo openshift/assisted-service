@@ -147,11 +147,17 @@ func main() {
 		if err != nil {
 			log.Fatal("failed to create client:", err)
 		}
-		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
+		generator, err = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
+		if err != nil {
+			log.Fatal("failed to create job generator:", err)
+		}
 	case "onprem":
 		// in on-prem mode, setup s3 and use localjob implementation
 		createS3Bucket(s3Client)
-		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
+		generator, err = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
+		if err != nil {
+			log.Fatal("failed to create job generator:", err)
+		}
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}

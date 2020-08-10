@@ -54,6 +54,12 @@ type Config struct {
 
 // NewS3Client creates new s3 client using default config along with defined env variables
 func NewS3Client(cfg *Config, logger *logrus.Logger) *S3Client {
+	new_url, err := FixEndpointURL(cfg.S3EndpointURL)
+	if err != nil {
+		return nil
+	}
+	cfg.S3EndpointURL = new_url
+
 	awsSession, err := newS3Session(cfg)
 	if err != nil {
 		return nil

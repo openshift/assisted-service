@@ -24,11 +24,15 @@ type localJob struct {
 	log logrus.FieldLogger
 }
 
-func NewLocalJob(log logrus.FieldLogger, cfg Config) *localJob {
+func NewLocalJob(log logrus.FieldLogger, cfg Config) (*localJob, error) {
+	if err := cfg.FixEndpointURL(); err != nil {
+		return nil, err
+	}
+
 	return &localJob{
 		Config: cfg,
 		log:    log,
-	}
+	}, nil
 }
 
 func (j *localJob) Execute(pythonCommand string, pythonFilePath string, envVars []string, log logrus.FieldLogger) error {

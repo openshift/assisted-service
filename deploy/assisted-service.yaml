@@ -80,6 +80,8 @@ spec:
                 secretKeyRef:
                   key: endpoint
                   name: assisted-installer-s3
+            - name: S3_USE_SSL
+              value: "false"
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
