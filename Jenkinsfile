@@ -7,6 +7,7 @@ pipeline {
     stages {
         stage('clear deployment') {
             steps {
+                sh 'docker image prune -a -f'
                 sh 'make clear-deployment'
             }
         }
