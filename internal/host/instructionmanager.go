@@ -43,9 +43,9 @@ type InstructionConfig struct {
 	ServiceBaseURL         string `envconfig:"SERVICE_BASE_URL"`
 	InstallerImage         string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
 	ControllerImage        string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
-	ConnectivityCheckImage string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/connectivity_check:latest"`
-	InventoryImage         string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/inventory:latest"`
-	FreeAddressesImage     string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/free_addresses:latest"`
+	ConnectivityCheckImage string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	InventoryImage         string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	FreeAddressesImage     string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator) *InstructionManager {
