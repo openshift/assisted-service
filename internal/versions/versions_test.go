@@ -32,8 +32,8 @@ var _ = Describe("list versions", func() {
 			Should(Equal("quay.io/ocpmetal/installer-image-build:latest"))
 		Expect(val.Payload.Versions["image-builder"]).Should(Equal("quay.io/ocpmetal/installer-image-build:latest"))
 		Expect(val.Payload.Versions["discovery-agent"]).Should(Equal("quay.io/ocpmetal/agent:latest"))
-		Expect(val.Payload.Versions["ignition-manifests-and-kubeconfig-generate"]).
-			Should(Equal("quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:latest"))
+		Expect(val.Payload.Versions["assisted-ignition-generator"]).
+			Should(Equal("quay.io/ocpmetal/assisted-ignition-generator:latest"))
 		Expect(val.Payload.Versions["assisted-installer"]).Should(Equal("quay.io/ocpmetal/assisted-installer:latest"))
 		Expect(val.Payload.ReleaseTag).Should(Equal(""))
 	})
@@ -52,8 +52,8 @@ var _ = Describe("list versions", func() {
 		Expect(val.Payload.Versions["assisted-installer-service"]).Should(Equal("self-version"))
 		Expect(val.Payload.Versions["image-builder"]).Should(Equal("image-builder"))
 		Expect(val.Payload.Versions["discovery-agent"]).Should(Equal("agent-image"))
-		Expect(val.Payload.Versions["ignition-manifests-and-kubeconfig-generate"]).
-			Should(Equal("quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:latest"))
+		Expect(val.Payload.Versions["assisted-ignition-generator"]).
+			Should(Equal("quay.io/ocpmetal/assisted-ignition-generator:latest"))
 		Expect(val.Payload.Versions["assisted-installer"]).Should(Equal("installer-image"))
 		Expect(val.Payload.Versions["assisted-installer-controller"]).Should(Equal("controller-image"))
 		Expect(val.Payload.ReleaseTag).Should(Equal(""))
