@@ -36,7 +36,7 @@ def main():
     print(f'Wait for {health_url}')
     waiting.wait(lambda: wait_for_request(health_url),
                  timeout_seconds=TIMEOUT,
-                 expected_exceptions=requests.exceptions.ConnectionError,
+                 expected_exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout),
                  sleep_seconds=SLEEP, waiting_for="assisted-service to be healthy")
 
 
