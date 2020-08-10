@@ -123,6 +123,10 @@ func main() {
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
 
+	if err = fixS3EndpointURL(&Options.JobConfig); err != nil {
+		log.WithError(err).Fatalf("failed to create valid S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
+	}
+
 	var generator generator.ISOInstallConfigGenerator
 
 	switch Options.DeployTarget {
@@ -198,4 +202,13 @@ func createS3Bucket(s3Client *s3wrapper.S3Client) {
 			log.Fatal(err)
 		}
 	}
+}
+
+func fixS3EndpointURL(c *job.Config) error {
+	new_url, err := s3wrapper.FixEndpointURL(c.S3EndpointURL)
+	if err != nil {
+		return err
+	}
+	c.S3EndpointURL = new_url
+	return nil
 }
