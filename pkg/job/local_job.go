@@ -7,6 +7,9 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/openshift/assisted-service/internal/network"
+	"github.com/pkg/errors"
+
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/pkg/generator"
@@ -48,6 +51,12 @@ func (j *localJob) Execute(pythonCommand string, pythonFilePath string, envVars 
 // creates install config
 func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error {
 	log := logutil.FromContext(ctx, j.log)
+	encodedDhcpFileContents, err := network.GetEncodedDhcpParamFileContents(&cluster)
+	if err != nil {
+		wrapped := errors.Wrapf(err, "Could not create DHCP encoded file")
+		log.WithError(wrapped).Errorf("GenerateInstallConfig")
+		return wrapped
+	}
 	envVars := append(os.Environ(),
 		"S3_ENDPOINT_URL="+j.Config.S3EndpointURL,
 		"INSTALLER_CONFIG="+string(cfg),
@@ -60,6 +69,9 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 		"aws_secret_access_key="+j.Config.AwsSecretAccessKey,
 		"WORK_DIR=/data",
 	)
+	if encodedDhcpFileContents != "" {
+		envVars = append(envVars, "DHCP_ALLOCATION_FILE="+encodedDhcpFileContents)
+	}
 	return j.Execute("python", "./data/process-ignition-manifests-and-kubeconfig.py", envVars, log)
 }
 
