@@ -24,8 +24,7 @@ pipeline {
                     sh '''docker login docker.io -u $USER -p $PASS'''
                 }
                 sh '''export PATH=$PATH:/usr/local/go/bin; make jenkins-deploy-for-subsystem'''
-                sleep 60
-                sh '''# Dump pod statuses;kubectl  get pods -A'''
+                sh '''# Dump pod statuses;kubectl get pods -A'''
             }
         }
 
