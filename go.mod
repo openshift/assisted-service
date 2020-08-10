@@ -23,6 +23,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/jinzhu/gorm v1.9.12
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/moby/moby v1.13.1
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0 // indirect

@@ -179,7 +179,6 @@ deploy-test:
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
 	podman volume create s3-volume
-	podman run -dt --pod assisted-installer --env-file onprem-environment -v s3-volume:/mnt/data:rw --name s3 scality/s3server:latest
 	podman run -dt --pod assisted-installer --env-file onprem-environment --name db centos/postgresql-12-centos7
 	podman run -dt --pod assisted-installer --env-file onprem-environment --user assisted-installer  --restart always --name installer ${SERVICE}
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
