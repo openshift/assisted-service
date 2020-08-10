@@ -893,8 +893,8 @@ var _ = Describe("cluster", func() {
 	mockHostPrepareForInstallationSuccess := func(mockHostApi *host.MockAPI, times int) {
 		mockHostApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
 	}
-	mockHostPrepareForRefresh := func(mockHostApi *host.MockAPI) {
-		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockClusterRefreshStatus := func(mockClusterApi *cluster.MockAPI) {
+		mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	}
 	mockHostPrepareForInstallationFailure := func(mockHostApi *host.MockAPI, times int) {
 		mockHostApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -959,9 +959,6 @@ var _ = Describe("cluster", func() {
 		mockAbortInstallConfig(mockKubeJob, mockLocalJob)
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
-	}
-	mockIsInstallable := func() {
-		mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(3)
 	}
 	getInventoryStr := func(ipv4Addresses ...string) string {
 		inventory := models.Inventory{Interfaces: []*models.Interface{
@@ -1224,15 +1221,14 @@ var _ = Describe("cluster", func() {
 			It("success", func() {
 				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
-				mockHostPrepareForRefresh(mockHostApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				mockIsInstallable()
 				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				setDefaultInstall(mockClusterApi)
 				setDefaultGetMasterNodesIds(mockClusterApi, 2)
 				setDefaultHostSetBootstrap(mockClusterApi)
 				setDefaultHostInstall(mockClusterApi, DoneChannel)
 				setDefaultMetricInstallatioStarted(mockMetric)
+				mockClusterRefreshStatus(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -1244,11 +1240,10 @@ var _ = Describe("cluster", func() {
 
 			It("failed to prepare cluster", func() {
 				// validations
-				mockIsInstallable()
-				mockHostPrepareForRefresh(mockHostApi)
 				setDefaultGetMasterNodesIds(mockClusterApi, 1)
 				// sync prepare for installation
 				mockClusterPrepareForInstallationFailure(mockClusterApi)
+				mockClusterRefreshStatus(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -1258,13 +1253,12 @@ var _ = Describe("cluster", func() {
 
 			It("failed to prepare host", func() {
 				// validations
-				mockHostPrepareForRefresh(mockHostApi)
-				mockIsInstallable()
 				setDefaultGetMasterNodesIds(mockClusterApi, 1)
 				// sync prepare for installation
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 2)
 				mockHostPrepareForInstallationFailure(mockHostApi, 1)
+				mockClusterRefreshStatus(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -1273,8 +1267,9 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("cidr calculate error", func() {
-				mockHostPrepareForRefresh(mockHostApi)
 				updateMachineCidr(clusterID, "", db)
+				mockClusterRefreshStatus(mockClusterApi)
+
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
 				})
@@ -1282,8 +1277,10 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("cidr mismatch", func() {
-				mockHostPrepareForRefresh(mockHostApi)
 				updateMachineCidr(clusterID, "1.1.0.0/16", db)
+				mockClusterRefreshStatus(mockClusterApi)
+
+				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil).AnyTimes()
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
 				})
@@ -1291,9 +1288,9 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("Additional non matching master", func() {
-				mockHostPrepareForRefresh(mockHostApi)
 				addHost(masterHostId4, models.HostRoleMaster, "known", clusterID, getInventoryStr("10.12.200.180/16"), db)
 				set4GetMasterNodesIds(mockClusterApi)
+				mockClusterRefreshStatus(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -1302,15 +1299,14 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("cluster failed to update", func() {
-				mockHostPrepareForRefresh(mockHostApi)
 				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
-				mockIsInstallable()
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil)
 				mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("cluster has a error"))
+				mockClusterRefreshStatus(mockClusterApi)
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
 				})
@@ -1318,24 +1314,10 @@ var _ = Describe("cluster", func() {
 				waitForDoneChannel()
 			})
 
-			It("not all hosts are ready", func() {
-				mockHostPrepareForRefresh(mockHostApi)
-				setDefaultGetMasterNodesIds(mockClusterApi, 1)
-				// Two out of three nodes are not ready
-				mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(false).Times(2)
-				mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(1)
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-				verifyApiError(reply, http.StatusConflict)
-			})
-
 			It("host failed to install", func() {
-				mockHostPrepareForRefresh(mockHostApi)
 				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				mockIsInstallable()
 				setDefaultInstall(mockClusterApi)
 				setDefaultGetMasterNodesIds(mockClusterApi, 2)
 				setIgnitionGeneratorVersionSuccess(mockClusterApi)
@@ -1344,6 +1326,7 @@ var _ = Describe("cluster", func() {
 					Return(errors.Errorf("host has a error")).AnyTimes()
 				setDefaultHostSetBootstrap(mockClusterApi)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
+				mockClusterRefreshStatus(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -1353,11 +1336,9 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("list of masters for setting bootstrap return empty list", func() {
-				mockHostPrepareForRefresh(mockHostApi)
 				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				mockIsInstallable()
 				setDefaultInstall(mockClusterApi)
 				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				// first call is for verifyClusterNetworkConfig
@@ -1367,6 +1348,7 @@ var _ = Describe("cluster", func() {
 				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return([]*strfmt.UUID{}, nil).Times(1)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
+				mockClusterRefreshStatus(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -1376,9 +1358,9 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("GetMasterNodesIds fails", func() {
-				mockHostPrepareForRefresh(mockHostApi)
 				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
+				mockClusterRefreshStatus(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -1388,9 +1370,9 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("GetMasterNodesIds returns empty list", func() {
-				mockHostPrepareForRefresh(mockHostApi)
 				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
+				mockClusterRefreshStatus(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
