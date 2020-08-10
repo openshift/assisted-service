@@ -9,6 +9,7 @@ import deployment_options
 
 SERVICE = "assisted-service"
 TIMEOUT = 60 * 8
+REQUEST_TIMEOUT = 2
 SLEEP = 3
 
 
@@ -21,7 +22,7 @@ def handle_arguments():
 
 
 def wait_for_request(url: str) -> bool:
-    res = requests.get(url)
+    res = requests.get(url, timeout=REQUEST_TIMEOUT)
 
     print(url, res.status_code)
     return res.status_code == 200
@@ -30,8 +31,10 @@ def wait_for_request(url: str) -> bool:
 def main():
     deploy_options = handle_arguments()
     service_url = utils.get_service_url(SERVICE, deploy_options.target, deploy_options.domain, deploy_options.namespace)
+    health_url = f'{service_url}/health'
 
-    waiting.wait(lambda: wait_for_request(f'{service_url}/health'),
+    print(f'Wait for {health_url}')
+    waiting.wait(lambda: wait_for_request(health_url),
                  timeout_seconds=TIMEOUT,
                  expected_exceptions=requests.exceptions.ConnectionError,
                  sleep_seconds=SLEEP, waiting_for="assisted-service to be healthy")
