@@ -15,7 +15,7 @@ parameters:
   value: "https://api.openshift.com/.well-known/jwks.json"
   required: true
 - name: ALLOWED_DOMAINS
-  value: 'https://qaprodauth.cloud.redhat.com/' #FIXME:yoni, change to empty string
+  value: 'https://qaprodauth.cloud.redhat.com' #FIXME:yoni, change to empty string
   required: true
 apiVersion: v1
 kind: Template
