@@ -134,8 +134,8 @@ objects:
                   secretKeyRef:
                     key: ocm-service.clientSecret
                     name: assisted-installer-sso
-              - name: IMAGE_BUILDER_CMD
-                value: ""
+              - name: IMAGE_BUILDER
+                value: "quay.io/carbonin/installer-image-build:latest"
               - name: NAMESPACE
                 valueFrom:
                   fieldRef:
