@@ -30,19 +30,12 @@ def handle_arguments():
 
 def main():
     deploy_options = handle_arguments()
-    # TODO: delete once rename everything to assisted-installer
-    if deploy_options.target == "oc-ingress":
-        service_host = "assisted-installer.{}".format(utils.get_domain(deploy_options.domain))
-        service_port = "80"
-    else:
-        service_host = utils.get_service_host(SERVICE, deploy_options.target, namespace=deploy_options.namespace)
-        service_port = utils.get_service_port(SERVICE, deploy_options.target, namespace=deploy_options.namespace)
 
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:
             data = src.read()
             data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
-            data = data.replace("REPLACE_BASE_URL", f'http://{service_host}:{service_port}')
+            data = data.replace("REPLACE_BASE_URL", utils.get_service_url(SERVICE, deploy_options.target, deploy_options.domain, deploy_options.namespace))
             data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
             data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
             data = data.replace('REPLACE_JWKS_URL', deploy_options.jwks_url)

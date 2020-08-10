@@ -4,6 +4,7 @@ import re
 import yaml
 from distutils.spawn import find_executable
 from functools import reduce
+from typing import Optional
 
 MINIKUBE_CMD = 'minikube'
 KUBECTL_CMD = 'kubectl'
@@ -37,6 +38,16 @@ def get_service_port(service, target=None, namespace='assisted-installer'):
         port = reply[4].split(":")[0]
     return port.strip()
 
+def get_service_url(service: str, target: Optional[str] = None, domain: str = "", namespace: str = 'assisted-installer') -> str:
+    # TODO: delete once rename everything to assisted-installer
+    if target == "oc-ingress":
+        service_host = f"{service}.{get_domain(domain)}"
+        service_port = "80"
+    else:
+        service_host = get_service_host(service, target, namespace=namespace)
+        service_port = get_service_port(service, target, namespace=namespace)
+
+    return f'http://{service_host}:{service_port}'
 
 def apply(file):
     print(check_output("kubectl apply -f {}".format(file)))
