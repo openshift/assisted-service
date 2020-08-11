@@ -88,7 +88,6 @@ func newS3Session(cfg *Config) (*session.Session, error) {
 		Region:               aws.String(cfg.Region),
 		Endpoint:             aws.String(cfg.S3EndpointURL),
 		Credentials:          creds,
-		DisableSSL:           aws.Bool(true),
 		S3ForcePathStyle:     aws.Bool(true),
 		S3Disable100Continue: aws.Bool(true),
 		HTTPClient:           &http.Client{Transport: HTTPTransport},
