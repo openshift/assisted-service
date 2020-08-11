@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"sort"
@@ -1660,8 +1662,130 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 	})
 })
 
+var _ = Describe("Upload logs test", func() {
+
+	var (
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		ctrl           *gomock.Controller
+		clusterID      strfmt.UUID
+		hostID         strfmt.UUID
+		c              common.Cluster
+		kubeconfigFile *os.File
+		clusterApi     cluster.API
+		dbName         = "upload_logs"
+		mockS3Client   *s3wrapper.MockAPI
+		request        *http.Request
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
+			db, nil, nil, nil)
+		mockJob := job.NewMockAPI(ctrl)
+		mockGenerateISO(mockJob, 1)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &clusterID,
+			APIVip: "10.11.12.13",
+		}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		kubeconfigFile, err = os.Open("../../subsystem/test_kubeconfig")
+		Expect(err).ShouldNot(HaveOccurred())
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		part, err := writer.CreateFormFile("upfile", "test_kubeconfig")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, _ = io.Copy(part, kubeconfigFile)
+		writer.Close()
+		request, err = http.NewRequest("POST", "test", body)
+		Expect(err).ShouldNot(HaveOccurred())
+		request.Header.Add("Content-Type", writer.FormDataContentType())
+		_ = request.ParseMultipartForm(32 << 20)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+		kubeconfigFile.Close()
+	})
+
+	It("Upload logs cluster not exits", func() {
+		clusterId := strToUUID(uuid.New().String())
+		params := installer.UploadHostLogsParams{
+			ClusterID:   *clusterId,
+			HostID:      hostID,
+			Upfile:      kubeconfigFile,
+			HTTPRequest: request,
+		}
+		verifyApiError(bm.UploadHostLogs(ctx, params), http.StatusNotFound)
+	})
+	It("Upload logs host not exits", func() {
+		hostId := strToUUID(uuid.New().String())
+		params := installer.UploadHostLogsParams{
+			ClusterID:   clusterID,
+			HostID:      *hostId,
+			Upfile:      kubeconfigFile,
+			HTTPRequest: request,
+		}
+		verifyApiError(bm.UploadHostLogs(ctx, params), http.StatusNotFound)
+	})
+
+	It("Upload S3 upload fails", func() {
+
+		newHostID := strfmt.UUID(uuid.New().String())
+		host := addHost(newHostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+		params := installer.UploadHostLogsParams{
+			ClusterID:   clusterID,
+			HostID:      *host.ID,
+			Upfile:      kubeconfigFile,
+			HTTPRequest: request,
+		}
+		fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, common.GetHostnameForMsg(&host), "test_kubeconfig")
+		mockS3Client.EXPECT().UploadFile(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("Dummy")).Times(1)
+		verifyApiError(bm.UploadHostLogs(ctx, params), http.StatusInternalServerError)
+	})
+	It("Happy flow", func() {
+
+		newHostID := strfmt.UUID(uuid.New().String())
+		host := addHost(newHostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+		params := installer.UploadHostLogsParams{
+			ClusterID:   clusterID,
+			HostID:      *host.ID,
+			Upfile:      kubeconfigFile,
+			HTTPRequest: request,
+		}
+		fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, common.GetHostnameForMsg(&host), "test_kubeconfig")
+		mockS3Client.EXPECT().UploadFile(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
+		reply := bm.UploadHostLogs(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadHostLogsNoContent()))
+	})
+})
+
 func verifyApiError(responder middleware.Responder, expectedHttpStatus int32) {
 	ExpectWithOffset(1, responder).To(BeAssignableToTypeOf(common.NewApiError(expectedHttpStatus, nil)))
 	conncreteError := responder.(*common.ApiErrorResponse)
 	ExpectWithOffset(1, conncreteError.StatusCode()).To(Equal(expectedHttpStatus))
+}
+
+func addHost(hostId strfmt.UUID, role models.HostRole, state string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
+	host := models.Host{
+		ID:        &hostId,
+		ClusterID: clusterId,
+		Status:    swag.String(state),
+		Role:      role,
+		Inventory: inventory,
+	}
+	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+	return host
 }

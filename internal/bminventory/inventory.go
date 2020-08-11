@@ -2077,6 +2077,52 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 	return installer.NewGetFreeAddressesOK().WithPayload(results)
 }
 
+func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Uploading logs from host %s in cluster %s", params.HostID, params.ClusterID)
+
+	defer func() {
+		// Closing file and removing all temporary files created by Multipart
+		params.Upfile.Close()
+		params.HTTPRequest.Body.Close()
+		err := params.HTTPRequest.MultipartForm.RemoveAll()
+		if err != nil {
+			log.WithError(err).Warnf("Failed to delete temporary files used for upload")
+		}
+	}()
+
+	var cluster models.Cluster
+
+	if err := b.db.Preload("Hosts", "id = ?", params.HostID).First(&cluster, "id = ?",
+		params.ClusterID).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if len(cluster.Hosts) < 1 {
+		return common.NewApiError(http.StatusNotFound, errors.Errorf("Host %s not found", params.HostID))
+	}
+	// needed to get filename
+	_, fileHeader, err := params.HTTPRequest.FormFile("upfile")
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get filename")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, common.GetHostnameForMsg(cluster.Hosts[0]), fileHeader.Filename)
+	log.Debugf("Start upload %s to bucket %s aws len", fileName, b.S3Bucket)
+	err = b.s3Client.UploadFile(ctx, params.Upfile, fileName)
+
+	if err != nil {
+		log.WithError(err).Errorf("Failed to upload %s to s3", fileName)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	log.Infof("Done uploading file %s", fileName)
+	return installer.NewUploadHostLogsNoContent()
+}
+
 func (b *bareMetalInventory) customizeHost(host *models.Host) error {
 	b.customizeHostStages(host)
 	b.customizeHostname(host)

@@ -63,6 +63,20 @@ func (mr *MockAPIMockRecorder) Upload(ctx, data, objectName interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*MockAPI)(nil).Upload), ctx, data, objectName)
 }
 
+// UploadFile mocks base method
+func (m *MockAPI) UploadFile(ctx context.Context, reader io.Reader, objectName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadFile", ctx, reader, objectName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UploadFile indicates an expected call of UploadFile
+func (mr *MockAPIMockRecorder) UploadFile(ctx, reader, objectName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFile", reflect.TypeOf((*MockAPI)(nil).UploadFile), ctx, reader, objectName)
+}
+
 // Download mocks base method
 func (m *MockAPI) Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()

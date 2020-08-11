@@ -27,6 +27,7 @@ import (
 type API interface {
 	CreateBucket() error
 	Upload(ctx context.Context, data []byte, objectName string) error
+	UploadFile(ctx context.Context, reader io.Reader, objectName string) error
 	Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
 	DeleteObject(ctx context.Context, objectName string) error
@@ -109,9 +110,8 @@ func (c *S3Client) CreateBucket() error {
 	return nil
 }
 
-func (c *S3Client) Upload(ctx context.Context, data []byte, objectName string) error {
+func (c *S3Client) UploadFile(ctx context.Context, reader io.Reader, objectName string) error {
 	log := logutil.FromContext(ctx, c.log)
-	reader := bytes.NewReader(data)
 	uploader := s3manager.NewUploader(c.session)
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(c.cfg.S3Bucket),
@@ -125,6 +125,11 @@ func (c *S3Client) Upload(ctx context.Context, data []byte, objectName string) e
 	}
 	log.Infof("Successfully uploaded %s to bucket %s", objectName, c.cfg.S3Bucket)
 	return err
+}
+
+func (c *S3Client) Upload(ctx context.Context, data []byte, objectName string) error {
+	reader := bytes.NewReader(data)
+	return c.UploadFile(ctx, reader, objectName)
 }
 
 func (c *S3Client) Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {

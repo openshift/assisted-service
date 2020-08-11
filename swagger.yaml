@@ -1144,6 +1144,46 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/hosts/{host_id}/logs:
+    post:
+      tags:
+        - installer
+      summary: Agent API to upload logs.
+      operationId: UploadHostLogs
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          type: string
+          format: uuid
+          required: true
+        - in: formData
+          name: upfile
+          type: file
+          required: false
+          # TODO return after fix in go-swagger and moving to 0.25 or o.26
+          # https://github.com/go-swagger/go-swagger/issues/2362
+          # maxLength: 20971520  #20MB
+          description: The file to upload.
+          x-mimetype: application/zip
+      responses:
+        204:
+          description: Success.
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   # The following API call should be admin only
   /clusters/{cluster_id}/free_addresses:
     get:

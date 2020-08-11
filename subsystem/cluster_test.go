@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"reflect"
 	"time"
 
@@ -684,6 +685,34 @@ var _ = Describe("cluster install", func() {
 				Expect(creds.GetPayload().ConsoleURL).To(Equal(
 					fmt.Sprintf("%s.%s.%s", bminventory.ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain)))
 				Expect(len(creds.GetPayload().Password)).NotTo(Equal(0))
+			}
+		})
+
+		It("[only_k8s]Upload logs", func() {
+			By("Test happy flow small file")
+			{
+				kubeconfigFile, err := os.Open("test_kubeconfig")
+				Expect(err).NotTo(HaveOccurred())
+				nodes := register3nodes(clusterID)
+				_, err = userBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			By("Test happy flow large file")
+			{
+				filePath := "../build/test_logs.txt"
+				// open the out file for writing
+				outfile, err := os.Create(filePath)
+				Expect(err).NotTo(HaveOccurred())
+				defer outfile.Close()
+				cmd := exec.Command("head", "-c", "200MB", "/dev/urandom")
+				err = cmd.Run()
+				Expect(err).NotTo(HaveOccurred())
+				kubeconfigFile, err := os.Open(filePath)
+				Expect(err).NotTo(HaveOccurred())
+				nodes := register3nodes(clusterID)
+				_, err = userBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
+				Expect(err).NotTo(HaveOccurred())
 			}
 		})
 
