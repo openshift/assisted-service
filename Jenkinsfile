@@ -24,7 +24,7 @@ pipeline {
                     sh '''docker login docker.io -u $USER -p $PASS'''
                 }
                 sh '''export PATH=$PATH:/usr/local/go/bin; make jenkins-deploy-for-subsystem'''
-                sh '''# Dump pod statuses;kubectl get pods -A'''
+                sh '''echo Dump pod statuses;kubectl get pods -A'''
             }
         }
 
@@ -60,6 +60,8 @@ pipeline {
 
     post {
         failure {
+            sh '''echo Dump pod statuses;kubectl get pods -A'''
+
             echo 'Get assisted-service log'
             sh '''
             kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep assisted-service | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
