@@ -35,7 +35,6 @@ objects:
   kind: Deployment
   metadata:
     name: assisted-service
-    namespace: assisted-installer
   spec:
     selector:
       matchLabels:
@@ -132,7 +131,6 @@ objects:
     labels:
       app: assisted-service
     name: assisted-service
-    namespace: assisted-installer
   spec:
     ports:
       - name: assisted-svc
@@ -145,7 +143,6 @@ objects:
   kind: ConfigMap
   metadata:
     name: assisted-service-config
-    namespace: assisted-installer
     labels:
       app: assisted-service
   data:
