@@ -6,12 +6,11 @@ package cluster
 
 import (
 	context "context"
-	reflect "reflect"
-
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
+	reflect "reflect"
 )
 
 // MockStateAPI is a mock of StateAPI interface
@@ -440,4 +439,19 @@ func (m *MockAPI) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingres
 func (mr *MockAPIMockRecorder) SetVips(ctx, c, apiVip, ingressVip, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetVips", reflect.TypeOf((*MockAPI)(nil).SetVips), ctx, c, apiVip, ingressVip, db)
+}
+
+// IsReadyForInstallation mocks base method
+func (m *MockAPI) IsReadyForInstallation(c *common.Cluster) (bool, string) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsReadyForInstallation", c)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(string)
+	return ret0, ret1
+}
+
+// IsReadyForInstallation indicates an expected call of IsReadyForInstallation
+func (mr *MockAPIMockRecorder) IsReadyForInstallation(c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReadyForInstallation", reflect.TypeOf((*MockAPI)(nil).IsReadyForInstallation), c)
 }

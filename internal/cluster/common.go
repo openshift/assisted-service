@@ -13,6 +13,8 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+const MinHostsNeededForInstallation = 3
+
 const (
 	clusterStatusInsufficient           = "insufficient"
 	clusterStatusReady                  = "ready"

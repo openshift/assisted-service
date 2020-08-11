@@ -546,35 +546,6 @@ type clusterInstaller struct {
 	params installer.InstallClusterParams
 }
 
-func (b *bareMetalInventory) verifyClusterNetworkConfig(ctx context.Context, cluster *common.Cluster) error {
-
-	machineCidrHosts, err := network.GetMachineCIDRHosts(b.log, cluster)
-	if err != nil {
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-	masterNodesIds, err := b.clusterApi.GetMasterNodesIds(ctx, cluster, b.db)
-	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	hostIDInCidrHosts := func(id strfmt.UUID, hosts []*models.Host) bool {
-		for _, h := range hosts {
-			if *h.ID == id {
-				return true
-			}
-		}
-		return false
-	}
-
-	for _, id := range masterNodesIds {
-		if !hostIDInCidrHosts(*id, machineCidrHosts) {
-			return common.NewApiError(http.StatusBadRequest,
-				fmt.Errorf("Master id %s does not have an interface with IP belonging to machine CIDR %s",
-					*id, cluster.MachineNetworkCidr))
-		}
-	}
-	return nil
-}
-
 func (c *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) error {
 	success := true
 	err := errors.Errorf("Failed to install cluster <%s>", cluster.ID.String())
@@ -587,6 +558,20 @@ func (c *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) er
 	}
 	if !success {
 		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *common.Cluster) error {
+	for _, chost := range cluster.Hosts {
+		if swag.StringValue(chost.Status) != host.HostStatusKnown {
+			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install", chost.ID.String(),
+				swag.StringValue(chost.Status)))
+		}
+		err := b.hostApi.RefreshStatus(ctx, chost, b.db)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -631,6 +616,9 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
+	if err = b.refreshAllHosts(ctx, &cluster); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 	if _, err = b.clusterApi.RefreshStatus(ctx, &cluster, b.db); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -639,14 +627,10 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
-	// Verify cluster status
-	if swag.StringValue(cluster.Status) != models.ClusterStatusReady {
-		log.WithError(err).Errorf("Cluster %s is not ready to install", params.ClusterID)
-		return common.NewApiError(http.StatusBadRequest, errors.New("Cluster is not ready to install"))
-	}
-
-	if err = b.verifyClusterNetworkConfig(ctx, &cluster); err != nil {
-		return common.GenerateErrorResponder(err)
+	// Verify cluster is ready to install
+	if ok, reason := b.clusterApi.IsReadyForInstallation(&cluster); !ok {
+		return common.NewApiError(http.StatusConflict,
+			errors.Errorf("Cluster is not ready for installation, %s", reason))
 	}
 
 	// prepare cluster and hosts for installation

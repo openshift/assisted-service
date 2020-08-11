@@ -22,8 +22,6 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-const MinHostsNeededForInstallation = 3
-
 //go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go
 
 type StateAPI interface {
@@ -63,6 +61,7 @@ type API interface {
 	HandlePreInstallError(ctx context.Context, c *common.Cluster, err error)
 	CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse
 	SetVips(ctx context.Context, c *common.Cluster, apiVip, ingressVip string, db *gorm.DB) error
+	IsReadyForInstallation(c *common.Cluster) (bool, string)
 }
 
 type Config struct {
@@ -416,4 +415,11 @@ func (m *Manager) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingres
 		}
 	}
 	return nil
+}
+
+func (m *Manager) IsReadyForInstallation(c *common.Cluster) (bool, string) {
+	if swag.StringValue(c.Status) != models.ClusterStatusReady {
+		return false, swag.StringValue(c.StatusInfo)
+	}
+	return true, ""
 }
