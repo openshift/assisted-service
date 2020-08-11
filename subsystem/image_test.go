@@ -109,6 +109,6 @@ var _ = Describe("image tests", func() {
 		_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
 			ClusterID: *cluster.GetPayload().ID,
 		}, file)
-		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterISOConflict())))
+		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterISONotFound())))
 	})
 })

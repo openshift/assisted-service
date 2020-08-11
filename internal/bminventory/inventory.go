@@ -323,69 +323,65 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
-		return installer.NewDownloadClusterISONotFound().
-			WithPayload(common.GenerateError(http.StatusNotFound, err))
-	}
-	if cluster.ImageInfo.DownloadURL == "" {
-		log.Errorf("no download URL set for cluster %s", params.ClusterID)
-		return installer.NewDownloadClusterISOConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, errors.New("No download URL set for cluster")))
+		return common.NewApiError(http.StatusNotFound, err)
 	}
 
-	log.Info("Image URL: ", cluster.ImageInfo.DownloadURL)
-	resp, err := http.Get(cluster.ImageInfo.DownloadURL)
+	imgName := getImageName(*cluster.ID)
+	exists, err := b.s3Client.DoesObjectExist(ctx, imgName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ISO for cluster %s", cluster.ID.String())
-		msg := "Failed to download image: error fetching from storage backend"
-		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError,
+			"Failed to download image: error fetching from storage backend", time.Now())
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		log.WithError(fmt.Errorf("%d - %s", resp.StatusCode, string(body))).
-			Errorf("Failed to get ISO for cluster %s", cluster.ID.String())
-		if resp.StatusCode == http.StatusNotFound {
-			msg := "Failed to download image: the image was not found (perhaps it expired) - please generate the image and try again"
-			b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
-			return installer.NewDownloadClusterISONotFound().
-				WithPayload(common.GenerateError(http.StatusNotFound, errors.New("The image was not found "+
-					"(perhaps it expired) - please generate the image and try again")))
-		}
-		msg := fmt.Sprintf("Failed to download image: error fetching from storage backend (%d)", resp.StatusCode)
-		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError, msg, time.Now())
+	if !exists {
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError,
+			"Failed to download image: the image was not found (perhaps it expired) - please generate the image and try again", time.Now())
+		return installer.NewDownloadClusterISONotFound().
+			WithPayload(common.GenerateError(http.StatusNotFound, errors.New("The image was not found "+
+				"(perhaps it expired) - please generate the image and try again")))
+	}
+	reader, contentLength, err := b.s3Client.Download(ctx, imgName)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get ISO for cluster %s", cluster.ID.String())
+		b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityError,
+			"Failed to download image: error fetching from storage backend", time.Now())
 		return installer.NewDownloadClusterISOInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New(string(body))))
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 	b.eventsHandler.AddEvent(ctx, params.ClusterID.String(), models.EventSeverityInfo, "Started image download", time.Now())
 
-	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(resp.Body),
+	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(reader),
 		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()),
-		resp.ContentLength)
+		contentLength)
 }
 
 func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster) error {
+	updates := map[string]interface{}{}
 	imgName := getImageName(*cluster.ID)
 	imgSize, err := b.s3Client.GetObjectSizeBytes(ctx, imgName)
 	if err != nil {
 		return errors.New("Failed to generate image: error fetching size")
 	}
+	updates["image_size_bytes"] = imgSize
+	cluster.ImageInfo.SizeBytes = &imgSize
 
-	signedURL, err := b.s3Client.GeneratePresignedDownloadURL(ctx, imgName, b.Config.ImageExpirationTime)
-	if err != nil {
-		return errors.New("Failed to generate image: error generating URL")
+	// Presigned URL only works with AWS S3 because Scality is not exposed
+	if b.s3Client.IsAwsS3() {
+		signedURL, err := b.s3Client.GeneratePresignedDownloadURL(ctx, imgName, b.Config.ImageExpirationTime)
+		if err != nil {
+			return errors.New("Failed to generate image: error generating URL")
+		}
+		updates["image_download_url"] = signedURL
+		cluster.ImageInfo.DownloadURL = signedURL
 	}
 
-	updates := map[string]interface{}{}
-	updates["image_size_bytes"] = imgSize
-	updates["image_download_url"] = signedURL
 	dbReply := b.db.Model(&models.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		return errors.New("Failed to generate image: error updating image record")
 	}
-	cluster.ImageInfo.SizeBytes = &imgSize
-	cluster.ImageInfo.DownloadURL = signedURL
+
 	return nil
 }
 
