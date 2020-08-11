@@ -47,7 +47,7 @@ func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret s
 	}
 
 	if postResp.Status() != 200 {
-		return nil, fmt.Errorf("Failed to validate Pull Secret Token")
+		return nil, fmt.Errorf("Failed to validate Pull Secret Token: (%d): %s", postResp.Status(), postResp.String())
 	}
 
 	type TokenAuthorizationResponse struct {
