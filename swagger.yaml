@@ -374,6 +374,60 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+
+  /clusters/{cluster_id}/downloads/files-presigned:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: []
+      summary: Retrieves a presigned S3 URL for downloading cluster files.
+      operationId: GetPresignedForClusterFiles
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: file_name
+          type: string
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml]
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/presigned'
+        400:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /clusters/{cluster_id}/credentials:
     get:
       tags:
@@ -1632,7 +1686,6 @@ definitions:
         x-nullable: true
         default: false
 
-
   cluster-update-params:
     type: object
     properties:
@@ -2038,7 +2091,6 @@ definitions:
         type: string
         description: Human readable description of the error.
 
-
   interface:
     type: object
     properties:
@@ -2261,3 +2313,10 @@ definitions:
         format: ipv4
         description: The IPv4 address that was allocated by DHCP for Ingress VIP.
 
+  presigned:
+    type: object
+    required:
+      - url
+    properties:
+      url:
+        type: string
