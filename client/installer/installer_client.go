@@ -64,6 +64,9 @@ type API interface {
 	   GetNextSteps retrieves the next operations that the host agent needs to perform*/
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
 	/*
+	   GetPresignedForClusterFiles retrieves a presigned s3 URL for downloading cluster files*/
+	GetPresignedForClusterFiles(ctx context.Context, params *GetPresignedForClusterFilesParams) (*GetPresignedForClusterFilesOK, error)
+	/*
 	   InstallCluster installs the open shift bare metal cluster*/
 	InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterAccepted, error)
 	/*
@@ -491,6 +494,31 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 		return nil, err
 	}
 	return result.(*GetNextStepsOK), nil
+
+}
+
+/*
+GetPresignedForClusterFiles retrieves a presigned s3 URL for downloading cluster files
+*/
+func (a *Client) GetPresignedForClusterFiles(ctx context.Context, params *GetPresignedForClusterFilesParams) (*GetPresignedForClusterFilesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetPresignedForClusterFiles",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/downloads/files-presigned",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetPresignedForClusterFilesReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetPresignedForClusterFilesOK), nil
 
 }
 
