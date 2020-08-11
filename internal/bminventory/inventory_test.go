@@ -1437,19 +1437,42 @@ var _ = Describe("KubeConfig download", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
+	It("kubeconfig presigned cluster is not in installed state", func() {
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  kubeconfig,
+		})
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+	})
+	It("kubeconfig presigned happy flow", func() {
+		status := ClusterStatusInstalled
+		c.Status = &status
+		db.Save(&c)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("url", nil)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  kubeconfig,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
+		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
+		Expect(*replyPayload.URL).Should(Equal("url"))
+	})
 	It("kubeconfig download no cluster id", func() {
 		clusterId := strToUUID(uuid.New().String())
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: *clusterId,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewDownloadClusterKubeconfigNotFound()))
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusNotFound)))
 	})
 	It("kubeconfig download cluster is not in installed state", func() {
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: clusterID,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewDownloadClusterKubeconfigConflict()))
-
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
 	})
 	It("kubeconfig download s3download failure", func() {
 		status := ClusterStatusInstalled
