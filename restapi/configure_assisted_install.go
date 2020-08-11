@@ -82,6 +82,9 @@ type InstallerAPI interface {
 	/* GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder
 
+	/* GetPresignedForClusterFiles Retrieves a presigned S3 URL for downloading cluster files. */
+	GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder
+
 	/* InstallCluster Installs the OpenShift bare metal cluster. */
 	InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder
 
@@ -286,6 +289,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetNextSteps(ctx, params)
+	})
+	api.InstallerGetPresignedForClusterFilesHandler = installer.GetPresignedForClusterFilesHandlerFunc(func(params installer.GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetPresignedForClusterFiles(ctx, params)
 	})
 	api.InstallerInstallClusterHandler = installer.InstallClusterHandlerFunc(func(params installer.InstallClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -745,6 +745,95 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/downloads/files-presigned": {
+      "get": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Retrieves a presigned S3 URL for downloading cluster files.",
+        "operationId": "GetPresignedForClusterFiles",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "bootstrap.ign",
+              "master.ign",
+              "metadata.json",
+              "worker.ign",
+              "kubeadmin-password",
+              "kubeconfig",
+              "kubeconfig-noingress",
+              "install-config.yaml"
+            ],
+            "type": "string",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/presigned"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/downloads/image": {
       "get": {
         "produces": [
@@ -3086,6 +3175,17 @@ func init() {
         }
       }
     },
+    "presigned": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      }
+    },
     "step": {
       "type": "object",
       "properties": {
@@ -3890,6 +3990,95 @@ func init() {
             "description": "Success.",
             "schema": {
               "type": "file"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/downloads/files-presigned": {
+      "get": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Retrieves a presigned S3 URL for downloading cluster files.",
+        "operationId": "GetPresignedForClusterFiles",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "bootstrap.ign",
+              "master.ign",
+              "metadata.json",
+              "worker.ign",
+              "kubeadmin-password",
+              "kubeconfig",
+              "kubeconfig-noingress",
+              "install-config.yaml"
+            ],
+            "type": "string",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/presigned"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "401": {
@@ -6276,6 +6465,17 @@ func init() {
         },
         "usable_bytes": {
           "type": "integer"
+        }
+      }
+    },
+    "presigned": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string"
         }
       }
     },

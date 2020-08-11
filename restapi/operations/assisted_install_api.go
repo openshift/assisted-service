@@ -94,6 +94,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetNextStepsHandler: installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetNextSteps has not yet been implemented")
 		}),
+		InstallerGetPresignedForClusterFilesHandler: installer.GetPresignedForClusterFilesHandlerFunc(func(params installer.GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetPresignedForClusterFiles has not yet been implemented")
+		}),
 		InstallerInstallClusterHandler: installer.InstallClusterHandlerFunc(func(params installer.InstallClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.InstallCluster has not yet been implemented")
 		}),
@@ -231,6 +234,8 @@ type AssistedInstallAPI struct {
 	InstallerGetHostHandler installer.GetHostHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
 	InstallerGetNextStepsHandler installer.GetNextStepsHandler
+	// InstallerGetPresignedForClusterFilesHandler sets the operation handler for the get presigned for cluster files operation
+	InstallerGetPresignedForClusterFilesHandler installer.GetPresignedForClusterFilesHandler
 	// InstallerInstallClusterHandler sets the operation handler for the install cluster operation
 	InstallerInstallClusterHandler installer.InstallClusterHandler
 	// InstallerListClustersHandler sets the operation handler for the list clusters operation
@@ -394,6 +399,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.GetNextStepsHandler")
+	}
+	if o.InstallerGetPresignedForClusterFilesHandler == nil {
+		unregistered = append(unregistered, "installer.GetPresignedForClusterFilesHandler")
 	}
 	if o.InstallerInstallClusterHandler == nil {
 		unregistered = append(unregistered, "installer.InstallClusterHandler")
@@ -605,6 +613,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewGetNextSteps(o.context, o.InstallerGetNextStepsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{cluster_id}/downloads/files-presigned"] = installer.NewGetPresignedForClusterFiles(o.context, o.InstallerGetPresignedForClusterFilesHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
