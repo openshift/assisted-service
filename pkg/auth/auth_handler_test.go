@@ -186,6 +186,10 @@ func (f fakeInventory) DisableHost(ctx context.Context, params installer.Disable
 	panic("Implement Me!")
 }
 
+func (f fakeInventory) GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
 func (f fakeInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
 	panic("Implement Me!")
 }

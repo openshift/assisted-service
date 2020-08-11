@@ -1486,68 +1486,82 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 	return installer.NewEnableHostOK().WithPayload(&host)
 }
 
+func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	// Presigned URL only works with AWS S3 because Scality is not exposed
+	if !b.s3Client.IsAwsS3() {
+		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
+	}
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	duration, _ := time.ParseDuration("10m")
+	url, err := b.s3Client.GeneratePresignedDownloadURL(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName), duration)
+	if err != nil {
+		log.WithError(err).Errorf("failed to generate presigned URL: %s from cluster: %s", params.FileName, params.ClusterID.String())
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return installer.NewGetPresignedForClusterFilesOK().WithPayload(&models.Presigned{URL: &url})
+}
+
 func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	var cluster common.Cluster
-	log.Infof("Download cluster files: %s for cluster %s", params.FileName, params.ClusterID)
-
-	if !funk.Contains(clusterFileNames, params.FileName) {
-		err := fmt.Errorf("invalid cluster file %s", params.FileName)
-		log.WithError(err).Errorf("failed download file: %s from cluster: %s", params.FileName, params.ClusterID)
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
-		if gorm.IsRecordNotFoundError(err) {
-			return installer.NewDownloadClusterFilesNotFound().
-				WithPayload(common.GenerateError(http.StatusNotFound, err))
-		} else {
-			return installer.NewDownloadClusterFilesInternalServerError().
-				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
-	}
-	if err := b.clusterApi.DownloadFiles(&cluster); err != nil {
-		log.WithError(err).Errorf("failed to download cluster files %s", params.ClusterID)
-		return installer.NewDownloadClusterFilesConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, err))
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
+		return common.GenerateErrorResponder(err)
 	}
 
 	respBody, contentLength, err := b.s3Client.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName))
 	if err != nil {
-		return installer.NewDownloadClusterFilesInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		log.WithError(err).Errorf("failed to download file %s from cluster: %s", params.FileName, params.ClusterID.String())
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	var cluster common.Cluster
-	log.Infof("Download cluster kubeconfig for cluster %s", params.ClusterID)
-
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
-		if gorm.IsRecordNotFoundError(err) {
-			return installer.NewDownloadClusterKubeconfigNotFound().
-				WithPayload(common.GenerateError(http.StatusNotFound, err))
-		} else {
-			return installer.NewDownloadClusterKubeconfigInternalServerError().
-				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
-	}
-	if err := b.clusterApi.DownloadKubeconfig(&cluster); err != nil {
-		return installer.NewDownloadClusterKubeconfigConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, err))
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), kubeconfig); err != nil {
+		return common.GenerateErrorResponder(err)
 	}
 
 	respBody, contentLength, err := b.s3Client.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, kubeconfig))
 	if err != nil {
-		return installer.NewDownloadClusterKubeconfigConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, errors.Wrap(err, "failed to download kubeconfig")))
+		return common.NewApiError(http.StatusConflict, err)
 	}
 	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig, contentLength)
+}
+
+func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID, fileName string) error {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster common.Cluster
+	log.Infof("Checking cluster cluster file for download: %s for cluster %s", fileName, clusterID)
+
+	if !funk.Contains(clusterFileNames, fileName) {
+		err := fmt.Errorf("invalid cluster file %s", fileName)
+		log.WithError(err).Errorf("failed download file: %s from cluster: %s", fileName, clusterID)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err := b.db.First(&cluster, "id = ?", clusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return common.NewApiError(http.StatusNotFound, err)
+		} else {
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+
+	var err error
+	if fileName == kubeconfig {
+		err = b.clusterApi.DownloadKubeconfig(&cluster)
+	} else {
+		err = b.clusterApi.DownloadFiles(&cluster)
+	}
+	if err != nil {
+		log.WithError(err).Errorf("failed to get file for cluster %s in current state", clusterID)
+		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder {

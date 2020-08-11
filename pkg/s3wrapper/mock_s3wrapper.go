@@ -35,6 +35,20 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
+// IsAwsS3 mocks base method
+func (m *MockAPI) IsAwsS3() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsAwsS3")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsAwsS3 indicates an expected call of IsAwsS3
+func (mr *MockAPIMockRecorder) IsAwsS3() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAwsS3", reflect.TypeOf((*MockAPI)(nil).IsAwsS3))
+}
+
 // CreateBucket mocks base method
 func (m *MockAPI) CreateBucket() error {
 	m.ctrl.T.Helper()
