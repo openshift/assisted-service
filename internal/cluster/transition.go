@@ -236,7 +236,7 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		//if status was changed - we need to send event and metrics
 		if err == nil && updatedCluster != nil && sCluster.srcState != swag.StringValue(updatedCluster.Status) {
 			msg := fmt.Sprintf("Updated status of cluster %s to %s", updatedCluster.Name, *updatedCluster.Status)
-			params.eventHandler.AddEvent(params.ctx, updatedCluster.ID.String(), models.EventSeverityInfo, msg, time.Now(), updatedCluster.ID.String())
+			params.eventHandler.AddEvent(params.ctx, *updatedCluster.ID, nil, models.EventSeverityInfo, msg, time.Now())
 			//report installation finished metric if needed
 			reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError}
 			if sCluster.srcState == models.ClusterStatusInstalling &&

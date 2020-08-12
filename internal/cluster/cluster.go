@@ -118,10 +118,10 @@ func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error {
 	err := m.registrationAPI.RegisterCluster(ctx, c)
 	if err != nil {
-		m.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityError,
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
 			fmt.Sprintf("Failed to register cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())
 	} else {
-		m.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityInfo,
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
 			fmt.Sprintf("Registered cluster \"%s\"", c.Name), time.Now())
 	}
 	return err
@@ -130,10 +130,10 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error 
 func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
 	err := m.registrationAPI.DeregisterCluster(ctx, c)
 	if err != nil {
-		m.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityError,
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
 			fmt.Sprintf("Failed to deregister cluster. Error: %s", err.Error()), time.Now())
 	} else {
-		m.eventsHandler.AddEvent(ctx, c.ID.String(), models.EventSeverityError, "Deregistered cluster", time.Now())
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError, "Deregistered cluster", time.Now())
 	}
 	return err
 }
@@ -303,7 +303,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 	eventSeverity := models.EventSeverityInfo
 	eventInfo := "Canceled cluster installation"
 	defer func() {
-		m.eventsHandler.AddEvent(ctx, c.ID.String(), eventSeverity, eventInfo, time.Now())
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, eventSeverity, eventInfo, time.Now())
 	}()
 
 	err := m.sm.Run(TransitionTypeCancelInstallation, newStateCluster(c), &TransitionArgsCancelInstallation{
@@ -325,7 +325,7 @@ func (m *Manager) ResetCluster(ctx context.Context, c *common.Cluster, reason st
 	eventSeverity := models.EventSeverityInfo
 	eventInfo := "Reset cluster installation"
 	defer func() {
-		m.eventsHandler.AddEvent(ctx, c.ID.String(), eventSeverity, eventInfo, time.Now())
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, eventSeverity, eventInfo, time.Now())
 	}()
 
 	err := m.sm.Run(TransitionTypeResetCluster, newStateCluster(c), &TransitionArgsResetCluster{

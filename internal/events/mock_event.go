@@ -36,33 +36,28 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 }
 
 // AddEvent mocks base method
-func (m *MockHandler) AddEvent(ctx context.Context, entityID, severity, msg string, eventTime time.Time, otherEntities ...string) {
+func (m *MockHandler) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity, msg string, eventTime time.Time) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, entityID, severity, msg, eventTime}
-	for _, a := range otherEntities {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "AddEvent", varargs...)
+	m.ctrl.Call(m, "AddEvent", ctx, clusterID, hostID, severity, msg, eventTime)
 }
 
 // AddEvent indicates an expected call of AddEvent
-func (mr *MockHandlerMockRecorder) AddEvent(ctx, entityID, severity, msg, eventTime interface{}, otherEntities ...interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) AddEvent(ctx, clusterID, hostID, severity, msg, eventTime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, entityID, severity, msg, eventTime}, otherEntities...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEvent", reflect.TypeOf((*MockHandler)(nil).AddEvent), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEvent", reflect.TypeOf((*MockHandler)(nil).AddEvent), ctx, clusterID, hostID, severity, msg, eventTime)
 }
 
 // GetEvents mocks base method
-func (m *MockHandler) GetEvents(entityID string) ([]*Event, error) {
+func (m *MockHandler) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*Event, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEvents", entityID)
+	ret := m.ctrl.Call(m, "GetEvents", clusterID, hostID)
 	ret0, _ := ret[0].([]*Event)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetEvents indicates an expected call of GetEvents
-func (mr *MockHandlerMockRecorder) GetEvents(entityID interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) GetEvents(clusterID, hostID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEvents", reflect.TypeOf((*MockHandler)(nil).GetEvents), entityID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEvents", reflect.TypeOf((*MockHandler)(nil).GetEvents), clusterID, hostID)
 }

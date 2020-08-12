@@ -271,7 +271,7 @@ func (k *kubeJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobNa
 		if err := k.Delete(ctx, prevJobName, k.Namespace); err != nil {
 			log.WithError(err).Errorf("failed to kill previous job in cluster %s", cluster.ID)
 			msg := "Failed to generate image: error stopping previous image generation"
-			eventsHandler.AddEvent(ctx, cluster.ID.String(), models.EventSeverityError, msg, time.Now())
+			eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityError, msg, time.Now())
 			return err
 		}
 		log.Info("Finished attempting to delete job %s", prevJobName)
@@ -286,14 +286,14 @@ func (k *kubeJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobNa
 	if err := k.Create(ctx, k.createImageJob(jobName, imageName, ignitionConfig, performUpload)); err != nil {
 		log.WithError(err).Error("failed to create image job")
 		msg := "Failed to generate image: error creating image generation job"
-		eventsHandler.AddEvent(ctx, cluster.ID.String(), models.EventSeverityError, msg, time.Now())
+		eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityError, msg, time.Now())
 		return err
 	}
 
 	if err := k.Monitor(ctx, jobName, k.Namespace); err != nil {
 		log.WithError(err).Error("image creation failed")
 		msg := "Failed to generate image: error during image generation job"
-		eventsHandler.AddEvent(ctx, cluster.ID.String(), models.EventSeverityError, msg, time.Now())
+		eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityError, msg, time.Now())
 		return err
 	}
 	return nil

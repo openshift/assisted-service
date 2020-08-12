@@ -166,7 +166,7 @@ var _ = Describe("Cancel cluster installation", func() {
 	})
 
 	acceptNewEvents := func(times int) {
-		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
+		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
 	}
 
 	acceptClusterInstallationFinished := func(times int) {
@@ -234,7 +234,7 @@ var _ = Describe("Reset cluster", func() {
 	})
 
 	acceptNewEvents := func(times int) {
-		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
+		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
 	}
 
 	tests := []struct {

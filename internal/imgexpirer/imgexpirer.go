@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-openapi/strfmt"
+
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/openshift/assisted-service/internal/events"
@@ -89,11 +91,11 @@ func (m *Manager) deleteObject(ctx context.Context, log logrus.FieldLogger, obje
 		return
 	}
 	eventMsg := "Deleted image from backend because it expired. It may be generated again at any time."
-	m.eventsHandler.AddEvent(ctx, clusterIDFromImageName(*object.Key), models.EventSeverityInfo, eventMsg, time.Now())
+	m.eventsHandler.AddEvent(ctx, clusterIDFromImageName(*object.Key), nil, models.EventSeverityInfo, eventMsg, time.Now())
 	log.Infof("Deleted expired image %s", *object.Key)
 }
 
-func clusterIDFromImageName(imgName string) string {
+func clusterIDFromImageName(imgName string) strfmt.UUID {
 	//Image name format is "discovery-image-<clusterID>"
-	return imgName[imagePrefixLen:]
+	return strfmt.UUID(imgName[imagePrefixLen:])
 }

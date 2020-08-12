@@ -212,9 +212,9 @@ var _ = Describe("update_progress", func() {
 		Context("positive stages", func() {
 			It("some_progress", func() {
 				progress.CurrentStage = defaultProgressStage
-				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityInfo,
+				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
 					fmt.Sprintf("Host %s: updated status from \"installing\" to \"installing-in-progress\" (default progress stage)", host.ID.String()),
-					gomock.Any(), host.ClusterID.String())
+					gomock.Any())
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 				Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
@@ -223,9 +223,9 @@ var _ = Describe("update_progress", func() {
 			It("writing to disk", func() {
 				progress.CurrentStage = models.HostStageWritingImageToDisk
 				progress.ProgressInfo = "20%"
-				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityInfo,
+				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
 					fmt.Sprintf("Host %s: updated status from \"installing\" to \"installing-in-progress\" (Writing image to disk)", host.ID.String()),
-					gomock.Any(), host.ClusterID.String())
+					gomock.Any())
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
@@ -234,9 +234,9 @@ var _ = Describe("update_progress", func() {
 
 			It("done", func() {
 				progress.CurrentStage = models.HostStageDone
-				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityInfo,
+				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
 					fmt.Sprintf("Host %s: updated status from \"installing\" to \"installed\" (Done)", host.ID.String()),
-					gomock.Any(), host.ClusterID.String())
+					gomock.Any())
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
@@ -254,9 +254,9 @@ var _ = Describe("update_progress", func() {
 			It("progress_failed", func() {
 				progress.CurrentStage = models.HostStageFailed
 				progress.ProgressInfo = "reason"
-				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityError,
+				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityError,
 					fmt.Sprintf("Host %s: updated status from \"installing\" to \"error\" (Failed - reason)", host.ID.String()),
-					gomock.Any(), host.ClusterID.String())
+					gomock.Any())
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
@@ -267,10 +267,10 @@ var _ = Describe("update_progress", func() {
 			It("progress_failed_empty_reason", func() {
 				progress.CurrentStage = models.HostStageFailed
 				progress.ProgressInfo = ""
-				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityError,
+				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityError,
 					fmt.Sprintf("Host %s: updated status from \"installing\" to \"error\" "+
 						"(Failed)", host.ID.String()),
-					gomock.Any(), host.ClusterID.String())
+					gomock.Any())
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 				Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
@@ -281,10 +281,10 @@ var _ = Describe("update_progress", func() {
 				By("Some stage", func() {
 					progress.CurrentStage = models.HostStageWritingImageToDisk
 					progress.ProgressInfo = "20%"
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityInfo,
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
 						fmt.Sprintf("Host %s: updated status from \"installing\" to \"installing-in-progress\" "+
 							"(Writing image to disk)", host.ID.String()),
-						gomock.Any(), host.ClusterID.String())
+						gomock.Any())
 					Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 					hostFromDB = getHost(*host.ID, host.ClusterID, db)
 					Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
@@ -299,10 +299,10 @@ var _ = Describe("update_progress", func() {
 						CurrentStage: models.HostStageFailed,
 						ProgressInfo: "reason",
 					}
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityError,
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityError,
 						fmt.Sprintf("Host %s: updated status from \"installing-in-progress\" to \"error\" "+
 							"(Failed - reason)", host.ID.String()),
-						gomock.Any(), host.ClusterID.String())
+						gomock.Any())
 					Expect(state.UpdateInstallProgress(ctx, hostFromDB, &newProgress)).ShouldNot(HaveOccurred())
 					hostFromDB = getHost(*host.ID, host.ClusterID, db)
 					Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
@@ -327,10 +327,10 @@ var _ = Describe("update_progress", func() {
 					progress.CurrentStage = models.HostStageWritingImageToDisk
 					progress.ProgressInfo = "20%"
 					mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityInfo,
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
 						fmt.Sprintf("Host %s: updated status from \"installing\" to \"installing-in-progress\" "+
 							"(Writing image to disk)", host.ID.String()),
-						gomock.Any(), host.ClusterID.String())
+						gomock.Any())
 					Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 					verifyDb()
 				})
@@ -339,10 +339,10 @@ var _ = Describe("update_progress", func() {
 					newProgress := models.HostProgress{
 						CurrentStage: models.HostStageInstalling,
 					}
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityInfo,
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
 						fmt.Sprintf("Host %s: updated status from \"installing\" to \"installing-in-progress\" "+
 							"(Writing image to disk)", host.ID.String()),
-						gomock.Any(), host.ClusterID.String())
+						gomock.Any())
 					Expect(state.UpdateInstallProgress(ctx, hostFromDB, &newProgress)).Should(HaveOccurred())
 					verifyDb()
 				})
@@ -406,10 +406,10 @@ var _ = Describe("monitor_disconnection", func() {
 		})
 
 		AfterEach(func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityWarning,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityWarning,
 				fmt.Sprintf("Host %s: updated status from \"%s\" to \"disconnected\" (Host keepalive timeout)",
 					host.ID.String(), *host.Status),
-				gomock.Any(), host.ClusterID.String())
+				gomock.Any())
 			state.HostMonitoring()
 			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
 			Expect(*host.Status).Should(Equal(HostStatusDisconnected))
@@ -425,9 +425,9 @@ var _ = Describe("monitor_disconnection", func() {
 		})
 
 		AfterEach(func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ID.String(), models.EventSeverityInfo,
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
 				fmt.Sprintf("Host %s: updated status from \"disconnected\" to \"discovering\" (Waiting for host hardware info)", host.ID.String()),
-				gomock.Any(), host.ClusterID.String())
+				gomock.Any())
 			state.HostMonitoring()
 			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
 			Expect(*host.Status).Should(Equal(HostStatusDiscovering))
@@ -468,7 +468,7 @@ var _ = Describe("cancel_installation", func() {
 			h.Status = swag.String(HostStatusInstalling)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.GetEvents(h.ID.String())
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -481,7 +481,7 @@ var _ = Describe("cancel_installation", func() {
 			h.Status = swag.String(HostStatusError)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.GetEvents(h.ID.String())
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -499,7 +499,7 @@ var _ = Describe("cancel_installation", func() {
 	Context("invalid_cancel_installation", func() {
 		It("nothing_to_cancel", func() {
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).Should(HaveOccurred())
-			events, err := eventsHandler.GetEvents(h.ID.String())
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
@@ -536,7 +536,7 @@ var _ = Describe("reset_host", func() {
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
 			Expect(*h.Status).Should(Equal(HostStatusResetting))
-			events, err := eventsHandler.GetEvents(h.ID.String())
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -563,7 +563,7 @@ var _ = Describe("reset_host", func() {
 			h = getTestHost(id, clusterId, HostStatusDiscovering)
 			reply := state.ResetHost(ctx, &h, "some reason", db)
 			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
-			events, err := eventsHandler.GetEvents(h.ID.String())
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
 			resetEvent := events[len(events)-1]
@@ -1004,9 +1004,9 @@ var _ = Describe("PrepareForInstallation", func() {
 
 	It("success", func() {
 		host = getTestHost(hostId, clusterId, models.HostStatusKnown)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), hostId.String(), models.EventSeverityInfo,
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo,
 			fmt.Sprintf("Host %s: updated status from \"known\" to \"preparing-for-installation\" (Preparing host for installation)", host.ID.String()),
-			gomock.Any(), host.ClusterID.String())
+			gomock.Any())
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		Expect(hapi.PrepareForInstallation(ctx, &host, db)).NotTo(HaveOccurred())
 		h := getHost(hostId, clusterId, db)
