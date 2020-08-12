@@ -16,7 +16,9 @@ import (
 
 // ListEventsURL generates an URL for the list events operation
 type ListEventsURL struct {
-	EntityID strfmt.UUID
+	ClusterID strfmt.UUID
+
+	HostID *strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,13 +44,13 @@ func (o *ListEventsURL) SetBasePath(bp string) {
 func (o *ListEventsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/events/{entity_id}"
+	var _path = "/clusters/{cluster_id}/events"
 
-	entityID := o.EntityID.String()
-	if entityID != "" {
-		_path = strings.Replace(_path, "{entity_id}", entityID, -1)
+	clusterID := o.ClusterID.String()
+	if clusterID != "" {
+		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
 	} else {
-		return nil, errors.New("entityId is required on ListEventsURL")
+		return nil, errors.New("clusterId is required on ListEventsURL")
 	}
 
 	_basePath := o._basePath
@@ -56,6 +58,18 @@ func (o *ListEventsURL) Build() (*url.URL, error) {
 		_basePath = "/api/assisted-install/v1"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var hostIDQ string
+	if o.HostID != nil {
+		hostIDQ = o.HostID.String()
+	}
+	if hostIDQ != "" {
+		qs.Set("host_id", hostIDQ)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }

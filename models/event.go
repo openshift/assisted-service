@@ -19,15 +19,19 @@ import (
 // swagger:model event
 type Event struct {
 
-	// Unique identifier of the object this event relates to.
+	// Unique identifier of the cluster this event relates to.
 	// Required: true
 	// Format: uuid
-	EntityID *strfmt.UUID `json:"entity_id" gorm:"index"`
+	ClusterID *strfmt.UUID `json:"cluster_id" gorm:"index"`
 
 	// event time
 	// Required: true
 	// Format: date-time
 	EventTime *strfmt.DateTime `json:"event_time" gorm:"type:timestamp with time zone"`
+
+	// Unique identifier of the host this event relates to.
+	// Format: uuid
+	HostID strfmt.UUID `json:"host_id,omitempty"`
 
 	// message
 	// Required: true
@@ -47,11 +51,15 @@ type Event struct {
 func (m *Event) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateEntityID(formats); err != nil {
+	if err := m.validateClusterID(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateEventTime(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateHostID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -73,13 +81,13 @@ func (m *Event) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Event) validateEntityID(formats strfmt.Registry) error {
+func (m *Event) validateClusterID(formats strfmt.Registry) error {
 
-	if err := validate.Required("entity_id", "body", m.EntityID); err != nil {
+	if err := validate.Required("cluster_id", "body", m.ClusterID); err != nil {
 		return err
 	}
 
-	if err := validate.FormatOf("entity_id", "body", "uuid", m.EntityID.String(), formats); err != nil {
+	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
 		return err
 	}
 
@@ -93,6 +101,19 @@ func (m *Event) validateEventTime(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("event_time", "body", "date-time", m.EventTime.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Event) validateHostID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.HostID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("host_id", "body", "uuid", m.HostID.String(), formats); err != nil {
 		return err
 	}
 

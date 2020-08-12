@@ -632,7 +632,7 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/events/{entity_id}"] = events.NewListEvents(o.context, o.EventsListEventsHandler)
+	o.handlers["GET"]["/clusters/{cluster_id}/events"] = events.NewListEvents(o.context, o.EventsListEventsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

@@ -41,6 +41,12 @@ func (o *ListEventsReader) ReadResponse(response runtime.ClientResponse, consume
 			return nil, err
 		}
 		return nil, result
+	case 404:
+		result := NewListEventsNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 405:
 		result := NewListEventsMethodNotAllowed()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,7 +79,7 @@ type ListEventsOK struct {
 }
 
 func (o *ListEventsOK) Error() string {
-	return fmt.Sprintf("[GET /events/{entity_id}][%d] listEventsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListEventsOK) GetPayload() models.EventList {
@@ -104,7 +110,7 @@ type ListEventsUnauthorized struct {
 }
 
 func (o *ListEventsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /events/{entity_id}][%d] listEventsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ListEventsUnauthorized) GetPayload() *models.Error {
@@ -137,7 +143,7 @@ type ListEventsForbidden struct {
 }
 
 func (o *ListEventsForbidden) Error() string {
-	return fmt.Sprintf("[GET /events/{entity_id}][%d] listEventsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ListEventsForbidden) GetPayload() *models.Error {
@@ -145,6 +151,39 @@ func (o *ListEventsForbidden) GetPayload() *models.Error {
 }
 
 func (o *ListEventsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewListEventsNotFound creates a ListEventsNotFound with default headers values
+func NewListEventsNotFound() *ListEventsNotFound {
+	return &ListEventsNotFound{}
+}
+
+/*ListEventsNotFound handles this case with default header values.
+
+Error.
+*/
+type ListEventsNotFound struct {
+	Payload *models.Error
+}
+
+func (o *ListEventsNotFound) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsNotFound  %+v", 404, o.Payload)
+}
+
+func (o *ListEventsNotFound) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ListEventsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 
@@ -170,7 +209,7 @@ type ListEventsMethodNotAllowed struct {
 }
 
 func (o *ListEventsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /events/{entity_id}][%d] listEventsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *ListEventsMethodNotAllowed) GetPayload() *models.Error {
@@ -203,7 +242,7 @@ type ListEventsInternalServerError struct {
 }
 
 func (o *ListEventsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /events/{entity_id}][%d] listEventsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListEventsInternalServerError) GetPayload() *models.Error {

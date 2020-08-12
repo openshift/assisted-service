@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
@@ -34,7 +35,11 @@ type ListEventsParams struct {
 	  Required: true
 	  In: path
 	*/
-	EntityID strfmt.UUID
+	ClusterID strfmt.UUID
+	/*
+	  In: query
+	*/
+	HostID *strfmt.UUID
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -46,8 +51,15 @@ func (o *ListEventsParams) BindRequest(r *http.Request, route *middleware.Matche
 
 	o.HTTPRequest = r
 
-	rEntityID, rhkEntityID, _ := route.Params.GetOK("entity_id")
-	if err := o.bindEntityID(rEntityID, rhkEntityID, route.Formats); err != nil {
+	qs := runtime.Values(r.URL.Query())
+
+	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
+	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qHostID, qhkHostID, _ := qs.GetOK("host_id")
+	if err := o.bindHostID(qHostID, qhkHostID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -57,8 +69,8 @@ func (o *ListEventsParams) BindRequest(r *http.Request, route *middleware.Matche
 	return nil
 }
 
-// bindEntityID binds and validates parameter EntityID from path.
-func (o *ListEventsParams) bindEntityID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindClusterID binds and validates parameter ClusterID from path.
+func (o *ListEventsParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -70,21 +82,57 @@ func (o *ListEventsParams) bindEntityID(rawData []string, hasKey bool, formats s
 	// Format: uuid
 	value, err := formats.Parse("uuid", raw)
 	if err != nil {
-		return errors.InvalidType("entity_id", "path", "strfmt.UUID", raw)
+		return errors.InvalidType("cluster_id", "path", "strfmt.UUID", raw)
 	}
-	o.EntityID = *(value.(*strfmt.UUID))
+	o.ClusterID = *(value.(*strfmt.UUID))
 
-	if err := o.validateEntityID(formats); err != nil {
+	if err := o.validateClusterID(formats); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// validateEntityID carries on validations for parameter EntityID
-func (o *ListEventsParams) validateEntityID(formats strfmt.Registry) error {
+// validateClusterID carries on validations for parameter ClusterID
+func (o *ListEventsParams) validateClusterID(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("entity_id", "path", "uuid", o.EntityID.String(), formats); err != nil {
+	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
+		return err
+	}
+	return nil
+}
+
+// bindHostID binds and validates parameter HostID from query.
+func (o *ListEventsParams) bindHostID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("host_id", "query", "strfmt.UUID", raw)
+	}
+	o.HostID = (value.(*strfmt.UUID))
+
+	if err := o.validateHostID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateHostID carries on validations for parameter HostID
+func (o *ListEventsParams) validateHostID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("host_id", "query", "uuid", o.HostID.String(), formats); err != nil {
 		return err
 	}
 	return nil

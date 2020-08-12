@@ -18,7 +18,7 @@ import (
 // API is the interface of the events client
 type API interface {
 	/*
-	   ListEvents lists events for an entity id*/
+	   ListEvents lists events for a cluster*/
 	ListEvents(ctx context.Context, params *ListEventsParams) (*ListEventsOK, error)
 }
 
@@ -41,14 +41,14 @@ type Client struct {
 }
 
 /*
-ListEvents lists events for an entity id
+ListEvents lists events for a cluster
 */
 func (a *Client) ListEvents(ctx context.Context, params *ListEventsParams) (*ListEventsOK, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListEvents",
 		Method:             "GET",
-		PathPattern:        "/events/{entity_id}",
+		PathPattern:        "/clusters/{cluster_id}/events",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
