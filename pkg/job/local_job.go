@@ -52,7 +52,7 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 		"S3_ENDPOINT_URL="+j.Config.S3EndpointURL,
 		"INSTALLER_CONFIG="+string(cfg),
 		"INVENTORY_ENDPOINT="+strings.TrimSpace(j.Config.ServiceBaseURL)+"/api/assisted-install/v1",
-		"IMAGE_NAME="+j.Config.KubeconfigGenerator,
+		"IMAGE_NAME="+j.Config.IgnitionGenerator,
 		"S3_BUCKET="+j.Config.S3Bucket,
 		"CLUSTER_ID="+cluster.ID.String(),
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+j.Config.ReleaseImage,

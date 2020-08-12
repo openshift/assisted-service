@@ -18,7 +18,7 @@ ENVS = [
     ("SERVICE_URL", ""),
     ("SERVICE_PORT", ""),
     ("AGENT_DOCKER_IMAGE", ""),
-    ("KUBECONFIG_GENERATE_IMAGE", ""),
+    ("IGNITION_GENERATE_IMAGE", ""),
     ("BASE_DNS_DOMAINS", ""),
 ]
 

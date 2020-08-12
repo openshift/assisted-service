@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const kubeconfigPrefix = "generate-kubeconfig"
+const ignitionGeneratorPrefix = "ignition-generator"
 
 // Dummy is used to represent the ignition config for the dummy ISO that is kicked off in
 // inventory.go to pull the base ISO image when the service starts up.
@@ -57,7 +57,7 @@ type Config struct {
 	JobMemoryLimit      string        `envconfig:"JOB_MEMORY_LIMIT" default:"1000Mi"`
 	JobCPURequests      string        `envconfig:"JOB_CPU_REQUESTS" default:"300m"`
 	JobMemoryRequests   string        `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
-	KubeconfigGenerator string        `envconfig:"KUBECONFIG_GENERATE_IMAGE" default:"quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:stable"` // TODO: update the latest once the repository has git workflow
+	IgnitionGenerator   string        `envconfig:"IGNITION_GENERATE_IMAGE" default:"quay.io/ocpmetal/assisted-ignition-generator:stable"` // TODO: update the latest once the repository has git workflow
 	ServiceBaseURL      string        `envconfig:"SERVICE_BASE_URL"`
 	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
 	ReleaseImage string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
@@ -294,7 +294,7 @@ func (k *kubeJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobNa
 
 func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, cfg []byte) *batch.Job {
 	id := cluster.ID
-	kubeConfigGeneratorImage := k.Config.KubeconfigGenerator
+	ignitionGeneratorImage := k.Config.IgnitionGenerator
 	return &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
@@ -314,8 +314,8 @@ func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, c
 				Spec: core.PodSpec{
 					Containers: []core.Container{
 						{
-							Name:            kubeconfigPrefix,
-							Image:           kubeConfigGeneratorImage,
+							Name:            ignitionGeneratorPrefix,
+							Image:           ignitionGeneratorImage,
 							ImagePullPolicy: "Always",
 							Env: []core.EnvVar{
 								{
@@ -380,7 +380,7 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 
 	ctime := time.Time(cluster.CreatedAt)
 	cTimestamp := strconv.FormatInt(ctime.Unix(), 10)
-	jobName := fmt.Sprintf("%s-%s-%s", kubeconfigPrefix, cluster.ID.String(), cTimestamp)[:63]
+	jobName := fmt.Sprintf("%s-%s-%s", ignitionGeneratorPrefix, cluster.ID.String(), cTimestamp)[:63]
 	if err := k.Create(ctx, k.createKubeconfigJob(&cluster, jobName, cfg)); err != nil {
 		log.WithError(err).Errorf("Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
 		return errors.Wrapf(err, "Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
@@ -399,7 +399,7 @@ func (k *kubeJob) AbortInstallConfig(ctx context.Context, cluster common.Cluster
 
 	ctime := time.Time(cluster.CreatedAt)
 	cTimestamp := strconv.FormatInt(ctime.Unix(), 10)
-	jobName := fmt.Sprintf("%s-%s-%s", kubeconfigPrefix, cluster.ID.String(), cTimestamp)[:63]
+	jobName := fmt.Sprintf("%s-%s-%s", ignitionGeneratorPrefix, cluster.ID.String(), cTimestamp)[:63]
 	if err := k.Delete(ctx, jobName, k.Namespace); err != nil {
 		log.WithError(err).Errorf("Failed to abort kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
 		return errors.Wrapf(err, "Failed to abort kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
