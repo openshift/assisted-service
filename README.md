@@ -196,36 +196,46 @@ Default tag is latest
 
 ### Deploy without a Kubernetes cluster
 
-The assisted installer can also be deployed without using a Kubernetes cluster. In this scenario the installer and associated services are deployed onto your local host as a pod using Podman.
+The assisted service can also be deployed without using a Kubernetes cluster. In this scenario the service and associated components are deployed onto your local host as a pod using Podman.
 
-This type of deployment requires a different installer image that combines components that are used to generate the installer ISO and configuration files. First build and push this image to a repository using Dockerfile.assisted-service-onprem:
+This type of deployment requires a different container image that combines components that are used to generate the installer ISO and configuration files. First build the image:
 
-'''
+```
 export SERVICE=quay.io/<your-org>/assisted-service:latest
-skipper make all
-podman build -f Dockerfile.assisted-service-onprem -t $SERVICE .
-podman push $SERVICE
-'''
+make build-onprem
+```
 
-Update SERVICE_BASE_URL in onprem-environment to match the IP address of your host.
+To deploy, update SERVICE_BASE_URL in the onprem-environment file to match the hostname or IP address of your host. For example if your IP address is 192.168.122.2, then the SERVICE_BASE_URL would be set to http://192.168.122.2:8090. Port 8090 is the assisted-service API.
 
-To deploy:
+Then deploy the containers:
 
-`make deploy-onprem`
+```
+make deploy-onprem
+```
 
-Check all containers are running:
+Check all containers are up and running:
 
-`podman ps -a`
+```
+podman ps -a
+```
 
-The UI is available at http://<host-ip-address>:8080.
+The UI will available at:
 
-To clean:
+```
+http://<host-ip-address>:8080
+```
 
-`make clean-onprem`
+To remove the containers:
 
-To run the tests:
+```
+make clean-onprem
+```
 
-`make test-onprem`
+To run the subsystem tests:
+
+```
+make test-onprem
+```
 
 ## Troubleshooting
 
