@@ -1920,7 +1920,7 @@ var _ = Describe("Upload logs test", func() {
 			HTTPRequest: request,
 		}
 		fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, common.GetHostnameForMsg(&host), "test_kubeconfig")
-		mockS3Client.EXPECT().UploadFile(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("Dummy")).Times(1)
+		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("Dummy")).Times(1)
 		verifyApiError(bm.UploadHostLogs(ctx, params), http.StatusInternalServerError)
 	})
 	It("Happy flow", func() {
@@ -1934,7 +1934,7 @@ var _ = Describe("Upload logs test", func() {
 			HTTPRequest: request,
 		}
 		fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, common.GetHostnameForMsg(&host), "test_kubeconfig")
-		mockS3Client.EXPECT().UploadFile(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
+		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		reply := bm.UploadHostLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadHostLogsNoContent()))
 	})

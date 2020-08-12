@@ -2161,7 +2161,7 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 
 	fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, common.GetHostnameForMsg(cluster.Hosts[0]), fileHeader.Filename)
 	log.Debugf("Start upload %s to bucket %s aws len", fileName, b.S3Bucket)
-	err = b.s3Client.UploadFile(ctx, params.Upfile, fileName)
+	err = b.s3Client.UploadStream(ctx, params.Upfile, fileName)
 
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload %s to s3", fileName)

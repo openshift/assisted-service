@@ -1,6 +1,7 @@
 package s3wrapper
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -9,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"os"
 	"time"
 
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -31,7 +33,8 @@ type API interface {
 	IsAwsS3() bool
 	CreateBucket() error
 	Upload(ctx context.Context, data []byte, objectName string) error
-	UploadFile(ctx context.Context, reader io.Reader, objectName string) error
+	UploadStream(ctx context.Context, reader io.Reader, objectName string) error
+	UploadFile(ctx context.Context, filePath, objectName string) error
 	Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
 	DeleteObject(ctx context.Context, objectName string) error
@@ -121,7 +124,7 @@ func (c *S3Client) CreateBucket() error {
 	return nil
 }
 
-func (c *S3Client) UploadFile(ctx context.Context, reader io.Reader, objectName string) error {
+func (c *S3Client) UploadStream(ctx context.Context, reader io.Reader, objectName string) error {
 	log := logutil.FromContext(ctx, c.log)
 	uploader := s3manager.NewUploader(c.session)
 	_, err := uploader.Upload(&s3manager.UploadInput{
@@ -138,9 +141,22 @@ func (c *S3Client) UploadFile(ctx context.Context, reader io.Reader, objectName 
 	return err
 }
 
+func (c *S3Client) UploadFile(ctx context.Context, filePath, objectName string) error {
+	log := logutil.FromContext(ctx, c.log)
+	file, err := os.Open(filePath)
+	if err != nil {
+		err = errors.Wrapf(err, "Unable to open file %s for upload", filePath)
+		log.Error(err)
+		return err
+	}
+
+	reader := bufio.NewReader(file)
+	return c.UploadStream(ctx, reader, objectName)
+}
+
 func (c *S3Client) Upload(ctx context.Context, data []byte, objectName string) error {
 	reader := bytes.NewReader(data)
-	return c.UploadFile(ctx, reader, objectName)
+	return c.UploadStream(ctx, reader, objectName)
 }
 
 func (c *S3Client) Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
