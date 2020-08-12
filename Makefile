@@ -135,7 +135,7 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" $(TEST_FLAGS)
-	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)"
+	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" --domain "$(INGRESS_DOMAIN)"
 
 deploy-role: deploy-namespace
 	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)"
