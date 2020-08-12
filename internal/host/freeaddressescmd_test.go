@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-var _ = Describe("inventory", func() {
+var _ = Describe("free_addresses", func() {
 	ctx := context.Background()
 	var host models.Host
 	var db *gorm.DB

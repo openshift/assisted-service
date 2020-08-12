@@ -40,12 +40,13 @@ type InstructionManager struct {
 	stateToSteps stateToStepsMap
 }
 type InstructionConfig struct {
-	ServiceBaseURL         string `envconfig:"SERVICE_BASE_URL"`
-	InstallerImage         string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
-	ControllerImage        string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
-	ConnectivityCheckImage string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	InventoryImage         string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	FreeAddressesImage     string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	ServiceBaseURL          string `envconfig:"SERVICE_BASE_URL"`
+	InstallerImage          string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
+	ControllerImage         string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
+	ConnectivityCheckImage  string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	InventoryImage          string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	FreeAddressesImage      string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	DhcpLeaseAllocatorImage string `envconfig:"DHCP_LEASE_ALLOCATOR_IMAGE" default:"quay.io/assisted-installer-agent:latest"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator) *InstructionManager {
@@ -55,20 +56,23 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	freeAddressesCmd := NewFreeAddressesCmd(log, instructionConfig.FreeAddressesImage)
 	resetCmd := NewResetInstallationCmd(log)
 	stopCmd := NewStopInstallationCmd(log)
+	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.DhcpLeaseAllocatorImage, db)
 
 	return &InstructionManager{
 		log: log,
 		db:  db,
 		stateToSteps: stateToStepsMap{
-			HostStatusKnown:           {[]CommandGetter{connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
-			HostStatusInsufficient:    {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
-			HostStatusDisconnected:    {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultBackedOffInstructionInSec},
-			HostStatusDiscovering:     {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
-			HostStatusPendingForInput: {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd}, defaultNextInstructionInSec},
-			HostStatusInstalling:      {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec},
-			HostStatusDisabled:        {[]CommandGetter{}, defaultBackedOffInstructionInSec},
-			HostStatusResetting:       {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
-			HostStatusError:           {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
+			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
+			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusPendingForInput:          {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
+			models.HostStatusInstalling:               {[]CommandGetter{installCmd, dhcpAllocateCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusInstallingInProgress:     {[]CommandGetter{dhcpAllocateCmd}, defaultNextInstructionInSec},
+			models.HostStatusPreparingForInstallation: {[]CommandGetter{dhcpAllocateCmd}, defaultNextInstructionInSec},
+			models.HostStatusDisabled:                 {[]CommandGetter{}, defaultBackedOffInstructionInSec},
+			models.HostStatusResetting:                {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusError:                    {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
 		},
 	}
 }
@@ -90,6 +94,9 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 			step, err := cmd.GetStep(ctx, host)
 			if err != nil {
 				return returnSteps, err
+			}
+			if step == nil {
+				continue
 			}
 			if step.StepID == "" {
 				step.StepID = createStepID(step.StepType)

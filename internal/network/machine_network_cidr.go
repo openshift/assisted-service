@@ -103,6 +103,42 @@ func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, 
 	return err
 }
 
+func GetMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string, error) {
+	var inventory models.Inventory
+	var err error
+	if err = json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+		return "", err
+	}
+	_, ipNet, err := net.ParseCIDR(cluster.MachineNetworkCidr)
+	if err != nil {
+		return "", err
+	}
+	for _, intf := range inventory.Interfaces {
+		for _, a := range intf.IPV4Addresses {
+			ip, _, err := net.ParseCIDR(a)
+			if err != nil {
+				return "", err
+			}
+			if ipNet.Contains(ip) {
+				return intf.Name, nil
+			}
+		}
+	}
+	return "", errors.Errorf("No matching interface found for host %s", host.ID.String())
+}
+
+func IpInCidr(ipAddr, cidr string) (bool, error) {
+	_, ipNet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return false, err
+	}
+	ip := net.ParseIP(ipAddr)
+	if ip == nil {
+		return false, errors.New("IP is nil")
+	}
+	return ipNet.Contains(ip), nil
+}
+
 func belongsToNetwork(log logrus.FieldLogger, h *models.Host, machineIpnet *net.IPNet) bool {
 	var inventory models.Inventory
 	err := json.Unmarshal([]byte(h.Inventory), &inventory)
