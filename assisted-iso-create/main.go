@@ -30,7 +30,7 @@ var Options struct {
 
 func setIgnitionConfigToFile(workDir, ignitionConfig string, log *logrus.Logger) (string, error) {
 	fullFileName := filepath.Join(workDir, ignitionFileName)
-	err := ioutil.WriteFile(fullFileName, []byte(ignitionConfig), 0644)
+	err := ioutil.WriteFile(fullFileName, []byte(ignitionConfig), 0600)
 	if err != nil {
 		log.Errorf("failed to write ignition into file %s", fullFileName)
 		return "", err
