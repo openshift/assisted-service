@@ -9,8 +9,8 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strings"
 	"os"
+	"strings"
 	"time"
 
 	logutil "github.com/openshift/assisted-service/pkg/log"
