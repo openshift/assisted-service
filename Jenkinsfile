@@ -1,7 +1,13 @@
+String cron_string = BRANCH_NAME == "master" ? "@hourly" : ""
+
 pipeline {
     agent { label 'bm-inventory-subsystem' }
+    triggers { cron(cron_string) }
     environment {
         SERVICE = 'ocpmetal/assisted-service'
+    }
+    options {
+      timeout(time: 1, unit: 'HOURS') 
     }
 
     stages {
