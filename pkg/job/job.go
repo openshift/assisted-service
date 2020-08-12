@@ -51,6 +51,7 @@ type Config struct {
 	Namespace           string        `envconfig:"NAMESPACE" default:"assisted-installer"`
 	S3EndpointURL       string        `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
 	S3Bucket            string        `envconfig:"S3_BUCKET" default:"test"`
+	S3Region            string        `envconfig:"S3_REGION"`
 	AwsAccessKeyID      string        `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
 	AwsSecretAccessKey  string        `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
 	JobCPULimit         string        `envconfig:"JOB_CPU_LIMIT" default:"500m"`
@@ -236,11 +237,15 @@ func (k *kubeJob) createImageJob(jobName, imgName, ignitionConfig string, perfor
 									Value: k.Config.S3Bucket,
 								},
 								{
-									Name:  "aws_access_key_id",
+									Name:  "S3_REGION",
+									Value: k.Config.S3Region,
+								},
+								{
+									Name:  "AWS_ACCESS_KEY_ID",
 									Value: k.Config.AwsAccessKeyID,
 								},
 								{
-									Name:  "aws_secret_access_key",
+									Name:  "AWS_SECRET_ACCESS_KEY",
 									Value: k.Config.AwsSecretAccessKey,
 								},
 							},

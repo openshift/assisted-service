@@ -33,7 +33,8 @@ $(BUILD_FOLDER):
 	mkdir -p $(BUILD_FOLDER)
 
 format:
-	goimports -w -l cmd/ internal/ subsystem/
+	goimports -w -l cmd/ internal/ subsystem/ assisted-iso-create/
+	gofmt -w -l cmd/ internal/ subsystem/ assisted-iso-create/
 
 ############
 # Generate #
@@ -74,16 +75,22 @@ generate-keys:
 ##################
 
 .PHONY: build
-build: lint unit-test build-minimal generate-keys
+build: lint unit-test build-minimal build-iso-generator generate-keys
 
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
+
+build-iso-generator: $(BUILD_FOLDER)
+	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-iso-create assisted-iso-create/main.go
 
 build-onprem: build
 	podman build -f Dockerfile.assisted-service-onprem -t ${SERVICE} .
 
 build-image: build
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
+
+build-assisted-iso-generator-image: build
+	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t quay.io/yshnaidm/installer-image-build:migration
 
 update: build-image
 	docker push $(SERVICE)
