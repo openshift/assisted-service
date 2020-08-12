@@ -260,17 +260,66 @@ var _ = Describe("GenerateClusterISO", func() {
 		})
 		RunGenerateClusterISOTests()
 	})
+})
 
-	It("ignition_file_contains_url", func() {
-		cluster := registerCluster(false)
+var _ = Describe("IgnitionParameters", func() {
 
-		bm.ServiceBaseURL = "file://10.56.20.70:7878"
-		text, err := bm.formatIgnitionFile(cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
+	var (
+		bm *bareMetalInventory
+	)
+
+	cluster := common.Cluster{Cluster: models.Cluster{
+		ID:            strToUUID("a640ef36-dcb1-11ea-87d0-0242ac130003"),
+		PullSecretSet: false,
+	}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+
+	RunIgnitionConfigurationTests := func() {
+
+		It("ignition_file_contains_url", func() {
+			bm.ServiceBaseURL = "file://10.56.20.70:7878"
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			})
+
+			Expect(err).Should(BeNil())
+			Expect(text).Should(ContainSubstring(fmt.Sprintf("--url %s", bm.ServiceBaseURL)))
 		})
 
-		Expect(err).Should(BeNil())
-		Expect(text).Should(ContainSubstring(fmt.Sprintf("--url %s", bm.ServiceBaseURL)))
+		It("enabled_cert_verification", func() {
+			bm.SkipCertVerification = false
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			})
+
+			Expect(err).Should(BeNil())
+			Expect(text).Should(ContainSubstring("--insecure=false"))
+		})
+
+		It("disabled_cert_verification", func() {
+			bm.SkipCertVerification = true
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			})
+
+			Expect(err).Should(BeNil())
+			Expect(text).Should(ContainSubstring("--insecure=true"))
+		})
+
+		It("cert_verification_enabled_by_default", func() {
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			})
+
+			Expect(err).Should(BeNil())
+			Expect(text).Should(ContainSubstring("--insecure=false"))
+		})
+	}
+
+	Context("start with clean configuration", func() {
+		BeforeEach(func() {
+			bm = &bareMetalInventory{}
+		})
+		RunIgnitionConfigurationTests()
 	})
 })
 

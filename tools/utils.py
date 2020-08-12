@@ -74,12 +74,13 @@ def get_service_url(
         target: Optional[str] = None,
         domain: str = '',
         namespace: str = 'assisted-installer',
-        profile: str = 'minikube'
+        profile: str = 'minikube',
+        disable_tls: bool = False
         ) -> str:
     # TODO: delete once rename everything to assisted-installer
     if target == INGRESS_REMOTE_TARGET:
         service_host = f"assisted-installer.{get_domain(domain)}"
-        service_port = "80"
+        return to_url(service_host, disable_tls)
     else:
         service_host = get_service_host(
             service,
@@ -94,7 +95,14 @@ def get_service_url(
             profile=profile
         )
 
-    return f'http://{service_host}:{service_port}'
+    return to_url(host=service_host, port=service_port, disable_tls=disable_tls)
+
+
+def to_url(host, port=None, disable_tls=False):
+    protocol = 'http' if disable_tls else 'https'
+    port = port if port else 80 if disable_tls else 443
+    return f'{protocol}://{host}:{port}'
+
 
 def apply(file):
     print(check_output("kubectl apply -f {}".format(file)))

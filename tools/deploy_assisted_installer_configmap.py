@@ -36,7 +36,13 @@ def main():
         with open(DST_FILE, "w+") as dst:
             data = src.read()
             data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
-            data = data.replace("REPLACE_BASE_URL", utils.get_service_url(SERVICE, deploy_options.target, deploy_options.domain, deploy_options.namespace, deploy_options.profile))
+            data = data.replace("REPLACE_BASE_URL", utils.get_service_url(service=SERVICE,
+                                                                          target=deploy_options.target,
+                                                                          domain=deploy_options.domain,
+                                                                          namespace=deploy_options.namespace,
+                                                                          profile=deploy_options.profile,
+                                                                          disable_tls=deploy_options.disable_tls))
+
             data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
             data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
             data = data.replace('REPLACE_JWKS_URL', deploy_options.jwks_url)
