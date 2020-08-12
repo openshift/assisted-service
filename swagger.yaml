@@ -1293,6 +1293,49 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/events:
+    get:
+      tags:
+        - events
+      summary: Lists events for a cluster
+      operationId: ListEvents
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: host_id
+          type: string
+          format: uuid
+          required: false
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/event-list'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /domains:
     get:
       tags:
@@ -1320,40 +1363,6 @@ paths:
           description: Success.
           schema:
             $ref: '#/definitions/list-versions'
-
-  /events/{entity_id}:
-    get:
-      tags:
-        - events
-      summary: Lists events for an entity_id
-      operationId: ListEvents
-      parameters:
-        - in: path
-          name: entity_id
-          type: string
-          format: uuid
-          required: true
-      responses:
-        200:
-          description: Success.
-          schema:
-            $ref: '#/definitions/event-list'
-        401:
-          description: Unauthorized.
-          schema:
-            $ref: '#/definitions/error'
-        403:
-          description: Forbidden.
-          schema:
-            $ref: '#/definitions/error'
-        405:
-          description: Method Not Allowed.
-          schema:
-            $ref: '#/definitions/error'
-        500:
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
 
 
 definitions:
@@ -1392,16 +1401,20 @@ definitions:
   event:
     type: object
     required:
-      - entity_id
+      - cluster_id
       - severity
       - message
       - event_time
     properties:
-      entity_id:
+      cluster_id:
         type: string
         format: uuid
-        description: Unique identifier of the object this event relates to.
+        description: Unique identifier of the cluster this event relates to.
         x-go-custom-tag: gorm:"index"
+      host_id:
+        type: string
+        format: uuid
+        description: Unique identifier of the host this event relates to.
       severity:
         type: string
         enum: [info, warning, error, critical]
