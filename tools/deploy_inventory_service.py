@@ -26,7 +26,7 @@ def main():
 
     # in case of OpenShift deploy ingress as well
     if deploy_options.target == "oc-ingress":
-        hostname = utils.get_service_host("assisted-installer", deploy_options.target, deploy_options.domain,
+        hostname = utils.get_service_host("assisted-service", deploy_options.target, deploy_options.domain,
                                           deploy_options.namespace)
 
         if deploy_options.enable_tls:
