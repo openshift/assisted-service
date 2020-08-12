@@ -42,12 +42,13 @@ def main():
             print("Deploying {}".format(DST_FILE))
 
             versions = {"IMAGE_BUILDER": "installer-image-build",
-                        "AGENT_DOCKER_IMAGE": "agent",
                         "IGNITION_GENERATE_IMAGE": "assisted-ignition-generator",
+                        "KUBECONFIG_GENERATE_IMAGE": "ignition-manifests-and-kubeconfig-generate",
                         "INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",
-                        "CONNECTIVITY_CHECK_IMAGE": "connectivity_check",
-                        "INVENTORY_IMAGE": "inventory"}
+                        "AGENT_DOCKER_IMAGE": "assisted-installer-agent",
+                        "CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent",
+                        "INVENTORY_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
                 image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
                 versions[env_var_name] = image_fqdn
