@@ -130,19 +130,18 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshCluster(statusInfoReady),
 	})
 
-	// TODO - fix it This transition is fired when the preparing installation reach the timeout
-	//sm.AddTransition(stateswitch.TransitionRule{
-	//	TransitionType: TransitionTypeRefreshStatus,
-	//	SourceStates: []stateswitch.State{
-	//		stateswitch.State(models.ClusterStatusPreparingForInstallation),
-	//	},
-	//	Condition:        stateswitch.And(requiredInputFieldsExist, isSufficientForInstall),
-	//	DestinationState: stateswitch.State(models.ClusterStatusError),
-	//	PostTransition:   th.PostRefreshCluster(statusInfoPreparingForInstallationTimeout),
-	//})
+	// This transition is fired when the preparing installation reach the timeout
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusPreparingForInstallation)},
+		Condition:        th.IsPreparingTimedOut,
+		DestinationState: stateswitch.State(models.ClusterStatusError),
+		PostTransition:   th.PostRefreshCluster(statusInfoPreparingForInstallationTimeout),
+	})
 
 	// Noop transitions
 	for _, state := range []stateswitch.State{
+		stateswitch.State(models.ClusterStatusPreparingForInstallation),
 		stateswitch.State(models.ClusterStatusFinalizing),
 		stateswitch.State(models.ClusterStatusInstalled),
 		stateswitch.State(models.ClusterStatusError)} {
