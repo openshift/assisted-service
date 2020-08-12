@@ -1557,39 +1557,33 @@ func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installe
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 		if gorm.IsRecordNotFoundError(err) {
-			return installer.NewGetCredentialsNotFound().
-				WithPayload(common.GenerateError(http.StatusNotFound, err))
+			return common.NewApiError(http.StatusNotFound, err)
 		} else {
-			return installer.NewGetCredentialsInternalServerError().
-				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
 	if err := b.clusterApi.GetCredentials(&cluster); err != nil {
-		return installer.NewGetCredentialsConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, err))
+		log.WithError(err).Errorf("failed to get credentials of cluster %s", params.ClusterID.String())
+		return common.NewApiError(http.StatusConflict, err)
 	}
-	objectName := "kubeadmin-password"
-	objectURL := fmt.Sprintf("%s/%s/%s", b.S3EndpointURL, b.S3Bucket,
-		fmt.Sprintf("%s/%s", params.ClusterID, objectName))
-	log.Info("Object URL: ", objectURL)
-	resp, err := http.Get(objectURL)
+	objectName := fmt.Sprintf("%s/%s", params.ClusterID, "kubeadmin-password")
+	r, _, err := b.s3Client.Download(ctx, objectName)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get clusters %s %s object", params.ClusterID, objectName)
-		return installer.NewGetCredentialsInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		log.WithError(err).Errorf("Failed to get clusters %s object", objectName)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	defer resp.Body.Close()
-	password, err := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK || err != nil {
-		log.WithError(fmt.Errorf("%s", password)).
-			Errorf("Failed to get clusters %s %s", params.ClusterID, objectName)
-		return installer.NewGetCredentialsConflict().
-			WithPayload(common.GenerateError(http.StatusConflict, errors.New(string(password))))
+	defer r.Close()
+	password, err := ioutil.ReadAll(r)
+	if err != nil {
+		log.WithError(fmt.Errorf("%s", password)).Errorf("Failed to get clusters %s", objectName)
+		return common.NewApiError(http.StatusConflict, errors.New(string(password)))
 	}
 	return installer.NewGetCredentialsOK().WithPayload(
-		&models.Credentials{Username: DefaultUser,
+		&models.Credentials{
+			Username:   DefaultUser,
 			Password:   string(password),
-			ConsoleURL: fmt.Sprintf("%s.%s.%s", ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain)})
+			ConsoleURL: fmt.Sprintf("%s.%s.%s", ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain),
+		})
 }
 
 func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {
