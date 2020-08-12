@@ -41,7 +41,7 @@ def get_service_port(service, target=None, namespace='assisted-installer'):
 def get_service_url(service: str, target: Optional[str] = None, domain: str = "", namespace: str = 'assisted-installer') -> str:
     # TODO: delete once rename everything to assisted-installer
     if target == "oc-ingress":
-        service_host = f"{service}.{get_domain(domain)}"
+        service_host = f"assisted-installer.{get_domain(domain)}"
         service_port = "80"
     else:
         service_host = get_service_host(service, target, namespace=namespace)
