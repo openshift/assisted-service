@@ -141,8 +141,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		It("success", func() {
 			clusterId := registerCluster(true).ID
 			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
@@ -156,8 +156,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		It("success with proxy", func() {
 			clusterId := registerCluster(true).ID
 			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", SSH public key "+
 				"is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -167,6 +167,23 @@ var _ = Describe("GenerateClusterISO", func() {
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 
 		})
+
+		It("success with AWS S3", func() {
+			clusterId := registerCluster(true).ID
+			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().IsAwsS3().Return(true)
+			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
+			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId.String(), models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
+			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+				ClusterID:         *clusterId,
+				ImageCreateParams: &models.ImageCreateParams{},
+			})
+			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+			Expect(getReply.Payload.ImageInfo.GeneratorVersion).To(Equal("quay.io/ocpmetal/installer-image-build:latest"))
+		})
+
 		It("cluster_not_exists", func() {
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         strfmt.UUID(uuid.New().String()),
@@ -1554,19 +1571,53 @@ var _ = Describe("KubeConfig download", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
+	It("kubeconfig presigned backend not aws", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(false)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  kubeconfig,
+		})
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+	})
+	It("kubeconfig presigned cluster is not in installed state", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  kubeconfig,
+		})
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+	})
+	It("kubeconfig presigned happy flow", func() {
+		status := ClusterStatusInstalled
+		c.Status = &status
+		db.Save(&c)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("url", nil)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  kubeconfig,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
+		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
+		Expect(*replyPayload.URL).Should(Equal("url"))
+	})
 	It("kubeconfig download no cluster id", func() {
 		clusterId := strToUUID(uuid.New().String())
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: *clusterId,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewDownloadClusterKubeconfigNotFound()))
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusNotFound)))
 	})
 	It("kubeconfig download cluster is not in installed state", func() {
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: clusterID,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewDownloadClusterKubeconfigConflict()))
-
+		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
 	})
 	It("kubeconfig download s3download failure", func() {
 		status := ClusterStatusInstalled
@@ -1577,7 +1628,7 @@ var _ = Describe("KubeConfig download", func() {
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: clusterID,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewDownloadClusterKubeconfigConflict()))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
 	})
 	It("kubeconfig download happy flow", func() {
 		status := ClusterStatusInstalled

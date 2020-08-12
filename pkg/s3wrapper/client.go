@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -23,8 +24,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const awsEndpointSuffix = ".amazonaws.com"
+
 //go:generate mockgen -source=client.go -package=s3wrapper -destination=mock_s3wrapper.go
 type API interface {
+	IsAwsS3() bool
 	CreateBucket() error
 	Upload(ctx context.Context, data []byte, objectName string) error
 	UploadFile(ctx context.Context, reader io.Reader, objectName string) error
@@ -98,6 +102,14 @@ func newS3Session(cfg *Config) (*session.Session, error) {
 	}
 
 	return awsSession, nil
+}
+
+func (c *S3Client) IsAwsS3() bool {
+	// If AWS, URL should be empty or like s3.us-east-1.amazonaws.com
+	if c.cfg.S3EndpointURL == "" || strings.HasSuffix(c.cfg.S3EndpointURL, awsEndpointSuffix) {
+		return true
+	}
+	return false
 }
 
 func (c *S3Client) CreateBucket() error {
