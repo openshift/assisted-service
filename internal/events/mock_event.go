@@ -6,10 +6,10 @@ package events
 
 import (
 	context "context"
+	strfmt "github.com/go-openapi/strfmt"
+	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	time "time"
-
-	gomock "github.com/golang/mock/gomock"
 )
 
 // MockHandler is a mock of Handler interface
@@ -60,4 +60,16 @@ func (m *MockHandler) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*
 func (mr *MockHandlerMockRecorder) GetEvents(clusterID, hostID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEvents", reflect.TypeOf((*MockHandler)(nil).GetEvents), clusterID, hostID)
+}
+
+// DeleteClusterEvents mocks base method
+func (m *MockHandler) DeleteClusterEvents(clusterID strfmt.UUID) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "DeleteClusterEvents", clusterID)
+}
+
+// DeleteClusterEvents indicates an expected call of DeleteClusterEvents
+func (mr *MockHandlerMockRecorder) DeleteClusterEvents(clusterID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterEvents", reflect.TypeOf((*MockHandler)(nil).DeleteClusterEvents), clusterID)
 }

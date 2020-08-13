@@ -23,6 +23,7 @@ type Handler interface {
 	// otherEntities arguments provides for specifying mor IDs that are relevant for this event
 	AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time)
 	GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*Event, error)
+	DeleteClusterEvents(clusterID strfmt.UUID)
 }
 
 var _ Handler = &Events{}
@@ -102,4 +103,8 @@ func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*Event,
 	}
 
 	return evs, nil
+}
+
+func (e Events) DeleteClusterEvents(clusterID strfmt.UUID) {
+	e.db.Where("cluster_id = ?", clusterID.String()).Delete(models.Event{})
 }
