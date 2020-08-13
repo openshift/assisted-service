@@ -1932,7 +1932,7 @@ var _ = Describe("Upload logs test", func() {
 			Upfile:      kubeconfigFile,
 			HTTPRequest: request,
 		}
-		fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, common.GetHostnameForMsg(&host), "test_kubeconfig")
+		fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, host.ID.String(), "test_kubeconfig")
 		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		reply := bm.UploadHostLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadHostLogsNoContent()))
