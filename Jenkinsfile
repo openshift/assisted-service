@@ -5,6 +5,7 @@ pipeline {
     triggers { cron(cron_string) }
     environment {
         SERVICE = 'ocpmetal/assisted-service'
+        ISO_CREATION = 'installer-image-build'
     }
     options {
       timeout(time: 1, unit: 'HOURS') 
