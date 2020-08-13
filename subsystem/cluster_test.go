@@ -1237,7 +1237,7 @@ var _ = Describe("cluster install", func() {
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
 
-		// Two hosts are masters, one in pending-for-input state since there is no role  -> state must be pending-for-input
+		// Two hosts are masters, one host is without role  -> state must be insufficient
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
@@ -1249,7 +1249,7 @@ var _ = Describe("cluster install", func() {
 			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		waitForClusterState(ctx, clusterID, models.ClusterStatusPendingForInput, defaultWaitForClusterStateTimeout, clusterPendingForInputStateInfo)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterInsufficientStateInfo)
 
 		// update role for the host and setting as worker -> state must be insufficient since there is no inventory for h4
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{

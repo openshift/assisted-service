@@ -79,11 +79,6 @@ func newValidations(log logrus.FieldLogger) []validation {
 			formatter: v.printIsIngressVipValid,
 		},
 		{
-			id:        NoPendingForInputHost,
-			condition: v.noHostInPendingForInput,
-			formatter: v.printNoHostInPendingForInput,
-		},
-		{
 			id:        AllHostsAreReadyToInstall,
 			condition: v.allHostsAreReadyToInstall,
 			formatter: v.printAllHostsAreReadyToInstall,

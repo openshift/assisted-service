@@ -38,9 +38,6 @@ const (
 	// ClusterValidationIDIngressVipValid captures enum value "ingress-vip-valid"
 	ClusterValidationIDIngressVipValid ClusterValidationID = "ingress-vip-valid"
 
-	// ClusterValidationIDNoPendingForInputHost captures enum value "no-pending-for-input-host"
-	ClusterValidationIDNoPendingForInputHost ClusterValidationID = "no-pending-for-input-host"
-
 	// ClusterValidationIDAllHostsAreReadyToInstall captures enum value "all-hosts-are-ready-to-install"
 	ClusterValidationIDAllHostsAreReadyToInstall ClusterValidationID = "all-hosts-are-ready-to-install"
 
@@ -53,7 +50,7 @@ var clusterValidationIdEnum []interface{}
 
 func init() {
 	var res []ClusterValidationID
-	if err := json.Unmarshal([]byte(`["machine-cidr-defined","machine-cidr-equals-to-calculated-cidr","api-vip-defined","api-vip-valid","ingress-vip-defined","ingress-vip-valid","no-pending-for-input-host","all-hosts-are-ready-to-install","has-exactly-three-masters"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["machine-cidr-defined","machine-cidr-equals-to-calculated-cidr","api-vip-defined","api-vip-valid","ingress-vip-defined","ingress-vip-valid","all-hosts-are-ready-to-install","has-exactly-three-masters"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

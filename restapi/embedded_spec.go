@@ -2421,7 +2421,6 @@ func init() {
         "api-vip-valid",
         "ingress-vip-defined",
         "ingress-vip-valid",
-        "no-pending-for-input-host",
         "all-hosts-are-ready-to-install",
         "has-exactly-three-masters"
       ]
@@ -5768,7 +5767,6 @@ func init() {
         "api-vip-valid",
         "ingress-vip-defined",
         "ingress-vip-valid",
-        "no-pending-for-input-host",
         "all-hosts-are-ready-to-install",
         "has-exactly-three-masters"
       ]

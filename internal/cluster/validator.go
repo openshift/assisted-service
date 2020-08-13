@@ -213,24 +213,6 @@ func (v *clusterValidator) printHasExactlyThreeKnownMasters(context *clusterVali
 	}
 }
 
-func (v *clusterValidator) noHostInPendingForInput(c *clusterValidationContext) validationStatus {
-	mappedHostsByStatus := MapHostsByStatus(c.cluster)
-
-	hostsInPendingForInput, ok := mappedHostsByStatus[models.HostStatusPendingForInput]
-	return boolValue(!ok || (ok && len(hostsInPendingForInput) == 0))
-}
-
-func (v *clusterValidator) printNoHostInPendingForInput(context *clusterValidationContext, status validationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "Cluster does not have pending for input hosts"
-	case ValidationFailure:
-		return "Cluster has pending for input hosts"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
 func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterValidationContext) validationStatus {
 	foundNotKnownHost := false
 	for _, host := range c.cluster.Hosts {

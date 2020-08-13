@@ -84,7 +84,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	})
 
 	// Refresh cluster status
-	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined), If(NoPendingForInputHost), If(isApiVipDefined), If(isIngressVipDefined))
+	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined), If(isApiVipDefined), If(isIngressVipDefined))
 	var isSufficientForInstall = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid),
 		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(HasExactlyThreeMasters))
 
