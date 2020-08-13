@@ -2168,7 +2168,7 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, common.GetHostnameForMsg(cluster.Hosts[0]), fileHeader.Filename)
+	fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, params.HostID.String(), fileHeader.Filename)
 	log.Debugf("Start upload %s to bucket %s aws len", fileName, b.S3Bucket)
 	err = b.s3Client.UploadStream(ctx, params.Upfile, fileName)
 
