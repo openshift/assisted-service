@@ -60,9 +60,6 @@ objects:
             ports:
               - name: assisted-svc
                 containerPort: 8090
-            envFrom:
-              - configMapRef:
-                  name: assisted-service-config
             env:
               - name: ROUTE53_SECRET
                 valueFrom:
@@ -125,6 +122,21 @@ objects:
                 valueFrom:
                   fieldRef:
                     fieldPath: metadata.namespace
+              - name: SERVICE_BASE_URL
+                value: ${SERVICE_BASE_URL}
+              - name: BASE_DNS_DOMAINS
+                value: ${BASE_DNS_DOMAINS}
+              - name: OPENSHIFT_INSTALL_RELEASE_IMAGE
+                value: ${OPENSHIFT_INSTALL_RELEASE_IMAGE}
+              - name: ENABLE_AUTH
+                value: ${ENABLE_AUTH}
+              - name: JWKS_URL
+                value: ${JWKS_URL}
+              - name: ALLOWED_DOMAINS
+                value: ${ALLOWED_DOMAINS}
+              - name: OCM_BASE_URL
+                value: ${OCM_BASE_URL}
+
 - apiVersion: v1
   kind: Service
   metadata:
@@ -139,17 +151,3 @@ objects:
         targetPort: 8090
     selector:
       app: assisted-service
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: assisted-service-config
-    labels:
-      app: assisted-service
-  data:
-    SERVICE_BASE_URL: ${SERVICE_BASE_URL}
-    BASE_DNS_DOMAINS: ${BASE_DNS_DOMAINS}
-    OPENSHIFT_INSTALL_RELEASE_IMAGE: ${OPENSHIFT_INSTALL_RELEASE_IMAGE}
-    ENABLE_AUTH: ${ENABLE_AUTH}
-    JWKS_URL: ${JWKS_URL}
-    ALLOWED_DOMAINS: ${ALLOWED_DOMAINS}
-    OCM_BASE_URL: ${OCM_BASE_URL}
