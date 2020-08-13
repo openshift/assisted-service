@@ -899,6 +899,8 @@ var _ = Describe("cluster install", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusDisabled,
 					defaultWaitForHostStateTimeout)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+					clusterReadyStateInfo)
 
 				By("install cluster")
 				_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
@@ -1172,6 +1174,8 @@ var _ = Describe("cluster install", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusDisabled,
 					defaultWaitForHostStateTimeout)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+					clusterReadyStateInfo)
 
 				By("install cluster")
 				_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
