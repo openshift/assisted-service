@@ -160,9 +160,14 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --url %s --host-name %s"
+			"--controller-image %s --url %s --host-name %s " +
+			"|| ( returnCode=$?; podman run --rm --privileged " +
+			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
+			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender -tag agent -tag installer " +
+			"-url %s -cluster-id %s -host-id %s; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, defaultInstructionConfig.ControllerImage, defaultInstructionConfig.ServiceBaseURL, hostname)))
+			hostId, defaultInstructionConfig.ControllerImage, defaultInstructionConfig.ServiceBaseURL, hostname,
+			defaultInstructionConfig.InventoryImage, defaultInstructionConfig.ServiceBaseURL, clusterId, hostId)))
 	} else {
 		installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 			"--privileged --pid=host " +
@@ -170,9 +175,14 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --url %s"
+			"--controller-image %s --url %s " +
+			"|| ( returnCode=$?; podman run --rm --privileged " +
+			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
+			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender -tag agent -tag installer " +
+			"-url %s -cluster-id %s -host-id %s; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, defaultInstructionConfig.ControllerImage, defaultInstructionConfig.ServiceBaseURL)))
+			hostId, defaultInstructionConfig.ControllerImage, defaultInstructionConfig.ServiceBaseURL,
+			defaultInstructionConfig.InventoryImage, defaultInstructionConfig.ServiceBaseURL, clusterId, hostId)))
 	}
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
 }
