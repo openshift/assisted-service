@@ -328,3 +328,17 @@ func (mr *MockAPIMockRecorder) PrepareForInstallation(ctx, h, db interface{}) *g
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareForInstallation", reflect.TypeOf((*MockAPI)(nil).PrepareForInstallation), ctx, h, db)
 }
+
+// SetGotLogs mocks base method
+func (m *MockAPI) SetGotLogs(ctx context.Context, h *models.Host, gotLogs bool, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetGotLogs", ctx, h, gotLogs, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetGotLogs indicates an expected call of SetGotLogs
+func (mr *MockAPIMockRecorder) SetGotLogs(ctx, h, gotLogs, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGotLogs", reflect.TypeOf((*MockAPI)(nil).SetGotLogs), ctx, h, gotLogs, db)
+}
