@@ -1521,6 +1521,8 @@ definitions:
         $ref: '#/definitions/host-role'
       bootstrap:
         type: boolean
+      got_logs:
+        type: boolean
       installer_version:
         type: string
         description: Installer version

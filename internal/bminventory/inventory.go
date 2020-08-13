@@ -2124,9 +2124,14 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 	fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, common.GetHostnameForMsg(cluster.Hosts[0]), fileHeader.Filename)
 	log.Debugf("Start upload %s to bucket %s aws len", fileName, b.S3Bucket)
 	err = b.s3Client.UploadStream(ctx, params.Upfile, fileName)
-
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload %s to s3", fileName)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	err = b.hostApi.SetGotLogs(ctx, cluster.Hosts[0], true, b.db)
+	if err != nil {
+		log.WithError(err).Errorf("Failed update host db flag")
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 

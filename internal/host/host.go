@@ -89,6 +89,7 @@ type API interface {
 	GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage
 	IsInstallable(h *models.Host) bool
 	PrepareForInstallation(ctx context.Context, h *models.Host, db *gorm.DB) error
+	SetGotLogs(ctx context.Context, h *models.Host, gotLogs bool, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -270,6 +271,16 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 		err := db.Model(h).Update("bootstrap", isbootstrap).Error
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
+		}
+	}
+	return nil
+}
+
+func (m *Manager) SetGotLogs(ctx context.Context, h *models.Host, gotLogs bool, db *gorm.DB) error {
+	if h.GotLogs != gotLogs {
+		err := db.Model(h).Update("got_logs", gotLogs).Error
+		if err != nil {
+			return errors.Wrapf(err, "failed to set got_logs to host %s", h.ID.String())
 		}
 	}
 	return nil
