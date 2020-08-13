@@ -72,7 +72,7 @@ func ipInCidr(ipStr, cidrStr string) bool {
 	return ipnet.Contains(ip)
 }
 
-func verifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, mustExist bool, log logrus.FieldLogger) error {
+func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, mustExist bool, log logrus.FieldLogger) error {
 	if !mustExist && vip == "" {
 		return nil
 	}
@@ -93,9 +93,9 @@ func verifyDifferentVipAddresses(apiVip string, ingressVip string) error {
 }
 
 func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, mustExist bool, log logrus.FieldLogger) error {
-	err := verifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", mustExist, log)
+	err := VerifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", mustExist, log)
 	if err == nil {
-		err = verifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", mustExist, log)
+		err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", mustExist, log)
 	}
 	if err == nil {
 		err = verifyDifferentVipAddresses(apiVip, ingressVip)

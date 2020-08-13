@@ -127,15 +127,6 @@ func addHost(role models.HostRole, state string, clusterId strfmt.UUID, db *gorm
 	return hostId
 }
 
-func updateHostProgress(h *models.Host, stage models.HostStage, info string, db *gorm.DB) {
-	progress := &models.HostProgressInfo{
-		CurrentStage: stage,
-		ProgressInfo: info,
-	}
-	h.Progress = progress
-	Expect(db.Model(&h).Update("progress_current_stage", stage, "progress_progress_info", info).Error).ShouldNot(HaveOccurred())
-}
-
 func checkIfIdInArr(a strfmt.UUID, list []*strfmt.UUID) bool {
 	for _, b := range list {
 		if b == &a {

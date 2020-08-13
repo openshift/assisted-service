@@ -6,9 +6,9 @@ package job
 
 import (
 	context "context"
+	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	events "github.com/openshift/assisted-service/internal/events"
-	gomock "github.com/golang/mock/gomock"
 	logrus "github.com/sirupsen/logrus"
 	reflect "reflect"
 )

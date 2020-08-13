@@ -546,46 +546,6 @@ type clusterInstaller struct {
 	params installer.InstallClusterParams
 }
 
-func (b *bareMetalInventory) verifyClusterNetworkConfig(ctx context.Context, cluster *common.Cluster) error {
-	cidr, err := network.CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
-	if err != nil {
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-	if cidr != cluster.MachineNetworkCidr {
-		return common.NewApiError(http.StatusBadRequest,
-			fmt.Errorf("Cluster machine CIDR %s is different than the calculated CIDR %s", cluster.MachineNetworkCidr, cidr))
-	}
-	if err = network.VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip,
-		true, b.log); err != nil {
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-	machineCidrHosts, err := network.GetMachineCIDRHosts(b.log, cluster)
-	if err != nil {
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-	masterNodesIds, err := b.clusterApi.GetMasterNodesIds(ctx, cluster, b.db)
-	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	hostIDInCidrHosts := func(id strfmt.UUID, hosts []*models.Host) bool {
-		for _, h := range hosts {
-			if *h.ID == id {
-				return true
-			}
-		}
-		return false
-	}
-
-	for _, id := range masterNodesIds {
-		if !hostIDInCidrHosts(*id, machineCidrHosts) {
-			return common.NewApiError(http.StatusBadRequest,
-				fmt.Errorf("Master id %s does not have an interface with IP belonging to machine CIDR %s",
-					*id, cluster.MachineNetworkCidr))
-		}
-	}
-	return nil
-}
-
 func (c *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) error {
 	success := true
 	err := errors.Errorf("Failed to install cluster <%s>", cluster.ID.String())
@@ -648,21 +608,6 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 	return nil
 }
 
-func (b *bareMetalInventory) validateAllHostsCanBeInstalled(cluster *common.Cluster) error {
-	notInstallableHosts := make([]string, 0, len(cluster.Hosts))
-	for _, h := range cluster.Hosts {
-		if !b.hostApi.IsInstallable(h) {
-			notInstallableHosts = append(notInstallableHosts, h.ID.String())
-		}
-	}
-
-	if len(notInstallableHosts) > 0 {
-		return common.NewApiError(http.StatusConflict,
-			errors.Errorf("Not all hosts are ready for installation: %s", notInstallableHosts))
-	}
-	return nil
-}
-
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
@@ -674,17 +619,18 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	if err = b.refreshAllHosts(ctx, &cluster); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+	if _, err = b.clusterApi.RefreshStatus(ctx, &cluster, b.db); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 
 	// Reload again after refresh
 	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
-	if err = b.verifyClusterNetworkConfig(ctx, &cluster); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	if err = b.validateAllHostsCanBeInstalled(&cluster); err != nil {
-		return common.GenerateErrorResponder(err)
+	// Verify cluster is ready to install
+	if ok, reason := b.clusterApi.IsReadyForInstallation(&cluster); !ok {
+		return common.NewApiError(http.StatusConflict,
+			errors.Errorf("Cluster is not ready for installation, %s", reason))
 	}
 
 	// prepare cluster and hosts for installation

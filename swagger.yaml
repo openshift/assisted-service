@@ -1879,6 +1879,7 @@ definitions:
           - ready
           - error
           - preparing-for-installation
+          - pending-for-input
           - installing
           - finalizing
           - installed
@@ -1933,6 +1934,11 @@ definitions:
         type: boolean
         description: Indicate if VIP DHCP allocation mode is enabled.
         x-nullable: true
+      validations_info:
+        type: string
+        description: Json formatted string containing the validations results for each validation id grouped by category (network, hosts-data, etc.)
+        x-go-custom-tag: gorm:"type:varchar(2048)"
+
 
   image_info:
     type: object
@@ -2356,3 +2362,15 @@ definitions:
     properties:
       url:
         type: string
+
+  cluster-validation-id:
+    type: string
+    enum:
+      - 'machine-cidr-defined'
+      - 'machine-cidr-equals-to-calculated-cidr'
+      - 'api-vip-defined'
+      - 'api-vip-valid'
+      - 'ingress-vip-defined'
+      - 'ingress-vip-valid'
+      - 'all-hosts-are-ready-to-install'
+      - 'has-exactly-three-masters'

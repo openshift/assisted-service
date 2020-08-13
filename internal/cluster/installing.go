@@ -53,11 +53,11 @@ func (i *installingState) RefreshStatus(ctx context.Context, c *common.Cluster, 
 func (i *installingState) getClusterInstallationState(ctx context.Context, c *common.Cluster, db *gorm.DB) (string, string, error) {
 	log := logutil.FromContext(ctx, i.log)
 
-	mappedMastersByRole := mapMasterHostsByStatus(c)
+	mappedMastersByRole := MapMasterHostsByStatus(c)
 
 	// Cluster is in finalizing
 	mastersInInstalled, ok := mappedMastersByRole[intenralhost.HostStatusInstalled]
-	if ok && len(mastersInInstalled) >= minHostsNeededForInstallation {
+	if ok && len(mastersInInstalled) >= MinHostsNeededForInstallation {
 		log.Infof("Cluster %s has at least %d installed hosts, cluster is installed.", c.ID, len(mastersInInstalled))
 		return models.ClusterStatusFinalizing, statusInfoFinalizing, nil
 	}
@@ -67,7 +67,7 @@ func (i *installingState) getClusterInstallationState(ctx context.Context, c *co
 		len(mappedMastersByRole[intenralhost.HostStatusInstallingInProgress]) +
 		len(mappedMastersByRole[intenralhost.HostStatusInstalled]) +
 		len(mappedMastersByRole[intenralhost.HostStatusInstallingPendingUserAction])
-	if mastersInSomeInstallingStatus >= minHostsNeededForInstallation {
+	if mastersInSomeInstallingStatus >= MinHostsNeededForInstallation {
 		return clusterStatusInstalling, statusInfoInstalling, nil
 	}
 
