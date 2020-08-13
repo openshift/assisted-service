@@ -82,14 +82,24 @@ func (j *localJob) AbortInstallConfig(ctx context.Context, cluster common.Cluste
 
 func (j *localJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobName string, imageName string, ignitionConfig string, eventsHandler events.Handler) error {
 	log := logutil.FromContext(ctx, j.log)
-	envVars := append(os.Environ(),
+	workDir := "/data"
+	cmd := exec.Command(workDir + "/assisted-iso-create")
+	cmd.Env = append(os.Environ(),
 		"S3_ENDPOINT_URL="+j.Config.S3EndpointURL,
 		"IGNITION_CONFIG="+ignitionConfig,
 		"IMAGE_NAME="+imageName,
+		"COREOS_IMAGE="+workDir+"/livecd.iso",
 		"S3_BUCKET="+j.Config.S3Bucket,
-		"aws_access_key_id="+j.Config.AwsAccessKeyID,
-		"aws_secret_access_key="+j.Config.AwsSecretAccessKey,
-		"WORK_DIR=/data",
+		"AWS_ACCESS_KEY_ID="+j.Config.AwsAccessKeyID,
+		"AWS_SECRET_ACCESS_KEY="+j.Config.AwsSecretAccessKey,
+		"WORK_DIR="+workDir,
 	)
-	return j.Execute("python", "./data/install_process.py", envVars, log)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	if err := cmd.Run(); err != nil {
+		log.Errorf("assisted-iso-create failed: %s", out.String())
+		return err
+	}
+	return nil
 }
