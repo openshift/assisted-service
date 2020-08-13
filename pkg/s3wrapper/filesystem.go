@@ -27,6 +27,10 @@ func NewFSClient(basedir string, logger *logrus.Logger) *FSClient {
 	return &FSClient{log: logger, basedir: basedir}
 }
 
+func (c *FSClient) IsAwsS3() bool {
+	return false
+}
+
 func (f *FSClient) CreateBucket() error {
 	return nil
 }
@@ -44,6 +48,59 @@ func (f *FSClient) Upload(ctx context.Context, data []byte, objectName string) e
 		log.Error(err)
 		return err
 	}
+	log.Infof("Successfully uploaded file %s", objectName)
+	return nil
+}
+
+func (f *FSClient) UploadFile(ctx context.Context, filePath, objectName string) error {
+	log := logutil.FromContext(ctx, f.log)
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		err = errors.Wrapf(err, "Unable to open file %s for upload", filePath)
+		log.Error(err)
+		return err
+	}
+	return f.Upload(ctx, data, objectName)
+}
+
+func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectName string) error {
+	log := logutil.FromContext(ctx, f.log)
+	filePath := filepath.Join(f.basedir, objectName)
+	if err := os.MkdirAll(path.Dir(filePath), 0755); err != nil {
+		err = errors.Wrapf(err, "Unable to create directory for file data %s", filePath)
+		log.Error(err)
+		return err
+	}
+	buffer := make([]byte, 1024)
+	fo, err := os.Create(filePath)
+	if err != nil {
+		err = errors.Wrapf(err, "Unable to open file for writing %s", filePath)
+		log.Error(err)
+		return err
+	}
+	defer func() {
+		if err := fo.Close(); err != nil {
+			log.Error("Unable to close file %s", filePath)
+		}
+	}()
+	for {
+		length, err := reader.Read(buffer)
+		if err != nil && err != io.EOF {
+			err = errors.Wrapf(err, "Unable to read data for upload to file %s", filePath)
+			log.Error(err)
+			return err
+		}
+		if length == 0 {
+			break
+		}
+		if _, err := fo.Write(buffer[0:length]); err != nil {
+			err = errors.Wrapf(err, "Unable to write data to file %s", filePath)
+			log.Error(err)
+			return err
+		}
+	}
+
+	log.Infof("Successfully uploaded file %s", objectName)
 	return nil
 }
 

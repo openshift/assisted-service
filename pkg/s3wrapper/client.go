@@ -330,7 +330,7 @@ func (c *S3Client) handleObject(ctx context.Context, log logrus.FieldLogger, obj
 			objTime, _ := strconv.ParseInt(*tag.Value, 10, 64)
 			if now.After(time.Unix(objTime, 0).Add(deleteTime)) {
 				if err := c.DeleteObject(ctx, *object.Key); err != nil {
-					log.Infof("Error deleting expired object %s", *object.Key)
+					log.Errorf("Error deleting expired object %s", *object.Key)
 					continue
 				}
 				log.Infof("Deleted expired object %s", *object.Key)

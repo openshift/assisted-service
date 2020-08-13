@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
-	"strconv"
-	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -24,6 +22,7 @@ var Options struct {
 	IgnitionConfig string `envconfig:"IGNITION_CONFIG"`
 	ImageName      string `envconfig:"IMAGE_NAME"`
 	BaseISOFile    string `envconfig:"COREOS_IMAGE"`
+	UseS3          bool   `envconfig:"USE_S3" default:"true"`
 	S3Config       s3wrapper.Config
 }
 
@@ -54,13 +53,12 @@ func embedIgnitionIntoISO(workDir, ignitionFile, imageName, baseISOFile string, 
 
 func uploadCreatedISOToS3(s3Client *s3wrapper.S3Client, isoFile, isoObjectName string, log *logrus.Logger) error {
 	ctx := context.Background()
-	now := time.Now()
 	err := s3Client.UploadFile(ctx, isoFile, isoObjectName)
 	if err != nil {
 		log.Errorf("Failed to upload file %s as object %s", isoFile, isoObjectName)
 		return err
 	}
-	_, err = s3Client.UpdateObjectTag(ctx, isoObjectName, "create_sec_since_epoch", strconv.FormatInt(now.Unix(), 10))
+	_, err = s3Client.UpdateObjectTimestamp(ctx, isoObjectName)
 	return err
 }
 
@@ -75,13 +73,6 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	log.Infof("S3 parameters: bucket %s, region %s", Options.S3Config.S3Bucket, Options.S3Config.Region)
-
-	s3Client := s3wrapper.NewS3Client(&Options.S3Config, log)
-	if s3Client == nil {
-		log.Fatal("failed to create S3 client, ", err)
-	}
-
 	ignitionFilePath, err := setIgnitionConfigToFile(Options.WorkDir, Options.IgnitionConfig, log)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -92,9 +83,20 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	err = uploadCreatedISOToS3(s3Client, createImageFile, Options.ImageName, log)
-	if err != nil {
-		log.Fatal(err.Error())
+	if Options.UseS3 {
+		log.Infof("S3 parameters: bucket %s, region %s", Options.S3Config.S3Bucket, Options.S3Config.Region)
+
+		s3Client := s3wrapper.NewS3Client(&Options.S3Config, log)
+		if s3Client == nil {
+			log.Fatal("failed to create S3 client, ", err)
+		}
+
+		err = uploadCreatedISOToS3(s3Client, createImageFile, Options.ImageName, log)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+	} else {
+		log.Println("Using local storage for image")
 	}
 
 	log.Println("Image uploaded to S3, Success")

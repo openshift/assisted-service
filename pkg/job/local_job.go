@@ -87,13 +87,10 @@ func (j *localJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobN
 	workDir := "/data"
 	cmd := exec.Command(workDir + "/assisted-iso-create")
 	cmd.Env = append(os.Environ(),
-		"S3_ENDPOINT_URL="+j.Config.S3EndpointURL,
 		"IGNITION_CONFIG="+ignitionConfig,
 		"IMAGE_NAME="+imageName,
 		"COREOS_IMAGE="+workDir+"/livecd.iso",
-		"S3_BUCKET="+j.Config.S3Bucket,
-		"AWS_ACCESS_KEY_ID="+j.Config.AwsAccessKeyID,
-		"AWS_SECRET_ACCESS_KEY="+j.Config.AwsSecretAccessKey,
+		"USE_S3=false",
 		"WORK_DIR="+workDir,
 	)
 
