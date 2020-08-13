@@ -127,14 +127,19 @@ var _ = Describe("GenerateClusterISO", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	registerCluster := func(pullSecretSet bool) *common.Cluster {
-		clusterId := strfmt.UUID(uuid.New().String())
+	registerClusterWithHTTPProxy := func(pullSecretSet bool, httpProxy string) *common.Cluster {
+		clusterID := strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{Cluster: models.Cluster{
-			ID:            &clusterId,
+			ID:            &clusterID,
 			PullSecretSet: pullSecretSet,
+			HTTPProxy:     httpProxy,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		return &cluster
+	}
+
+	registerCluster := func(pullSecretSet bool) *common.Cluster {
+		return registerClusterWithHTTPProxy(pullSecretSet, "")
 	}
 
 	RunGenerateClusterISOTests := func() {
@@ -154,7 +159,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		})
 
 		It("success with proxy", func() {
-			clusterId := registerCluster(true).ID
+			clusterId := registerClusterWithHTTPProxy(true, "http://1.1.1.1:1234").ID
 			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
@@ -162,7 +167,7 @@ var _ = Describe("GenerateClusterISO", func() {
 				"is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{ProxyURL: "http://1.1.1.1:1234"},
+				ImageCreateParams: &models.ImageCreateParams{},
 			})
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 

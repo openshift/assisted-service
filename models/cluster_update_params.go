@@ -41,12 +41,25 @@ type ClusterUpdateParams struct {
 	// The desired role for hosts associated with the cluster.
 	HostsRoles []*ClusterUpdateParamsHostsRolesItems0 `json:"hosts_roles" gorm:"type:varchar(64)[]"`
 
+	// A proxy URL to use for creating HTTP connections outside the cluster.
+	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+	//
+	HTTPProxy *string `json:"http_proxy,omitempty"`
+
+	// A proxy URL to use for creating HTTPS connections outside the cluster.
+	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+	//
+	HTTPSProxy *string `json:"https_proxy,omitempty"`
+
 	// Virtual IP used for cluster ingress traffic.
 	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
 	IngressVip *string `json:"ingress_vip,omitempty"`
 
 	// OpenShift cluster name
 	Name *string `json:"name,omitempty"`
+
+	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
+	NoProxy *string `json:"no_proxy,omitempty"`
 
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
 	PullSecret *string `json:"pull_secret,omitempty"`

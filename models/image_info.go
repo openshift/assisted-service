@@ -31,11 +31,6 @@ type ImageInfo struct {
 	// Image generator version
 	GeneratorVersion string `json:"generator_version,omitempty"`
 
-	// The URL of the HTTP/S proxy that agents should use to access the discovery service
-	// http://\<user\>:\<password\>@\<server\>:\<port\>/
-	//
-	ProxyURL string `json:"proxy_url,omitempty"`
-
 	// size bytes
 	// Minimum: 0
 	SizeBytes *int64 `json:"size_bytes,omitempty"`

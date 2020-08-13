@@ -31,6 +31,16 @@ type ClusterCreateParams struct {
 	// Minimum: 1
 	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
 
+	// A proxy URL to use for creating HTTP connections outside the cluster.
+	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+	//
+	HTTPProxy *string `json:"http_proxy,omitempty"`
+
+	// A proxy URL to use for creating HTTPS connections outside the cluster.
+	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+	//
+	HTTPSProxy *string `json:"https_proxy,omitempty"`
+
 	// Virtual IP used for cluster ingress traffic.
 	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
 	IngressVip string `json:"ingress_vip,omitempty"`
@@ -38,6 +48,9 @@ type ClusterCreateParams struct {
 	// Name of the OpenShift cluster.
 	// Required: true
 	Name *string `json:"name"`
+
+	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
+	NoProxy *string `json:"no_proxy,omitempty"`
 
 	// Version of the OpenShift cluster.
 	// Required: true

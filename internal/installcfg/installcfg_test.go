@@ -77,6 +77,20 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(result.Platform.Baremetal.Hosts)).Should(Equal(2))
+		Expect(result.Proxy).Should(BeNil())
+	})
+
+	It("create_configuration_with_proxy", func() {
+		var result InstallerConfigBaremetal
+		proxyURL := "http://proxyserver:3218"
+		cluster.HTTPProxy = proxyURL
+		cluster.HTTPSProxy = proxyURL
+		data, err := GetInstallConfig(logrus.New(), &cluster)
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Proxy.HTTPProxy).Should(Equal(proxyURL))
+		Expect(result.Proxy.HTTPSProxy).Should(Equal(proxyURL))
 	})
 
 	AfterEach(func() {
