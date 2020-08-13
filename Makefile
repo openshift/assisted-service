@@ -88,20 +88,24 @@ build-onprem: build
 	podman build -f Dockerfile.assisted-service-onprem -t ${SERVICE} .
 
 build-image: build
-	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
+	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
+ 		-f Dockerfile.assisted-service . -t $(SERVICE)
 
 build-assisted-iso-generator-image: build
-	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
+ 		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 update: build-image
 	docker push $(SERVICE)
 
 update-minimal: build-minimal
-	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
+	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
+		-f Dockerfile.assisted-service . -t $(SERVICE)
 
 update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube docker-env) && \
-	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
+		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
+		-f Dockerfile.assisted-service . -t $(SERVICE)
 
 ##########
 # Deploy #
