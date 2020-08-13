@@ -714,6 +714,8 @@ var _ = Describe("cluster install", func() {
 				nodes := register3nodes(clusterID)
 				_, err = userBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
+				h := getHost(clusterID, *nodes[1].ID)
+				Expect(h.GotLogs).Should(Equal(true))
 			}
 		})
 

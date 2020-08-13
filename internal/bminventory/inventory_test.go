@@ -1842,6 +1842,7 @@ var _ = Describe("Upload logs test", func() {
 		dbName         = "upload_logs"
 		mockS3Client   *s3wrapper.MockAPI
 		request        *http.Request
+		mockHostApi    *host.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -1852,9 +1853,10 @@ var _ = Describe("Upload logs test", func() {
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil)
 		mockJob := job.NewMockAPI(ctrl)
+		mockHostApi = host.NewMockAPI(ctrl)
 		mockGenerateISO(mockJob, 1)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -1923,6 +1925,7 @@ var _ = Describe("Upload logs test", func() {
 
 		newHostID := strfmt.UUID(uuid.New().String())
 		host := addHost(newHostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+		mockHostApi.EXPECT().SetGotLogs(gomock.Any(), gomock.Any(), true, gomock.Any()).Return(nil).Times(1)
 		params := installer.UploadHostLogsParams{
 			ClusterID:   clusterID,
 			HostID:      *host.ID,
