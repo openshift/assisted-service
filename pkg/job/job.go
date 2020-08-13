@@ -60,7 +60,7 @@ type Config struct {
 	JobMemoryLimit      string        `envconfig:"JOB_MEMORY_LIMIT" default:"1000Mi"`
 	JobCPURequests      string        `envconfig:"JOB_CPU_REQUESTS" default:"300m"`
 	JobMemoryRequests   string        `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
-	IgnitionGenerator   string        `envconfig:"IGNITION_GENERATE_IMAGE" default:"quay.io/ocpmetal/assisted-ignition-generator:stable"` // TODO: update the latest once the repository has git workflow
+	IgnitionGenerator   string        `envconfig:"IGNITION_GENERATE_IMAGE" default:"quay.io/ocpmetal/assisted-ignition-generator:latest"` // TODO: update the latest once the repository has git workflow
 	ServiceBaseURL      string        `envconfig:"SERVICE_BASE_URL"`
 	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
 	ReleaseImage string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
