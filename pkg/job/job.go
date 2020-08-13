@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/network"
+
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
@@ -297,10 +299,10 @@ func (k *kubeJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobNa
 	return nil
 }
 
-func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, cfg []byte) *batch.Job {
+func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, cfg []byte, encodedDhcpFileContents string) *batch.Job {
 	id := cluster.ID
 	ignitionGeneratorImage := k.Config.IgnitionGenerator
-	return &batch.Job{
+	ret := &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
 			APIVersion: "batch/v1",
@@ -377,16 +379,29 @@ func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, c
 			},
 		},
 	}
+	if encodedDhcpFileContents != "" {
+		ret.Spec.Template.Spec.Containers[0].Env = append(ret.Spec.Template.Spec.Containers[0].Env,
+			core.EnvVar{
+				Name:  "DHCP_ALLOCATION_FILE",
+				Value: encodedDhcpFileContents,
+			})
+	}
+	return ret
 }
 
 // creates install config
 func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error {
 	log := logutil.FromContext(ctx, k.log)
-
 	ctime := time.Time(cluster.CreatedAt)
 	cTimestamp := strconv.FormatInt(ctime.Unix(), 10)
 	jobName := fmt.Sprintf("%s-%s-%s", ignitionGeneratorPrefix, cluster.ID.String(), cTimestamp)[:63]
-	if err := k.Create(ctx, k.createKubeconfigJob(&cluster, jobName, cfg)); err != nil {
+	encodedDhcpFileContents, err := network.GetEncodedDhcpParamFileContents(&cluster)
+	if err != nil {
+		wrapped := errors.Wrapf(err, "Could not create DHCP encoded file")
+		log.WithError(wrapped).Errorf("GenerateInstallConfig")
+		return wrapped
+	}
+	if err := k.Create(ctx, k.createKubeconfigJob(&cluster, jobName, cfg, encodedDhcpFileContents)); err != nil {
 		log.WithError(err).Errorf("Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
 		return errors.Wrapf(err, "Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
 	}
