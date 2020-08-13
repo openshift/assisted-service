@@ -1,0 +1,28 @@
+---
+parameters:
+- name: NAMESPACE
+  value: ''
+  required: true
+apiVersion: v1
+kind: Template
+metadata:
+  name: assisted-installer
+objects:
+- apiVersion: monitoring.coreos.com/v1
+  kind: ServiceMonitor
+  metadata:
+    labels:
+      prometheus: app-sre
+    name: servicemonitor-assisted-installer
+  spec:
+    endpoints:
+    - interval: 30s
+      path: /metrics
+      port: assisted-svc
+      scheme: http
+    namespaceSelector:
+      matchNames:
+      - ${NAMESPACE}
+    selector:
+      matchLabels:
+        app: assisted-service
