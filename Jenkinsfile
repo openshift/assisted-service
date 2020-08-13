@@ -54,8 +54,7 @@ pipeline {
 				}
 			steps {
 				sh '''export PATH=$PATH:/usr/local/go/bin; make build-onprem'''
-				sh 'make deploy-onprem'
-				sleep 30
+				sh 'make deploy-onprem-and-wait-for-service'
 				sh '''export PATH=$PATH:/usr/local/go/bin; make test-onprem'''
 				sh 'make clean-onprem'
 			}
