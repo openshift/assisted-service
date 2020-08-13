@@ -123,6 +123,13 @@ func main() {
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
 
+	var newUrl string
+	if newUrl, err = s3wrapper.FixEndpointURL(Options.JobConfig.S3EndpointURL); err != nil {
+		log.WithError(err).Fatalf("failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
+	} else {
+		Options.JobConfig.S3EndpointURL = newUrl
+	}
+
 	var generator generator.ISOInstallConfigGenerator
 
 	switch Options.DeployTarget {
@@ -146,6 +153,12 @@ func main() {
 		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
+	}
+
+	if newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL); err != nil {
+		log.WithError(err).Fatalf("failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
+	} else {
+		Options.BMConfig.S3EndpointURL = newUrl
 	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, generator, eventsHandler, s3Client, metricsManager)
