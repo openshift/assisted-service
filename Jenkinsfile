@@ -20,7 +20,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh '''export PATH=$PATH:/usr/local/go/bin; make build-image'''
+                sh '''export PATH=$PATH:/usr/local/go/bin; make build-image build-assisted-iso-generator-image'''
             }
         }
 
@@ -60,6 +60,11 @@ pipeline {
                 sh '''docker tag  ${SERVICE} quay.io/ocpmetal/assisted-service:${GIT_COMMIT}'''
                 sh '''docker push quay.io/ocpmetal/assisted-service:latest'''
                 sh '''docker push quay.io/ocpmetal/assisted-service:${GIT_COMMIT}'''
+
+                sh '''docker tag  ${ISO_CREATION} quay.io/ocpmetal/installer-image-build:latest'''
+                sh '''docker tag  ${ISO_CREATION} quay.io/ocpmetal/installer-image-build:${GIT_COMMIT}'''
+                sh '''docker push quay.io/ocpmetal/installer-image-build:latest'''
+                sh '''docker push quay.io/ocpmetal/installer-image-build:${GIT_COMMIT}'''
             }
         }
     }
