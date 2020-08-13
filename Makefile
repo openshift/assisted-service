@@ -19,6 +19,7 @@ endef # get_service
 endif # TARGET
 
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
+ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/installer-image-build:latest)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -90,7 +91,7 @@ build-image: build
 	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-service . -t $(SERVICE)
 
 build-assisted-iso-generator-image: build
-	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t quay.io/yshnaidm/installer-image-build:migration
+	GIT_REVISION=${GIT_REVISION} docker build --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 update: build-image
 	docker push $(SERVICE)
