@@ -239,7 +239,7 @@ A document that can assist troubleshooting: [link](https://docs.google.com/docum
     Image is uploaded to deployed S3 under the name template "installer-image-<cluster-id>".
 * #### ignition manifests and kubeconfig generate:
 
-    https://github.com/oshercc/ignition-manifests-and-kubeconfig-generate
+    https://github.com/openshift/assisted-ignition-generator
 
     Image in charge of generating the following installation files:
     * kubeconfig
