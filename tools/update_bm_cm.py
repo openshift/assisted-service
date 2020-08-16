@@ -48,7 +48,7 @@ def set_envs_to_inventory_cm():
         raise Exception("%s must exists before setting envs to it" % CM_PATH)
     cm_data["data"].update(get_relevant_envs())
     with open(CM_PATH, "w") as cm_file:
-        yaml.dump(cm_data, cm_file)
+        yaml.safe_dump(cm_data, cm_file, default_flow_style=False)
 
 
 if __name__ == "__main__":
