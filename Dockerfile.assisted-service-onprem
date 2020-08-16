@@ -6,7 +6,7 @@ FROM quay.io/ocpmetal/livecd-iso:rhcos-livecd AS livecd
 # [TODO] - remove this line, once we are ready to use openshift-installer from the release
 FROM quay.io/ocpmetal/openshift-installer  AS openshift-installer
 #[TODO] - change ignition-manifests-and-kubeconfig-generate to assisted-installer-generator once a stable was created
-FROM quay.io/ocpmetal/ignition-manifests-and-kubeconfig-generate:stable as config-gen
+FROM quay.io/ocpmetal/assisted-ignition-generator:stable as config-gen
 
 FROM fedora:31
 

@@ -43,7 +43,6 @@ def main():
 
             versions = {"IMAGE_BUILDER": "installer-image-build",
                         "IGNITION_GENERATE_IMAGE": "assisted-ignition-generator",
-                        "KUBECONFIG_GENERATE_IMAGE": "ignition-manifests-and-kubeconfig-generate",
                         "INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",
                         "AGENT_DOCKER_IMAGE": "assisted-installer-agent",
