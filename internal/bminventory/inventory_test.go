@@ -1083,6 +1083,50 @@ var _ = Describe("cluster", func() {
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterNotFound()))
 			})
 
+			Context("Update Proxy", func() {
+				const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
+				BeforeEach(func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{
+						Cluster: models.Cluster{
+							ID: &clusterID,
+						},
+						ProxyHash: emptyProxyHash}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				})
+
+				updateCluster := func(httpProxy, httpsProxy, noProxy string) *common.Cluster {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HTTPProxy:  &httpProxy,
+							HTTPSProxy: &httpsProxy,
+							NoProxy:    &noProxy,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					var cluster common.Cluster
+					err := db.First(&cluster, "id = ?", clusterID).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					return &cluster
+				}
+
+				It("set an empty proxy", func() {
+					cluster := updateCluster("", "", "")
+					Expect(cluster.ProxyHash).To(Equal(emptyProxyHash))
+				})
+
+				It("set a valid proxy", func() {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, "Proxy settings changed", gomock.Any())
+					cluster := updateCluster("http://proxy.proxy", "", "proxy.proxy")
+
+					// ProxyHash shouldn't be changed when proxy is updated, only when generating new ISO
+					Expect(cluster.ProxyHash).To(Equal(emptyProxyHash))
+				})
+			})
+
 			Context("Update Network", func() {
 				BeforeEach(func() {
 					clusterID = strfmt.UUID(uuid.New().String())
