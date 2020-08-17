@@ -59,22 +59,18 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 		return wrapped
 	}
 	envVars := append(os.Environ(),
-		"S3_ENDPOINT_URL="+j.Config.S3EndpointURL,
 		"INSTALLER_CONFIG="+string(cfg),
 		"INVENTORY_ENDPOINT="+strings.TrimSpace(j.Config.ServiceBaseURL)+"/api/assisted-install/v1",
 		"IMAGE_NAME="+j.Config.IgnitionGenerator,
-		"S3_BUCKET="+j.Config.S3Bucket,
 		"CLUSTER_ID="+cluster.ID.String(),
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+j.Config.ReleaseImage,
-		"aws_access_key_id="+j.Config.AwsAccessKeyID,
-		"aws_secret_access_key="+j.Config.AwsSecretAccessKey,
 		"WORK_DIR=/data",
 		"SKIP_CERT_VERIFICATION="+strconv.FormatBool(j.Config.SkipCertVerification),
 	)
 	if encodedDhcpFileContents != "" {
 		envVars = append(envVars, "DHCP_ALLOCATION_FILE="+encodedDhcpFileContents)
 	}
-	return j.Execute("python", "./data/process-ignition-manifests-and-kubeconfig.py", envVars, log)
+	return j.Execute("python3", "./data/render_files.py", envVars, log)
 }
 
 func (j *localJob) AbortInstallConfig(ctx context.Context, cluster common.Cluster) error {
