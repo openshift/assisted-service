@@ -689,14 +689,22 @@ var _ = Describe("cluster install", func() {
 			}
 		})
 
-		It("[only_k8s]Upload logs", func() {
+		It("[only_k8s]Upload and Download logs", func() {
 			By("Test happy flow small file")
 			{
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
 				nodes := register3nodes(clusterID)
-				_, err = userBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
+				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
+
+				file, err := ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = userBMClient.Installer.DownloadHostLogs(ctx, &installer.DownloadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID}, file)
+				Expect(err).NotTo(HaveOccurred())
+				s, err := file.Stat()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(s.Size()).ShouldNot(Equal(0))
 			}
 
 			By("Test happy flow large file")
@@ -712,8 +720,16 @@ var _ = Describe("cluster install", func() {
 				kubeconfigFile, err := os.Open(filePath)
 				Expect(err).NotTo(HaveOccurred())
 				nodes := register3nodes(clusterID)
-				_, err = userBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
+				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
+
+				file, err := ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = userBMClient.Installer.DownloadHostLogs(ctx, &installer.DownloadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID}, file)
+				Expect(err).NotTo(HaveOccurred())
+				s, err := file.Stat()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(s.Size()).ShouldNot(Equal(0))
 			}
 		})
 
