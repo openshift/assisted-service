@@ -10,8 +10,8 @@ import (
 )
 
 type Versions struct {
-	SelfVersion       string `envconfig:"SELF_VERSION" default:"quay.io/ocpmetal/installer-image-build:latest"`
-	ImageBuilder      string `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/installer-image-build:latest"`
+	SelfVersion       string `envconfig:"SELF_VERSION" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
+	ImageBuilder      string `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
 	AgentDockerImg    string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/agent:latest"`
 	IgnitionGenerator string `envconfig:"IGNITION_GENERATE_IMAGE" default:"quay.io/ocpmetal/assisted-ignition-generator:latest"`
 	InstallerImage    string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`

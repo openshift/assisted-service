@@ -29,8 +29,8 @@ var _ = Describe("list versions", func() {
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 		val, _ := reply.(*operations.ListComponentVersionsOK)
 		Expect(val.Payload.Versions["assisted-installer-service"]).
-			Should(Equal("quay.io/ocpmetal/installer-image-build:latest"))
-		Expect(val.Payload.Versions["image-builder"]).Should(Equal("quay.io/ocpmetal/installer-image-build:latest"))
+			Should(Equal("quay.io/ocpmetal/assisted-iso-create:latest"))
+		Expect(val.Payload.Versions["image-builder"]).Should(Equal("quay.io/ocpmetal/assisted-iso-create:latest"))
 		Expect(val.Payload.Versions["discovery-agent"]).Should(Equal("quay.io/ocpmetal/agent:latest"))
 		Expect(val.Payload.Versions["assisted-ignition-generator"]).
 			Should(Equal("quay.io/ocpmetal/assisted-ignition-generator:latest"))

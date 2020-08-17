@@ -19,7 +19,7 @@ endef # get_service
 endif # TARGET
 
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
-ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/installer-image-build:latest)
+ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}

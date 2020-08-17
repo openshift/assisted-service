@@ -49,7 +49,7 @@ type Config struct {
 	MonitorLoopInterval time.Duration `envconfig:"JOB_MONITOR_INTERVAL" default:"500ms"`
 	RetryInterval       time.Duration `envconfig:"JOB_RETRY_INTERVAL" default:"1s"`
 	RetryAttempts       int           `envconfig:"JOB_RETRY_ATTEMPTS" default:"30"`
-	ImageBuilder        string        `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/installer-image-build:latest"`
+	ImageBuilder        string        `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
 	Namespace           string        `envconfig:"NAMESPACE" default:"assisted-installer"`
 	S3EndpointURL       string        `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
 	S3Bucket            string        `envconfig:"S3_BUCKET" default:"test"`

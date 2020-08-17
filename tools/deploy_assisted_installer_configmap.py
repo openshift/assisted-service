@@ -41,7 +41,7 @@ def main():
             data = data.replace('REPLACE_JWKS_URL', deploy_options.jwks_url)
             print("Deploying {}".format(DST_FILE))
 
-            versions = {"IMAGE_BUILDER": "installer-image-build",
+            versions = {"IMAGE_BUILDER": "assisted-iso-create",
                         "IGNITION_GENERATE_IMAGE": "assisted-ignition-generator",
                         "INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",
