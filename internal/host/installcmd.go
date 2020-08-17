@@ -53,7 +53,6 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"-v /var/log:/var/log:rw --env PULL_SECRET_TOKEN --name assisted-installer {{.INSTALLER}} --role {{.ROLE}} --cluster-id {{.CLUSTER_ID}} " +
 		"--boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}} " +
 		"--controller-image {{.CONTROLLER_IMAGE}} --url {{.BASE_URL}}"
-
 	data := map[string]string{
 		"BASE_URL":          strings.TrimSpace(i.instructionConfig.ServiceBaseURL),
 		"CLUSTER_ID":        string(host.ClusterID),
@@ -63,6 +62,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"CONTROLLER_IMAGE":  i.instructionConfig.ControllerImage,
 		"BOOT_DEVICE":       "",
 		"OPENSHIFT_VERSION": cluster.OpenshiftVersion,
+		"AGENT_IMAGE":       i.instructionConfig.InventoryImage,
 	}
 
 	hostname, _ := common.GetCurrentHostName(host)
@@ -70,6 +70,14 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		cmdArgsTmpl = cmdArgsTmpl + " --host-name {{.HOST_NAME}}"
 		data["HOST_NAME"] = hostname
 	}
+
+	// added to run upload logs if install command fails
+	// will return same exit code as installer command
+	cmdArgsTmpl = cmdArgsTmpl + " || ( returnCode=$?; podman run --rm --privileged " +
+		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
+		"--env PULL_SECRET_TOKEN --name logs-sender {{.AGENT_IMAGE}} logs_sender " +
+		"-tag agent -tag installer " +
+		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}}; exit $returnCode; )"
 
 	bootdevice, err := getBootDevice(i.log, i.hwValidator, *host)
 	if err != nil {
