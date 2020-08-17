@@ -1233,7 +1233,8 @@ var _ = Describe("cluster install", func() {
 
 	It("install cluster requirement", func() {
 		clusterID := *cluster.ID
-		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, 60*time.Second, clusterInsufficientStateInfo)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusPendingForInput, 60*time.Second, clusterPendingForInputStateInfo)
+
 		hosts := register3nodes(clusterID)
 
 		h4 := registerHost(clusterID)
