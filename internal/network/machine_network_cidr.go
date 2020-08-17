@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
 
 	"github.com/go-openapi/swag"
@@ -101,6 +102,22 @@ func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, 
 		err = verifyDifferentVipAddresses(apiVip, ingressVip)
 	}
 	return err
+}
+
+func VerifyMachineCIDR(machineCidr string, hosts []*models.Host, log logrus.FieldLogger) error {
+	ip, ipNet, err := net.ParseCIDR(machineCidr)
+	if err != nil {
+		return err
+	}
+	if ipNet.IP.To4().String() != ip.To4().String() {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s is not a valid machine CIDR", machineCidr))
+	}
+	for _, h := range hosts {
+		if belongsToNetwork(log, h, ipNet) {
+			return nil
+		}
+	}
+	return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s does not belong to any of the host networks", machineCidr))
 }
 
 func GetMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string, error) {

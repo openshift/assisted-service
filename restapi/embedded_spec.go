@@ -2379,6 +2379,12 @@ func init() {
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
         },
+        "machine_network_cidr": {
+          "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$",
+          "x-nullable": true
+        },
         "name": {
           "description": "OpenShift cluster name",
           "type": "string",
@@ -5723,6 +5729,12 @@ func init() {
           "description": "Virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
+          "x-nullable": true
+        },
+        "machine_network_cidr": {
+          "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$",
           "x-nullable": true
         },
         "name": {

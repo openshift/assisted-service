@@ -273,6 +273,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		HTTPProxy:                swag.StringValue(params.NewClusterParams.HTTPProxy),
 		HTTPSProxy:               swag.StringValue(params.NewClusterParams.HTTPSProxy),
 		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
+		VipDhcpAllocation:        swag.Bool(false),
 	}}
 	if params.NewClusterParams.PullSecret != "" {
 		err := validations.ValidatePullSecret(params.NewClusterParams.PullSecret)
@@ -854,46 +855,22 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	return installer.NewUpdateClusterCreated().WithPayload(&cluster.Cluster)
 }
 
-func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
-	updates := map[string]interface{}{}
+func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger) error {
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
-	if params.ClusterUpdateParams.Name != nil {
-		updates["name"] = *params.ClusterUpdateParams.Name
-	}
 	if params.ClusterUpdateParams.APIVip != nil {
 		updates["api_vip"] = *params.ClusterUpdateParams.APIVip
 		apiVip = *params.ClusterUpdateParams.APIVip
-	}
-	if params.ClusterUpdateParams.BaseDNSDomain != nil {
-		updates["base_dns_domain"] = *params.ClusterUpdateParams.BaseDNSDomain
-	}
-	if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
-		updates["cluster_network_cidr"] = *params.ClusterUpdateParams.ClusterNetworkCidr
-	}
-	if params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
-		updates["cluster_network_host_prefix"] = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
-	}
-	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
-		updates["service_network_cidr"] = *params.ClusterUpdateParams.ServiceNetworkCidr
 	}
 	if params.ClusterUpdateParams.IngressVip != nil {
 		updates["ingress_vip"] = *params.ClusterUpdateParams.IngressVip
 		ingressVip = *params.ClusterUpdateParams.IngressVip
 	}
-	if params.ClusterUpdateParams.SSHPublicKey != nil {
-		updates["ssh_public_key"] = *params.ClusterUpdateParams.SSHPublicKey
+	if params.ClusterUpdateParams.MachineNetworkCidr != nil {
+		err := errors.New("Setting Machine network CIDR is forbidden when cluster is not in vip-dhcp-allocation mode")
+		log.WithError(err).Warnf("Set Machine Network CIDR")
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if params.ClusterUpdateParams.HTTPProxy != nil {
-		updates["http_proxy"] = swag.StringValue(params.ClusterUpdateParams.HTTPProxy)
-	}
-	if params.ClusterUpdateParams.HTTPSProxy != nil {
-		updates["https_proxy"] = swag.StringValue(params.ClusterUpdateParams.HTTPSProxy)
-	}
-	if params.ClusterUpdateParams.NoProxy != nil {
-		updates["no_proxy"] = swag.StringValue(params.ClusterUpdateParams.NoProxy)
-	}
-
 	var machineCidr string
 
 	machineCidr, err := network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts)
@@ -907,6 +884,76 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger) error {
+	if params.ClusterUpdateParams.APIVip != nil {
+		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
+		log.WithError(err).Warnf("Set API VIP")
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	if params.ClusterUpdateParams.IngressVip != nil {
+		err := errors.New("Setting Ingress VIP is forbidden when cluster is in vip-dhcp-allocation mode")
+		log.WithError(err).Warnf("Set Ingress VIP")
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	if params.ClusterUpdateParams.MachineNetworkCidr != nil {
+		updates["machine_network_cidr"] = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
+		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr), cluster.Hosts, log)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+	updates := map[string]interface{}{}
+	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
+	if params.ClusterUpdateParams.Name != nil {
+		updates["name"] = *params.ClusterUpdateParams.Name
+	}
+	if params.ClusterUpdateParams.BaseDNSDomain != nil {
+		updates["base_dns_domain"] = *params.ClusterUpdateParams.BaseDNSDomain
+	}
+	if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
+		updates["cluster_network_cidr"] = *params.ClusterUpdateParams.ClusterNetworkCidr
+	}
+	if params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
+		updates["cluster_network_host_prefix"] = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
+	}
+	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
+		updates["service_network_cidr"] = *params.ClusterUpdateParams.ServiceNetworkCidr
+	}
+	if params.ClusterUpdateParams.HTTPProxy != nil {
+		updates["http_proxy"] = swag.StringValue(params.ClusterUpdateParams.HTTPProxy)
+	}
+	if params.ClusterUpdateParams.HTTPSProxy != nil {
+		updates["https_proxy"] = swag.StringValue(params.ClusterUpdateParams.HTTPSProxy)
+	}
+	if params.ClusterUpdateParams.NoProxy != nil {
+		updates["no_proxy"] = swag.StringValue(params.ClusterUpdateParams.NoProxy)
+	}
+	if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
+		updates["vip_dhcp_allocation"] = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
+		vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
+		if vipDhcpAllocation {
+			updates["api_vip"] = ""
+			updates["ingress_vip"] = ""
+		} else {
+			updates["machine_network_cidr"] = ""
+		}
+	}
+	var err error
+	if vipDhcpAllocation {
+		err = b.updateDhcpNetworkParams(updates, cluster, params, log)
+	} else {
+		err = b.updateNonDhcpNetworkParams(updates, cluster, params, log)
+	}
+	if err != nil {
+		return err
+	}
+	if params.ClusterUpdateParams.SSHPublicKey != nil {
+		updates["ssh_public_key"] = *params.ClusterUpdateParams.SSHPublicKey
 	}
 
 	if params.ClusterUpdateParams.PullSecret != nil {
