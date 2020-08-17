@@ -8,7 +8,7 @@ import utils
 import deployment_options
 
 SERVICE = "assisted-service"
-TIMEOUT = 60 * 8
+TIMEOUT = 60 * 15
 REQUEST_TIMEOUT = 2
 SLEEP = 3
 
