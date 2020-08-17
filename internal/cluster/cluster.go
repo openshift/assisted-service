@@ -64,6 +64,10 @@ type API interface {
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
 }
 
+type PrepareConfig struct {
+	InstallationTimeout time.Duration `envconfig:"PREPARE_FOR_INSTALLATION_TIMEOUT" default:"10m"`
+}
+
 type Config struct {
 	PrepareConfig PrepareConfig
 }
@@ -73,7 +77,6 @@ type Manager struct {
 	log             logrus.FieldLogger
 	db              *gorm.DB
 	installing      StateAPI
-	prepare         StateAPI
 	registrationAPI RegistrationAPI
 	installationAPI InstallationAPI
 	eventsHandler   events.Handler
@@ -85,14 +88,14 @@ type Manager struct {
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hostAPI host.API, metricApi metrics.API) *Manager {
 	th := &transitionHandler{
-		log: log,
-		db:  db,
+		log:           log,
+		db:            db,
+		prepareConfig: cfg.PrepareConfig,
 	}
 	return &Manager{
 		log:             log,
 		db:              db,
 		installing:      NewInstallingState(log, db),
-		prepare:         NewPrepareForInstallation(cfg.PrepareConfig, log, db),
 		registrationAPI: NewRegistrar(log, db),
 		installationAPI: NewInstaller(log, db),
 		eventsHandler:   eventsHandler,
@@ -108,8 +111,6 @@ func (m *Manager) getCurrentState(status string) (StateAPI, error) {
 	case "":
 	case models.ClusterStatusInstalling:
 		return m.installing, nil
-	case models.ClusterStatusPreparingForInstallation:
-		return m.prepare, nil
 	}
 	return nil, errors.Errorf("not supported cluster status: %s", status)
 }
@@ -140,8 +141,7 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, m.log)
 	//TODO remove this code after changing all refreshStatus to transitions
-	keepStateRefreshInStates := []string{models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalling}
-	if funk.ContainsString(keepStateRefreshInStates, swag.StringValue(c.Status)) {
+	if swag.StringValue(c.Status) == models.ClusterStatusInstalling {
 
 		stateBeforeRefresh := swag.StringValue(c.Status)
 		// get updated cluster info with hosts

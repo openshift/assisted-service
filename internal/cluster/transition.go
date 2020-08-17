@@ -22,8 +22,9 @@ import (
 )
 
 type transitionHandler struct {
-	log logrus.FieldLogger
-	db  *gorm.DB
+	log           logrus.FieldLogger
+	db            *gorm.DB
+	prepareConfig PrepareConfig
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -189,6 +190,19 @@ func If(id validationID) stateswitch.Condition {
 		return b, nil
 	}
 	return ret
+}
+
+//check if prepare for installation reach to timeout
+func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return false, errors.New("IsPreparingTimedOut incompatible type of StateSwitch")
+	}
+	// can happen if the service was rebooted or somehow the async part crashed.
+	if time.Since(time.Time(sCluster.cluster.StatusUpdatedAt)) > th.prepareConfig.InstallationTimeout {
+		return true, nil
+	}
+	return false, nil
 }
 
 // Return a post transition function with a constant reason
