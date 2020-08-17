@@ -1,7 +1,7 @@
 String cron_string = BRANCH_NAME == "master" ? "@hourly" : ""
 
 pipeline {
-    agent { label 'bm-inventory-subsystem' }
+    agent { label 'centos_worker' }
     triggers { cron(cron_string) }
     environment {
         SERVICE = 'ocpmetal/assisted-service'
@@ -72,6 +72,15 @@ pipeline {
 
     post {
         failure {
+            script {
+                if (env.BRANCH_NAME == 'master')
+                    stage('notify master branch fail') {
+                        withCredentials([string(credentialsId: 'slack-token', variable: 'TOKEN')]) {
+                            sh '''curl -X POST -H 'Content-type: application/json' --data '{"text":"master branch push integration failed, Check $BUILD_URL"}' https://hooks.slack.com/services/${TOKEN}'''
+                    }
+                }
+            }
+
             echo 'Get assisted-service log'
             sh '''
             kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep assisted-service | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
