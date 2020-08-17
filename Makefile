@@ -182,7 +182,7 @@ test:
 		DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
 		TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
 		ENABLE_AUTH="true" \
-		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 20m
+		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 30m
 
 deploy-olm: deploy-namespace
 	python3 ./tools/deploy_olm.py --target $(TARGET)
