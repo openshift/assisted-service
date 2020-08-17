@@ -155,7 +155,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			})
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
-			Expect(getReply.Payload.ImageInfo.GeneratorVersion).To(Equal("quay.io/ocpmetal/installer-image-build:latest"))
+			Expect(getReply.Payload.ImageInfo.GeneratorVersion).To(Equal("quay.io/ocpmetal/assisted-iso-create:latest"))
 		})
 
 		It("success with proxy", func() {
@@ -186,7 +186,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			})
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
-			Expect(getReply.Payload.ImageInfo.GeneratorVersion).To(Equal("quay.io/ocpmetal/installer-image-build:latest"))
+			Expect(getReply.Payload.ImageInfo.GeneratorVersion).To(Equal("quay.io/ocpmetal/assisted-iso-create:latest"))
 		})
 
 		It("cluster_not_exists", func() {

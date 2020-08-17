@@ -69,7 +69,7 @@ var (
 )
 
 type Config struct {
-	ImageBuilder        string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/installer-image-build:latest"`
+	ImageBuilder        string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
 	AgentDockerImg      string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	IgnitionGenerator   string            `envconfig:"IGNITION_GENERATE_IMAGE" default:"quay.io/ocpmetal/assisted-ignition-generator:latest"` // TODO: update the latest once the repository has git workflow
 	ServiceBaseURL      string            `envconfig:"SERVICE_BASE_URL"`

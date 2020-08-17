@@ -5,7 +5,7 @@ pipeline {
     triggers { cron(cron_string) }
     environment {
         SERVICE = 'ocpmetal/assisted-service'
-        ISO_CREATION = 'installer-image-build'
+        ISO_CREATION = 'assisted-iso-create'
     }
     options {
       timeout(time: 1, unit: 'HOURS') 
@@ -62,10 +62,10 @@ pipeline {
                 sh '''docker push quay.io/ocpmetal/assisted-service:latest'''
                 sh '''docker push quay.io/ocpmetal/assisted-service:${GIT_COMMIT}'''
 
-                sh '''docker tag  ${ISO_CREATION} quay.io/ocpmetal/installer-image-build:latest'''
-                sh '''docker tag  ${ISO_CREATION} quay.io/ocpmetal/installer-image-build:${GIT_COMMIT}'''
-                sh '''docker push quay.io/ocpmetal/installer-image-build:latest'''
-                sh '''docker push quay.io/ocpmetal/installer-image-build:${GIT_COMMIT}'''
+                sh '''docker tag  ${ISO_CREATION} quay.io/ocpmetal/assisted-iso-create:latest'''
+                sh '''docker tag  ${ISO_CREATION} quay.io/ocpmetal/assisted-iso-create:${GIT_COMMIT}'''
+                sh '''docker push quay.io/ocpmetal/assisted-iso-create:latest'''
+                sh '''docker push quay.io/ocpmetal/assisted-iso-create:${GIT_COMMIT}'''
             }
         }
     }
