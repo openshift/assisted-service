@@ -183,7 +183,7 @@ func (b *bareMetalInventory) generateDummyISOImage() {
 	var (
 		dummyId   = "00000000-0000-0000-0000-000000000000"
 		jobName   = fmt.Sprintf("dummyimage-%s-%s", dummyId, time.Now().Format("20060102150405"))
-		imgName   = fmt.Sprintf("discovery-image-%s", dummyId)
+		imgName   = getImageName(strfmt.UUID(dummyId))
 		requestID = requestid.NewID()
 		log       = requestid.RequestIDLogger(b.log, requestID)
 		cluster   common.Cluster
@@ -536,7 +536,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 }
 
 func getImageName(clusterID strfmt.UUID) string {
-	return fmt.Sprintf("discovery-image-%s", clusterID.String())
+	return fmt.Sprintf("discovery-image-%s.iso", clusterID.String())
 }
 
 type clusterInstaller struct {
