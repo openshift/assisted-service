@@ -165,6 +165,10 @@ func (c *S3Client) Download(ctx context.Context, objectName string) (io.ReadClos
 
 	contentLength, err := c.GetObjectSizeBytes(ctx, objectName)
 	if err != nil {
+		if transformed, transformedError := c.transformErrorIfNeeded(err, objectName); transformed {
+			return nil, 0, transformedError
+		}
+
 		err = errors.Wrapf(err, "Failed to fetch metadata for object %s in bucket %s", objectName, c.cfg.S3Bucket)
 		log.Error(err)
 		return nil, 0, err
@@ -276,4 +280,13 @@ func (c *S3Client) GeneratePresignedDownloadURL(ctx context.Context, objectName 
 		return "", err
 	}
 	return urlStr, nil
+}
+
+func (c S3Client) transformErrorIfNeeded(err error, objectName string) (bool, error) {
+	if aerr, ok := err.(awserr.Error); ok {
+		if aerr.Code() == s3.ErrCodeNoSuchKey || aerr.Code() == "NotFound" {
+			return true, NotFound(objectName)
+		}
+	}
+	return false, err
 }
