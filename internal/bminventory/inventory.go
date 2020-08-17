@@ -936,12 +936,9 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
 		updates["vip_dhcp_allocation"] = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
 		vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
-		if vipDhcpAllocation {
-			updates["api_vip"] = ""
-			updates["ingress_vip"] = ""
-		} else {
-			updates["machine_network_cidr"] = ""
-		}
+		updates["api_vip"] = ""
+		updates["ingress_vip"] = ""
+		updates["machine_network_cidr"] = ""
 	}
 	var err error
 	if vipDhcpAllocation {
@@ -1378,8 +1375,9 @@ func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, 
 		return err
 	}
 	if !swag.BoolValue(cluster.VipDhcpAllocation) {
-		log.Warnf("DHCP not enabled in cluster %s", host.ClusterID.String())
-		return nil
+		err = errors.Errorf("DHCP not enabled in cluster %s", host.ClusterID.String())
+		log.WithError(err).Warn("processDhcpAllocationResponse")
+		return err
 	}
 	if err = json.Unmarshal([]byte(dhcpAllocationResponseStr), &dhcpAllocationReponse); err != nil {
 		log.WithError(err).Warnf("Json unmarshal dhcp allocation from host %s", host.ID.String())

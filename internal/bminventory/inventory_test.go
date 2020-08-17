@@ -539,7 +539,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
 			reply := bm.PostStepReply(ctx, params)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
 		})
 		It("Bad ingress VIP", func() {
 			cluster := common.Cluster{
