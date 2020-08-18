@@ -403,8 +403,8 @@ github.com/opencontainers/image-spec v1.0.1 h1:JMemWkRwHx4Zj+fVxWoMCFm/8sYGGrUVo
 github.com/opencontainers/image-spec v1.0.1/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zMzWCbyJoFRP3s7yZA0=
 github.com/opencontainers/runc v1.0.0-rc9 h1:/k06BMULKF5hidyoZymkoDCzdJzltZpz/UU4LguQVtc=
 github.com/opencontainers/runc v1.0.0-rc9/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rmF59PVA73FjuZG0U=
-github.com/openshift-online/ocm-sdk-go v0.1.116 h1:/OGBuoLZA4DELtawpbIVX58Rn9n9S2iFCgdBJy2KTEw=
-github.com/openshift-online/ocm-sdk-go v0.1.116/go.mod h1:BBF7bNkfHkkVwKolft9AsbYXJBsFiSOFQ6bLSedQby0=
+github.com/openshift-online/ocm-sdk-go v0.1.118 h1:CxdUb9FMtmVc36JGkWwLXdeC48XV+efpwd15XkHtr1I=
+github.com/openshift-online/ocm-sdk-go v0.1.118/go.mod h1:BBF7bNkfHkkVwKolft9AsbYXJBsFiSOFQ6bLSedQby0=
 github.com/ory/dockertest/v3 v3.6.0 h1:I6KNJ6izxGduLACQii2SP/g7GN0JM9Xfaik6aAVaw6Y=
 github.com/ory/dockertest/v3 v3.6.0/go.mod h1:4ZOpj8qBUmh8fcBSVzkH2bws2s91JdGvHUqan4GHEuQ=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
