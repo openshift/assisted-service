@@ -21,6 +21,7 @@ def handle_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-dns-domains")
     parser.add_argument("--enable-auth", default="False")
+    parser.add_argument("--subsystem-test", action='store_true')
     parser.add_argument("--jwks-url", default="https://api.openshift.com/.well-known/jwks.json")
     parser.add_argument("--ocm-url", default="https://api-integration.6943.hive-integration.openshiftapps.com")
 
@@ -50,7 +51,10 @@ def main():
                         "CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent",
                         "INVENTORY_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
-                image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
+                if deploy_options.subsystem_test and env_var_name == "IGNITION_GENERATE_IMAGE":
+                    image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, "DUMMY_IGNITION")
+                else:
+                    image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
                 versions[env_var_name] = image_fqdn
 
             # Edge case for controller image override

@@ -1,0 +1,5 @@
+FROM registry.access.redhat.com/ubi8/ubi:latest
+
+COPY build/dummy-ignition /dummy-ignition
+COPY subsystem/test_kubeconfig /kubeconfig-noingress
+CMD ["/dummy-ignition"]

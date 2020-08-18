@@ -6,11 +6,12 @@ package job
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	events "github.com/openshift/assisted-service/internal/events"
 	logrus "github.com/sirupsen/logrus"
-	reflect "reflect"
 )
 
 // MockLocalJob is a mock of LocalJob interface
