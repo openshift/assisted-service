@@ -21,6 +21,7 @@ endif # TARGET
 
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
+DUMMY_IGNITION := $(or ${DUMMY_IGNITION},quay.io/ocpmetal/ignition-dummy:latest)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -37,8 +38,8 @@ $(BUILD_FOLDER):
 	mkdir -p $(BUILD_FOLDER)
 
 format:
-	goimports -w -l cmd/ internal/ subsystem/ assisted-iso-create/
-	gofmt -w -l cmd/ internal/ subsystem/ assisted-iso-create/
+	goimports -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/ dummy-ignition/
+	gofmt -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/ dummy-ignition/
 
 ############
 # Generate #
@@ -79,13 +80,16 @@ generate-keys:
 ##################
 
 .PHONY: build
-build: lint unit-test build-minimal build-iso-generator generate-keys
+build: lint unit-test build-minimal build-iso-generator build-dummy-ignition generate-keys
 
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
 build-iso-generator: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-iso-create assisted-iso-create/main.go
+
+build-dummy-ignition: $(BUILD_FOLDER)
+	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/dummy-ignition dummy-ignition/main.go
 
 build-onprem: build
 	podman build -f Dockerfile.assisted-service-onprem -t ${SERVICE} .
@@ -105,10 +109,13 @@ update-minimal: build-minimal
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
 		-f Dockerfile.assisted-service . -t $(SERVICE)
 
-update-minikube: build
+update-minikube: build build-dummy-ignition-image
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
 		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
-		-f Dockerfile.assisted-service . -t $(SERVICE)
+		-f Dockerfile.assisted-service . -t $(SERVICE) && docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
+
+build-dummy-ignition-image: build-dummy-ignition
+	docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
 
 ##########
 # Deploy #
@@ -149,7 +156,7 @@ deploy-inventory-service-file: deploy-namespace
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)"
+	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)"
@@ -166,7 +173,7 @@ jenkins-deploy-for-subsystem:
 
 deploy-test:
 	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
-	&& $(MAKE) update-minikube deploy-all
+	&& export DUMMY_IGNITION=minikube-local-registry/ignition-dummy-generator:minikube-test && $(MAKE) update-minikube deploy-all
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080

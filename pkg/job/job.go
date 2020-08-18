@@ -64,6 +64,7 @@ type Config struct {
 	ServiceBaseURL      string        `envconfig:"SERVICE_BASE_URL"`
 	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
 	ReleaseImage string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
+	SubsystemRun bool   `envconfig:"SUBSYSTEM_RUN"`
 }
 
 func New(log logrus.FieldLogger, kube client.Client, cfg Config) *kubeJob {
@@ -302,6 +303,10 @@ func (k *kubeJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobNa
 func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, cfg []byte, encodedDhcpFileContents string) *batch.Job {
 	id := cluster.ID
 	ignitionGeneratorImage := k.Config.IgnitionGenerator
+	var pullPolicy core.PullPolicy = "Always"
+	if k.Config.SubsystemRun {
+		pullPolicy = "Never"
+	}
 	ret := &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
@@ -323,7 +328,7 @@ func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, c
 						{
 							Name:            ignitionGeneratorPrefix,
 							Image:           ignitionGeneratorImage,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: pullPolicy,
 							Env: []core.EnvVar{
 								{
 									Name:  "S3_ENDPOINT_URL",
@@ -346,6 +351,10 @@ func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, c
 									Value: k.Config.S3Bucket,
 								},
 								{
+									Name:  "S3_REGION",
+									Value: k.Config.S3Region,
+								},
+								{
 									Name:  "CLUSTER_ID",
 									Value: id.String(),
 								},
@@ -354,11 +363,11 @@ func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, c
 									Value: k.ReleaseImage, //TODO: change this to match the cluster openshift version
 								},
 								{
-									Name:  "aws_access_key_id",
+									Name:  "AWS_ACCESS_KEY_ID",
 									Value: k.Config.AwsAccessKeyID,
 								},
 								{
-									Name:  "aws_secret_access_key",
+									Name:  "AWS_SECRET_ACCESS_KEY",
 									Value: k.Config.AwsSecretAccessKey,
 								},
 							},

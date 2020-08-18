@@ -46,6 +46,7 @@ def main():
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'JWKS_CERT', 'value': load_key()})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'ENABLE_AUTH_AGENT', 'value': "False"})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'ENABLE_AUTHZ', 'value': "False"})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'SUBSYSTEM_RUN', 'value': 'True'})
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
         else:
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Always"
