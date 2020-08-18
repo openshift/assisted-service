@@ -1,6 +1,5 @@
 FROM quay.io/ocpmetal/assisted-service:latest AS assisted-service
 FROM quay.io/ocpmetal/assisted-iso-create:latest AS assisted-iso-create
-FROM quay.io/ocpmetal/assisted-ignition-generator:latest AS config-gen
 
 FROM centos:8
 
@@ -8,13 +7,13 @@ ARG GIT_REVISION
 ARG WORK_DIR=/data
 ARG USER=assisted-installer
 ARG NAMESPACE=assisted-installer
+# downstream this can be installed as an RPM
+ARG OC_URL=https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
 
 LABEL "git_revision"=${GIT_REVISION}
 
-RUN yum install -y libvirt-libs python3 python3-pip findutils wget && \
-    yum clean all && \
-    rm -rf /var/cache/dnf
-RUN pip3 install boto3 botocore pyyaml ipython
+# openshift-install requires this
+RUN dnf install -y libvirt-libs && yum clean all
 
 RUN mkdir $WORK_DIR && chmod 755 $WORK_DIR
 RUN useradd $USER
@@ -26,14 +25,8 @@ COPY --from=assisted-iso-create $WORK_DIR/livecd.iso $WORK_DIR/livecd.iso
 COPY --from=assisted-iso-create $WORK_DIR/assisted-iso-create $WORK_DIR
 ENV COREOS_IMAGE=$WORK_DIR/livecd.iso
 
-# install config
-# [TODO] - change this line to use openshift-installer from the release, once we are ready
-COPY --from=config-gen $WORK_DIR/openshift-install $WORK_DIR
-COPY --from=config-gen $WORK_DIR/render_files.py $WORK_DIR
-COPY --from=config-gen $WORK_DIR/utils.py $WORK_DIR
-COPY --from=config-gen $WORK_DIR/bmh_utils.py $WORK_DIR
-COPY --from=config-gen $WORK_DIR/oc_utils.py $WORK_DIR
-COPY --from=config-gen $WORK_DIR/test_utils.py $WORK_DIR
+# install oc binary
+RUN curl -s $OC_URL | tar -xzC /usr/local/bin/ oc
 
 ENV WORK_DIR=$WORK_DIR
 

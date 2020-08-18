@@ -21,6 +21,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
@@ -45,8 +46,7 @@ import (
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
@@ -165,6 +165,11 @@ func main() {
 	var generator generator.ISOInstallConfigGenerator
 	var objectHandler s3wrapper.API
 
+	err = bmh_v1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	if err != nil {
+		log.Fatal("Failed to add BareMetalHost to scheme", err)
+	}
+
 	switch Options.DeployTarget {
 	case deploymet_type_k8s:
 		var kclient client.Client
@@ -175,16 +180,11 @@ func main() {
 		}
 		createS3Bucket(objectHandler)
 
-		scheme := runtime.NewScheme()
-		if err = clientgoscheme.AddToScheme(scheme); err != nil {
-			log.Fatal("Failed to add K8S scheme", err)
-		}
-
-		kclient, err = client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
+		kclient, err = client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
 		if err != nil {
 			log.Fatal("failed to create client:", err)
 		}
-		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
+		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig)
 
 		cfg, cerr := clientcmd.BuildConfigFromFlags("", "")
 		if cerr != nil {

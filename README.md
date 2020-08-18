@@ -243,6 +243,21 @@ To run the subsystem tests:
 make test-onprem
 ```
 
+### Storage
+
+assisted-service maintains a cache of openshift-baremetal-install binaries at
+`$WORK_DIR/installercache/`. Persistent storage can optionally be mounted
+there to persist the cache accross container restarts. However, that storage
+should not be shared accross multiple assisted-service processes.
+
+#### Cache Expiration
+
+Currently there is no mechanism to expire openshift-baremetal-install binaries
+out of the cache. The recommendation for now is to allow the cache to use the
+container's own local storage that will vanish when the Pod gets replaced, for
+example during upgrade. That will prevent the cache from growing forever while
+allowing it to be effective most of the time.
+
 ## Troubleshooting
 
 A document that can assist troubleshooting: [link](https://docs.google.com/document/d/1WDc5LQjNnqpznM9YFTGb9Bg1kqPVckgGepS4KBxGSqw)
@@ -253,16 +268,3 @@ A document that can assist troubleshooting: [link](https://docs.google.com/docum
 
     Image in charge of generating the Fedora-coreOs image used to install the host with the relevant ignition file.\
     Image is uploaded to deployed S3 under the name template "installer-image-<cluster-id>".
-* #### ignition manifests and kubeconfig generate:
-
-    https://github.com/openshift/assisted-ignition-generator
-
-    Image in charge of generating the following installation files:
-    * kubeconfig
-    * bootstrap.ign
-    * master.ign
-    * worker.ign
-    * metadata.json
-    * kubeadmin-password
-
-   Files are uploaded to deployed S3 under the name template "<cluster-id>/<filename>".
