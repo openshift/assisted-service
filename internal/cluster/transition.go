@@ -172,18 +172,18 @@ type TransitionArgsRefreshCluster struct {
 	eventHandler      events.Handler
 	metricApi         metrics.API
 	hostApi           host.API
-	conditions        map[validationID]bool
+	conditions        map[string]bool
 	validationResults map[string][]validationResult
 	db                *gorm.DB
 }
 
-func If(id validationID) stateswitch.Condition {
+func If(id stringer) stateswitch.Condition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 		params, ok := args.(*TransitionArgsRefreshCluster)
 		if !ok {
 			return false, errors.Errorf("If(%s) invalid argument", id.String())
 		}
-		b, ok := params.conditions[id]
+		b, ok := params.conditions[id.String()]
 		if !ok {
 			return false, errors.Errorf("If(%s) no such condition", id.String())
 		}

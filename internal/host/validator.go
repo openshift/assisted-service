@@ -6,6 +6,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/go-openapi/swag"
+
 	"github.com/thoas/go-funk"
 
 	"github.com/alecthomas/units"
@@ -254,7 +256,11 @@ func (v *validator) printIsMachineCidrDefined(context *validationContext, status
 	case ValidationSuccess:
 		return "Machine network CIDR is defined"
 	case ValidationFailure:
-		return "Machine network CIDR is undefined"
+		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
+			return "Machine network CIDR is undefined"
+		} else {
+			return "Machine network CIDR is undefined; the machine network CIDR can be defined by setting either the API VIP or the Ingress VIP"
+		}
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}

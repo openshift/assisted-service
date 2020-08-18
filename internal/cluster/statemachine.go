@@ -83,12 +83,21 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostHandlePreInstallationError,
 	})
 
-	// Refresh cluster status
-	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined), If(isApiVipDefined), If(isIngressVipDefined))
-	var isSufficientForInstall = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid),
+	// Refresh cluster status conditions - Non DHCP
+	var requiredInputFieldsExistNonDhcp = stateswitch.And(If(IsMachineCidrDefined), If(isApiVipDefined), If(isIngressVipDefined))
+	var isSufficientForInstallNonDhcp = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid),
 		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(HasExactlyThreeMasters))
 
-	// In order for this transition to be fired at least one of the validations in sufficientInputValidations must fail.
+	// Refresh cluster status conditions - DHCP
+	var isSufficientForInstallDhcp = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid),
+		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(HasExactlyThreeMasters), If(isApiVipDefined), If(isIngressVipDefined))
+
+	var allRefreshStatusConditions = stateswitch.And(If(IsMachineCidrDefined), If(isApiVipDefined), If(isIngressVipDefined),
+		If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid), If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(HasExactlyThreeMasters))
+
+	// Non DHCP transitions
+
+	// In order for this transition to be fired at least one of the validations in requiredInputFieldsExistNonDhcp must fail.
 	// This transition handles the case that there is missing input that has to be provided from a user or other external means
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefreshStatus,
@@ -97,12 +106,43 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusReady),
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
-		Condition:        stateswitch.Not(requiredInputFieldsExist),
+		Condition:        stateswitch.And(stateswitch.Not(If(VipDhcpAllocationSet)), stateswitch.Not(requiredInputFieldsExistNonDhcp)),
 		DestinationState: stateswitch.State(models.ClusterStatusPendingForInput),
 		PostTransition:   th.PostRefreshCluster(statusInfoPendingForInput),
 	})
 
-	// In order for this transition to be fired at least one of the validations in sufficientForInstallValidations must fail.
+	// In order for this transition to be fired at least one of the validations in isSufficientForInstallNonDhcp must fail.
+	// This transition handles the case that one of the required validations that are required in order for the cluster
+	// to be in ready state  has failed
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusPendingForInput),
+			stateswitch.State(models.ClusterStatusReady),
+			stateswitch.State(models.ClusterStatusInsufficient),
+		},
+		Condition:        stateswitch.And(stateswitch.Not(If(VipDhcpAllocationSet)), requiredInputFieldsExistNonDhcp, stateswitch.Not(isSufficientForInstallNonDhcp)),
+		DestinationState: stateswitch.State(models.ClusterStatusInsufficient),
+		PostTransition:   th.PostRefreshCluster(statusInfoInsufficient),
+	})
+
+	// DHCP transitions
+
+	// In order for this transition to be fired at least one of the validation IsMachineCidrDefined must fail.
+	// This transition handles the case that there is missing input that has to be provided from a user or other external means
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusPendingForInput),
+			stateswitch.State(models.ClusterStatusReady),
+			stateswitch.State(models.ClusterStatusInsufficient),
+		},
+		Condition:        stateswitch.And(If(VipDhcpAllocationSet), stateswitch.Not(If(IsMachineCidrDefined))),
+		DestinationState: stateswitch.State(models.ClusterStatusPendingForInput),
+		PostTransition:   th.PostRefreshCluster(statusInfoPendingForInput),
+	})
+
+	// In order for this transition to be fired at least one of the validations in isSufficientForInstallDhcp must fail.
 	// This transition handles the case that one of the required validations that are required in order for the host
 	// to be in known state (ready for installation) has failed
 	sm.AddTransition(stateswitch.TransitionRule{
@@ -112,7 +152,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusReady),
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
-		Condition:        stateswitch.And(requiredInputFieldsExist, stateswitch.Not(isSufficientForInstall)),
+		Condition:        stateswitch.And(If(VipDhcpAllocationSet), If(IsMachineCidrDefined), stateswitch.Not(isSufficientForInstallDhcp)),
 		DestinationState: stateswitch.State(models.ClusterStatusInsufficient),
 		PostTransition:   th.PostRefreshCluster(statusInfoInsufficient),
 	})
@@ -125,7 +165,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusReady),
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
-		Condition:        stateswitch.And(requiredInputFieldsExist, isSufficientForInstall),
+		Condition:        allRefreshStatusConditions,
 		DestinationState: stateswitch.State(models.ClusterStatusReady),
 		PostTransition:   th.PostRefreshCluster(statusInfoReady),
 	})
