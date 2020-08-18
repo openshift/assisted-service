@@ -8,10 +8,10 @@ import utils
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--target")
-    parser.add_argument("--domain")
     parser.add_argument('--enable-tls', action='store_true', default=False)
     deploy_options = deployment_options.load_deployment_options(parser)
+
+    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     src_file = os.path.join(os.getcwd(), "deploy/assisted-service-service.yaml")
     dst_file = os.path.join(os.getcwd(), "build/assisted-service-service.yaml")
@@ -26,8 +26,13 @@ def main():
 
     # in case of OpenShift deploy ingress as well
     if deploy_options.target == "oc-ingress":
-        hostname = utils.get_service_host("assisted-installer", deploy_options.target, deploy_options.domain,
-                                          deploy_options.namespace)
+        hostname = utils.get_service_host(
+            'assisted-installer',
+            deploy_options.target,
+            deploy_options.domain,
+            deploy_options.namespace,
+            deploy_options.profile
+        )
 
         if deploy_options.enable_tls:
             print("WARNING: To change TLS redirection behavior update "

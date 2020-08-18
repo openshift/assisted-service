@@ -12,7 +12,29 @@ def load_deployment_options(parser=None):
     if not parser:
         parser = argparse.ArgumentParser()
 
-    parser.add_argument('--namespace', help='Namespace for all deployment images', type=str, default='assisted-installer')
+    parser.add_argument(
+        '--namespace',
+        help='Namespace for all deployment images',
+        type=str,
+        default='assisted-installer'
+    )
+    parser.add_argument(
+        '--profile',
+        help='Profile for all deployment images',
+        type=str,
+        default='minikube'
+    )
+    parser.add_argument(
+        '--target',
+        help='Target kubernetes distribution',
+        choices=['minikube', 'oc', 'oc-ingress'],
+        default='minikube'
+    )
+    parser.add_argument(
+        '--domain',
+        help='Target domain',
+        type=str
+    )
 
     deploy_options = parser.add_mutually_exclusive_group()
     deploy_options.add_argument("--deploy-tag", help='Tag for all deployment images', type=str)

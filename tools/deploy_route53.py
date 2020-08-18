@@ -28,6 +28,7 @@ def deploy_secret():
 
 def main():
     deploy_secret()
+    utils.set_profile(deploy_options.target, deploy_options.profile)
 
 
 if __name__ == "__main__":

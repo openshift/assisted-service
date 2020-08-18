@@ -28,6 +28,8 @@ def main():
     parser.add_argument("--subsystem-test", help='deploy in subsystem mode', action='store_true')
     deploy_options = deployment_options.load_deployment_options(parser)
 
+    utils.set_profile(deploy_options.target, deploy_options.profile)
+
     with open(SRC_FILE, "r") as src:
         raw_data = src.read()
         raw_data = raw_data.replace('REPLACE_NAMESPACE', deploy_options.namespace)

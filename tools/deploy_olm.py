@@ -1,12 +1,13 @@
 import os
 import utils
 import argparse
+import deployment_options
 from urllib.request import urlretrieve
 from urllib.parse import urlparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--target")
-args = parser.parse_args()
+
+deploy_options = deployment_options.load_deployment_options()
+
 
 def check_deployment():
     # Checks
@@ -17,8 +18,10 @@ def check_deployment():
 
 
 def main():
+    utils.set_profile(deploy_options.target, deploy_options.profile)
+
     ## Main OLM Manifest for K8s
-    if args.target != "oc-ingress":
+    if deploy_options.target != "oc-ingress":
         # K8s
         deployed = utils.check_if_exists('namespace', 'olm', namespace='olm')
         if not deployed:
