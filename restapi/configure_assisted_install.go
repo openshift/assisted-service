@@ -29,7 +29,7 @@ const AuthKey contextKey = "Auth"
 
 /* EventsAPI  */
 type EventsAPI interface {
-	/* ListEvents Lists events for an entity_id */
+	/* ListEvents Lists events for a cluster */
 	ListEvents(ctx context.Context, params events.ListEventsParams) middleware.Responder
 }
 

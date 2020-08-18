@@ -60,8 +60,10 @@ for the list events operation typically these are written to a http.Request
 */
 type ListEventsParams struct {
 
-	/*EntityID*/
-	EntityID strfmt.UUID
+	/*ClusterID*/
+	ClusterID strfmt.UUID
+	/*HostID*/
+	HostID *strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -101,15 +103,26 @@ func (o *ListEventsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithEntityID adds the entityID to the list events params
-func (o *ListEventsParams) WithEntityID(entityID strfmt.UUID) *ListEventsParams {
-	o.SetEntityID(entityID)
+// WithClusterID adds the clusterID to the list events params
+func (o *ListEventsParams) WithClusterID(clusterID strfmt.UUID) *ListEventsParams {
+	o.SetClusterID(clusterID)
 	return o
 }
 
-// SetEntityID adds the entityId to the list events params
-func (o *ListEventsParams) SetEntityID(entityID strfmt.UUID) {
-	o.EntityID = entityID
+// SetClusterID adds the clusterId to the list events params
+func (o *ListEventsParams) SetClusterID(clusterID strfmt.UUID) {
+	o.ClusterID = clusterID
+}
+
+// WithHostID adds the hostID to the list events params
+func (o *ListEventsParams) WithHostID(hostID *strfmt.UUID) *ListEventsParams {
+	o.SetHostID(hostID)
+	return o
+}
+
+// SetHostID adds the hostId to the list events params
+func (o *ListEventsParams) SetHostID(hostID *strfmt.UUID) {
+	o.HostID = hostID
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -120,9 +133,25 @@ func (o *ListEventsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 	}
 	var res []error
 
-	// path param entity_id
-	if err := r.SetPathParam("entity_id", o.EntityID.String()); err != nil {
+	// path param cluster_id
+	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
+	}
+
+	if o.HostID != nil {
+
+		// query param host_id
+		var qrHostID strfmt.UUID
+		if o.HostID != nil {
+			qrHostID = *o.HostID
+		}
+		qHostID := qrHostID.String()
+		if qHostID != "" {
+			if err := r.SetQueryParam("host_id", qHostID); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if len(res) > 0 {

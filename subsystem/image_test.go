@@ -61,14 +61,14 @@ var _ = Describe("system-test image tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(s.Size()).ShouldNot(Equal(0))
 		eventsReply, err := userBMClient.Events.ListEvents(context.TODO(), &events.ListEventsParams{
-			EntityID: clusterID,
+			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(eventsReply.Payload).ShouldNot(HaveLen(0))
 		nRegisteredEvents := 0
 		for _, ev := range eventsReply.Payload {
-			fmt.Printf("EntityID:%s, Message:%s\n", ev.EntityID, *ev.Message)
-			Expect(ev.EntityID.String()).Should(Equal(clusterID.String()))
+			fmt.Printf("EntityID:%s, Message:%s\n", ev.ClusterID, *ev.Message)
+			Expect(ev.ClusterID.String()).Should(Equal(clusterID.String()))
 			if strings.Contains(*ev.Message, "Registered cluster") {
 				nRegisteredEvents++
 			}

@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/openshift/assisted-service/models"
 
@@ -29,16 +30,21 @@ func NewApi(handler Handler, log logrus.FieldLogger) *Api {
 
 func (a *Api) ListEvents(ctx context.Context, params events.ListEventsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, a.log)
-	evs, err := a.handler.GetEvents(params.EntityID.String())
+
+	evs, err := a.handler.GetEvents(params.ClusterID, params.HostID)
 	if err != nil {
-		log.Errorf("failed to get events for id %s ", params.EntityID.String())
-		return events.NewListEventsInternalServerError().
-			WithPayload(common.GenerateInternalFromError(err))
+		if params.HostID != nil {
+			log.Errorf("failed to get events for cluster %s host %s", params.ClusterID.String(), params.HostID.String())
+		} else {
+			log.Errorf("failed to get events for cluster %s", params.ClusterID.String())
+		}
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	ret := make(models.EventList, len(evs))
 	for i, ev := range evs {
 		ret[i] = &models.Event{
-			EntityID:  ev.EntityID,
+			ClusterID: ev.ClusterID,
+			HostID:    ev.HostID,
 			Severity:  ev.Severity,
 			EventTime: ev.EventTime,
 			Message:   ev.Message,

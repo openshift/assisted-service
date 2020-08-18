@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-openapi/strfmt"
+
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -65,7 +67,7 @@ var _ = Describe("image_expirer", func() {
 		mockAPI.EXPECT().GetObjectTagging(&taggingInput).Return(&taggingOutput, nil)
 		deleteInput := s3.DeleteObjectInput{Bucket: &bucket, Key: &objKey}
 		mockAPI.EXPECT().DeleteObject(&deleteInput).Return(nil, nil)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, models.EventSeverityInfo, "Deleted image from backend because it expired. It may be generated again at any time.", gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), strfmt.UUID(clusterId), nil, models.EventSeverityInfo, "Deleted image from backend because it expired. It may be generated again at any time.", gomock.Any())
 		mgr.handleObject(ctx, log, &obj, now)
 	})
 	It("not_expired_image_reused", func() {
@@ -94,7 +96,7 @@ var _ = Describe("image_expirer", func() {
 		mockAPI.EXPECT().GetObjectTagging(&taggingInput).Return(&taggingOutput, nil)
 		deleteInput := s3.DeleteObjectInput{Bucket: &bucket, Key: &objKey}
 		mockAPI.EXPECT().DeleteObject(&deleteInput).Return(nil, nil)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, models.EventSeverityInfo, "Deleted image from backend because it expired. It may be generated again at any time.", gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), strfmt.UUID(clusterId), nil, models.EventSeverityInfo, "Deleted image from backend because it expired. It may be generated again at any time.", gomock.Any())
 		mgr.handleObject(ctx, log, &obj, now)
 	})
 	It("dummy_image_expires_immediately", func() {
@@ -104,7 +106,7 @@ var _ = Describe("image_expirer", func() {
 		obj := s3.Object{Key: &objKey, LastModified: &imgCreatedAt}
 		deleteInput := s3.DeleteObjectInput{Bucket: &bucket, Key: &objKey}
 		mockAPI.EXPECT().DeleteObject(&deleteInput).Return(nil, nil)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, models.EventSeverityInfo, "Deleted image from backend because it expired. It may be generated again at any time.", gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), strfmt.UUID(clusterId), nil, models.EventSeverityInfo, "Deleted image from backend because it expired. It may be generated again at any time.", gomock.Any())
 		mgr.handleObject(ctx, log, &obj, now)
 	})
 

@@ -148,6 +148,50 @@ func (o *ListEventsForbidden) WriteResponse(rw http.ResponseWriter, producer run
 	}
 }
 
+// ListEventsNotFoundCode is the HTTP code returned for type ListEventsNotFound
+const ListEventsNotFoundCode int = 404
+
+/*ListEventsNotFound Error.
+
+swagger:response listEventsNotFound
+*/
+type ListEventsNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListEventsNotFound creates ListEventsNotFound with default headers values
+func NewListEventsNotFound() *ListEventsNotFound {
+
+	return &ListEventsNotFound{}
+}
+
+// WithPayload adds the payload to the list events not found response
+func (o *ListEventsNotFound) WithPayload(payload *models.Error) *ListEventsNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list events not found response
+func (o *ListEventsNotFound) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListEventsNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // ListEventsMethodNotAllowedCode is the HTTP code returned for type ListEventsMethodNotAllowed
 const ListEventsMethodNotAllowedCode int = 405
 

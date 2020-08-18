@@ -324,7 +324,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 	eventSeverity := models.EventSeverityInfo
 	eventInfo := fmt.Sprintf("Installation canceled for host %s", common.GetHostnameForMsg(h))
 	defer func() {
-		m.eventsHandler.AddEvent(ctx, h.ID.String(), eventSeverity, eventInfo, time.Now(), h.ClusterID.String())
+		m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
 	}()
 
 	err := m.sm.Run(TransitionTypeCancelInstallation, newStateHost(h), &TransitionArgsCancelInstallation{
@@ -354,7 +354,7 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 	eventSeverity := models.EventSeverityInfo
 	eventInfo := fmt.Sprintf("Installation reset for host %s", common.GetHostnameForMsg(h))
 	defer func() {
-		m.eventsHandler.AddEvent(ctx, h.ID.String(), eventSeverity, eventInfo, time.Now(), h.ClusterID.String())
+		m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
 	}()
 
 	err := m.sm.Run(TransitionTypeResetHost, newStateHost(h), &TransitionArgsResetHost{
