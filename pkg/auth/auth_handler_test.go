@@ -282,4 +282,8 @@ func (f fakeInventory) UploadHostLogs(ctx context.Context, params installer.Uplo
 	panic("Implement Me!")
 }
 
+func (f fakeInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}

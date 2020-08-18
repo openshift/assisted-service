@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -2146,28 +2147,13 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 		}
 	}()
 
-	var cluster models.Cluster
-
-	if err := b.db.Preload("Hosts", "id = ?", params.HostID).First(&cluster, "id = ?",
-		params.ClusterID).Error; err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			return common.NewApiError(http.StatusNotFound, err)
-		}
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	if len(cluster.Hosts) < 1 {
-		return common.NewApiError(http.StatusNotFound, errors.Errorf("Host %s not found", params.HostID))
-	}
-	// needed to get filename
-	_, fileHeader, err := params.HTTPRequest.FormFile("upfile")
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get filename")
-		return common.NewApiError(http.StatusInternalServerError, err)
+	if _, err := b.assertHostExists(params.ClusterID.String(), params.HostID.String()); err != nil {
+		return common.GenerateErrorResponder(err)
 	}
 
-	fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, params.HostID.String(), fileHeader.Filename)
+	fileName := b.getLogsFullName(params.ClusterID.String(), params.HostID.String())
 	log.Debugf("Start upload %s to bucket %s aws len", fileName, b.S3Bucket)
-	err = b.s3Client.UploadStream(ctx, params.Upfile, fileName)
+	err := b.s3Client.UploadStream(ctx, params.Upfile, fileName)
 
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload %s to s3", fileName)
@@ -2176,6 +2162,52 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 
 	log.Infof("Done uploading file %s", fileName)
 	return installer.NewUploadHostLogsNoContent()
+}
+
+func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Downloading logs from host %s in cluster %s", params.HostID, params.ClusterID)
+	hostObject, err := b.assertHostExists(params.ClusterID.String(), params.HostID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	fileName := b.getLogsFullName(params.ClusterID.String(), params.HostID.String())
+	// TODO add validation after MGMT-1827
+
+	respBody, contentLength, err := b.s3Client.Download(ctx, fileName)
+	if err != nil {
+		if _, ok := err.(s3wrapper.NotFound); ok {
+			log.WithError(err).Warnf("File not found %s", fileName)
+			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", params.HostID))
+		}
+
+		log.WithError(err).Errorf("failed to download file %s", fileName)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	downloadFileName := fmt.Sprintf("%s_%s", common.GetHostnameForMsg(hostObject), filepath.Base(fileName))
+	return filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(respBody), downloadFileName, contentLength)
+}
+
+func (b *bareMetalInventory) getLogsFullName(clusterId string, hostId string) string {
+	return fmt.Sprintf("%s/logs/%s/logs.tar.gz", clusterId, hostId)
+}
+
+func (b *bareMetalInventory) assertHostExists(clusterId string, hostId string) (*models.Host, error) {
+	var cluster models.Cluster
+
+	if err := b.db.Preload("Hosts", "id = ?", hostId).First(&cluster, "id = ?",
+		clusterId).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, common.NewApiError(http.StatusNotFound, err)
+		}
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if len(cluster.Hosts) < 1 {
+		return nil, common.NewApiError(http.StatusNotFound, errors.Errorf("Host %s not found", hostId))
+	}
+	return cluster.Hosts[0], nil
 }
 
 func (b *bareMetalInventory) customizeHost(host *models.Host) error {
