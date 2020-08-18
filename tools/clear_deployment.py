@@ -8,6 +8,9 @@ def main():
     deploy_options = deployment_options.load_deployment_options(parser)
 
     print(utils.check_output(f"kubectl delete all --all -n {deploy_options.namespace} 1> /dev/null ; true"))
+    # configmaps are not deleted with `delete all`
+    print(utils.check_output(f"kubectl get configmap -o name -n {deploy_options.namespace} | " +
+                             f"xargs kubectl delete -n {deploy_options.namespace} 1> /dev/null ; true"))
     if deploy_options.delete_namespace is True:
         print(utils.check_output(f"kubectl delete namespace {deploy_options.namespace} 1> /dev/null ; true"))
 
