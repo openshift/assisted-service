@@ -218,7 +218,8 @@ clean:
 	-rm -rf $(BUILD_FOLDER)
 
 subsystem-clean:
-	-$(KUBECTL) get pod -o name | grep create-image | xargs $(KUBECTL) delete 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep dummyimage | xargs $(KUBECTL) delete 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep createimage | xargs $(KUBECTL) delete 1> /dev/null || true
 	-$(KUBECTL) get pod -o name | grep ignition-generator | xargs $(KUBECTL) delete 1> /dev/null || true
 
 clear-deployment:
