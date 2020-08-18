@@ -179,6 +179,33 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshCluster(statusInfoPreparingForInstallationTimeout),
 	})
 
+	// This transition is fired when the cluster is in installing and should move to finalizing
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusInstalling)},
+		Condition:        th.IsFinalizing,
+		DestinationState: stateswitch.State(models.ClusterStatusFinalizing),
+		PostTransition:   th.PostRefreshCluster(statusInfoFinalizing),
+	})
+
+	// This transition is fired when the cluster is in installing
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusInstalling)},
+		Condition:        stateswitch.And(stateswitch.Not(th.IsFinalizing), th.IsInstalling),
+		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
+		PostTransition:   th.PostRefreshCluster(statusInfoInstalling),
+	})
+
+	// This transition is fired when the cluster is in installing and should move to error
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusInstalling)},
+		Condition:        stateswitch.And(stateswitch.Not(th.IsFinalizing), stateswitch.Not(th.IsInstalling)),
+		DestinationState: stateswitch.State(models.ClusterStatusError),
+		PostTransition:   th.PostRefreshCluster(statusInfoError),
+	})
+
 	// Noop transitions
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.ClusterStatusPreparingForInstallation),

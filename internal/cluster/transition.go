@@ -192,6 +192,35 @@ func If(id stringer) stateswitch.Condition {
 	return ret
 }
 
+//check if we should move to finalizing state
+func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	mappedMastersByRole := MapMasterHostsByStatus(sCluster.cluster)
+
+	// Cluster is in finalizing
+	mastersInInstalled := mappedMastersByRole[models.HostStatusInstalled]
+	if ok && len(mastersInInstalled) >= MinHostsNeededForInstallation {
+		th.log.Infof("Cluster %s has at least %d installed hosts, cluster is finalizing.", sCluster.cluster.ID, len(mastersInInstalled))
+		return true, nil
+	}
+	return false, nil
+}
+
+//check if we should stay in installing state
+func (th *transitionHandler) IsInstalling(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, _ := sw.(*stateCluster)
+	mappedMastersByRole := MapMasterHostsByStatus(sCluster.cluster)
+
+	mastersInSomeInstallingStatus := len(mappedMastersByRole[models.HostStatusInstalling]) +
+		len(mappedMastersByRole[models.HostStatusInstallingInProgress]) +
+		len(mappedMastersByRole[models.HostStatusInstalled]) +
+		len(mappedMastersByRole[models.HostStatusInstallingPendingUserAction])
+	if mastersInSomeInstallingStatus >= MinHostsNeededForInstallation {
+		return true, nil
+	}
+	return false, nil
+}
+
 //check if prepare for installation reach to timeout
 func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)

@@ -24,11 +24,6 @@ import (
 
 //go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go
 
-type StateAPI interface {
-	// Refresh state in case of hosts update
-	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error)
-}
-
 type RegistrationAPI interface {
 	// Register a new cluster
 	RegisterCluster(ctx context.Context, c *common.Cluster) error
@@ -44,9 +39,10 @@ type InstallationAPI interface {
 }
 
 type API interface {
-	StateAPI
 	RegistrationAPI
 	InstallationAPI
+	// Refresh state in case of hosts update
+	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error)
 	ClusterMonitoring()
 	DownloadFiles(c *common.Cluster) (err error)
 	DownloadKubeconfig(c *common.Cluster) (err error)
@@ -76,7 +72,6 @@ type Manager struct {
 	Config
 	log             logrus.FieldLogger
 	db              *gorm.DB
-	installing      StateAPI
 	registrationAPI RegistrationAPI
 	installationAPI InstallationAPI
 	eventsHandler   events.Handler
@@ -95,7 +90,6 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 	return &Manager{
 		log:             log,
 		db:              db,
-		installing:      NewInstallingState(log, db),
 		registrationAPI: NewRegistrar(log, db),
 		installationAPI: NewInstaller(log, db),
 		eventsHandler:   eventsHandler,
@@ -104,15 +98,6 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		rp:              newRefreshPreprocessor(log, hostAPI),
 		hostAPI:         hostAPI,
 	}
-}
-
-func (m *Manager) getCurrentState(status string) (StateAPI, error) {
-	switch status {
-	case "":
-	case models.ClusterStatusInstalling:
-		return m.installing, nil
-	}
-	return nil, errors.Errorf("not supported cluster status: %s", status)
 }
 
 func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error {
@@ -139,32 +124,6 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
-	log := logutil.FromContext(ctx, m.log)
-	//TODO remove this code after changing all refreshStatus to transitions
-	if swag.StringValue(c.Status) == models.ClusterStatusInstalling {
-
-		stateBeforeRefresh := swag.StringValue(c.Status)
-		// get updated cluster info with hosts
-		var cluster common.Cluster
-
-		if err := db.Preload("Hosts").Take(&cluster, "id = ?", c.ID.String()).Error; err != nil {
-			return nil, errors.Wrapf(err, "failed to get cluster %s", c.ID.String())
-		}
-		state, err := m.getCurrentState(swag.StringValue(cluster.Status))
-		if err != nil {
-			return nil, err
-		}
-
-		clusterAfterRefresh, err := state.RefreshStatus(ctx, &cluster, db)
-
-		//report installation finished metric if needed
-		reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError}
-		if err == nil && stateBeforeRefresh == models.ClusterStatusInstalling &&
-			funk.ContainsString(reportInstallationCompleteStatuses, swag.StringValue(clusterAfterRefresh.Status)) {
-			m.metricAPI.ClusterInstallationFinished(log, swag.StringValue(cluster.Status), c.OpenshiftVersion, c.InstallStartedAt)
-		}
-		return clusterAfterRefresh, err
-	}
 
 	//new transition code
 	if db == nil {
@@ -178,7 +137,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	if err != nil {
 		return c, err
 	}
-	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(c), &TransitionArgsRefreshCluster{
+	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), &TransitionArgsRefreshCluster{
 		ctx:               ctx,
 		db:                db,
 		eventHandler:      m.eventsHandler,

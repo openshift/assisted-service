@@ -6,51 +6,12 @@ package cluster
 
 import (
 	context "context"
-	reflect "reflect"
-
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
+	reflect "reflect"
 )
-
-// MockStateAPI is a mock of StateAPI interface
-type MockStateAPI struct {
-	ctrl     *gomock.Controller
-	recorder *MockStateAPIMockRecorder
-}
-
-// MockStateAPIMockRecorder is the mock recorder for MockStateAPI
-type MockStateAPIMockRecorder struct {
-	mock *MockStateAPI
-}
-
-// NewMockStateAPI creates a new mock instance
-func NewMockStateAPI(ctrl *gomock.Controller) *MockStateAPI {
-	mock := &MockStateAPI{ctrl: ctrl}
-	mock.recorder = &MockStateAPIMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockStateAPI) EXPECT() *MockStateAPIMockRecorder {
-	return m.recorder
-}
-
-// RefreshStatus mocks base method
-func (m *MockStateAPI) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshStatus", ctx, c, db)
-	ret0, _ := ret[0].(*common.Cluster)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RefreshStatus indicates an expected call of RefreshStatus
-func (mr *MockStateAPIMockRecorder) RefreshStatus(ctx, c, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockStateAPI)(nil).RefreshStatus), ctx, c, db)
-}
 
 // MockRegistrationAPI is a mock of RegistrationAPI interface
 type MockRegistrationAPI struct {
@@ -178,21 +139,6 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
-// RefreshStatus mocks base method
-func (m *MockAPI) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshStatus", ctx, c, db)
-	ret0, _ := ret[0].(*common.Cluster)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RefreshStatus indicates an expected call of RefreshStatus
-func (mr *MockAPIMockRecorder) RefreshStatus(ctx, c, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, c, db)
-}
-
 // RegisterCluster mocks base method
 func (m *MockAPI) RegisterCluster(ctx context.Context, c *common.Cluster) error {
 	m.ctrl.T.Helper()
@@ -248,6 +194,21 @@ func (m *MockAPI) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 func (mr *MockAPIMockRecorder) GetMasterNodesIds(ctx, c, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMasterNodesIds", reflect.TypeOf((*MockAPI)(nil).GetMasterNodesIds), ctx, c, db)
+}
+
+// RefreshStatus mocks base method
+func (m *MockAPI) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshStatus", ctx, c, db)
+	ret0, _ := ret[0].(*common.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshStatus indicates an expected call of RefreshStatus
+func (mr *MockAPIMockRecorder) RefreshStatus(ctx, c, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshStatus", reflect.TypeOf((*MockAPI)(nil).RefreshStatus), ctx, c, db)
 }
 
 // ClusterMonitoring mocks base method
