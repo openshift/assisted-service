@@ -6,10 +6,11 @@ package events
 
 import (
 	context "context"
-	strfmt "github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	time "time"
+
+	strfmt "github.com/go-openapi/strfmt"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockHandler is a mock of Handler interface

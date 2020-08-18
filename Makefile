@@ -112,7 +112,8 @@ update-minimal: build-minimal
 update-minikube: build build-dummy-ignition
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
 		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
-		-f Dockerfile.assisted-service . -t $(SERVICE) && docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
+		-f Dockerfile.assisted-service . -t $(SERVICE) && docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION} \
+		&& docker build --network=host --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 build-dummy-ignition-image: build-dummy-ignition
 	docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
@@ -168,12 +169,12 @@ deploy-role: deploy-namespace
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
-jenkins-deploy-for-subsystem: build-dummy-ignition-image
+jenkins-deploy-for-subsystem: build-dummy-ignition-image build-assisted-iso-generator-image
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && $(MAKE) deploy-all
 
 deploy-test:
 	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
-	&& export DUMMY_IGNITION=${DUMMY_IGNITION} && $(MAKE) update-minikube deploy-all
+	&& export DUMMY_IGNITION=${DUMMY_IGNITION} && ISO_CREATION=minikube-local-registry/assisted-iso-create:minikube-test $(MAKE) update-minikube deploy-all
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
