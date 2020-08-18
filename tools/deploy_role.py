@@ -6,6 +6,8 @@ import deployment_options
 def main():
     deploy_options = deployment_options.load_deployment_options()
 
+    utils.set_profile(deploy_options.target, deploy_options.profile)
+
     src_file = os.path.join(os.getcwd(), "deploy/roles/default_role.yaml")
     dst_file = os.path.join(os.getcwd(), "build/default_role.yaml")
 

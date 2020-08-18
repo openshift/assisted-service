@@ -7,10 +7,10 @@ import deployment_options
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--target")
-    parser.add_argument("--domain")
     parser.add_argument("--subsystem-test", help='deploy in subsystem mode', action='store_true')
     deploy_options = deployment_options.load_deployment_options(parser)
+
+    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     dst_file = os.path.join(os.getcwd(), "build/deploy_ui.yaml")
     image_fqdn = deployment_options.get_image_override(deploy_options, "ocp-metal-ui", "UI_IMAGE")
@@ -30,8 +30,13 @@ def main():
             with open(dst_file, "w+") as dst:
                 data = src.read()
                 data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
-                data = data.replace("REPLACE_HOSTNAME",
-                                    utils.get_service_host("assisted-installer-ui", deploy_options.target, deploy_options.domain, deploy_options.namespace))
+                data = data.replace('REPLACE_HOSTNAME', utils.get_service_host(
+                    'assisted-installer-ui',
+                    deploy_options.target,
+                    deploy_options.domain,
+                    deploy_options.namespace,
+                    deploy_options.profile
+                ))
                 print("Deploying {}".format(dst_file))
                 dst.write(data)
         utils.apply(dst_file)

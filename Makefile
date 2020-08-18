@@ -5,11 +5,12 @@ ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 TARGET := $(or ${TARGET},minikube)
 NAMESPACE := $(or ${NAMESPACE},assisted-installer)
+PROFILE := $(or $(PROFILE),minikube)
 KUBECTL=kubectl -n $(NAMESPACE)
 
 ifeq ($(TARGET), minikube)
 define get_service
-minikube service --url $(1) -n $(NAMESPACE) | sed 's/http:\/\///g'
+minikube -p $(PROFILE) service --url $(1) -n $(NAMESPACE) | sed 's/http:\/\///g'
 endef # get_service
 else
 define get_service
@@ -105,7 +106,7 @@ update-minimal: build-minimal
 		-f Dockerfile.assisted-service . -t $(SERVICE)
 
 update-minikube: build
-	eval $$(SHELL=$${SHELL:-/bin/sh} minikube docker-env) && \
+	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
 		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
 		-f Dockerfile.assisted-service . -t $(SERVICE)
 
@@ -124,41 +125,41 @@ deploy-all: $(BUILD_FOLDER) deploy-namespace deploy-postgres deploy-s3 deploy-oc
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
-	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" $(DEPLOY_TAG_OPTION)
+	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(DEPLOY_TAG_OPTION)
 
 deploy-namespace: $(BUILD_FOLDER)
-	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)"
+	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-s3-secret:
-	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)"
+	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-s3: deploy-namespace
-	python3 ./tools/deploy_s3.py --namespace "$(NAMESPACE)"
+	python3 ./tools/deploy_s3.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 	sleep 5;  # wait for service to get an address
 	make deploy-s3-secret
 
 deploy-route53: deploy-namespace
-	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)" --namespace "$(NAMESPACE)"
+	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-ocm-secret: deploy-namespace
 	python3 ./tools/deploy_sso_secret.py --secret "$(OCM_CLIENT_SECRET)" --id "$(OCM_CLIENT_ID)" --namespace "$(NAMESPACE)"
 
 deploy-inventory-service-file: deploy-namespace
-	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)"
+	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)"
+	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)"
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
-	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" $(TEST_FLAGS)
-	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" --domain "$(INGRESS_DOMAIN)"
+	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)"
+	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)"
 
 deploy-role: deploy-namespace
-	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)"
+	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-postgres: deploy-namespace
-	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)"
+	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 jenkins-deploy-for-subsystem:
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && $(MAKE) deploy-all
@@ -193,10 +194,10 @@ deploy-olm: deploy-namespace
 	python3 ./tools/deploy_olm.py --target $(TARGET)
 
 deploy-prometheus: $(BUILD_FOLDER) deploy-namespace
-	python3 ./tools/deploy_prometheus.py --target $(TARGET) --namespace "$(NAMESPACE)"
+	python3 ./tools/deploy_prometheus.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
 
 deploy-grafana: $(BUILD_FOLDER)
-	python3 ./tools/deploy_grafana.py --target $(TARGET) --namespace "$(NAMESPACE)"
+	python3 ./tools/deploy_grafana.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
 
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
@@ -228,8 +229,14 @@ subsystem-clean:
 	-$(KUBECTL) get pod -o name | grep ignition-generator | xargs $(KUBECTL) delete 1> /dev/null || true
 
 clear-deployment:
-	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" || true
+	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
 
 clean-onprem:
 	podman pod rm -f assisted-installer
 	podman volume rm s3-volume
+
+delete-minikube-profile:
+	minikube delete -p $(PROFILE)
+
+delete-all-minikube-profiles:
+	minikube delete --all

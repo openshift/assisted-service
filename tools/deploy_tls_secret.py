@@ -66,6 +66,8 @@ def main():
     parser.add_argument("--tls-expiration", help="Server certificate expiration (days)", type=int, default=120)
     deploy_options = deployment_options.load_deployment_options(parser)
 
+    utils.set_profile(deploy_options.target, deploy_options.profile)
+
     output_dir = os.path.join(os.getcwd(), "build")
     generate_secret(output_dir=output_dir, service=deploy_options.service, san=deploy_options.tls_san,
                     namespace=deploy_options.namespace, expiration=deploy_options.tls_expiration, keep_files=False)

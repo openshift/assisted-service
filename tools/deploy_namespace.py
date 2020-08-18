@@ -9,6 +9,8 @@ def main():
     parser.add_argument("--deploy-namespace", type=lambda x: (str(x).lower() == 'true'), default=True)
     deploy_options = deployment_options.load_deployment_options(parser)
 
+    utils.set_profile(deploy_options.target, deploy_options.profile)
+
     if deploy_options.deploy_namespace is False:
         print("Not deploying namespace")
         return

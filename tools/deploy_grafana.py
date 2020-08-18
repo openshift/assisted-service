@@ -6,15 +6,12 @@ n the OCP case, it will be integrated automatically with OCP oauth.
 import os
 import sys
 from time import sleep
-import argparse
 import secrets
 import utils
 import deployment_options
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--target")
-deploy_options = deployment_options.load_deployment_options(parser)
-
+deploy_options = deployment_options.load_deployment_options()
+utils.set_profile(deploy_options.target, deploy_options.profile)
 
 if deploy_options.target != "oc-ingress":
     CMD_BIN = 'kubectl'
