@@ -1,11 +1,14 @@
 package auth
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/openshift/assisted-service/pkg/ocm"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
@@ -14,38 +17,34 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// AuthPayload defines the structure of the JWT payload we expect from
-// RHD JWT tokens
-type AuthPayload struct {
-	Username     string `json:"username"`
-	FirstName    string `json:"first_name"`
-	LastName     string `json:"last_name"`
-	Organization string `json:"org_id"`
-	Email        string `json:"email"`
-	Issuer       string `json:"iss"`
-	ClientID     string `json:"clientId"`
-}
-
 type Config struct {
-	EnableAuth bool   `envconfig:"ENABLE_AUTH" default:"false"`
-	JwkCert    string `envconfig:"JWKS_CERT"`
-	JwkCertURL string `envconfig:"JWKS_URL" default:"https://api.openshift.com/.well-known/jwks.json"`
+	EnableAuth      bool   `envconfig:"ENABLE_AUTH" default:"false"`
+	EnableAuthAgent bool   `envconfig:"ENABLE_AUTH_AGENT" default:"true"`
+	EnableAuthz     bool   `envconfig:"ENABLE_AUTH_AGENT" default:"true"`
+	JwkCert         string `envconfig:"JWKS_CERT"`
+	JwkCertURL      string `envconfig:"JWKS_URL" default:"https://api.openshift.com/.well-known/jwks.json"`
 	// Will be split with "," as separator
 	AllowedDomains string `envconfig:"ALLOWED_DOMAINS" default:""`
 }
 
 type AuthHandler struct {
-	EnableAuth bool
-	KeyMap     map[string]*rsa.PublicKey
-	utils      AUtilsInteface
-	log        logrus.FieldLogger
+	EnableAuth      bool
+	EnableAuthAgent bool
+	EnableAuthz     bool
+	KeyMap          map[string]*rsa.PublicKey
+	utils           AUtilsInteface
+	log             logrus.FieldLogger
+	client          *ocm.Client
 }
 
-func NewAuthHandler(cfg Config, log logrus.FieldLogger) *AuthHandler {
+func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthHandler {
 	a := &AuthHandler{
-		EnableAuth: cfg.EnableAuth,
-		utils:      NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
-		log:        log,
+		EnableAuth:      cfg.EnableAuth,
+		EnableAuthz:     cfg.EnableAuthz,
+		EnableAuthAgent: cfg.EnableAuthAgent,
+		utils:           NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
+		client:          ocmCLient,
+		log:             log,
 	}
 	if a.EnableAuth {
 		err := a.populateKeyMap()
@@ -85,18 +84,34 @@ func (a *AuthHandler) getValidationToken(token *jwt.Token) (interface{}, error) 
 }
 
 func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
-	//TODO: Validate agent pull secret
-	return "user_foo", nil
+	if !a.EnableAuthAgent {
+		// return a fake user for subsystem
+		return &ocm.AuthPayload{Username: ocm.FakePayloadUsername, IsAdmin: true}, nil
+	}
+	if a.client == nil {
+		a.log.Error("OCM client unavailable")
+		return nil, fmt.Errorf("OCM client unavailable")
+	}
+	user, err := a.client.Authentication.AuthenticatePullSecret(context.Background(), token)
+	if err != nil {
+		a.log.Error("Error Authenticating PullSecret token: %v", err)
+		return nil, err
+	}
+	err = a.storeAdminInPayload(user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
-func parsePayload(userToken *jwt.Token) (*AuthPayload, error) {
+func parsePayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
 	claims, ok := userToken.Claims.(jwt.MapClaims)
 	if !ok {
 		err := fmt.Errorf("Unable to parse JWT token claims")
 		return nil, err
 	}
 
-	payload := &AuthPayload{}
+	payload := &ocm.AuthPayload{}
 	// default to the values we expect from RHSSO
 	payload.Username, _ = claims["username"].(string)
 	payload.FirstName, _ = claims["first_name"].(string)
@@ -143,7 +158,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 
 	// Check if there was an error in parsing...
 	if err != nil {
-		a.log.Error("Error parsing token: %e", err)
+		a.log.Errorf("Error parsing token: %e", err)
 		return nil, fmt.Errorf("Error parsing token: %v", err)
 	}
 
@@ -151,7 +166,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 		message := fmt.Sprintf("Expected %s signing method but token specified %s",
 			jwt.SigningMethodRS256.Alg(),
 			parsedToken.Header["alg"])
-		a.log.Error("Error validating token algorithm: %s", message)
+		a.log.Errorf("Error validating token algorithm: %s", message)
 		return nil, fmt.Errorf("Error validating token algorithm: %s", message)
 	}
 
@@ -163,10 +178,40 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 
 	payload, err := parsePayload(parsedToken)
 	if err != nil {
-		a.log.Fatalln("Failed parse payload,", err)
+		a.log.Error("Failed parse payload,", err)
 		return nil, err
 	}
+
+	err = a.storeAdminInPayload(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	if payload.Username == "" {
+		a.log.Error("Missing username in token")
+		return nil, fmt.Errorf("Missing username in token")
+	}
+
 	return payload, nil
+}
+
+func (a *AuthHandler) storeAdminInPayload(payload *ocm.AuthPayload) error {
+	if !a.EnableAuthz {
+		// a fake admin user for subsystem
+		payload.IsAdmin = true
+		return nil
+	}
+	admin, err := a.isAdmin(payload.Username)
+	if err != nil {
+		return fmt.Errorf("Unable to fetch user's capabilities: %v", err)
+	}
+	payload.IsAdmin = admin
+	return nil
+}
+
+func (a *AuthHandler) isAdmin(username string) (bool, error) {
+	return a.client.Authorization.CapabilityReview(
+		context.Background(), fmt.Sprint(username), capabilityName, capabilityType)
 }
 
 func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate security.TokenAuthentication) runtime.Authenticator {
@@ -177,7 +222,9 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 
 			if !a.EnableAuth {
 				a.log.Debug("API Key Authentication Disabled")
-				return true, "", nil
+				return true, &ocm.AuthPayload{
+					IsAdmin: true, // auth disabled - behave as system-admin
+				}, nil
 			}
 			token := getToken(r)
 			if token == "" {
