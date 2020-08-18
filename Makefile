@@ -98,7 +98,9 @@ build-image: build
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
  		-f Dockerfile.assisted-service . -t $(SERVICE)
 
-build-assisted-iso-generator-image: build
+build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
+
+build-minimal-assisted-iso-generator-image: build-iso-generator
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
