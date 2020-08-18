@@ -21,7 +21,7 @@ endif # TARGET
 
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
-DUMMY_IGNITION := $(or ${DUMMY_IGNITION},quay.io/ocpmetal/ignition-dummy:latest)
+DUMMY_IGNITION := $(or ${DUMMY_IGNITION},minikube-local-registry/ignition-dummy-generator:minikube-test)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -173,7 +173,7 @@ jenkins-deploy-for-subsystem: build-dummy-ignition-image
 
 deploy-test:
 	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
-	&& export DUMMY_IGNITION=minikube-local-registry/ignition-dummy-generator:minikube-test && $(MAKE) update-minikube deploy-all
+	&& export DUMMY_IGNITION=${DUMMY_IGNITION} && $(MAKE) update-minikube deploy-all
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
