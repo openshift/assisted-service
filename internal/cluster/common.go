@@ -59,6 +59,10 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 			clusterId, srcStatus, newStatus)
 	}
 
+	if newStatus != srcStatus {
+		log.Infof("cluster %s has been updated with the following updates %+v", clusterId, extra)
+	}
+
 	return cluster, nil
 }
 
@@ -79,7 +83,6 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 	if dbReply.Error != nil || dbReply.RowsAffected == 0 {
 		return nil, errors.Errorf("failed to update cluster %s. nothing have changed", clusterId)
 	}
-	log.Infof("cluster %s has been updated with the following updateds %+v", clusterId, extra)
 
 	var cluster common.Cluster
 
