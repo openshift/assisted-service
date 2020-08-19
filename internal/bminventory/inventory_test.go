@@ -276,24 +276,34 @@ var _ = Describe("GenerateClusterISO", func() {
 
 var _ = Describe("RegisterHost", func() {
 	var (
-		bm     *bareMetalInventory
-		cfg    Config
-		db     *gorm.DB
-		ctx    = context.Background()
-		dbName = "register_host_api"
+		bm                *bareMetalInventory
+		cfg               Config
+		db                *gorm.DB
+		ctx               = context.Background()
+		dbName            = "register_host_api"
+		hostID            strfmt.UUID
+		ctrl              *gomock.Controller
+		mockClusterAPI    *cluster.MockAPI
+		mockHostAPI       *host.MockAPI
+		mockEventsHandler *events.MockHandler
 	)
 
 	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockClusterAPI = cluster.NewMockAPI(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockEventsHandler = events.NewMockHandler(ctrl)
+		hostID = strfmt.UUID(uuid.New().String())
 		db = common.PrepareTestDB(dbName)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostAPI, mockClusterAPI, cfg, nil, mockEventsHandler, nil, nil)
 	})
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 
 	It("register host to none existing cluster", func() {
-		hostID := strfmt.UUID(uuid.New().String())
 		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 			NewHostParams: &models.HostCreateParams{
@@ -304,6 +314,39 @@ var _ = Describe("RegisterHost", func() {
 		apiErr, ok := reply.(*common.ApiErrorResponse)
 		Expect(ok).Should(BeTrue())
 		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusNotFound)))
+	})
+
+	It("register_success", func() {
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:     &clusterID,
+				Status: swag.String(models.ClusterStatusInsufficient),
+			},
+		}
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, h *models.Host) error {
+				// validate that host is registered with auto-assign role
+				Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
+				return nil
+			}).Times(1)
+		mockHostAPI.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockEventsHandler.EXPECT().
+			AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+			Times(1)
+
+		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
+			ClusterID: clusterID,
+			NewHostParams: &models.HostCreateParams{
+				DiscoveryAgentVersion: "v1",
+				HostID:                &hostID,
+			},
+		})
+		_, ok := reply.(*installer.RegisterHostCreated)
+		Expect(ok).Should(BeTrue())
 	})
 })
 
@@ -962,6 +1005,23 @@ var _ = Describe("cluster", func() {
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
 	}
+	mockAutoAssignFailed := func() {
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(errors.Errorf("")).Times(1)
+	}
+	mockAutoAssignSuccess := func(times int) {
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
+	}
+	mockClusterRefreshStatusSuccess := func() {
+		mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+				return c, nil
+			})
+	}
+	mockClusterIsReadyForInstallationSuccess := func() {
+		mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+	}
+
 	getInventoryStr := func(ipv4Addresses ...string) string {
 		inventory := models.Inventory{Interfaces: []*models.Interface{
 			{
@@ -1385,6 +1445,9 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("success", func() {
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
+				mockClusterIsReadyForInstallationSuccess()
 				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForRefresh(mockHostApi)
@@ -1407,7 +1470,25 @@ var _ = Describe("cluster", func() {
 				waitForDoneChannel()
 			})
 
+			It("cluster doesn't exists", func() {
+				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+					ClusterID: strfmt.UUID(uuid.New().String()),
+				})
+				verifyApiError(reply, http.StatusNotFound)
+			})
+
+			It("failed to auto-assign role", func() {
+				mockAutoAssignFailed()
+				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+					ClusterID: clusterID,
+				})
+				verifyApiError(reply, http.StatusInternalServerError)
+			})
+
 			It("failed to prepare cluster", func() {
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
+				mockClusterIsReadyForInstallationSuccess()
 				// validations
 				mockHostPrepareForRefresh(mockHostApi)
 				setDefaultGetMasterNodesIds(mockClusterApi)
@@ -1423,6 +1504,9 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("failed to prepare host", func() {
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
+				mockClusterIsReadyForInstallationSuccess()
 				// validations
 				mockHostPrepareForRefresh(mockHostApi)
 				setDefaultGetMasterNodesIds(mockClusterApi)
@@ -1440,6 +1524,8 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("cluster is not ready to install", func() {
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationFalse(mockClusterApi)
@@ -1452,6 +1538,10 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("cluster failed to update", func() {
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
+				mockClusterIsReadyForInstallationSuccess()
+				mockHostPrepareForRefresh(mockHostApi)
 				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
 				mockHostPrepareForRefresh(mockHostApi)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
@@ -1470,6 +1560,9 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("host failed to install", func() {
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
+				mockClusterIsReadyForInstallationSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
 				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
@@ -1494,6 +1587,9 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("list of masters for setting bootstrap return empty list", func() {
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
+				mockClusterIsReadyForInstallationSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
 				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
@@ -1518,6 +1614,9 @@ var _ = Describe("cluster", func() {
 				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 				setDefaultInstall(mockClusterApi)
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
+				mockClusterIsReadyForInstallationSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
 				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
@@ -1541,6 +1640,9 @@ var _ = Describe("cluster", func() {
 				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 				setDefaultInstall(mockClusterApi)
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
+				mockClusterIsReadyForInstallationSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
 				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))

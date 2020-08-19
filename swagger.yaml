@@ -2367,12 +2367,14 @@ definitions:
   host-role-update-params:
     type: string
     enum:
+      - 'auto-assign'
       - 'master'
       - 'worker'
 
   host-role:
     type: string
     enum:
+      - 'auto-assign'
       - 'master'
       - 'worker'
       - 'bootstrap'
@@ -2445,4 +2447,4 @@ definitions:
       - 'ingress-vip-defined'
       - 'ingress-vip-valid'
       - 'all-hosts-are-ready-to-install'
-      - 'has-exactly-three-masters'
+      - 'sufficient-masters-count'

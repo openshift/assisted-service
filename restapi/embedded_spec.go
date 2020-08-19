@@ -2520,7 +2520,7 @@ func init() {
         "ingress-vip-defined",
         "ingress-vip-valid",
         "all-hosts-are-ready-to-install",
-        "has-exactly-three-masters"
+        "sufficient-masters-count"
       ]
     },
     "completion-params": {
@@ -2991,6 +2991,9 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "user_name": {
+          "type": "string"
+        },
         "validations_info": {
           "description": "Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)",
           "type": "string",
@@ -3066,6 +3069,7 @@ func init() {
     "host-role": {
       "type": "string",
       "enum": [
+        "auto-assign",
         "master",
         "worker",
         "bootstrap"
@@ -3074,6 +3078,7 @@ func init() {
     "host-role-update-params": {
       "type": "string",
       "enum": [
+        "auto-assign",
         "master",
         "worker"
       ]
@@ -5969,7 +5974,7 @@ func init() {
         "ingress-vip-defined",
         "ingress-vip-valid",
         "all-hosts-are-ready-to-install",
-        "has-exactly-three-masters"
+        "sufficient-masters-count"
       ]
     },
     "completion-params": {
@@ -6440,6 +6445,9 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "user_name": {
+          "type": "string"
+        },
         "validations_info": {
           "description": "Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)",
           "type": "string",
@@ -6515,6 +6523,7 @@ func init() {
     "host-role": {
       "type": "string",
       "enum": [
+        "auto-assign",
         "master",
         "worker",
         "bootstrap"
@@ -6523,6 +6532,7 @@ func init() {
     "host-role-update-params": {
       "type": "string",
       "enum": [
+        "auto-assign",
         "master",
         "worker"
       ]

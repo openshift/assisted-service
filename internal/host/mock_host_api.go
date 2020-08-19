@@ -6,11 +6,13 @@ package host
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
-	reflect "reflect"
+	logrus "github.com/sirupsen/logrus"
 )
 
 // MockAPI is a mock of API interface
@@ -327,4 +329,33 @@ func (m *MockAPI) PrepareForInstallation(ctx context.Context, h *models.Host, db
 func (mr *MockAPIMockRecorder) PrepareForInstallation(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareForInstallation", reflect.TypeOf((*MockAPI)(nil).PrepareForInstallation), ctx, h, db)
+}
+
+// AutoAssignRole mocks base method
+func (m *MockAPI) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AutoAssignRole", ctx, h, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AutoAssignRole indicates an expected call of AutoAssignRole
+func (mr *MockAPIMockRecorder) AutoAssignRole(ctx, h, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AutoAssignRole", reflect.TypeOf((*MockAPI)(nil).AutoAssignRole), ctx, h, db)
+}
+
+// IsValidMasterCandidate mocks base method
+func (m *MockAPI) IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsValidMasterCandidate", h, db, log)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsValidMasterCandidate indicates an expected call of IsValidMasterCandidate
+func (mr *MockAPIMockRecorder) IsValidMasterCandidate(h, db, log interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidMasterCandidate", reflect.TypeOf((*MockAPI)(nil).IsValidMasterCandidate), h, db, log)
 }

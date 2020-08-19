@@ -6,10 +6,11 @@ package imgexpirer
 
 import (
 	context "context"
+	reflect "reflect"
+
 	request "github.com/aws/aws-sdk-go/aws/request"
 	s3 "github.com/aws/aws-sdk-go/service/s3"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockS3API is a mock of S3API interface

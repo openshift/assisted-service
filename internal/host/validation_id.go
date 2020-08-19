@@ -22,7 +22,6 @@ const (
 	HasCPUCoresForRole   = validationID(models.HostValidationIDHasCPUCoresForRole)
 	HasMemoryForRole     = validationID(models.HostValidationIDHasMemoryForRole)
 	IsHostnameUnique     = validationID(models.HostValidationIDHostnameUnique)
-	IsRoleDefined        = validationID(models.HostValidationIDRoleDefined)
 	IsHostnameValid      = validationID(models.HostValidationIDHostnameValid)
 )
 
@@ -33,8 +32,6 @@ func (v validationID) category() (string, error) {
 	case HasInventory, HasMinCPUCores, HasMinValidDisks, HasMinMemory,
 		HasCPUCoresForRole, HasMemoryForRole, IsHostnameUnique, IsHostnameValid:
 		return "hardware", nil
-	case IsRoleDefined:
-		return "role", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))
 }
