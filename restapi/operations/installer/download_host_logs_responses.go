@@ -68,7 +68,7 @@ type DownloadHostLogsUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDownloadHostLogsUnauthorized creates DownloadHostLogsUnauthorized with default headers values
@@ -78,13 +78,13 @@ func NewDownloadHostLogsUnauthorized() *DownloadHostLogsUnauthorized {
 }
 
 // WithPayload adds the payload to the download host logs unauthorized response
-func (o *DownloadHostLogsUnauthorized) WithPayload(payload *models.Error) *DownloadHostLogsUnauthorized {
+func (o *DownloadHostLogsUnauthorized) WithPayload(payload *models.InfraError) *DownloadHostLogsUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the download host logs unauthorized response
-func (o *DownloadHostLogsUnauthorized) SetPayload(payload *models.Error) {
+func (o *DownloadHostLogsUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -112,7 +112,7 @@ type DownloadHostLogsForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDownloadHostLogsForbidden creates DownloadHostLogsForbidden with default headers values
@@ -122,13 +122,13 @@ func NewDownloadHostLogsForbidden() *DownloadHostLogsForbidden {
 }
 
 // WithPayload adds the payload to the download host logs forbidden response
-func (o *DownloadHostLogsForbidden) WithPayload(payload *models.Error) *DownloadHostLogsForbidden {
+func (o *DownloadHostLogsForbidden) WithPayload(payload *models.InfraError) *DownloadHostLogsForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the download host logs forbidden response
-func (o *DownloadHostLogsForbidden) SetPayload(payload *models.Error) {
+func (o *DownloadHostLogsForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

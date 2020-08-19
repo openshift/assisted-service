@@ -153,20 +153,20 @@ func NewUpdateClusterUnauthorized() *UpdateClusterUnauthorized {
 Unauthorized.
 */
 type UpdateClusterUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *UpdateClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *UpdateClusterUnauthorized) GetPayload() *models.Error {
+func (o *UpdateClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *UpdateClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -186,20 +186,20 @@ func NewUpdateClusterForbidden() *UpdateClusterForbidden {
 Forbidden.
 */
 type UpdateClusterForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *UpdateClusterForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterForbidden  %+v", 403, o.Payload)
 }
 
-func (o *UpdateClusterForbidden) GetPayload() *models.Error {
+func (o *UpdateClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *UpdateClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

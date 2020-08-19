@@ -106,20 +106,20 @@ func NewListEventsUnauthorized() *ListEventsUnauthorized {
 Unauthorized.
 */
 type ListEventsUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *ListEventsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *ListEventsUnauthorized) GetPayload() *models.Error {
+func (o *ListEventsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *ListEventsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -139,20 +139,20 @@ func NewListEventsForbidden() *ListEventsForbidden {
 Forbidden.
 */
 type ListEventsForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *ListEventsForbidden) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsForbidden  %+v", 403, o.Payload)
 }
 
-func (o *ListEventsForbidden) GetPayload() *models.Error {
+func (o *ListEventsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *ListEventsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

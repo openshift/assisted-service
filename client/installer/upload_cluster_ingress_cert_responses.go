@@ -135,20 +135,20 @@ func NewUploadClusterIngressCertUnauthorized() *UploadClusterIngressCertUnauthor
 Unauthorized.
 */
 type UploadClusterIngressCertUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *UploadClusterIngressCertUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *UploadClusterIngressCertUnauthorized) GetPayload() *models.Error {
+func (o *UploadClusterIngressCertUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *UploadClusterIngressCertUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -168,20 +168,20 @@ func NewUploadClusterIngressCertForbidden() *UploadClusterIngressCertForbidden {
 Forbidden.
 */
 type UploadClusterIngressCertForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *UploadClusterIngressCertForbidden) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertForbidden  %+v", 403, o.Payload)
 }
 
-func (o *UploadClusterIngressCertForbidden) GetPayload() *models.Error {
+func (o *UploadClusterIngressCertForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *UploadClusterIngressCertForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

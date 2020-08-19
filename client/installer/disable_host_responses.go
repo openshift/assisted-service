@@ -114,20 +114,20 @@ func NewDisableHostUnauthorized() *DisableHostUnauthorized {
 Unauthorized.
 */
 type DisableHostUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *DisableHostUnauthorized) Error() string {
 	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *DisableHostUnauthorized) GetPayload() *models.Error {
+func (o *DisableHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *DisableHostUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -147,20 +147,20 @@ func NewDisableHostForbidden() *DisableHostForbidden {
 Forbidden.
 */
 type DisableHostForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *DisableHostForbidden) Error() string {
 	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostForbidden  %+v", 403, o.Payload)
 }
 
-func (o *DisableHostForbidden) GetPayload() *models.Error {
+func (o *DisableHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *DisableHostForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

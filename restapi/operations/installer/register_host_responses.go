@@ -113,7 +113,7 @@ type RegisterHostUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewRegisterHostUnauthorized creates RegisterHostUnauthorized with default headers values
@@ -123,13 +123,13 @@ func NewRegisterHostUnauthorized() *RegisterHostUnauthorized {
 }
 
 // WithPayload adds the payload to the register host unauthorized response
-func (o *RegisterHostUnauthorized) WithPayload(payload *models.Error) *RegisterHostUnauthorized {
+func (o *RegisterHostUnauthorized) WithPayload(payload *models.InfraError) *RegisterHostUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the register host unauthorized response
-func (o *RegisterHostUnauthorized) SetPayload(payload *models.Error) {
+func (o *RegisterHostUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -157,7 +157,7 @@ type RegisterHostForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewRegisterHostForbidden creates RegisterHostForbidden with default headers values
@@ -167,13 +167,13 @@ func NewRegisterHostForbidden() *RegisterHostForbidden {
 }
 
 // WithPayload adds the payload to the register host forbidden response
-func (o *RegisterHostForbidden) WithPayload(payload *models.Error) *RegisterHostForbidden {
+func (o *RegisterHostForbidden) WithPayload(payload *models.InfraError) *RegisterHostForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the register host forbidden response
-func (o *RegisterHostForbidden) SetPayload(payload *models.Error) {
+func (o *RegisterHostForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

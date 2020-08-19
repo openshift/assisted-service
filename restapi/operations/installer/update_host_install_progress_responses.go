@@ -49,7 +49,7 @@ type UpdateHostInstallProgressUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewUpdateHostInstallProgressUnauthorized creates UpdateHostInstallProgressUnauthorized with default headers values
@@ -59,13 +59,13 @@ func NewUpdateHostInstallProgressUnauthorized() *UpdateHostInstallProgressUnauth
 }
 
 // WithPayload adds the payload to the update host install progress unauthorized response
-func (o *UpdateHostInstallProgressUnauthorized) WithPayload(payload *models.Error) *UpdateHostInstallProgressUnauthorized {
+func (o *UpdateHostInstallProgressUnauthorized) WithPayload(payload *models.InfraError) *UpdateHostInstallProgressUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the update host install progress unauthorized response
-func (o *UpdateHostInstallProgressUnauthorized) SetPayload(payload *models.Error) {
+func (o *UpdateHostInstallProgressUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -93,7 +93,7 @@ type UpdateHostInstallProgressForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewUpdateHostInstallProgressForbidden creates UpdateHostInstallProgressForbidden with default headers values
@@ -103,13 +103,13 @@ func NewUpdateHostInstallProgressForbidden() *UpdateHostInstallProgressForbidden
 }
 
 // WithPayload adds the payload to the update host install progress forbidden response
-func (o *UpdateHostInstallProgressForbidden) WithPayload(payload *models.Error) *UpdateHostInstallProgressForbidden {
+func (o *UpdateHostInstallProgressForbidden) WithPayload(payload *models.InfraError) *UpdateHostInstallProgressForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the update host install progress forbidden response
-func (o *UpdateHostInstallProgressForbidden) SetPayload(payload *models.Error) {
+func (o *UpdateHostInstallProgressForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

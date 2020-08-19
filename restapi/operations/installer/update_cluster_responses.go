@@ -113,7 +113,7 @@ type UpdateClusterUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewUpdateClusterUnauthorized creates UpdateClusterUnauthorized with default headers values
@@ -123,13 +123,13 @@ func NewUpdateClusterUnauthorized() *UpdateClusterUnauthorized {
 }
 
 // WithPayload adds the payload to the update cluster unauthorized response
-func (o *UpdateClusterUnauthorized) WithPayload(payload *models.Error) *UpdateClusterUnauthorized {
+func (o *UpdateClusterUnauthorized) WithPayload(payload *models.InfraError) *UpdateClusterUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the update cluster unauthorized response
-func (o *UpdateClusterUnauthorized) SetPayload(payload *models.Error) {
+func (o *UpdateClusterUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -157,7 +157,7 @@ type UpdateClusterForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewUpdateClusterForbidden creates UpdateClusterForbidden with default headers values
@@ -167,13 +167,13 @@ func NewUpdateClusterForbidden() *UpdateClusterForbidden {
 }
 
 // WithPayload adds the payload to the update cluster forbidden response
-func (o *UpdateClusterForbidden) WithPayload(payload *models.Error) *UpdateClusterForbidden {
+func (o *UpdateClusterForbidden) WithPayload(payload *models.InfraError) *UpdateClusterForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the update cluster forbidden response
-func (o *UpdateClusterForbidden) SetPayload(payload *models.Error) {
+func (o *UpdateClusterForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

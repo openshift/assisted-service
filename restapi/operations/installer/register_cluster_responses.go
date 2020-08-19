@@ -113,7 +113,7 @@ type RegisterClusterUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewRegisterClusterUnauthorized creates RegisterClusterUnauthorized with default headers values
@@ -123,13 +123,13 @@ func NewRegisterClusterUnauthorized() *RegisterClusterUnauthorized {
 }
 
 // WithPayload adds the payload to the register cluster unauthorized response
-func (o *RegisterClusterUnauthorized) WithPayload(payload *models.Error) *RegisterClusterUnauthorized {
+func (o *RegisterClusterUnauthorized) WithPayload(payload *models.InfraError) *RegisterClusterUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the register cluster unauthorized response
-func (o *RegisterClusterUnauthorized) SetPayload(payload *models.Error) {
+func (o *RegisterClusterUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -157,7 +157,7 @@ type RegisterClusterForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewRegisterClusterForbidden creates RegisterClusterForbidden with default headers values
@@ -167,13 +167,13 @@ func NewRegisterClusterForbidden() *RegisterClusterForbidden {
 }
 
 // WithPayload adds the payload to the register cluster forbidden response
-func (o *RegisterClusterForbidden) WithPayload(payload *models.Error) *RegisterClusterForbidden {
+func (o *RegisterClusterForbidden) WithPayload(payload *models.InfraError) *RegisterClusterForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the register cluster forbidden response
-func (o *RegisterClusterForbidden) SetPayload(payload *models.Error) {
+func (o *RegisterClusterForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

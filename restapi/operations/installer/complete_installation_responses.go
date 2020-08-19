@@ -69,7 +69,7 @@ type CompleteInstallationUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewCompleteInstallationUnauthorized creates CompleteInstallationUnauthorized with default headers values
@@ -79,13 +79,13 @@ func NewCompleteInstallationUnauthorized() *CompleteInstallationUnauthorized {
 }
 
 // WithPayload adds the payload to the complete installation unauthorized response
-func (o *CompleteInstallationUnauthorized) WithPayload(payload *models.Error) *CompleteInstallationUnauthorized {
+func (o *CompleteInstallationUnauthorized) WithPayload(payload *models.InfraError) *CompleteInstallationUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the complete installation unauthorized response
-func (o *CompleteInstallationUnauthorized) SetPayload(payload *models.Error) {
+func (o *CompleteInstallationUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -113,7 +113,7 @@ type CompleteInstallationForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewCompleteInstallationForbidden creates CompleteInstallationForbidden with default headers values
@@ -123,13 +123,13 @@ func NewCompleteInstallationForbidden() *CompleteInstallationForbidden {
 }
 
 // WithPayload adds the payload to the complete installation forbidden response
-func (o *CompleteInstallationForbidden) WithPayload(payload *models.Error) *CompleteInstallationForbidden {
+func (o *CompleteInstallationForbidden) WithPayload(payload *models.InfraError) *CompleteInstallationForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the complete installation forbidden response
-func (o *CompleteInstallationForbidden) SetPayload(payload *models.Error) {
+func (o *CompleteInstallationForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

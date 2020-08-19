@@ -147,20 +147,20 @@ func NewRegisterHostUnauthorized() *RegisterHostUnauthorized {
 Unauthorized.
 */
 type RegisterHostUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *RegisterHostUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *RegisterHostUnauthorized) GetPayload() *models.Error {
+func (o *RegisterHostUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *RegisterHostUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -180,20 +180,20 @@ func NewRegisterHostForbidden() *RegisterHostForbidden {
 Forbidden.
 */
 type RegisterHostForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *RegisterHostForbidden) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostForbidden  %+v", 403, o.Payload)
 }
 
-func (o *RegisterHostForbidden) GetPayload() *models.Error {
+func (o *RegisterHostForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *RegisterHostForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

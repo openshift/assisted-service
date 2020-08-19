@@ -93,7 +93,7 @@ type PostStepReplyUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewPostStepReplyUnauthorized creates PostStepReplyUnauthorized with default headers values
@@ -103,13 +103,13 @@ func NewPostStepReplyUnauthorized() *PostStepReplyUnauthorized {
 }
 
 // WithPayload adds the payload to the post step reply unauthorized response
-func (o *PostStepReplyUnauthorized) WithPayload(payload *models.Error) *PostStepReplyUnauthorized {
+func (o *PostStepReplyUnauthorized) WithPayload(payload *models.InfraError) *PostStepReplyUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the post step reply unauthorized response
-func (o *PostStepReplyUnauthorized) SetPayload(payload *models.Error) {
+func (o *PostStepReplyUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -137,7 +137,7 @@ type PostStepReplyForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewPostStepReplyForbidden creates PostStepReplyForbidden with default headers values
@@ -147,13 +147,13 @@ func NewPostStepReplyForbidden() *PostStepReplyForbidden {
 }
 
 // WithPayload adds the payload to the post step reply forbidden response
-func (o *PostStepReplyForbidden) WithPayload(payload *models.Error) *PostStepReplyForbidden {
+func (o *PostStepReplyForbidden) WithPayload(payload *models.InfraError) *PostStepReplyForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the post step reply forbidden response
-func (o *PostStepReplyForbidden) SetPayload(payload *models.Error) {
+func (o *PostStepReplyForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

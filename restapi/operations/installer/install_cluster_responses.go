@@ -113,7 +113,7 @@ type InstallClusterUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewInstallClusterUnauthorized creates InstallClusterUnauthorized with default headers values
@@ -123,13 +123,13 @@ func NewInstallClusterUnauthorized() *InstallClusterUnauthorized {
 }
 
 // WithPayload adds the payload to the install cluster unauthorized response
-func (o *InstallClusterUnauthorized) WithPayload(payload *models.Error) *InstallClusterUnauthorized {
+func (o *InstallClusterUnauthorized) WithPayload(payload *models.InfraError) *InstallClusterUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the install cluster unauthorized response
-func (o *InstallClusterUnauthorized) SetPayload(payload *models.Error) {
+func (o *InstallClusterUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -157,7 +157,7 @@ type InstallClusterForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewInstallClusterForbidden creates InstallClusterForbidden with default headers values
@@ -167,13 +167,13 @@ func NewInstallClusterForbidden() *InstallClusterForbidden {
 }
 
 // WithPayload adds the payload to the install cluster forbidden response
-func (o *InstallClusterForbidden) WithPayload(payload *models.Error) *InstallClusterForbidden {
+func (o *InstallClusterForbidden) WithPayload(payload *models.InfraError) *InstallClusterForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the install cluster forbidden response
-func (o *InstallClusterForbidden) SetPayload(payload *models.Error) {
+func (o *InstallClusterForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

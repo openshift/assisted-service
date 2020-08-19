@@ -69,7 +69,7 @@ type GetCredentialsUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetCredentialsUnauthorized creates GetCredentialsUnauthorized with default headers values
@@ -79,13 +79,13 @@ func NewGetCredentialsUnauthorized() *GetCredentialsUnauthorized {
 }
 
 // WithPayload adds the payload to the get credentials unauthorized response
-func (o *GetCredentialsUnauthorized) WithPayload(payload *models.Error) *GetCredentialsUnauthorized {
+func (o *GetCredentialsUnauthorized) WithPayload(payload *models.InfraError) *GetCredentialsUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get credentials unauthorized response
-func (o *GetCredentialsUnauthorized) SetPayload(payload *models.Error) {
+func (o *GetCredentialsUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -113,7 +113,7 @@ type GetCredentialsForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetCredentialsForbidden creates GetCredentialsForbidden with default headers values
@@ -123,13 +123,13 @@ func NewGetCredentialsForbidden() *GetCredentialsForbidden {
 }
 
 // WithPayload adds the payload to the get credentials forbidden response
-func (o *GetCredentialsForbidden) WithPayload(payload *models.Error) *GetCredentialsForbidden {
+func (o *GetCredentialsForbidden) WithPayload(payload *models.InfraError) *GetCredentialsForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get credentials forbidden response
-func (o *GetCredentialsForbidden) SetPayload(payload *models.Error) {
+func (o *GetCredentialsForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

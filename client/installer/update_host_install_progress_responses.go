@@ -96,20 +96,20 @@ func NewUpdateHostInstallProgressUnauthorized() *UpdateHostInstallProgressUnauth
 Unauthorized.
 */
 type UpdateHostInstallProgressUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *UpdateHostInstallProgressUnauthorized) Error() string {
 	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *UpdateHostInstallProgressUnauthorized) GetPayload() *models.Error {
+func (o *UpdateHostInstallProgressUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *UpdateHostInstallProgressUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -129,20 +129,20 @@ func NewUpdateHostInstallProgressForbidden() *UpdateHostInstallProgressForbidden
 Forbidden.
 */
 type UpdateHostInstallProgressForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *UpdateHostInstallProgressForbidden) Error() string {
 	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressForbidden  %+v", 403, o.Payload)
 }
 
-func (o *UpdateHostInstallProgressForbidden) GetPayload() *models.Error {
+func (o *UpdateHostInstallProgressForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *UpdateHostInstallProgressForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
