@@ -155,6 +155,78 @@ var _ = Describe("Cluster name validation", func() {
 	})
 })
 
+var _ = Describe("Proxy validations", func() {
+
+	Context("test proxy URL", func() {
+		It("valid DNS name", func() {
+			err := ValidateHTTPProxyFormat("http://proxy.com:3128")
+			Expect(err).Should(BeNil())
+		})
+		It("valid DNS name with user and password", func() {
+			err := ValidateHTTPProxyFormat("http://username:pswd@proxy.com")
+			Expect(err).Should(BeNil())
+		})
+		It("valid IP address", func() {
+			err := ValidateHTTPProxyFormat("http://10.9.8.7:123")
+			Expect(err).Should(BeNil())
+		})
+		It("valid IP address with user and password", func() {
+			err := ValidateHTTPProxyFormat("http://username:pswd@10.9.8.7:123")
+			Expect(err).Should(BeNil())
+		})
+		It("unsupported https schema", func() {
+			err := ValidateHTTPProxyFormat("https://proxy.com:3128")
+			Expect(err).ShouldNot(BeNil())
+			Expect(err.Error()).To(Equal("The URL scheme must be http; https is currently not supported: 'https://proxy.com:3128'"))
+		})
+		It("invalid empty value", func() {
+			err := ValidateHTTPProxyFormat("")
+			Expect(err).ShouldNot(BeNil())
+			Expect(err.Error()).To(Equal("Proxy URL format is not valid: ''"))
+		})
+		It("invalid format", func() {
+			err := ValidateHTTPProxyFormat("!@#$!@#$")
+			Expect(err).ShouldNot(BeNil())
+			Expect(err.Error()).To(Equal("Proxy URL format is not valid: '!@#$!@#$'"))
+		})
+	})
+
+	Context("test no-proxy", func() {
+		It("'*' bypass proxy for all destinations", func() {
+			err := ValidateNoProxyFormat("*")
+			Expect(err).Should(BeNil())
+		})
+		It("domain name", func() {
+			err := ValidateNoProxyFormat("domain.com")
+			Expect(err).Should(BeNil())
+		})
+		It("domain starts with . for all sub-domains", func() {
+			err := ValidateNoProxyFormat(".domain.com")
+			Expect(err).Should(BeNil())
+		})
+		It("CIDR", func() {
+			err := ValidateNoProxyFormat("10.9.0.0/16")
+			Expect(err).Should(BeNil())
+		})
+		It("IP Address", func() {
+			err := ValidateNoProxyFormat("10.9.8.7")
+			Expect(err).Should(BeNil())
+		})
+		It("multiple entries", func() {
+			err := ValidateNoProxyFormat("domain.com,10.9.0.0/16,.otherdomain.com,10.9.8.7")
+			Expect(err).Should(BeNil())
+		})
+		It("invalid format", func() {
+			err := ValidateNoProxyFormat("...")
+			Expect(err).ShouldNot(BeNil())
+		})
+		It("invalid format of a single value", func() {
+			err := ValidateNoProxyFormat("domain.com,...")
+			Expect(err).ShouldNot(BeNil())
+		})
+	})
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")

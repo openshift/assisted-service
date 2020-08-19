@@ -251,6 +251,12 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
 
+	if err := validateProxySettings(params.NewClusterParams.HTTPProxy,
+		params.NewClusterParams.HTTPSProxy,
+		params.NewClusterParams.NoProxy); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	if params.NewClusterParams.ClusterNetworkCidr == nil {
 		params.NewClusterParams.ClusterNetworkCidr = &DefaultClusterNetworkCidr
 	}
@@ -819,6 +825,12 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		if err = validations.ValidateClusterNameFormat(newClusterName); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
+	}
+
+	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
+		params.ClusterUpdateParams.HTTPSProxy,
+		params.ClusterUpdateParams.NoProxy); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	txSuccess := false
@@ -2305,4 +2317,23 @@ func computeClusterProxyHash(httpProxy, httpsProxy, noProxy *string) (string, er
 	}
 	bs := h.Sum(nil)
 	return fmt.Sprintf("%x", bs), nil
+}
+
+func validateProxySettings(httpProxy, httpsProxy, noProxy *string) error {
+	if httpProxy != nil && *httpProxy != "" {
+		if err := validations.ValidateHTTPProxyFormat(*httpProxy); err != nil {
+			return fmt.Errorf("Failed to validate HTTP Proxy: %s", err)
+		}
+	}
+	if httpsProxy != nil && *httpsProxy != "" {
+		if err := validations.ValidateHTTPProxyFormat(*httpsProxy); err != nil {
+			return fmt.Errorf("Failed to validate HTTPS Proxy: %s", err)
+		}
+	}
+	if noProxy != nil && *noProxy != "" {
+		if err := validations.ValidateNoProxyFormat(*noProxy); err != nil {
+			return err
+		}
+	}
+	return nil
 }

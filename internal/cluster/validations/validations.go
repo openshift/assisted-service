@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 )
 
@@ -164,6 +165,48 @@ func ValidateClusterNameFormat(name string) error {
 		return fmt.Errorf("Cluster name format is not valid: '%s'. "+
 			"Name must consist of lower-case letters, numbers and hyphens. "+
 			"It must start with a letter and end with a letter or number.", name)
+	}
+	return nil
+}
+
+// ValidateHTTPProxyFormat validates the HTTP Proxy and HTTPS Proxy format
+func ValidateHTTPProxyFormat(proxyURL string) error {
+	if strings.HasPrefix(proxyURL, "https") {
+		return fmt.Errorf("The URL scheme must be http; https is currently not supported: '%s'", proxyURL)
+	}
+	if govalidator.IsURL(proxyURL) {
+		return nil
+	}
+	return fmt.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
+}
+
+// ValidateNoProxyFormat validates the no-proxy format which should be a comma-separated list
+// of destination domain names, domains, IP addresses or other network CIDRs. A domain can be
+// prefaced with '.' to include all subdomains of that domain. '*' is a valid value to bypass proxy
+// for all destinations
+func ValidateNoProxyFormat(noProxy string) error {
+	domains := strings.Split(noProxy, ",")
+	for _, s := range domains {
+		if s == "*" {
+			continue
+		}
+
+		s = strings.TrimPrefix(s, ".")
+		if govalidator.IsIP(s) {
+			continue
+		}
+
+		if govalidator.IsCIDR(s) {
+			continue
+		}
+
+		if govalidator.IsDNSName(s) {
+			continue
+		}
+		return fmt.Errorf("NO Proxy format is not valid: '%s'. "+
+			"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
+			"A domain can be prefaced with '.' to include all subdomains of that domain. "+
+			"'*' is used to bypass proxy for all destinations.", noProxy)
 	}
 	return nil
 }
