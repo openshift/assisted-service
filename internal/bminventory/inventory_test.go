@@ -1916,6 +1916,7 @@ var _ = Describe("KubeConfig download", func() {
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
+
 	It("kubeconfig download no cluster id", func() {
 		clusterId := strToUUID(uuid.New().String())
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
@@ -2285,6 +2286,59 @@ var _ = Describe("Upload and Download logs test", func() {
 		generateReply := bm.DownloadHostLogs(ctx, params)
 		downloadFileName := fmt.Sprintf("%s_%s", common.GetHostnameForMsg(&host), filepath.Base(fileName))
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(r), downloadFileName, 4)))
+	})
+
+	It("Logs presigned no host id in file name", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  "logs/",
+		})
+		verifyApiError(generateReply, http.StatusBadRequest)
+	})
+	It("Logs presigned bad host id", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  "logs/aaaaaaaa",
+		})
+		verifyApiError(generateReply, http.StatusBadRequest)
+	})
+	It("Logs presigned host not found", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  fmt.Sprintf("logs/%s", hostID),
+		})
+		verifyApiError(generateReply, http.StatusNotFound)
+	})
+	It("Logs presigned no logs found", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		_ = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("",
+			errors.Errorf("Dummy"))
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  fmt.Sprintf("logs/%s", hostID),
+		})
+		verifyApiError(generateReply, http.StatusInternalServerError)
+	})
+	It("logs presigned happy flow", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		_ = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("url", nil)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  fmt.Sprintf("logs/%s", hostID),
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
+		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
+		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
 
 })
