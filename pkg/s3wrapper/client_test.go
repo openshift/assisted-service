@@ -16,7 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var _ = Describe("s3wrapper", func() {
+var _ = Describe("s3client", func() {
 	var (
 		ctx        = context.Background()
 		log        = logrus.New()

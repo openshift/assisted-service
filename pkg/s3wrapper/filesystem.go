@@ -192,7 +192,7 @@ func (f *FSClient) ExpireObjects(ctx context.Context, prefix string, deleteTime 
 		if err != nil {
 			return err
 		}
-		if strings.HasPrefix(path, prefix) && !info.IsDir() {
+		if strings.HasPrefix(filepath.Base(path), prefix) && !info.IsDir() {
 			f.handleFile(ctx, log, path, info, now, deleteTime, callback)
 		}
 		return nil
