@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/go-openapi/swag"
 	"github.com/pkg/errors"
@@ -29,6 +31,7 @@ import (
 const awsEndpointSuffix = ".amazonaws.com"
 
 //go:generate mockgen -source=client.go -package=s3wrapper -destination=mock_s3wrapper.go
+//go:generate mockgen -package s3wrapper -destination mock_s3iface.go github.com/aws/aws-sdk-go/service/s3/s3iface S3API
 type API interface {
 	IsAwsS3() bool
 	CreateBucket() error
@@ -38,9 +41,10 @@ type API interface {
 	Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
 	DeleteObject(ctx context.Context, objectName string) error
-	UpdateObjectTag(ctx context.Context, objectName, key, value string) (bool, error)
 	GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error)
 	GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error)
+	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
+	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, objectName string))
 }
 
 var _ API = &S3Client{}
@@ -48,7 +52,7 @@ var _ API = &S3Client{}
 type S3Client struct {
 	log     *logrus.Logger
 	session *session.Session
-	Client  *s3.S3
+	client  s3iface.S3API
 	cfg     *Config
 }
 
@@ -59,6 +63,8 @@ type Config struct {
 	AwsAccessKeyID     string `envconfig:"AWS_ACCESS_KEY_ID"`
 	AwsSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY"`
 }
+
+const timestampTagKey = "create_sec_since_epoch"
 
 // NewS3Client creates new s3 client using default config along with defined env variables
 func NewS3Client(cfg *Config, logger *logrus.Logger) *S3Client {
@@ -72,7 +78,7 @@ func NewS3Client(cfg *Config, logger *logrus.Logger) *S3Client {
 		return nil
 	}
 
-	return &S3Client{Client: client, session: awsSession, cfg: cfg, log: logger}
+	return &S3Client{client: client, session: awsSession, cfg: cfg, log: logger}
 }
 
 func newS3Session(cfg *Config) (*session.Session, error) {
@@ -116,7 +122,7 @@ func (c *S3Client) IsAwsS3() bool {
 }
 
 func (c *S3Client) CreateBucket() error {
-	if _, err := c.Client.CreateBucket(&s3.CreateBucketInput{
+	if _, err := c.client.CreateBucket(&s3.CreateBucketInput{
 		Bucket: swag.String(c.cfg.S3Bucket),
 	}); err != nil {
 		return errors.Wrapf(err, "Failed to create S3 bucket %s", c.cfg.S3Bucket)
@@ -174,7 +180,7 @@ func (c *S3Client) Download(ctx context.Context, objectName string) (io.ReadClos
 		return nil, 0, err
 	}
 
-	getResp, err := c.Client.GetObject(&s3.GetObjectInput{
+	getResp, err := c.client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(c.cfg.S3Bucket),
 		Key:    aws.String(objectName),
 	})
@@ -188,8 +194,8 @@ func (c *S3Client) Download(ctx context.Context, objectName string) (io.ReadClos
 
 func (c *S3Client) DoesObjectExist(ctx context.Context, objectName string) (bool, error) {
 	log := logutil.FromContext(ctx, c.log)
-	log.Infof("Verifying if %s exists in %s", objectName, c.cfg.S3Bucket)
-	_, err := c.Client.HeadObject(&s3.HeadObjectInput{
+	log.Debugf("Verifying if %s exists in %s", objectName, c.cfg.S3Bucket)
+	_, err := c.client.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(c.cfg.S3Bucket),
 		Key:    aws.String(objectName),
 	})
@@ -208,7 +214,7 @@ func (c *S3Client) DeleteObject(ctx context.Context, objectName string) error {
 	log := logutil.FromContext(ctx, c.log)
 	log.Infof("Deleting object %s from %s", objectName, c.cfg.S3Bucket)
 
-	_, err := c.Client.DeleteObject(&s3.DeleteObjectInput{
+	_, err := c.client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(c.cfg.S3Bucket),
 		Key:    aws.String(objectName),
 	})
@@ -226,17 +232,17 @@ func (c *S3Client) DeleteObject(ctx context.Context, objectName string) error {
 	return nil
 }
 
-func (c *S3Client) UpdateObjectTag(ctx context.Context, objectName, key, value string) (bool, error) {
+func (c *S3Client) UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error) {
 	log := logutil.FromContext(ctx, c.log)
-	log.Infof("Adding tag to object %s: %s - %s", objectName, key, value)
-	_, err := c.Client.PutObjectTagging(&s3.PutObjectTaggingInput{
+	log.Infof("Updating timestamp of object %s", objectName)
+	_, err := c.client.PutObjectTagging(&s3.PutObjectTaggingInput{
 		Bucket: aws.String(c.cfg.S3Bucket),
 		Key:    aws.String(objectName),
 		Tagging: &s3.Tagging{
 			TagSet: []*s3.Tag{
 				{
-					Key:   aws.String(key),
-					Value: aws.String(value),
+					Key:   aws.String(timestampTagKey),
+					Value: aws.String(strconv.FormatInt(time.Now().Unix(), 10)),
 				},
 			},
 		},
@@ -247,7 +253,7 @@ func (c *S3Client) UpdateObjectTag(ctx context.Context, objectName, key, value s
 			if aerr.Code() == s3.ErrCodeNoSuchKey {
 				return false, nil
 			}
-			return false, errors.Wrap(err, fmt.Sprintf("Failed to update tags object %s from bucket %s", objectName, c.cfg.S3Bucket))
+			return false, errors.Wrap(err, fmt.Sprintf("Failed to update tags on object %s from bucket %s", objectName, c.cfg.S3Bucket))
 		}
 	}
 	return true, nil
@@ -255,7 +261,7 @@ func (c *S3Client) UpdateObjectTag(ctx context.Context, objectName, key, value s
 
 func (c *S3Client) GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error) {
 	log := logutil.FromContext(ctx, c.log)
-	headResp, err := c.Client.HeadObject(&s3.HeadObjectInput{
+	headResp, err := c.client.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(c.cfg.S3Bucket),
 		Key:    aws.String(objectName),
 	})
@@ -269,7 +275,7 @@ func (c *S3Client) GetObjectSizeBytes(ctx context.Context, objectName string) (i
 
 func (c *S3Client) GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error) {
 	log := logutil.FromContext(ctx, c.log)
-	req, _ := c.Client.GetObjectRequest(&s3.GetObjectInput{
+	req, _ := c.client.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: aws.String(c.cfg.S3Bucket),
 		Key:    aws.String(objectName),
 	})
@@ -289,4 +295,47 @@ func (c S3Client) transformErrorIfNeeded(err error, objectName string) (bool, er
 		}
 	}
 	return false, err
+}
+
+func (c *S3Client) ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, objectName string)) {
+	log := logutil.FromContext(ctx, c.log)
+	now := time.Now()
+
+	log.Info("Checking for expired objects...")
+	err := c.client.ListObjectsPages(&s3.ListObjectsInput{Bucket: &c.cfg.S3Bucket, Prefix: &prefix},
+		func(page *s3.ListObjectsOutput, lastPage bool) bool {
+			for _, object := range page.Contents {
+				c.handleObject(ctx, log, object, now, deleteTime, callback)
+			}
+			return !lastPage
+		})
+	if err != nil {
+		log.WithError(err).Error("Error listing objects")
+		return
+	}
+}
+
+func (c *S3Client) handleObject(ctx context.Context, log logrus.FieldLogger, object *s3.Object, now time.Time, deleteTime time.Duration, callback func(ctx context.Context, objectName string)) {
+	// The timestamp that we really want is stored in a tag, but we check this one first as a cost optimization
+	if now.Before(object.LastModified.Add(deleteTime)) {
+		return
+	}
+	objectTags, err := c.client.GetObjectTagging(&s3.GetObjectTaggingInput{Bucket: &c.cfg.S3Bucket, Key: object.Key})
+	if err != nil {
+		log.WithError(err).Errorf("Error getting tags for object %s", *object.Key)
+		return
+	}
+	for _, tag := range objectTags.TagSet {
+		if *tag.Key == timestampTagKey {
+			objTime, _ := strconv.ParseInt(*tag.Value, 10, 64)
+			if now.After(time.Unix(objTime, 0).Add(deleteTime)) {
+				if err := c.DeleteObject(ctx, *object.Key); err != nil {
+					log.Errorf("Error deleting expired object %s", *object.Key)
+					continue
+				}
+				log.Infof("Deleted expired object %s", *object.Key)
+				callback(ctx, *object.Key)
+			}
+		}
+	}
 }

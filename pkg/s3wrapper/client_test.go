@@ -1,59 +1,50 @@
-package imgexpirer
+package s3wrapper
 
 import (
 	"context"
+	"errors"
 	"io/ioutil"
 	"strconv"
-	"testing"
 	"time"
 
-	"github.com/go-openapi/strfmt"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -package imgexpirer -destination mock_s3iface.go github.com/aws/aws-sdk-go/service/s3/s3iface S3API
-
-func TestExpirer(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Image expirer tests Suite")
-}
-
-var _ = Describe("image_expirer", func() {
+var _ = Describe("s3client", func() {
 	var (
 		ctx        = context.Background()
 		log        = logrus.New()
 		ctrl       *gomock.Controller
 		deleteTime time.Duration
+		client     *S3Client
 		mockAPI    *MockS3API
-		mockEvents *events.MockHandler
 		bucket     string
-		mgr        *Manager
 		now        time.Time
 		objKey     = "discovery-image-d183c403-d27b-42e1-b0a4-1274ea1a5d77"
-		clusterId  = "d183c403-d27b-42e1-b0a4-1274ea1a5d77"
-		tagKey     = "create_sec_since_epoch"
+		tagKey     = timestampTagKey
 	)
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
+		mockAPI = NewMockS3API(ctrl)
 		log.SetOutput(ioutil.Discard)
 		bucket = "test"
-		mockAPI = NewMockS3API(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
+		cfg := Config{S3Bucket: "test"}
+		client = &S3Client{log: log, session: nil, client: mockAPI, cfg: &cfg}
 		deleteTime, _ = time.ParseDuration("60m")
-		mgr = NewManager(log, mockAPI, bucket, deleteTime, mockEvents)
 		now, _ = time.Parse(time.RFC3339, "2020-01-01T10:00:00+00:00")
 	})
 	It("not_expired_image_not_reused", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T09:30:00+00:00") // 30 minutes ago
 		obj := s3.Object{Key: &objKey, LastModified: &imgCreatedAt}
-		mgr.handleObject(ctx, log, &obj, now)
+		called := false
+		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		Expect(called).To(Equal(false))
 	})
 	It("expired_image_not_reused", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T08:00:00+00:00") // Two hours ago
@@ -67,8 +58,9 @@ var _ = Describe("image_expirer", func() {
 		mockAPI.EXPECT().GetObjectTagging(&taggingInput).Return(&taggingOutput, nil)
 		deleteInput := s3.DeleteObjectInput{Bucket: &bucket, Key: &objKey}
 		mockAPI.EXPECT().DeleteObject(&deleteInput).Return(nil, nil)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), strfmt.UUID(clusterId), nil, models.EventSeverityInfo, "Deleted image from backend because it expired. It may be generated again at any time.", gomock.Any())
-		mgr.handleObject(ctx, log, &obj, now)
+		called := false
+		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		Expect(called).To(Equal(true))
 	})
 	It("not_expired_image_reused", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T08:00:00+00:00") // Two hours ago
@@ -81,7 +73,9 @@ var _ = Describe("image_expirer", func() {
 		tagSet := []*s3.Tag{&tag}
 		taggingOutput := s3.GetObjectTaggingOutput{TagSet: tagSet}
 		mockAPI.EXPECT().GetObjectTagging(&taggingInput).Return(&taggingOutput, nil)
-		mgr.handleObject(ctx, log, &obj, now)
+		called := false
+		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		Expect(called).To(Equal(false))
 	})
 	It("expired_image_reused", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T07:00:00+00:00") // Three hours ago
@@ -96,18 +90,25 @@ var _ = Describe("image_expirer", func() {
 		mockAPI.EXPECT().GetObjectTagging(&taggingInput).Return(&taggingOutput, nil)
 		deleteInput := s3.DeleteObjectInput{Bucket: &bucket, Key: &objKey}
 		mockAPI.EXPECT().DeleteObject(&deleteInput).Return(nil, nil)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), strfmt.UUID(clusterId), nil, models.EventSeverityInfo, "Deleted image from backend because it expired. It may be generated again at any time.", gomock.Any())
-		mgr.handleObject(ctx, log, &obj, now)
+		called := false
+		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		Expect(called).To(Equal(true))
 	})
-	It("dummy_image_expires_immediately", func() {
-		clusterId = "00000000-0000-0000-0000-000000000000"
-		objKey = "discovery-image-00000000-0000-0000-0000-000000000000"
+	It("expired_image_deletion_failed", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T08:00:00+00:00") // Two hours ago
+		unixTime := imgCreatedAt.Unix()                                          // Tag is also two hours ago
 		obj := s3.Object{Key: &objKey, LastModified: &imgCreatedAt}
+		taggingInput := s3.GetObjectTaggingInput{Bucket: &bucket, Key: &objKey}
+		tagValue := strconv.Itoa(int(unixTime))
+		tag := s3.Tag{Key: &tagKey, Value: &tagValue}
+		tagSet := []*s3.Tag{&tag}
+		taggingOutput := s3.GetObjectTaggingOutput{TagSet: tagSet}
+		mockAPI.EXPECT().GetObjectTagging(&taggingInput).Return(&taggingOutput, nil)
 		deleteInput := s3.DeleteObjectInput{Bucket: &bucket, Key: &objKey}
-		mockAPI.EXPECT().DeleteObject(&deleteInput).Return(nil, nil)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), strfmt.UUID(clusterId), nil, models.EventSeverityInfo, "Deleted image from backend because it expired. It may be generated again at any time.", gomock.Any())
-		mgr.handleObject(ctx, log, &obj, now)
+		mockAPI.EXPECT().DeleteObject(&deleteInput).Return(nil, awserr.New("UnknownError", "UnknownError", errors.New("UnknownError")))
+		called := false
+		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		Expect(called).To(Equal(false))
 	})
 
 	AfterEach(func() {

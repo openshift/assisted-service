@@ -6,7 +6,8 @@ FROM quay.io/ocpmetal/livecd-iso:rhcos-livecd AS livecd
 # [TODO] - remove this line, once we are ready to use openshift-installer from the release
 FROM quay.io/ocpmetal/openshift-installer  AS openshift-installer
 #[TODO] - change ignition-manifests-and-kubeconfig-generate to assisted-installer-generator once a stable was created
-FROM quay.io/ocpmetal/assisted-ignition-generator:stable as config-gen
+FROM quay.io/ocpmetal/assisted-ignition-generator:latest as config-gen
+FROM quay.io/ocpmetal/assisted-service:latest AS inventory
 
 FROM fedora:31
 
@@ -16,7 +17,13 @@ ARG USER=assisted-installer
 
 LABEL "git_revision"=${GIT_REVISION}
 
-RUN dnf install -y python pip libvirt-devel && dnf clean all && pip install boto3 botocore
+RUN dnf install -y libvirt-libs python3 python3-pip findutils wget && \
+   yum clean all && \
+   rm -rf /var/cache/yum
+RUN pip3 install boto3 botocore pyyaml ipython
+
+COPY --from=inventory /clients/assisted-service-client-*.tar.gz /build/pip/
+RUN pip3 install /build/pip/*
 
 RUN mkdir $WORK_DIR && chmod 755 $WORK_DIR
 RUN useradd $USER
@@ -31,7 +38,7 @@ ENV COREOS_IMAGE=$WORK_DIR/livecd.iso
 # install config
 # [TODO] - change this line to use openshift-installer from the release, once we are ready
 COPY --from=openshift-installer /root/installer/openshift-install $WORK_DIR
-COPY --from=config-gen $WORK_DIR/process-ignition-manifests-and-kubeconfig.py $WORK_DIR
+COPY --from=config-gen $WORK_DIR/*.py $WORK_DIR
 
 ENV WORK_DIR=$WORK_DIR
 
