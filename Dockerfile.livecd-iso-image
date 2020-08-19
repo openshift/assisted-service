@@ -1,0 +1,3 @@
+FROM alpine:latest
+RUN mkdir /root/image
+COPY ./rhcos-46.82.202008111140-0-live.x86_64.iso /root/image/livecd.iso

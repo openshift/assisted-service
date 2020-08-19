@@ -97,7 +97,7 @@ sudo journalctl -u agent.service
 `
 
 const ignitionConfigFormat = `{
-"ignition": { "version": "2.2.0" },
+"ignition": { "version": "3.1.0" },
   "passwd": {
     "users": [
       {{.userSshKey}}
@@ -112,7 +112,7 @@ const ignitionConfigFormat = `{
 },
 "storage": {
     "files": [{
-      "filesystem": "root",
+      "overwrite": true,
       "path": "/etc/motd",
       "mode": 644,
       "contents": { "source": "data:,{{.AGENT_MOTD}}" }
