@@ -137,17 +137,17 @@ func main() {
 	}
 
 	var generator generator.ISOInstallConfigGenerator
-	var s3Client s3wrapper.API
+	var objectHandler s3wrapper.API
 
 	switch Options.DeployTarget {
 	case "k8s":
 		var kclient client.Client
 
-		s3Client = s3wrapper.NewS3Client(&Options.S3Config, log)
-		if s3Client == nil {
+		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log)
+		if objectHandler == nil {
 			log.Fatal("failed to create S3 client, ", err)
 		}
-		createS3Bucket(s3Client)
+		createS3Bucket(objectHandler)
 
 		scheme := runtime.NewScheme()
 		if err = clientgoscheme.AddToScheme(scheme); err != nil {
@@ -161,11 +161,11 @@ func main() {
 		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
 	case "onprem":
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
-		s3Client = s3wrapper.NewFSClient("/data", log)
-		if s3Client == nil {
+		objectHandler = s3wrapper.NewFSClient("/data", log)
+		if objectHandler == nil {
 			log.Fatal("failed to create S3 file system client, ", err)
 		}
-		createS3Bucket(s3Client)
+		createS3Bucket(objectHandler)
 		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
@@ -177,11 +177,11 @@ func main() {
 		Options.BMConfig.S3EndpointURL = newUrl
 	}
 
-	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, generator, eventsHandler, s3Client, metricsManager)
+	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, generator, eventsHandler, objectHandler, metricsManager)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
-	expirer := imgexpirer.NewManager(s3Client, eventsHandler, Options.BMConfig.ImageExpirationTime)
+	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime)
 	imageExpirationMonitor := thread.New(
 		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
 	imageExpirationMonitor.Start()
@@ -216,9 +216,9 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
 }
 
-func createS3Bucket(s3Client s3wrapper.API) {
+func createS3Bucket(objectHandler s3wrapper.API) {
 	if Options.CreateS3Bucket {
-		if err := s3Client.CreateBucket(); err != nil {
+		if err := objectHandler.CreateBucket(); err != nil {
 			log.Fatal(err)
 		}
 	}

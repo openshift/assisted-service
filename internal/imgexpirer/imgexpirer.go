@@ -15,14 +15,14 @@ const imagePrefix = "discovery-image-"
 const imagePrefixLen = len(imagePrefix)
 
 type Manager struct {
-	s3Client      s3wrapper.API
+	objectHandler s3wrapper.API
 	eventsHandler events.Handler
 	deleteTime    time.Duration
 }
 
-func NewManager(s3Client s3wrapper.API, eventsHandler events.Handler, deleteTime time.Duration) *Manager {
+func NewManager(objectHandler s3wrapper.API, eventsHandler events.Handler, deleteTime time.Duration) *Manager {
 	return &Manager{
-		s3Client:      s3Client,
+		objectHandler: objectHandler,
 		eventsHandler: eventsHandler,
 		deleteTime:    deleteTime,
 	}
@@ -30,7 +30,7 @@ func NewManager(s3Client s3wrapper.API, eventsHandler events.Handler, deleteTime
 
 func (m *Manager) ExpirationTask() {
 	ctx := requestid.ToContext(context.Background(), requestid.NewID())
-	m.s3Client.ExpireObjects(ctx, imagePrefix, m.deleteTime, m.DeletedImageCallback)
+	m.objectHandler.ExpireObjects(ctx, imagePrefix, m.deleteTime, m.DeletedImageCallback)
 }
 
 func (m *Manager) DeletedImageCallback(ctx context.Context, objectName string) {
