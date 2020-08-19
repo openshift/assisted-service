@@ -231,7 +231,10 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 				return false, nil, nil
 			}
 			p, err := authenticate(token)
-			return true, p, err
+			if err != nil {
+				return false, nil, err
+			}
+			return true, p, nil
 		})
 	}
 }

@@ -1199,7 +1199,10 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 			b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityError,
 				"Failed to register host: cluster cannot accept new hosts in its current state", time.Now())
 			return installer.NewRegisterHostForbidden().
-				WithPayload(common.GenerateError(http.StatusForbidden, err))
+				WithPayload(&models.InfraError{
+					Code:    swag.Int32(http.StatusForbidden),
+					Message: swag.String(err.Error()),
+				})
 		}
 	}
 
