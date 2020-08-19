@@ -7,13 +7,9 @@ export LANG="en_US.UTF-8"
 
 TAG=$(git rev-parse --short=7 HEAD)
 ASSISTED_SERVICE_IMAGE="quay.io/app-sre/assisted-service"
-ASSISTED_ISO_GENERATOR_IMAGE="quay.io/app-sre/assisted-iso-generator"
 
 SERVICE="${ASSISTED_SERVICE_IMAGE}:latest" skipper make update-minimal
 docker tag "${ASSISTED_SERVICE_IMAGE}:latest" "${ASSISTED_SERVICE_IMAGE}:${TAG}"
-
-ISO_CREATION="${ASSISTED_ISO_GENERATOR_IMAGE}:latest" skipper make build-assisted-iso-generator-image
-docker tag "${ASSISTED_ISO_GENERATOR_IMAGE}:latest" "${ASSISTED_ISO_GENERATOR_IMAGE}:${TAG}"
 
 #ASSISTED_SERVICE_BUILD_IMAGE="quay.io/app-sre/assisted-service-build"
 #
@@ -31,9 +27,6 @@ docker --config="${DOCKER_CONF}" login -u="${QUAY_USER}" -p="${QUAY_TOKEN}" quay
 
 docker --config="${DOCKER_CONF}" push "${ASSISTED_SERVICE_IMAGE}:latest"
 docker --config="${DOCKER_CONF}" push "${ASSISTED_SERVICE_IMAGE}:${TAG}"
-
-docker --config="${DOCKER_CONF}" push "${ASSISTED_ISO_GENERATOR_IMAGE}:latest"
-docker --config="${DOCKER_CONF}" push "${ASSISTED_ISO_GENERATOR_IMAGE}:${TAG}"
 
 #docker --config="${DOCKER_CONF}" push "${ASSISTED_SERVICE_BUILD_IMAGE}:latest"
 #docker --config="${DOCKER_CONF}" push "${ASSISTED_SERVICE_BUILD_IMAGE}:${TAG}"
