@@ -15,3 +15,4 @@ data:
   JWKS_URL: REPLACE_JWKS_URL # example https://example.com/.well-known/jwks.json
   OCM_BASE_URL: REPLACE_OCM_BASE_URL
   OCM_DEBUG: "false"
+  SKIP_CERT_VERIFICATION: "true"

@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -113,6 +114,81 @@ var _ = Describe("installcmd", func() {
 	})
 })
 
+var _ = Describe("installcmd arguments", func() {
+
+	var (
+		ctx        = context.Background()
+		host       models.Host
+		db         *gorm.DB
+		validator  *hardware.MockValidator
+		dbName     = "installcmd_args"
+		controller *gomock.Controller
+	)
+
+	BeforeSuite(func() {
+		db = common.PrepareTestDB(dbName)
+		cluster := createClusterInDb(db)
+		host = createHostInDb(db, *cluster.ID, models.HostRoleMaster, false, "")
+		disks := []*models.Disk{{Name: "Disk1"}}
+		controller = gomock.NewController(GinkgoT())
+		validator = hardware.NewMockValidator(controller)
+		validator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
+	})
+
+	AfterSuite(func() {
+		controller.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("configuration_params", func() {
+
+		It("insecure_cert_is_false_by_default", func() {
+			config := &InstructionConfig{}
+			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
+			reply, err := installCmd.GetStep(ctx, &host)
+			verifyStepArg(reply, err, `--insecure[ =\w]*`, "--insecure=false")
+		})
+
+		It("insecure_cert_is_set_to_false", func() {
+			config := &InstructionConfig{
+				SkipCertVerification: false,
+			}
+			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
+			reply, err := installCmd.GetStep(ctx, &host)
+			verifyStepArg(reply, err, `--insecure[ =\w]*`, "--insecure=false")
+		})
+
+		It("insecure_cert_is_set_to_true", func() {
+			config := &InstructionConfig{
+				SkipCertVerification: true,
+			}
+			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
+			reply, err := installCmd.GetStep(ctx, &host)
+			verifyStepArg(reply, err, `--insecure[ =\w]*`, "--insecure=true")
+		})
+
+		It("target_url_is_passed", func() {
+			config := &InstructionConfig{
+				ServiceBaseURL: "ws://remote-host:8080",
+			}
+			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
+			stepReply, err := installCmd.GetStep(ctx, &host)
+			verifyStepArg(stepReply, err, `-url [\w\d:/-]+`, fmt.Sprintf("-url %s", config.ServiceBaseURL))
+		})
+	})
+})
+
+func verifyStepArg(reply *models.Step, err error, expr string, expected string) {
+	Expect(err).NotTo(HaveOccurred())
+	Expect(reply).NotTo(BeNil())
+	r := regexp.MustCompile(expr)
+	match := r.FindAllStringSubmatch(reply.Args[1], -1)
+	Expect(match).NotTo(BeNil())
+	Expect(match).To(HaveLen(2))
+	Expect(strings.TrimSpace(match[0][0])).To(Equal(expected))
+	Expect(strings.TrimSpace(match[1][0])).To(Equal(expected))
+}
+
 func createClusterInDb(db *gorm.DB) common.Cluster {
 	clusterId := strfmt.UUID(uuid.New().String())
 	cluster := common.Cluster{Cluster: models.Cluster{
@@ -160,11 +236,11 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --url %s --host-name %s " +
+			"--controller-image %s --url %s --insecure=false --host-name %s " +
 			"|| ( returnCode=$?; podman run --rm --privileged " +
 			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender -tag agent -tag installer " +
-			"-url %s -cluster-id %s -host-id %s; exit $returnCode; )"
+			"-url %s -cluster-id %s -host-id %s --insecure=false; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
 			hostId, defaultInstructionConfig.ControllerImage, defaultInstructionConfig.ServiceBaseURL, hostname,
 			defaultInstructionConfig.InventoryImage, defaultInstructionConfig.ServiceBaseURL, clusterId, hostId)))
@@ -175,11 +251,11 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --url %s " +
+			"--controller-image %s --url %s --insecure=false " +
 			"|| ( returnCode=$?; podman run --rm --privileged " +
 			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender -tag agent -tag installer " +
-			"-url %s -cluster-id %s -host-id %s; exit $returnCode; )"
+			"-url %s -cluster-id %s -host-id %s --insecure=false; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
 			hostId, defaultInstructionConfig.ControllerImage, defaultInstructionConfig.ServiceBaseURL,
 			defaultInstructionConfig.InventoryImage, defaultInstructionConfig.ServiceBaseURL, clusterId, hostId)))

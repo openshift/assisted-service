@@ -17,7 +17,7 @@ def handle_arguments():
 
 
 def wait_for_request(url: str) -> bool:
-    res = requests.get(url, timeout=REQUEST_TIMEOUT)
+    res = requests.get(url, timeout=REQUEST_TIMEOUT, verify=False)
 
     print(url, res.status_code)
     return res.status_code == 200
@@ -27,7 +27,9 @@ def main():
     deploy_options = handle_arguments()
     utils.set_profile(deploy_options.target, deploy_options.profile)
 
-    service_url = utils.get_service_url(SERVICE, deploy_options.target, deploy_options.domain, deploy_options.namespace, deploy_options.profile)
+    service_url = utils.get_service_url(service=SERVICE, target=deploy_options.target, domain=deploy_options.domain,
+                                        namespace=deploy_options.namespace, profile=deploy_options.profile,
+                                        disable_tls=deploy_options.disable_tls)
     health_url = f'{service_url}/health'
 
     print(f'Wait for {health_url}')
