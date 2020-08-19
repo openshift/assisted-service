@@ -1,5 +1,6 @@
 import utils
 import deployment_options
+import pvc_size_utils
 
 
 log = utils.get_logger('deploy_postgres')
@@ -45,6 +46,13 @@ def deploy_postgres_storage(deploy_options):
     docs = utils.load_yaml_file_docs('deploy/postgres/postgres-storage.yaml')
 
     utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
+
+    log.info('Updating pvc size for postgres-pv-claim')
+    pvc_size_utils.update_size_in_yaml_docs(
+        ns=deploy_options.namespace,
+        name='postgres-pv-claim',
+        docs=docs
+    )
 
     dst_file = utils.dump_yaml_file_docs('build/postgres-storage.yaml', docs)
 
