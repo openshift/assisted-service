@@ -49,6 +49,9 @@ def main():
             data = data.replace('REPLACE_OCM_BASE_URL', deploy_options.ocm_url)
             print("Deploying {}".format(DST_FILE))
 
+            subsystem_versions = {"IMAGE_BUILDER": "ISO_CREATION",
+                                  "IGNITION_GENERATE_IMAGE": "DUMMY_IGNITION"}
+
             versions = {"IMAGE_BUILDER": "assisted-iso-create",
                         "IGNITION_GENERATE_IMAGE": "assisted-ignition-generator",
                         "INSTALLER_IMAGE": "assisted-installer",
@@ -57,8 +60,8 @@ def main():
                         "CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent",
                         "INVENTORY_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
-                if deploy_options.subsystem_test and env_var_name == "IGNITION_GENERATE_IMAGE":
-                    image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, "DUMMY_IGNITION")
+                if deploy_options.subsystem_test and env_var_name in subsystem_versions.keys():
+                    image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, subsystem_versions[env_var_name])
                 else:
                     image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
                 versions[env_var_name] = image_fqdn

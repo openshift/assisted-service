@@ -190,6 +190,10 @@ func (k *kubeJob) createImageJob(jobName, imgName, ignitionConfig string, perfor
 	if !performUpload {
 		command = []string{"echo", "pass"}
 	}
+	var pullPolicy core.PullPolicy = "Always"
+	if k.Config.SubsystemRun {
+		pullPolicy = "Never"
+	}
 	return &batch.Job{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "Job",
@@ -222,7 +226,7 @@ func (k *kubeJob) createImageJob(jobName, imgName, ignitionConfig string, perfor
 							Command:         command,
 							Name:            "image-creator",
 							Image:           k.Config.ImageBuilder,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: pullPolicy,
 							Env: []core.EnvVar{
 								{
 									Name:  "S3_ENDPOINT_URL",
