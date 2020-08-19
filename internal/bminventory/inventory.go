@@ -3,6 +3,9 @@ package bminventory
 import (
 	"bytes"
 	"context"
+
+	// #nosec
+	"crypto/md5"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
@@ -276,6 +279,16 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
 		VipDhcpAllocation:        swag.Bool(false),
 	}}
+
+	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
+		params.NewClusterParams.HTTPSProxy,
+		params.NewClusterParams.NoProxy); err != nil {
+		log.Error("Failed to compute cluster proxy hash", err)
+		return installer.NewGenerateClusterISOInternalServerError()
+	} else {
+		cluster.ProxyHash = proxyHash
+	}
+
 	if params.NewClusterParams.PullSecret != "" {
 		err := validations.ValidatePullSecret(params.NewClusterParams.PullSecret)
 		if err != nil {
@@ -364,7 +377,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 		contentLength)
 }
 
-func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster) error {
+func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster, clusterProxyHash string) error {
 	updates := map[string]interface{}{}
 	imgName := getImageName(*cluster.ID)
 	imgSize, err := b.s3Client.GetObjectSizeBytes(ctx, imgName)
@@ -384,7 +397,12 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, clus
 		cluster.ImageInfo.DownloadURL = signedURL
 	}
 
-	dbReply := b.db.Model(&models.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
+	if cluster.ProxyHash != clusterProxyHash {
+		updates["proxy_hash"] = clusterProxyHash
+		cluster.ProxyHash = clusterProxyHash
+	}
+
+	dbReply := b.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		return errors.New("Failed to generate image: error updating image record")
 	}
@@ -448,9 +466,16 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	/* If the request has the same parameters as the previous request and the image is still in S3,
 	just refresh the timestamp.
 	*/
+	clusterProxyHash, err := computeClusterProxyHash(&cluster.HTTPProxy, &cluster.HTTPSProxy, &cluster.NoProxy)
+	if err != nil {
+		log.Error("Failed to compute cluster proxy hash", err)
+		return installer.NewGenerateClusterISOInternalServerError()
+	}
+
 	var imageExists bool
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
-		cluster.ImageInfo.GeneratorVersion == b.Config.ImageBuilder {
+		cluster.ImageInfo.GeneratorVersion == b.Config.ImageBuilder &&
+		cluster.ProxyHash == clusterProxyHash {
 		var err error
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.s3Client.UpdateObjectTag(ctx, imgName, "create_sec_since_epoch", strconv.FormatInt(now.Unix(), 10))
@@ -493,7 +518,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	}
 
 	if imageExists {
-		if err := b.updateImageInfoPostUpload(ctx, &cluster); err != nil {
+		if err := b.updateImageInfoPostUpload(ctx, &cluster, clusterProxyHash); err != nil {
 			return installer.NewGenerateClusterISOInternalServerError().
 				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 		}
@@ -521,7 +546,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		return installer.NewGenerateClusterISOInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	if err := b.updateImageInfoPostUpload(ctx, &cluster); err != nil {
+	if err := b.updateImageInfoPostUpload(ctx, &cluster, clusterProxyHash); err != nil {
 		return installer.NewGenerateClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
@@ -2231,4 +2256,27 @@ func proxySettingsChanged(params *models.ClusterUpdateParams, cluster *common.Cl
 		return true
 	}
 	return false
+}
+
+// computes the cluster proxy hash in order to identify if proxy settings were changed which will indicated if
+// new ISO file should be generated to contain new proxy settings
+func computeClusterProxyHash(httpProxy, httpsProxy, noProxy *string) (string, error) {
+	var proxyHash string
+	if httpProxy != nil {
+		proxyHash += *httpProxy
+	}
+	if httpsProxy != nil {
+		proxyHash += *httpsProxy
+	}
+	if noProxy != nil {
+		proxyHash += *noProxy
+	}
+	// #nosec
+	h := md5.New()
+	_, err := h.Write([]byte(proxyHash))
+	if err != nil {
+		return "", err
+	}
+	bs := h.Sum(nil)
+	return fmt.Sprintf("%x", bs), nil
 }
