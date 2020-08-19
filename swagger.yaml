@@ -55,11 +55,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         405:
           description: Method Not Allowed.
           schema:
@@ -82,11 +82,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         405:
           description: Method Not Allowed.
           schema:
@@ -123,11 +123,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -169,11 +169,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -208,11 +208,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -259,11 +259,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -308,11 +308,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -362,11 +362,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -415,11 +415,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -457,11 +457,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -502,11 +502,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -557,11 +557,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -599,11 +599,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -641,11 +641,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -683,11 +683,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -736,11 +736,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -793,11 +793,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -837,11 +837,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         405:
           description: Method Not Allowed.
           schema:
@@ -876,11 +876,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -920,11 +920,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -975,11 +975,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -1021,11 +1021,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -1064,11 +1064,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -1110,11 +1110,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -1163,11 +1163,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -1217,11 +1217,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -1309,11 +1309,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -1368,11 +1368,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -1411,11 +1411,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -2293,6 +2293,22 @@ definitions:
         type: string
         description: Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, for if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.
       reason:
+        type: string
+        description: Human readable description of the error.
+
+  infra_error:
+    type: object
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: integer
+        format: int32
+        description: Numeric identifier of the error.
+        minimum: 401
+        maximum: 403
+      message:
         type: string
         description: Human readable description of the error.
 
