@@ -51,7 +51,7 @@ func (a *Client) ListEvents(ctx context.Context, params *ListEventsParams) (*Lis
 		PathPattern:        "/clusters/{cluster_id}/events",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &ListEventsReader{formats: a.formats},
 		AuthInfo:           a.authInfo,

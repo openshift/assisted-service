@@ -2215,7 +2215,7 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 		}
 	}()
 
-	currentHost , err :=  b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	currentHost, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}

@@ -5,10 +5,9 @@
 package hardware
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
+	reflect "reflect"
 )
 
 // MockValidator is a mock of Validator interface
