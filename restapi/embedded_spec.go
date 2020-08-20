@@ -2931,6 +2931,11 @@ func init() {
             "Host"
           ]
         },
+        "logs_collected_at": {
+          "type": "string",
+          "format": "datetime",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
         "progress": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
           "$ref": "#/definitions/host-progress-info"
@@ -6387,6 +6392,11 @@ func init() {
           "enum": [
             "Host"
           ]
+        },
+        "logs_collected_at": {
+          "type": "string",
+          "format": "datetime",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "progress": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
