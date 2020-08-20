@@ -1,0 +1,75 @@
+{
+  "ignition": {
+    "version": "2.2.0"
+  },
+  "passwd": {
+    "users": [
+      {
+        "groups": [
+          "sudo"
+        ],
+        "name": "core",
+        "sshAuthorizedKeys": [
+          "replace-with-your-ssh-public-key"
+        ]
+      }
+    ]
+  },
+  "storage": {
+    "files": [
+      {
+        "path": "/etc/assisted-service/environment",
+        "filesystem": "root",
+        "contents": {
+          "source": "data:,S3DATAPATH%3D%2Fmnt%2Fdata%0AS3METADATAPATH%3D%2Fmnt%2Fdata%0AS3_ENDPOINT_URL%3Dhttp%3A%2F%2F127.0.0.1%3A8000%0AS3_REGION%3Dus-east-1%0AS3_BUCKET%3Dtest%0AAWS_ACCESS_KEY_ID%3DaccessKey1%0AAWS_SECRET_ACCESS_KEY%3DverySecretKey1%0APOSTGRESQL_DATABASE%3Dinstaller%0APOSTGRESQL_PASSWORD%3Dadmin%0APOSTGRESQL_USER%3Dadmin%0ADB_HOST%3D127.0.0.1%0ADB_PORT%3D5432%0ADB_USER%3Dadmin%0ADB_PASS%3Dadmin%0ADB_NAME%3Dinstaller%0ASERVICE_BASE_URL%3Dhttp%3A%2F%2Fassisted-api.local.openshift.io%3A8080%0ADEPLOY_TARGET%3Donprem%0ACREATE_S3_BUCKET%3Dtrue%0A"
+        },
+        "mode": 420
+      },
+      {
+        "path": "/etc/assisted-service/nginx.conf",
+        "filesystem": "root",
+        "contents": {
+          "source": "data:,server%20%7B%0A%20%20%20%20listen%208080%3B%0A%20%20%20%20server_name%20_%3B%0A%20%20%20%20root%20%2Fapp%3B%0A%20%20%20%20index%20index.html%3B%0A%20%20%20%20location%20%2Fapi%20%7B%0A%20%20%20%20%20%20%20%20proxy_pass%20http%3A%2F%2Flocalhost%3A8090%3B%0A%20%20%20%20%20%20%20%20proxy_http_version%201.1%3B%0A%20%20%20%20%20%20%20%20proxy_set_header%20Upgrade%20%24http_upgrade%3B%0A%20%20%20%20%20%20%20%20proxy_set_header%20Connection%20'upgrade'%3B%0A%20%20%20%20%20%20%20%20proxy_set_header%20Host%20%24host%3B%0A%20%20%20%20%20%20%20%20proxy_cache_bypass%20%24http_upgrade%3B%0A%20%20%20%20%7D%0A%20%20%20%20location%20%2F%20%7B%0A%20%20%20%20%20%20%20%20try_files%20%24uri%20%2Findex.html%3B%0A%20%20%20%20%7D%0A%7D%0A"
+        },
+        "mode": 420
+      },
+      {
+        "path": "/etc/assisted-service/auth.json",
+        "filesystem": "root",
+        "contents": {
+          "source": "data:;base64,replace-with-your-base64-encoded-pull-secret"
+        },
+        "mode": 420
+      }
+    ]
+  },
+  "systemd": {
+    "units": [
+      {
+        "contents": "[Unit]\nAfter=network-online.target\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman pod create --name assisted-installer -p 5432,8000,8090,8080\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "assisted-service-pod.service"
+      },
+      {
+        "contents": "[Unit]\nAfter=assisted-service-pod.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull --authfile /etc/assisted-service/auth.json rhel8/postgresql-12:latest\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --name db rhel8/postgresql-12:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "assisted-service-db.service"
+      },
+      {
+        "contents": "[Unit]\nAfter=assisted-service-pod.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull docker.io/scality/s3server:latest\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --mount type=tmpfs,destination=/mnt/data --name s3 docker.io/scality/s3server:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "assisted-service-s3.service"
+      },
+      {
+        "contents": "[Unit]\nAfter=assisted-service-db.service\nAfter=assisted-service-s3.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull quay.io/rwsu/assisted-service:test\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/rwsu/assisted-service:test\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "assisted-service-installer.service"
+      },
+      {
+        "contents": "[Unit]\nAfter=assisted-service-installer.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull quay.io/ocpmetal/ocp-metal-ui:latest\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "assisted-service-ui.service"
+      }
+    ]
+  }
+}
