@@ -1,3 +1,4 @@
 FROM alpine:latest
 RUN mkdir /root/image
-COPY ./rhcos-46.82.202008111140-0-live.x86_64.iso /root/image/livecd.iso
+# You can get RHCOS releases from here https://releases-rhcos.cloud.privileged.psi.redhat.com/
+RUN wget --no-check-certificate https://releases-rhcos.cloud.privileged.psi.redhat.com/storage/releases/4.6-devel/46.82.202008181531-0/x86_64/rhcos-46.82.202008181531-0-live.x86_64.iso -O /root/image/livecd.iso
