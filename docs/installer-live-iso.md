@@ -44,7 +44,7 @@ podman run --rm --privileged  -v /dev:/dev -v /run/udev:/run/udev -v .:/data  qu
 
 The live ISO, **assisted-service.iso** (not livecd.iso), can then be used to deploy the installer. The live ISO storage system is emphemeral and its size depends on the amount of memory installed on the host. A minimum of 10GB of memory is required to deploy the installer, generate a single discovery ISO, and install an OCP cluster.
 
-After the live ISO boots, the UI should be accessible from the a browser at
+After the live ISO boots, the UI should be accessible from the browser at
 
 ````
 http://<hostname-or-ip>:8080. 
@@ -59,7 +59,6 @@ Login to the host using your ssh public key.
 The assisted-service components are deployed as systemd services.
 * assisted-service-installer.service
 * assisted-service-db.service
-* assisted-service-s3.service
 * assisted-service-ui.service
 
 Verify that the containers deploy by those services are running.
