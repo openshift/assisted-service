@@ -1,30 +1,42 @@
-import os
 import utils
 import deployment_options
+
+
+log = utils.get_logger('deploy_s3')
+
 
 def main():
     deploy_options = deployment_options.load_deployment_options()
 
+    log.info('Starting scality deployment')
+
     utils.set_profile(deploy_options.target, deploy_options.profile)
 
-    src_file = os.path.join(os.getcwd(), "deploy/s3/scality-deployment.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/scality-deployment.yaml")
-    with open(src_file, "r") as src:
-        with open(dst_file, "w+") as dst:
-            data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
-            print("Deploying {}".format(dst_file))
-            dst.write(data)
+    deploy_scality(deploy_options)
+    deploy_scality_storage(deploy_options)
+
+    log.info('Completed to scality deployment')
+
+
+def deploy_scality(deploy_options):
+    docs = utils.load_yaml_file_docs('deploy/s3/scality-deployment.yaml')
+
+    utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
+
+    dst_file = utils.dump_yaml_file_docs('build/scality-deployment.yaml', docs)
+
+    log.info('Deploying %s', dst_file)
     utils.apply(dst_file)
 
-    src_file = os.path.join(os.getcwd(), "deploy/s3/scality-storage.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/scality-storage.yaml")
-    with open(src_file, "r") as src:
-        with open(dst_file, "w+") as dst:
-            data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
-            print("Deploying {}".format(dst_file))
-            dst.write(data)
+
+def deploy_scality_storage(deploy_options):
+    docs = utils.load_yaml_file_docs('deploy/s3/scality-storage.yaml')
+
+    utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
+
+    dst_file = utils.dump_yaml_file_docs('build/scality-storage.yaml', docs)
+
+    log.info('Deploying %s', dst_file)
     utils.apply(dst_file)
 
 
