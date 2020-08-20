@@ -1,0 +1,134 @@
+import subprocess as sp
+
+
+class BytesSuffix(object):
+    suffix_length = 0
+    suffix_to_bytes = {'': 2 ** 0}
+
+    @classmethod
+    def has_suffix(cls, s):
+        if cls.suffix_length > len(s):
+            return False
+
+        return bool(cls.suffix_to_bytes.get(s[-cls.suffix_length:]))
+
+    @classmethod
+    def to_bytes(cls, s):
+        to_bytes = cls.suffix_to_bytes[cls.get_suffix(s)]
+
+        amount = cls.get_amount(s)
+        if amount is None:
+            raise ValueError(
+                f'failed to convert size to bytes: {s}'
+            )
+
+        return amount * to_bytes
+
+    @classmethod
+    def get_suffix(cls, s):
+        return s[-cls.suffix_length:]
+
+    @classmethod
+    def get_amount(cls, s):
+        if not s[:-cls.suffix_length].isdigit():
+            return
+
+        return int(s[:-cls.suffix_length])
+
+
+class BinBytesSuffix(BytesSuffix):
+    suffix_length = 2
+    suffix_to_bytes = {
+        'Ki': 2 ** 10,
+        'Mi': 2 ** 20,
+        'Gi': 2 ** 30,
+        'Ti': 2 ** 40,
+        'Pi': 2 ** 50,
+        'Ei': 2 ** 60,
+    }
+
+
+class DecBytesSuffix(BytesSuffix):
+    suffix_length = 1
+    suffix_to_bytes = {
+        'n': 10 ** -9,
+        'u': 10 ** -6,
+        'm': 10 ** -3,
+        'k': 10 ** 3,
+        'M': 10 ** 6,
+        'G': 10 ** 9,
+        'T': 10 ** 12,
+        'P': 10 ** 15,
+        'E': 10 ** 18
+    }
+
+
+def update_size_in_yaml_docs(ns, name, docs):
+    req = extract_requested_size_from_yaml_docs(name, docs)
+    cur = get_current_size_if_exist(ns, name)
+    size = determine_which_size_to_deploy(req, cur)
+    set_size_in_yaml_docs(name, size, docs)
+
+
+def extract_requested_size_from_yaml_docs(name, docs):
+    for d in docs:
+        try:
+            if name != d['metadata']['name'] or d['kind'] != 'PersistentVolumeClaim':
+                continue
+        except KeyError:
+            continue
+
+        return d['spec']['resources']['requests']['storage']
+
+    raise ValueError(
+        f'pvc: {name} was not found in yaml docs: {docs}'
+    )
+
+
+def get_current_size_if_exist(ns, name):
+    p = sp.Popen(
+        f'kubectl -n {ns} get persistentvolumeclaims {name} '
+        '-o=jsonpath="{.status.capacity.storage}"',
+        shell=True,
+        stdout=sp.PIPE,
+        stderr=sp.PIPE,
+    )
+    err = p.stderr.read().decode()
+    if 'not found' in err:
+        return
+    elif err:
+        raise RuntimeError(
+            f'failed to get size of pvc {name}: {err}'
+        )
+
+    return p.stdout.read().decode()
+
+
+def determine_which_size_to_deploy(req, cur=None):
+    if cur is None:
+        return req
+
+    req_bytes = size_to_bytes(req)
+    cur_bytes = size_to_bytes(cur)
+
+    return req if req_bytes > cur_bytes else cur
+
+
+def size_to_bytes(s):
+    if BinBytesSuffix.has_suffix(s):
+        return BinBytesSuffix.to_bytes(s)
+    elif DecBytesSuffix.has_suffix(s):
+        return DecBytesSuffix.to_bytes(s)
+    return BytesSuffix.to_bytes(s)
+
+
+def set_size_in_yaml_docs(name, size, docs):
+    for d in docs:
+        try:
+            if name != d['metadata']['name'] or d['kind'] != 'PersistentVolumeClaim':
+                continue
+        except KeyError:
+            continue
+
+        d['spec']['resources']['requests']['storage'] = size
+        return
