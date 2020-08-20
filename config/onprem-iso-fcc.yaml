@@ -8,11 +8,24 @@ passwd:
       groups: [ sudo ]
 systemd:
     units:
-        - name: assisted-service-pod.service
+        - name: assisted-service-ip-configuration.service
           enabled: true
           contents: |
             [Unit]
             After=network-online.target
+          
+            [Service]
+            Type=simple
+            Restart=no
+            ExecStart=/bin/bash -c "printf \"\nALL_IPS=$(hostname -I)\">>/etc/assisted-service/environment"
+          
+            [Install]
+            WantedBy=multi-user.target
+        - name: assisted-service-pod.service
+          enabled: true
+          contents: |
+            [Unit]
+            After=assisted-service-ip-configuration.service
           
             [Service]
             Type=forking
@@ -45,7 +58,6 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStartPre=printf "\nALL_IPS=$(hostname -I)">>/etc/assisted-service/environment
             ExecStartPre=podman pull quay.io/rwsu/assisted-service:test
             ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/rwsu/assisted-service:test
             TimeoutStartSec=300
