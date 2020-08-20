@@ -25,7 +25,8 @@ func init() {
     "application/json"
   ],
   "schemes": [
-    "http"
+    "http",
+    "https"
   ],
   "swagger": "2.0",
   "info": {
@@ -2520,7 +2521,9 @@ func init() {
         "ingress-vip-defined",
         "ingress-vip-valid",
         "all-hosts-are-ready-to-install",
-        "sufficient-masters-count"
+        "sufficient-masters-count",
+        "dns-domain-defined",
+        "pull-secret-set"
       ]
     },
     "completion-params": {
@@ -3473,7 +3476,8 @@ func init() {
     "application/json"
   ],
   "schemes": [
-    "http"
+    "http",
+    "https"
   ],
   "swagger": "2.0",
   "info": {
@@ -5974,7 +5978,9 @@ func init() {
         "ingress-vip-defined",
         "ingress-vip-valid",
         "all-hosts-are-ready-to-install",
-        "sufficient-masters-count"
+        "sufficient-masters-count",
+        "dns-domain-defined",
+        "pull-secret-set"
       ]
     },
     "completion-params": {

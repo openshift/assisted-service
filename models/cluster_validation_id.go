@@ -43,6 +43,12 @@ const (
 
 	// ClusterValidationIDSufficientMastersCount captures enum value "sufficient-masters-count"
 	ClusterValidationIDSufficientMastersCount ClusterValidationID = "sufficient-masters-count"
+
+	// ClusterValidationIDDNSDomainDefined captures enum value "dns-domain-defined"
+	ClusterValidationIDDNSDomainDefined ClusterValidationID = "dns-domain-defined"
+
+	// ClusterValidationIDPullSecretSet captures enum value "pull-secret-set"
+	ClusterValidationIDPullSecretSet ClusterValidationID = "pull-secret-set"
 )
 
 // for schema
@@ -50,7 +56,7 @@ var clusterValidationIdEnum []interface{}
 
 func init() {
 	var res []ClusterValidationID
-	if err := json.Unmarshal([]byte(`["machine-cidr-defined","machine-cidr-equals-to-calculated-cidr","api-vip-defined","api-vip-valid","ingress-vip-defined","ingress-vip-valid","all-hosts-are-ready-to-install","sufficient-masters-count"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["machine-cidr-defined","machine-cidr-equals-to-calculated-cidr","api-vip-defined","api-vip-valid","ingress-vip-defined","ingress-vip-valid","all-hosts-are-ready-to-install","sufficient-masters-count","dns-domain-defined","pull-secret-set"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

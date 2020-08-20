@@ -2449,3 +2449,5 @@ definitions:
       - 'ingress-vip-valid'
       - 'all-hosts-are-ready-to-install'
       - 'sufficient-masters-count'
+      - 'dns-domain-defined'
+      - 'pull-secret-set'

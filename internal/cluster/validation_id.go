@@ -20,14 +20,19 @@ const (
 	isIngressVipValid                   = validationID(models.ClusterValidationIDIngressVipValid)
 	AllHostsAreReadyToInstall           = validationID(models.ClusterValidationIDAllHostsAreReadyToInstall)
 	SufficientMastersCount              = validationID(models.ClusterValidationIDSufficientMastersCount)
+	IsDNSDomainDefined                  = validationID(models.ClusterValidationIDDNSDomainDefined)
+	IsPullSecretSet                     = validationID(models.ClusterValidationIDPullSecretSet)
 )
 
 func (v validationID) category() (string, error) {
 	switch v {
-	case IsMachineCidrDefined, isMachineCidrEqualsToCalculatedCidr, isApiVipDefined, isApiVipValid, isIngressVipDefined, isIngressVipValid:
+	case IsMachineCidrDefined, isMachineCidrEqualsToCalculatedCidr, isApiVipDefined, isApiVipValid, isIngressVipDefined,
+		isIngressVipValid, IsDNSDomainDefined:
 		return "network", nil
 	case AllHostsAreReadyToInstall, SufficientMastersCount:
 		return "hosts-data", nil
+	case IsPullSecretSet:
+		return "configuration", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected cluster validation id %s", string(v)))
 }
