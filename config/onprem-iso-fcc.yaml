@@ -36,27 +36,11 @@ systemd:
           
             [Install]
             WantedBy=multi-user.target
-        - name: assisted-service-s3.service
-          enabled: true
-          contents: |
-            [Unit]
-            After=assisted-service-pod.service
-          
-            [Service]
-            Type=forking
-            Restart=no
-            ExecStartPre=podman pull docker.io/scality/s3server:latest
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --mount type=tmpfs,destination=/mnt/data --name s3 docker.io/scality/s3server:latest
-            TimeoutStartSec=300
-          
-            [Install]
-            WantedBy=multi-user.target
         - name: assisted-service-installer.service
           enabled: true
           contents: |
             [Unit]
             After=assisted-service-db.service
-            After=assisted-service-s3.service
           
             [Service]
             Type=forking
@@ -88,13 +72,6 @@ storage:
           mode: 0644
           contents:
             inline: |
-                S3DATAPATH=/mnt/data
-                S3METADATAPATH=/mnt/data
-                S3_ENDPOINT_URL=http://127.0.0.1:8000
-                S3_REGION=us-east-1
-                S3_BUCKET=test
-                AWS_ACCESS_KEY_ID=accessKey1
-                AWS_SECRET_ACCESS_KEY=verySecretKey1
                 POSTGRESQL_DATABASE=installer
                 POSTGRESQL_PASSWORD=admin
                 POSTGRESQL_USER=admin
@@ -105,7 +82,6 @@ storage:
                 DB_NAME=installer
                 SERVICE_BASE_URL=http://assisted-api.local.openshift.io:8080
                 DEPLOY_TARGET=onprem
-                CREATE_S3_BUCKET=true
         - path: /etc/assisted-service/nginx.conf
           mode: 0644
           contents:

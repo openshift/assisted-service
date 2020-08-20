@@ -21,7 +21,7 @@
         "path": "/etc/assisted-service/environment",
         "filesystem": "root",
         "contents": {
-          "source": "data:,S3DATAPATH%3D%2Fmnt%2Fdata%0AS3METADATAPATH%3D%2Fmnt%2Fdata%0AS3_ENDPOINT_URL%3Dhttp%3A%2F%2F127.0.0.1%3A8000%0AS3_REGION%3Dus-east-1%0AS3_BUCKET%3Dtest%0AAWS_ACCESS_KEY_ID%3DaccessKey1%0AAWS_SECRET_ACCESS_KEY%3DverySecretKey1%0APOSTGRESQL_DATABASE%3Dinstaller%0APOSTGRESQL_PASSWORD%3Dadmin%0APOSTGRESQL_USER%3Dadmin%0ADB_HOST%3D127.0.0.1%0ADB_PORT%3D5432%0ADB_USER%3Dadmin%0ADB_PASS%3Dadmin%0ADB_NAME%3Dinstaller%0ASERVICE_BASE_URL%3Dhttp%3A%2F%2Fassisted-api.local.openshift.io%3A8080%0ADEPLOY_TARGET%3Donprem%0ACREATE_S3_BUCKET%3Dtrue%0A"
+          "source": "data:,POSTGRESQL_DATABASE%3Dinstaller%0APOSTGRESQL_PASSWORD%3Dadmin%0APOSTGRESQL_USER%3Dadmin%0ADB_HOST%3D127.0.0.1%0ADB_PORT%3D5432%0ADB_USER%3Dadmin%0ADB_PASS%3Dadmin%0ADB_NAME%3Dinstaller%0ASERVICE_BASE_URL%3Dhttp%3A%2F%2Fassisted-api.local.openshift.io%3A8080%0ADEPLOY_TARGET%3Donprem%0A"
         },
         "mode": 420
       },
@@ -56,12 +56,7 @@
         "name": "assisted-service-db.service"
       },
       {
-        "contents": "[Unit]\nAfter=assisted-service-pod.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull docker.io/scality/s3server:latest\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --mount type=tmpfs,destination=/mnt/data --name s3 docker.io/scality/s3server:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
-        "enabled": true,
-        "name": "assisted-service-s3.service"
-      },
-      {
-        "contents": "[Unit]\nAfter=assisted-service-db.service\nAfter=assisted-service-s3.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull quay.io/rwsu/assisted-service:test\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/rwsu/assisted-service:test\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "contents": "[Unit]\nAfter=assisted-service-db.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull quay.io/rwsu/assisted-service:test\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/rwsu/assisted-service:test\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
         "enabled": true,
         "name": "assisted-service-installer.service"
       },
