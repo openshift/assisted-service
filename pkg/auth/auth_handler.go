@@ -219,7 +219,6 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 		getToken := func(r *http.Request) string { return r.Header.Get(name) }
 
 		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
-
 			if !a.EnableAuth {
 				a.log.Debug("API Key Authentication Disabled")
 				return true, &ocm.AuthPayload{

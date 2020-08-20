@@ -67,6 +67,8 @@ type UpdateHostInstallProgressParams struct {
 
 	*/
 	ClusterID strfmt.UUID
+	/*DiscoveryAgentVersion*/
+	DiscoveryAgentVersion *string
 	/*HostProgress
 	  New progress value
 
@@ -127,6 +129,17 @@ func (o *UpdateHostInstallProgressParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
+// WithDiscoveryAgentVersion adds the discoveryAgentVersion to the update host install progress params
+func (o *UpdateHostInstallProgressParams) WithDiscoveryAgentVersion(discoveryAgentVersion *string) *UpdateHostInstallProgressParams {
+	o.SetDiscoveryAgentVersion(discoveryAgentVersion)
+	return o
+}
+
+// SetDiscoveryAgentVersion adds the discoveryAgentVersion to the update host install progress params
+func (o *UpdateHostInstallProgressParams) SetDiscoveryAgentVersion(discoveryAgentVersion *string) {
+	o.DiscoveryAgentVersion = discoveryAgentVersion
+}
+
 // WithHostProgress adds the hostProgress to the update host install progress params
 func (o *UpdateHostInstallProgressParams) WithHostProgress(hostProgress *models.HostProgress) *UpdateHostInstallProgressParams {
 	o.SetHostProgress(hostProgress)
@@ -160,6 +173,15 @@ func (o *UpdateHostInstallProgressParams) WriteToRequest(r runtime.ClientRequest
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
+	}
+
+	if o.DiscoveryAgentVersion != nil {
+
+		// header param discovery_agent_version
+		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
+			return err
+		}
+
 	}
 
 	if o.HostProgress != nil {

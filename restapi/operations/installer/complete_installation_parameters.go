@@ -44,6 +44,10 @@ type CompleteInstallationParams struct {
 	  In: body
 	*/
 	CompletionParams *models.CompletionParams
+	/*
+	  In: header
+	*/
+	DiscoveryAgentVersion *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -82,6 +86,10 @@ func (o *CompleteInstallationParams) BindRequest(r *http.Request, route *middlew
 	} else {
 		res = append(res, errors.Required("completionParams", "body", ""))
 	}
+	if err := o.bindDiscoveryAgentVersion(r.Header[http.CanonicalHeaderKey("discovery_agent_version")], true, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -118,5 +126,23 @@ func (o *CompleteInstallationParams) validateClusterID(formats strfmt.Registry) 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err
 	}
+	return nil
+}
+
+// bindDiscoveryAgentVersion binds and validates parameter DiscoveryAgentVersion from header.
+func (o *CompleteInstallationParams) bindDiscoveryAgentVersion(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.DiscoveryAgentVersion = &raw
+
 	return nil
 }

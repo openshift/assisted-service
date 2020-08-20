@@ -64,6 +64,8 @@ type UploadClusterIngressCertParams struct {
 
 	/*ClusterID*/
 	ClusterID strfmt.UUID
+	/*DiscoveryAgentVersion*/
+	DiscoveryAgentVersion *string
 	/*IngressCertParams*/
 	IngressCertParams models.IngressCertParams
 
@@ -116,6 +118,17 @@ func (o *UploadClusterIngressCertParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
+// WithDiscoveryAgentVersion adds the discoveryAgentVersion to the upload cluster ingress cert params
+func (o *UploadClusterIngressCertParams) WithDiscoveryAgentVersion(discoveryAgentVersion *string) *UploadClusterIngressCertParams {
+	o.SetDiscoveryAgentVersion(discoveryAgentVersion)
+	return o
+}
+
+// SetDiscoveryAgentVersion adds the discoveryAgentVersion to the upload cluster ingress cert params
+func (o *UploadClusterIngressCertParams) SetDiscoveryAgentVersion(discoveryAgentVersion *string) {
+	o.DiscoveryAgentVersion = discoveryAgentVersion
+}
+
 // WithIngressCertParams adds the ingressCertParams to the upload cluster ingress cert params
 func (o *UploadClusterIngressCertParams) WithIngressCertParams(ingressCertParams models.IngressCertParams) *UploadClusterIngressCertParams {
 	o.SetIngressCertParams(ingressCertParams)
@@ -138,6 +151,15 @@ func (o *UploadClusterIngressCertParams) WriteToRequest(r runtime.ClientRequest,
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
+	}
+
+	if o.DiscoveryAgentVersion != nil {
+
+		// header param discovery_agent_version
+		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
+			return err
+		}
+
 	}
 
 	if err := r.SetBodyParam(o.IngressCertParams); err != nil {

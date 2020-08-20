@@ -64,6 +64,8 @@ type RegisterHostParams struct {
 
 	/*ClusterID*/
 	ClusterID strfmt.UUID
+	/*DiscoveryAgentVersion*/
+	DiscoveryAgentVersion *string
 	/*NewHostParams*/
 	NewHostParams *models.HostCreateParams
 
@@ -116,6 +118,17 @@ func (o *RegisterHostParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
+// WithDiscoveryAgentVersion adds the discoveryAgentVersion to the register host params
+func (o *RegisterHostParams) WithDiscoveryAgentVersion(discoveryAgentVersion *string) *RegisterHostParams {
+	o.SetDiscoveryAgentVersion(discoveryAgentVersion)
+	return o
+}
+
+// SetDiscoveryAgentVersion adds the discoveryAgentVersion to the register host params
+func (o *RegisterHostParams) SetDiscoveryAgentVersion(discoveryAgentVersion *string) {
+	o.DiscoveryAgentVersion = discoveryAgentVersion
+}
+
 // WithNewHostParams adds the newHostParams to the register host params
 func (o *RegisterHostParams) WithNewHostParams(newHostParams *models.HostCreateParams) *RegisterHostParams {
 	o.SetNewHostParams(newHostParams)
@@ -138,6 +151,15 @@ func (o *RegisterHostParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
+	}
+
+	if o.DiscoveryAgentVersion != nil {
+
+		// header param discovery_agent_version
+		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
+			return err
+		}
+
 	}
 
 	if o.NewHostParams != nil {

@@ -39,6 +39,10 @@ type UpdateHostInstallProgressParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
+	/*
+	  In: header
+	*/
+	DiscoveryAgentVersion *string
 	/*New progress value
 	  Required: true
 	  In: body
@@ -62,6 +66,10 @@ func (o *UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *mi
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.bindDiscoveryAgentVersion(r.Header[http.CanonicalHeaderKey("discovery_agent_version")], true, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -128,6 +136,24 @@ func (o *UpdateHostInstallProgressParams) validateClusterID(formats strfmt.Regis
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err
 	}
+	return nil
+}
+
+// bindDiscoveryAgentVersion binds and validates parameter DiscoveryAgentVersion from header.
+func (o *UpdateHostInstallProgressParams) bindDiscoveryAgentVersion(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.DiscoveryAgentVersion = &raw
+
 	return nil
 }
 
