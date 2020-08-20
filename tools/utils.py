@@ -1,3 +1,5 @@
+import logging
+import os
 import subprocess
 import time
 import re
@@ -13,6 +15,40 @@ MINIKUBE_CMD = 'minikube'
 KUBECTL_CMD = 'kubectl'
 DOCKER = "docker"
 PODMAN = "podman"
+
+
+def get_logger(name, level=logging.INFO):
+    fmt = '[%(levelname)s] %(asctime)s - %(name)s - %(message)s'
+    formatter = logging.Formatter(fmt)
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    log = logging.getLogger(name)
+    log.setLevel(level)
+    log.addHandler(sh)
+    return log
+
+
+def load_yaml_file_docs(basename):
+    src_file = os.path.join(os.getcwd(), basename)
+    with open(src_file) as fp:
+        return list(yaml.load_all(fp, Loader=yaml.SafeLoader))
+
+
+def dump_yaml_file_docs(basename, docs):
+    dst_file = os.path.join(os.getcwd(), basename)
+    with open(dst_file, 'w') as fp:
+        yaml.dump_all(docs, fp, Dumper=yaml.SafeDumper)
+
+    return dst_file
+
+
+def set_namespace_in_yaml_docs(docs, ns):
+    for doc in docs:
+        try:
+            if 'namespace' in doc['metadata']:
+                doc['metadata']['namespace'] = ns
+        except KeyError:
+            continue
 
 
 def check_output(cmd):

@@ -1,52 +1,54 @@
-import os
 import utils
 import deployment_options
+
+
+log = utils.get_logger('deploy_postgres')
 
 
 def main():
     deploy_options = deployment_options.load_deployment_options()
 
+    log.info('Starting postgres deployment')
+
     utils.set_profile(deploy_options.target, deploy_options.profile)
 
-    src_file = os.path.join(os.getcwd(), "deploy/postgres/postgres-secret.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/postgres-secret.yaml")
-    with open(src_file, "r") as src:
-        with open(dst_file, "w+") as dst:
-            data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
-            print("Deploying {}".format(dst_file))
-            dst.write(data)
+    deploy_postgres_secret(deploy_options)
+    deploy_postgres(deploy_options)
+    deploy_postgres_storage(deploy_options)
 
+    log.info('Completed postgres deployment')
+
+
+def deploy_postgres_secret(deploy_options):
+    docs = utils.load_yaml_file_docs('deploy/postgres/postgres-secret.yaml')
+
+    utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
+
+    dst_file = utils.dump_yaml_file_docs('build/postgres-secret.yaml', docs)
+
+    log.info('Deploying %s', dst_file)
     utils.apply(dst_file)
 
-    src_file = os.path.join(os.getcwd(), "deploy/postgres/postgres-deployment.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/postgres-deployment.yaml")
-    with open(src_file, "r") as src:
-        with open(dst_file, "w+") as dst:
-            data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
-            print("Deploying {}".format(dst_file))
-            dst.write(data)
+
+def deploy_postgres(deploy_options):
+    docs = utils.load_yaml_file_docs('deploy/postgres/postgres-deployment.yaml')
+
+    utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
+
+    dst_file = utils.dump_yaml_file_docs('build/postgres-deployment.yaml', docs)
+
+    log.info('Deploying %s', dst_file)
     utils.apply(dst_file)
 
-    src_file = os.path.join(os.getcwd(), "deploy/postgres/postgres-storage.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/postgres-storage.yaml")
-    with open(src_file, "r") as src:
-        with open(dst_file, "w+") as dst:
-            data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
-            try:
-                size = utils.check_output(
-                    "kubectl -n assisted-installer get persistentvolumeclaims postgres-pv-claim " +
-                    "-o=jsonpath='{.status.capacity.storage}'")
-                print("Using existing disk size", size)
-            except:
-                size = "10Gi"
-                print("Using default size", size)
-            data = data.replace("REPLACE_STORAGE", size)
-            print("Deploying {}".format(dst_file))
-            dst.write(data)
 
+def deploy_postgres_storage(deploy_options):
+    docs = utils.load_yaml_file_docs('deploy/postgres/postgres-storage.yaml')
+
+    utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
+
+    dst_file = utils.dump_yaml_file_docs('build/postgres-storage.yaml', docs)
+
+    log.info('Deploying %s', dst_file)
     utils.apply(dst_file)
 
 
