@@ -92,6 +92,7 @@ func (j *localJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobN
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
+	cmd.Stderr = &out
 	if err := cmd.Run(); err != nil {
 		log.Errorf("assisted-iso-create failed: %s", out.String())
 		return err

@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -162,6 +163,9 @@ var _ = Describe("system-test proxy update tests", func() {
 
 		// Verify proxy settings changed event emitted
 		verifyEventExistence(clusterID, "Proxy settings changed")
+
+		// at least 10s must elapse between requests to generate the same ISO
+		time.Sleep(time.Second * 10)
 
 		// Generate ISO of registered cluster with proxy configured
 		_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{

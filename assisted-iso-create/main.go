@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -39,11 +40,16 @@ func setIgnitionConfigToFile(workDir, ignitionConfig string, log *logrus.Logger)
 func embedIgnitionIntoISO(workDir, ignitionFile, imageName, baseISOFile string, log *logrus.Logger) (string, error) {
 	var out bytes.Buffer
 	resultFile := filepath.Join(workDir, imageName)
+	err := os.Remove(resultFile)
+	if err != nil && !os.IsNotExist(err) {
+		log.Errorf("error attempting to remove any pre-existing ISO")
+		return "", err
+	}
 	installerCommand := filepath.Join(workDir, coreosInstallerCommand)
 	cmd := exec.Command(installerCommand, "iso", "embed", "-c", ignitionFile, "-o", resultFile, baseISOFile, "-f")
 	cmd.Stdout = &out
 	cmd.Stderr = &out
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		log.Errorf("coreos-installer failed: %s", out.String())
 		return "", err
