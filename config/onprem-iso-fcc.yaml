@@ -45,6 +45,7 @@ systemd:
             [Service]
             Type=forking
             Restart=no
+            ExecStartPre=printf "\nALL_IPS=$(hostname -I)">>/etc/assisted-service/environment
             ExecStartPre=podman pull quay.io/rwsu/assisted-service:test
             ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/rwsu/assisted-service:test
             TimeoutStartSec=300
