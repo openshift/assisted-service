@@ -16,10 +16,10 @@ Download this ignition config and modify it to include your ssh public key and y
 wget https://raw.githubusercontent.com/openshift/assisted-service/master/config/onprem-iso-config.ign
 
 export SSH_PUBLIC_KEY=$(cat ~/.ssh/id_rsa.pub)
-export PULL_SECRET_BASE64=$(base64 -w 0 auth.json) 
+export PULL_SECRET_ENCODED=$(export PULL_SECRET=$(cat auth.json); urlencode $PULL_SECRET)
 
 sed -i 's#replace-with-your-ssh-public-key#'"${SSH_PUBLIC_KEY}"'#' onprem-iso-config.ign
-sed -i 's#replace-with-your-base64-encoded-pull-secret#'"${PULL_SECRET_BASE64}"'#' onprem-iso-config.ign
+sed -i 's#replace-with-your-urlencoded-pull-secret#'"${PULL_SECRET_ENCODED}"'#' onprem-iso-config.ign
 ````
 
 ### Download the base RHCOS live ISO
@@ -54,7 +54,7 @@ It may take a couple of minutes for the assisted-service and UI to become ready 
 
 ## How to debug
 
-Login to the host using your ssh public key.
+Login to the host using your ssh private key.
 
 The assisted-service components are deployed as systemd services.
 * assisted-service-installer.service
