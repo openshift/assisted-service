@@ -220,7 +220,7 @@ test-onprem:
 	INVENTORY=127.0.0.1:8090 \
 	DB_HOST=127.0.0.1 \
 	DB_PORT=5432 \
-	go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v
+	go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 30m
 
 #########
 # Clean #
@@ -240,7 +240,7 @@ clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
 
 clean-onprem:
-	podman pod rm -f assisted-installer
+	podman pod rm -f -i assisted-installer
 	podman volume rm s3-volume
 
 delete-minikube-profile:
