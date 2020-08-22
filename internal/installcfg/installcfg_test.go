@@ -1,6 +1,7 @@
 package installcfg
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -40,6 +41,7 @@ var _ = Describe("installcfg", func() {
 			ClusterID: clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "master",
+			Inventory: getInventoryStr("hostname0", "bootMode"),
 		}
 		id = strfmt.UUID(uuid.New().String())
 		host2 = models.Host{
@@ -47,6 +49,7 @@ var _ = Describe("installcfg", func() {
 			ClusterID: clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "worker",
+			Inventory: getInventoryStr("hostname1", "bootMode"),
 		}
 
 		host3 = models.Host{
@@ -54,6 +57,7 @@ var _ = Describe("installcfg", func() {
 			ClusterID: clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "worker",
+			Inventory: getInventoryStr("hostname2", "bootMode"),
 		}
 
 		cluster.Hosts = []*models.Host{&host1, &host2, &host3}
@@ -137,6 +141,21 @@ var _ = Describe("ValidateInstallConfigJSON", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 })
+
+func getInventoryStr(hostname, bootMode string) string {
+	inventory := models.Inventory{
+		Hostname: hostname,
+		Boot:     &models.Boot{CurrentBootMode: bootMode},
+		Interfaces: []*models.Interface{
+			{
+				IPV4Addresses: append(make([]string, 0), "some ip address"),
+				MacAddress:    "some MAC address",
+			},
+		},
+	}
+	ret, _ := json.Marshal(&inventory)
+	return string(ret)
+}
 
 func TestSubsystem(t *testing.T) {
 	RegisterFailHandler(Fail)
