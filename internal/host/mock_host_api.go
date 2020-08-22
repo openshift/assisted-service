@@ -6,13 +6,12 @@ package host
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
+	reflect "reflect"
 )
 
 // MockAPI is a mock of API interface
@@ -358,4 +357,18 @@ func (m *MockAPI) IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus
 func (mr *MockAPIMockRecorder) IsValidMasterCandidate(h, db, log interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidMasterCandidate", reflect.TypeOf((*MockAPI)(nil).IsValidMasterCandidate), h, db, log)
+}
+
+// SetUploadLogsAt mocks base method
+func (m *MockAPI) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetUploadLogsAt", ctx, h, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetUploadLogsAt indicates an expected call of SetUploadLogsAt
+func (mr *MockAPIMockRecorder) SetUploadLogsAt(ctx, h, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUploadLogsAt", reflect.TypeOf((*MockAPI)(nil).SetUploadLogsAt), ctx, h, db)
 }

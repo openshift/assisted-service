@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-openapi/strfmt"
+
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -91,6 +93,7 @@ type API interface {
 	// auto assign host role
 	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error
 	IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error)
+	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -273,6 +276,14 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
+	}
+	return nil
+}
+
+func (m *Manager) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	err := db.Model(h).Update("logs_collected_at", strfmt.DateTime(time.Now())).Error
+	if err != nil {
+		return errors.Wrapf(err, "failed to set logs_collected_at to host %s", h.ID.String())
 	}
 	return nil
 }
