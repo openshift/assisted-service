@@ -51,7 +51,7 @@ func (a *Client) ListManagedDomains(ctx context.Context, params *ListManagedDoma
 		PathPattern:        "/domains",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &ListManagedDomainsReader{formats: a.formats},
 		AuthInfo:           a.authInfo,

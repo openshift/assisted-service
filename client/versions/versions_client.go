@@ -51,7 +51,7 @@ func (a *Client) ListComponentVersions(ctx context.Context, params *ListComponen
 		PathPattern:        "/component_versions",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
+		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &ListComponentVersionsReader{formats: a.formats},
 		AuthInfo:           a.authInfo,

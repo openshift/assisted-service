@@ -1587,10 +1587,6 @@ definitions:
         $ref: '#/definitions/host-role'
       bootstrap:
         type: boolean
-      logs_collected_at:
-        type: string
-        format: datetime
-        x-go-custom-tag: gorm:"type:timestamp with time zone"
       installer_version:
         type: string
         description: Installer version
