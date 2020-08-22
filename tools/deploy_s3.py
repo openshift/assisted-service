@@ -12,7 +12,6 @@ def main():
     log.info('Starting scality deployment')
 
     utils.verify_build_directory(deploy_options.namespace)
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     deploy_scality(deploy_options)
     deploy_scality_storage(deploy_options)
@@ -31,7 +30,12 @@ def deploy_scality(deploy_options):
     )
 
     log.info('Deploying %s', dst_file)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 def deploy_scality_storage(deploy_options):
@@ -41,7 +45,9 @@ def deploy_scality_storage(deploy_options):
 
     log.info('Updating pvc size for scality-pv-claim')
     pvc_size_utils.update_size_in_yaml_docs(
+        target=deploy_options.target,
         ns=deploy_options.namespace,
+        profile=deploy_options.profile,
         name='scality-pv-claim',
         docs=docs
     )
@@ -52,7 +58,12 @@ def deploy_scality_storage(deploy_options):
     )
 
     log.info('Deploying %s', dst_file)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 if __name__ == "__main__":

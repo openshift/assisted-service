@@ -10,7 +10,6 @@ def main():
     deploy_options = deployment_options.load_deployment_options(parser)
 
     utils.verify_build_directory(deploy_options.namespace)
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     if deploy_options.deploy_namespace is False:
         print("Not deploying namespace")
@@ -24,8 +23,12 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    utils.apply(dst_file)
-
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 if __name__ == "__main__":
     main()

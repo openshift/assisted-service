@@ -23,13 +23,17 @@ def deploy_secret():
             data = data.replace("BASE64_CREDS", deploy_options.secret)
             print("Deploying {}: {}".format(topic, dst_file))
             dst.write(data)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 def main():
     deploy_secret()
     utils.verify_build_directory(deploy_options.namespace)
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
 
 if __name__ == "__main__":

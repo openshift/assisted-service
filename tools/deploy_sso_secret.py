@@ -11,7 +11,6 @@ deploy_options = deployment_options.load_deployment_options(parser)
 
 def main():
     utils.verify_build_directory(deploy_options.namespace)
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     ocm_secret = deploy_options.secret
     if ocm_secret == "":
@@ -31,7 +30,12 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 if __name__ == "__main__":

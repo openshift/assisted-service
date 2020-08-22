@@ -32,7 +32,6 @@ def get_deployment_tag(args):
 
 def main():
     utils.verify_build_directory(deploy_options.namespace)
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:
@@ -83,8 +82,12 @@ def main():
             data = yaml.dump(y)
             dst.write(data)
 
-    utils.apply(DST_FILE)
-
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=DST_FILE
+    )
 
 if __name__ == "__main__":
     main()

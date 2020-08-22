@@ -29,7 +29,6 @@ def load_key():
 
 def main():
     utils.verify_build_directory(deploy_options.namespace)
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     with open(SRC_FILE, "r") as src:
         raw_data = src.read()
@@ -56,8 +55,12 @@ def main():
         yaml.dump(data, dst, default_flow_style=False)
     print("Deploying {}".format(DST_FILE))
 
-    utils.apply(DST_FILE)
-
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=DST_FILE
+    )
 
 if __name__ == "__main__":
     main()

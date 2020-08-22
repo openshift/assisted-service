@@ -1,4 +1,3 @@
-import argparse
 import os
 
 import deploy_tls_secret
@@ -6,12 +5,11 @@ import deployment_options
 import utils
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    deploy_options = deployment_options.load_deployment_options(parser)
+deploy_options = deployment_options.load_deployment_options()
 
+
+def main():
     utils.verify_build_directory(deploy_options.namespace)
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     src_file = os.path.join(os.getcwd(), 'deploy/assisted-service-service.yaml')
     dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-service-service.yaml')
@@ -22,8 +20,12 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    utils.apply(dst_file)
-
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
     # in case of OpenShift deploy ingress as well
     if deploy_options.target == "oc-ingress":
         hostname = utils.get_service_host(
@@ -58,7 +60,12 @@ def deploy_ingress(hostname, namespace, template_file):
             data = data.replace("REPLACE_HOSTNAME", hostname)
             print("Deploying {}".format(dst_file))
             dst.write(data)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 if __name__ == "__main__":

@@ -67,7 +67,6 @@ def main():
     deploy_options = deployment_options.load_deployment_options(parser)
 
     utils.verify_build_directory(deploy_options.namespace)
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     output_dir = os.path.join(os.getcwd(), 'build', deploy_options.namespace)
     generate_secret(output_dir=output_dir, service=deploy_options.service, san=deploy_options.tls_san,

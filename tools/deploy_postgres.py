@@ -12,7 +12,6 @@ def main():
     log.info('Starting postgres deployment')
 
     utils.verify_build_directory(deploy_options.namespace)
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     deploy_postgres_secret(deploy_options)
     deploy_postgres(deploy_options)
@@ -32,7 +31,12 @@ def deploy_postgres_secret(deploy_options):
     )
 
     log.info('Deploying %s', dst_file)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 def deploy_postgres(deploy_options):
@@ -46,7 +50,12 @@ def deploy_postgres(deploy_options):
     )
 
     log.info('Deploying %s', dst_file)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 def deploy_postgres_storage(deploy_options):
@@ -56,7 +65,9 @@ def deploy_postgres_storage(deploy_options):
 
     log.info('Updating pvc size for postgres-pv-claim')
     pvc_size_utils.update_size_in_yaml_docs(
+        target=deploy_options.target,
         ns=deploy_options.namespace,
+        profile=deploy_options.profile,
         name='postgres-pv-claim',
         docs=docs
     )
@@ -67,7 +78,12 @@ def deploy_postgres_storage(deploy_options):
     )
 
     log.info('Deploying %s', dst_file)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 if __name__ == "__main__":

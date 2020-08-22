@@ -12,10 +12,12 @@ import deployment_options
 
 deploy_options = deployment_options.load_deployment_options()
 utils.verify_build_directory(deploy_options.namespace)
-utils.set_profile(deploy_options.target, deploy_options.profile)
 
 if deploy_options.target != "oc-ingress":
-    CMD_BIN = 'kubectl'
+    CMD_BIN = utils.get_kubectl_command(
+        target=deploy_options.target,
+        profile=deploy_options.profile
+    )
 else:
     CMD_BIN = 'oc'
 
@@ -24,14 +26,26 @@ def deploy_oauth_reqs():
     # Token generation for session_secret
     session_secret = secrets.token_hex(43)
     secret_name = 'grafana-proxy'
-    if not utils.check_if_exists('secret', secret_name, deploy_options.namespace):
+    if not utils.check_if_exists(
+            k8s_object='secret',
+            k8s_object_name=secret_name,
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile
+            ):
         cmd = "{} -n {} create secret generic {} --from-literal=session_secret={}"\
         .format(CMD_BIN, deploy_options.namespace, secret_name, session_secret)
         utils.check_output(cmd)
 
     ## Create and Annotate Serviceaccount
     sa_name = 'grafana'
-    if not utils.check_if_exists('sa', sa_name, deploy_options.namespace):
+    if not utils.check_if_exists(
+            k8s_object='sa',
+            k8s_object_name=sa_name,
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile
+        ):
         cmd = "{} -n {} create serviceaccount {} ".format(CMD_BIN, deploy_options.namespace, sa_name)
         utils.check_output(cmd)
     json_manifest = '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana"}}'
@@ -41,7 +55,13 @@ def deploy_oauth_reqs():
     utils.check_output(cmd)
 
     # Get OCP Certificate
-    if not utils.check_if_exists('secret', 'openshift-custom-ca', deploy_options.namespace):
+    if not utils.check_if_exists(
+            k8s_object='secret',
+            k8s_object_name='openshift-custom-ca',
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile
+            ):
         secret_name = 'router-certs-default'
         namespace = 'openshift-ingress'
         template = '{{index .data "tls.crt"}}'
@@ -61,8 +81,12 @@ def deploy_oauth_reqs():
                 data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
                 print("Deploying {}: {}".format(topic, dst_file))
                 dst.write(data)
-        utils.apply(dst_file)
-
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile,
+            file=dst_file
+        )
 
 def deployer(src_file, topic):
     '''Wrapper for oc/kubectl apply -f'''
@@ -74,8 +98,12 @@ def deployer(src_file, topic):
     with open(dst_file, 'w') as fp:
         fp.write(data)
     print("Deploying {}: {}".format(topic ,dst_file))
-    utils.apply(dst_file)
-
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 def deploy_grafana_route():
     '''Deploy Grafana Route'''
@@ -86,7 +114,11 @@ def deploy_grafana_route():
             'build', deploy_options.namespace, 'assisted-installer-ocp-grafana-route.yaml')
     try:
         # I have permissions
-        ingress_domain = utils.get_domain(namespace=deploy_options.namespace)
+        ingress_domain = utils.get_domain(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile
+        )
     except:
         # I have not permissions, yes it's ugly...
         # This ingress should be there because of UI deployment
@@ -106,8 +138,12 @@ def deploy_grafana_route():
             data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
             print("Deploying {}: {}".format(topic, dst_file))
             dst.write(data)
-    utils.apply(dst_file)
-
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 def deploy_grafana_ds():
     '''Deploy grafana daemonSet'''
@@ -119,7 +155,13 @@ def deploy_grafana_ds():
     data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
     with open(dst_file, 'w') as fp:
         fp.write(data)
-    if not utils.check_if_exists('secret', secret_name, deploy_options.namespace):
+    if not utils.check_if_exists(
+            k8s_object='secret',
+            k8s_object_name=secret_name,
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile
+            ):
         print("Creating Grafana Datasource")
         cmd = "{} create secret generic {} --namespace={} --from-file=prometheus.yaml={}".format(CMD_BIN, secret_name, deploy_options.namespace, dst_file)
         utils.check_output(cmd)
@@ -135,7 +177,13 @@ def deploy_grafana_config(conf_file):
     data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
     with open(dst_file, 'w') as fp:
         fp.write(data)
-    if not utils.check_if_exists('secret', secret_name, deploy_options.namespace):
+    if not utils.check_if_exists(
+            k8s_object='secret',
+            k8s_object_name=secret_name,
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile
+            ):
         print("Creating Grafana Configuration")
         cmd = "{} create secret generic {} --namespace={} --from-file=grafana.ini={}".format(CMD_BIN, secret_name, deploy_options.namespace, dst_file)
         utils.check_output(cmd)
@@ -165,7 +213,13 @@ def main():
         deployer('deploy/monitoring/grafana/assisted-installer-k8s-grafana.yaml',
                  'Grafana Instance on K8s')
         sleep(10)
-        utils.check_k8s_rollout('deployment', 'grafana', deploy_options.namespace)
+        utils.check_k8s_rollout(
+            k8s_object='deployment',
+            k8s_object_name='grafana',
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile
+        )
     else:
         # Deploy Oauth Pre-reqs for OCP integration
         deploy_oauth_reqs()
@@ -184,7 +238,13 @@ def main():
         deployer('deploy/monitoring/grafana/assisted-installer-ocp-grafana.yaml',
                  'Grafana Instance on OCP')
         sleep(10)
-        utils.check_k8s_rollout('deployment', 'grafana', deploy_options.namespace)
+        utils.check_k8s_rollout(
+            k8s_object='deployment',
+            k8s_object_name='grafana',
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile
+        )
         # Deploy grafana Route
         deploy_grafana_route()
 

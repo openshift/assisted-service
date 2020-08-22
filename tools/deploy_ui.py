@@ -14,7 +14,6 @@ def main():
     deploy_options = deployment_options.load_deployment_options(parser)
 
     utils.verify_build_directory(deploy_options.namespace)
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'deploy_ui.yaml')
     image_fqdn = deployment_options.get_image_override(deploy_options, "ocp-metal-ui", "UI_IMAGE")
@@ -37,7 +36,12 @@ def main():
 
     utils.check_output(cmd)
     log.info("Deploying %s", dst_file)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
     # in case of openshift deploy ingress as well
     if deploy_options.target == "oc-ingress":
@@ -56,7 +60,12 @@ def main():
                 ))
                 log.info("Deploying ingress from %s", dst_file)
                 dst.write(data)
-        utils.apply(dst_file)
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile,
+            file=dst_file
+        )
 
 
 if __name__ == "__main__":
