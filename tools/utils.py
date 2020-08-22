@@ -17,6 +17,14 @@ DOCKER = "docker"
 PODMAN = "podman"
 
 
+def verify_build_directory(namespace):
+    dirname = os.path.join(os.getcwd(), 'build', namespace)
+    if os.path.isdir(dirname):
+        return
+    os.makedirs(dirname)
+    logging.info('Created build directory: %s', dirname)
+
+
 def get_logger(name, level=logging.INFO):
     fmt = '[%(levelname)s] %(asctime)s - %(name)s - %(message)s'
     formatter = logging.Formatter(fmt)

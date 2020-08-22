@@ -4,10 +4,11 @@ import deployment_options
 
 def main():
     deploy_options = deployment_options.load_deployment_options()
+    utils.verify_build_directory(deploy_options.namespace)
     utils.set_profile(deploy_options.target, deploy_options.profile)
 
-    src_file = os.path.join(os.getcwd(), "deploy/mariadb/mariadb-configmap.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/mariadb-configmap.yaml")
+    src_file = os.path.join(os.getcwd(), 'deploy/mariadb/mariadb-configmap.yaml')
+    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'mariadb-configmap.yaml')
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
@@ -17,8 +18,8 @@ def main():
 
     utils.apply(dst_file)
 
-    src_file = os.path.join(os.getcwd(), "deploy/mariadb/mariadb-deployment.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/mariadb-deployment.yaml")
+    src_file = os.path.join(os.getcwd(), 'deploy/mariadb/mariadb-deployment.yaml')
+    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'mariadb-deployment.yaml')
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
@@ -27,8 +28,8 @@ def main():
             dst.write(data)
     utils.apply(dst_file)
 
-    src_file = os.path.join(os.getcwd(), "deploy/mariadb/mariadb-storage.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/mariadb-storage.yaml")
+    src_file = os.path.join(os.getcwd(), 'deploy/mariadb/mariadb-storage.yaml')
+    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'mariadb-storage.yaml')
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()

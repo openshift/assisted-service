@@ -11,6 +11,7 @@ def main():
 
     log.info('Starting postgres deployment')
 
+    utils.verify_build_directory(deploy_options.namespace)
     utils.set_profile(deploy_options.target, deploy_options.profile)
 
     deploy_postgres_secret(deploy_options)
@@ -25,7 +26,10 @@ def deploy_postgres_secret(deploy_options):
 
     utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
 
-    dst_file = utils.dump_yaml_file_docs('build/postgres-secret.yaml', docs)
+    dst_file = utils.dump_yaml_file_docs(
+        basename=f'build/{deploy_options.namespace}/postgres-secret.yaml',
+        docs=docs
+    )
 
     log.info('Deploying %s', dst_file)
     utils.apply(dst_file)
@@ -36,7 +40,10 @@ def deploy_postgres(deploy_options):
 
     utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
 
-    dst_file = utils.dump_yaml_file_docs('build/postgres-deployment.yaml', docs)
+    dst_file = utils.dump_yaml_file_docs(
+        basename=f'build/{deploy_options.namespace}/postgres-deployment.yaml',
+        docs=docs
+    )
 
     log.info('Deploying %s', dst_file)
     utils.apply(dst_file)
@@ -54,7 +61,10 @@ def deploy_postgres_storage(deploy_options):
         docs=docs
     )
 
-    dst_file = utils.dump_yaml_file_docs('build/postgres-storage.yaml', docs)
+    dst_file = utils.dump_yaml_file_docs(
+        basename=f'build/{deploy_options.namespace}/postgres-storage.yaml',
+        docs=docs
+    )
 
     log.info('Deploying %s', dst_file)
     utils.apply(dst_file)

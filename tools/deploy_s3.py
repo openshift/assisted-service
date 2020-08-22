@@ -11,6 +11,7 @@ def main():
 
     log.info('Starting scality deployment')
 
+    utils.verify_build_directory(deploy_options.namespace)
     utils.set_profile(deploy_options.target, deploy_options.profile)
 
     deploy_scality(deploy_options)
@@ -24,7 +25,10 @@ def deploy_scality(deploy_options):
 
     utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
 
-    dst_file = utils.dump_yaml_file_docs('build/scality-deployment.yaml', docs)
+    dst_file = utils.dump_yaml_file_docs(
+        basename=f'build/{deploy_options.namespace}/scality-deployment.yaml',
+        docs=docs
+    )
 
     log.info('Deploying %s', dst_file)
     utils.apply(dst_file)
@@ -42,7 +46,10 @@ def deploy_scality_storage(deploy_options):
         docs=docs
     )
 
-    dst_file = utils.dump_yaml_file_docs('build/scality-storage.yaml', docs)
+    dst_file = utils.dump_yaml_file_docs(
+        basename=f'build/{deploy_options.namespace}/scality-storage.yaml',
+        docs=docs
+    )
 
     log.info('Deploying %s', dst_file)
     utils.apply(dst_file)

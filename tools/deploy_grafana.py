@@ -11,6 +11,7 @@ import utils
 import deployment_options
 
 deploy_options = deployment_options.load_deployment_options()
+utils.verify_build_directory(deploy_options.namespace)
 utils.set_profile(deploy_options.target, deploy_options.profile)
 
 if deploy_options.target != "oc-ingress":
@@ -49,9 +50,9 @@ def deploy_oauth_reqs():
 
         # Renderized secret with CA Certificate of the OCP Cluster
         src_file = os.path.join(os.getcwd(),\
-                "deploy/monitoring/prometheus/assisted-installer-ocp-prometheus-custom-ca.yaml")
+                'deploy/monitoring/prometheus/assisted-installer-ocp-prometheus-custom-ca.yaml')
         dst_file = os.path.join(os.getcwd(),\
-                "build/assisted-installer-ocp-prometheus-custom-ca.yaml")
+                'build', deploy_options.namespace, 'assisted-installer-ocp-prometheus-custom-ca.yaml')
         topic = 'OCP Custom CA'
         with open(src_file, "r") as src:
             with open(dst_file, "w+") as dst:
@@ -80,9 +81,9 @@ def deploy_grafana_route():
     '''Deploy Grafana Route'''
     topic = 'Grafana Route'
     src_file = os.path.join(os.getcwd(),\
-            "deploy/monitoring/grafana/assisted-installer-ocp-grafana-route.yaml")
+            'deploy/monitoring/grafana/assisted-installer-ocp-grafana-route.yaml')
     dst_file = os.path.join(os.getcwd(),\
-            "build/assisted-installer-ocp-grafana-route.yaml")
+            'build', deploy_options.namespace, 'assisted-installer-ocp-grafana-route.yaml')
     try:
         # I have permissions
         ingress_domain = utils.get_domain(namespace=deploy_options.namespace)
@@ -111,8 +112,8 @@ def deploy_grafana_route():
 def deploy_grafana_ds():
     '''Deploy grafana daemonSet'''
     secret_name = 'grafana-datasources'
-    src_file = os.path.join(os.getcwd(), "deploy/monitoring/grafana/prometheus.json")
-    dst_file = os.path.join(os.getcwd(), "build/prometheus.json")
+    src_file = os.path.join(os.getcwd(), 'deploy/monitoring/grafana/prometheus.json')
+    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'prometheus.json')
     with open(src_file) as fp:
         data = fp.read()
     data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)

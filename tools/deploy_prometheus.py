@@ -11,6 +11,7 @@ import utils
 import deployment_options
 
 deploy_options = deployment_options.load_deployment_options()
+utils.verify_build_directory(deploy_options.namespace)
 utils.set_profile(deploy_options.target, deploy_options.profile)
 
 if deploy_options.target != "oc-ingress":
@@ -55,9 +56,9 @@ def deploy_oauth_reqs():
 
         # Renderized secret with CA Certificate of the OCP Cluster
         src_file = os.path.join(os.getcwd(), \
-                "deploy/monitoring/prometheus/assisted-installer-ocp-prometheus-custom-ca.yaml")
+                'deploy/monitoring/prometheus/assisted-installer-ocp-prometheus-custom-ca.yaml')
         dst_file = os.path.join(os.getcwd(), \
-                "build/assisted-installer-ocp-prometheus-custom-ca.yaml")
+                'build', deploy_options.namespace, 'assisted-installer-ocp-prometheus-custom-ca.yaml')
         topic = 'OCP Custom CA'
         with open(src_file, "r") as src:
             with open(dst_file, "w+") as dst:
@@ -75,9 +76,9 @@ def deploy_prometheus_route():
     '''Deploy Prometheus Route'''
     topic = 'Prometheus Operator Route'
     src_file = os.path.join(os.getcwd(),\
-            "deploy/monitoring/prometheus/assisted-installer-ocp-prometheus-route.yaml")
+            'deploy/monitoring/prometheus/assisted-installer-ocp-prometheus-route.yaml')
     dst_file = os.path.join(os.getcwd(),\
-            "build/assisted-installer-ocp-prometheus-route.yaml")
+            'build', deploy_options.namespace, 'assisted-installer-ocp-prometheus-route.yaml')
     try:
         # I have permissions
         ingress_domain = utils.get_domain()
@@ -107,9 +108,9 @@ def deploy_prometheus_sub(olm_ns, cat_src):
     '''Deploy Operator Subscription'''
     topic = 'Prometheus Operator Subscription'
     src_file = os.path.join(os.getcwd(),\
-            "deploy/monitoring/prometheus/assisted-installer-operator-subscription.yaml")
+            'deploy/monitoring/prometheus/assisted-installer-operator-subscription.yaml')
     dst_file = os.path.join(os.getcwd(),\
-            "build/assisted-installer-operator-subscription.yaml")
+            'build', deploy_options.namespace, 'assisted-installer-operator-subscription.yaml')
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()

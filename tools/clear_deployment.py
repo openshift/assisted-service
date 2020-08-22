@@ -9,6 +9,7 @@ def main():
     deploy_options = deployment_options.load_deployment_options(parser)
 
     utils.set_profile(deploy_options.target, deploy_options.profile)
+    utils.verify_build_directory(deploy_options.namespace)
 
     print(utils.check_output(f"kubectl delete all --all -n {deploy_options.namespace} 1> /dev/null ; true"))
     # configmaps are not deleted with `delete all`
