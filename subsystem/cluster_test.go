@@ -30,7 +30,7 @@ const (
 	clusterReadyStateInfo           = "Cluster ready to be installed"
 	pullSecret                      = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
 	IgnoreStateInfo                 = "IgnoreStateInfo"
-	clusterErrorInfo                = "cluster %s has hosts in error"
+	clusterErrorInfo                = "cluster has hosts in error"
 	clusterResetStateInfo           = "cluster was reset by user"
 	clusterPendingForInputStateInfo = "User input required"
 )
@@ -1050,9 +1050,8 @@ var _ = Describe("cluster install", func() {
 
 		It("[only_k8s]on cluster error - verify all hosts are aborted", func() {
 			FailCluster(ctx, clusterID)
-			stateInfo := fmt.Sprintf(clusterErrorInfo, clusterID.String())
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
-				stateInfo)
+				clusterErrorInfo)
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := rep.GetPayload()
@@ -1093,9 +1092,8 @@ var _ = Describe("cluster install", func() {
 			})
 			It("[only_k8s]cancel failed cluster", func() {
 				FailCluster(ctx, clusterID)
-				stateInfo := fmt.Sprintf(clusterErrorInfo, clusterID.String())
 				waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
-					stateInfo)
+					clusterErrorInfo)
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				c := rep.GetPayload()

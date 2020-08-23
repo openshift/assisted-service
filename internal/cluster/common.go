@@ -13,6 +13,8 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+const MinHostsNeededForInstallation = 3
+
 const (
 	clusterStatusInsufficient           = "insufficient"
 	clusterStatusReady                  = "ready"
@@ -32,13 +34,8 @@ const (
 	statusInfoPreparingForInstallation        = "Preparing cluster for installation"
 	statusInfoPreparingForInstallationTimeout = "Preparing cluster for installation timeout"
 	statusInfoPendingForInput                 = "User input required"
+	statusInfoError                           = "cluster has hosts in error"
 )
-
-type baseState struct {
-	//TODO remove when res: https://github.com/golangci/golangci-lint/issues/537
-	log logrus.FieldLogger //nolint:structcheck
-	db  *gorm.DB           //nolint:structcheck
-}
 
 func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
 	newStatus string, statusInfo string, extra ...interface{}) (*common.Cluster, error) {
