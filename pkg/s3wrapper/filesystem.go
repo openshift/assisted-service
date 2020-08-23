@@ -183,7 +183,7 @@ func (f *FSClient) UpdateObjectTimestamp(ctx context.Context, objectName string)
 	return true, nil
 }
 
-func (f *FSClient) ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, objectName string)) {
+func (f *FSClient) ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string)) {
 	log := logutil.FromContext(ctx, f.log)
 	now := time.Now()
 
@@ -204,7 +204,7 @@ func (f *FSClient) ExpireObjects(ctx context.Context, prefix string, deleteTime 
 }
 
 func (f *FSClient) handleFile(ctx context.Context, log logrus.FieldLogger, filePath string, fileInfo os.FileInfo, now time.Time,
-	deleteTime time.Duration, callback func(ctx context.Context, objectName string)) {
+	deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string)) {
 	if now.Before(fileInfo.ModTime().Add(deleteTime)) {
 		return
 	}
@@ -216,5 +216,5 @@ func (f *FSClient) handleFile(ctx context.Context, log logrus.FieldLogger, fileP
 		return
 	}
 	log.Infof("Deleted expired file %s", filePath)
-	callback(ctx, filePath)
+	callback(ctx, log, filePath)
 }
