@@ -806,24 +806,6 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	return b.clusterApi.SetGeneratorVersion(&cluster, b.Config.IgnitionGenerator, b.db)
 }
 
-func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) error {
-	for _, h := range cluster.Hosts {
-		var host models.Host
-		var err error
-		if err = tx.Take(&host, "id = ? and cluster_id = ?",
-			h.ID.String(), cluster.ID.String()).Error; err != nil {
-			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
-				h.ID.String(), cluster.ID.String())
-			return common.NewApiError(http.StatusNotFound, err)
-		}
-		if err = b.hostApi.RefreshStatus(ctx, &host, tx); err != nil {
-			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, cluster.ID.String())
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-	}
-	return nil
-}
-
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
@@ -903,7 +885,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		return common.GenerateErrorResponder(err)
 	}
 
-	err = b.updateHostsAndClusterStatus(ctx, &cluster, tx, log)
+	err = b.clusterApi.UpdateHostsAndClusterStatus(ctx, &cluster, tx, log)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -1113,20 +1095,6 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 				params.ClusterID)
 			return common.NewApiError(http.StatusConflict, err)
 		}
-	}
-
-	return nil
-}
-
-func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cluster *common.Cluster, db *gorm.DB, log logrus.FieldLogger) error {
-	err := b.refreshClusterHosts(ctx, cluster, db, log)
-	if err != nil {
-		return err
-	}
-
-	if _, err = b.clusterApi.RefreshStatus(ctx, cluster, db); err != nil {
-		log.WithError(err).Errorf("failed to validate or update cluster %s state", cluster.ID)
-		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	return nil

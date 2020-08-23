@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -46,6 +45,7 @@ type API interface {
 	// Refresh state in case of hosts update
 	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error)
 	ClusterMonitoring()
+	UpdateHostsAndClusterStatus(ctx context.Context, cluster *common.Cluster, db *gorm.DB, log logrus.FieldLogger) error
 	DownloadFiles(c *common.Cluster) (err error)
 	DownloadKubeconfig(c *common.Cluster) (err error)
 	GetCredentials(c *common.Cluster) (err error)
@@ -167,33 +167,6 @@ func (m *Manager) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) e
 
 func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
 	return m.installationAPI.GetMasterNodesIds(ctx, c, db)
-}
-
-func (m *Manager) ClusterMonitoring() {
-	var (
-		clusters            []*common.Cluster
-		clusterAfterRefresh *common.Cluster
-		requestID           = requestid.NewID()
-		ctx                 = requestid.ToContext(context.Background(), requestID)
-		log                 = requestid.RequestIDLogger(m.log, requestID)
-		err                 error
-	)
-
-	if err = m.db.Find(&clusters).Error; err != nil {
-		log.WithError(err).Errorf("failed to get clusters")
-		return
-	}
-	for _, cluster := range clusters {
-		if clusterAfterRefresh, err = m.RefreshStatus(ctx, cluster, m.db); err != nil {
-			log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
-			continue
-		}
-
-		if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
-			log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
-				swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
-		}
-	}
 }
 
 func (m *Manager) DownloadFiles(c *common.Cluster) (err error) {

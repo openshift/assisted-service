@@ -379,6 +379,7 @@ var _ = Describe("cluster monitor", func() {
 		saveUpdatedTime := c.StatusUpdatedAt
 		saveStatusInfo := c.StatusInfo
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockHostAPI.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		mockHostAPIIsRequireUserActionResetFalse()
 		clusterApi.ClusterMonitoring()
 		after := time.Now().Truncate(10 * time.Millisecond)

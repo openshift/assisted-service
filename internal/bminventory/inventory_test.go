@@ -1263,7 +1263,9 @@ var _ = Describe("cluster", func() {
 						ProxyHash: emptyProxyHash}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockClusterApi.EXPECT().UpdateHostsAndClusterStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				})
 
 				updateCluster := func(httpProxy, httpsProxy, noProxy string) *common.Cluster {
@@ -1308,12 +1310,13 @@ var _ = Describe("cluster", func() {
 						makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 					Expect(err).ToNot(HaveOccurred())
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockClusterApi.EXPECT().UpdateHostsAndClusterStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				})
 				It("Valid hostname", func() {
 					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1327,10 +1330,8 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 				})
 				It("Valid splitted hostname", func() {
-					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1398,6 +1399,9 @@ var _ = Describe("cluster", func() {
 						makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 					Expect(err).ToNot(HaveOccurred())
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockClusterApi.EXPECT().UpdateHostsAndClusterStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				})
 				Context("Non DHCP", func() {
 
@@ -1442,8 +1446,6 @@ var _ = Describe("cluster", func() {
 						apiVip := "10.11.12.15"
 						ingressVip := "10.11.12.16"
 						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1507,8 +1509,6 @@ var _ = Describe("cluster", func() {
 						apiVip := "10.11.12.15"
 						ingressVip := "10.11.12.16"
 						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1608,8 +1608,6 @@ var _ = Describe("cluster", func() {
 						apiVip := "10.11.12.15"
 						ingressVip := "10.11.12.16"
 						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1660,8 +1658,9 @@ var _ = Describe("cluster", func() {
 						apiVip := "10.11.12.15"
 						ingressVip := "10.11.12.16"
 						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(9)
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(9)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(3)
+						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+						mockClusterApi.EXPECT().UpdateHostsAndClusterStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,

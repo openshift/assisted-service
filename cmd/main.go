@@ -56,9 +56,8 @@ var Options struct {
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           host.InstructionConfig
-	ClusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
+	ClusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"8s"`
 	S3Config                    s3wrapper.Config
-	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
 	CreateS3Bucket              bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
@@ -133,11 +132,6 @@ func main() {
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
 	clusterStateMonitor.Start()
 	defer clusterStateMonitor.Stop()
-
-	hostStateMonitor := thread.New(
-		log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
-	hostStateMonitor.Start()
-	defer hostStateMonitor.Stop()
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
 
