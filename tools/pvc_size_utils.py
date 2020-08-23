@@ -15,15 +15,14 @@ class BytesSuffix(object):
 
     @classmethod
     def to_bytes(cls, s):
-        to_bytes = cls.suffix_to_bytes[cls.get_suffix(s)]
-
         amount = cls.get_amount(s)
         if amount is None:
             raise ValueError(
                 f'failed to convert size to bytes: {s}'
             )
 
-        return amount * to_bytes
+        b = cls.suffix_to_bytes[cls.get_suffix(s)]
+        return amount * b
 
     @classmethod
     def get_suffix(cls, s):
