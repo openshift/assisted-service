@@ -847,6 +847,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 
 	err = b.updateClusterData(ctx, &cluster, params, tx, log)
 	if err != nil {
+		log.WithError(err).Error("updateClusterData")
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -885,7 +886,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	return installer.NewUpdateClusterCreated().WithPayload(&cluster.Cluster)
 }
 
-func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
 	if params.ClusterUpdateParams.APIVip != nil {
@@ -901,16 +902,16 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		log.WithError(err).Warnf("Set Machine Network CIDR")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	var machineCidr string
 
-	machineCidr, err := network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts)
+	var err error
+	*machineCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts)
 	if err != nil {
 		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	updates["machine_network_cidr"] = machineCidr
+	updates["machine_network_cidr"] = *machineCidr
 
-	err = network.VerifyVips(cluster.Hosts, machineCidr, apiVip, ingressVip, false, log)
+	err = network.VerifyVips(cluster.Hosts, *machineCidr, apiVip, ingressVip, false, log)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -918,7 +919,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	return nil
 }
 
-func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
 	if params.ClusterUpdateParams.APIVip != nil {
 		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
 		log.WithError(err).Warnf("Set API VIP")
@@ -930,14 +931,19 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	if params.ClusterUpdateParams.MachineNetworkCidr != nil {
-		updates["machine_network_cidr"] = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
+		*machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
+		updates["machine_network_cidr"] = *machineCidr
 		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr), cluster.Hosts, log)
 	}
 	return nil
 }
 
 func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+	var err error
 	updates := map[string]interface{}{}
+	machineCidr := cluster.MachineNetworkCidr
+	serviceCidr := cluster.ServiceNetworkCidr
+	clusterCidr := cluster.ClusterNetworkCidr
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
 	if params.ClusterUpdateParams.Name != nil {
 		updates["name"] = *params.ClusterUpdateParams.Name
@@ -946,13 +952,24 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		updates["base_dns_domain"] = *params.ClusterUpdateParams.BaseDNSDomain
 	}
 	if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
-		updates["cluster_network_cidr"] = *params.ClusterUpdateParams.ClusterNetworkCidr
+		if err = network.VerifySubnetCIDR(*params.ClusterUpdateParams.ClusterNetworkCidr); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		clusterCidr = *params.ClusterUpdateParams.ClusterNetworkCidr
+		updates["cluster_network_cidr"] = clusterCidr
 	}
 	if params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
+		if err = network.VerifyNetworkHostPrefix(*params.ClusterUpdateParams.ClusterNetworkHostPrefix); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 		updates["cluster_network_host_prefix"] = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
 	}
 	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
-		updates["service_network_cidr"] = *params.ClusterUpdateParams.ServiceNetworkCidr
+		if err = network.VerifySubnetCIDR(*params.ClusterUpdateParams.ServiceNetworkCidr); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		serviceCidr = *params.ClusterUpdateParams.ServiceNetworkCidr
+		updates["service_network_cidr"] = serviceCidr
 	}
 	if params.ClusterUpdateParams.HTTPProxy != nil {
 		updates["http_proxy"] = swag.StringValue(params.ClusterUpdateParams.HTTPProxy)
@@ -964,20 +981,23 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		updates["no_proxy"] = swag.StringValue(params.ClusterUpdateParams.NoProxy)
 	}
 	if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
-		updates["vip_dhcp_allocation"] = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
 		vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
+		updates["vip_dhcp_allocation"] = vipDhcpAllocation
 		updates["api_vip"] = ""
 		updates["ingress_vip"] = ""
 		updates["machine_network_cidr"] = ""
+		machineCidr = ""
 	}
-	var err error
 	if vipDhcpAllocation {
-		err = b.updateDhcpNetworkParams(updates, cluster, params, log)
+		err = b.updateDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
 	} else {
-		err = b.updateNonDhcpNetworkParams(updates, cluster, params, log)
+		err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
 	}
 	if err != nil {
 		return err
+	}
+	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	if params.ClusterUpdateParams.SSHPublicKey != nil {
 		updates["ssh_public_key"] = *params.ClusterUpdateParams.SSHPublicKey
@@ -995,8 +1015,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 
 	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
-		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", params.ClusterID))
 	}
 
 	return nil

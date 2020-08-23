@@ -12,6 +12,10 @@ import (
 type validationID models.ClusterValidationID
 
 const (
+	isClusterCidrDefined                = validationID(models.ClusterValidationIDClusterCidrDefined)
+	isServiceCidrDefined                = validationID(models.ClusterValidationIDServiceCidrDefined)
+	noCidrOverlapping                   = validationID(models.ClusterValidationIDNoCidrsOverlapping)
+	networkPrefixValid                  = validationID(models.ClusterValidationIDNetworkPrefixValid)
 	IsMachineCidrDefined                = validationID(models.ClusterValidationIDMachineCidrDefined)
 	isMachineCidrEqualsToCalculatedCidr = validationID(models.ClusterValidationIDMachineCidrEqualsToCalculatedCidr)
 	isApiVipDefined                     = validationID(models.ClusterValidationIDAPIVipDefined)
@@ -26,8 +30,8 @@ const (
 
 func (v validationID) category() (string, error) {
 	switch v {
-	case IsMachineCidrDefined, isMachineCidrEqualsToCalculatedCidr, isApiVipDefined, isApiVipValid, isIngressVipDefined,
-		isIngressVipValid, IsDNSDomainDefined:
+	case IsMachineCidrDefined, isMachineCidrEqualsToCalculatedCidr, isApiVipDefined, isApiVipValid, isIngressVipDefined, isIngressVipValid,
+		isClusterCidrDefined, isServiceCidrDefined, noCidrOverlapping, networkPrefixValid, IsDNSDomainDefined:
 		return "network", nil
 	case AllHostsAreReadyToInstall, SufficientMastersCount:
 		return "hosts-data", nil

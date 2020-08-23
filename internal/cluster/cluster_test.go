@@ -224,14 +224,17 @@ var _ = Describe("cluster monitor", func() {
 			BeforeEach(func() {
 
 				c = common.Cluster{Cluster: models.Cluster{
-					ID:                 &id,
-					Status:             swag.String("insufficient"),
-					MachineNetworkCidr: "1.2.3.0/24",
-					APIVip:             "1.2.3.5",
-					IngressVip:         "1.2.3.6",
-					BaseDNSDomain:      "test.com",
-					PullSecretSet:      true,
-					StatusInfo:         swag.String(statusInfoInsufficient),
+					ID:                       &id,
+					Status:                   swag.String("insufficient"),
+					MachineNetworkCidr:       "1.2.3.0/24",
+					APIVip:                   "1.2.3.5",
+					IngressVip:               "1.2.3.6",
+					BaseDNSDomain:            "test.com",
+					PullSecretSet:            true,
+					StatusInfo:               swag.String(statusInfoInsufficient),
+					ClusterNetworkCidr:       "1.2.4.0/24",
+					ServiceNetworkCidr:       "1.2.5.0/24",
+					ClusterNetworkHostPrefix: 24,
 				}}
 
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -301,14 +304,17 @@ var _ = Describe("cluster monitor", func() {
 		Context("from ready state", func() {
 			BeforeEach(func() {
 				c = common.Cluster{Cluster: models.Cluster{
-					ID:                 &id,
-					Status:             swag.String(models.ClusterStatusReady),
-					StatusInfo:         swag.String(statusInfoReady),
-					MachineNetworkCidr: "1.2.3.0/24",
-					APIVip:             "1.2.3.5",
-					IngressVip:         "1.2.3.6",
-					BaseDNSDomain:      "test.com",
-					PullSecretSet:      true,
+					ID:                       &id,
+					Status:                   swag.String(models.ClusterStatusReady),
+					StatusInfo:               swag.String(statusInfoReady),
+					MachineNetworkCidr:       "1.2.3.0/24",
+					APIVip:                   "1.2.3.5",
+					IngressVip:               "1.2.3.6",
+					BaseDNSDomain:            "test.com",
+					PullSecretSet:            true,
+					ClusterNetworkCidr:       "1.2.4.0/24",
+					ServiceNetworkCidr:       "1.2.5.0/24",
+					ClusterNetworkHostPrefix: 24,
 				}}
 
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -1005,11 +1011,14 @@ var _ = Describe("ready_state", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:                 &id,
-			Status:             swag.String(clusterStatusReady),
-			MachineNetworkCidr: "1.2.3.0/24",
-			BaseDNSDomain:      "test.com",
-			PullSecretSet:      true,
+			ID:                       &id,
+			Status:                   swag.String(clusterStatusReady),
+			MachineNetworkCidr:       "1.2.3.0/24",
+			BaseDNSDomain:            "test.com",
+			PullSecretSet:            true,
+			ClusterNetworkCidr:       "1.2.4.0/24",
+			ServiceNetworkCidr:       "1.2.5.0/24",
+			ClusterNetworkHostPrefix: 24,
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		addInstallationRequirements(id, db)
