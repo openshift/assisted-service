@@ -5,7 +5,6 @@
 //  Assisted installation
 //  Schemes:
 //    http
-//    https
 //  Host: api.openshift.com
 //  BasePath: /api/assisted-install/v1
 //  Version: 1.0.0
