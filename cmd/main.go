@@ -159,6 +159,9 @@ func main() {
 			log.Fatal("failed to create client:", err)
 		}
 		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
+		//Run first ISO dummy for image pull, this is done so that the image will be pulled and the api will take less time.
+		// blocking function that can take a long time.
+		bminventory.GenerateDummyISOImage(log, generator, eventsHandler)
 	case "onprem":
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
 		objectHandler = s3wrapper.NewFSClient("/data", log)
