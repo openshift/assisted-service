@@ -1,0 +1,174 @@
+package subsystem
+
+import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/openshift/assisted-service/pkg/auth"
+)
+
+type StubDefinition struct {
+	Request  *RequestDefinition  `json:"request"`
+	Response *ResponseDefinition `json:"response"`
+}
+
+type RequestDefinition struct {
+	URL          string              `json:"url"`
+	Method       string              `json:"method"`
+	BodyPatterns []map[string]string `json:"bodyPatterns"`
+	Headers      map[string]string   `json:"headers"`
+}
+
+type ResponseDefinition struct {
+	Status  int               `json:"status"`
+	Body    string            `json:"body"`
+	Headers map[string]string `json:"headers"`
+}
+
+type Mapping struct {
+	ID string
+}
+
+const (
+	wiremockMappingsPath string = "/__admin/mappings"
+	capabilityReviewPath string = "/api/authorizations/v1/capability_review"
+	accessReviewPath     string = "/api/authorizations/v1/access_review"
+	fakePayloadUsername  string = "test@example.com"
+)
+
+func createDefaultWiremockStubsForOCM(ocmHost string) error {
+	if _, err := createStubCapabilityReview(ocmHost, fakePayloadUsername); err != nil {
+		return err
+	}
+	if _, err := createStubAccessReview(ocmHost, fakePayloadUsername); err != nil {
+		return err
+	}
+	return nil
+}
+
+func createStubCapabilityReview(ocmHost, username string) (string, error) {
+	type CapabilityRequest struct {
+		Name     string `json:"capability"`
+		Type     string `json:"type"`
+		Username string `json:"account_username"`
+	}
+
+	type CapabilityResponse struct {
+		Result string `json:"result"`
+	}
+
+	capabilityRequest := CapabilityRequest{
+		Name:     auth.CapabilityName,
+		Type:     auth.CapabilityType,
+		Username: username,
+	}
+
+	capabilityResponse := CapabilityResponse{
+		Result: "true",
+	}
+
+	var reqBody []byte
+	reqBody, err := json.Marshal(capabilityRequest)
+	if err != nil {
+		return "", err
+	}
+
+	var resBody []byte
+	resBody, err = json.Marshal(capabilityResponse)
+	if err != nil {
+		return "", err
+	}
+
+	capabilityReviewStub := createStubDefinition(capabilityReviewPath, "POST", string(reqBody), string(resBody), 200)
+	return addStub(ocmHost, capabilityReviewStub)
+}
+
+func createStubAccessReview(ocmHost, username string) (string, error) {
+	type CapabilityRequest struct {
+		ResourceType string `json:"resource_type"`
+		Action       string `json:"action"`
+		Username     string `json:"account_username"`
+	}
+
+	type CapabilityResponse struct {
+		Allowed bool `json:"allowed"`
+	}
+
+	capabilityRequest := CapabilityRequest{
+		Username:     username,
+		Action:       auth.AMSActionCreate,
+		ResourceType: auth.BareMetalClusterResource,
+	}
+
+	capabilityResponse := CapabilityResponse{
+		Allowed: true,
+	}
+
+	var reqBody []byte
+	reqBody, err := json.Marshal(capabilityRequest)
+	if err != nil {
+		return "", err
+	}
+
+	var resBody []byte
+	resBody, err = json.Marshal(capabilityResponse)
+	if err != nil {
+		return "", err
+	}
+
+	capabilityReviewStub := createStubDefinition(accessReviewPath, "POST", string(reqBody), string(resBody), 200)
+	return addStub(ocmHost, capabilityReviewStub)
+}
+
+func createStubDefinition(url, method, reqBody, resBody string, resStatus int) *StubDefinition {
+	return &StubDefinition{
+		Request: &RequestDefinition{
+			URL:          url,
+			Method:       method,
+			BodyPatterns: []map[string]string{{"equalToJson": reqBody}},
+		},
+		Response: &ResponseDefinition{
+			Status: resStatus,
+			Body:   resBody,
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+		},
+	}
+}
+
+func addStub(ocmHost string, stub *StubDefinition) (string, error) {
+	requestBody, err := json.Marshal(stub)
+	if err != nil {
+		return "", err
+	}
+	var b bytes.Buffer
+	b.Write(requestBody)
+
+	resp, err := http.Post("http://"+ocmHost+wiremockMappingsPath, "application/json", &b)
+	if err != nil {
+		return "", err
+	}
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	ret := Mapping{}
+	err = json.Unmarshal(responseBody, &ret)
+	if err != nil {
+		return "", err
+	}
+	return ret.ID, nil
+}
+
+func deleteAllWiremockStubs(ocmHost string) error {
+	req, err := http.NewRequest("DELETE", "http://"+ocmHost+wiremockMappingsPath, nil)
+	if err != nil {
+		return err
+	}
+	client := &http.Client{}
+	_, err = client.Do(req)
+	return err
+}

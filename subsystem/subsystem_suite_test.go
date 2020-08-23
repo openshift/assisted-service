@@ -27,6 +27,7 @@ var Options struct {
 	EnableAuth    bool   `envconfig:"ENABLE_AUTH"`
 	InventoryHost string `envconfig:"INVENTORY"`
 	TestToken     string `envconfig:"TEST_TOKEN"`
+	OCMHost       string `envconfig:"OCM_HOST"`
 }
 
 func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {
@@ -62,6 +63,11 @@ func init() {
 			Options.DBHost, Options.DBPort))
 	if err != nil {
 		logrus.Fatal("Fail to connect to DB, ", err)
+	}
+
+	deleteAllWiremockStubs(Options.OCMHost)
+	if err = createDefaultWiremockStubsForOCM(Options.OCMHost); err != nil {
+		logrus.Fatal("Failed to init wiremock stubs, ", err)
 	}
 }
 

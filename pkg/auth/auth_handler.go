@@ -18,33 +18,27 @@ import (
 )
 
 type Config struct {
-	EnableAuth      bool   `envconfig:"ENABLE_AUTH" default:"false"`
-	EnableAuthAgent bool   `envconfig:"ENABLE_AUTH_AGENT" default:"true"`
-	EnableAuthz     bool   `envconfig:"ENABLE_AUTH_AGENT" default:"true"`
-	JwkCert         string `envconfig:"JWKS_CERT"`
-	JwkCertURL      string `envconfig:"JWKS_URL" default:"https://api.openshift.com/.well-known/jwks.json"`
+	EnableAuth bool   `envconfig:"ENABLE_AUTH" default:"false"`
+	JwkCert    string `envconfig:"JWKS_CERT"`
+	JwkCertURL string `envconfig:"JWKS_URL" default:"https://api.openshift.com/.well-known/jwks.json"`
 	// Will be split with "," as separator
 	AllowedDomains string `envconfig:"ALLOWED_DOMAINS" default:""`
 }
 
 type AuthHandler struct {
-	EnableAuth      bool
-	EnableAuthAgent bool
-	EnableAuthz     bool
-	KeyMap          map[string]*rsa.PublicKey
-	utils           AUtilsInteface
-	log             logrus.FieldLogger
-	client          *ocm.Client
+	EnableAuth bool
+	KeyMap     map[string]*rsa.PublicKey
+	utils      AUtilsInteface
+	log        logrus.FieldLogger
+	client     *ocm.Client
 }
 
 func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthHandler {
 	a := &AuthHandler{
-		EnableAuth:      cfg.EnableAuth,
-		EnableAuthz:     cfg.EnableAuthz,
-		EnableAuthAgent: cfg.EnableAuthAgent,
-		utils:           NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
-		client:          ocmCLient,
-		log:             log,
+		EnableAuth: cfg.EnableAuth,
+		utils:      NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
+		client:     ocmCLient,
+		log:        log,
 	}
 	if a.EnableAuth {
 		err := a.populateKeyMap()
@@ -84,10 +78,6 @@ func (a *AuthHandler) getValidationToken(token *jwt.Token) (interface{}, error) 
 }
 
 func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
-	if !a.EnableAuthAgent {
-		// return a fake user for subsystem
-		return &ocm.AuthPayload{Username: AdminUsername, IsAdmin: true}, nil
-	}
 	if a.client == nil {
 		a.log.Error("OCM client unavailable")
 		return nil, fmt.Errorf("OCM client unavailable")
@@ -196,11 +186,6 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 }
 
 func (a *AuthHandler) storeAdminInPayload(payload *ocm.AuthPayload) error {
-	if !a.EnableAuthz {
-		// a fake admin user for subsystem
-		payload.IsAdmin = true
-		return nil
-	}
 	admin, err := a.isAdmin(payload.Username)
 	if err != nil {
 		return fmt.Errorf("Unable to fetch user's capabilities: %v", err)
@@ -211,7 +196,7 @@ func (a *AuthHandler) storeAdminInPayload(payload *ocm.AuthPayload) error {
 
 func (a *AuthHandler) isAdmin(username string) (bool, error) {
 	return a.client.Authorization.CapabilityReview(
-		context.Background(), fmt.Sprint(username), capabilityName, capabilityType)
+		context.Background(), fmt.Sprint(username), CapabilityName, CapabilityType)
 }
 
 func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate security.TokenAuthentication) runtime.Authenticator {
