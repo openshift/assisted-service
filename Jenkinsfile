@@ -76,7 +76,7 @@ pipeline {
                 if (env.BRANCH_NAME == 'master')
                     stage('notify master branch fail') {
                         withCredentials([string(credentialsId: 'slack-token', variable: 'TOKEN')]) {
-                            sh '''curl -X POST -H 'Content-type: application/json' --data '{"text":"Attention! master branch push integration failed"}' https://hooks.slack.com/services/${TOKEN}'''
+                            sh '''curl -X POST -H 'Content-type: application/json' --data '{"text":"Attention! assisted-service master branch push integration failed"}' https://hooks.slack.com/services/${TOKEN}'''
                     }
                 }
             }
