@@ -99,7 +99,7 @@ func main() {
 
 	var ocmClient *ocm.Client
 	if Options.Auth.EnableAuth {
-		ocmClient, err = ocm.NewClient(Options.OCMConfig)
+		ocmClient, err = ocm.NewClient(Options.OCMConfig, log)
 		if err != nil {
 			log.Fatal("Failed to Create OCM Client, ", err)
 		}

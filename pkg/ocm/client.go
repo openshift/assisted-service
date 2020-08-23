@@ -1,11 +1,13 @@
 package ocm
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	sdkClient "github.com/openshift-online/ocm-sdk-go"
 	"github.com/patrickmn/go-cache"
+	"github.com/sirupsen/logrus"
 )
 
 type Client struct {
@@ -22,20 +24,50 @@ type Config struct {
 	ClientID     string `envconfig:"OCM_SERVICE_CLIENT_ID" default:""`
 	ClientSecret string `envconfig:"OCM_SERVICE_CLIENT_SECRET" default:""`
 	SelfToken    string `envconfig:"OCM_SELF_TOKEN" default:""`
-	Debug        bool   `envconfig:"OCM_DEBUG" default:"false"`
 }
 
-func NewClient(config Config) (*Client, error) {
-	// Create a logger that has the debug level enabled:
-	logger, err := sdkClient.NewGoLoggerBuilder().
-		Debug(config.Debug).
-		Build()
-	if err != nil {
-		return nil, fmt.Errorf("Unable to build OCM logger: %s", err.Error())
-	}
+type SdKLogger struct {
+	Log         *logrus.Logger
+	FieldLogger logrus.FieldLogger
+}
+
+func (l *SdKLogger) DebugEnabled() bool {
+	return l.Log.IsLevelEnabled(logrus.DebugLevel)
+}
+
+func (l *SdKLogger) InfoEnabled() bool {
+	return l.Log.IsLevelEnabled(logrus.InfoLevel)
+}
+
+func (l *SdKLogger) WarnEnabled() bool {
+	return l.Log.IsLevelEnabled(logrus.WarnLevel)
+}
+
+func (l *SdKLogger) ErrorEnabled() bool {
+	return l.Log.IsLevelEnabled(logrus.ErrorLevel)
+}
+
+func (l *SdKLogger) Debug(ctx context.Context, format string, args ...interface{}) {
+	l.FieldLogger.Debugf(format, args...)
+}
+
+func (l *SdKLogger) Info(ctx context.Context, format string, args ...interface{}) {
+	l.FieldLogger.Infof(format, args...)
+}
+
+func (l *SdKLogger) Warn(ctx context.Context, format string, args ...interface{}) {
+	l.FieldLogger.Warnf(format, args...)
+}
+
+func (l *SdKLogger) Error(ctx context.Context, format string, args ...interface{}) {
+	l.FieldLogger.Errorf(format, args...)
+}
+
+func NewClient(config Config, log *logrus.Logger) (*Client, error) {
+
 	client := &Client{
 		config: &config,
-		logger: logger,
+		logger: &SdKLogger{Log: log, FieldLogger: log.WithField("pkg", "ocm")},
 		Cache:  cache.New(1*time.Minute, 30*time.Minute),
 	}
 	client.Authentication = &authentication{
