@@ -64,7 +64,6 @@ func TestAuth(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name                   string
-		expectedTokenValue     string
 		authInfo               runtime.ClientAuthInfoWriter
 		isListOperation        bool
 		enableAuth             bool
@@ -73,7 +72,6 @@ func TestAuth(t *testing.T) {
 	}{
 		{
 			name:                   "User Successful Authentication",
-			expectedTokenValue:     userKeyValue,
 			authInfo:               UserAuthHeaderWriter(userKeyValue),
 			isListOperation:        true,
 			enableAuth:             true,
@@ -81,8 +79,31 @@ func TestAuth(t *testing.T) {
 			expectedRequestSuccess: true,
 		},
 		{
-			name:                   "Fail auth without headers",
-			expectedTokenValue:     agentKeyValue,
+			name:                   "User Unsuccessful Authentication",
+			authInfo:               UserAuthHeaderWriter("bearer bad_token"),
+			isListOperation:        true,
+			enableAuth:             true,
+			addHeaders:             true,
+			expectedRequestSuccess: false,
+		},
+		{
+			name:                   "Fail User Auth Without Headers",
+			authInfo:               UserAuthHeaderWriter(userKeyValue),
+			isListOperation:        true,
+			enableAuth:             true,
+			addHeaders:             false,
+			expectedRequestSuccess: false,
+		},
+		{
+			name:                   "Agent Successful Authentication",
+			authInfo:               AgentAuthHeaderWriter(agentKeyValue),
+			isListOperation:        false,
+			enableAuth:             true,
+			addHeaders:             true,
+			expectedRequestSuccess: true,
+		},
+		{
+			name:                   "Fail Agent Auth Without Headers",
 			authInfo:               AgentAuthHeaderWriter(agentKeyValue),
 			isListOperation:        false,
 			enableAuth:             true,
@@ -90,10 +111,17 @@ func TestAuth(t *testing.T) {
 			expectedRequestSuccess: false,
 		},
 		{
-			name:                   "Ignore auth if disabled",
-			expectedTokenValue:     userKeyValue,
+			name:                   "Ignore User Auth If Auth Disabled",
 			authInfo:               UserAuthHeaderWriter(userKeyValue),
 			isListOperation:        true,
+			enableAuth:             false,
+			addHeaders:             false,
+			expectedRequestSuccess: true,
+		},
+		{
+			name:                   "Ignore Agent Auth If Auth Disabled",
+			authInfo:               AgentAuthHeaderWriter(agentKeyValue),
+			isListOperation:        false,
 			enableAuth:             false,
 			addHeaders:             false,
 			expectedRequestSuccess: true,

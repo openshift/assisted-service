@@ -72,7 +72,7 @@ generate-python-client: $(BUILD_FOLDER)
 		swaggerapi/swagger-codegen-cli:2.4.15 /script.sh
 	cd $(BUILD_FOLDER)/assisted-service-client/ && python3 setup.py sdist --dist-dir $(BUILD_FOLDER)
 
-generate-keys:
+generate-keys: $(BUILD_FOLDER)
 	cd tools && go run auth_keys_generator.go -keys-dir=$(BUILD_FOLDER)
 
 ##################
@@ -80,7 +80,7 @@ generate-keys:
 ##################
 
 .PHONY: build
-build: lint unit-test build-minimal build-iso-generator generate-keys
+build: lint unit-test build-minimal build-iso-generator
 
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
@@ -169,10 +169,10 @@ deploy-role: deploy-namespace
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
-jenkins-deploy-for-subsystem: build-dummy-ignition-image build-assisted-iso-generator-image
+jenkins-deploy-for-subsystem: generate-keys build-dummy-ignition-image build-assisted-iso-generator-image
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && $(MAKE) deploy-all
 
-deploy-test:
+deploy-test: generate-keys
 	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
 	&& export DUMMY_IGNITION=${DUMMY_IGNITION} && ISO_CREATION=minikube-local-registry/assisted-iso-create:minikube-test $(MAKE) update-minikube deploy-all
 

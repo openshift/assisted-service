@@ -868,11 +868,12 @@ var _ = Describe("cluster install", func() {
 		It("[only_k8s]install download_config_files", func() {
 
 			//Test downloading kubeconfig files in worng state
+			//This test uses Agent Auth for DownloadClusterFiles (as opposed to the other tests), to cover both supported authentication types for this API endpoint.
 			file, err := ioutil.TempFile("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
 
 			defer os.Remove(file.Name())
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
+			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
 			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewDownloadClusterFilesConflict())))
 
 			_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
@@ -880,13 +881,13 @@ var _ = Describe("cluster install", func() {
 			waitForClusterInstallationToStart(clusterID)
 
 			missingClusterId := strfmt.UUID(uuid.New().String())
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: missingClusterId, FileName: "bootstrap.ign"}, file)
+			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: missingClusterId, FileName: "bootstrap.ign"}, file)
 			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterFilesNotFound())))
 
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "not_real_file"}, file)
+			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "not_real_file"}, file)
 			Expect(err).Should(HaveOccurred())
 
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
+			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
 			Expect(err).NotTo(HaveOccurred())
 			s, err := file.Stat()
 			Expect(err).NotTo(HaveOccurred())
