@@ -6,11 +6,11 @@ package s3wrapper
 
 import (
 	context "context"
+	gomock "github.com/golang/mock/gomock"
+	logrus "github.com/sirupsen/logrus"
 	io "io"
 	reflect "reflect"
 	time "time"
-
-	gomock "github.com/golang/mock/gomock"
 )
 
 // MockAPI is a mock of API interface
@@ -197,7 +197,7 @@ func (mr *MockAPIMockRecorder) UpdateObjectTimestamp(ctx, objectName interface{}
 }
 
 // ExpireObjects mocks base method
-func (m *MockAPI) ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(context.Context, string)) {
+func (m *MockAPI) ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(context.Context, logrus.FieldLogger, string)) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ExpireObjects", ctx, prefix, deleteTime, callback)
 }

@@ -44,7 +44,7 @@ type API interface {
 	GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error)
 	GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error)
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
-	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, objectName string))
+	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 }
 
 var _ API = &S3Client{}
@@ -297,7 +297,8 @@ func (c S3Client) transformErrorIfNeeded(err error, objectName string) (bool, er
 	return false, err
 }
 
-func (c *S3Client) ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, objectName string)) {
+func (c *S3Client) ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration,
+	callback func(ctx context.Context, log logrus.FieldLogger, objectName string)) {
 	log := logutil.FromContext(ctx, c.log)
 	now := time.Now()
 
@@ -315,7 +316,8 @@ func (c *S3Client) ExpireObjects(ctx context.Context, prefix string, deleteTime 
 	}
 }
 
-func (c *S3Client) handleObject(ctx context.Context, log logrus.FieldLogger, object *s3.Object, now time.Time, deleteTime time.Duration, callback func(ctx context.Context, objectName string)) {
+func (c *S3Client) handleObject(ctx context.Context, log logrus.FieldLogger, object *s3.Object, now time.Time,
+	deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string)) {
 	// The timestamp that we really want is stored in a tag, but we check this one first as a cost optimization
 	if now.Before(object.LastModified.Add(deleteTime)) {
 		return
@@ -334,7 +336,7 @@ func (c *S3Client) handleObject(ctx context.Context, log logrus.FieldLogger, obj
 					continue
 				}
 				log.Infof("Deleted expired object %s", *object.Key)
-				callback(ctx, *object.Key)
+				callback(ctx, log, *object.Key)
 			}
 		}
 	}

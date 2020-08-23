@@ -21,8 +21,8 @@ var _ = Describe("s3filesystem", func() {
 		now        time.Time
 		baseDir    string
 		dataStr    = "hello world"
-		objKey     = "discovery-image-d183c403-d27b-42e1-b0a4-1274ea1a5d77"
-		objKey2    = "discovery-image-f318a87b-ba57-4c7e-ae5f-ee562a6d1e8c"
+		objKey     = "discovery-image-d183c403-d27b-42e1-b0a4-1274ea1a5d77.iso"
+		objKey2    = "discovery-image-f318a87b-ba57-4c7e-ae5f-ee562a6d1e8c.iso"
 	)
 	BeforeEach(func() {
 		log.SetOutput(ioutil.Discard)
@@ -110,7 +110,7 @@ var _ = Describe("s3filesystem", func() {
 		createFileObject(client.basedir, objKey2, imgCreatedAt)
 
 		called := 0
-		client.ExpireObjects(ctx, "discovery-image-", deleteTime, func(ctx context.Context, objectName string) { called = called + 1 })
+		client.ExpireObjects(ctx, "discovery-image-", deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = called + 1 })
 		Expect(called).To(Equal(2))
 
 		exists, err := client.DoesObjectExist(ctx, objKey)
@@ -125,14 +125,14 @@ var _ = Describe("s3filesystem", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T09:30:00+00:00") // 30 minutes ago
 		filePath, info := createFileObject(client.basedir, objKey, imgCreatedAt)
 		called := false
-		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
 	})
 	It("expire_expired_image", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T08:00:00+00:00") // Two hours ago
 		filePath, info := createFileObject(client.basedir, objKey, imgCreatedAt)
 		called := false
-		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(true))
 	})
 	It("expire_delete_error", func() {
@@ -140,7 +140,7 @@ var _ = Describe("s3filesystem", func() {
 		filePath, info := createFileObject(client.basedir, objKey, imgCreatedAt)
 		os.Remove(filePath)
 		called := false
-		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
 	})
 	AfterEach(func() {

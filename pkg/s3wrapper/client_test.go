@@ -26,7 +26,7 @@ var _ = Describe("s3client", func() {
 		mockAPI    *MockS3API
 		bucket     string
 		now        time.Time
-		objKey     = "discovery-image-d183c403-d27b-42e1-b0a4-1274ea1a5d77"
+		objKey     = "discovery-image-d183c403-d27b-42e1-b0a4-1274ea1a5d77.iso"
 		tagKey     = timestampTagKey
 	)
 	BeforeEach(func() {
@@ -43,7 +43,7 @@ var _ = Describe("s3client", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T09:30:00+00:00") // 30 minutes ago
 		obj := s3.Object{Key: &objKey, LastModified: &imgCreatedAt}
 		called := false
-		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
 	})
 	It("expired_image_not_reused", func() {
@@ -59,7 +59,7 @@ var _ = Describe("s3client", func() {
 		deleteInput := s3.DeleteObjectInput{Bucket: &bucket, Key: &objKey}
 		mockAPI.EXPECT().DeleteObject(&deleteInput).Return(nil, nil)
 		called := false
-		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(true))
 	})
 	It("not_expired_image_reused", func() {
@@ -74,7 +74,7 @@ var _ = Describe("s3client", func() {
 		taggingOutput := s3.GetObjectTaggingOutput{TagSet: tagSet}
 		mockAPI.EXPECT().GetObjectTagging(&taggingInput).Return(&taggingOutput, nil)
 		called := false
-		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
 	})
 	It("expired_image_reused", func() {
@@ -91,7 +91,7 @@ var _ = Describe("s3client", func() {
 		deleteInput := s3.DeleteObjectInput{Bucket: &bucket, Key: &objKey}
 		mockAPI.EXPECT().DeleteObject(&deleteInput).Return(nil, nil)
 		called := false
-		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(true))
 	})
 	It("expired_image_deletion_failed", func() {
@@ -107,7 +107,7 @@ var _ = Describe("s3client", func() {
 		deleteInput := s3.DeleteObjectInput{Bucket: &bucket, Key: &objKey}
 		mockAPI.EXPECT().DeleteObject(&deleteInput).Return(nil, awserr.New("UnknownError", "UnknownError", errors.New("UnknownError")))
 		called := false
-		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, objectName string) { called = true })
+		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
 	})
 
