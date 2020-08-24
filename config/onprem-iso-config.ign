@@ -61,7 +61,7 @@
         "name": "assisted-service-db.service"
       },
       {
-        "contents": "[Unit]\nAfter=assisted-service-db.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=printf \"\\nALL_IPS=$(hostname -I)\"\u003e\u003e/etc/assisted-service/environment\nExecStartPre=podman pull quay.io/rwsu/assisted-service:test\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/rwsu/assisted-service:test\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "contents": "[Unit]\nAfter=assisted-service-db.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull quay.io/rwsu/assisted-service:test\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/rwsu/assisted-service:test\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
         "enabled": true,
         "name": "assisted-service-installer.service"
       },

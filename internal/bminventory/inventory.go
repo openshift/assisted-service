@@ -229,7 +229,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"HTTPSProxy":             cluster.HTTPSProxy,
 		"NoProxy":                cluster.NoProxy,
 		"SkipCertVerification":   strconv.FormatBool(b.SkipCertVerification),
-		"ASSISTED_INSTALLER_IPS": dataurl.EncodeBytes(b.getIPs()),
+		"ASSISTED_INSTALLER_IPS": dataurl.EncodeBytes([]byte(b.getIPs())),
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
@@ -255,13 +255,13 @@ func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOPa
 		"groups": [ "sudo" ]}`, sshKey)
 }
 
-func (b *bareMetalInventory) getIPs() []byte {
+func (b *bareMetalInventory) getIPs() string {
 	ipArr := strings.Split(strings.TrimSpace(os.Getenv("ALL_IPS")), " ")
 	ips := ""
-	for i := 0; i < len(ipArr); i++ {
-		ips = ips + fmt.Sprintf(ipArr[i]+" assisted-api.local.openshift.io\n")
+	for _, ip := range ipArr {
+		ips = ips + fmt.Sprintf(ip+" assisted-api.local.openshift.io\n")
 	}
-	return []byte(ips)
+	return ips
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {

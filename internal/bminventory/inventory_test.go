@@ -174,6 +174,11 @@ var _ = Describe("GenerateClusterISO", func() {
 
 		})
 
+		It("success with getting assisted installer IPs", func() {
+			result := bm.getIPs()
+			Expect(result).Should(Equal("127.0.0.1 assisted-api.local.openshift.io\n"))
+		})
+
 		It("success with AWS S3", func() {
 			clusterId := registerCluster(true).ID
 			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
