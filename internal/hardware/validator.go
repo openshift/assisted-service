@@ -17,6 +17,7 @@ import (
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
+	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
 }
 
 func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg) Validator {
@@ -86,4 +87,20 @@ func ListValidDisks(inventory *models.Inventory, minSizeRequiredInBytes int64) [
 		}
 	})
 	return disks
+}
+
+func (v *validator) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {
+	if role == models.HostRoleMaster {
+		return models.HostRequirementsRole{
+			CPUCores:   v.ValidatorCfg.MinCPUCoresMaster,
+			RAMGib:     v.ValidatorCfg.MinRamGibMaster,
+			DiskSizeGb: v.ValidatorCfg.MinDiskSizeGb,
+		}
+	} else {
+		return models.HostRequirementsRole{
+			CPUCores:   v.ValidatorCfg.MinCPUCoresWorker,
+			RAMGib:     v.ValidatorCfg.MinRamGibWorker,
+			DiskSizeGb: v.ValidatorCfg.MinDiskSizeGb,
+		}
+	}
 }

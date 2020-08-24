@@ -47,3 +47,17 @@ func (mr *MockValidatorMockRecorder) GetHostValidDisks(host interface{}) *gomock
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockValidator)(nil).GetHostValidDisks), host)
 }
+
+// GetHostRequirements mocks base method
+func (m *MockValidator) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostRequirements", role)
+	ret0, _ := ret[0].(models.HostRequirementsRole)
+	return ret0
+}
+
+// GetHostRequirements indicates an expected call of GetHostRequirements
+func (mr *MockValidatorMockRecorder) GetHostRequirements(role interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetHostRequirements), role)
+}

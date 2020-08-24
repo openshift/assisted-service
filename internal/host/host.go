@@ -94,6 +94,7 @@ type API interface {
 	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error
 	IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
+	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
 }
 
 type Manager struct {
@@ -517,4 +518,8 @@ func (m *Manager) canBeMaster(conditions map[validationID]bool) bool {
 		return true
 	}
 	return false
+}
+
+func (m *Manager) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {
+	return m.hwValidator.GetHostRequirements(role)
 }

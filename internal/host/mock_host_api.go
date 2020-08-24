@@ -6,12 +6,13 @@ package host
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
-	reflect "reflect"
 )
 
 // MockAPI is a mock of API interface
@@ -371,4 +372,18 @@ func (m *MockAPI) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.
 func (mr *MockAPIMockRecorder) SetUploadLogsAt(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUploadLogsAt", reflect.TypeOf((*MockAPI)(nil).SetUploadLogsAt), ctx, h, db)
+}
+
+// GetHostRequirements mocks base method
+func (m *MockAPI) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostRequirements", role)
+	ret0, _ := ret[0].(models.HostRequirementsRole)
+	return ret0
+}
+
+// GetHostRequirements indicates an expected call of GetHostRequirements
+func (mr *MockAPIMockRecorder) GetHostRequirements(role interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockAPI)(nil).GetHostRequirements), role)
 }
