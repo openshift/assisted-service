@@ -86,7 +86,7 @@ func (a *AuthHandler) getValidationToken(token *jwt.Token) (interface{}, error) 
 func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 	if !a.EnableAuthAgent {
 		// return a fake user for subsystem
-		return &ocm.AuthPayload{Username: ocm.FakePayloadUsername, IsAdmin: true}, nil
+		return &ocm.AuthPayload{Username: AdminUsername, IsAdmin: true}, nil
 	}
 	if a.client == nil {
 		a.log.Error("OCM client unavailable")
@@ -223,7 +223,8 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 			if !a.EnableAuth {
 				a.log.Debug("API Key Authentication Disabled")
 				return true, &ocm.AuthPayload{
-					IsAdmin: true, // auth disabled - behave as system-admin
+					IsAdmin:  true, // auth disabled - behave as system-admin
+					Username: AdminUsername,
 				}, nil
 			}
 			token := getToken(r)

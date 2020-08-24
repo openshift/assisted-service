@@ -8,11 +8,6 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-const (
-	// FakePayloadUsername for AuthAgentAuth return value
-	FakePayloadUsername string = "jdoe123@example.com"
-)
-
 type OCMAuthentication interface {
 	AuthenticatePullSecret(ctx context.Context, pullSecret string) (user *AuthPayload, err error)
 }

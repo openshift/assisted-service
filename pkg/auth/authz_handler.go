@@ -16,6 +16,9 @@ const (
 	amsActionCreate          string = "create"
 	capabilityName           string = "bare_metal_installer_admin"
 	capabilityType           string = "Account"
+
+	// AdminUsername for disabled auth
+	AdminUsername string = "admin"
 )
 
 type AuthzHandler struct {
@@ -90,7 +93,8 @@ func (a *AuthzHandler) allowedToUseAssistedInstaller(username string) (bool, err
 func PayloadFromContext(ctx context.Context) *ocm.AuthPayload {
 	payload := ctx.Value(restapi.AuthKey)
 	if payload == nil {
-		return nil
+		// fallback to system-admin
+		return &ocm.AuthPayload{IsAdmin: true, Username: AdminUsername}
 	}
 	return payload.(*ocm.AuthPayload)
 }
@@ -98,17 +102,11 @@ func PayloadFromContext(ctx context.Context) *ocm.AuthPayload {
 // UserNameFromContext returns username from the specified context
 func UserNameFromContext(ctx context.Context) string {
 	payload := PayloadFromContext(ctx)
-	if payload == nil {
-		return ""
-	}
 	return payload.Username
 }
 
 // OrgIDFromContext returns org ID from the specified context
 func OrgIDFromContext(ctx context.Context) string {
 	payload := PayloadFromContext(ctx)
-	if payload == nil {
-		return ""
-	}
 	return payload.Organization
 }
