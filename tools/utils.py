@@ -189,6 +189,7 @@ def get_yaml_field(field, yaml_path):
 
     return _field
 
+
 def check_if_exists(k8s_object, k8s_object_name, namespace="assisted-installer"):
     try:
         cmd = "{} -n {} get {} {} --no-headers".format(KUBECTL_CMD, namespace, k8s_object, k8s_object_name)
@@ -198,17 +199,3 @@ def check_if_exists(k8s_object, k8s_object_name, namespace="assisted-installer")
         output = False
 
     return output
-
-def is_tool(name):
-    """Check whether `name` is on PATH and marked as executable."""
-    return find_executable(name) is not None
-
-
-def get_runtime_command():
-    if is_tool(DOCKER):
-        cmd = DOCKER
-    elif is_tool(PODMAN):
-        cmd = PODMAN
-    else:
-        raise Exception("Nor %s nor %s are installed" % (PODMAN, DOCKER))
-    return cmd
