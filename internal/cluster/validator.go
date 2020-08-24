@@ -253,3 +253,33 @@ func (v *clusterValidator) printAllHostsAreReadyToInstall(context *clusterPrepro
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
+
+func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) validationStatus {
+	return boolValue(c.cluster.BaseDNSDomain != "")
+}
+
+func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessContext, status validationStatus) string {
+	switch status {
+	case ValidationFailure:
+		return "Base DNS Domain is undefined"
+	case ValidationSuccess:
+		return "Base DNS Domain is defined"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func (v *clusterValidator) isPullSecretSet(c *clusterPreprocessContext) validationStatus {
+	return boolValue(c.cluster.PullSecretSet)
+}
+
+func (v *clusterValidator) printIsPullSecretSet(context *clusterPreprocessContext, status validationStatus) string {
+	switch status {
+	case ValidationFailure:
+		return "Pull secret is not set"
+	case ValidationSuccess:
+		return "Pull secret is set"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}

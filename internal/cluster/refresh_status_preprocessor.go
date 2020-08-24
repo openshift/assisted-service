@@ -99,6 +99,16 @@ func newValidations(log logrus.FieldLogger, api host.API) []validation {
 			condition: v.sufficientMastersCount,
 			formatter: v.printSufficientMastersCount,
 		},
+		{
+			id:        IsDNSDomainDefined,
+			condition: v.isDNSDomainDefined,
+			formatter: v.printIsDNSDomainDefined,
+		},
+		{
+			id:        IsPullSecretSet,
+			condition: v.isPullSecretSet,
+			formatter: v.printIsPullSecretSet,
+		},
 	}
 	return ret
 }

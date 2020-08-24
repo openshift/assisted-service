@@ -127,6 +127,8 @@ var _ = Describe("cluster monitor", func() {
 				Status:             swag.String("installing"),
 				StatusInfo:         swag.String(statusInfoInstalling),
 				MachineNetworkCidr: "1.1.0.0/16",
+				BaseDNSDomain:      "test.com",
+				PullSecretSet:      true,
 			}}
 
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -227,6 +229,8 @@ var _ = Describe("cluster monitor", func() {
 					MachineNetworkCidr: "1.2.3.0/24",
 					APIVip:             "1.2.3.5",
 					IngressVip:         "1.2.3.6",
+					BaseDNSDomain:      "test.com",
+					PullSecretSet:      true,
 					StatusInfo:         swag.String(statusInfoInsufficient),
 				}}
 
@@ -303,6 +307,8 @@ var _ = Describe("cluster monitor", func() {
 					MachineNetworkCidr: "1.2.3.0/24",
 					APIVip:             "1.2.3.5",
 					IngressVip:         "1.2.3.6",
+					BaseDNSDomain:      "test.com",
+					PullSecretSet:      true,
 				}}
 
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -1002,6 +1008,8 @@ var _ = Describe("ready_state", func() {
 			ID:                 &id,
 			Status:             swag.String(clusterStatusReady),
 			MachineNetworkCidr: "1.2.3.0/24",
+			BaseDNSDomain:      "test.com",
+			PullSecretSet:      true,
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		addInstallationRequirements(id, db)
@@ -1063,6 +1071,8 @@ var _ = Describe("insufficient_state", func() {
 			MachineNetworkCidr: "1.2.3.0/24",
 			APIVip:             "1.2.3.5",
 			IngressVip:         "1.2.3.6",
+			BaseDNSDomain:      "test.com",
+			PullSecretSet:      true,
 		}}
 
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
