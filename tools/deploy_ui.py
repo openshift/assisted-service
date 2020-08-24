@@ -5,6 +5,8 @@ import deployment_options
 
 UI_REPOSITORY = "https://github.com/openshift-metal3/facet"
 
+log = utils.get_logger('deploy_ui')
+
 
 def main():
 
@@ -26,7 +28,7 @@ def main():
     cmd = f"cd {clone_directory} && git pull"
 
     if tag == "latest":
-        print("WARNING: No hash specified, will run the deployment generation script from the top of master branch")
+        log.warning("No hash specified. Will run the deployment generation script from the top of master branch")
     else:
         cmd += f" && git reset --hard {tag}"
 
@@ -34,7 +36,7 @@ def main():
            f"-i {image_fqdn} -n {deploy_options.namespace} > {dst_file}"
 
     utils.check_output(cmd)
-    print(f"Deploying {dst_file}")
+    log.info("Deploying %s", dst_file)
     utils.apply(dst_file)
 
     # in case of openshift deploy ingress as well
@@ -52,7 +54,7 @@ def main():
                     deploy_options.namespace,
                     deploy_options.profile
                 ))
-                print("Deploying {}".format(dst_file))
+                log.info("Deploying ingress from %s", dst_file)
                 dst.write(data)
         utils.apply(dst_file)
 
