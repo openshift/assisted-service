@@ -28,6 +28,9 @@ parameters:
   required: true
 - name: S3_USE_SSL
   value: "true"
+- name: IMAGE_BUILDER
+  value: ''
+  required: true
 apiVersion: v1
 kind: Template
 metadata:
@@ -130,8 +133,6 @@ objects:
                   secretKeyRef:
                     key: ocm-service.clientSecret
                     name: assisted-installer-sso
-              - name: IMAGE_BUILDER_CMD
-                value: ""
               - name: NAMESPACE
                 valueFrom:
                   fieldRef:
@@ -150,7 +151,8 @@ objects:
                 value: ${ALLOWED_DOMAINS}
               - name: OCM_BASE_URL
                 value: ${OCM_BASE_URL}
-
+              - name: IMAGE_BUILDER
+                value: ${IMAGE_BUILDER}
 - apiVersion: v1
   kind: Service
   metadata:
