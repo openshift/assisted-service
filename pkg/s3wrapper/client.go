@@ -204,7 +204,7 @@ func (c *S3Client) DoesObjectExist(ctx context.Context, objectName string) (bool
 			if aerr.Code() == s3.ErrCodeNoSuchKey || aerr.Code() == "NotFound" {
 				return false, nil
 			}
-			return false, errors.Wrap(err, fmt.Sprintf("failed to get %s from bucket %s", objectName, c.cfg.S3Bucket))
+			return false, errors.Wrap(err, fmt.Sprintf("failed to get %s from bucket %s (code %s)", objectName, c.cfg.S3Bucket, aerr.Code()))
 		}
 	}
 	return true, nil
@@ -224,7 +224,7 @@ func (c *S3Client) DeleteObject(ctx context.Context, objectName string) error {
 				log.Warnf("Object %s does not exist in bucket %s", objectName, c.cfg.S3Bucket)
 				return nil
 			}
-			return errors.Wrap(err, fmt.Sprintf("Failed to delete object %s from bucket %s", objectName, c.cfg.S3Bucket))
+			return errors.Wrap(err, fmt.Sprintf("Failed to delete object %s from bucket %s (code %s)", objectName, c.cfg.S3Bucket, aerr.Code()))
 		}
 	}
 
@@ -250,10 +250,10 @@ func (c *S3Client) UpdateObjectTimestamp(ctx context.Context, objectName string)
 
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == s3.ErrCodeNoSuchKey {
+			if aerr.Code() == s3.ErrCodeNoSuchKey || aerr.Code() == "NotFound" {
 				return false, nil
 			}
-			return false, errors.Wrap(err, fmt.Sprintf("Failed to update tags on object %s from bucket %s", objectName, c.cfg.S3Bucket))
+			return false, errors.Wrap(err, fmt.Sprintf("Failed to update tags on object %s from bucket %s (code %s)", objectName, c.cfg.S3Bucket, aerr.Code()))
 		}
 	}
 	return true, nil
