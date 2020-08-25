@@ -30,7 +30,7 @@ const (
 	clusterReadyStateInfo           = "Cluster ready to be installed"
 	pullSecret                      = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
 	IgnoreStateInfo                 = "IgnoreStateInfo"
-	clusterErrorInfo                = "cluster %s has hosts in error"
+	clusterErrorInfo                = "cluster has hosts in error"
 	clusterResetStateInfo           = "cluster was reset by user"
 	clusterPendingForInputStateInfo = "User input required"
 )
@@ -868,11 +868,12 @@ var _ = Describe("cluster install", func() {
 		It("[only_k8s]install download_config_files", func() {
 
 			//Test downloading kubeconfig files in worng state
+			//This test uses Agent Auth for DownloadClusterFiles (as opposed to the other tests), to cover both supported authentication types for this API endpoint.
 			file, err := ioutil.TempFile("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
 
 			defer os.Remove(file.Name())
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
+			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
 			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewDownloadClusterFilesConflict())))
 
 			_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
@@ -880,13 +881,13 @@ var _ = Describe("cluster install", func() {
 			waitForClusterInstallationToStart(clusterID)
 
 			missingClusterId := strfmt.UUID(uuid.New().String())
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: missingClusterId, FileName: "bootstrap.ign"}, file)
+			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: missingClusterId, FileName: "bootstrap.ign"}, file)
 			Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterFilesNotFound())))
 
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "not_real_file"}, file)
+			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "not_real_file"}, file)
 			Expect(err).Should(HaveOccurred())
 
-			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
+			_, err = agentBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "bootstrap.ign"}, file)
 			Expect(err).NotTo(HaveOccurred())
 			s, err := file.Stat()
 			Expect(err).NotTo(HaveOccurred())
@@ -1049,9 +1050,8 @@ var _ = Describe("cluster install", func() {
 
 		It("[only_k8s]on cluster error - verify all hosts are aborted", func() {
 			FailCluster(ctx, clusterID)
-			stateInfo := fmt.Sprintf(clusterErrorInfo, clusterID.String())
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
-				stateInfo)
+				clusterErrorInfo)
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := rep.GetPayload()
@@ -1092,9 +1092,8 @@ var _ = Describe("cluster install", func() {
 			})
 			It("[only_k8s]cancel failed cluster", func() {
 				FailCluster(ctx, clusterID)
-				stateInfo := fmt.Sprintf(clusterErrorInfo, clusterID.String())
 				waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
-					stateInfo)
+					clusterErrorInfo)
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				c := rep.GetPayload()

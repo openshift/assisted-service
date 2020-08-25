@@ -374,6 +374,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 			machineNetworkCidr string
 			apiVip             string
 			ingressVip         string
+			dnsDomain          string
+			pullSecretSet      bool
 			dstState           string
 			hosts              []models.Host
 			statusInfoChecker  statusInfoChecker
@@ -387,6 +389,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				machineNetworkCidr: "",
 				apiVip:             "",
 				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
@@ -402,6 +406,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationFailure, messagePattern: "Ingress vip is undefined"},
 					isIngressVipValid:                   {status: ValidationPending, messagePattern: "Ingress vip is undefined"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount: {status: ValidationFailure,
 						messagePattern: fmt.Sprintf("no sufficient count of master hosts candidates expected %d",
 							common.MinMasterHostsNeededForInstallation)},
@@ -415,6 +421,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -430,6 +438,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount: {status: ValidationFailure,
 						messagePattern: fmt.Sprintf("no sufficient count of master hosts candidates expected %d",
 							common.MinMasterHostsNeededForInstallation)},
@@ -443,6 +453,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -458,6 +470,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "Cluster has hosts that are not ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 				}),
 				errorExpected: false,
@@ -469,6 +483,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -484,17 +500,80 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 				}),
 				errorExpected: false,
 			},
 			{
+				name:               "ready to pending-for-input - dns domain not defined",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				dnsDomain:          "",
+				pullSecretSet:      true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationFailure, messagePattern: "Base DNS Domain is undefined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "ready to pending-for-input - pull secret not set",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      false,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationFailure, messagePattern: "Pull secret is not set"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
+				}),
+				errorExpected: false,
+			}, {
 				name:               "pending-for-input to ready",
 				srcState:           models.ClusterStatusPendingForInput,
 				dstState:           models.ClusterStatusReady,
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -510,6 +589,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 				}),
 				errorExpected: false,
@@ -521,6 +602,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusDisabled), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -536,6 +619,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 				}),
 				errorExpected: false,
@@ -547,6 +632,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -562,6 +649,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 				}),
 				errorExpected: false,
@@ -573,6 +662,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -600,6 +691,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -617,6 +710,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -635,6 +730,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -658,6 +755,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 						MachineNetworkCidr: t.machineNetworkCidr,
 						Status:             &t.srcState,
 						StatusInfo:         &t.srcStatusInfo,
+						BaseDNSDomain:      t.dnsDomain,
+						PullSecretSet:      t.pullSecretSet,
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -734,6 +833,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 			machineNetworkCidr string
 			apiVip             string
 			ingressVip         string
+			dnsDomain          string
+			pullSecretSet      bool
 			dstState           string
 			hosts              []models.Host
 			statusInfoChecker  statusInfoChecker
@@ -747,6 +848,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				machineNetworkCidr: "",
 				apiVip:             "",
 				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
@@ -762,6 +865,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationFailure, messagePattern: "Ingress vip is undefined"},
 					isIngressVipValid:                   {status: ValidationPending, messagePattern: "Ingress vip is undefined"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount: {status: ValidationFailure,
 						messagePattern: fmt.Sprintf("no sufficient count of master hosts candidates expected %d",
 							common.MinMasterHostsNeededForInstallation)},
@@ -775,6 +880,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -790,6 +897,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount: {status: ValidationFailure,
 						messagePattern: fmt.Sprintf("no sufficient count of master hosts candidates expected %d",
 							common.MinMasterHostsNeededForInstallation)},
@@ -803,6 +912,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -818,6 +929,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "Cluster has hosts that are not ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 				}),
 				errorExpected: false,
@@ -829,6 +942,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -844,6 +959,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 				}),
 				errorExpected: false,
@@ -855,6 +972,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -870,6 +989,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 				}),
 				errorExpected: false,
@@ -881,6 +1002,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -896,6 +1019,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 				}),
 				errorExpected: false,
@@ -907,6 +1032,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -922,6 +1049,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 				}),
 				errorExpected: false,
@@ -934,6 +1063,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -951,6 +1082,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.5",
 				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
@@ -993,6 +1126,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 						Status:             &t.srcState,
 						StatusInfo:         &t.srcStatusInfo,
 						VipDhcpAllocation:  swag.Bool(true),
+						BaseDNSDomain:      t.dnsDomain,
+						PullSecretSet:      t.pullSecretSet,
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())

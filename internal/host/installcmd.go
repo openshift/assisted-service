@@ -63,7 +63,6 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"CONTROLLER_IMAGE":       i.instructionConfig.ControllerImage,
 		"BOOT_DEVICE":            "",
 		"OPENSHIFT_VERSION":      cluster.OpenshiftVersion,
-		"AGENT_IMAGE":            i.instructionConfig.InventoryImage,
 		"SKIP_CERT_VERIFICATION": strconv.FormatBool(i.instructionConfig.SkipCertVerification),
 	}
 
@@ -75,11 +74,13 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 
 	// added to run upload logs if install command fails
 	// will return same exit code as installer command
-	cmdArgsTmpl = cmdArgsTmpl + " || ( returnCode=$?; podman run --rm --privileged " +
-		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
-		"--env PULL_SECRET_TOKEN --name logs-sender {{.AGENT_IMAGE}} logs_sender " +
-		"-tag agent -tag installer " +
-		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} --insecure={{.SKIP_CERT_VERIFICATION}}; exit $returnCode; )"
+	logsCommand, err := CreateUploadLogsCmd(host, i.instructionConfig.ServiceBaseURL,
+		i.instructionConfig.InventoryImage, i.instructionConfig.SkipCertVerification, true)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdArgsTmpl = cmdArgsTmpl + " || " + logsCommand
 
 	bootdevice, err := getBootDevice(i.log, i.hwValidator, *host)
 	if err != nil {

@@ -9,10 +9,6 @@ import (
 
 func IsAdmin(ctx context.Context) bool {
 	authPayload := auth.PayloadFromContext(ctx)
-	if authPayload == nil {
-		return false
-	}
-
 	return authPayload.IsAdmin
 }
 

@@ -84,11 +84,12 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	})
 
 	// Refresh cluster status conditions - Non DHCP
-	var requiredInputFieldsExistNonDhcp = stateswitch.And(If(IsMachineCidrDefined), If(isApiVipDefined), If(isIngressVipDefined))
+	var requiredInputFieldsExistNonDhcp = stateswitch.And(If(IsMachineCidrDefined), If(isApiVipDefined), If(isIngressVipDefined), If(IsDNSDomainDefined), If(IsPullSecretSet))
 	var isSufficientForInstallNonDhcp = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid),
 		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(SufficientMastersCount))
 
 	// Refresh cluster status conditions - DHCP
+	var requiredInputFieldsExistDhcp = stateswitch.And(If(IsMachineCidrDefined), If(IsDNSDomainDefined), If(IsPullSecretSet))
 	var isSufficientForInstallDhcp = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid),
 		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(SufficientMastersCount), If(isApiVipDefined), If(isIngressVipDefined))
 
@@ -137,7 +138,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusReady),
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
-		Condition:        stateswitch.And(If(VipDhcpAllocationSet), stateswitch.Not(If(IsMachineCidrDefined))),
+		Condition:        stateswitch.And(If(VipDhcpAllocationSet), stateswitch.Not(requiredInputFieldsExistDhcp)),
 		DestinationState: stateswitch.State(models.ClusterStatusPendingForInput),
 		PostTransition:   th.PostRefreshCluster(statusInfoPendingForInput),
 	})
@@ -177,6 +178,33 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		Condition:        th.IsPreparingTimedOut,
 		DestinationState: stateswitch.State(models.ClusterStatusError),
 		PostTransition:   th.PostRefreshCluster(statusInfoPreparingForInstallationTimeout),
+	})
+
+	// This transition is fired when the cluster is in installing and should move to finalizing
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusInstalling)},
+		Condition:        th.IsFinalizing,
+		DestinationState: stateswitch.State(models.ClusterStatusFinalizing),
+		PostTransition:   th.PostRefreshCluster(statusInfoFinalizing),
+	})
+
+	// This transition is fired when the cluster is in installing
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusInstalling)},
+		Condition:        stateswitch.And(stateswitch.Not(th.IsFinalizing), th.IsInstalling),
+		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
+		PostTransition:   th.PostRefreshCluster(statusInfoInstalling),
+	})
+
+	// This transition is fired when the cluster is in installing and should move to error
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusInstalling)},
+		Condition:        stateswitch.And(stateswitch.Not(th.IsFinalizing), stateswitch.Not(th.IsInstalling)),
+		DestinationState: stateswitch.State(models.ClusterStatusError),
+		PostTransition:   th.PostRefreshCluster(statusInfoError),
 	})
 
 	// Noop transitions

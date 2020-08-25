@@ -45,7 +45,6 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
-	"github.com/openshift/assisted-service/pkg/job"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -84,7 +83,6 @@ type Config struct {
 	ImageExpirationTime  time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"60m"`
 	AwsAccessKeyID       string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
 	AwsSecretAccessKey   string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
-	DeployTarget         string            `envconfig:"DEPLOY_TARGET" default:"k8s"`
 	BaseDNSDomains       map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
 	SkipCertVerification bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 }
@@ -196,8 +194,7 @@ func NewBareMetalInventory(
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,
 ) *bareMetalInventory {
-
-	b := &bareMetalInventory{
+	return &bareMetalInventory{
 		db:            db,
 		log:           log,
 		Config:        cfg,
@@ -208,27 +205,6 @@ func NewBareMetalInventory(
 		eventsHandler: eventsHandler,
 		objectHandler: objectHandler,
 		metricApi:     metricApi,
-	}
-
-	if b.Config.DeployTarget == "k8s" {
-		//Run first ISO dummy for image pull, this is done so that the image will be pulled and the api will take less time.
-		b.generateDummyISOImage()
-	}
-	return b
-}
-
-func (b *bareMetalInventory) generateDummyISOImage() {
-	var (
-		dummyId   = "00000000-0000-0000-0000-000000000000"
-		jobName   = fmt.Sprintf("dummyimage-%s-%s", dummyId, time.Now().Format("20060102150405"))
-		imgName   = getImageName(strfmt.UUID(dummyId))
-		requestID = requestid.NewID()
-		log       = requestid.RequestIDLogger(b.log, requestID)
-		cluster   common.Cluster
-	)
-	// create dummy job without uploading to s3, we just need to pull the image
-	if err := b.generator.GenerateISO(requestid.ToContext(context.Background(), requestID), cluster, jobName, imgName, job.Dummy, b.eventsHandler); err != nil {
-		log.WithError(err).Errorf("failed to generate dummy ISO image")
 	}
 }
 

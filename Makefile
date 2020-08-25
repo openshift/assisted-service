@@ -72,7 +72,7 @@ generate-python-client: $(BUILD_FOLDER)
 		swaggerapi/swagger-codegen-cli:2.4.15 /script.sh
 	cd $(BUILD_FOLDER)/assisted-service-client/ && python3 setup.py sdist --dist-dir $(BUILD_FOLDER)
 
-generate-keys:
+generate-keys: $(BUILD_FOLDER)
 	cd tools && go run auth_keys_generator.go -keys-dir=$(BUILD_FOLDER)
 
 ##################
@@ -80,7 +80,7 @@ generate-keys:
 ##################
 
 .PHONY: build
-build: lint unit-test build-minimal build-iso-generator generate-keys
+build: lint unit-test build-minimal build-iso-generator
 
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
@@ -91,14 +91,16 @@ build-iso-generator: $(BUILD_FOLDER)
 build-dummy-ignition: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/dummy-ignition dummy-ignition/main.go
 
-build-onprem: build
+build-onprem: build-minimal build-iso-generator build-dummy-ignition
 	podman build -f Dockerfile.assisted-service-onprem -t ${SERVICE} .
 
 build-image: build
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
  		-f Dockerfile.assisted-service . -t $(SERVICE)
 
-build-assisted-iso-generator-image: build
+build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
+
+build-minimal-assisted-iso-generator-image: build-iso-generator
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
@@ -169,16 +171,15 @@ deploy-role: deploy-namespace
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
-jenkins-deploy-for-subsystem: build-dummy-ignition-image build-assisted-iso-generator-image
+jenkins-deploy-for-subsystem: generate-keys build-dummy-ignition-image build-assisted-iso-generator-image
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && $(MAKE) deploy-all
 
-deploy-test:
+deploy-test: generate-keys
 	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
 	&& export DUMMY_IGNITION=${DUMMY_IGNITION} && ISO_CREATION=minikube-local-registry/assisted-iso-create:minikube-test $(MAKE) update-minikube deploy-all
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
-	podman volume create s3-volume
 	podman run -dt --pod assisted-installer --env-file onprem-environment --name db centos/postgresql-12-centos7
 	podman run -dt --pod assisted-installer --env-file onprem-environment --user assisted-installer --restart always --name installer ${SERVICE}
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
@@ -220,7 +221,7 @@ test-onprem:
 	INVENTORY=127.0.0.1:8090 \
 	DB_HOST=127.0.0.1 \
 	DB_PORT=5432 \
-	go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v
+	go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 30m
 
 #########
 # Clean #
@@ -240,8 +241,7 @@ clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
 
 clean-onprem:
-	podman pod rm -f assisted-installer
-	podman volume rm s3-volume
+	podman pod rm -f -i assisted-installer
 
 delete-minikube-profile:
 	minikube delete -p $(PROFILE)

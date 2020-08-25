@@ -61,10 +61,6 @@ func strToUUID(s string) *strfmt.UUID {
 	return &u
 }
 
-func mockGenerateISO(mockJob *job.MockAPI, times int) {
-	mockJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
-}
-
 func mockGenerateISOSuccess(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
 	if mockKubeJob != nil {
 		mockKubeJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
@@ -251,7 +247,6 @@ var _ = Describe("GenerateClusterISO", func() {
 	Context("when kube job is used as generator", func() {
 		BeforeEach(func() {
 			mockKubeJob = job.NewMockAPI(ctrl)
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockKubeJob, mockEvents, mockS3Client, nil)
 		})
 		RunGenerateClusterISOTests()
@@ -260,7 +255,6 @@ var _ = Describe("GenerateClusterISO", func() {
 	Context("when local job is used as generator", func() {
 		BeforeEach(func() {
 			mockLocalJob = job.NewMockLocalJob(ctrl)
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockLocalJob, mockEvents, mockS3Client, nil)
 		})
 		RunGenerateClusterISOTests()
@@ -426,7 +420,6 @@ var _ = Describe("GetNextSteps", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
-		mockGenerateISO(mockJob, 1)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil)
 	})
 
@@ -514,7 +507,6 @@ var _ = Describe("PostStepReply", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
 		mockClusterApi = cluster.NewMockAPI(ctrl)
-		mockGenerateISO(mockJob, 1)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, nil, nil)
 	})
 
@@ -710,7 +702,6 @@ var _ = Describe("GetFreeAddresses", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
-		mockGenerateISO(mockJob, 1)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil)
 	})
 
@@ -860,7 +851,6 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
-		mockGenerateISO(mockJob, 1)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil)
 		defaultProgressStage = "some progress"
 	})
@@ -1831,7 +1821,6 @@ var _ = Describe("cluster", func() {
 	Context("when kube job is used as generator", func() {
 		BeforeEach(func() {
 			mockKubeJob = job.NewMockAPI(ctrl)
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockKubeJob, mockEvents, mockS3Client, mockMetric)
 		})
 		RunClusterTests()
@@ -1840,7 +1829,6 @@ var _ = Describe("cluster", func() {
 	Context("when local job is used as generator", func() {
 		BeforeEach(func() {
 			mockLocalJob = job.NewMockLocalJob(ctrl)
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockLocalJob, mockEvents, mockS3Client, mockMetric)
 		})
 		RunClusterTests()
@@ -1873,7 +1861,6 @@ var _ = Describe("KubeConfig download", func() {
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil)
 
-		mockGenerateISO(mockJob, 1)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
@@ -2002,7 +1989,6 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		mockJob = job.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil)
-		mockGenerateISO(mockJob, 1)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
@@ -2174,7 +2160,6 @@ var _ = Describe("Upload and Download logs test", func() {
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil)
 		mockJob := job.NewMockAPI(ctrl)
-		mockGenerateISO(mockJob, 1)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{

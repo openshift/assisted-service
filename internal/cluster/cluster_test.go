@@ -101,6 +101,11 @@ var _ = Describe("cluster monitor", func() {
 		mockEvents        *events.MockHandler
 	)
 
+	mockHostAPIIsValidMasterCandidateTrue := func(times int) {
+		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).
+			Times(times)
+	}
+
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		id = strfmt.UUID(uuid.New().String())
@@ -120,7 +125,10 @@ var _ = Describe("cluster monitor", func() {
 			c = common.Cluster{Cluster: models.Cluster{
 				ID:                 &id,
 				Status:             swag.String("installing"),
+				StatusInfo:         swag.String(statusInfoInstalling),
 				MachineNetworkCidr: "1.1.0.0/16",
+				BaseDNSDomain:      "test.com",
+				PullSecretSet:      true,
 			}}
 
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -132,6 +140,7 @@ var _ = Describe("cluster monitor", func() {
 			createHost(id, "installing", db)
 			createHost(id, "installing", db)
 			createHost(id, "installing", db)
+			mockHostAPIIsValidMasterCandidateTrue(3)
 			shouldHaveUpdated = false
 			expectedState = "installing"
 		})
@@ -139,6 +148,7 @@ var _ = Describe("cluster monitor", func() {
 			createHost(id, "installing", db)
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(3)
 			shouldHaveUpdated = false
 			expectedState = "installing"
 		})
@@ -146,6 +156,7 @@ var _ = Describe("cluster monitor", func() {
 			createHost(id, "installing-in-progress", db)
 			createHost(id, "installing-in-progress", db)
 			createHost(id, "installing-in-progress", db)
+			mockHostAPIIsValidMasterCandidateTrue(3)
 
 			shouldHaveUpdated = false
 			expectedState = "installing"
@@ -154,6 +165,7 @@ var _ = Describe("cluster monitor", func() {
 			createHost(id, "installing-in-progress", db)
 			createHost(id, "installing-in-progress", db)
 			createHost(id, "installing", db)
+			mockHostAPIIsValidMasterCandidateTrue(3)
 
 			shouldHaveUpdated = false
 			expectedState = "installing"
@@ -162,6 +174,7 @@ var _ = Describe("cluster monitor", func() {
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(3)
 
 			shouldHaveUpdated = true
 			expectedState = models.ClusterStatusFinalizing
@@ -171,6 +184,7 @@ var _ = Describe("cluster monitor", func() {
 			createHost(id, "error", db)
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(3)
 
 			shouldHaveUpdated = true
 			expectedState = "error"
@@ -179,6 +193,7 @@ var _ = Describe("cluster monitor", func() {
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(2)
 
 			shouldHaveUpdated = true
 			expectedState = "error"
@@ -187,6 +202,7 @@ var _ = Describe("cluster monitor", func() {
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "installing", db)
 			createHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(2)
 			shouldHaveUpdated = true
 			expectedState = "error"
 
@@ -202,11 +218,6 @@ var _ = Describe("cluster monitor", func() {
 			Times(times)
 	}
 
-	mockHostAPIIsValidMasterCandidateTrue := func(times int) {
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).
-			Times(times)
-	}
-
 	Context("host hosts", func() {
 
 		Context("from insufficient state", func() {
@@ -218,6 +229,8 @@ var _ = Describe("cluster monitor", func() {
 					MachineNetworkCidr: "1.2.3.0/24",
 					APIVip:             "1.2.3.5",
 					IngressVip:         "1.2.3.6",
+					BaseDNSDomain:      "test.com",
+					PullSecretSet:      true,
 					StatusInfo:         swag.String(statusInfoInsufficient),
 				}}
 
@@ -294,6 +307,8 @@ var _ = Describe("cluster monitor", func() {
 					MachineNetworkCidr: "1.2.3.0/24",
 					APIVip:             "1.2.3.5",
 					IngressVip:         "1.2.3.6",
+					BaseDNSDomain:      "test.com",
+					PullSecretSet:      true,
 				}}
 
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -993,6 +1008,8 @@ var _ = Describe("ready_state", func() {
 			ID:                 &id,
 			Status:             swag.String(clusterStatusReady),
 			MachineNetworkCidr: "1.2.3.0/24",
+			BaseDNSDomain:      "test.com",
+			PullSecretSet:      true,
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		addInstallationRequirements(id, db)
@@ -1054,6 +1071,8 @@ var _ = Describe("insufficient_state", func() {
 			MachineNetworkCidr: "1.2.3.0/24",
 			APIVip:             "1.2.3.5",
 			IngressVip:         "1.2.3.6",
+			BaseDNSDomain:      "test.com",
+			PullSecretSet:      true,
 		}}
 
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()

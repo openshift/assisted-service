@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -19,10 +20,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-var defaultInstructionConfig = InstructionConfig{
+var DefaultInstructionConfig = InstructionConfig{
 	ServiceBaseURL:  "http://10.35.59.36:30485",
 	InstallerImage:  "quay.io/ocpmetal/assisted-installer:latest",
 	ControllerImage: "quay.io/ocpmetal/assisted-installer-controller:latest",
+	InventoryImage:  "quay.io/ocpmetal/assisted-installer-agent:latest",
 }
 
 var _ = Describe("installcmd", func() {
@@ -45,7 +47,7 @@ var _ = Describe("installcmd", func() {
 		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
-		instructionConfig = defaultInstructionConfig
+		instructionConfig = DefaultInstructionConfig
 		installCmd = NewInstallCmd(getTestLog(), db, mockValidator, instructionConfig)
 		cluster = createClusterInDb(db)
 		clusterId = *cluster.ID
@@ -85,7 +87,7 @@ var _ = Describe("installcmd", func() {
 		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "")
 
 		hostFromDb := getHost(*host.ID, clusterId, db)
-		Expect(hostFromDb.InstallerVersion).Should(Equal(defaultInstructionConfig.InstallerImage))
+		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 		Expect(hostFromDb.InstallationDiskPath).Should(Equal(GetDeviceFullName(disks[0].Name)))
 	})
 
@@ -230,6 +232,7 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 
 func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId string, hostId string, hostname string) {
 	if hostname != "" {
+
 		installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 			"--privileged --pid=host " +
 			"--net=host -v /var/log:/var/log:rw --env PULL_SECRET_TOKEN " +
@@ -239,11 +242,12 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--controller-image %s --url %s --insecure=false --host-name %s " +
 			"|| ( returnCode=$?; podman run --rm --privileged " +
 			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
-			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender -tag agent -tag installer " +
-			"-url %s -cluster-id %s -host-id %s --insecure=false; exit $returnCode; )"
+			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender " +
+			"-url %s -cluster-id %s -host-id %s --insecure=false -bootstrap %s; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, defaultInstructionConfig.ControllerImage, defaultInstructionConfig.ServiceBaseURL, hostname,
-			defaultInstructionConfig.InventoryImage, defaultInstructionConfig.ServiceBaseURL, clusterId, hostId)))
+			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, hostname,
+			DefaultInstructionConfig.InventoryImage, DefaultInstructionConfig.ServiceBaseURL, clusterId, hostId,
+			strconv.FormatBool(role == models.HostRoleBootstrap))))
 	} else {
 		installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 			"--privileged --pid=host " +
@@ -254,11 +258,12 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--controller-image %s --url %s --insecure=false " +
 			"|| ( returnCode=$?; podman run --rm --privileged " +
 			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
-			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender -tag agent -tag installer " +
-			"-url %s -cluster-id %s -host-id %s --insecure=false; exit $returnCode; )"
+			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender " +
+			"-url %s -cluster-id %s -host-id %s --insecure=false -bootstrap %s; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, defaultInstructionConfig.ControllerImage, defaultInstructionConfig.ServiceBaseURL,
-			defaultInstructionConfig.InventoryImage, defaultInstructionConfig.ServiceBaseURL, clusterId, hostId)))
+			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL,
+			DefaultInstructionConfig.InventoryImage, DefaultInstructionConfig.ServiceBaseURL, clusterId, hostId,
+			strconv.FormatBool(role == models.HostRoleBootstrap))))
 	}
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
 }
