@@ -48,6 +48,15 @@ var _ = Describe("job_test", func() {
 				jparam.Status.Succeeded = 1
 			}).Times(times)
 	}
+
+	mockGetJobFailed := func(times int) {
+		kube.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).
+			Do(func(ctx context.Context, key client.ObjectKey, obj runtime.Object) {
+				var jparam = obj.(*batch.Job)
+				jparam.Status.Failed = swag.Int32Value(jparam.Spec.BackoffLimit) + 1
+			}).Times(times)
+	}
+
 	mockDeleteSuccess := func() {
 		kube.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
@@ -73,6 +82,13 @@ var _ = Describe("job_test", func() {
 		It("create_job_success", func() {
 			kube.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			Expect(j.Create(ctx, &batch.Job{})).ShouldNot(HaveOccurred())
+		})
+
+		It("force_delete_job", func() {
+			mockGetSuccess(5)
+			mockGetJobFailed(1)
+			kube.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			Expect(j.Delete(ctx, "some-job", "default", true)).ShouldNot(HaveOccurred())
 		})
 
 		It("monitor_with_retry", func() {
