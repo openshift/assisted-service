@@ -82,6 +82,7 @@ pipeline {
                            echo ${BUILD_URL} >> data.txt
                            echo '"}' >> data.txt
                            curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt"  https://hooks.slack.com/services/$TOKEN'''
+     
                     }
                 }
             }
