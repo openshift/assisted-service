@@ -454,4 +454,15 @@ var _ = Describe("Host tests", func() {
 		h = getHost(*cluster2.GetPayload().ID, *hostID)
 		Expect(swag.StringValue(h.Status)).Should(Equal("discovering"))
 	})
+
+	It("register_wrong_pull_secret", func() {
+		hostID := strToUUID(uuid.New().String())
+		_, err := badAgentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+			ClusterID: clusterID,
+			NewHostParams: &models.HostCreateParams{
+				HostID: hostID,
+			},
+		})
+		Expect(err)
+	})
 })

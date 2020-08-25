@@ -18,7 +18,7 @@ import (
 )
 
 var db *gorm.DB
-var agentBMClient, userBMClient *client.AssistedInstall
+var agentBMClient, badAgentBMClient, userBMClient *client.AssistedInstall
 var log *logrus.Logger
 
 var Options struct {
@@ -54,9 +54,11 @@ func init() {
 		log.Fatal(err.Error())
 	}
 	userClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestToken))
-	AgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter("fake_pull_secret"))
+	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(FakePullSecret))
+	badAgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(WrongPullSecret))
 	userBMClient = client.New(userClientCfg)
-	agentBMClient = client.New(AgentClientCfg)
+	agentBMClient = client.New(agentClientCfg)
+	badAgentBMClient = client.New(badAgentClientCfg)
 
 	db, err = gorm.Open("postgres",
 		fmt.Sprintf("host=%s port=%s user=admin dbname=installer password=admin sslmode=disable",
@@ -65,8 +67,12 @@ func init() {
 		logrus.Fatal("Fail to connect to DB, ", err)
 	}
 
-	deleteAllWiremockStubs(Options.OCMHost)
-	if err = createDefaultWiremockStubsForOCM(Options.OCMHost); err != nil {
+	err = deleteAllWiremockStubs(Options.OCMHost)
+	if err != nil {
+		logrus.Fatal("Fail to delete all wiremock stubs, ", err)
+	}
+
+	if err = createDefaultWiremockStubsForOCM(Options.OCMHost, Options.TestToken); err != nil {
 		logrus.Fatal("Failed to init wiremock stubs, ", err)
 	}
 }

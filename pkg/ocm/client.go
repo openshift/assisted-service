@@ -84,6 +84,7 @@ func (c *Client) NewConnection() (*sdkClient.Connection, error) {
 	builder := sdkClient.NewConnectionBuilder().
 		Logger(c.logger).
 		URL(c.config.BaseURL).
+		TokenURL(c.config.TokenURL).
 		Metrics("api_outbound")
 
 	if c.config.ClientID != "" && c.config.ClientSecret != "" {

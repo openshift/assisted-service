@@ -35,17 +35,72 @@ const (
 	wiremockMappingsPath string = "/__admin/mappings"
 	capabilityReviewPath string = "/api/authorizations/v1/capability_review"
 	accessReviewPath     string = "/api/authorizations/v1/access_review"
-	fakePayloadUsername  string = "test@example.com"
+	pullAuthPath         string = "/api/accounts_mgmt/v1/token_authorization"
+	tokenPath            string = "/token"
+	fakePayloadUsername  string = "jdoe123@example.com"
+	FakePullSecret       string = "fake_pull_secret"
+	WrongPullSecret      string = "wrong_pull_secret"
 )
 
-func createDefaultWiremockStubsForOCM(ocmHost string) error {
+func createDefaultWiremockStubsForOCM(ocmHost, testToken string) error {
 	if _, err := createStubCapabilityReview(ocmHost, fakePayloadUsername); err != nil {
 		return err
 	}
+
 	if _, err := createStubAccessReview(ocmHost, fakePayloadUsername); err != nil {
 		return err
 	}
+
+	if _, err := createStubTokenAuth(ocmHost, FakePullSecret, fakePayloadUsername); err != nil {
+		return err
+	}
+
+	if _, err := createWrongStubTokenAuth(ocmHost, WrongPullSecret); err != nil {
+		return err
+	}
+
+	if _, err := createStubToken(ocmHost, testToken); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func createStubToken(ocmHost, testToken string) (string, error) {
+	type TokenResponse struct {
+		AccessToken      string `json:"access_token,omitempty"`
+		Error            string `json:"error,omitempty"`
+		ErrorDescription string `json:"error_description,omitempty"`
+		RefreshToken     string `json:"refresh_token,omitempty"`
+		TokenType        string `json:"token_type,omitempty"`
+	}
+	tokenResponse := TokenResponse{
+		AccessToken:  testToken,
+		RefreshToken: testToken,
+		TokenType:    "bearer",
+	}
+
+	var resBody []byte
+	resBody, err := json.Marshal(tokenResponse)
+	if err != nil {
+		return "", err
+	}
+
+	tokenStub := &StubDefinition{
+		Request: &RequestDefinition{
+			URL:    tokenPath,
+			Method: "POST",
+		},
+		Response: &ResponseDefinition{
+			Status: 200,
+			Body:   string(resBody),
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+		},
+	}
+
+	return addStub(ocmHost, tokenStub)
 }
 
 func createStubCapabilityReview(ocmHost, username string) (string, error) {
@@ -120,6 +175,94 @@ func createStubAccessReview(ocmHost, username string) (string, error) {
 
 	capabilityReviewStub := createStubDefinition(accessReviewPath, "POST", string(reqBody), string(resBody), 200)
 	return addStub(ocmHost, capabilityReviewStub)
+}
+
+func createStubTokenAuth(ocmHost, token, username string) (string, error) {
+	type TokenAuthorizationRequest struct {
+		AuthorizationToken string `json:"authorization_token"`
+	}
+
+	type Account struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Username  string `json:"username"`
+		Email     string `json:"email"`
+	}
+
+	type TokenAuthorizationResponse struct {
+		Account Account `json:"account"`
+	}
+
+	tokenAuthorizationRequest := TokenAuthorizationRequest{
+		AuthorizationToken: token,
+	}
+
+	tokenAuthorizationResponse := TokenAuthorizationResponse{
+		Account: Account{
+			FirstName: "UserFirstName",
+			LastName:  "UserLastName",
+			Username:  username,
+			Email:     "user@myorg.com",
+		},
+	}
+
+	var reqBody []byte
+	reqBody, err := json.Marshal(tokenAuthorizationRequest)
+	if err != nil {
+		return "", err
+	}
+
+	var resBody []byte
+	resBody, err = json.Marshal(tokenAuthorizationResponse)
+	if err != nil {
+		return "", err
+	}
+
+	tokenAuthStub := createStubDefinition(pullAuthPath, "POST", string(reqBody), string(resBody), 200)
+	return addStub(ocmHost, tokenAuthStub)
+}
+
+func createWrongStubTokenAuth(ocmHost, token string) (string, error) {
+	type TokenAuthorizationRequest struct {
+		AuthorizationToken string `json:"authorization_token"`
+	}
+
+	tokenAuthorizationRequest := TokenAuthorizationRequest{
+		AuthorizationToken: token,
+	}
+
+	type ErrorResponse struct {
+		Code        string `json:"code"`
+		Href        string `json:"href"`
+		ID          string `json:"id"`
+		Kind        string `json:"kind"`
+		OperationID string `json:"operation_id"`
+		Reason      string `json:"reason"`
+	}
+
+	errorResponse := ErrorResponse{
+		Code:        "ACCT-MGMT-7",
+		Href:        "/api/accounts_mgmt/v1/errors/7",
+		ID:          "7",
+		Kind:        "Error",
+		OperationID: "op_id",
+		Reason:      "Unable to find credential with specified authorization token",
+	}
+
+	var reqBody []byte
+	reqBody, err := json.Marshal(tokenAuthorizationRequest)
+	if err != nil {
+		return "", err
+	}
+
+	var resBody []byte
+	resBody, err = json.Marshal(errorResponse)
+	if err != nil {
+		return "", err
+	}
+
+	tokenAuthStub := createStubDefinition(pullAuthPath, "POST", string(reqBody), string(resBody), 404)
+	return addStub(ocmHost, tokenAuthStub)
 }
 
 func createStubDefinition(url, method, reqBody, resBody string, resStatus int) *StubDefinition {
