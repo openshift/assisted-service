@@ -118,16 +118,40 @@ const ignitionConfigFormat = `{
       "path": "/etc/motd",
       "mode": 644,
       "contents": { "source": "data:,{{.AGENT_MOTD}}" }
-	},
-	{
-	"filesystem": "root",
-	"path": "/etc/hosts",
-	"mode": 420,
-	"append": true,
-	"contents": { "source": "{{.ASSISTED_INSTALLER_IPS}}" }
 	}]
   }
 }`
+
+const onPremIgnitionConfigFormat = `{
+	"ignition": { "version": "2.2.0" },
+	  "passwd": {
+		"users": [
+		  {{.userSshKey}}
+		]
+	  },
+	"systemd": {
+	"units": [{
+	"name": "agent.service",
+	"enabled": true,
+	"contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}\n\n[Install]\nWantedBy=multi-user.target"
+	}]
+	},
+	"storage": {
+		"files": [{
+		  "filesystem": "root",
+		  "path": "/etc/motd",
+		  "mode": 644,
+		  "contents": { "source": "data:,{{.AGENT_MOTD}}" }
+		},
+		{
+		"filesystem": "root",
+		"path": "/etc/hosts",
+		"mode": 420,
+		"append": true,
+		"contents": { "source": "{{.ASSISTED_INSTALLER_IPS}}" }
+		}]
+	  }
+	}`
 
 var clusterFileNames = []string{
 	"kubeconfig",
@@ -219,18 +243,26 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	}
 
 	var ignitionParams = map[string]string{
-		"userSshKey":             b.getUserSshKey(params),
-		"AgentDockerImg":         b.AgentDockerImg,
-		"ServiceBaseURL":         strings.TrimSpace(b.ServiceBaseURL),
-		"clusterId":              cluster.ID.String(),
-		"PullSecretToken":        r.AuthRaw,
-		"AGENT_MOTD":             url.PathEscape(agentMessageOfTheDay),
-		"HTTPProxy":              cluster.HTTPProxy,
-		"HTTPSProxy":             cluster.HTTPSProxy,
-		"NoProxy":                cluster.NoProxy,
-		"SkipCertVerification":   strconv.FormatBool(b.SkipCertVerification),
-		"ASSISTED_INSTALLER_IPS": dataurl.EncodeBytes([]byte(b.getIPs())),
+		"userSshKey":           b.getUserSshKey(params),
+		"AgentDockerImg":       b.AgentDockerImg,
+		"ServiceBaseURL":       strings.TrimSpace(b.ServiceBaseURL),
+		"clusterId":            cluster.ID.String(),
+		"PullSecretToken":      r.AuthRaw,
+		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
+		"HTTPProxy":            cluster.HTTPProxy,
+		"HTTPSProxy":           cluster.HTTPSProxy,
+		"NoProxy":              cluster.NoProxy,
+		"SkipCertVerification": strconv.FormatBool(b.SkipCertVerification),
 	}
+
+	if b.Config.DeployTarget == "onprem" {
+		ignitionParams["ASSISTED_INSTALLER_IPS"] = dataurl.EncodeBytes([]byte(b.getIPs()))
+		return b.getIgnitionConfig(onPremIgnitionConfigFormat, ignitionParams)
+	}
+	return b.getIgnitionConfig(ignitionConfigFormat, ignitionParams)
+}
+
+func (b *bareMetalInventory) getIgnitionConfig(ignitionConfigFormat string, ignitionParams map[string]string) (string, error) {
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
 		return "", err

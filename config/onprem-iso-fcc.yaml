@@ -15,9 +15,9 @@ systemd:
             After=network-online.target
           
             [Service]
-            Type=simple
+            Type=forking
             Restart=no
-            ExecStart=/bin/bash -c "printf \"\nALL_IPS=$(hostname -I)\">>/etc/assisted-service/environment"
+            ExecStart=/bin/bash /etc/assisted-service/startup_script.sh
           
             [Install]
             WantedBy=multi-user.target
@@ -120,5 +120,17 @@ storage:
           mode: 0644
           contents:
             inline: "data:;base64,replace-with-your-base64-encoded-pull-secret"
+        - path: /etc/assisted-service/startup_script.sh
+          mode: 0644
+          contents:
+            inline: |
+              #!/bin/bash
+              ips=$(hostname -I)
+              ipArr=($ips)
+              for ip in "${ipArr[@]}"
+                  do 
+                      printf "\n$ip assisted-api.local.openshift.io">>/etc/hosts
+                  done
+              printf "\nALL_IPS=$ips">>/etc/assisted-service/environment
               
         
