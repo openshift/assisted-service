@@ -109,6 +109,26 @@ func newValidations(log logrus.FieldLogger, api host.API) []validation {
 			condition: v.isPullSecretSet,
 			formatter: v.printIsPullSecretSet,
 		},
+		{
+			id:        isClusterCidrDefined,
+			condition: v.isClusterCidrDefined,
+			formatter: v.printIsClusterCidrDefined,
+		},
+		{
+			id:        isServiceCidrDefined,
+			condition: v.isServiceCidr,
+			formatter: v.printisServiceCidr,
+		},
+		{
+			id:        noCidrOverlapping,
+			condition: v.noCidrsOverlapping,
+			formatter: v.printNoCidrsOverlapping,
+		},
+		{
+			id:        networkPrefixValid,
+			condition: v.networkPrefixValid,
+			formatter: v.printNetworkPrefixValid,
+		},
 	}
 	return ret
 }

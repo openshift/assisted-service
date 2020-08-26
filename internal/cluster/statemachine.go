@@ -83,18 +83,18 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostHandlePreInstallationError,
 	})
 
+	var pendingConditions = stateswitch.And(If(IsMachineCidrDefined), If(isClusterCidrDefined), If(isServiceCidrDefined), If(IsDNSDomainDefined), If(IsPullSecretSet))
+	var vipsDefinedConditions = stateswitch.And(If(isApiVipDefined), If(isIngressVipDefined))
+	var requiredForInstall = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid), If(isIngressVipValid), If(AllHostsAreReadyToInstall),
+		If(SufficientMastersCount), If(networkPrefixValid), If(noCidrOverlapping))
+
 	// Refresh cluster status conditions - Non DHCP
-	var requiredInputFieldsExistNonDhcp = stateswitch.And(If(IsMachineCidrDefined), If(isApiVipDefined), If(isIngressVipDefined), If(IsDNSDomainDefined), If(IsPullSecretSet))
-	var isSufficientForInstallNonDhcp = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid),
-		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(SufficientMastersCount))
+	var requiredInputFieldsExistNonDhcp = stateswitch.And(vipsDefinedConditions, pendingConditions)
 
 	// Refresh cluster status conditions - DHCP
-	var requiredInputFieldsExistDhcp = stateswitch.And(If(IsMachineCidrDefined), If(IsDNSDomainDefined), If(IsPullSecretSet))
-	var isSufficientForInstallDhcp = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid),
-		If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(SufficientMastersCount), If(isApiVipDefined), If(isIngressVipDefined))
+	var isSufficientForInstallDhcp = stateswitch.And(requiredForInstall, vipsDefinedConditions)
 
-	var allRefreshStatusConditions = stateswitch.And(If(IsMachineCidrDefined), If(isApiVipDefined), If(isIngressVipDefined),
-		If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid), If(isIngressVipValid), If(AllHostsAreReadyToInstall), If(SufficientMastersCount))
+	var allRefreshStatusConditions = stateswitch.And(pendingConditions, vipsDefinedConditions, requiredForInstall)
 
 	// Non DHCP transitions
 
@@ -122,7 +122,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusReady),
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
-		Condition:        stateswitch.And(stateswitch.Not(If(VipDhcpAllocationSet)), requiredInputFieldsExistNonDhcp, stateswitch.Not(isSufficientForInstallNonDhcp)),
+		Condition:        stateswitch.And(stateswitch.Not(If(VipDhcpAllocationSet)), requiredInputFieldsExistNonDhcp, stateswitch.Not(requiredForInstall)),
 		DestinationState: stateswitch.State(models.ClusterStatusInsufficient),
 		PostTransition:   th.PostRefreshCluster(statusInfoInsufficient),
 	})
@@ -138,7 +138,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusReady),
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
-		Condition:        stateswitch.And(If(VipDhcpAllocationSet), stateswitch.Not(requiredInputFieldsExistDhcp)),
+		Condition:        stateswitch.And(If(VipDhcpAllocationSet), stateswitch.Not(pendingConditions)),
 		DestinationState: stateswitch.State(models.ClusterStatusPendingForInput),
 		PostTransition:   th.PostRefreshCluster(statusInfoPendingForInput),
 	})
@@ -153,7 +153,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusReady),
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
-		Condition:        stateswitch.And(If(VipDhcpAllocationSet), If(IsMachineCidrDefined), stateswitch.Not(isSufficientForInstallDhcp)),
+		Condition:        stateswitch.And(If(VipDhcpAllocationSet), pendingConditions, stateswitch.Not(isSufficientForInstallDhcp)),
 		DestinationState: stateswitch.State(models.ClusterStatusInsufficient),
 		PostTransition:   th.PostRefreshCluster(statusInfoInsufficient),
 	})

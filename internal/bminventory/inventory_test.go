@@ -1344,6 +1344,94 @@ var _ = Describe("cluster", func() {
 						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 					})
 				})
+				Context("Advanced networking validations", func() {
+
+					It("Update success", func() {
+						apiVip := "10.11.12.15"
+						ingressVip := "10.11.12.16"
+						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
+						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								APIVip:                   &apiVip,
+								IngressVip:               &ingressVip,
+								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ServiceNetworkCidr:       swag.String("193.168.5.0/24"),
+								ClusterNetworkHostPrefix: swag.Int64(23),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+						actual := reply.(*installer.UpdateClusterCreated)
+						Expect(actual.Payload.APIVip).To(Equal(apiVip))
+						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+						Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
+						Expect(actual.Payload.ClusterNetworkCidr).To(Equal("192.168.5.0/24"))
+						Expect(actual.Payload.ServiceNetworkCidr).To(Equal("193.168.5.0/24"))
+						expectedNetworks := sortedNetworks([]*models.HostNetwork{
+							{
+								Cidr: "1.2.3.0/24",
+								HostIds: sortedHosts([]strfmt.UUID{
+									masterHostId1,
+									masterHostId2,
+									masterHostId3,
+								}),
+							},
+							{
+								Cidr: "10.11.0.0/16",
+								HostIds: sortedHosts([]strfmt.UUID{
+									masterHostId1,
+									masterHostId2,
+								}),
+							},
+							{
+								Cidr: "7.8.9.0/24",
+								HostIds: []strfmt.UUID{
+									masterHostId3,
+								},
+							},
+						})
+						actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+						Expect(len(actualNetworks)).To(Equal(3))
+						actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+						actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+						actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+						Expect(actualNetworks).To(Equal(expectedNetworks))
+					})
+					It("Overlapping", func() {
+						apiVip := "10.11.12.15"
+						ingressVip := "10.11.12.16"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								APIVip:                   &apiVip,
+								IngressVip:               &ingressVip,
+								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ServiceNetworkCidr:       swag.String("192.168.4.0/23"),
+								ClusterNetworkHostPrefix: swag.Int64(23),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					})
+					It("Prefix out of range", func() {
+						apiVip := "10.11.12.15"
+						ingressVip := "10.11.12.16"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								APIVip:                   &apiVip,
+								IngressVip:               &ingressVip,
+								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ServiceNetworkCidr:       swag.String("193.168.4.0/23"),
+								ClusterNetworkHostPrefix: swag.Int64(33),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					})
+				})
 				Context("DHCP", func() {
 					It("Vips in DHCP", func() {
 						apiVip := "10.11.12.15"

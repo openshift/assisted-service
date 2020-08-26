@@ -99,6 +99,36 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 	}
 }
 
+func (v *clusterValidator) isClusterCidrDefined(c *clusterPreprocessContext) validationStatus {
+	return boolValue(c.cluster.ClusterNetworkCidr != "")
+}
+
+func (v *clusterValidator) printIsClusterCidrDefined(context *clusterPreprocessContext, status validationStatus) string {
+	switch status {
+	case ValidationFailure:
+		return "Cluster Network CIDR is undefined"
+	case ValidationSuccess:
+		return "Cluster Network CIDR is defined"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func (v *clusterValidator) isServiceCidr(c *clusterPreprocessContext) validationStatus {
+	return boolValue(c.cluster.ServiceNetworkCidr != "")
+}
+
+func (v *clusterValidator) printisServiceCidr(context *clusterPreprocessContext, status validationStatus) string {
+	switch status {
+	case ValidationFailure:
+		return "Service Network CIDR is undefined"
+	case ValidationSuccess:
+		return "Service Network CIDR is defined"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
 func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreprocessContext) validationStatus {
 	if c.cluster.APIVip == "" && c.cluster.IngressVip == "" {
 		return ValidationPending
@@ -269,6 +299,29 @@ func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessCon
 	}
 }
 
+func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) validationStatus {
+	if c.cluster.MachineNetworkCidr == "" || c.cluster.ClusterNetworkCidr == "" || c.cluster.ServiceNetworkCidr == "" {
+		return ValidationPending
+	}
+	return boolValue(network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr) == nil)
+}
+
+func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, status validationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "No CIDRS overlapping"
+	case ValidationFailure:
+		if err := network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr); err != nil {
+			return fmt.Sprintf("CIDRS Overlapping: %s", err.Error())
+		}
+		return ""
+	case ValidationPending:
+		return "At least one of the CIDRS [MachineNetworkCIDR, ClusterNetworkCIDR, ServiceNetworkCKIDR] is undefined"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
 func (v *clusterValidator) isPullSecretSet(c *clusterPreprocessContext) validationStatus {
 	return boolValue(c.cluster.PullSecretSet)
 }
@@ -279,6 +332,24 @@ func (v *clusterValidator) printIsPullSecretSet(context *clusterPreprocessContex
 		return "Pull secret is not set"
 	case ValidationSuccess:
 		return "Pull secret is set"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) validationStatus {
+	return boolValue(network.VerifyNetworkHostPrefix(c.cluster.ClusterNetworkHostPrefix) == nil)
+}
+
+func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, status validationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "Cluster Network Prefix valid"
+	case ValidationFailure:
+		if err := network.VerifyNetworkHostPrefix(c.cluster.ClusterNetworkHostPrefix); err != nil {
+			return fmt.Sprintf("Invalid cluster network prefix: %s", err.Error())
+		}
+		return ""
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
