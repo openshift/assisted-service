@@ -38,7 +38,7 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 	if j.Config.DummyIgnition {
 		generator = ignition.NewDummyGenerator(workDir, &cluster, log)
 	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, j.Config.ReleaseImage, log)
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, j.Config.ReleaseImage, j.Config.ServiceCACertPath, log)
 	}
 	err = generator.Generate(cfg)
 	if err != nil {

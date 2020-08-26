@@ -44,6 +44,7 @@ type Config struct {
 	JobCPURequests      string        `envconfig:"JOB_CPU_REQUESTS" default:"300m"`
 	JobMemoryRequests   string        `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
 	ServiceBaseURL      string        `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath   string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
 	SubsystemRun         bool   `envconfig:"SUBSYSTEM_RUN"`
 	ReleaseImage         string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
@@ -328,7 +329,7 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 	if k.Config.DummyIgnition {
 		generator = ignition.NewDummyGenerator(workDir, &cluster, log)
 	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, k.Config.ReleaseImage, log)
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, k.Config.ReleaseImage, k.Config.ServiceCACertPath, log)
 	}
 	err = generator.Generate(cfg)
 	if err != nil {

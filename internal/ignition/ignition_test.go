@@ -96,7 +96,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			},
 		}
 
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", log).(*installerGenerator)
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", log).(*installerGenerator)
 		err = g.updateBootstrap(examplePath)
 
 		bootstrapBytes, _ := ioutil.ReadFile(examplePath)

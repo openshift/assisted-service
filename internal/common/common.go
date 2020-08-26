@@ -17,6 +17,8 @@ import (
 
 const MinMasterHostsNeededForInstallation = 3
 
+const HostCACertPath = "/etc/assisted-service/service-ca-cert.crt"
+
 // continueOnError is set when running as stream, error is doing nothing when it happens cause we in the middle of stream
 // and 200 was already returned
 func CreateTar(ctx context.Context, w io.Writer, files []string, client s3wrapper.API, continueOnError bool) error {
