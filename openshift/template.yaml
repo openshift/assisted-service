@@ -70,6 +70,12 @@ parameters:
 - name: INVENTORY_IMAGE
   value: ''
   required: true
+- name: FREE_ADDRESSES_IMAGE
+  value: ''
+  required: true
+- name: DHCP_LEASE_ALLOCATOR_IMAGE
+  value: ''
+  required: true
 apiVersion: v1
 kind: Template
 metadata:
@@ -220,6 +226,11 @@ objects:
                 value: ${CONNECTIVITY_CHECK_IMAGE}
               - name: INVENTORY_IMAGE
                 value: ${INVENTORY_IMAGE}
+              - name: FREE_ADDRESSES_IMAGE
+                value: ${FREE_ADDRESSES_IMAGE}
+              - name: DHCP_LEASE_ALLOCATOR_IMAGE
+                value: ${DHCP_LEASE_ALLOCATOR_IMAGE}
+
 - apiVersion: v1
   kind: Service
   metadata:
