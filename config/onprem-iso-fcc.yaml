@@ -45,8 +45,8 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStartPre=podman pull quay.io/rwsu/assisted-service:dns
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/rwsu/assisted-service:dns
+            ExecStartPre=podman pull quay.io/ocpmetal/assisted-service:latest
+            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/ocpmetal/assisted-service:latest
             TimeoutStartSec=300
           
             [Install]
