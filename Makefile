@@ -233,9 +233,9 @@ clean:
 	-rm -rf $(BUILD_FOLDER)
 
 subsystem-clean:
-	-$(KUBECTL) get pod -o name | grep dummyimage | xargs $(KUBECTL) delete 1> /dev/null || true
-	-$(KUBECTL) get pod -o name | grep createimage | xargs $(KUBECTL) delete 1> /dev/null || true
-	-$(KUBECTL) get pod -o name | grep ignition-generator | xargs $(KUBECTL) delete 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep dummyimage | xargs -r $(KUBECTL) delete 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep ignition-generator | xargs -r $(KUBECTL) delete 1> /dev/null || true
 
 clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
