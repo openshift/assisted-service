@@ -938,6 +938,17 @@ var _ = Describe("cluster install", func() {
 		})
 
 		It("[only_k8s]Upload and Download logs", func() {
+			By("Download before upload")
+			{
+
+				nodes := register3nodes(clusterID)
+				file, err := ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = userBMClient.Installer.DownloadHostLogs(ctx, &installer.DownloadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID}, file)
+				Expect(err).To(HaveOccurred())
+
+			}
+
 			By("Test happy flow small file")
 			{
 				kubeconfigFile, err := os.Open("test_kubeconfig")
@@ -970,6 +981,8 @@ var _ = Describe("cluster install", func() {
 				nodes := register3nodes(clusterID)
 				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
+				h := getHost(clusterID, *nodes[1].ID)
+				Expect(h.LogsCollectedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())

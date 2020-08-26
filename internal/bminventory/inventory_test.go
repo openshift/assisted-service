@@ -2145,6 +2145,8 @@ var _ = Describe("Upload and Download logs test", func() {
 		dbName         = "upload_logs"
 		mockS3Client   *s3wrapper.MockAPI
 		request        *http.Request
+		mockHostApi    *host.MockAPI
+		host1          models.Host
 	)
 
 	BeforeEach(func() {
@@ -2155,8 +2157,9 @@ var _ = Describe("Upload and Download logs test", func() {
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil)
 		mockJob := job.NewMockAPI(ctrl)
+		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -2166,7 +2169,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		kubeconfigFile, err = os.Open("../../subsystem/test_kubeconfig")
 		Expect(err).ShouldNot(HaveOccurred())
 		hostID = strfmt.UUID(uuid.New().String())
-		addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+		host1 = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
 
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
@@ -2208,7 +2211,6 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 
 	It("Upload S3 upload fails", func() {
-
 		newHostID := strfmt.UUID(uuid.New().String())
 		host := addHost(newHostID, models.HostRoleMaster, "known", clusterID, "{}", db)
 		params := installer.UploadHostLogsParams{
@@ -2233,15 +2235,24 @@ var _ = Describe("Upload and Download logs test", func() {
 		}
 		fileName := bm.getLogsFullName(clusterID.String(), host.ID.String())
 		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
+		mockHostApi.EXPECT().SetUploadLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		reply := bm.UploadHostLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadHostLogsNoContent()))
 	})
-
-	It("Download S3 object not fount", func() {
+	It("Download S3 logs where not uploaded yet", func() {
 		params := installer.DownloadHostLogsParams{
 			ClusterID: clusterID,
 			HostID:    hostID,
 		}
+		verifyApiError(bm.DownloadHostLogs(ctx, params), http.StatusNotFound)
+	})
+	It("Download S3 object not found", func() {
+		params := installer.DownloadHostLogsParams{
+			ClusterID: clusterID,
+			HostID:    hostID,
+		}
+		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&host1)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), s3wrapper.NotFound(fileName))
 		verifyApiError(bm.DownloadHostLogs(ctx, params), http.StatusNotFound)
@@ -2252,6 +2263,8 @@ var _ = Describe("Upload and Download logs test", func() {
 			ClusterID: clusterID,
 			HostID:    hostID,
 		}
+		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&host1)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
 		verifyApiError(bm.DownloadHostLogs(ctx, params), http.StatusInternalServerError)
@@ -2265,7 +2278,8 @@ var _ = Describe("Upload and Download logs test", func() {
 			HostID:    *host.ID,
 		}
 		fileName := bm.getLogsFullName(clusterID.String(), host.ID.String())
-
+		host.LogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&host)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.DownloadHostLogs(ctx, params)

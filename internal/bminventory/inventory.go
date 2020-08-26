@@ -2191,16 +2191,23 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 		}
 	}()
 
-	if _, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String()); err != nil {
+	currentHost, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
 	fileName := b.getLogsFullName(params.ClusterID.String(), params.HostID.String())
-	log.Debugf("Start upload %s to bucket %s aws len", fileName, b.S3Bucket)
-	err := b.objectHandler.UploadStream(ctx, params.Upfile, fileName)
 
+	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
+	err = b.objectHandler.UploadStream(ctx, params.Upfile, fileName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload %s to s3", fileName)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	err = b.hostApi.SetUploadLogsAt(ctx, currentHost, b.db)
+	if err != nil {
+		log.WithError(err).Errorf("Failed update host db")
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
@@ -2214,6 +2221,10 @@ func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params instal
 	hostObject, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
+	}
+
+	if hostObject.LogsCollectedAt == strfmt.DateTime(time.Time{}) {
+		return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", params.HostID))
 	}
 
 	fileName := b.getLogsFullName(params.ClusterID.String(), params.HostID.String())

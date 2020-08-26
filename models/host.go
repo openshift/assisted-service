@@ -67,6 +67,10 @@ type Host struct {
 	// Enum: [Host]
 	Kind *string `json:"kind"`
 
+	// logs collected at
+	// Format: datetime
+	LogsCollectedAt strfmt.DateTime `json:"logs_collected_at,omitempty" gorm:"type:timestamp with time zone"`
+
 	// progress
 	Progress *HostProgressInfo `json:"progress,omitempty" gorm:"embedded;embedded_prefix:progress_"`
 
@@ -136,6 +140,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateKind(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateLogsCollectedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -276,6 +284,19 @@ func (m *Host) validateKind(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateKindEnum("kind", "body", *m.Kind); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateLogsCollectedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.LogsCollectedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("logs_collected_at", "body", "datetime", m.LogsCollectedAt.String(), formats); err != nil {
 		return err
 	}
 
