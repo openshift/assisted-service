@@ -31,6 +31,48 @@ parameters:
 - name: IMAGE_BUILDER
   value: ''
   required: true
+- name: HW_VALIDATOR_MIN_RAM_GIB_MASTER
+  value: ''
+  required: true
+- name: HW_VALIDATOR_MIN_CPU_CORES_MASTER
+  value: ''
+  required: true
+- name: HW_VALIDATOR_MIN_CPU_CORES_WORKER
+  value: ''
+  required: true
+- name: HW_VALIDATOR_MIN_RAM_GIB_WORKER
+  value: ''
+  required: true
+- name: HW_VALIDATOR_MIN_CPU_CORES
+  value: ''
+  required: true
+- name: HW_VALIDATOR_MIN_RAM_GIB
+  value: ''
+  required: true
+- name: HW_VALIDATOR_MIN_DISK_SIZE_GIB
+  value: ''
+  required: true
+- name: IGNITION_GENERATE_IMAGE
+  value: ''
+  required: true
+- name: INSTALLER_IMAGE
+  value: ''
+  required: true
+- name: SELF_VERSION
+  value: ''
+  required: true
+- name: CONTROLLER_IMAGE
+  value: ''
+  required: true
+- name: AGENT_DOCKER_IMAGE
+  value: ''
+  required: true
+- name: CONNECTIVITY_CHECK_IMAGE
+  value: ''
+  required: true
+- name: INVENTORY_IMAGE
+  value: ''
+  required: true
 apiVersion: v1
 kind: Template
 metadata:
@@ -153,6 +195,34 @@ objects:
                 value: ${OCM_BASE_URL}
               - name: IMAGE_BUILDER
                 value: ${IMAGE_BUILDER}
+              - name: HW_VALIDATOR_MIN_RAM_GIB_MASTER
+                value: ${HW_VALIDATOR_MIN_RAM_GIB_MASTER}
+              - name: HW_VALIDATOR_MIN_CPU_CORES_MASTER
+                value: ${HW_VALIDATOR_MIN_CPU_CORES_MASTER}
+              - name: HW_VALIDATOR_MIN_CPU_CORES_WORKER
+                value: ${HW_VALIDATOR_MIN_CPU_CORES_WORKER}
+              - name: HW_VALIDATOR_MIN_RAM_GIB_WORKER
+                value: ${HW_VALIDATOR_MIN_RAM_GIB_WORKER}
+              - name: HW_VALIDATOR_MIN_CPU_CORES
+                value: ${HW_VALIDATOR_MIN_CPU_CORES}
+              - name: HW_VALIDATOR_MIN_RAM_GIB
+                value: ${HW_VALIDATOR_MIN_RAM_GIB}
+              - name: HW_VALIDATOR_MIN_DISK_SIZE_GIB
+                value: ${HW_VALIDATOR_MIN_DISK_SIZE_GIB}
+              - name: IGNITION_GENERATE_IMAGE
+                value: ${IGNITION_GENERATE_IMAGE}
+              - name: INSTALLER_IMAGE
+                value: ${INSTALLER_IMAGE}
+              - name: SELF_VERSION
+                value: ${SELF_VERSION}
+              - name: CONTROLLER_IMAGE
+                value: ${CONTROLLER_IMAGE}
+              - name: AGENT_DOCKER_IMAGE
+                value: ${AGENT_DOCKER_IMAGE}
+              - name: CONNECTIVITY_CHECK_IMAGE
+                value: ${CONNECTIVITY_CHECK_IMAGE}
+              - name: INVENTORY_IMAGE
+                value: ${INVENTORY_IMAGE}
 - apiVersion: v1
   kind: Service
   metadata:
