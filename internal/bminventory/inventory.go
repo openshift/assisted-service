@@ -161,7 +161,7 @@ const ignitionConfig = `{
       "path": "/etc/motd",
       "mode": 644,
       "contents": { "source": "data:,{{.AGENT_MOTD}}" }
-	}]
+    }]
   }
 }`
 
