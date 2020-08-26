@@ -64,16 +64,24 @@ type InstallerConfigBaremetal struct {
 		Name string `yaml:"name"`
 	} `yaml:"metadata"`
 	Compute []struct {
-		Name     string `yaml:"name"`
-		Replicas int    `yaml:"replicas"`
+		Hyperthreading string `yaml:"hyperthreading"`
+		Name           string `yaml:"name"`
+		Replicas       int    `yaml:"replicas"`
 	} `yaml:"compute"`
 	ControlPlane struct {
-		Name     string `yaml:"name"`
-		Replicas int    `yaml:"replicas"`
+		Hyperthreading string `yaml:"hyperthreading"`
+		Name           string `yaml:"name"`
+		Replicas       int    `yaml:"replicas"`
 	} `yaml:"controlPlane"`
-	Platform   platform `yaml:"platform"`
-	PullSecret string   `yaml:"pullSecret"`
-	SSHKey     string   `yaml:"sshKey"`
+	Platform              platform `yaml:"platform"`
+	FIPS                  bool     `yaml:"fips"`
+	PullSecret            string   `yaml:"pullSecret"`
+	SSHKey                string   `yaml:"sshKey"`
+	AdditionalTrustBundle string   `yaml:"additionalTrustBundle,omitempty"`
+	ImageContentSources   []struct {
+		Mirrors []string `yaml:"mirrors"`
+		Source  string   `yaml:"source"`
+	} `yaml:"imageContentSources,omitempty"`
 }
 
 func countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
@@ -121,20 +129,24 @@ func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
 			Name: cluster.Name,
 		},
 		Compute: []struct {
-			Name     string `yaml:"name"`
-			Replicas int    `yaml:"replicas"`
+			Hyperthreading string `yaml:"hyperthreading"`
+			Name           string `yaml:"name"`
+			Replicas       int    `yaml:"replicas"`
 		}{
 			{
-				Name:     string(models.HostRoleWorker),
-				Replicas: countHostsByRole(cluster, models.HostRoleWorker),
+				Hyperthreading: "Enabled",
+				Name:           string(models.HostRoleWorker),
+				Replicas:       countHostsByRole(cluster, models.HostRoleWorker),
 			},
 		},
 		ControlPlane: struct {
-			Name     string `yaml:"name"`
-			Replicas int    `yaml:"replicas"`
+			Hyperthreading string `yaml:"hyperthreading"`
+			Name           string `yaml:"name"`
+			Replicas       int    `yaml:"replicas"`
 		}{
-			Name:     string(models.HostRoleMaster),
-			Replicas: countHostsByRole(cluster, models.HostRoleMaster),
+			Hyperthreading: "Enabled",
+			Name:           string(models.HostRoleMaster),
+			Replicas:       countHostsByRole(cluster, models.HostRoleMaster),
 		},
 		PullSecret: cluster.PullSecret,
 		SSHKey:     cluster.SSHPublicKey,
