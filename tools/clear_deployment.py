@@ -13,6 +13,9 @@ def main():
     # configmaps are not deleted with `delete all`
     print(utils.check_output(f"kubectl get configmap -o name -n {deploy_options.namespace} | " +
                              f"xargs -r kubectl delete -n {deploy_options.namespace} 1> /dev/null ; true"))
+    # ingress is not deleted with `delete all`
+    print(utils.check_output(f"kubectl get ingress -o name -n {deploy_options.namespace} | " +
+                             f"xargs -r kubectl delete -n {deploy_options.namespace} 1> /dev/null ; true"))
     if deploy_options.delete_namespace is True:
         print(utils.check_output(f"kubectl delete namespace {deploy_options.namespace} 1> /dev/null ; true"))
 
