@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/assisted-service/client/events"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/managed_domains"
+	"github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/client/versions"
 )
 
@@ -64,6 +65,7 @@ func New(c Config) *AssistedInstall {
 	cli.Events = events.New(transport, strfmt.Default, c.AuthInfo)
 	cli.Installer = installer.New(transport, strfmt.Default, c.AuthInfo)
 	cli.ManagedDomains = managed_domains.New(transport, strfmt.Default, c.AuthInfo)
+	cli.Manifests = manifests.New(transport, strfmt.Default, c.AuthInfo)
 	cli.Versions = versions.New(transport, strfmt.Default, c.AuthInfo)
 	return cli
 }
@@ -73,6 +75,7 @@ type AssistedInstall struct {
 	Events         *events.Client
 	Installer      *installer.Client
 	ManagedDomains *managed_domains.Client
+	Manifests      *manifests.Client
 	Versions       *versions.Client
 	Transport      runtime.ClientTransport
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
+	"github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/openshift/assisted-service/restapi/operations/versions"
 )
 
@@ -55,6 +56,12 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerCompleteInstallationHandler: installer.CompleteInstallationHandlerFunc(func(params installer.CompleteInstallationParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.CompleteInstallation has not yet been implemented")
 		}),
+		ManifestsCreateClusterManifestHandler: manifests.CreateClusterManifestHandlerFunc(func(params manifests.CreateClusterManifestParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation manifests.CreateClusterManifest has not yet been implemented")
+		}),
+		ManifestsDeleteClusterManifestHandler: manifests.DeleteClusterManifestHandlerFunc(func(params manifests.DeleteClusterManifestParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation manifests.DeleteClusterManifest has not yet been implemented")
+		}),
 		InstallerDeregisterClusterHandler: installer.DeregisterClusterHandlerFunc(func(params installer.DeregisterClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DeregisterCluster has not yet been implemented")
 		}),
@@ -75,6 +82,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerDownloadClusterLogsHandler: installer.DownloadClusterLogsHandlerFunc(func(params installer.DownloadClusterLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadClusterLogs has not yet been implemented")
+		}),
+		ManifestsDownloadClusterManifestHandler: manifests.DownloadClusterManifestHandlerFunc(func(params manifests.DownloadClusterManifestParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation manifests.DownloadClusterManifest has not yet been implemented")
 		}),
 		InstallerDownloadHostLogsHandler: installer.DownloadHostLogsHandlerFunc(func(params installer.DownloadHostLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadHostLogs has not yet been implemented")
@@ -117,6 +127,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerInstallHostsHandler: installer.InstallHostsHandlerFunc(func(params installer.InstallHostsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.InstallHosts has not yet been implemented")
+		}),
+		ManifestsListClusterManifestsHandler: manifests.ListClusterManifestsHandlerFunc(func(params manifests.ListClusterManifestsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation manifests.ListClusterManifests has not yet been implemented")
 		}),
 		InstallerListClustersHandler: installer.ListClustersHandlerFunc(func(params installer.ListClustersParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListClusters has not yet been implemented")
@@ -235,6 +248,10 @@ type AssistedInstallAPI struct {
 	InstallerCancelInstallationHandler installer.CancelInstallationHandler
 	// InstallerCompleteInstallationHandler sets the operation handler for the complete installation operation
 	InstallerCompleteInstallationHandler installer.CompleteInstallationHandler
+	// ManifestsCreateClusterManifestHandler sets the operation handler for the create cluster manifest operation
+	ManifestsCreateClusterManifestHandler manifests.CreateClusterManifestHandler
+	// ManifestsDeleteClusterManifestHandler sets the operation handler for the delete cluster manifest operation
+	ManifestsDeleteClusterManifestHandler manifests.DeleteClusterManifestHandler
 	// InstallerDeregisterClusterHandler sets the operation handler for the deregister cluster operation
 	InstallerDeregisterClusterHandler installer.DeregisterClusterHandler
 	// InstallerDeregisterHostHandler sets the operation handler for the deregister host operation
@@ -249,6 +266,8 @@ type AssistedInstallAPI struct {
 	InstallerDownloadClusterKubeconfigHandler installer.DownloadClusterKubeconfigHandler
 	// InstallerDownloadClusterLogsHandler sets the operation handler for the download cluster logs operation
 	InstallerDownloadClusterLogsHandler installer.DownloadClusterLogsHandler
+	// ManifestsDownloadClusterManifestHandler sets the operation handler for the download cluster manifest operation
+	ManifestsDownloadClusterManifestHandler manifests.DownloadClusterManifestHandler
 	// InstallerDownloadHostLogsHandler sets the operation handler for the download host logs operation
 	InstallerDownloadHostLogsHandler installer.DownloadHostLogsHandler
 	// InstallerEnableHostHandler sets the operation handler for the enable host operation
@@ -277,6 +296,8 @@ type AssistedInstallAPI struct {
 	InstallerInstallClusterHandler installer.InstallClusterHandler
 	// InstallerInstallHostsHandler sets the operation handler for the install hosts operation
 	InstallerInstallHostsHandler installer.InstallHostsHandler
+	// ManifestsListClusterManifestsHandler sets the operation handler for the list cluster manifests operation
+	ManifestsListClusterManifestsHandler manifests.ListClusterManifestsHandler
 	// InstallerListClustersHandler sets the operation handler for the list clusters operation
 	InstallerListClustersHandler installer.ListClustersHandler
 	// VersionsListComponentVersionsHandler sets the operation handler for the list component versions operation
@@ -406,6 +427,12 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerCompleteInstallationHandler == nil {
 		unregistered = append(unregistered, "installer.CompleteInstallationHandler")
 	}
+	if o.ManifestsCreateClusterManifestHandler == nil {
+		unregistered = append(unregistered, "manifests.CreateClusterManifestHandler")
+	}
+	if o.ManifestsDeleteClusterManifestHandler == nil {
+		unregistered = append(unregistered, "manifests.DeleteClusterManifestHandler")
+	}
 	if o.InstallerDeregisterClusterHandler == nil {
 		unregistered = append(unregistered, "installer.DeregisterClusterHandler")
 	}
@@ -426,6 +453,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerDownloadClusterLogsHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadClusterLogsHandler")
+	}
+	if o.ManifestsDownloadClusterManifestHandler == nil {
+		unregistered = append(unregistered, "manifests.DownloadClusterManifestHandler")
 	}
 	if o.InstallerDownloadHostLogsHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadHostLogsHandler")
@@ -468,6 +498,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerInstallHostsHandler == nil {
 		unregistered = append(unregistered, "installer.InstallHostsHandler")
+	}
+	if o.ManifestsListClusterManifestsHandler == nil {
+		unregistered = append(unregistered, "manifests.ListClusterManifestsHandler")
 	}
 	if o.InstallerListClustersHandler == nil {
 		unregistered = append(unregistered, "installer.ListClustersHandler")
@@ -633,6 +666,14 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/actions/complete_installation"] = installer.NewCompleteInstallation(o.context, o.InstallerCompleteInstallationHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/manifests"] = manifests.NewCreateClusterManifest(o.context, o.ManifestsCreateClusterManifestHandler)
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/clusters/{cluster_id}/manifests"] = manifests.NewDeleteClusterManifest(o.context, o.ManifestsDeleteClusterManifestHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
@@ -661,6 +702,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/logs"] = installer.NewDownloadClusterLogs(o.context, o.InstallerDownloadClusterLogsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{cluster_id}/manifests/files"] = manifests.NewDownloadClusterManifest(o.context, o.ManifestsDownloadClusterManifestHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -717,6 +762,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/actions/install_hosts"] = installer.NewInstallHosts(o.context, o.InstallerInstallHostsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{cluster_id}/manifests"] = manifests.NewListClusterManifests(o.context, o.ManifestsListClusterManifestsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

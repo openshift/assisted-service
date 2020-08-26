@@ -417,7 +417,7 @@ paths:
         - in: query
           name: file_name
           type: string
-          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, logs]
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, logs, manifests]
           required: true
         - in: query
           name: logs_type
@@ -428,6 +428,10 @@ paths:
           name: host_id
           type: string
           format: uuid
+          required: false
+        - in: query
+          name: additional_name
+          type: string
           required: false
       responses:
         200:
@@ -713,6 +717,211 @@ paths:
             $ref: '#/definitions/error'
         405:
           description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /clusters/{cluster_id}/manifests:
+    get:
+      tags:
+        - manifests
+      security:
+        - userAuth: []
+      summary: Lists manifests for customizing cluster installation.
+      operationId: ListClusterManifests
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/list-manifests'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+    post:
+      tags:
+        - manifests
+      security:
+        - userAuth: []
+      summary: Creates a manifest for customizing cluster installation.
+      operationId: CreateClusterManifest
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: CreateManifestParams
+          required: true
+          schema:
+            $ref: '#/definitions/create-manifest-params'
+      responses:
+        201:
+          description: Success.
+          schema:
+            $ref: '#/definitions/manifest'
+        400:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+    delete:
+      tags:
+        - manifests
+      summary: Deletes a manifest from the cluster.
+      operationId: DeleteClusterManifest
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: folder
+          description: The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
+          type: string
+          enum: [manifests,openshift]
+          required: false
+          default: manifests
+        - in: query
+          name: file_name
+          description: The manifest file name to delete from the cluster.
+          type: string
+          required: true
+      responses:
+        200:
+          description: Success.
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /clusters/{cluster_id}/manifests/files:
+    get:
+      tags:
+        - manifests
+      security:
+        - userAuth: []
+      summary: Downloads cluster manifest.
+      operationId: DownloadClusterManifest
+      produces:
+        - application/octet-stream
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: folder
+          description: The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
+          type: string
+          enum: [manifests,openshift]
+          required: false
+          default: manifests
+        - in: query
+          name: file_name
+          description: The manifest file name to download.
+          type: string
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            type: file
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
           schema:
             $ref: '#/definitions/error'
         500:
@@ -2014,7 +2223,7 @@ definitions:
         type: string
         enum: ['Host', 'AddToExistingClusterHost']
         description: |
-          Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or 
+          Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or
           'AddToExistingClusterHost' for host being added to existing OCP cluster.
       id:
         type: string
@@ -2942,7 +3151,7 @@ definitions:
       verify_cidr:
         type: boolean
         description: Whether to verify if the API VIP belongs to one of the interfaces.
-  
+
   api_vip_connectivity_response:
     type: object
     properties:
@@ -3060,3 +3269,37 @@ definitions:
       - 'controller'
       - 'all'
       - ''
+
+  list-manifests:
+    type: array
+    items:
+      $ref: '#/definitions/manifest'
+
+  manifest:
+    type: object
+    properties:
+      folder:
+        description: The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
+        type: string
+        enum: [manifests,openshift]
+      file_name:
+        type: string
+        description: The file name prefaced by the folder that contains it.
+
+  create-manifest-params:
+    type: object
+    properties:
+      folder:
+        description: The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
+        type: string
+        enum: [manifests,openshift]
+        default: manifests
+      file_name:
+        description: The name of the manifest to be stored on S3 and to be created on '{folder}/{file_name}' at ignition generation using openshift-install.
+        type: string
+      content:
+        description: base64 encoded manifest content.
+        type: string
+    required:
+      - file_name
+      - content

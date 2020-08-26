@@ -330,17 +330,17 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 	// runs openshift-install to generate ignition files, then modifies them as necessary
 	var generator ignition.Generator
 	if k.Config.DummyIgnition {
-		generator = ignition.NewDummyGenerator(workDir, &cluster, log)
+		generator = ignition.NewDummyGenerator(workDir, &cluster, k.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, k.Config.ReleaseImage, k.Config.ServiceCACertPath, log)
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, k.Config.ReleaseImage, k.Config.ServiceCACertPath, k.s3Client, log)
 	}
-	err = generator.Generate(cfg)
+	err = generator.Generate(ctx, cfg)
 	if err != nil {
 		return err
 	}
 
 	// upload files to S3
-	err = generator.UploadToS3(ctx, k.s3Client)
+	err = generator.UploadToS3(ctx)
 	if err != nil {
 		return err
 	}

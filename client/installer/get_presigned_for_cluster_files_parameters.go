@@ -60,6 +60,8 @@ for the get presigned for cluster files operation typically these are written to
 */
 type GetPresignedForClusterFilesParams struct {
 
+	/*AdditionalName*/
+	AdditionalName *string
 	/*ClusterID*/
 	ClusterID strfmt.UUID
 	/*FileName*/
@@ -105,6 +107,17 @@ func (o *GetPresignedForClusterFilesParams) WithHTTPClient(client *http.Client) 
 // SetHTTPClient adds the HTTPClient to the get presigned for cluster files params
 func (o *GetPresignedForClusterFilesParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
+}
+
+// WithAdditionalName adds the additionalName to the get presigned for cluster files params
+func (o *GetPresignedForClusterFilesParams) WithAdditionalName(additionalName *string) *GetPresignedForClusterFilesParams {
+	o.SetAdditionalName(additionalName)
+	return o
+}
+
+// SetAdditionalName adds the additionalName to the get presigned for cluster files params
+func (o *GetPresignedForClusterFilesParams) SetAdditionalName(additionalName *string) {
+	o.AdditionalName = additionalName
 }
 
 // WithClusterID adds the clusterID to the get presigned for cluster files params
@@ -158,6 +171,22 @@ func (o *GetPresignedForClusterFilesParams) WriteToRequest(r runtime.ClientReque
 		return err
 	}
 	var res []error
+
+	if o.AdditionalName != nil {
+
+		// query param additional_name
+		var qrAdditionalName string
+		if o.AdditionalName != nil {
+			qrAdditionalName = *o.AdditionalName
+		}
+		qAdditionalName := qrAdditionalName
+		if qAdditionalName != "" {
+			if err := r.SetQueryParam("additional_name", qAdditionalName); err != nil {
+				return err
+			}
+		}
+
+	}
 
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {

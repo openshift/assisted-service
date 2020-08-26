@@ -27,6 +27,7 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installercache"
+	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -44,8 +45,8 @@ var fileNames = [...]string{
 
 // Generator can generate ignition files and upload them to an S3-like service
 type Generator interface {
-	Generate([]byte) error
-	UploadToS3(ctx context.Context, s3Client s3wrapper.API) error
+	Generate(ctx context.Context, installConfig []byte) error
+	UploadToS3(ctx context.Context) error
 	UpdateEtcHosts(string) error
 }
 
@@ -56,10 +57,12 @@ type installerGenerator struct {
 	releaseImage  string
 	installerDir  string
 	serviceCACert string
+	s3Client      s3wrapper.API
 }
 
 // NewGenerator returns a generator that can generate ignition files
-func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, serviceCACert string, log logrus.FieldLogger) Generator {
+func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string,
+	serviceCACert string, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
 	return &installerGenerator{
 		cluster:       cluster,
 		log:           log,
@@ -67,17 +70,18 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		workDir:       workDir,
 		installerDir:  installerDir,
 		serviceCACert: serviceCACert,
+		s3Client:      s3Client,
 	}
 }
 
 // UploadToS3 uploads generated ignition and related files to the configured
 // S3-compatible storage
-func (g *installerGenerator) UploadToS3(ctx context.Context, s3Client s3wrapper.API) error {
-	return uploadToS3(ctx, g.workDir, g.cluster.ID.String(), s3Client, g.log)
+func (g *installerGenerator) UploadToS3(ctx context.Context) error {
+	return uploadToS3(ctx, g.workDir, g.cluster.ID.String(), g.s3Client, g.log)
 }
 
 // Generate generates ignition files and applies modifications.
-func (g *installerGenerator) Generate(installConfig []byte) error {
+func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
 	installerPath, err := installercache.Get(g.releaseImage, g.installerDir, g.cluster.PullSecret, g.log)
 	if err != nil {
 		return err
@@ -105,15 +109,33 @@ func (g *installerGenerator) Generate(installConfig []byte) error {
 		return err
 	}
 
-	cmd := exec.Command(installerPath, "create", "ignition-configs", "--dir", g.workDir)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-	cmd.Env = envVars
-	err = cmd.Run()
+	manifestFiles, err := manifests.GetClusterManifests(ctx, g.cluster.ID, g.s3Client)
 	if err != nil {
-		g.log.Error("error running openshift-install create ignition-configs")
-		g.log.Error(out.String())
+		g.log.WithError(err).Errorf("Failed to check if cluster %s has manifests", g.cluster.ID)
+		return err
+	}
+
+	// invoke 'create manifests' command and download cluster manifests to manifests folder
+	if len(manifestFiles) > 0 {
+		err = g.runCreateCommand(installerPath, "manifests", envVars)
+		if err != nil {
+			return err
+		}
+		// download manifests files to working directory
+		for _, manifest := range manifestFiles {
+			g.log.Infof("Adding manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
+			err = g.downloadManifest(ctx, manifest)
+			if err != nil {
+				_ = os.Remove(filepath.Join(g.workDir, "manifests"))
+				_ = os.Remove(filepath.Join(g.workDir, "openshift"))
+				g.log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
+				return err
+			}
+		}
+	}
+
+	err = g.runCreateCommand(installerPath, "ignition-configs", envVars)
+	if err != nil {
 		return err
 	}
 
@@ -581,4 +603,39 @@ func GetServiceIPHostnames(serviceIPs string) string {
 		}
 	}
 	return content
+}
+
+func (g *installerGenerator) runCreateCommand(installerPath, command string, envVars []string) error {
+	cmd := exec.Command(installerPath, "create", command, "--dir", g.workDir)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	cmd.Env = envVars
+	err := cmd.Run()
+	if err != nil {
+		g.log.Errorf("error running openshift-install create %s", command)
+		g.log.Error(out.String())
+		return err
+	}
+	return nil
+}
+
+func (g *installerGenerator) downloadManifest(ctx context.Context, manifest string) error {
+	respBody, _, err := g.s3Client.Download(ctx, manifest)
+	if err != nil {
+		return err
+	}
+	content, err := ioutil.ReadAll(respBody)
+	if err != nil {
+		return err
+	}
+	// manifest has full path as object-key on s3: clusterID/manifests/[manifests|openshift]/filename
+	// clusterID/manifests should be trimmed
+	prefix := manifests.GetManifestObjectName(*g.cluster.ID, "")
+	targetPath := filepath.Join(g.workDir, strings.TrimPrefix(manifest, prefix))
+	err = ioutil.WriteFile(targetPath, content, 0600)
+	if err != nil {
+		return err
+	}
+	return nil
 }

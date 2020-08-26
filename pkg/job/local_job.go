@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,12 +36,16 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 
 	// runs openshift-install to generate ignition files, then modifies them as necessary
 	var generator ignition.Generator
-	if j.Config.DummyIgnition {
-		generator = ignition.NewDummyGenerator(workDir, &cluster, log)
-	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, j.Config.ReleaseImage, j.Config.ServiceCACertPath, log)
+	s3Client := s3wrapper.NewFSClient("/data", log)
+	if s3Client == nil {
+		log.Fatal("failed to create S3 file system client, ", err)
 	}
-	err = generator.Generate(cfg)
+	if j.Config.DummyIgnition {
+		generator = ignition.NewDummyGenerator(workDir, &cluster, s3Client, log)
+	} else {
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, j.Config.ReleaseImage, j.Config.ServiceCACertPath, s3Client, log)
+	}
+	err = generator.Generate(ctx, cfg)
 	if err != nil {
 		return err
 	}

@@ -13,22 +13,24 @@ import (
 )
 
 type dummyGenerator struct {
-	log     logrus.FieldLogger
-	workDir string
-	cluster *common.Cluster
+	log      logrus.FieldLogger
+	workDir  string
+	cluster  *common.Cluster
+	s3Client s3wrapper.API
 }
 
 // NewDummyGenerator returns a Generator that creates the expected files but with nonsense content
-func NewDummyGenerator(workDir string, cluster *common.Cluster, log logrus.FieldLogger) Generator {
+func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
 	return &dummyGenerator{
-		workDir: workDir,
-		log:     log,
-		cluster: cluster,
+		workDir:  workDir,
+		log:      log,
+		cluster:  cluster,
+		s3Client: s3Client,
 	}
 }
 
 // Generate creates the expected ignition and related files but with nonsense content
-func (g *dummyGenerator) Generate(installConfig []byte) error {
+func (g *dummyGenerator) Generate(ctx context.Context, installConfig []byte) error {
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")
 	err := ioutil.WriteFile(installConfigPath, installConfig, 0600)
 	if err != nil {
@@ -54,8 +56,8 @@ func (g *dummyGenerator) Generate(installConfig []byte) error {
 }
 
 // UploadToS3 uploads the generated files to the configured S3-compatible storage
-func (g *dummyGenerator) UploadToS3(ctx context.Context, s3Client s3wrapper.API) error {
-	return uploadToS3(ctx, g.workDir, g.cluster.ID.String(), s3Client, g.log)
+func (g *dummyGenerator) UploadToS3(ctx context.Context) error {
+	return uploadToS3(ctx, g.workDir, g.cluster.ID.String(), g.s3Client, g.log)
 }
 
 func (g *dummyGenerator) UpdateEtcHosts(serviceIPs string) error {

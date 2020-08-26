@@ -96,7 +96,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			},
 		}
 
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", log).(*installerGenerator)
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", nil, log).(*installerGenerator)
 		err = g.updateBootstrap(examplePath)
 
 		bootstrapBytes, _ := ioutil.ReadFile(examplePath)
@@ -176,7 +176,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 	Describe("update ignitions", func() {
 		It("with ca cert file", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", caCertPath, log).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", caCertPath, nil, log).(*installerGenerator)
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -197,7 +197,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 		})
 		It("with no ca cert file", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", log).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", nil, log).(*installerGenerator)
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -214,7 +214,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(workerConfig.Storage.Files).To(HaveLen(0))
 		})
 		It("with service ips", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", log).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", nil, log).(*installerGenerator)
 			err := g.UpdateEtcHosts("10.10.10.1,10.10.10.2")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -235,7 +235,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal("/etc/hosts"))
 		})
 		It("with no service ips", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", log).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", nil, log).(*installerGenerator)
 			err := g.UpdateEtcHosts("")
 			Expect(err).NotTo(HaveOccurred())
 
