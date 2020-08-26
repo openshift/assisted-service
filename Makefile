@@ -28,6 +28,7 @@ ROUTE53_SECRET := ${ROUTE53_SECRET}
 OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
+DELETE_PVC := $(or ${DELETE_PVC},False)
 
 all: build
 
@@ -233,12 +234,12 @@ clean:
 	-rm -rf $(BUILD_FOLDER)
 
 subsystem-clean:
-	-$(KUBECTL) get pod -o name | grep dummyimage | xargs $(KUBECTL) delete 1> /dev/null || true
-	-$(KUBECTL) get pod -o name | grep createimage | xargs $(KUBECTL) delete 1> /dev/null || true
-	-$(KUBECTL) get pod -o name | grep ignition-generator | xargs $(KUBECTL) delete 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep dummyimage | xargs -r $(KUBECTL) delete 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep ignition-generator | xargs -r $(KUBECTL) delete 1> /dev/null || true
 
 clear-deployment:
-	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
+	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
 
 clean-onprem:
 	podman pod rm -f -i assisted-installer

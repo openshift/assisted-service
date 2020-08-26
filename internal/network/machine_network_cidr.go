@@ -257,7 +257,7 @@ func MakeFreeAddressesSet(hosts []*models.Host, network string, prefix *string, 
 	for _, a := range availableFreeAddresses {
 		s, err := freeAddressesUnmarshal(network, a, prefix)
 		if err != nil {
-			log.WithError(err).Warnf("Unmarshal free addresses for network %s", network)
+			log.WithError(err).Debugf("Unmarshal free addresses for network %s", network)
 			continue
 		}
 		// TODO: Have to decide if we want to filter empty sets

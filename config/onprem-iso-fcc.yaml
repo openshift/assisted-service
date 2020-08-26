@@ -58,8 +58,8 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStartPre=podman pull quay.io/rwsu/assisted-service:test
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/rwsu/assisted-service:test
+            ExecStartPre=podman pull quay.io/ocpmetal/assisted-service:latest
+            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/ocpmetal/assisted-service:latest
             TimeoutStartSec=300
           
             [Install]
@@ -119,7 +119,7 @@ storage:
         - path: /etc/assisted-service/auth.json
           mode: 0644
           contents:
-            inline: "data:;base64,replace-with-your-base64-encoded-pull-secret"
+            inline: replace-with-your-urlencoded-pull-secret
         - path: /etc/assisted-service/startup_script.sh
           mode: 0644
           contents:
@@ -133,4 +133,3 @@ storage:
                   done
               printf "\nSERVICE_IPS=$ips">>/etc/assisted-service/environment
               
-        

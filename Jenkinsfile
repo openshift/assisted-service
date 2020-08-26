@@ -6,12 +6,30 @@ pipeline {
     environment {
         SERVICE = 'ocpmetal/assisted-service'
         ISO_CREATION = 'assisted-iso-create'
+        SLACK_TOKEN = credentials('slack-token')
     }
     options {
       timeout(time: 1, unit: 'HOURS') 
     }
 
     stages {
+        stage('Check environment') {
+            steps {
+                        sh '''
+                            if [ $(minikube status|grep Running)="" ] ; then
+                                echo "minikube is not running on $NODE_NAME, failing job BUILD_URL"
+                                echo '{"text":"minikube is not running on: ' > minikube_data.txt
+                                echo ${NODE_NAME} >> minikube_data.txt
+                                echo 'failing job: ' >> minikube_data.txt
+                                echo ${BUILD_URL} >> minikube_data.txt
+                                echo '"}' >> minikube_data.txt
+                                curl -X POST -H 'Content-type: application/json' --data-binary "@minikube_data.txt"  https://hooks.slack.com/services/$SLACK_TOKEN
+                                sh "exit 1"
+                            fi
+                        '''
+            }
+        }
+
         stage('clear deployment') {
             steps {
                 sh 'docker image prune -a -f'
@@ -74,36 +92,32 @@ pipeline {
         failure {
             script {
                 if (env.BRANCH_NAME == 'master')
-                    stage('notify master branch fail') {
-                        withCredentials([string(credentialsId: 'slack-token', variable: 'TOKEN')]) {
-                           sh '''
+                    sh '''
                            echo '{"text":"Attention! assisted-service master branch subsystem test failed, see: ' > data.txt
-
                            echo ${BUILD_URL} >> data.txt
                            echo '"}' >> data.txt
-                           curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt"  https://hooks.slack.com/services/$TOKEN'''
-                    }
-                }
+                           curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt"  https://hooks.slack.com/services/$SLACK_TOKEN
+                    '''
             }
 
             echo 'Get assisted-service log'
             sh '''
-            kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep assisted-service | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+            kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep assisted-service | xargs -r -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
             mv test_dd.log $WORKSPACE/assisted-service.log || true
             '''
 
             echo 'Get postgres log'
-            sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep postgres | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+            sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep postgres | xargs -r -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
             mv test_dd.log $WORKSPACE/postgres.log || true
             '''
 
             echo 'Get scality log'
-            sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep scality | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+            sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep scality | xargs -r -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
             mv test_dd.log $WORKSPACE/scality.log || true
             '''
 
             echo 'Get createimage log'
-            sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep createimage | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
+            sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep createimage | xargs -r -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
             mv test_dd.log $WORKSPACE/createimage.log || true
             '''
         }

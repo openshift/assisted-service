@@ -1587,6 +1587,10 @@ definitions:
         $ref: '#/definitions/host-role'
       bootstrap:
         type: boolean
+      logs_collected_at:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
       installer_version:
         type: string
         description: Installer version
@@ -2442,6 +2446,10 @@ definitions:
     type: string
     enum:
       - 'machine-cidr-defined'
+      - 'cluster-cidr-defined'
+      - 'service-cidr-defined'
+      - 'no-cidrs-overlapping'
+      - 'network-prefix-valid'
       - 'machine-cidr-equals-to-calculated-cidr'
       - 'api-vip-defined'
       - 'api-vip-valid'

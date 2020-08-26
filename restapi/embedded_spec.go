@@ -2515,6 +2515,10 @@ func init() {
       "type": "string",
       "enum": [
         "machine-cidr-defined",
+        "cluster-cidr-defined",
+        "service-cidr-defined",
+        "no-cidrs-overlapping",
+        "network-prefix-valid",
         "machine-cidr-equals-to-calculated-cidr",
         "api-vip-defined",
         "api-vip-valid",
@@ -2930,6 +2934,11 @@ func init() {
           "enum": [
             "Host"
           ]
+        },
+        "logs_collected_at": {
+          "type": "string",
+          "format": "datetime",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "progress": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
@@ -5972,6 +5981,10 @@ func init() {
       "type": "string",
       "enum": [
         "machine-cidr-defined",
+        "cluster-cidr-defined",
+        "service-cidr-defined",
+        "no-cidrs-overlapping",
+        "network-prefix-valid",
         "machine-cidr-equals-to-calculated-cidr",
         "api-vip-defined",
         "api-vip-valid",
@@ -6387,6 +6400,11 @@ func init() {
           "enum": [
             "Host"
           ]
+        },
+        "logs_collected_at": {
+          "type": "string",
+          "format": "datetime",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "progress": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
