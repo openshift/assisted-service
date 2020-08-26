@@ -1,20 +1,19 @@
 package job
 
 import (
-	"bytes"
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/openshift/assisted-service/internal/ignition"
 
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/pkg/generator"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/sirupsen/logrus"
 )
+
+//go:generate mockgen -package=job -destination=mock_local_job.go . LocalJob
 
 type LocalJob interface {
 	generator.ISOInstallConfigGenerator
@@ -62,25 +61,6 @@ func (j *localJob) AbortInstallConfig(ctx context.Context, cluster common.Cluste
 	return nil
 }
 
-func (j *localJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobName string, imageName string, ignitionConfig string, eventsHandler events.Handler) error {
-	log := logutil.FromContext(ctx, j.log)
-	workDir := j.Config.WorkDir
-	// #nosec G204
-	cmd := exec.Command(workDir + "/assisted-iso-create")
-	cmd.Env = append(os.Environ(),
-		"IGNITION_CONFIG="+ignitionConfig,
-		"IMAGE_NAME="+imageName,
-		"COREOS_IMAGE="+workDir+"/livecd.iso",
-		"USE_S3=false",
-		"WORK_DIR="+workDir,
-	)
-
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-	if err := cmd.Run(); err != nil {
-		log.Errorf("assisted-iso-create failed: %s", out.String())
-		return err
-	}
+func (j *localJob) UploadBaseISO() error {
 	return nil
 }
