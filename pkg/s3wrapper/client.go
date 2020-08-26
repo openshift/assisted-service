@@ -15,6 +15,7 @@ import (
 	"time"
 
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/prometheus/common/log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -38,6 +39,7 @@ type API interface {
 	Upload(ctx context.Context, data []byte, objectName string) error
 	UploadStream(ctx context.Context, reader io.Reader, objectName string) error
 	UploadFile(ctx context.Context, filePath, objectName string) error
+	UploadISO(ctx context.Context, filePath, objectName string) error
 	Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
 	DeleteObject(ctx context.Context, objectName string) error
@@ -158,6 +160,115 @@ func (c *S3Client) UploadFile(ctx context.Context, filePath, objectName string) 
 
 	reader := bufio.NewReader(file)
 	return c.UploadStream(ctx, reader, objectName)
+}
+
+func (c *S3Client) UploadISO(ctx context.Context, filePath, objectName string) error {
+	baseObjectKey := "livecd.iso"
+	file, err := os.Open(filePath)
+	if err != nil {
+		err = errors.Wrapf(err, "Unable to open file %s for upload", filePath)
+		log.Error(err)
+		return err
+	}
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Errorf("Unable to close file %s", filePath)
+		}
+	}()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		err = errors.Wrapf(err, "Unable to get information of file %s for upload", filePath)
+		log.Error(err)
+		return err
+	}
+
+	objectSize, err := c.GetObjectSizeBytes(ctx, baseObjectKey)
+	if err != nil {
+		err = errors.Wrapf(err, "Unable to get base object size")
+		log.Error(err)
+		return err
+	}
+
+	multiOut, err := c.client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{Bucket: aws.String(c.cfg.S3Bucket), Key: aws.String(objectName)})
+	if err != nil {
+		err = errors.Wrapf(err, "Unable to start upload for file %s", filePath)
+		log.Error(err)
+		return err
+	}
+	uploadID := multiOut.UploadId
+	firstChunkBytes := int64(5 * 1024 * 1024)
+	var completedParts []*s3.CompletedPart
+
+	partNum := int64(1)
+	completedPart, err := c.client.UploadPart(&s3.UploadPartInput{
+		Bucket:        aws.String(c.cfg.S3Bucket),
+		Key:           aws.String(objectName),
+		Body:          file,
+		ContentLength: &firstChunkBytes,
+		PartNumber:    &partNum,
+		UploadId:      uploadID,
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to upload first part for file %s", filePath)
+		log.Error(err)
+		return err
+	}
+	completedParts = append(completedParts, &s3.CompletedPart{ETag: completedPart.ETag, PartNumber: aws.Int64(partNum)})
+
+	partNum = int64(2)
+	completedPartCopy, err := c.client.UploadPartCopy(&s3.UploadPartCopyInput{
+		Bucket:          aws.String(c.cfg.S3Bucket),
+		Key:             aws.String(objectName),
+		CopySource:      aws.String(fmt.Sprintf("/%s/%s", c.cfg.S3Bucket, baseObjectKey)),
+		CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", firstChunkBytes+1, objectSize-1)),
+		PartNumber:      &partNum,
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to copy bulk part for file %s", filePath)
+		log.Error(err)
+		return err
+	}
+	completedParts = append(completedParts, &s3.CompletedPart{ETag: completedPartCopy.CopyPartResult.ETag, PartNumber: aws.Int64(partNum)})
+
+	_, err = file.Seek(objectSize, 0)
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to seek towards end of file %s", filePath)
+		log.Error(err)
+		return err
+	}
+
+	remainder := fileInfo.Size() - objectSize
+	partNum = int64(3)
+	completedPart, err = c.client.UploadPart(&s3.UploadPartInput{
+		Bucket:        aws.String(c.cfg.S3Bucket),
+		Key:           aws.String(objectName),
+		Body:          file,
+		ContentLength: &remainder,
+		PartNumber:    &partNum,
+		UploadId:      uploadID,
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to upload last part for file %s", filePath)
+		log.Error(err)
+		return err
+	}
+	completedParts = append(completedParts, &s3.CompletedPart{ETag: completedPart.ETag, PartNumber: aws.Int64(partNum)})
+
+	_, err = c.client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(c.cfg.S3Bucket),
+		Key:      aws.String(objectName),
+		UploadId: uploadID,
+		MultipartUpload: &s3.CompletedMultipartUpload{
+			Parts: completedParts,
+		},
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to complete upload for file %s", filePath)
+		log.Error(err)
+		return err
+	}
+	return nil
 }
 
 func (c *S3Client) Upload(ctx context.Context, data []byte, objectName string) error {

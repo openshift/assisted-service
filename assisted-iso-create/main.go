@@ -59,7 +59,7 @@ func embedIgnitionIntoISO(workDir, ignitionFile, imageName, baseISOFile string, 
 
 func uploadCreatedISOToS3(s3Client *s3wrapper.S3Client, isoFile, isoObjectName string, log *logrus.Logger) error {
 	ctx := context.Background()
-	err := s3Client.UploadFile(ctx, isoFile, isoObjectName)
+	err := s3Client.UploadISO(ctx, isoFile, isoObjectName)
 	if err != nil {
 		log.Errorf("Failed to upload file %s as object %s", isoFile, isoObjectName)
 		return err

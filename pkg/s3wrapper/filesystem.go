@@ -63,6 +63,10 @@ func (f *FSClient) UploadFile(ctx context.Context, filePath, objectName string) 
 	return f.Upload(ctx, data, objectName)
 }
 
+func (f *FSClient) UploadISO(ctx context.Context, filePath, objectName string) error {
+	return f.UploadFile(ctx, filePath, objectName)
+}
+
 func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectName string) error {
 	log := logutil.FromContext(ctx, f.log)
 	filePath := filepath.Join(f.basedir, objectName)
