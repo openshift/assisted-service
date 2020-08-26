@@ -45,8 +45,8 @@ def main():
 
             data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
             data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
-            data = data.replace('REPLACE_JWKS_URL', deploy_options.jwks_url)
-            data = data.replace('REPLACE_OCM_BASE_URL', deploy_options.ocm_url)
+            data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
+            data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))
             print("Deploying {}".format(DST_FILE))
 
             subsystem_versions = {"IMAGE_BUILDER": "ISO_CREATION",
