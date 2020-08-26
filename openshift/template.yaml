@@ -58,9 +58,6 @@ parameters:
 - name: INSTALLER_IMAGE
   value: ''
   required: true
-- name: SELF_VERSION
-  value: ''
-  required: true
 - name: CONTROLLER_IMAGE
   value: ''
   required: true
@@ -214,7 +211,7 @@ objects:
               - name: INSTALLER_IMAGE
                 value: ${INSTALLER_IMAGE}
               - name: SELF_VERSION
-                value: ${SELF_VERSION}
+                value: ${ASSISTED_SERVICE_IMAGE}:${IMAGE_TAG}
               - name: CONTROLLER_IMAGE
                 value: ${CONTROLLER_IMAGE}
               - name: AGENT_DOCKER_IMAGE
