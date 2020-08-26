@@ -70,6 +70,12 @@ parameters:
 - name: INVENTORY_IMAGE
   value: ''
   required: true
+- name: FREE_ADDRESSES_IMAGE
+  value: ''
+  required: true
+- name: DHCP_LEASE_ALLOCATOR_IMAGE
+  value: ''
+  required: true
 apiVersion: v1
 kind: Template
 metadata:
@@ -191,7 +197,7 @@ objects:
               - name: OCM_BASE_URL
                 value: ${OCM_BASE_URL}
               - name: IMAGE_BUILDER
-                value: ${IMAGE_BUILDER}
+                value: ${IMAGE_BUILDER}:${IMAGE_TAG}
               - name: HW_VALIDATOR_MIN_RAM_GIB_MASTER
                 value: ${HW_VALIDATOR_MIN_RAM_GIB_MASTER}
               - name: HW_VALIDATOR_MIN_CPU_CORES_MASTER
@@ -220,6 +226,11 @@ objects:
                 value: ${CONNECTIVITY_CHECK_IMAGE}
               - name: INVENTORY_IMAGE
                 value: ${INVENTORY_IMAGE}
+              - name: FREE_ADDRESSES_IMAGE
+                value: ${FREE_ADDRESSES_IMAGE}
+              - name: DHCP_LEASE_ALLOCATOR_IMAGE
+                value: ${DHCP_LEASE_ALLOCATOR_IMAGE}
+
 - apiVersion: v1
   kind: Service
   metadata:
