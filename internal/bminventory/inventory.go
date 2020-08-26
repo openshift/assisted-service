@@ -85,6 +85,7 @@ type Config struct {
 	AwsSecretAccessKey   string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
 	BaseDNSDomains       map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
 	SkipCertVerification bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	ServiceIPs           string            `envconfig:"SERVICE_IPS" default:""`
 }
 
 const agentMessageOfTheDay = `
@@ -96,7 +97,51 @@ sudo journalctl -u agent.service
 **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
 `
 
-const ignitionConfigFormat = `{
+type IgnitionConfigFormat struct {
+	Ignition struct {
+		Version string `json:"version"`
+	} `json:"ignition"`
+	Passwd struct {
+		Users []struct {
+			Name              string   `json:"name"`
+			PasswordHash      string   `json:"passwordHash"`
+			SSHAuthorizedKeys []string `json:"sshAuthorizedKeys"`
+			Groups            []string `json:"groups"`
+		} `json:"users"`
+	} `json:"passwd"`
+	Systemd struct {
+		Units []struct {
+			Name     string `json:"name"`
+			Enabled  bool   `json:"enabled"`
+			Contents string `json:"contents"`
+		} `json:"units"`
+	} `json:"systemd"`
+	Storage struct {
+		Files []struct {
+			Filesystem string `json:"filesystem"`
+			Path       string `json:"path"`
+			Mode       int    `json:"mode"`
+			Contents   struct {
+				Source string `json:"source"`
+			} `json:"contents"`
+		} `json:"files"`
+	} `json:"storage"`
+}
+
+type OnPremIgnitionConfigFormat struct {
+	Storage struct {
+		Files []struct {
+			Filesystem string `json:"filesystem"`
+			Path       string `json:"path"`
+			Mode       int    `json:"mode"`
+			Contents   struct {
+				Source string `json:"source"`
+			} `json:"contents"`
+		} `json:"files"`
+	} `json:"storage"`
+}
+
+const ignitionConfig = `{
 "ignition": { "version": "2.2.0" },
   "passwd": {
     "users": [
@@ -120,28 +165,9 @@ const ignitionConfigFormat = `{
   }
 }`
 
-const onPremIgnitionConfigFormat = `{
-	"ignition": { "version": "2.2.0" },
-	  "passwd": {
-		"users": [
-		  {{.userSshKey}}
-		]
-	  },
-	"systemd": {
-	"units": [{
-	"name": "agent.service",
-	"enabled": true,
-	"contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}\n\n[Install]\nWantedBy=multi-user.target"
-	}]
-	},
+const onPremIgnitionConfig = `{
 	"storage": {
 		"files": [{
-		  "filesystem": "root",
-		  "path": "/etc/motd",
-		  "mode": 644,
-		  "contents": { "source": "data:,{{.AGENT_MOTD}}" }
-		},
-		{
 		"filesystem": "root",
 		"path": "/etc/hosts",
 		"mode": 420,
@@ -231,23 +257,47 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"SkipCertVerification": strconv.FormatBool(b.SkipCertVerification),
 	}
 
-	if b.Config.DeployTarget == "onprem" {
+	ignition, err := b.getIgnitionConfig(ignitionConfig, ignitionParams)
+
+	if b.Config.ServiceIPs != "" {
+		var ign IgnitionConfigFormat
+		err = json.Unmarshal(ignition, &ign)
+
+		if err != nil {
+			return "", fmt.Errorf("Ignition invalid")
+		}
+
 		ignitionParams["ASSISTED_INSTALLER_IPS"] = dataurl.EncodeBytes([]byte(b.getIPs()))
-		return b.getIgnitionConfig(onPremIgnitionConfigFormat, ignitionParams)
+
+		onpremIgnition, err2 := b.getIgnitionConfig(onPremIgnitionConfig, ignitionParams) //check error
+		if err2 != nil {
+			return bytes.NewBuffer(onpremIgnition).String(), err2
+		}
+
+		var onpremIgn OnPremIgnitionConfigFormat
+		err3 := json.Unmarshal(onpremIgnition, &onpremIgn)
+		if err3 != nil {
+			return "", fmt.Errorf("Onprem ignition invalid")
+		}
+
+		ign.Storage.Files = append(ign.Storage.Files, onpremIgn.Storage.Files[0])
+		ignition, err = json.MarshalIndent(&ign, "", "	")
+
+		return bytes.NewBuffer(ignition).String(), err
 	}
-	return b.getIgnitionConfig(ignitionConfigFormat, ignitionParams)
+	return bytes.NewBuffer(ignition).String(), err
 }
 
-func (b *bareMetalInventory) getIgnitionConfig(ignitionConfigFormat string, ignitionParams map[string]string) (string, error) {
-	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
+func (b *bareMetalInventory) getIgnitionConfig(ignitionConfig string, ignitionParams map[string]string) ([]byte, error) {
+	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfig)
 	if err != nil {
-		return "", err
+		return []byte(""), err
 	}
 	buf := &bytes.Buffer{}
 	if err = tmpl.Execute(buf, ignitionParams); err != nil {
-		return "", err
+		return []byte(""), err
 	}
-	return buf.String(), nil
+	return buf.Bytes(), nil
 }
 
 func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOParams) string {
@@ -264,7 +314,7 @@ func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOPa
 }
 
 func (b *bareMetalInventory) getIPs() string {
-	ipArr := strings.Split(strings.TrimSpace(os.Getenv("ALL_IPS")), " ")
+	ipArr := strings.Split(strings.TrimSpace(os.Getenv("SERVICE_IPS")), " ")
 	ips := ""
 	for _, ip := range ipArr {
 		ips = ips + fmt.Sprintf(ip+" assisted-api.local.openshift.io\n")

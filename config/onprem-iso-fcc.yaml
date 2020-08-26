@@ -116,7 +116,7 @@ storage:
                         try_files $uri /index.html;
                     }
                 }
-        - path: /etc/assisted-service/auth.conf
+        - path: /etc/assisted-service/auth.json
           mode: 0644
           contents:
             inline: "data:;base64,replace-with-your-base64-encoded-pull-secret"
@@ -131,6 +131,6 @@ storage:
                   do 
                       printf "\n$ip assisted-api.local.openshift.io">>/etc/hosts
                   done
-              printf "\nALL_IPS=$ips">>/etc/assisted-service/environment
+              printf "\nSERVICE_IPS=$ips">>/etc/assisted-service/environment
               
         
