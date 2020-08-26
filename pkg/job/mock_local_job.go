@@ -6,12 +6,10 @@ package job
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
-	events "github.com/openshift/assisted-service/internal/events"
 	logrus "github.com/sirupsen/logrus"
+	reflect "reflect"
 )
 
 // MockLocalJob is a mock of LocalJob interface
@@ -51,18 +49,18 @@ func (mr *MockLocalJobMockRecorder) Execute(pythonCommand, pythonFilePath, envVa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockLocalJob)(nil).Execute), pythonCommand, pythonFilePath, envVars, log)
 }
 
-// GenerateISO mocks base method
-func (m *MockLocalJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobName, imageName, ignitionConfig string, eventsHandler events.Handler) error {
+// UploadBaseISO mocks base method
+func (m *MockLocalJob) UploadBaseISO() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateISO", ctx, cluster, jobName, imageName, ignitionConfig, eventsHandler)
+	ret := m.ctrl.Call(m, "UploadBaseISO")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// GenerateISO indicates an expected call of GenerateISO
-func (mr *MockLocalJobMockRecorder) GenerateISO(ctx, cluster, jobName, imageName, ignitionConfig, eventsHandler interface{}) *gomock.Call {
+// UploadBaseISO indicates an expected call of UploadBaseISO
+func (mr *MockLocalJobMockRecorder) UploadBaseISO() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateISO", reflect.TypeOf((*MockLocalJob)(nil).GenerateISO), ctx, cluster, jobName, imageName, ignitionConfig, eventsHandler)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadBaseISO", reflect.TypeOf((*MockLocalJob)(nil).UploadBaseISO))
 }
 
 // GenerateInstallConfig mocks base method

@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/binary"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -23,12 +25,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/cavaliercoder/go-cpio"
 	"github.com/go-openapi/swag"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/ulikunitz/xz"
 )
 
 const awsEndpointSuffix = ".amazonaws.com"
+const baseObjectName = "livecd.iso"
 
 //go:generate mockgen -source=client.go -package=s3wrapper -destination=mock_s3wrapper.go
 //go:generate mockgen -package s3wrapper -destination mock_s3iface.go github.com/aws/aws-sdk-go/service/s3/s3iface S3API
@@ -38,6 +43,7 @@ type API interface {
 	Upload(ctx context.Context, data []byte, objectName string) error
 	UploadStream(ctx context.Context, reader io.Reader, objectName string) error
 	UploadFile(ctx context.Context, filePath, objectName string) error
+	UploadISO(ctx context.Context, ignitionConfig, objectPrefix string) error
 	Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
 	DeleteObject(ctx context.Context, objectName string) error
@@ -158,6 +164,201 @@ func (c *S3Client) UploadFile(ctx context.Context, filePath, objectName string) 
 
 	reader := bufio.NewReader(file)
 	return c.UploadStream(ctx, reader, objectName)
+}
+
+func (c *S3Client) UploadISO(ctx context.Context, ignitionConfig, objectPrefix string) error {
+	log := logutil.FromContext(ctx, c.log)
+	objectName := fmt.Sprintf("%s.iso", objectPrefix)
+
+	// Get info from the ISO's header
+	areaOffsetBytes, areaLengthBytes, err := c.getISOHeaderInfo(log, baseObjectName)
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to fetch base ISO information")
+		log.Error(err)
+		return err
+	}
+	log.Infof("areaOffsetBytes: %d, areaLengthBytes: %d", areaOffsetBytes, areaLengthBytes)
+
+	baseObjectSize, err := c.GetObjectSizeBytes(ctx, baseObjectName)
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to fetch base ISO size")
+		log.Error(err)
+		return err
+	}
+
+	multiOut, err := c.client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{Bucket: aws.String(c.cfg.S3Bucket), Key: aws.String(objectName)})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to start upload for %s", objectName)
+		log.Error(err)
+		return err
+	}
+	uploadID := multiOut.UploadId
+	var completedParts []*s3.CompletedPart
+
+	// Copy the bulk of the live ISO, until the ignition area
+	completedPart, err := c.uploadPartCopy(log, aws.Int64(1), uploadID, baseObjectName, objectName, 0, areaOffsetBytes-1)
+	if err != nil {
+		return err
+	}
+	completedParts = append(completedParts, completedPart)
+
+	// Download the range of the live ISO starting from the ignition area
+	getRest, err := c.client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(c.cfg.S3Bucket),
+		Key:    aws.String(baseObjectName),
+		Range:  aws.String(fmt.Sprintf("bytes=%d-%d", areaOffsetBytes, baseObjectSize)),
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to fetch end of live ISO %s", objectName)
+		log.Error(err)
+		return err
+	}
+	origContents, err := ioutil.ReadAll(getRest.Body)
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to fetch body from end of live ISO %s", objectName)
+		log.Error(err)
+		return err
+	}
+
+	// Compress the ignition config, pad it with zeroes, and upload it
+	completedPart, err = c.uploadIgnition(log, aws.Int64(2), uploadID, objectName, ignitionConfig, origContents, areaLengthBytes)
+	if err != nil {
+		return err
+	}
+	completedParts = append(completedParts, completedPart)
+
+	_, err = c.client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(c.cfg.S3Bucket),
+		Key:      aws.String(objectName),
+		UploadId: uploadID,
+		MultipartUpload: &s3.CompletedMultipartUpload{
+			Parts: completedParts,
+		},
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to complete upload for %s", objectName)
+		log.Error(err)
+		return err
+	}
+	return nil
+}
+
+func (c *S3Client) getISOHeaderInfo(log logrus.FieldLogger, baseObjectName string) (int64, int64, error) {
+	// Download header of the live ISO (last 24 bytes of the first 32KB)
+	getResp, err := c.client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(c.cfg.S3Bucket),
+		Key:    aws.String(baseObjectName),
+		Range:  aws.String("bytes=32744-32768"),
+	})
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get header of object %s from bucket %s", baseObjectName, c.cfg.S3Bucket)
+		return 0, 0, err
+	}
+	headerString, err := ioutil.ReadAll(getResp.Body)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to read header of object %s from bucket %s", baseObjectName, c.cfg.S3Bucket)
+		return 0, 0, err
+	}
+
+	res := bytes.Compare(headerString[0:8], []byte("coreiso+"))
+	if res != 0 {
+		err := errors.New("Could not find magic string in object header")
+		log.WithError(err).Errorf("Failed to read header of object %s from bucket %s", baseObjectName, c.cfg.S3Bucket)
+		return 0, 0, err
+	}
+
+	offset := int64(binary.LittleEndian.Uint64(headerString[8:16]))
+	length := int64(binary.LittleEndian.Uint64(headerString[16:24]))
+	return offset, length, nil
+}
+
+func (c *S3Client) uploadPartCopy(log logrus.FieldLogger, partNum *int64, uploadID *string, sourceObjectKey string, destObjectKey string,
+	sourceStartBytes int64, sourceEndBytes int64) (*s3.CompletedPart, error) {
+	completedPartCopy, err := c.client.UploadPartCopy(&s3.UploadPartCopyInput{
+		Bucket:          aws.String(c.cfg.S3Bucket),
+		Key:             aws.String(destObjectKey),
+		CopySource:      aws.String(fmt.Sprintf("/%s/%s", c.cfg.S3Bucket, sourceObjectKey)),
+		CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", sourceStartBytes, sourceEndBytes)),
+		PartNumber:      partNum,
+		UploadId:        uploadID,
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to copy part %d for file %s", partNum, destObjectKey)
+		log.Error(err)
+		return nil, err
+	}
+	return &s3.CompletedPart{ETag: completedPartCopy.CopyPartResult.ETag, PartNumber: partNum}, nil
+}
+
+func (c *S3Client) uploadIgnition(log logrus.FieldLogger, partNum *int64, uploadID *string, objectName,
+	ignitionConfig string, origContents []byte, areaLengthBytes int64) (*s3.CompletedPart, error) {
+	ignitionBytes := []byte(ignitionConfig)
+
+	// Create CPIO archive
+	archiveBuffer := new(bytes.Buffer)
+	log.Info("Creating CPIO archive")
+	cpioWriter := cpio.NewWriter(archiveBuffer)
+	if err := cpioWriter.WriteHeader(&cpio.Header{Name: "config.ign", Mode: 0o100_644, Size: int64(len(ignitionBytes))}); err != nil {
+		log.WithError(err).Errorf("Failed to write CPIO header")
+		return nil, err
+	}
+	if _, err := cpioWriter.Write(ignitionBytes); err != nil {
+		log.WithError(err).Errorf("Failed to write CPIO archive")
+		return nil, err
+	}
+	if err := cpioWriter.Close(); err != nil {
+		log.WithError(err).Errorf("Failed to close CPIO archive")
+		return nil, err
+	}
+	log.Info("Created CPIO archive, length %d", len(archiveBuffer.Bytes()))
+
+	// Run xz compression
+	compressedBuffer := new(bytes.Buffer)
+	log.Info("Creating xz archive")
+	xzWriter, err := xz.NewWriter(compressedBuffer)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to create compression writer")
+		return nil, err
+	}
+	xzWriter.WriterConfig.CheckSum = xz.CRC32
+	if _, err = xzWriter.Write(archiveBuffer.Bytes()); err != nil {
+		err = errors.Wrapf(err, "Failed to gzip ignition config")
+		log.Error(err)
+		return nil, err
+	}
+	if err = xzWriter.Close(); err != nil {
+		err = errors.Wrapf(err, "Failed to gzip ignition config")
+		log.Error(err)
+		return nil, err
+	}
+	log.Info("Created xz archive, length %d", len(compressedBuffer.Bytes()))
+
+	if int64(len(compressedBuffer.Bytes())) > areaLengthBytes {
+		err = errors.New(fmt.Sprintf("Ignition is too long to be embedded (%d > %d)", len(archiveBuffer.Bytes()), areaLengthBytes))
+		log.Error(err)
+		return nil, err
+	}
+
+	copy(origContents, compressedBuffer.Bytes())
+	log.Info("Copied compressed archive to original contents")
+
+	contentLength := int64(len(origContents))
+	completedPartCopy, err := c.client.UploadPart(&s3.UploadPartInput{
+		Bucket:        aws.String(c.cfg.S3Bucket),
+		Key:           aws.String(objectName),
+		PartNumber:    partNum,
+		UploadId:      uploadID,
+		Body:          bytes.NewReader(origContents),
+		ContentLength: aws.Int64(contentLength),
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to upload ignition for file %s", objectName)
+		log.Error(err)
+		return nil, err
+	}
+	log.Info("Uploaded ignition part")
+
+	return &s3.CompletedPart{ETag: completedPartCopy.ETag, PartNumber: partNum}, nil
 }
 
 func (c *S3Client) Upload(ctx context.Context, data []byte, objectName string) error {

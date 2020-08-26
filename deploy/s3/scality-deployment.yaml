@@ -80,12 +80,12 @@ metadata:
   name: cloudserver-front
   namespace: REPLACE_NAMESPACE
 spec:
+  type: LoadBalancer
   ports:
     - port: 8000
       protocol: TCP
       targetPort: 8000
   selector:
     app: scality
-  clusterIP: None
 status:
   loadBalancer: {}

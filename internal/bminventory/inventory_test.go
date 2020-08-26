@@ -61,24 +61,6 @@ func strToUUID(s string) *strfmt.UUID {
 	return &u
 }
 
-func mockGenerateISOSuccess(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
-	if mockKubeJob != nil {
-		mockKubeJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
-	}
-	if mockLocalJob != nil {
-		mockLocalJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
-	}
-}
-
-func mockGenerateISOFailure(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
-	if mockKubeJob != nil {
-		mockKubeJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).Times(times)
-	}
-	if mockLocalJob != nil {
-		mockLocalJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).Times(times)
-	}
-}
-
 func mockGenerateInstallConfigSuccess(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
 	if mockKubeJob != nil {
 		mockKubeJob.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -142,9 +124,9 @@ var _ = Describe("GenerateClusterISO", func() {
 	RunGenerateClusterISOTests := func() {
 		It("success", func() {
 			clusterId := registerCluster(true).ID
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
@@ -157,9 +139,9 @@ var _ = Describe("GenerateClusterISO", func() {
 
 		It("success with proxy", func() {
 			clusterId := registerClusterWithHTTPProxy(true, "http://1.1.1.1:1234").ID
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", SSH public key "+
 				"is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -204,8 +186,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			cluster.ImageInfo = &models.ImageInfo{GeneratorVersion: bm.Config.ImageBuilder}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(true)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
@@ -221,8 +203,8 @@ var _ = Describe("GenerateClusterISO", func() {
 
 		It("success with AWS S3", func() {
 			clusterId := registerCluster(true).ID
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(true)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
@@ -243,20 +225,9 @@ var _ = Describe("GenerateClusterISO", func() {
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISONotFound()))
 		})
 
-		It("failed_to_create_job", func() {
+		It("failed_to_upload_iso", func() {
 			clusterId := registerCluster(true).ID
-			mockGenerateISOFailure(mockKubeJob, mockLocalJob, 1)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOInternalServerError()))
-		})
-
-		It("job_failed", func() {
-			clusterId := registerCluster(true).ID
-			mockGenerateISOFailure(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
@@ -278,7 +249,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			cluster := registerCluster(true)
 			cluster.PullSecret = "{\"auths\":{\"another.cloud.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"
 			clusterId := cluster.ID
-			mockGenerateISOFailure(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,

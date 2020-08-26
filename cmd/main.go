@@ -221,9 +221,10 @@ func main() {
 	if Options.DeployTarget == deploymet_type_k8s {
 		go func() {
 			defer apiEnabler.Enable()
-			//Run first ISO dummy for image pull, this is done so that the image will be pulled and the api will take less time.
-			// blocking function that can take a long time.
-			bminventory.GenerateDummyISOImage(log, generator, eventsHandler)
+			// Upload the live image which will serve as a basis for user-generated images.
+			if err = generator.UploadBaseISO(); err != nil {
+				log.Fatal("Failed to upload base image", err)
+			}
 		}()
 	} else {
 		apiEnabler.Enable()
