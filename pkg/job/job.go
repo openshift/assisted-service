@@ -41,7 +41,7 @@ type API interface {
 	// Monitor k8s job return error in case job fails
 	Monitor(ctx context.Context, name, namespace string) error
 	// Delete k8s job
-	Delete(ctx context.Context, name, namespace string) error
+	Delete(ctx context.Context, name, namespace string, force bool) error
 	generator.ISOInstallConfigGenerator
 }
 
@@ -143,7 +143,7 @@ func (k *kubeJob) Monitor(ctx context.Context, name, namespace string) error {
 }
 
 // Delete k8s job
-func (k *kubeJob) Delete(ctx context.Context, name, namespace string) error {
+func (k *kubeJob) Delete(ctx context.Context, name, namespace string, force bool) error {
 	log := logutil.FromContext(ctx, k.log)
 	var job batch.Job
 
@@ -159,7 +159,9 @@ func (k *kubeJob) Delete(ctx context.Context, name, namespace string) error {
 	// not deleting a job if it failed
 	if job.Status.Failed >= swag.Int32Value(job.Spec.BackoffLimit)+1 {
 		log.Infof("Job <%s> was found already failed", name)
-		return nil
+		if !force {
+			return nil
+		}
 	}
 
 	dp := meta.DeletePropagationForeground
@@ -274,7 +276,7 @@ func (k *kubeJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobNa
 		// Kill the previous job in case it's still running
 		prevJobName := fmt.Sprintf("createimage-%s-%s", cluster.ID, previousCreatedAt.Format("20060102150405"))
 		log.Info("Attempting to delete job %s", prevJobName)
-		if err := k.Delete(ctx, prevJobName, k.Namespace); err != nil {
+		if err := k.Delete(ctx, prevJobName, k.Namespace, false); err != nil {
 			log.WithError(err).Errorf("failed to kill previous job in cluster %s", cluster.ID)
 			msg := "Failed to generate image: error stopping previous image generation"
 			eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityError, msg, time.Now())
@@ -438,7 +440,7 @@ func (k *kubeJob) AbortInstallConfig(ctx context.Context, cluster common.Cluster
 	ctime := time.Time(cluster.CreatedAt)
 	cTimestamp := strconv.FormatInt(ctime.Unix(), 10)
 	jobName := fmt.Sprintf("%s-%s-%s", ignitionGeneratorPrefix, cluster.ID.String(), cTimestamp)[:63]
-	if err := k.Delete(ctx, jobName, k.Namespace); err != nil {
+	if err := k.Delete(ctx, jobName, k.Namespace, true); err != nil {
 		log.WithError(err).Errorf("Failed to abort kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
 		return errors.Wrapf(err, "Failed to abort kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
 	}
