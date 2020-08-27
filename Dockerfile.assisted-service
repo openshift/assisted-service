@@ -1,3 +1,9 @@
+# ISO for onprem
+FROM quay.io/coreos/coreos-installer:release AS coreos-installer
+FROM quay.io/ocpmetal/livecd-iso:rhcos-livecd AS livecd
+# Ignition generator for onprem
+FROM quay.io/ocpmetal/assisted-ignition-generator:latest as config-gen
+
 # Generate python client
 FROM swaggerapi/swagger-codegen-cli:2.4.15 as swagger_py
 
@@ -22,12 +28,40 @@ COPY --from=swagger_go /build/client client
 COPY --from=swagger_go /build/models models
 COPY --from=swagger_go /build/restapi restapi
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
+RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-iso-create assisted-iso-create/main.go
 RUN cd build && python3 setup.py sdist --dist-dir /assisted-service-client
 
 # Create final image
-FROM registry.access.redhat.com/ubi8/ubi:latest
+FROM centos:8
 ARG GIT_REVISION
 LABEL "git_revision"=${GIT_REVISION}
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /assisted-service-client/assisted-service-client-*.tar.gz /clients/
+
+# The additional bits below are for onprem
+ARG WORK_DIR=/data
+ARG USER=assisted-installer
+RUN mkdir $WORK_DIR && chmod 755 $WORK_DIR
+RUN useradd $USER
+RUN chown $USER:$USER $WORK_DIR
+# ISO
+COPY --from=coreos-installer /usr/sbin/coreos-installer $WORK_DIR
+COPY --from=livecd /root/image/livecd.iso $WORK_DIR/livecd.iso
+COPY --from=builder /build/assisted-iso-create $WORK_DIR
+ENV COREOS_IMAGE=$WORK_DIR/livecd.iso
+# Ignition generator
+RUN yum install -y libvirt-libs python3 python3-pip findutils wget && \
+   yum clean all && \
+   rm -rf /var/cache/dnf
+RUN pip3 install boto3 botocore pyyaml ipython
+RUN pip3 install /clients/*
+COPY --from=config-gen $WORK_DIR/openshift-install $WORK_DIR
+COPY --from=config-gen $WORK_DIR/render_files.py $WORK_DIR
+COPY --from=config-gen $WORK_DIR/utils.py $WORK_DIR
+COPY --from=config-gen $WORK_DIR/bmh_utils.py $WORK_DIR
+COPY --from=config-gen $WORK_DIR/oc_utils.py $WORK_DIR
+COPY --from=config-gen $WORK_DIR/test_utils.py $WORK_DIR
+ENV WORK_DIR=$WORK_DIR
+# onprem end
+
 CMD ["/assisted-service"]

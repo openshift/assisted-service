@@ -22,21 +22,6 @@ sed -i 's#replace-with-your-ssh-public-key#'"${SSH_PUBLIC_KEY}"'#' onprem-iso-co
 sed -i 's#replace-with-your-urlencoded-pull-secret#'"${PULL_SECRET_ENCODED}"'#' onprem-iso-config.ign
 ````
 
-Currently, the upstream assisted-service container image cannot be used with the live ISO. You will 
-need to build a custom container image and push it to quay.io.
-
-````
-export SERVICE=quay.io/<your-org>/assisted-service:latest
-make build-onprem
-podman push ${SERVICE}
-````
-
-Then update the ignition config file to use your assisted-service container image.
-
-````
-sed -i 's#quay.io/ocpmetal/assisted-service:latest#'"${SERVICE}"'#' onprem-iso-config.ign
-````
-
 ### Download the base RHCOS live ISO
 
 The base live ISO is extracted from a container image. Run the container

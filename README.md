@@ -198,13 +198,6 @@ Default tag is latest
 
 The assisted service can also be deployed without using a Kubernetes cluster. In this scenario the service and associated components are deployed onto your local host as a pod using Podman.
 
-This type of deployment requires a different container image that combines components that are used to generate the installer ISO and configuration files. First build the image:
-
-```
-export SERVICE=quay.io/<your-org>/assisted-service:latest
-make build-onprem
-```
-
 To deploy, update SERVICE_BASE_URL in the onprem-environment file to match the hostname or IP address of your host. For example if your IP address is 192.168.122.2, then the SERVICE_BASE_URL would be set to http://192.168.122.2:8090. Port 8090 is the assisted-service API.
 
 Then deploy the containers:
