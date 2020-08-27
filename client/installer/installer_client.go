@@ -97,6 +97,9 @@ type API interface {
 	   UpdateCluster updates an open shift bare metal cluster definition*/
 	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
 	/*
+	   UpdateClusterInstallConfig overrides values in the install config*/
+	UpdateClusterInstallConfig(ctx context.Context, params *UpdateClusterInstallConfigParams) (*UpdateClusterInstallConfigCreated, error)
+	/*
 	   UpdateHostInstallProgress updates installation progress*/
 	UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error)
 	/*
@@ -772,6 +775,31 @@ func (a *Client) UpdateCluster(ctx context.Context, params *UpdateClusterParams)
 		return nil, err
 	}
 	return result.(*UpdateClusterCreated), nil
+
+}
+
+/*
+UpdateClusterInstallConfig overrides values in the install config
+*/
+func (a *Client) UpdateClusterInstallConfig(ctx context.Context, params *UpdateClusterInstallConfigParams) (*UpdateClusterInstallConfigCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateClusterInstallConfig",
+		Method:             "PATCH",
+		PathPattern:        "/clusters/{cluster_id}/install-config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateClusterInstallConfigReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateClusterInstallConfigCreated), nil
 
 }
 
