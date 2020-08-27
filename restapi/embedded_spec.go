@@ -2329,6 +2329,11 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
+        "install_config_overrides": {
+          "description": "Json formatted string containing the user overrides for the install-config.yaml file",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+        },
         "install_started_at": {
           "description": "The time that this cluster began installation.",
           "type": "string",
@@ -5929,6 +5934,11 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
+        },
+        "install_config_overrides": {
+          "description": "Json formatted string containing the user overrides for the install-config.yaml file",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "install_started_at": {
           "description": "The time that this cluster began installation.",

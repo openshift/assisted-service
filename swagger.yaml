@@ -2100,6 +2100,10 @@ definitions:
         type: string
         description: Json formatted string containing the validations results for each validation id grouped by category (network, hosts-data, etc.)
         x-go-custom-tag: gorm:"type:varchar(2048)"
+      install_config_overrides:
+        type: string
+        description: Json formatted string containing the user overrides for the install-config.yaml file
+        x-go-custom-tag: gorm:"type:varchar(2048)"
 
 
   image_info:
