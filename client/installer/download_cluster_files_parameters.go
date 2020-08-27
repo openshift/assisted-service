@@ -62,6 +62,8 @@ type DownloadClusterFilesParams struct {
 
 	/*ClusterID*/
 	ClusterID strfmt.UUID
+	/*DiscoveryAgentVersion*/
+	DiscoveryAgentVersion *string
 	/*FileName*/
 	FileName string
 
@@ -114,6 +116,17 @@ func (o *DownloadClusterFilesParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
+// WithDiscoveryAgentVersion adds the discoveryAgentVersion to the download cluster files params
+func (o *DownloadClusterFilesParams) WithDiscoveryAgentVersion(discoveryAgentVersion *string) *DownloadClusterFilesParams {
+	o.SetDiscoveryAgentVersion(discoveryAgentVersion)
+	return o
+}
+
+// SetDiscoveryAgentVersion adds the discoveryAgentVersion to the download cluster files params
+func (o *DownloadClusterFilesParams) SetDiscoveryAgentVersion(discoveryAgentVersion *string) {
+	o.DiscoveryAgentVersion = discoveryAgentVersion
+}
+
 // WithFileName adds the fileName to the download cluster files params
 func (o *DownloadClusterFilesParams) WithFileName(fileName string) *DownloadClusterFilesParams {
 	o.SetFileName(fileName)
@@ -136,6 +149,15 @@ func (o *DownloadClusterFilesParams) WriteToRequest(r runtime.ClientRequest, reg
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
+	}
+
+	if o.DiscoveryAgentVersion != nil {
+
+		// header param discovery_agent_version
+		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
+			return err
+		}
+
 	}
 
 	// query param file_name

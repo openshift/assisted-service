@@ -111,6 +111,10 @@ paths:
           type: string
           format: uuid
           required: true
+        - in: header
+          name: discovery_agent_version
+          type: string
+          required: false
       responses:
         200:
           description: Success.
@@ -346,6 +350,10 @@ paths:
           type: string
           enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml]
           required: true
+        - in: header
+          name: discovery_agent_version
+          type: string
+          required: false
       responses:
         200:
           description: Success.
@@ -535,6 +543,10 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/ingress-cert-params'
+        - in: header
+          name: discovery_agent_version
+          type: string
+          required: false
       responses:
         201:
           description: Success.
@@ -712,6 +724,10 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/completion-params'
+        - in: header
+          name: discovery_agent_version
+          type: string
+          required: false
       responses:
         202:
           description: Success.
@@ -761,6 +777,10 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/host-create-params'
+        - in: header
+          name: discovery_agent_version
+          type: string
+          required: false
       responses:
         201:
           description: Success.
@@ -805,6 +825,10 @@ paths:
           type: string
           format: uuid
           required: true
+        - in: header
+          name: discovery_agent_version
+          type: string
+          required: false
       responses:
         200:
           description: Success.
@@ -923,6 +947,10 @@ paths:
       summary: Update installation progress
       operationId: UpdateHostInstallProgress
       parameters:
+        - in: header
+          name: discovery_agent_version
+          type: string
+          required: false
         - in: path
           name: cluster_id
           description: The ID of the cluster to retrieve
@@ -1123,6 +1151,10 @@ paths:
           type: string
           format: uuid
           required: true
+        - in: header
+          name: discovery_agent_version
+          type: string
+          required: false
       responses:
         200:
           description: Success.
@@ -1157,6 +1189,10 @@ paths:
       summary: Posts the result of the operations from the host agent.
       operationId: PostStepReply
       parameters:
+        - in: header
+          name: discovery_agent_version
+          type: string
+          required: false
         - in: path
           name: cluster_id
           type: string
@@ -1223,6 +1259,10 @@ paths:
         - in: formData
           name: upfile
           type: file
+          required: false
+        - in: header
+          name: discovery_agent_version
+          type: string
           required: false
           # TODO return after fix in go-swagger and moving to 0.25 or o.26
           # https://github.com/go-swagger/go-swagger/issues/2362

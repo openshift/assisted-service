@@ -64,6 +64,8 @@ type PostStepReplyParams struct {
 
 	/*ClusterID*/
 	ClusterID strfmt.UUID
+	/*DiscoveryAgentVersion*/
+	DiscoveryAgentVersion *string
 	/*HostID*/
 	HostID strfmt.UUID
 	/*Reply*/
@@ -118,6 +120,17 @@ func (o *PostStepReplyParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
+// WithDiscoveryAgentVersion adds the discoveryAgentVersion to the post step reply params
+func (o *PostStepReplyParams) WithDiscoveryAgentVersion(discoveryAgentVersion *string) *PostStepReplyParams {
+	o.SetDiscoveryAgentVersion(discoveryAgentVersion)
+	return o
+}
+
+// SetDiscoveryAgentVersion adds the discoveryAgentVersion to the post step reply params
+func (o *PostStepReplyParams) SetDiscoveryAgentVersion(discoveryAgentVersion *string) {
+	o.DiscoveryAgentVersion = discoveryAgentVersion
+}
+
 // WithHostID adds the hostID to the post step reply params
 func (o *PostStepReplyParams) WithHostID(hostID strfmt.UUID) *PostStepReplyParams {
 	o.SetHostID(hostID)
@@ -151,6 +164,15 @@ func (o *PostStepReplyParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
+	}
+
+	if o.DiscoveryAgentVersion != nil {
+
+		// header param discovery_agent_version
+		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
+			return err
+		}
+
 	}
 
 	// path param host_id

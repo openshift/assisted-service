@@ -62,6 +62,8 @@ type ListHostsParams struct {
 
 	/*ClusterID*/
 	ClusterID strfmt.UUID
+	/*DiscoveryAgentVersion*/
+	DiscoveryAgentVersion *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -112,6 +114,17 @@ func (o *ListHostsParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
+// WithDiscoveryAgentVersion adds the discoveryAgentVersion to the list hosts params
+func (o *ListHostsParams) WithDiscoveryAgentVersion(discoveryAgentVersion *string) *ListHostsParams {
+	o.SetDiscoveryAgentVersion(discoveryAgentVersion)
+	return o
+}
+
+// SetDiscoveryAgentVersion adds the discoveryAgentVersion to the list hosts params
+func (o *ListHostsParams) SetDiscoveryAgentVersion(discoveryAgentVersion *string) {
+	o.DiscoveryAgentVersion = discoveryAgentVersion
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *ListHostsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -123,6 +136,15 @@ func (o *ListHostsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Reg
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
+	}
+
+	if o.DiscoveryAgentVersion != nil {
+
+		// header param discovery_agent_version
+		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
+			return err
+		}
+
 	}
 
 	if len(res) > 0 {

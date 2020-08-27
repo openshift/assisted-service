@@ -155,6 +155,11 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -417,6 +422,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/completion-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -698,6 +708,11 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -1204,6 +1219,11 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -1265,6 +1285,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/host-create-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -1670,6 +1695,11 @@ func init() {
             "name": "host_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -1723,6 +1753,11 @@ func init() {
         "summary": "Posts the result of the operations from the host agent.",
         "operationId": "PostStepReply",
         "parameters": [
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -1895,10 +1930,15 @@ func init() {
           },
           {
             "type": "file",
-            "x-mimetype": "application/zip",
-            "description": "The file to upload.",
             "name": "upfile",
             "in": "formData"
+          },
+          {
+            "type": "string",
+            "x-mimetype": "application/zip",
+            "description": "The file to upload.",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -1933,6 +1973,11 @@ func init() {
         "summary": "Update installation progress",
         "operationId": "UpdateHostInstallProgress",
         "parameters": [
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -2023,6 +2068,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/ingress-cert-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -3615,6 +3665,11 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -3877,6 +3932,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/completion-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -4158,6 +4218,11 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -4664,6 +4729,11 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -4725,6 +4795,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/host-create-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -5130,6 +5205,11 @@ func init() {
             "name": "host_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -5183,6 +5263,11 @@ func init() {
         "summary": "Posts the result of the operations from the host agent.",
         "operationId": "PostStepReply",
         "parameters": [
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -5355,10 +5440,15 @@ func init() {
           },
           {
             "type": "file",
-            "x-mimetype": "application/zip",
-            "description": "The file to upload.",
             "name": "upfile",
             "in": "formData"
+          },
+          {
+            "type": "string",
+            "x-mimetype": "application/zip",
+            "description": "The file to upload.",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -5393,6 +5483,11 @@ func init() {
         "summary": "Update installation progress",
         "operationId": "UpdateHostInstallProgress",
         "parameters": [
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
           {
             "type": "string",
             "format": "uuid",
@@ -5483,6 +5578,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/ingress-cert-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
