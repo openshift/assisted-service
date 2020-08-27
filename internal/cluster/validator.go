@@ -118,7 +118,7 @@ func (v *clusterValidator) isServiceCidr(c *clusterPreprocessContext) validation
 	return boolValue(c.cluster.ServiceNetworkCidr != "")
 }
 
-func (v *clusterValidator) printisServiceCidr(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsServiceCidrDefined(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationFailure:
 		return "Service Network CIDR is undefined"
