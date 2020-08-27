@@ -110,6 +110,14 @@ objects:
             ports:
               - name: assisted-svc
                 containerPort: 8090
+            livenessProbe:
+              httpGet:
+                path: /health
+                port: 8090
+            readinessProbe:
+              httpGet:
+                path: /ready
+                port: 8090
             env:
               - name: ROUTE53_SECRET
                 valueFrom:
