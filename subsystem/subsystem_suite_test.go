@@ -18,16 +18,19 @@ import (
 )
 
 var db *gorm.DB
-var agentBMClient, badAgentBMClient, userBMClient *client.AssistedInstall
+var agentBMClient, badAgentBMClient, userBMClient, adminUserBMClient, unallowedUserBMClient *client.AssistedInstall
 var log *logrus.Logger
+var wiremock *WireMock
 
 var Options struct {
-	DBHost        string `envconfig:"DB_HOST"`
-	DBPort        string `envconfig:"DB_PORT"`
-	EnableAuth    bool   `envconfig:"ENABLE_AUTH"`
-	InventoryHost string `envconfig:"INVENTORY"`
-	TestToken     string `envconfig:"TEST_TOKEN"`
-	OCMHost       string `envconfig:"OCM_HOST"`
+	DBHost             string `envconfig:"DB_HOST"`
+	DBPort             string `envconfig:"DB_PORT"`
+	EnableAuth         bool   `envconfig:"ENABLE_AUTH"`
+	InventoryHost      string `envconfig:"INVENTORY"`
+	TestToken          string `envconfig:"TEST_TOKEN"`
+	TestTokenAdmin     string `envconfig:"TEST_TOKEN_ADMIN"`
+	TestTokenUnallowed string `envconfig:"TEST_TOKEN_UNALLOWED"`
+	OCMHost            string `envconfig:"OCM_HOST"`
 }
 
 func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {
@@ -54,9 +57,13 @@ func init() {
 		log.Fatal(err.Error())
 	}
 	userClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestToken))
+	adminUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenAdmin))
+	unallowedUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenUnallowed))
 	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(FakePullSecret))
 	badAgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(WrongPullSecret))
 	userBMClient = client.New(userClientCfg)
+	adminUserBMClient = client.New(adminUserClientCfg)
+	unallowedUserBMClient = client.New(unallowedUserClientCfg)
 	agentBMClient = client.New(agentClientCfg)
 	badAgentBMClient = client.New(badAgentClientCfg)
 
@@ -67,13 +74,19 @@ func init() {
 		logrus.Fatal("Fail to connect to DB, ", err)
 	}
 
-	err = deleteAllWiremockStubs(Options.OCMHost)
-	if err != nil {
-		logrus.Fatal("Fail to delete all wiremock stubs, ", err)
-	}
+	if Options.EnableAuth {
+		wiremock = &WireMock{
+			OCMHost:   Options.OCMHost,
+			TestToken: Options.TestToken,
+		}
+		err = wiremock.DeleteAllWiremockStubs()
+		if err != nil {
+			logrus.Fatal("Fail to delete all wiremock stubs, ", err)
+		}
 
-	if err = createDefaultWiremockStubsForOCM(Options.OCMHost, Options.TestToken); err != nil {
-		logrus.Fatal("Failed to init wiremock stubs, ", err)
+		if err = wiremock.CreateWiremockStubsForOCM(); err != nil {
+			logrus.Fatal("Failed to init wiremock stubs, ", err)
+		}
 	}
 }
 

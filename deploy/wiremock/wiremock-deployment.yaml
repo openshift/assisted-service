@@ -19,13 +19,6 @@ spec:
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 8080
-          volumeMounts:
-            - mountPath: /home/wiremock
-              name: wiremock
-      volumes:
-        - name: wiremock
-          persistentVolumeClaim:
-            claimName: wiremock-pv-claim
 ---
   apiVersion: v1
   kind: Service

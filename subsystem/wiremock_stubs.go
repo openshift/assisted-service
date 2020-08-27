@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/openshift/assisted-service/pkg/auth"
 )
@@ -31,42 +32,59 @@ type Mapping struct {
 	ID string
 }
 
+type WireMock struct {
+	OCMHost   string
+	TestToken string
+}
+
 const (
-	wiremockMappingsPath string = "/__admin/mappings"
-	capabilityReviewPath string = "/api/authorizations/v1/capability_review"
-	accessReviewPath     string = "/api/authorizations/v1/access_review"
-	pullAuthPath         string = "/api/accounts_mgmt/v1/token_authorization"
-	tokenPath            string = "/token"
-	fakePayloadUsername  string = "jdoe123@example.com"
-	FakePullSecret       string = "fake_pull_secret"
-	WrongPullSecret      string = "wrong_pull_secret"
+	wiremockMappingsPath     string = "/__admin/mappings"
+	capabilityReviewPath     string = "/api/authorizations/v1/capability_review"
+	accessReviewPath         string = "/api/authorizations/v1/access_review"
+	pullAuthPath             string = "/api/accounts_mgmt/v1/token_authorization"
+	tokenPath                string = "/token"
+	fakePayloadUsername      string = "jdoe123@example.com"
+	fakePayloadAdmin         string = "admin@example.com"
+	fakePayloadUnallowedUser string = "unallowed@example.com"
+	FakePullSecret           string = "fake_secret"
+	WrongPullSecret          string = "wrong_secret"
 )
 
-func createDefaultWiremockStubsForOCM(ocmHost, testToken string) error {
-	if _, err := createStubCapabilityReview(ocmHost, fakePayloadUsername); err != nil {
+func (w *WireMock) CreateWiremockStubsForOCM() error {
+	if err := w.createStubsForAccessReview(); err != nil {
 		return err
 	}
 
-	if _, err := createStubAccessReview(ocmHost, fakePayloadUsername); err != nil {
+	if err := w.createStubsForCapabilityReview(); err != nil {
 		return err
 	}
 
-	if _, err := createStubTokenAuth(ocmHost, FakePullSecret, fakePayloadUsername); err != nil {
+	if _, err := w.createStubTokenAuth(FakePullSecret, fakePayloadUsername); err != nil {
 		return err
 	}
 
-	if _, err := createWrongStubTokenAuth(ocmHost, WrongPullSecret); err != nil {
-		return err
-	}
-
-	if _, err := createStubToken(ocmHost, testToken); err != nil {
+	if _, err := w.createStubToken(w.TestToken); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func createStubToken(ocmHost, testToken string) (string, error) {
+func (w *WireMock) createStubsForAccessReview() error {
+	if _, err := w.createStubAccessReview(fakePayloadUsername, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (w *WireMock) createStubsForCapabilityReview() error {
+	if _, err := w.createStubCapabilityReview(fakePayloadUsername, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (w *WireMock) createStubToken(testToken string) (string, error) {
 	type TokenResponse struct {
 		AccessToken      string `json:"access_token,omitempty"`
 		Error            string `json:"error,omitempty"`
@@ -100,10 +118,10 @@ func createStubToken(ocmHost, testToken string) (string, error) {
 		},
 	}
 
-	return addStub(ocmHost, tokenStub)
+	return w.addStub(tokenStub)
 }
 
-func createStubCapabilityReview(ocmHost, username string) (string, error) {
+func (w *WireMock) createStubCapabilityReview(username string, result bool) (string, error) {
 	type CapabilityRequest struct {
 		Name     string `json:"capability"`
 		Type     string `json:"type"`
@@ -121,7 +139,7 @@ func createStubCapabilityReview(ocmHost, username string) (string, error) {
 	}
 
 	capabilityResponse := CapabilityResponse{
-		Result: "true",
+		Result: strconv.FormatBool(result),
 	}
 
 	var reqBody []byte
@@ -136,11 +154,11 @@ func createStubCapabilityReview(ocmHost, username string) (string, error) {
 		return "", err
 	}
 
-	capabilityReviewStub := createStubDefinition(capabilityReviewPath, "POST", string(reqBody), string(resBody), 200)
-	return addStub(ocmHost, capabilityReviewStub)
+	capabilityReviewStub := w.createStubDefinition(capabilityReviewPath, "POST", string(reqBody), string(resBody), 200)
+	return w.addStub(capabilityReviewStub)
 }
 
-func createStubAccessReview(ocmHost, username string) (string, error) {
+func (w *WireMock) createStubAccessReview(username string, allowed bool) (string, error) {
 	type CapabilityRequest struct {
 		ResourceType string `json:"resource_type"`
 		Action       string `json:"action"`
@@ -158,7 +176,7 @@ func createStubAccessReview(ocmHost, username string) (string, error) {
 	}
 
 	capabilityResponse := CapabilityResponse{
-		Allowed: true,
+		Allowed: allowed,
 	}
 
 	var reqBody []byte
@@ -173,11 +191,11 @@ func createStubAccessReview(ocmHost, username string) (string, error) {
 		return "", err
 	}
 
-	capabilityReviewStub := createStubDefinition(accessReviewPath, "POST", string(reqBody), string(resBody), 200)
-	return addStub(ocmHost, capabilityReviewStub)
+	capabilityReviewStub := w.createStubDefinition(accessReviewPath, "POST", string(reqBody), string(resBody), 200)
+	return w.addStub(capabilityReviewStub)
 }
 
-func createStubTokenAuth(ocmHost, token, username string) (string, error) {
+func (w *WireMock) createStubTokenAuth(token, username string) (string, error) {
 	type TokenAuthorizationRequest struct {
 		AuthorizationToken string `json:"authorization_token"`
 	}
@@ -218,11 +236,11 @@ func createStubTokenAuth(ocmHost, token, username string) (string, error) {
 		return "", err
 	}
 
-	tokenAuthStub := createStubDefinition(pullAuthPath, "POST", string(reqBody), string(resBody), 200)
-	return addStub(ocmHost, tokenAuthStub)
+	tokenAuthStub := w.createStubDefinition(pullAuthPath, "POST", string(reqBody), string(resBody), 200)
+	return w.addStub(tokenAuthStub)
 }
 
-func createWrongStubTokenAuth(ocmHost, token string) (string, error) {
+func (w *WireMock) createWrongStubTokenAuth(token string) (string, error) {
 	type TokenAuthorizationRequest struct {
 		AuthorizationToken string `json:"authorization_token"`
 	}
@@ -261,11 +279,11 @@ func createWrongStubTokenAuth(ocmHost, token string) (string, error) {
 		return "", err
 	}
 
-	tokenAuthStub := createStubDefinition(pullAuthPath, "POST", string(reqBody), string(resBody), 404)
-	return addStub(ocmHost, tokenAuthStub)
+	tokenAuthStub := w.createStubDefinition(pullAuthPath, "POST", string(reqBody), string(resBody), 404)
+	return w.addStub(tokenAuthStub)
 }
 
-func createStubDefinition(url, method, reqBody, resBody string, resStatus int) *StubDefinition {
+func (w *WireMock) createStubDefinition(url, method, reqBody, resBody string, resStatus int) *StubDefinition {
 	return &StubDefinition{
 		Request: &RequestDefinition{
 			URL:          url,
@@ -282,7 +300,7 @@ func createStubDefinition(url, method, reqBody, resBody string, resStatus int) *
 	}
 }
 
-func addStub(ocmHost string, stub *StubDefinition) (string, error) {
+func (w *WireMock) addStub(stub *StubDefinition) (string, error) {
 	requestBody, err := json.Marshal(stub)
 	if err != nil {
 		return "", err
@@ -290,7 +308,7 @@ func addStub(ocmHost string, stub *StubDefinition) (string, error) {
 	var b bytes.Buffer
 	b.Write(requestBody)
 
-	resp, err := http.Post("http://"+ocmHost+wiremockMappingsPath, "application/json", &b)
+	resp, err := http.Post("http://"+w.OCMHost+wiremockMappingsPath, "application/json", &b)
 	if err != nil {
 		return "", err
 	}
@@ -306,8 +324,18 @@ func addStub(ocmHost string, stub *StubDefinition) (string, error) {
 	return ret.ID, nil
 }
 
-func deleteAllWiremockStubs(ocmHost string) error {
-	req, err := http.NewRequest("DELETE", "http://"+ocmHost+wiremockMappingsPath, nil)
+func (w *WireMock) DeleteAllWiremockStubs() error {
+	req, err := http.NewRequest("DELETE", "http://"+w.OCMHost+wiremockMappingsPath, nil)
+	if err != nil {
+		return err
+	}
+	client := &http.Client{}
+	_, err = client.Do(req)
+	return err
+}
+
+func (w *WireMock) DeleteStub(stubID string) error {
+	req, err := http.NewRequest("DELETE", "http://"+w.OCMHost+wiremockMappingsPath+"/"+stubID, nil)
 	if err != nil {
 		return err
 	}
