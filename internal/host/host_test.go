@@ -567,6 +567,25 @@ var _ = Describe("reset host", func() {
 			Expect(*h.Status).Should(Equal(HostStatusDiscovering))
 		})
 
+		It("reset pending user action", func() {
+			id := strfmt.UUID(uuid.New().String())
+			clusterId := strfmt.UUID(uuid.New().String())
+			h = getTestHost(id, clusterId, models.HostStatusResetting)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			h.Progress.CurrentStage = models.HostStageRebooting
+			Expect(state.IsRequireUserActionReset(&h)).Should(Equal(true))
+			Expect(state.ResetPendingUserAction(ctx, &h, db)).ShouldNot(HaveOccurred())
+			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
+			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			resetEvent := events[len(events)-1]
+			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
+			eventMessage := fmt.Sprintf("User action is required in order to complete installation reset for host %s", common.GetHostnameForMsg(&h))
+			Expect(*resetEvent.Message).Should(Equal(eventMessage))
+		})
+
 		It("reset disabled host", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
@@ -588,6 +607,20 @@ var _ = Describe("reset host", func() {
 			h = getTestHost(id, clusterId, HostStatusDiscovering)
 			reply := state.ResetHost(ctx, &h, "some reason", db)
 			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			resetEvent := events[len(events)-1]
+			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityError))
+		})
+
+		It("reset pending user action failure", func() {
+			id := strfmt.UUID(uuid.New().String())
+			clusterId := strfmt.UUID(uuid.New().String())
+			h = getTestHost(id, clusterId, HostStatusInstalling)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			Expect(state.IsRequireUserActionReset(&h)).Should(Equal(false))
+			Expect(state.ResetPendingUserAction(ctx, &h, db)).Should(HaveOccurred())
 			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))

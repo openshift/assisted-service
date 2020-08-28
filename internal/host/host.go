@@ -385,12 +385,25 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 }
 
 func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	eventSeverity := models.EventSeverityInfo
+	eventInfo := fmt.Sprintf("User action is required in order to complete installation reset for host %s", common.GetHostnameForMsg(h))
+	shouldAddEvent := true
+	defer func() {
+		if shouldAddEvent {
+			m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, eventSeverity, eventInfo, time.Now())
+		}
+	}()
+
 	err := m.sm.Run(TransitionTypeResettingPendingUserAction, newStateHost(h), &TransitionResettingPendingUserAction{
 		ctx: ctx,
 		db:  db,
 	})
 	if err != nil {
+		eventSeverity = models.EventSeverityError
+		eventInfo = fmt.Sprintf("Failed to set status of host %s to reset-pending-user-action. Error: %s", common.GetHostnameForMsg(h), err.Error())
 		return err
+	} else if swag.StringValue(h.Status) == models.HostStatusDisabled {
+		shouldAddEvent = false
 	}
 	return nil
 }
