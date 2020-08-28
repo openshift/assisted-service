@@ -504,6 +504,19 @@ var _ = Describe("cancel installation", func() {
 			cancelEvent := events[len(events)-1]
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityError))
 		})
+
+		It("cancel disabled host", func() {
+			id := strfmt.UUID(uuid.New().String())
+			clusterId := strfmt.UUID(uuid.New().String())
+			h = getTestHost(id, clusterId, models.HostStatusDisabled)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
+			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
+			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).Should(Equal(0))
+		})
 	})
 })
 
@@ -552,6 +565,19 @@ var _ = Describe("reset host", func() {
 			Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
 			Expect(*h.Status).Should(Equal(HostStatusDiscovering))
+		})
+
+		It("reset disabled host", func() {
+			id := strfmt.UUID(uuid.New().String())
+			clusterId := strfmt.UUID(uuid.New().String())
+			h = getTestHost(id, clusterId, models.HostStatusDisabled)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
+			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
+			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).Should(Equal(0))
 		})
 	})
 
