@@ -439,7 +439,7 @@ var _ = Describe("monitor_disconnection", func() {
 	})
 })
 
-var _ = Describe("cancel_installation", func() {
+var _ = Describe("cancel installation", func() {
 	var (
 		ctx           = context.Background()
 		db            *gorm.DB
@@ -462,9 +462,9 @@ var _ = Describe("cancel_installation", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	Context("cancel_installation", func() {
-		It("cancel_installation", func() {
-			h.Status = swag.String(HostStatusInstalling)
+	Context("cancel installation", func() {
+		It("cancel installation success", func() {
+			h.Status = swag.String(models.HostStatusInstalling)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
@@ -476,8 +476,8 @@ var _ = Describe("cancel_installation", func() {
 			Expect(*cancelEvent.Message).Should(Equal(eventMessage))
 		})
 
-		It("cancel_failed_installation", func() {
-			h.Status = swag.String(HostStatusError)
+		It("cancel failed installation", func() {
+			h.Status = swag.String(models.HostStatusError)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
@@ -491,12 +491,12 @@ var _ = Describe("cancel_installation", func() {
 
 		AfterEach(func() {
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
-			Expect(*h.Status).Should(Equal(HostStatusError))
+			Expect(*h.Status).Should(Equal(models.HostStatusError))
 		})
 	})
 
-	Context("invalid_cancel_installation", func() {
-		It("nothing_to_cancel", func() {
+	Context("invalid cancel installation", func() {
+		It("nothing to cancel", func() {
 			Expect(state.CancelInstallation(ctx, &h, "some reason", db)).Should(HaveOccurred())
 			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -507,7 +507,7 @@ var _ = Describe("cancel_installation", func() {
 	})
 })
 
-var _ = Describe("reset_host", func() {
+var _ = Describe("reset host", func() {
 	var (
 		ctx           = context.Background()
 		db            *gorm.DB
@@ -526,15 +526,15 @@ var _ = Describe("reset_host", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	Context("reset_installation", func() {
-		It("reset_installation", func() {
+	Context("reset installation", func() {
+		It("reset installation success", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
-			h = getTestHost(id, clusterId, HostStatusError)
+			h = getTestHost(id, clusterId, models.HostStatusError)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
-			Expect(*h.Status).Should(Equal(HostStatusResetting))
+			Expect(*h.Status).Should(Equal(models.HostStatusResetting))
 			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
@@ -547,7 +547,7 @@ var _ = Describe("reset_host", func() {
 		It("register resetting host", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
-			h = getTestHost(id, clusterId, HostStatusResetting)
+			h = getTestHost(id, clusterId, models.HostStatusResetting)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
