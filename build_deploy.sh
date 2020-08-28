@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./build_images.sh
+source build_images.sh
 
 DOCKER_CONF="${PWD}/.docker"
 mkdir -p "${DOCKER_CONF}"
