@@ -1,6 +1,7 @@
 package installcfg
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 
@@ -222,11 +223,28 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster,
 	return nil
 }
 
+func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error {
+	if overrides == "" {
+		return nil
+	}
+
+	if err := json.Unmarshal([]byte(overrides), cfg); err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
 	cfg := getBasicInstallConfig(cluster)
 	err := setBMPlatformInstallconfig(log, cluster, cfg)
 	if err != nil {
 		return nil, err
 	}
+
+	err = applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return yaml.Marshal(*cfg)
 }
