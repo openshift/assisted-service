@@ -73,9 +73,11 @@ func updateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 	}
 
 	if newStatus != srcStatus {
-		eventsHandler.AddEvent(ctx, clusterId, &hostId, common.GetEventSeverityFromHostStatus(newStatus),
-			fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\" (%s)", common.GetHostnameForMsg(host), srcStatus, newStatus, statusInfo),
-			time.Now())
+		msg := fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\"", common.GetHostnameForMsg(host), srcStatus, newStatus)
+		if statusInfo != "" {
+			msg += fmt.Sprintf(" (%s)", statusInfo)
+		}
+		eventsHandler.AddEvent(ctx, clusterId, &hostId, common.GetEventSeverityFromHostStatus(newStatus), msg, time.Now())
 		log.Infof("host %s from cluster %s has been updated with the following updates %+v", hostId, clusterId, extra)
 	}
 
