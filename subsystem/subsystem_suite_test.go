@@ -59,7 +59,7 @@ func init() {
 	userClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestToken))
 	adminUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenAdmin))
 	unallowedUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenUnallowed))
-	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(FakePullSecret))
+	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(FakePS))
 	badAgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(WrongPullSecret))
 	userBMClient = client.New(userClientCfg)
 	adminUserBMClient = client.New(adminUserClientCfg)

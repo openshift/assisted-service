@@ -215,7 +215,8 @@ func main() {
 		Options.BMConfig.S3EndpointURL = newUrl
 	}
 
-	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, generator, eventsHandler, objectHandler, metricsManager)
+	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
+		generator, eventsHandler, objectHandler, metricsManager, *authHandler)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 

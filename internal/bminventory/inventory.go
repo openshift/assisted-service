@@ -23,8 +23,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/openshift/assisted-service/pkg/auth"
-
 	"github.com/openshift/assisted-service/internal/identity"
 
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
@@ -42,6 +40,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -183,6 +182,7 @@ type bareMetalInventory struct {
 	objectHandler s3wrapper.API
 	metricApi     metrics.API
 	generator     generator.ISOInstallConfigGenerator
+	authHandler   auth.AuthHandler
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}
@@ -197,6 +197,7 @@ func NewBareMetalInventory(
 	eventsHandler events.Handler,
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,
+	authHandler auth.AuthHandler,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:            db,
@@ -208,6 +209,7 @@ func NewBareMetalInventory(
 		eventsHandler: eventsHandler,
 		objectHandler: objectHandler,
 		metricApi:     metricApi,
+		authHandler:   authHandler,
 	}
 }
 
@@ -324,11 +326,11 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	}
 
 	if params.NewClusterParams.PullSecret != "" {
-		err := validations.ValidatePullSecret(params.NewClusterParams.PullSecret)
+		err := validations.ValidatePullSecret(params.NewClusterParams.PullSecret, auth.UserNameFromContext(ctx), b.authHandler)
 		if err != nil {
 			log.WithError(err).Errorf("Pull-secret for new cluster has invalid format")
 			return installer.NewRegisterClusterBadRequest().
-				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Pull-secret has invalid format")))
+				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to validate Pull-secret")))
 		}
 		setPullSecret(&cluster, params.NewClusterParams.PullSecret)
 	}
@@ -873,11 +875,11 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	log.Info("update cluster ", params.ClusterID)
 
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
-		err = validations.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret)
+		err = validations.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, auth.UserNameFromContext(ctx), b.authHandler)
 		if err != nil {
 			log.WithError(err).Errorf("Pull-secret for cluster %s, has invalid format", params.ClusterID)
 			return installer.NewUpdateClusterBadRequest().
-				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Pull-secret has invalid format")))
+				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to validate Pull-secret")))
 		}
 	}
 	if newClusterName := swag.StringValue(params.ClusterUpdateParams.Name); newClusterName != "" {

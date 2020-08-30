@@ -7,9 +7,38 @@ import (
 	"encoding/base32"
 	"fmt"
 
+	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/json"
 )
+
+func GetTokenAndCert() (string, []byte) {
+
+	//Generate RSA Keypair
+	pub, priv, _ := GenKeys(2048)
+
+	//Generate keys in JWK format
+	pubJSJWKS, _, kid, _ := GenJSJWKS(priv, pub)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+		"account_number": "1234567",
+		"is_internal":    false,
+		"is_active":      true,
+		"account_id":     "7654321",
+		"org_id":         "1010101",
+		"last_name":      "Doe",
+		"type":           "User",
+		"locale":         "en_US",
+		"first_name":     "John",
+		"email":          "jdoe123@example.com",
+		"username":       "jdoe123@example.com",
+		"is_org_admin":   false,
+		"clientId":       "1234",
+	})
+	token.Header["kid"] = kid
+	tokenString, _ := token.SignedString(priv)
+	return tokenString, pubJSJWKS
+}
 
 func GenKeys(bits int) (crypto.PublicKey, crypto.PrivateKey, error) {
 	key, err := rsa.GenerateKey(rand.Reader, bits)
