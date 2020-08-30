@@ -36,7 +36,8 @@ const (
 )
 
 const (
-	validDiskSize = int64(128849018880)
+	validDiskSize     = int64(128849018880)
+	minSuccessesInRow = 2
 )
 
 var (
@@ -188,41 +189,74 @@ var _ = Describe("Cluster tests", func() {
 	})
 })
 
-func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string, timeout time.Duration, stateInfo string) {
-	log.Infof("Waiting for cluster %s status %s", clusterID, state)
-	for start := time.Now(); time.Since(start) < timeout; {
-		rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-		Expect(err).NotTo(HaveOccurred())
-		c := rep.GetPayload()
-		if swag.StringValue(c.Status) == state {
-			break
-		}
-		time.Sleep(time.Second)
-	}
+func isClusterInState(ctx context.Context, clusterID strfmt.UUID, state, stateInfo string) (bool, string) {
 	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 	c := rep.GetPayload()
-	Expect(swag.StringValue(c.Status)).Should(Equal(state))
-	if stateInfo != IgnoreStateInfo {
-		Expect(swag.StringValue(c.StatusInfo)).Should(Equal(stateInfo))
+	if swag.StringValue(c.Status) == state {
+		return stateInfo == IgnoreStateInfo || swag.StringValue(c.StatusInfo) == stateInfo, swag.StringValue(c.Status)
 	}
+
+	return false, swag.StringValue(c.Status)
+}
+
+func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string, timeout time.Duration, stateInfo string) {
+	log.Infof("Waiting for cluster %s status %s", clusterID, state)
+	var lastState string = ""
+	var success bool
+
+	for start, successInRow := time.Now(), 0; time.Since(start) < timeout; {
+		success, lastState = isClusterInState(ctx, clusterID, state, stateInfo)
+
+		if success {
+			successInRow++
+		} else {
+			successInRow = 0
+		}
+
+		// Wait for cluster state to be consistent
+		if successInRow >= minSuccessesInRow {
+			return
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	Expect(lastState).Should(Equal(state), fmt.Sprintf("Cluster %s wasn't in state %s for %d times in a row.",
+		clusterID, state, minSuccessesInRow))
+}
+
+func isHostInState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUID, state string) (bool, string) {
+	rep, err := userBMClient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
+	Expect(err).NotTo(HaveOccurred())
+	c := rep.GetPayload()
+	return swag.StringValue(c.Status) == state, swag.StringValue(c.Status)
 }
 
 func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUID, state string, timeout time.Duration) {
 	log.Infof("Waiting for host %s state %s", hostID, state)
-	for start := time.Now(); time.Since(start) < timeout; {
-		rep, err := userBMClient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
-		Expect(err).NotTo(HaveOccurred())
-		c := rep.GetPayload()
-		if swag.StringValue(c.Status) == state {
-			break
+	var lastState string = ""
+	var success bool
+
+	for start, successInRow := time.Now(), 0; time.Since(start) < timeout; {
+		success, lastState = isHostInState(ctx, clusterID, hostID, state)
+
+		if success {
+			successInRow++
+		} else {
+			successInRow = 0
 		}
+
+		// Wait for host state to be consistent
+		if successInRow >= minSuccessesInRow {
+			return
+		}
+
 		time.Sleep(time.Second)
 	}
-	rep, err := userBMClient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
-	Expect(err).NotTo(HaveOccurred())
-	c := rep.GetPayload()
-	ExpectWithOffset(1, swag.StringValue(c.Status)).Should(Equal(state))
+
+	Expect(lastState).Should(Equal(state), fmt.Sprintf("Host %s in Cluster %s wasn't in state %s for %d times in a row.",
+		hostID, clusterID, state, minSuccessesInRow))
 }
 
 func waitForClusterInstallationToStart(clusterID strfmt.UUID) {
@@ -526,7 +560,11 @@ var _ = Describe("cluster install", func() {
 		h4 := registerHost(clusterID)
 		generateHWPostStepReply(h4, validMasterHwInfo, "h4")
 		h5 := registerHost(clusterID)
+
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
 		generateHWPostStepReply(h5, validMasterHwInfo, "h5")
+
 		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
@@ -534,8 +572,12 @@ var _ = Describe("cluster install", func() {
 
 		By("add hosts with worker inventory expect the cluster to be ready")
 		h6 := registerHost(clusterID)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
+
 		generateHWPostStepReply(h6, validWorkerHwInfo, "h6")
 		waitForHostState(ctx, clusterID, *h6.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
