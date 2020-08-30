@@ -406,7 +406,7 @@ var _ = Describe("monitor_disconnection", func() {
 
 		AfterEach(func() {
 			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityWarning,
-				fmt.Sprintf("Host %s: updated status from \"%s\" to \"disconnected\" (Host keepalive timeout)",
+				fmt.Sprintf("Host %s: updated status from \"%s\" to \"disconnected\" (Host has stopped communicating with the installation service)",
 					host.ID.String(), *host.Status),
 				gomock.Any())
 			state.HostMonitoring()
@@ -425,7 +425,7 @@ var _ = Describe("monitor_disconnection", func() {
 
 		AfterEach(func() {
 			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
-				fmt.Sprintf("Host %s: updated status from \"disconnected\" to \"discovering\" (Waiting for host hardware info)", host.ID.String()),
+				fmt.Sprintf("Host %s: updated status from \"disconnected\" to \"discovering\" (Waiting for host to send hardware details)", host.ID.String()),
 				gomock.Any())
 			state.HostMonitoring()
 			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
@@ -1063,7 +1063,7 @@ var _ = Describe("PrepareForInstallation", func() {
 	It("success", func() {
 		host = getTestHost(hostId, clusterId, models.HostStatusKnown)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo,
-			fmt.Sprintf("Host %s: updated status from \"known\" to \"preparing-for-installation\" (Preparing host for installation)", host.ID.String()),
+			fmt.Sprintf("Host %s: updated status from \"known\" to \"preparing-for-installation\" (Host is preparing for installation)", host.ID.String()),
 			gomock.Any())
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		Expect(hapi.PrepareForInstallation(ctx, &host, db)).NotTo(HaveOccurred())

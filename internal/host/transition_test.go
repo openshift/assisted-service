@@ -153,8 +153,8 @@ var _ = Describe("RegisterHost", func() {
 				}).Error).ShouldNot(HaveOccurred())
 				if t.srcState != models.HostStatusDiscovering {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo,
-						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host hardware info)",
-							hostId.String(), t.srcState),
+						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (%s)",
+							hostId.String(), t.srcState, statusInfoDiscovering),
 						gomock.Any())
 				}
 
@@ -257,7 +257,7 @@ var _ = Describe("RegisterHost", func() {
 				dstState:      models.HostStatusDiscovering,
 				eventSeverity: models.EventSeverityInfo,
 				eventMessage: "Host %s: updated status from \"resetting-pending-user-action\" to \"discovering\" " +
-					"(Waiting for host hardware info)",
+					"(Waiting for host to send hardware details)",
 				expectedStatusInfo: statusInfoDiscovering,
 				expectedRole:       models.HostRoleMaster,
 			},
@@ -603,7 +603,7 @@ var _ = Describe("Install", func() {
 				host = getTestHost(hostId, clusterId, t.srcState)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
-					fmt.Sprintf("Host %s: updated status from \"%s\" to \"installing\" (Installation in progress)", host.ID.String(), t.srcState),
+					fmt.Sprintf("Host %s: updated status from \"%s\" to \"installing\" (Installation is in progress)", host.ID.String(), t.srcState),
 					gomock.Any())
 				t.validation(hapi.Install(ctx, &host, nil))
 			})
@@ -621,7 +621,7 @@ var _ = Describe("Install", func() {
 			tx := db.Begin()
 			Expect(tx.Error).To(BeNil())
 			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
-				fmt.Sprintf("Host %s: updated status from \"preparing-for-installation\" to \"installing\" (Installation in progress)", host.ID.String()),
+				fmt.Sprintf("Host %s: updated status from \"preparing-for-installation\" to \"installing\" (Installation is in progress)", host.ID.String()),
 				gomock.Any())
 			Expect(hapi.Install(ctx, &host, tx)).ShouldNot(HaveOccurred())
 			Expect(tx.Commit().Error).ShouldNot(HaveOccurred())
@@ -634,7 +634,7 @@ var _ = Describe("Install", func() {
 			tx := db.Begin()
 			Expect(tx.Error).To(BeNil())
 			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
-				fmt.Sprintf("Host %s: updated status from \"preparing-for-installation\" to \"installing\" (Installation in progress)", host.ID.String()),
+				fmt.Sprintf("Host %s: updated status from \"preparing-for-installation\" to \"installing\" (Installation is in progress)", host.ID.String()),
 				gomock.Any())
 			Expect(hapi.Install(ctx, &host, tx)).ShouldNot(HaveOccurred())
 			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
@@ -687,7 +687,7 @@ var _ = Describe("Disable", func() {
 
 		mockEventsUpdateStatus := func(srcState string) {
 			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
-				fmt.Sprintf(`Host %s: updated status from "%s" to "disabled" (Host is disabled)`,
+				fmt.Sprintf(`Host %s: updated status from "%s" to "disabled" (Host was manually disabled)`,
 					host.ID.String(), srcState),
 				gomock.Any()).Times(1)
 		}
@@ -895,7 +895,7 @@ var _ = Describe("Enable", func() {
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				if t.sendEvent {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
-						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host hardware info)", common.GetHostnameForMsg(&host), srcState),
+						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host to send hardware details)", common.GetHostnameForMsg(&host), srcState),
 						gomock.Any())
 				}
 				t.validation(hapi.EnableHost(ctx, &host))
@@ -1431,7 +1431,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(""),
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1455,7 +1455,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(""),
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1479,7 +1479,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(""),
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1503,7 +1503,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(""),
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1647,7 +1647,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(""),
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1771,7 +1771,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(""),
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1798,7 +1798,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(""),
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1922,7 +1922,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(""),
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2009,7 +2009,7 @@ var _ = Describe("Refresh Host", func() {
 				c.Status = swag.String(models.ClusterStatusError)
 				Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityError,
-					"Host master-hostname: updated status from \"installed\" to \"error\" (Installation has been aborted due cluster errors)",
+					"Host master-hostname: updated status from \"installed\" to \"error\" (Host is part of a cluster that failed to install)",
 					gomock.Any())
 				err := hapi.RefreshStatus(ctx, &h, db)
 				Expect(err).ShouldNot(HaveOccurred())
