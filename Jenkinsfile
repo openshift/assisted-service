@@ -16,7 +16,7 @@ pipeline {
         stage('Test assisted-service') {
             parallel {
                 stage('Test on k8s') {
-                    agent { label 'centos_worker' }
+
                     steps {
 
                         check_if_minikube_is_running()
@@ -137,7 +137,7 @@ void check_if_minikube_is_running() {
 }
 
 void clear_slave(){
-    sh 'make clean-onprem'
+    sh 'make clean-onprem || true'
     sh 'make clear-deployment'
     sh 'podman image prune -a'
     sh 'docker image prune -a -f'
