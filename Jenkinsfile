@@ -33,6 +33,8 @@ pipeline {
         stage('clear deployment') {
             steps {
                 sh 'docker image prune -a -f'
+                sh 'podman image prune -a '
+                sh 'podman pod rm -f -i assisted-installer || true'
                 sh 'make clear-deployment'
             }
         }
