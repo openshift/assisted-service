@@ -33,6 +33,8 @@ func GetEventSeverityFromHostStatus(status string) string {
 		return models.EventSeverityWarning
 	case models.HostStatusInstallingPendingUserAction:
 		return models.EventSeverityWarning
+	case models.HostStatusInsufficient:
+		return models.EventSeverityWarning
 	case models.HostStatusError:
 		return models.EventSeverityError
 	default:

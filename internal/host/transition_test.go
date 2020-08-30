@@ -1958,8 +1958,12 @@ var _ = Describe("Refresh Host", func() {
 				Expect(db.Create(&otherHost).Error).ShouldNot(HaveOccurred())
 				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+				expectedSeverity := models.EventSeverityInfo
+				if t.dstState == HostStatusInsufficient {
+					expectedSeverity = models.EventSeverityWarning
+				}
 				if !t.errorExpected && srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, expectedSeverity,
 						gomock.Any(), gomock.Any())
 				}
 
