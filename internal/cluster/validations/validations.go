@@ -8,6 +8,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
+
+	"golang.org/x/crypto/ssh"
+
 	"github.com/asaskevich/govalidator"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 )
@@ -209,4 +213,11 @@ func ValidateNoProxyFormat(noProxy string) error {
 			"'*' is used to bypass proxy for all destinations.", noProxy)
 	}
 	return nil
+}
+
+func ValidateSSHPublicKey(sshPublicKey string) (err error) {
+	if _, _, _, _, err = ssh.ParseAuthorizedKey([]byte(sshPublicKey)); err != nil {
+		err = errors.Errorf("Malformed SSH key: %s", sshPublicKey)
+	}
+	return
 }

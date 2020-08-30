@@ -286,6 +286,12 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	if sshPublicKey := swag.StringValue(&cluster.SSHPublicKey); sshPublicKey != "" {
+		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	err := b.clusterApi.RegisterCluster(ctx, &cluster)
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", swag.StringValue(params.NewClusterParams.Name))
@@ -799,6 +805,12 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}
 	if newClusterName := swag.StringValue(params.ClusterUpdateParams.Name); newClusterName != "" {
 		if err = validations.ValidateClusterNameFormat(newClusterName); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
+		if err = validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
