@@ -1457,6 +1457,34 @@ paths:
           schema:
             $ref: '#/definitions/list-versions'
 
+  /host_requirements:
+    get:
+      tags:
+        - installer
+      summary: Get minimum host requirements
+      operationId: GetHostRequirements
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/host-requirements'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 
 definitions:
   list-managed-domains:
@@ -1485,6 +1513,24 @@ definitions:
     type: object
     additionalProperties:
       type: string
+
+  host-requirements:
+    type: object
+    properties:
+      master:
+        $ref: '#/definitions/host-requirements-role'
+      worker:
+        $ref: '#/definitions/host-requirements-role'
+
+  host-requirements-role:
+    type: object
+    properties:
+      cpu_cores:
+        type: integer
+      ram_gib:
+        type: integer
+      disk_size_gb:
+        type: integer
 
   event-list:
     type: array

@@ -2157,6 +2157,47 @@ func init() {
           }
         }
       }
+    },
+    "/host_requirements": {
+      "get": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Get minimum host requirements",
+        "operationId": "GetHostRequirements",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-requirements"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -3125,6 +3166,31 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        }
+      }
+    },
+    "host-requirements": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "$ref": "#/definitions/host-requirements-role"
+        },
+        "worker": {
+          "$ref": "#/definitions/host-requirements-role"
+        }
+      }
+    },
+    "host-requirements-role": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": {
+          "type": "integer"
+        },
+        "disk_size_gb": {
+          "type": "integer"
+        },
+        "ram_gib": {
+          "type": "integer"
         }
       }
     },
@@ -5667,6 +5733,47 @@ func init() {
           }
         }
       }
+    },
+    "/host_requirements": {
+      "get": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Get minimum host requirements",
+        "operationId": "GetHostRequirements",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-requirements"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -6641,6 +6748,31 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        }
+      }
+    },
+    "host-requirements": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "$ref": "#/definitions/host-requirements-role"
+        },
+        "worker": {
+          "$ref": "#/definitions/host-requirements-role"
+        }
+      }
+    },
+    "host-requirements-role": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": {
+          "type": "integer"
+        },
+        "disk_size_gb": {
+          "type": "integer"
+        },
+        "ram_gib": {
+          "type": "integer"
         }
       }
     },

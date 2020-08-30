@@ -1148,6 +1148,16 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.Ge
 	return installer.NewGetClusterOK().WithPayload(&cluster.Cluster)
 }
 
+func (b *bareMetalInventory) GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
+	masterReqs := b.hostApi.GetHostRequirements(models.HostRoleMaster)
+	workerReqs := b.hostApi.GetHostRequirements(models.HostRoleWorker)
+	return installer.NewGetHostRequirementsOK().WithPayload(
+		&models.HostRequirements{
+			Master: &masterReqs,
+			Worker: &workerReqs,
+		})
+}
+
 func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var host models.Host
