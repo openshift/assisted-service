@@ -93,7 +93,7 @@ type UploadClusterIngressCertUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewUploadClusterIngressCertUnauthorized creates UploadClusterIngressCertUnauthorized with default headers values
@@ -103,13 +103,13 @@ func NewUploadClusterIngressCertUnauthorized() *UploadClusterIngressCertUnauthor
 }
 
 // WithPayload adds the payload to the upload cluster ingress cert unauthorized response
-func (o *UploadClusterIngressCertUnauthorized) WithPayload(payload *models.Error) *UploadClusterIngressCertUnauthorized {
+func (o *UploadClusterIngressCertUnauthorized) WithPayload(payload *models.InfraError) *UploadClusterIngressCertUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the upload cluster ingress cert unauthorized response
-func (o *UploadClusterIngressCertUnauthorized) SetPayload(payload *models.Error) {
+func (o *UploadClusterIngressCertUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -137,7 +137,7 @@ type UploadClusterIngressCertForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewUploadClusterIngressCertForbidden creates UploadClusterIngressCertForbidden with default headers values
@@ -147,13 +147,13 @@ func NewUploadClusterIngressCertForbidden() *UploadClusterIngressCertForbidden {
 }
 
 // WithPayload adds the payload to the upload cluster ingress cert forbidden response
-func (o *UploadClusterIngressCertForbidden) WithPayload(payload *models.Error) *UploadClusterIngressCertForbidden {
+func (o *UploadClusterIngressCertForbidden) WithPayload(payload *models.InfraError) *UploadClusterIngressCertForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the upload cluster ingress cert forbidden response
-func (o *UploadClusterIngressCertForbidden) SetPayload(payload *models.Error) {
+func (o *UploadClusterIngressCertForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

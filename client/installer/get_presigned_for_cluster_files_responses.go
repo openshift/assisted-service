@@ -153,20 +153,20 @@ func NewGetPresignedForClusterFilesUnauthorized() *GetPresignedForClusterFilesUn
 Unauthorized.
 */
 type GetPresignedForClusterFilesUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetPresignedForClusterFilesUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *GetPresignedForClusterFilesUnauthorized) GetPayload() *models.Error {
+func (o *GetPresignedForClusterFilesUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetPresignedForClusterFilesUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -186,20 +186,20 @@ func NewGetPresignedForClusterFilesForbidden() *GetPresignedForClusterFilesForbi
 Forbidden.
 */
 type GetPresignedForClusterFilesForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetPresignedForClusterFilesForbidden) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesForbidden  %+v", 403, o.Payload)
 }
 
-func (o *GetPresignedForClusterFilesForbidden) GetPayload() *models.Error {
+func (o *GetPresignedForClusterFilesForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetPresignedForClusterFilesForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

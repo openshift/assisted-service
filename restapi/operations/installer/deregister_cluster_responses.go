@@ -49,7 +49,7 @@ type DeregisterClusterUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDeregisterClusterUnauthorized creates DeregisterClusterUnauthorized with default headers values
@@ -59,13 +59,13 @@ func NewDeregisterClusterUnauthorized() *DeregisterClusterUnauthorized {
 }
 
 // WithPayload adds the payload to the deregister cluster unauthorized response
-func (o *DeregisterClusterUnauthorized) WithPayload(payload *models.Error) *DeregisterClusterUnauthorized {
+func (o *DeregisterClusterUnauthorized) WithPayload(payload *models.InfraError) *DeregisterClusterUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the deregister cluster unauthorized response
-func (o *DeregisterClusterUnauthorized) SetPayload(payload *models.Error) {
+func (o *DeregisterClusterUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -93,7 +93,7 @@ type DeregisterClusterForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDeregisterClusterForbidden creates DeregisterClusterForbidden with default headers values
@@ -103,13 +103,13 @@ func NewDeregisterClusterForbidden() *DeregisterClusterForbidden {
 }
 
 // WithPayload adds the payload to the deregister cluster forbidden response
-func (o *DeregisterClusterForbidden) WithPayload(payload *models.Error) *DeregisterClusterForbidden {
+func (o *DeregisterClusterForbidden) WithPayload(payload *models.InfraError) *DeregisterClusterForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the deregister cluster forbidden response
-func (o *DeregisterClusterForbidden) SetPayload(payload *models.Error) {
+func (o *DeregisterClusterForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

@@ -114,20 +114,20 @@ func NewGetCredentialsUnauthorized() *GetCredentialsUnauthorized {
 Unauthorized.
 */
 type GetCredentialsUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetCredentialsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *GetCredentialsUnauthorized) GetPayload() *models.Error {
+func (o *GetCredentialsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetCredentialsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -147,20 +147,20 @@ func NewGetCredentialsForbidden() *GetCredentialsForbidden {
 Forbidden.
 */
 type GetCredentialsForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetCredentialsForbidden) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsForbidden  %+v", 403, o.Payload)
 }
 
-func (o *GetCredentialsForbidden) GetPayload() *models.Error {
+func (o *GetCredentialsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetCredentialsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

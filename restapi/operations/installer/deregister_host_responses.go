@@ -93,7 +93,7 @@ type DeregisterHostUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDeregisterHostUnauthorized creates DeregisterHostUnauthorized with default headers values
@@ -103,13 +103,13 @@ func NewDeregisterHostUnauthorized() *DeregisterHostUnauthorized {
 }
 
 // WithPayload adds the payload to the deregister host unauthorized response
-func (o *DeregisterHostUnauthorized) WithPayload(payload *models.Error) *DeregisterHostUnauthorized {
+func (o *DeregisterHostUnauthorized) WithPayload(payload *models.InfraError) *DeregisterHostUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the deregister host unauthorized response
-func (o *DeregisterHostUnauthorized) SetPayload(payload *models.Error) {
+func (o *DeregisterHostUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -137,7 +137,7 @@ type DeregisterHostForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDeregisterHostForbidden creates DeregisterHostForbidden with default headers values
@@ -147,13 +147,13 @@ func NewDeregisterHostForbidden() *DeregisterHostForbidden {
 }
 
 // WithPayload adds the payload to the deregister host forbidden response
-func (o *DeregisterHostForbidden) WithPayload(payload *models.Error) *DeregisterHostForbidden {
+func (o *DeregisterHostForbidden) WithPayload(payload *models.InfraError) *DeregisterHostForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the deregister host forbidden response
-func (o *DeregisterHostForbidden) SetPayload(payload *models.Error) {
+func (o *DeregisterHostForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

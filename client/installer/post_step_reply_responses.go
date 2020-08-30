@@ -135,20 +135,20 @@ func NewPostStepReplyUnauthorized() *PostStepReplyUnauthorized {
 Unauthorized.
 */
 type PostStepReplyUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *PostStepReplyUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *PostStepReplyUnauthorized) GetPayload() *models.Error {
+func (o *PostStepReplyUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *PostStepReplyUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -168,20 +168,20 @@ func NewPostStepReplyForbidden() *PostStepReplyForbidden {
 Forbidden.
 */
 type PostStepReplyForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *PostStepReplyForbidden) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyForbidden  %+v", 403, o.Payload)
 }
 
-func (o *PostStepReplyForbidden) GetPayload() *models.Error {
+func (o *PostStepReplyForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *PostStepReplyForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

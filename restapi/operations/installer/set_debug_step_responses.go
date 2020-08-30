@@ -49,7 +49,7 @@ type SetDebugStepUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewSetDebugStepUnauthorized creates SetDebugStepUnauthorized with default headers values
@@ -59,13 +59,13 @@ func NewSetDebugStepUnauthorized() *SetDebugStepUnauthorized {
 }
 
 // WithPayload adds the payload to the set debug step unauthorized response
-func (o *SetDebugStepUnauthorized) WithPayload(payload *models.Error) *SetDebugStepUnauthorized {
+func (o *SetDebugStepUnauthorized) WithPayload(payload *models.InfraError) *SetDebugStepUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the set debug step unauthorized response
-func (o *SetDebugStepUnauthorized) SetPayload(payload *models.Error) {
+func (o *SetDebugStepUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -93,7 +93,7 @@ type SetDebugStepForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewSetDebugStepForbidden creates SetDebugStepForbidden with default headers values
@@ -103,13 +103,13 @@ func NewSetDebugStepForbidden() *SetDebugStepForbidden {
 }
 
 // WithPayload adds the payload to the set debug step forbidden response
-func (o *SetDebugStepForbidden) WithPayload(payload *models.Error) *SetDebugStepForbidden {
+func (o *SetDebugStepForbidden) WithPayload(payload *models.InfraError) *SetDebugStepForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the set debug step forbidden response
-func (o *SetDebugStepForbidden) SetPayload(payload *models.Error) {
+func (o *SetDebugStepForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

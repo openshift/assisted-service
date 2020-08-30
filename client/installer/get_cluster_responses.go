@@ -108,20 +108,20 @@ func NewGetClusterUnauthorized() *GetClusterUnauthorized {
 Unauthorized.
 */
 type GetClusterUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *GetClusterUnauthorized) GetPayload() *models.Error {
+func (o *GetClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -141,20 +141,20 @@ func NewGetClusterForbidden() *GetClusterForbidden {
 Forbidden.
 */
 type GetClusterForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetClusterForbidden) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterForbidden  %+v", 403, o.Payload)
 }
 
-func (o *GetClusterForbidden) GetPayload() *models.Error {
+func (o *GetClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

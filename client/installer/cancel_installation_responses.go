@@ -114,20 +114,20 @@ func NewCancelInstallationUnauthorized() *CancelInstallationUnauthorized {
 Unauthorized.
 */
 type CancelInstallationUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *CancelInstallationUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *CancelInstallationUnauthorized) GetPayload() *models.Error {
+func (o *CancelInstallationUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *CancelInstallationUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -147,20 +147,20 @@ func NewCancelInstallationForbidden() *CancelInstallationForbidden {
 Forbidden.
 */
 type CancelInstallationForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *CancelInstallationForbidden) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationForbidden  %+v", 403, o.Payload)
 }
 
-func (o *CancelInstallationForbidden) GetPayload() *models.Error {
+func (o *CancelInstallationForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *CancelInstallationForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

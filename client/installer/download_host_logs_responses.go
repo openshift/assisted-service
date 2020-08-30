@@ -115,20 +115,20 @@ func NewDownloadHostLogsUnauthorized() *DownloadHostLogsUnauthorized {
 Unauthorized.
 */
 type DownloadHostLogsUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *DownloadHostLogsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *DownloadHostLogsUnauthorized) GetPayload() *models.Error {
+func (o *DownloadHostLogsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *DownloadHostLogsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -148,20 +148,20 @@ func NewDownloadHostLogsForbidden() *DownloadHostLogsForbidden {
 Forbidden.
 */
 type DownloadHostLogsForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *DownloadHostLogsForbidden) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsForbidden  %+v", 403, o.Payload)
 }
 
-func (o *DownloadHostLogsForbidden) GetPayload() *models.Error {
+func (o *DownloadHostLogsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *DownloadHostLogsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -72,7 +72,7 @@ type ListEventsUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewListEventsUnauthorized creates ListEventsUnauthorized with default headers values
@@ -82,13 +82,13 @@ func NewListEventsUnauthorized() *ListEventsUnauthorized {
 }
 
 // WithPayload adds the payload to the list events unauthorized response
-func (o *ListEventsUnauthorized) WithPayload(payload *models.Error) *ListEventsUnauthorized {
+func (o *ListEventsUnauthorized) WithPayload(payload *models.InfraError) *ListEventsUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the list events unauthorized response
-func (o *ListEventsUnauthorized) SetPayload(payload *models.Error) {
+func (o *ListEventsUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -116,7 +116,7 @@ type ListEventsForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewListEventsForbidden creates ListEventsForbidden with default headers values
@@ -126,13 +126,13 @@ func NewListEventsForbidden() *ListEventsForbidden {
 }
 
 // WithPayload adds the payload to the list events forbidden response
-func (o *ListEventsForbidden) WithPayload(payload *models.Error) *ListEventsForbidden {
+func (o *ListEventsForbidden) WithPayload(payload *models.InfraError) *ListEventsForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the list events forbidden response
-func (o *ListEventsForbidden) SetPayload(payload *models.Error) {
+func (o *ListEventsForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

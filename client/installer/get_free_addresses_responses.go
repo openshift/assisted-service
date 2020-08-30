@@ -106,20 +106,20 @@ func NewGetFreeAddressesUnauthorized() *GetFreeAddressesUnauthorized {
 Unauthorized.
 */
 type GetFreeAddressesUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetFreeAddressesUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *GetFreeAddressesUnauthorized) GetPayload() *models.Error {
+func (o *GetFreeAddressesUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetFreeAddressesUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -139,20 +139,20 @@ func NewGetFreeAddressesForbidden() *GetFreeAddressesForbidden {
 Forbidden.
 */
 type GetFreeAddressesForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetFreeAddressesForbidden) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesForbidden  %+v", 403, o.Payload)
 }
 
-func (o *GetFreeAddressesForbidden) GetPayload() *models.Error {
+func (o *GetFreeAddressesForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetFreeAddressesForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

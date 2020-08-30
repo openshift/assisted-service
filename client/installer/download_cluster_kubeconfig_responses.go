@@ -115,20 +115,20 @@ func NewDownloadClusterKubeconfigUnauthorized() *DownloadClusterKubeconfigUnauth
 Unauthorized.
 */
 type DownloadClusterKubeconfigUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *DownloadClusterKubeconfigUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *DownloadClusterKubeconfigUnauthorized) GetPayload() *models.Error {
+func (o *DownloadClusterKubeconfigUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *DownloadClusterKubeconfigUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -148,20 +148,20 @@ func NewDownloadClusterKubeconfigForbidden() *DownloadClusterKubeconfigForbidden
 Forbidden.
 */
 type DownloadClusterKubeconfigForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *DownloadClusterKubeconfigForbidden) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigForbidden  %+v", 403, o.Payload)
 }
 
-func (o *DownloadClusterKubeconfigForbidden) GetPayload() *models.Error {
+func (o *DownloadClusterKubeconfigForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *DownloadClusterKubeconfigForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

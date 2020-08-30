@@ -96,20 +96,20 @@ func NewSetDebugStepUnauthorized() *SetDebugStepUnauthorized {
 Unauthorized.
 */
 type SetDebugStepUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *SetDebugStepUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/debug][%d] setDebugStepUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *SetDebugStepUnauthorized) GetPayload() *models.Error {
+func (o *SetDebugStepUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *SetDebugStepUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -129,20 +129,20 @@ func NewSetDebugStepForbidden() *SetDebugStepForbidden {
 Forbidden.
 */
 type SetDebugStepForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *SetDebugStepForbidden) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/debug][%d] setDebugStepForbidden  %+v", 403, o.Payload)
 }
 
-func (o *SetDebugStepForbidden) GetPayload() *models.Error {
+func (o *SetDebugStepForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *SetDebugStepForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

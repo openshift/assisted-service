@@ -69,7 +69,7 @@ type DisableHostUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDisableHostUnauthorized creates DisableHostUnauthorized with default headers values
@@ -79,13 +79,13 @@ func NewDisableHostUnauthorized() *DisableHostUnauthorized {
 }
 
 // WithPayload adds the payload to the disable host unauthorized response
-func (o *DisableHostUnauthorized) WithPayload(payload *models.Error) *DisableHostUnauthorized {
+func (o *DisableHostUnauthorized) WithPayload(payload *models.InfraError) *DisableHostUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the disable host unauthorized response
-func (o *DisableHostUnauthorized) SetPayload(payload *models.Error) {
+func (o *DisableHostUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -113,7 +113,7 @@ type DisableHostForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDisableHostForbidden creates DisableHostForbidden with default headers values
@@ -123,13 +123,13 @@ func NewDisableHostForbidden() *DisableHostForbidden {
 }
 
 // WithPayload adds the payload to the disable host forbidden response
-func (o *DisableHostForbidden) WithPayload(payload *models.Error) *DisableHostForbidden {
+func (o *DisableHostForbidden) WithPayload(payload *models.InfraError) *DisableHostForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the disable host forbidden response
-func (o *DisableHostForbidden) SetPayload(payload *models.Error) {
+func (o *DisableHostForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
