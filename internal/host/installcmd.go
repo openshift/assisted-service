@@ -53,7 +53,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 	cmdArgsTmpl := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket --privileged --pid=host --net=host " +
 		"-v /var/log:/var/log:rw --env PULL_SECRET_TOKEN --name assisted-installer {{.INSTALLER}} --role {{.ROLE}} --cluster-id {{.CLUSTER_ID}} " +
 		"--boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}} " +
-		"--controller-image {{.CONTROLLER_IMAGE}} --url {{.BASE_URL}} --insecure={{.SKIP_CERT_VERIFICATION}}"
+		"--controller-image {{.CONTROLLER_IMAGE}} --url {{.BASE_URL}} --insecure={{.SKIP_CERT_VERIFICATION}} --installation-timeout {{.INSTALLATION_TIMEOUT}}"
 	data := map[string]string{
 		"BASE_URL":               strings.TrimSpace(i.instructionConfig.ServiceBaseURL),
 		"CLUSTER_ID":             string(host.ClusterID),
@@ -64,6 +64,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"BOOT_DEVICE":            "",
 		"OPENSHIFT_VERSION":      cluster.OpenshiftVersion,
 		"SKIP_CERT_VERIFICATION": strconv.FormatBool(i.instructionConfig.SkipCertVerification),
+		"INSTALLATION_TIMEOUT":   i.instructionConfig.InstallationTimeout,
 	}
 
 	hostname, _ := common.GetCurrentHostName(host)
