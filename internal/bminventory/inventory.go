@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/djherbis/stream"
+
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
@@ -2302,11 +2304,27 @@ func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params ins
 		return common.GenerateErrorResponder(err)
 	}
 
-	reader, contentLength, err := b.objectHandler.DownloadListOfFiles(ctx, files)
+	w, err := stream.New("downloads")
 	if err != nil {
+		err = errors.Wrapf(err, "Failed to create stream for files %s", files)
+		log.Error(err)
+		return common.GenerateErrorResponder(err)
+	}
+	defer w.Close()
+	err = common.CreateTar(ctx, w, files, b.objectHandler)
+	if err != nil {
+		log.Error(err)
 		return common.GenerateErrorResponder(err)
 	}
 
+	reader, err := w.NextReader()
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to create stream reader %s", files)
+		log.Error(err)
+		return common.GenerateErrorResponder(err)
+	}
+
+	contentLength, _ := reader.Size()
 	fileName := fmt.Sprintf("%s_logs.tar", params.ClusterID)
 	return filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(reader), fileName, contentLength)
 }

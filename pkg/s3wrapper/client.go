@@ -1,7 +1,6 @@
 package s3wrapper
 
 import (
-	"archive/tar"
 	"bufio"
 	"bytes"
 	"context"
@@ -14,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/djherbis/stream"
 
 	logutil "github.com/openshift/assisted-service/pkg/log"
 
@@ -49,7 +46,6 @@ type API interface {
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
-	DownloadListOfFiles(ctx context.Context, files []string) (io.ReadCloser, int64, error)
 }
 
 var _ API = &S3Client{}
@@ -364,52 +360,4 @@ func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 		objects = append(objects, *key.Key)
 	}
 	return objects, nil
-}
-
-func (c *S3Client) DownloadListOfFiles(ctx context.Context, files []string) (io.ReadCloser, int64, error) {
-	log := logutil.FromContext(ctx, c.log)
-	// Create a new stream.
-	w, err := stream.New("downloads")
-	if err != nil {
-		err = errors.Wrapf(err, "Failed tp create stream for files %s", files)
-		log.Error(err)
-		return nil, 0, err
-	}
-	defer w.Close()
-
-	// Create a new tar archive.
-	tarWriter := tar.NewWriter(w)
-	var rdr io.ReadCloser
-	var objectSize int64
-
-	// Create tar headers from s3 files
-	for _, file := range files {
-
-		// Read file from S3, log any errors
-		rdr, objectSize, err = c.Download(ctx, file)
-		if err != nil {
-			log.WithError(err).Warnf("Failed to open reader for %s, skipping it", file)
-			continue
-		}
-
-		header := tar.Header{
-			Name: file,
-			Size: objectSize,
-		}
-
-		_ = tarWriter.WriteHeader(&header)
-		_, _ = io.Copy(tarWriter, rdr)
-		_ = rdr.Close()
-	}
-	// tar writer must be closes before reader tries to get stream size
-	tarWriter.Close()
-	reader, err := w.NextReader()
-	if err != nil {
-		err = errors.Wrapf(err, "Failed to create stream reader %s", files)
-		log.Error(err)
-		return nil, 0, err
-	}
-
-	contentLength, _ := reader.Size()
-	return reader, contentLength, nil
 }
