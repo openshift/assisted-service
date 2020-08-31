@@ -2300,6 +2300,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		request        *http.Request
 		mockHostApi    *host.MockAPI
 		host1          models.Host
+		prefix         string
 	)
 
 	BeforeEach(func() {
@@ -2334,6 +2335,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		request.Header.Add("Content-Type", writer.FormDataContentType())
 		_ = request.ParseMultipartForm(32 << 20)
+		prefix = fmt.Sprintf("%s/logs/", clusterID.String())
 	})
 
 	AfterEach(func() {
@@ -2492,7 +2494,29 @@ var _ = Describe("Upload and Download logs test", func() {
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
+	It("download cluster logs no cluster", func() {
+		clusterId := strToUUID(uuid.New().String())
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: *clusterId,
+		}
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
+	})
 
+	It("download cluster list of object fails", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(nil, errors.Errorf("Dummy"))
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
+	})
+
+	It("download cluster no files", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{}, nil)
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
+	})
 })
 
 func verifyApiError(responder middleware.Responder, expectedHttpStatus int32) {

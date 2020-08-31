@@ -1,9 +1,11 @@
 package subsystem
 
 import (
+	"archive/tar"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -1046,6 +1048,38 @@ var _ = Describe("cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(s.Size()).ShouldNot(Equal(0))
 			}
+
+			By("Test happy cluster logs")
+			{
+				kubeconfigFile, err := os.Open("test_kubeconfig")
+				Expect(err).NotTo(HaveOccurred())
+				nodes := register3nodes(clusterID)
+				for _, host := range nodes {
+					_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *host.ID, Upfile: kubeconfigFile})
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				file, err := ioutil.TempFile("", "tmp.tar")
+				Expect(err).NotTo(HaveOccurred())
+				defer file.Close()
+				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID}, file)
+				Expect(err).NotTo(HaveOccurred())
+				s, err := file.Stat()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(s.Size()).ShouldNot(Equal(0))
+				tarReader := tar.NewReader(file)
+				numOfarchivedFiles := 0
+				for {
+					_, err := tarReader.Next()
+					if err == io.EOF {
+						break
+					}
+					Expect(err).NotTo(HaveOccurred())
+					numOfarchivedFiles += 1
+					Expect(numOfarchivedFiles < len(nodes)+1).Should(Equal(true))
+				}
+			}
+
 		})
 
 		It("[only_k8s]Upload ingress ca and kubeconfig download", func() {
