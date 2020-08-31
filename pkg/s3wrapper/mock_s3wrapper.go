@@ -208,3 +208,18 @@ func (mr *MockAPIMockRecorder) ExpireObjects(ctx, prefix, deleteTime, callback i
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExpireObjects", reflect.TypeOf((*MockAPI)(nil).ExpireObjects), ctx, prefix, deleteTime, callback)
 }
+
+// ListObjectsByPrefix mocks base method
+func (m *MockAPI) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListObjectsByPrefix", ctx, prefix)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListObjectsByPrefix indicates an expected call of ListObjectsByPrefix
+func (mr *MockAPIMockRecorder) ListObjectsByPrefix(ctx, prefix interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListObjectsByPrefix", reflect.TypeOf((*MockAPI)(nil).ListObjectsByPrefix), ctx, prefix)
+}

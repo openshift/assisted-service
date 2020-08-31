@@ -43,6 +43,9 @@ type API interface {
 	   DownloadClusterKubeconfig downloads the kubeconfig file for this cluster*/
 	DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error)
 	/*
+	   DownloadClusterLogs downloads cluster logs*/
+	DownloadClusterLogs(ctx context.Context, params *DownloadClusterLogsParams, writer io.Writer) (*DownloadClusterLogsOK, error)
+	/*
 	   DownloadHostLogs downloads host logs*/
 	DownloadHostLogs(ctx context.Context, params *DownloadHostLogsParams, writer io.Writer) (*DownloadHostLogsOK, error)
 	/*
@@ -325,6 +328,31 @@ func (a *Client) DownloadClusterKubeconfig(ctx context.Context, params *Download
 		return nil, err
 	}
 	return result.(*DownloadClusterKubeconfigOK), nil
+
+}
+
+/*
+DownloadClusterLogs downloads cluster logs
+*/
+func (a *Client) DownloadClusterLogs(ctx context.Context, params *DownloadClusterLogsParams, writer io.Writer) (*DownloadClusterLogsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadClusterLogs",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/logs",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DownloadClusterLogsReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadClusterLogsOK), nil
 
 }
 
