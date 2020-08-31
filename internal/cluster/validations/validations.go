@@ -186,15 +186,10 @@ func ValidateHTTPProxyFormat(proxyURL string) error {
 
 // ValidateNoProxyFormat validates the no-proxy format which should be a comma-separated list
 // of destination domain names, domains, IP addresses or other network CIDRs. A domain can be
-// prefaced with '.' to include all subdomains of that domain. '*' is a valid value to bypass proxy
-// for all destinations
+// prefaced with '.' to include all subdomains of that domain.
 func ValidateNoProxyFormat(noProxy string) error {
 	domains := strings.Split(noProxy, ",")
 	for _, s := range domains {
-		if s == "*" {
-			continue
-		}
-
 		s = strings.TrimPrefix(s, ".")
 		if govalidator.IsIP(s) {
 			continue
@@ -209,8 +204,7 @@ func ValidateNoProxyFormat(noProxy string) error {
 		}
 		return fmt.Errorf("NO Proxy format is not valid: '%s'. "+
 			"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
-			"A domain can be prefaced with '.' to include all subdomains of that domain. "+
-			"'*' is used to bypass proxy for all destinations.", noProxy)
+			"A domain can be prefaced with '.' to include all subdomains of that domain.", noProxy)
 	}
 	return nil
 }
