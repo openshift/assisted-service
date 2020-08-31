@@ -61,6 +61,9 @@ type InstallerAPI interface {
 	/* DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster. */
 	DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder
 
+	/* DownloadClusterLogs Download cluster logs */
+	DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder
+
 	/* DownloadHostLogs Download host logs */
 	DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder
 
@@ -257,6 +260,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterKubeconfig(ctx, params)
+	})
+	api.InstallerDownloadClusterLogsHandler = installer.DownloadClusterLogsHandlerFunc(func(params installer.DownloadClusterLogsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.DownloadClusterLogs(ctx, params)
 	})
 	api.InstallerDownloadHostLogsHandler = installer.DownloadHostLogsHandlerFunc(func(params installer.DownloadHostLogsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
