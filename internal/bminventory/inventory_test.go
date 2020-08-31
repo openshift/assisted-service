@@ -170,6 +170,55 @@ var _ = Describe("GenerateClusterISO", func() {
 
 		})
 
+		It("image already exists", func() {
+			clusterId := strfmt.UUID(uuid.New().String())
+			cluster := common.Cluster{Cluster: models.Cluster{
+				ID:            &clusterId,
+				PullSecretSet: true,
+			}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+			cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
+			cluster.ImageInfo = &models.ImageInfo{GeneratorVersion: bm.Config.ImageBuilder}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			mockS3Client.EXPECT().IsAwsS3().Return(true)
+			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
+			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", gomock.Any())
+			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+				ClusterID:         clusterId,
+				ImageCreateParams: &models.ImageCreateParams{},
+			})
+			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterId}).(*installer.GetClusterOK)
+			Expect(getReply.Payload.ImageInfo.GeneratorVersion).To(Equal("quay.io/ocpmetal/assisted-iso-create:latest"))
+		})
+
+		It("image expired", func() {
+			clusterId := strfmt.UUID(uuid.New().String())
+			cluster := common.Cluster{Cluster: models.Cluster{
+				ID:            &clusterId,
+				PullSecretSet: true,
+			}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+			cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
+			cluster.ImageInfo = &models.ImageInfo{GeneratorVersion: bm.Config.ImageBuilder}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().IsAwsS3().Return(true)
+			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
+			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
+			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+				ClusterID:         clusterId,
+				ImageCreateParams: &models.ImageCreateParams{},
+			})
+			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterId}).(*installer.GetClusterOK)
+			Expect(getReply.Payload.ImageInfo.GeneratorVersion).To(Equal("quay.io/ocpmetal/assisted-iso-create:latest"))
+		})
+
 		It("success with AWS S3", func() {
 			clusterId := registerCluster(true).ID
 			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
