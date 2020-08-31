@@ -62,6 +62,10 @@ var manualRebootStages = [...]models.HostStage{
 	models.HostStageDone,
 }
 
+type Config struct {
+	ResetTimeout time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
+}
+
 //go:generate mockgen -source=host.go -package=host -aux_files=github.com/openshift/assisted-service/internal/host=instructionmanager.go -destination=mock_host_api.go
 type API interface {
 	// Register a new host
@@ -106,10 +110,11 @@ type Manager struct {
 	sm             stateswitch.StateMachine
 	rp             *refreshPreprocessor
 	metricApi      metrics.API
+	Config         Config
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi InstructionApi,
-	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API) *Manager {
+	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -124,6 +129,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		sm:             NewHostStateMachine(th),
 		rp:             newRefreshPreprocessor(log, hwValidatorCfg),
 		metricApi:      metricApi,
+		Config:         *config,
 	}
 }
 
@@ -354,10 +360,15 @@ func (m *Manager) IsRequireUserActionReset(h *models.Host) bool {
 	if swag.StringValue(h.Status) != models.HostStatusResetting {
 		return false
 	}
-	if !funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
-		return false
+	if time.Since(time.Time(h.StatusUpdatedAt)) >= m.Config.ResetTimeout {
+		m.log.Infof("Host %s: exceeded reset timeout: %s", h.ID, m.Config.ResetTimeout.String())
+		return true
 	}
-	return true
+	if funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
+		m.log.Infof("Host %s: passed reboot stage: %s", h.ID, h.Progress.CurrentStage)
+		return true
+	}
+	return false
 }
 
 func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
