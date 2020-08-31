@@ -207,3 +207,34 @@ func (mr *MockAPIMockRecorder) ExpireObjects(ctx, prefix, deleteTime, callback i
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExpireObjects", reflect.TypeOf((*MockAPI)(nil).ExpireObjects), ctx, prefix, deleteTime, callback)
 }
+
+// ListObjectsByPrefix mocks base method
+func (m *MockAPI) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListObjectsByPrefix", ctx, prefix)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListObjectsByPrefix indicates an expected call of ListObjectsByPrefix
+func (mr *MockAPIMockRecorder) ListObjectsByPrefix(ctx, prefix interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListObjectsByPrefix", reflect.TypeOf((*MockAPI)(nil).ListObjectsByPrefix), ctx, prefix)
+}
+
+// DownloadListOfFiles mocks base method
+func (m *MockAPI) DownloadListOfFiles(ctx context.Context, files []string) (io.ReadCloser, int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadListOfFiles", ctx, files)
+	ret0, _ := ret[0].(io.ReadCloser)
+	ret1, _ := ret[1].(int64)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// DownloadListOfFiles indicates an expected call of DownloadListOfFiles
+func (mr *MockAPIMockRecorder) DownloadListOfFiles(ctx, files interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadListOfFiles", reflect.TypeOf((*MockAPI)(nil).DownloadListOfFiles), ctx, files)
+}

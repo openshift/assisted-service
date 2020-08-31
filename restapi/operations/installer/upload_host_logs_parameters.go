@@ -39,6 +39,7 @@ type UploadHostLogsParams struct {
 	*/
 	ClusterID strfmt.UUID
 	/*The file to upload.
+	  Max Length: 2097152
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
@@ -148,6 +149,20 @@ func (o *UploadHostLogsParams) bindDiscoveryAgentVersion(rawData []string, hasKe
 	}
 
 	o.DiscoveryAgentVersion = &raw
+
+	if err := o.validateDiscoveryAgentVersion(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateDiscoveryAgentVersion carries on validations for parameter DiscoveryAgentVersion
+func (o *UploadHostLogsParams) validateDiscoveryAgentVersion(formats strfmt.Registry) error {
+
+	if err := validate.MaxLength("discovery_agent_version", "header", (*o.DiscoveryAgentVersion), 2097152); err != nil {
+		return err
+	}
 
 	return nil
 }
