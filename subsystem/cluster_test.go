@@ -1051,12 +1051,13 @@ var _ = Describe("cluster install", func() {
 
 			By("Test happy cluster logs")
 			{
-				kubeconfigFile, err := os.Open("test_kubeconfig")
-				Expect(err).NotTo(HaveOccurred())
 				nodes := register3nodes(clusterID)
 				for _, host := range nodes {
+					kubeconfigFile, err := os.Open("test_kubeconfig")
+					Expect(err).NotTo(HaveOccurred())
 					_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *host.ID, Upfile: kubeconfigFile})
 					Expect(err).NotTo(HaveOccurred())
+					kubeconfigFile.Close()
 				}
 
 				file, err := ioutil.TempFile("", "tmp.tar")
