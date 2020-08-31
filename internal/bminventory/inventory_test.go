@@ -100,7 +100,7 @@ func mockAbortInstallConfig(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLoca
 var _ = Describe("GenerateClusterISO", func() {
 	var (
 		bm           *bareMetalInventory
-		cfg          common.Config
+		cfg          Config
 		db           *gorm.DB
 		ctx          = context.Background()
 		ctrl         *gomock.Controller
@@ -325,7 +325,7 @@ var _ = Describe("IgnitionParameters", func() {
 var _ = Describe("RegisterHost", func() {
 	var (
 		bm                *bareMetalInventory
-		cfg               common.Config
+		cfg               Config
 		db                *gorm.DB
 		ctx               = context.Background()
 		dbName            = "register_host_api"
@@ -401,7 +401,7 @@ var _ = Describe("RegisterHost", func() {
 var _ = Describe("GetNextSteps", func() {
 	var (
 		bm                *bareMetalInventory
-		cfg               common.Config
+		cfg               Config
 		db                *gorm.DB
 		ctx               = context.Background()
 		ctrl              *gomock.Controller
@@ -488,7 +488,7 @@ func makeFreeNetworksAddressesStr(elems ...*models.FreeNetworkAddresses) string 
 var _ = Describe("PostStepReply", func() {
 	var (
 		bm             *bareMetalInventory
-		cfg            common.Config
+		cfg            Config
 		db             *gorm.DB
 		ctx            = context.Background()
 		ctrl           *gomock.Controller
@@ -685,7 +685,7 @@ var _ = Describe("PostStepReply", func() {
 var _ = Describe("GetFreeAddresses", func() {
 	var (
 		bm          *bareMetalInventory
-		cfg         common.Config
+		cfg         Config
 		db          *gorm.DB
 		ctx         = context.Background()
 		ctrl        *gomock.Controller
@@ -833,7 +833,7 @@ var _ = Describe("GetFreeAddresses", func() {
 var _ = Describe("UpdateHostInstallProgress", func() {
 	var (
 		bm                   *bareMetalInventory
-		cfg                  common.Config
+		cfg                  Config
 		db                   *gorm.DB
 		ctx                  = context.Background()
 		ctrl                 *gomock.Controller
@@ -923,7 +923,7 @@ var _ = Describe("cluster", func() {
 
 	var (
 		bm             *bareMetalInventory
-		cfg            common.Config
+		cfg            Config
 		db             *gorm.DB
 		ctx            = context.Background()
 		ctrl           *gomock.Controller
@@ -1943,7 +1943,7 @@ var _ = Describe("KubeConfig download", func() {
 
 	var (
 		bm           *bareMetalInventory
-		cfg          common.Config
+		cfg          Config
 		db           *gorm.DB
 		ctx          = context.Background()
 		ctrl         *gomock.Controller
@@ -1983,7 +1983,7 @@ var _ = Describe("KubeConfig download", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(false)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  common.Kubeconfig,
+			FileName:  kubeconfig,
 		})
 		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
@@ -1992,7 +1992,7 @@ var _ = Describe("KubeConfig download", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  common.Kubeconfig,
+			FileName:  kubeconfig,
 		})
 		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
@@ -2001,12 +2001,12 @@ var _ = Describe("KubeConfig download", func() {
 		status := ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
-		fileName := fmt.Sprintf("%s/%s", clusterID, common.Kubeconfig)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("url", nil)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  common.Kubeconfig,
+			FileName:  kubeconfig,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
@@ -2032,7 +2032,7 @@ var _ = Describe("KubeConfig download", func() {
 		status := ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
-		fileName := fmt.Sprintf("%s/%s", clusterID, common.Kubeconfig)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: clusterID,
@@ -2043,13 +2043,13 @@ var _ = Describe("KubeConfig download", func() {
 		status := ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
-		fileName := fmt.Sprintf("%s/%s", clusterID, common.Kubeconfig)
+		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: clusterID,
 		})
-		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(r), common.Kubeconfig, 4)))
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(r), kubeconfig, 4)))
 	})
 })
 
@@ -2057,7 +2057,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 
 	var (
 		bm                  *bareMetalInventory
-		cfg                 common.Config
+		cfg                 Config
 		db                  *gorm.DB
 		ctx                 = context.Background()
 		ctrl                *gomock.Controller
@@ -2099,7 +2099,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			APIVip: "10.11.12.13",
 		}}
 		kubeconfigNoingress = fmt.Sprintf("%s/%s", clusterID, "kubeconfig-noingress")
-		kubeconfigObject = fmt.Sprintf("%s/%s", clusterID, common.Kubeconfig)
+		kubeconfigObject = fmt.Sprintf("%s/%s", clusterID, kubeconfig)
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		kubeconfigFile, err = os.Open("../../subsystem/test_kubeconfig")
@@ -2242,7 +2242,7 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	var (
 		bm             *bareMetalInventory
-		cfg            common.Config
+		cfg            Config
 		db             *gorm.DB
 		ctx            = context.Background()
 		ctrl           *gomock.Controller

@@ -56,8 +56,139 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+const kubeconfig = "kubeconfig"
+
+const (
+	ResourceKindHost    = "Host"
+	ResourceKindCluster = "Cluster"
+)
+
+const DefaultUser = "kubeadmin"
+const ConsoleUrlPrefix = "https://console-openshift-console.apps"
+
+var (
+	DefaultClusterNetworkCidr       = "10.128.0.0/14"
+	DefaultClusterNetworkHostPrefix = int64(23)
+	DefaultServiceNetworkCidr       = "172.30.0.0/16"
+)
+
+type Config struct {
+	ImageBuilder         string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
+	AgentDockerImg       string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	IgnitionGenerator    string            `envconfig:"IGNITION_GENERATE_IMAGE" default:"quay.io/ocpmetal/assisted-ignition-generator:latest"` // TODO: update the latest once the repository has git workflow
+	ServiceBaseURL       string            `envconfig:"SERVICE_BASE_URL"`
+	S3EndpointURL        string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket             string            `envconfig:"S3_BUCKET" default:"test"`
+	ImageExpirationTime  time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"60m"`
+	AwsAccessKeyID       string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey   string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	BaseDNSDomains       map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
+	SkipCertVerification bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	ServiceIPs           string            `envconfig:"SERVICE_IPS" default:""`
+}
+
+const agentMessageOfTheDay = `
+**  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
+This is a host being installed by the OpenShift Assisted Installer.
+It will be installed from scratch during the installation.
+The primary service is agent.service.  To watch its status run e.g
+sudo journalctl -u agent.service
+**  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
+`
+
+type IgnitionConfigFormat struct {
+	Ignition struct {
+		Version string `json:"version"`
+	} `json:"ignition"`
+	Passwd struct {
+		Users []struct {
+			Name              string   `json:"name"`
+			PasswordHash      string   `json:"passwordHash"`
+			SSHAuthorizedKeys []string `json:"sshAuthorizedKeys"`
+			Groups            []string `json:"groups"`
+		} `json:"users"`
+	} `json:"passwd"`
+	Systemd struct {
+		Units []struct {
+			Name     string `json:"name"`
+			Enabled  bool   `json:"enabled"`
+			Contents string `json:"contents"`
+		} `json:"units"`
+	} `json:"systemd"`
+	Storage struct {
+		Files []struct {
+			Filesystem string `json:"filesystem"`
+			Path       string `json:"path"`
+			Mode       int    `json:"mode"`
+			Contents   struct {
+				Source string `json:"source"`
+			} `json:"contents"`
+		} `json:"files"`
+	} `json:"storage"`
+}
+
+type OnPremIgnitionConfigFormat struct {
+	Storage struct {
+		Files []struct {
+			Filesystem string `json:"filesystem"`
+			Path       string `json:"path"`
+			Mode       int    `json:"mode"`
+			Contents   struct {
+				Source string `json:"source"`
+			} `json:"contents"`
+		} `json:"files"`
+	} `json:"storage"`
+}
+
+const ignitionConfig = `{
+"ignition": { "version": "2.2.0" },
+  "passwd": {
+    "users": [
+      {{.userSshKey}}
+    ]
+  },
+"systemd": {
+"units": [{
+"name": "agent.service",
+"enabled": true,
+"contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}\n\n[Install]\nWantedBy=multi-user.target"
+}]
+},
+"storage": {
+    "files": [{
+      "filesystem": "root",
+      "path": "/etc/motd",
+      "mode": 644,
+      "contents": { "source": "data:,{{.AGENT_MOTD}}" }
+    }]
+  }
+}`
+
+const onPremIgnitionConfig = `{
+	"storage": {
+		"files": [{
+		"filesystem": "root",
+		"path": "/etc/hosts",
+		"mode": 420,
+		"append": true,
+		"contents": { "source": "{{.ASSISTED_INSTALLER_IPS}}" }
+		}]
+	  }
+	}`
+
+var clusterFileNames = []string{
+	"kubeconfig",
+	"bootstrap.ign",
+	"master.ign",
+	"worker.ign",
+	"metadata.json",
+	"kubeadmin-password",
+	"kubeconfig-noingress",
+	"install-config.yaml",
+}
+
 type bareMetalInventory struct {
-	common.Config
+	Config
 	db            *gorm.DB
 	log           logrus.FieldLogger
 	hostApi       host.API
@@ -75,7 +206,7 @@ func NewBareMetalInventory(
 	log logrus.FieldLogger,
 	hostApi host.API,
 	clusterApi cluster.API,
-	cfg common.Config,
+	cfg Config,
 	generator generator.ISOInstallConfigGenerator,
 	eventsHandler events.Handler,
 	objectHandler s3wrapper.API,
@@ -110,17 +241,17 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"ServiceBaseURL":       strings.TrimSpace(b.ServiceBaseURL),
 		"clusterId":            cluster.ID.String(),
 		"PullSecretToken":      r.AuthRaw,
-		"AGENT_MOTD":           url.PathEscape(common.AgentMessageOfTheDay),
+		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
 		"HTTPProxy":            cluster.HTTPProxy,
 		"HTTPSProxy":           cluster.HTTPSProxy,
 		"NoProxy":              cluster.NoProxy,
 		"SkipCertVerification": strconv.FormatBool(b.SkipCertVerification),
 	}
 
-	ignition, err := b.getIgnitionConfig(common.IgnitionConfig, ignitionParams)
+	ignition, err := b.getIgnitionConfig(ignitionConfig, ignitionParams)
 
 	if b.Config.ServiceIPs != "" {
-		var ign common.IgnitionConfigFormat
+		var ign IgnitionConfigFormat
 		err = json.Unmarshal(ignition, &ign)
 
 		if err != nil {
@@ -129,12 +260,12 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 
 		ignitionParams["ASSISTED_INSTALLER_IPS"] = dataurl.EncodeBytes([]byte(b.getIPs()))
 
-		onpremIgnition, err2 := b.getIgnitionConfig(common.OnPremIgnitionConfig, ignitionParams) //check error
+		onpremIgnition, err2 := b.getIgnitionConfig(onPremIgnitionConfig, ignitionParams) //check error
 		if err2 != nil {
 			return bytes.NewBuffer(onpremIgnition).String(), err2
 		}
 
-		var onpremIgn common.OnPremIgnitionConfigFormat
+		var onpremIgn OnPremIgnitionConfigFormat
 		err3 := json.Unmarshal(onpremIgnition, &onpremIgn)
 		if err3 != nil {
 			return "", fmt.Errorf("Onprem ignition invalid")
@@ -195,13 +326,13 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	}
 
 	if params.NewClusterParams.ClusterNetworkCidr == nil {
-		params.NewClusterParams.ClusterNetworkCidr = &common.DefaultClusterNetworkCidr
+		params.NewClusterParams.ClusterNetworkCidr = &DefaultClusterNetworkCidr
 	}
 	if params.NewClusterParams.ClusterNetworkHostPrefix == 0 {
-		params.NewClusterParams.ClusterNetworkHostPrefix = common.DefaultClusterNetworkHostPrefix
+		params.NewClusterParams.ClusterNetworkHostPrefix = DefaultClusterNetworkHostPrefix
 	}
 	if params.NewClusterParams.ServiceNetworkCidr == nil {
-		params.NewClusterParams.ServiceNetworkCidr = &common.DefaultServiceNetworkCidr
+		params.NewClusterParams.ServiceNetworkCidr = &DefaultServiceNetworkCidr
 	}
 	if params.NewClusterParams.VipDhcpAllocation == nil {
 		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
@@ -210,7 +341,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:                       &id,
 		Href:                     swag.String(url.String()),
-		Kind:                     swag.String(common.ResourceKindCluster),
+		Kind:                     swag.String(ResourceKindCluster),
 		BaseDNSDomain:            params.NewClusterParams.BaseDNSDomain,
 		ClusterNetworkCidr:       swag.StringValue(params.NewClusterParams.ClusterNetworkCidr),
 		ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
@@ -1177,7 +1308,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	host = models.Host{
 		ID:                    params.NewHostParams.HostID,
 		Href:                  swag.String(url.String()),
-		Kind:                  swag.String(common.ResourceKindHost),
+		Kind:                  swag.String(ResourceKindHost),
 		ClusterID:             params.ClusterID,
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
@@ -1592,15 +1723,15 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), common.Kubeconfig); err != nil {
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), kubeconfig); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, common.Kubeconfig))
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, kubeconfig))
 	if err != nil {
 		return common.NewApiError(http.StatusConflict, err)
 	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), common.Kubeconfig, contentLength)
+	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig, contentLength)
 }
 
 func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID, fileName string) error {
@@ -1608,7 +1739,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	var cluster common.Cluster
 	log.Infof("Checking cluster cluster file for download: %s for cluster %s", fileName, clusterID)
 
-	if !funk.Contains(common.ClusterFileNames, fileName) {
+	if !funk.Contains(clusterFileNames, fileName) {
 		err := fmt.Errorf("invalid cluster file %s", fileName)
 		log.WithError(err).Errorf("failed download file: %s from cluster: %s", fileName, clusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -1624,7 +1755,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	}
 
 	var err error
-	if fileName == common.Kubeconfig {
+	if fileName == kubeconfig {
 		err = b.clusterApi.DownloadKubeconfig(&cluster)
 	} else {
 		err = b.clusterApi.DownloadFiles(&cluster)
@@ -1666,9 +1797,9 @@ func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installe
 	}
 	return installer.NewGetCredentialsOK().WithPayload(
 		&models.Credentials{
-			Username:   common.DefaultUser,
+			Username:   DefaultUser,
 			Password:   string(password),
-			ConsoleURL: fmt.Sprintf("%s.%s.%s", common.ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain),
+			ConsoleURL: fmt.Sprintf("%s.%s.%s", ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain),
 		})
 }
 
@@ -1719,7 +1850,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
-	objectName := fmt.Sprintf("%s/%s", cluster.ID, common.Kubeconfig)
+	objectName := fmt.Sprintf("%s/%s", cluster.ID, kubeconfig)
 	exists, err := b.objectHandler.DoesObjectExist(ctx, objectName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload ingress ca")
@@ -1732,7 +1863,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 		return installer.NewUploadClusterIngressCertCreated()
 	}
 
-	noingress := fmt.Sprintf("%s/%s-noingress", cluster.ID, common.Kubeconfig)
+	noingress := fmt.Sprintf("%s/%s-noingress", cluster.ID, kubeconfig)
 	resp, _, err := b.objectHandler.Download(ctx, noingress)
 	if err != nil {
 		return installer.NewUploadClusterIngressCertInternalServerError().
@@ -1960,7 +2091,7 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) deleteS3ClusterFiles(ctx context.Context, c *common.Cluster) error {
-	for _, name := range common.ClusterFileNames {
+	for _, name := range clusterFileNames {
 		if err := b.objectHandler.DeleteObject(ctx, fmt.Sprintf("%s/%s", c.ID, name)); err != nil {
 			return err
 		}
