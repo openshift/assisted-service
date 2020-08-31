@@ -14,27 +14,48 @@ def check_deployment():
     print("Checking OLM deployment")
     deployments = ['olm-operator', 'catalog-operator', 'packageserver'] 
     for deployment in deployments:
-        utils.wait_for_rollout('deployment', deployment, namespace='olm')
+        utils.wait_for_rollout(
+            k8s_object='deployment',
+            k8s_object_name=deployment,
+            target=deploy_options.target,
+            namespace='olm',
+            profile=deploy_options.profile
+        )
 
 
 def main():
-    utils.set_profile(deploy_options.target, deploy_options.profile)
+    utils.verify_build_directory(deploy_options.namespace)
 
     ## Main OLM Manifest for K8s
     if deploy_options.target != "oc-ingress":
         # K8s
-        deployed = utils.check_if_exists('namespace', 'olm', namespace='olm')
+        deployed = utils.check_if_exists(
+            k8s_object='namespace',
+            k8s_object_name='olm',
+            target=deploy_options.target,
+            namespace='olm',
+            profile=deploy_options.profile
+        )
         if not deployed:
             olm_manifests = [ 
                 "https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.15.1/crds.yaml",
                 "https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.15.1/olm.yaml"
             ]
             for manifest_url in olm_manifests:
-                file_name = "build/{}".format(os.path.basename(urlparse(manifest_url).path))
-                dst_file = os.path.join(os.getcwd(), file_name)
+                dst_file = os.path.join(
+                    os.getcwd(),
+                    'build',
+                    deploy_options.namespace,
+                    os.path.basename(urlparse(manifest_url).path)
+                )
                 print("Deploying {}".format(dst_file))
                 urlretrieve(manifest_url, dst_file)
-                utils.apply(dst_file)
+                utils.apply(
+                    target=deploy_options.target,
+                    namespace='olm',
+                    profile=deploy_options.profile,
+                    file=dst_file
+                )
 
             check_deployment()
 

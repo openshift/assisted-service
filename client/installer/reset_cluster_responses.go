@@ -114,20 +114,20 @@ func NewResetClusterUnauthorized() *ResetClusterUnauthorized {
 Unauthorized.
 */
 type ResetClusterUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *ResetClusterUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *ResetClusterUnauthorized) GetPayload() *models.Error {
+func (o *ResetClusterUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *ResetClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -147,20 +147,20 @@ func NewResetClusterForbidden() *ResetClusterForbidden {
 Forbidden.
 */
 type ResetClusterForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *ResetClusterForbidden) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterForbidden  %+v", 403, o.Payload)
 }
 
-func (o *ResetClusterForbidden) GetPayload() *models.Error {
+func (o *ResetClusterForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *ResetClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

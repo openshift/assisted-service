@@ -1436,6 +1436,22 @@ var _ = Describe("cluster", func() {
 						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 					})
+					It("Bad subnet", func() {
+						apiVip := "10.11.12.15"
+						ingressVip := "10.11.12.16"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								APIVip:                   &apiVip,
+								IngressVip:               &ingressVip,
+								ClusterNetworkCidr:       swag.String("1.168.5.0/24"),
+								ServiceNetworkCidr:       swag.String("193.168.4.0/1"),
+								ClusterNetworkHostPrefix: swag.Int64(23),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					})
 				})
 				Context("DHCP", func() {
 					It("Vips in DHCP", func() {

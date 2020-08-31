@@ -292,7 +292,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			requiredInputFieldsExist,
 			isSufficientForInstall),
 		DestinationState: HostStatusKnown,
-		PostTransition:   th.PostRefreshHost(""),
+		PostTransition:   th.PostRefreshHost(statusInfoKnown),
 	})
 
 	sm.AddTransition(stateswitch.TransitionRule{

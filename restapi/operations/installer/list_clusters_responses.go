@@ -72,7 +72,7 @@ type ListClustersUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewListClustersUnauthorized creates ListClustersUnauthorized with default headers values
@@ -82,13 +82,13 @@ func NewListClustersUnauthorized() *ListClustersUnauthorized {
 }
 
 // WithPayload adds the payload to the list clusters unauthorized response
-func (o *ListClustersUnauthorized) WithPayload(payload *models.Error) *ListClustersUnauthorized {
+func (o *ListClustersUnauthorized) WithPayload(payload *models.InfraError) *ListClustersUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the list clusters unauthorized response
-func (o *ListClustersUnauthorized) SetPayload(payload *models.Error) {
+func (o *ListClustersUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -116,7 +116,7 @@ type ListClustersForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewListClustersForbidden creates ListClustersForbidden with default headers values
@@ -126,13 +126,13 @@ func NewListClustersForbidden() *ListClustersForbidden {
 }
 
 // WithPayload adds the payload to the list clusters forbidden response
-func (o *ListClustersForbidden) WithPayload(payload *models.Error) *ListClustersForbidden {
+func (o *ListClustersForbidden) WithPayload(payload *models.InfraError) *ListClustersForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the list clusters forbidden response
-func (o *ListClustersForbidden) SetPayload(payload *models.Error) {
+func (o *ListClustersForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

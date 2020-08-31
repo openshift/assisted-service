@@ -62,6 +62,8 @@ type GetClusterParams struct {
 
 	/*ClusterID*/
 	ClusterID strfmt.UUID
+	/*DiscoveryAgentVersion*/
+	DiscoveryAgentVersion *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -112,6 +114,17 @@ func (o *GetClusterParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
+// WithDiscoveryAgentVersion adds the discoveryAgentVersion to the get cluster params
+func (o *GetClusterParams) WithDiscoveryAgentVersion(discoveryAgentVersion *string) *GetClusterParams {
+	o.SetDiscoveryAgentVersion(discoveryAgentVersion)
+	return o
+}
+
+// SetDiscoveryAgentVersion adds the discoveryAgentVersion to the get cluster params
+func (o *GetClusterParams) SetDiscoveryAgentVersion(discoveryAgentVersion *string) {
+	o.DiscoveryAgentVersion = discoveryAgentVersion
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -123,6 +136,15 @@ func (o *GetClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
+	}
+
+	if o.DiscoveryAgentVersion != nil {
+
+		// header param discovery_agent_version
+		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
+			return err
+		}
+
 	}
 
 	if len(res) > 0 {

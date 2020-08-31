@@ -1,10 +1,11 @@
+NAMESPACE := $(or ${NAMESPACE},assisted-installer)
+
 PWD = $(shell pwd)
 UID = $(shell id -u)
-BUILD_FOLDER = $(PWD)/build
+BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 TARGET := $(or ${TARGET},minikube)
-NAMESPACE := $(or ${NAMESPACE},assisted-installer)
 PROFILE := $(or $(PROFILE),minikube)
 KUBECTL=kubectl -n $(NAMESPACE)
 
@@ -102,7 +103,7 @@ build-image: build
 build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
 
 build-minimal-assisted-iso-generator-image: build-iso-generator
-	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
+	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 update: build-image
@@ -119,7 +120,7 @@ update-minikube: build build-dummy-ignition
 		&& docker build --network=host --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 build-dummy-ignition-image: build-dummy-ignition
-	docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
+	docker build --network=host --build-arg NAMESPACE=$(NAMESPACE) -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
 
 ##########
 # Deploy #
@@ -153,18 +154,22 @@ deploy-route53: deploy-namespace
 	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-ocm-secret: deploy-namespace
-	python3 ./tools/deploy_sso_secret.py --secret "$(OCM_CLIENT_SECRET)" --id "$(OCM_CLIENT_ID)" --namespace "$(NAMESPACE)"
+	python3 ./tools/deploy_sso_secret.py --secret "$(OCM_CLIENT_SECRET)" --id "$(OCM_CLIENT_ID)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
 
 deploy-inventory-service-file: deploy-namespace
 	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
+	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
+		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
+		$(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
-	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)"
-	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)"
+	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
+		--profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)"
+	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" \
+		--profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)"
 
 deploy-role: deploy-namespace
 	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
@@ -200,7 +205,7 @@ test:
 		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 30m
 
 deploy-olm: deploy-namespace
-	python3 ./tools/deploy_olm.py --target $(TARGET)
+	python3 ./tools/deploy_olm.py --target $(TARGET) --profile $(PROFILE)
 
 deploy-prometheus: $(BUILD_FOLDER) deploy-namespace
 	python3 ./tools/deploy_prometheus.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
@@ -219,6 +224,7 @@ unit-test:
 	docker stop postgres
 
 test-onprem:
+	INVENTORY=127.0.0.1:8090 \
 	INVENTORY=127.0.0.1:8090 \
 	DB_HOST=127.0.0.1 \
 	DB_PORT=5432 \

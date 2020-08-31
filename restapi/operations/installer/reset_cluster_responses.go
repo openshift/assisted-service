@@ -69,7 +69,7 @@ type ResetClusterUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewResetClusterUnauthorized creates ResetClusterUnauthorized with default headers values
@@ -79,13 +79,13 @@ func NewResetClusterUnauthorized() *ResetClusterUnauthorized {
 }
 
 // WithPayload adds the payload to the reset cluster unauthorized response
-func (o *ResetClusterUnauthorized) WithPayload(payload *models.Error) *ResetClusterUnauthorized {
+func (o *ResetClusterUnauthorized) WithPayload(payload *models.InfraError) *ResetClusterUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the reset cluster unauthorized response
-func (o *ResetClusterUnauthorized) SetPayload(payload *models.Error) {
+func (o *ResetClusterUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -113,7 +113,7 @@ type ResetClusterForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewResetClusterForbidden creates ResetClusterForbidden with default headers values
@@ -123,13 +123,13 @@ func NewResetClusterForbidden() *ResetClusterForbidden {
 }
 
 // WithPayload adds the payload to the reset cluster forbidden response
-func (o *ResetClusterForbidden) WithPayload(payload *models.Error) *ResetClusterForbidden {
+func (o *ResetClusterForbidden) WithPayload(payload *models.InfraError) *ResetClusterForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the reset cluster forbidden response
-func (o *ResetClusterForbidden) SetPayload(payload *models.Error) {
+func (o *ResetClusterForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

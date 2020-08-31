@@ -419,44 +419,6 @@ var _ = Describe("Host tests", func() {
 		Expect(len(getNextSteps(clusterID, *host.ID).Instructions)).ShouldNot(Equal(0))
 	})
 
-	It("debug", func() {
-		host1 := registerHost(clusterID)
-		host2 := registerHost(clusterID)
-		// set debug to host1
-		_, err := userBMClient.Installer.SetDebugStep(ctx, &installer.SetDebugStepParams{
-			ClusterID: clusterID,
-			HostID:    *host1.ID,
-			Step:      &models.DebugStep{Command: swag.String("echo hello")},
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		var step *models.Step
-		var ok bool
-		// debug should be only for host1
-		_, ok = getStepInList(getNextSteps(clusterID, *host2.ID), models.StepTypeExecute)
-		Expect(ok).Should(Equal(false))
-
-		step, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeExecute)
-		Expect(ok).Should(Equal(true))
-		Expect(step.Command).Should(Equal("bash"))
-		Expect(step.Args).Should(Equal([]string{"-c", "echo hello"}))
-
-		// debug executed only once
-		_, ok = getStepInList(getNextSteps(clusterID, *host1.ID), models.StepTypeExecute)
-		Expect(ok).Should(Equal(false))
-
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: clusterID,
-			HostID:    *host1.ID,
-			Reply: &models.StepReply{
-				ExitCode: 0,
-				Output:   "hello",
-				StepID:   step.StepID,
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	It("register_same_host_id", func() {
 		hostID := strToUUID(uuid.New().String())
 		// register to cluster1

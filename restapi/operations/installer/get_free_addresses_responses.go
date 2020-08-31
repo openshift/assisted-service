@@ -72,7 +72,7 @@ type GetFreeAddressesUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetFreeAddressesUnauthorized creates GetFreeAddressesUnauthorized with default headers values
@@ -82,13 +82,13 @@ func NewGetFreeAddressesUnauthorized() *GetFreeAddressesUnauthorized {
 }
 
 // WithPayload adds the payload to the get free addresses unauthorized response
-func (o *GetFreeAddressesUnauthorized) WithPayload(payload *models.Error) *GetFreeAddressesUnauthorized {
+func (o *GetFreeAddressesUnauthorized) WithPayload(payload *models.InfraError) *GetFreeAddressesUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get free addresses unauthorized response
-func (o *GetFreeAddressesUnauthorized) SetPayload(payload *models.Error) {
+func (o *GetFreeAddressesUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -116,7 +116,7 @@ type GetFreeAddressesForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetFreeAddressesForbidden creates GetFreeAddressesForbidden with default headers values
@@ -126,13 +126,13 @@ func NewGetFreeAddressesForbidden() *GetFreeAddressesForbidden {
 }
 
 // WithPayload adds the payload to the get free addresses forbidden response
-func (o *GetFreeAddressesForbidden) WithPayload(payload *models.Error) *GetFreeAddressesForbidden {
+func (o *GetFreeAddressesForbidden) WithPayload(payload *models.InfraError) *GetFreeAddressesForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get free addresses forbidden response
-func (o *GetFreeAddressesForbidden) SetPayload(payload *models.Error) {
+func (o *GetFreeAddressesForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

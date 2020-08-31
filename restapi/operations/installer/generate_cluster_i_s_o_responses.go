@@ -113,7 +113,7 @@ type GenerateClusterISOUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGenerateClusterISOUnauthorized creates GenerateClusterISOUnauthorized with default headers values
@@ -123,13 +123,13 @@ func NewGenerateClusterISOUnauthorized() *GenerateClusterISOUnauthorized {
 }
 
 // WithPayload adds the payload to the generate cluster i s o unauthorized response
-func (o *GenerateClusterISOUnauthorized) WithPayload(payload *models.Error) *GenerateClusterISOUnauthorized {
+func (o *GenerateClusterISOUnauthorized) WithPayload(payload *models.InfraError) *GenerateClusterISOUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the generate cluster i s o unauthorized response
-func (o *GenerateClusterISOUnauthorized) SetPayload(payload *models.Error) {
+func (o *GenerateClusterISOUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -157,7 +157,7 @@ type GenerateClusterISOForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGenerateClusterISOForbidden creates GenerateClusterISOForbidden with default headers values
@@ -167,13 +167,13 @@ func NewGenerateClusterISOForbidden() *GenerateClusterISOForbidden {
 }
 
 // WithPayload adds the payload to the generate cluster i s o forbidden response
-func (o *GenerateClusterISOForbidden) WithPayload(payload *models.Error) *GenerateClusterISOForbidden {
+func (o *GenerateClusterISOForbidden) WithPayload(payload *models.InfraError) *GenerateClusterISOForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the generate cluster i s o forbidden response
-func (o *GenerateClusterISOForbidden) SetPayload(payload *models.Error) {
+func (o *GenerateClusterISOForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

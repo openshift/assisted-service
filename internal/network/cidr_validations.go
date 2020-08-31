@@ -31,16 +31,15 @@ func VerifyCIDRsNotOverlap(aCidrStr, bCidrStr string) error {
 
 // SubnetCIDR checks if the given IP net is a valid CIDR.
 func VerifySubnetCIDR(cidrStr string) error {
-	_, cidr, err := net.ParseCIDR(cidrStr)
+	ip, cidr, err := net.ParseCIDR(cidrStr)
 	if err != nil {
 		return err
 	}
 	if cidr.IP.IsUnspecified() {
 		return errors.New("address must be specified")
 	}
-	nip := cidr.IP.Mask(cidr.Mask)
-	if nip.String() != cidr.IP.String() {
-		return errors.Errorf("invalid network address. got %s, expecting %s", cidr.String(), (&net.IPNet{IP: nip, Mask: cidr.Mask}).String())
+	if ip.To4().String() != cidr.IP.To4().String() {
+		return errors.Errorf("invalid network address. got %s, expecting %s", (&net.IPNet{IP: ip, Mask: cidr.Mask}).String(), cidr.String())
 	}
 	return nil
 }

@@ -4,10 +4,14 @@ import argparse
 import yaml
 import deployment_options
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--subsystem-test", help='deploy in subsystem mode',
+                    action='store_true')
+deploy_options = deployment_options.load_deployment_options(parser)
 
-SRC_FILE = os.path.join(os.getcwd(), "deploy/assisted-service.yaml")
-DST_FILE = os.path.join(os.getcwd(), "build/assisted-service.yaml")
-KEY_FILE = os.path.join(os.getcwd(), "build/auth-test-pub.json")
+SRC_FILE = os.path.join(os.getcwd(), 'deploy/assisted-service.yaml')
+DST_FILE = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-service.yaml')
+KEY_FILE = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'auth-test-pub.json')
 
 TEST_CLUSTER_MONITOR_INTERVAL = "1s"
 TEST_HOST_MONITOR_INTERVAL = "1s"
@@ -24,11 +28,7 @@ def load_key():
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--subsystem-test", help='deploy in subsystem mode', action='store_true')
-    deploy_options = deployment_options.load_deployment_options(parser)
-
-    utils.set_profile(deploy_options.target, deploy_options.profile)
+    utils.verify_build_directory(deploy_options.namespace)
 
     with open(SRC_FILE, "r") as src:
         raw_data = src.read()
@@ -55,8 +55,12 @@ def main():
         yaml.dump(data, dst, default_flow_style=False)
     print("Deploying {}".format(DST_FILE))
 
-    utils.apply(DST_FILE)
-
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=DST_FILE
+    )
 
 if __name__ == "__main__":
     main()

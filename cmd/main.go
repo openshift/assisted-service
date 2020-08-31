@@ -47,6 +47,8 @@ func init() {
 	strfmt.MarshalFormat = strfmt.ISO8601LocalTime
 }
 
+const deploymet_type_k8s = "k8s"
+
 var Options struct {
 	Auth                        auth.Config
 	BMConfig                    bminventory.Config
@@ -140,7 +142,7 @@ func main() {
 	var objectHandler s3wrapper.API
 
 	switch Options.DeployTarget {
-	case "k8s":
+	case deploymet_type_k8s:
 		var kclient client.Client
 
 		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log)
@@ -159,9 +161,6 @@ func main() {
 			log.Fatal("failed to create client:", err)
 		}
 		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
-		//Run first ISO dummy for image pull, this is done so that the image will be pulled and the api will take less time.
-		// blocking function that can take a long time.
-		bminventory.GenerateDummyISOImage(log, generator, eventsHandler)
 	case "onprem":
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
 		objectHandler = s3wrapper.NewFSClient("/data", log)
@@ -202,6 +201,10 @@ func main() {
 		ManagedDomainsAPI:   domainHandler,
 		InnerMiddleware:     metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry),
 	})
+	if err != nil {
+		log.Fatal("Failed to init rest handler,", err)
+	}
+
 	if Options.Auth.AllowedDomains != "" {
 		allowedDomains := strings.Split(strings.ReplaceAll(Options.Auth.AllowedDomains, " ", ""), ",")
 		log.Infof("AllowedDomains were provided, enabling CORS with %s as domain list", allowedDomains)
@@ -210,10 +213,19 @@ func main() {
 	}
 
 	h = app.WithMetricsResponderMiddleware(h)
-	h = app.WithHealthMiddleware(h)
+	apiEnabler := NewApiEnabler(h, log)
+	h = app.WithHealthMiddleware(apiEnabler)
 	h = requestid.Middleware(h)
-	if err != nil {
-		log.Fatal("Failed to init rest handler,", err)
+
+	if Options.DeployTarget == deploymet_type_k8s {
+		go func() {
+			defer apiEnabler.Enable()
+			//Run first ISO dummy for image pull, this is done so that the image will be pulled and the api will take less time.
+			// blocking function that can take a long time.
+			bminventory.GenerateDummyISOImage(log, generator, eventsHandler)
+		}()
+	} else {
+		apiEnabler.Enable()
 	}
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
@@ -225,4 +237,33 @@ func createS3Bucket(objectHandler s3wrapper.API) {
 			log.Fatal(err)
 		}
 	}
+}
+
+func NewApiEnabler(h http.Handler, log logrus.FieldLogger) *ApiEnabler {
+	return &ApiEnabler{
+		log:       log,
+		isEnabled: false,
+		inner:     h,
+	}
+}
+
+type ApiEnabler struct {
+	log       logrus.FieldLogger
+	isEnabled bool
+	inner     http.Handler
+}
+
+func (a *ApiEnabler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !a.isEnabled {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	} else if r.Method == http.MethodGet && r.URL.Path == "/ready" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	a.inner.ServeHTTP(w, r)
+}
+func (a *ApiEnabler) Enable() {
+	a.isEnabled = true
+	a.log.Info("API is enabled")
 }

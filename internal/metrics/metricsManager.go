@@ -43,13 +43,14 @@ const (
 )
 
 const (
-	namespace             = ""
-	subsystem             = "service"
-	openshiftVersionLabel = "openshiftVersion"
-	resultLabel           = "result"
-	phaseLabel            = "phase"
-	roleLabel             = "role"
-	diskTypeLabel         = "diskType"
+	namespace                  = ""
+	subsystem                  = "service"
+	openshiftVersionLabel      = "openshiftVersion"
+	resultLabel                = "result"
+	phaseLabel                 = "phase"
+	roleLabel                  = "role"
+	diskTypeLabel              = "diskType"
+	discoveryAgentVersionLabel = "discoveryAgentVersion"
 )
 
 type API interface {
@@ -110,7 +111,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Help:      counterDescriptionHostInstallationPhaseSeconds,
 			Buckets: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210, 240, 270, 300, 360, 420, 480, 540,
 				600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600},
-		}, []string{phaseLabel, resultLabel, openshiftVersionLabel}),
+		}, []string{phaseLabel, resultLabel, openshiftVersionLabel, discoveryAgentVersionLabel}),
 
 		serviceLogicClusterHosts: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -204,7 +205,7 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 			log.Infof("service Logic Host Installation Phase Seconds phase %s, result %s, duration %f",
 				string(previousProgress.CurrentStage), string(phaseResult), duration)
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
-				string(phaseResult), clusterVersion).Observe(duration)
+				string(phaseResult), clusterVersion, h.DiscoveryAgentVersion).Observe(duration)
 		}
 	}
 }

@@ -117,7 +117,7 @@ func newValidations(log logrus.FieldLogger, api host.API) []validation {
 		{
 			id:        isServiceCidrDefined,
 			condition: v.isServiceCidr,
-			formatter: v.printisServiceCidr,
+			formatter: v.printIsServiceCidrDefined,
 		},
 		{
 			id:        noCidrOverlapping,

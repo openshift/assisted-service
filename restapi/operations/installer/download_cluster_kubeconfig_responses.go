@@ -68,7 +68,7 @@ type DownloadClusterKubeconfigUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDownloadClusterKubeconfigUnauthorized creates DownloadClusterKubeconfigUnauthorized with default headers values
@@ -78,13 +78,13 @@ func NewDownloadClusterKubeconfigUnauthorized() *DownloadClusterKubeconfigUnauth
 }
 
 // WithPayload adds the payload to the download cluster kubeconfig unauthorized response
-func (o *DownloadClusterKubeconfigUnauthorized) WithPayload(payload *models.Error) *DownloadClusterKubeconfigUnauthorized {
+func (o *DownloadClusterKubeconfigUnauthorized) WithPayload(payload *models.InfraError) *DownloadClusterKubeconfigUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the download cluster kubeconfig unauthorized response
-func (o *DownloadClusterKubeconfigUnauthorized) SetPayload(payload *models.Error) {
+func (o *DownloadClusterKubeconfigUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -112,7 +112,7 @@ type DownloadClusterKubeconfigForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDownloadClusterKubeconfigForbidden creates DownloadClusterKubeconfigForbidden with default headers values
@@ -122,13 +122,13 @@ func NewDownloadClusterKubeconfigForbidden() *DownloadClusterKubeconfigForbidden
 }
 
 // WithPayload adds the payload to the download cluster kubeconfig forbidden response
-func (o *DownloadClusterKubeconfigForbidden) WithPayload(payload *models.Error) *DownloadClusterKubeconfigForbidden {
+func (o *DownloadClusterKubeconfigForbidden) WithPayload(payload *models.InfraError) *DownloadClusterKubeconfigForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the download cluster kubeconfig forbidden response
-func (o *DownloadClusterKubeconfigForbidden) SetPayload(payload *models.Error) {
+func (o *DownloadClusterKubeconfigForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

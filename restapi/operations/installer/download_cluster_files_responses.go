@@ -68,7 +68,7 @@ type DownloadClusterFilesUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDownloadClusterFilesUnauthorized creates DownloadClusterFilesUnauthorized with default headers values
@@ -78,13 +78,13 @@ func NewDownloadClusterFilesUnauthorized() *DownloadClusterFilesUnauthorized {
 }
 
 // WithPayload adds the payload to the download cluster files unauthorized response
-func (o *DownloadClusterFilesUnauthorized) WithPayload(payload *models.Error) *DownloadClusterFilesUnauthorized {
+func (o *DownloadClusterFilesUnauthorized) WithPayload(payload *models.InfraError) *DownloadClusterFilesUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the download cluster files unauthorized response
-func (o *DownloadClusterFilesUnauthorized) SetPayload(payload *models.Error) {
+func (o *DownloadClusterFilesUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -112,7 +112,7 @@ type DownloadClusterFilesForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewDownloadClusterFilesForbidden creates DownloadClusterFilesForbidden with default headers values
@@ -122,13 +122,13 @@ func NewDownloadClusterFilesForbidden() *DownloadClusterFilesForbidden {
 }
 
 // WithPayload adds the payload to the download cluster files forbidden response
-func (o *DownloadClusterFilesForbidden) WithPayload(payload *models.Error) *DownloadClusterFilesForbidden {
+func (o *DownloadClusterFilesForbidden) WithPayload(payload *models.InfraError) *DownloadClusterFilesForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the download cluster files forbidden response
-func (o *DownloadClusterFilesForbidden) SetPayload(payload *models.Error) {
+func (o *DownloadClusterFilesForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

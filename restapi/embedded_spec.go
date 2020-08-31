@@ -54,13 +54,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "405": {
@@ -109,13 +109,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "405": {
@@ -155,6 +155,11 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -167,13 +172,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -218,13 +223,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -292,13 +297,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -354,13 +359,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -417,6 +422,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/completion-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -429,13 +439,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -497,13 +507,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -559,13 +569,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -621,13 +631,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -698,6 +708,11 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -710,13 +725,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -799,13 +814,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -871,13 +886,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -942,13 +957,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1008,13 +1023,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1076,13 +1091,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1152,13 +1167,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1204,6 +1219,11 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -1216,13 +1236,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "405": {
@@ -1265,6 +1285,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/host-create-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -1283,13 +1308,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1346,13 +1371,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1410,81 +1435,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/debug": {
-      "post": {
-        "tags": [
-          "installer"
-        ],
-        "summary": "Sets a single shot debug step that will be sent next time the host agent will ask for a command.",
-        "operationId": "SetDebugStep",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "host_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "step",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/debug-step"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Success."
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1541,13 +1498,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1608,13 +1565,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1670,6 +1627,11 @@ func init() {
             "name": "host_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -1682,13 +1644,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1725,6 +1687,11 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
+          {
+            "type": "string",
             "format": "uuid",
             "name": "cluster_id",
             "in": "path",
@@ -1758,13 +1725,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1829,13 +1796,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -1895,10 +1862,15 @@ func init() {
           },
           {
             "type": "file",
-            "x-mimetype": "application/zip",
-            "description": "The file to upload.",
             "name": "upfile",
             "in": "formData"
+          },
+          {
+            "type": "string",
+            "x-mimetype": "application/zip",
+            "description": "The file to upload.",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -1935,6 +1907,11 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
+          {
+            "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to retrieve",
             "name": "cluster_id",
@@ -1966,13 +1943,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -2023,6 +2000,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/ingress-cert-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -2038,13 +2020,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -2097,6 +2079,47 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/list-managed-domains"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/host_requirements": {
+      "get": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Get minimum host requirements",
+        "operationId": "GetHostRequirements",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-requirements"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -2651,17 +2674,6 @@ func init() {
         }
       }
     },
-    "debug-step": {
-      "type": "object",
-      "required": [
-        "command"
-      ],
-      "properties": {
-        "command": {
-          "type": "string"
-        }
-      }
-    },
     "dhcp_allocation_request": {
       "type": "object",
       "required": [
@@ -3078,6 +3090,31 @@ func init() {
         }
       }
     },
+    "host-requirements": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "$ref": "#/definitions/host-requirements-role"
+        },
+        "worker": {
+          "$ref": "#/definitions/host-requirements-role"
+        }
+      }
+    },
+    "host-requirements-role": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": {
+          "type": "integer"
+        },
+        "disk_size_gb": {
+          "type": "integer"
+        },
+        "ram_gib": {
+          "type": "integer"
+        }
+      }
+    },
     "host-role": {
       "type": "string",
       "enum": [
@@ -3179,6 +3216,26 @@ func init() {
           "description": "SSH public key for debugging the installation",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
+        }
+      }
+    },
+    "infra_error": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "description": "Numeric identifier of the error.",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 403,
+          "minimum": 401
+        },
+        "message": {
+          "description": "Human readable description of the error.",
+          "type": "string"
         }
       }
     },
@@ -3514,13 +3571,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "405": {
@@ -3569,13 +3626,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "405": {
@@ -3615,6 +3672,11 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -3627,13 +3689,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -3678,13 +3740,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -3752,13 +3814,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -3814,13 +3876,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -3877,6 +3939,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/completion-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -3889,13 +3956,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -3957,13 +4024,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4019,13 +4086,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4081,13 +4148,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4158,6 +4225,11 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -4170,13 +4242,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4259,13 +4331,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4331,13 +4403,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4402,13 +4474,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4468,13 +4540,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4536,13 +4608,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4612,13 +4684,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4664,6 +4736,11 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -4676,13 +4753,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "405": {
@@ -4725,6 +4802,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/host-create-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -4743,13 +4825,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4806,13 +4888,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -4870,81 +4952,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/debug": {
-      "post": {
-        "tags": [
-          "installer"
-        ],
-        "summary": "Sets a single shot debug step that will be sent next time the host agent will ask for a command.",
-        "operationId": "SetDebugStep",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "host_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "step",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/debug-step"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Success."
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5001,13 +5015,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5068,13 +5082,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5130,6 +5144,11 @@ func init() {
             "name": "host_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -5142,13 +5161,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5185,6 +5204,11 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
+          {
+            "type": "string",
             "format": "uuid",
             "name": "cluster_id",
             "in": "path",
@@ -5218,13 +5242,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5289,13 +5313,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5355,10 +5379,15 @@ func init() {
           },
           {
             "type": "file",
-            "x-mimetype": "application/zip",
-            "description": "The file to upload.",
             "name": "upfile",
             "in": "formData"
+          },
+          {
+            "type": "string",
+            "x-mimetype": "application/zip",
+            "description": "The file to upload.",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -5395,6 +5424,11 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
+          {
+            "type": "string",
             "format": "uuid",
             "description": "The ID of the cluster to retrieve",
             "name": "cluster_id",
@@ -5426,13 +5460,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5483,6 +5517,11 @@ func init() {
             "schema": {
               "$ref": "#/definitions/ingress-cert-params"
             }
+          },
+          {
+            "type": "string",
+            "name": "discovery_agent_version",
+            "in": "header"
           }
         ],
         "responses": {
@@ -5498,13 +5537,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5557,6 +5596,47 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/list-managed-domains"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/host_requirements": {
+      "get": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Get minimum host requirements",
+        "operationId": "GetHostRequirements",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-requirements"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -6117,17 +6197,6 @@ func init() {
         }
       }
     },
-    "debug-step": {
-      "type": "object",
-      "required": [
-        "command"
-      ],
-      "properties": {
-        "command": {
-          "type": "string"
-        }
-      }
-    },
     "dhcp_allocation_request": {
       "type": "object",
       "required": [
@@ -6544,6 +6613,31 @@ func init() {
         }
       }
     },
+    "host-requirements": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "$ref": "#/definitions/host-requirements-role"
+        },
+        "worker": {
+          "$ref": "#/definitions/host-requirements-role"
+        }
+      }
+    },
+    "host-requirements-role": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": {
+          "type": "integer"
+        },
+        "disk_size_gb": {
+          "type": "integer"
+        },
+        "ram_gib": {
+          "type": "integer"
+        }
+      }
+    },
     "host-role": {
       "type": "string",
       "enum": [
@@ -6646,6 +6740,26 @@ func init() {
           "description": "SSH public key for debugging the installation",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
+        }
+      }
+    },
+    "infra_error": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "description": "Numeric identifier of the error.",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 403,
+          "minimum": 401
+        },
+        "message": {
+          "description": "Human readable description of the error.",
+          "type": "string"
         }
       }
     },

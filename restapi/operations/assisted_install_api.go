@@ -94,6 +94,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetHostHandler: installer.GetHostHandlerFunc(func(params installer.GetHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetHost has not yet been implemented")
 		}),
+		InstallerGetHostRequirementsHandler: installer.GetHostRequirementsHandlerFunc(func(params installer.GetHostRequirementsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetHostRequirements has not yet been implemented")
+		}),
 		InstallerGetNextStepsHandler: installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetNextSteps has not yet been implemented")
 		}),
@@ -129,9 +132,6 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerResetClusterHandler: installer.ResetClusterHandlerFunc(func(params installer.ResetClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ResetCluster has not yet been implemented")
-		}),
-		InstallerSetDebugStepHandler: installer.SetDebugStepHandlerFunc(func(params installer.SetDebugStepParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.SetDebugStep has not yet been implemented")
 		}),
 		InstallerUpdateClusterHandler: installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateCluster has not yet been implemented")
@@ -237,6 +237,8 @@ type AssistedInstallAPI struct {
 	InstallerGetFreeAddressesHandler installer.GetFreeAddressesHandler
 	// InstallerGetHostHandler sets the operation handler for the get host operation
 	InstallerGetHostHandler installer.GetHostHandler
+	// InstallerGetHostRequirementsHandler sets the operation handler for the get host requirements operation
+	InstallerGetHostRequirementsHandler installer.GetHostRequirementsHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
 	InstallerGetNextStepsHandler installer.GetNextStepsHandler
 	// InstallerGetPresignedForClusterFilesHandler sets the operation handler for the get presigned for cluster files operation
@@ -261,8 +263,6 @@ type AssistedInstallAPI struct {
 	InstallerRegisterHostHandler installer.RegisterHostHandler
 	// InstallerResetClusterHandler sets the operation handler for the reset cluster operation
 	InstallerResetClusterHandler installer.ResetClusterHandler
-	// InstallerSetDebugStepHandler sets the operation handler for the set debug step operation
-	InstallerSetDebugStepHandler installer.SetDebugStepHandler
 	// InstallerUpdateClusterHandler sets the operation handler for the update cluster operation
 	InstallerUpdateClusterHandler installer.UpdateClusterHandler
 	// InstallerUpdateHostInstallProgressHandler sets the operation handler for the update host install progress operation
@@ -405,6 +405,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerGetHostHandler == nil {
 		unregistered = append(unregistered, "installer.GetHostHandler")
 	}
+	if o.InstallerGetHostRequirementsHandler == nil {
+		unregistered = append(unregistered, "installer.GetHostRequirementsHandler")
+	}
 	if o.InstallerGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.GetNextStepsHandler")
 	}
@@ -440,9 +443,6 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerResetClusterHandler == nil {
 		unregistered = append(unregistered, "installer.ResetClusterHandler")
-	}
-	if o.InstallerSetDebugStepHandler == nil {
-		unregistered = append(unregistered, "installer.SetDebugStepHandler")
 	}
 	if o.InstallerUpdateClusterHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateClusterHandler")
@@ -624,6 +624,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/host_requirements"] = installer.NewGetHostRequirements(o.context, o.InstallerGetHostRequirementsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewGetNextSteps(o.context, o.InstallerGetNextStepsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -669,10 +673,6 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/actions/reset"] = installer.NewResetCluster(o.context, o.InstallerResetClusterHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/actions/debug"] = installer.NewSetDebugStep(o.context, o.InstallerSetDebugStepHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}

@@ -82,6 +82,9 @@ type InstallerAPI interface {
 	/* GetHost Retrieves the details of the OpenShift bare metal host. */
 	GetHost(ctx context.Context, params installer.GetHostParams) middleware.Responder
 
+	/* GetHostRequirements Get minimum host requirements */
+	GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder
+
 	/* GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder
 
@@ -108,9 +111,6 @@ type InstallerAPI interface {
 
 	/* ResetCluster Resets a failed installation. */
 	ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder
-
-	/* SetDebugStep Sets a single shot debug step that will be sent next time the host agent will ask for a command. */
-	SetDebugStep(ctx context.Context, params installer.SetDebugStepParams) middleware.Responder
 
 	/* UpdateCluster Updates an OpenShift bare metal cluster definition. */
 	UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder
@@ -293,6 +293,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetHost(ctx, params)
 	})
+	api.InstallerGetHostRequirementsHandler = installer.GetHostRequirementsHandlerFunc(func(params installer.GetHostRequirementsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetHostRequirements(ctx, params)
+	})
 	api.InstallerGetNextStepsHandler = installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -352,11 +357,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.ResetCluster(ctx, params)
-	})
-	api.InstallerSetDebugStepHandler = installer.SetDebugStepHandlerFunc(func(params installer.SetDebugStepParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.SetDebugStep(ctx, params)
 	})
 	api.InstallerUpdateClusterHandler = installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

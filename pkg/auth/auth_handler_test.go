@@ -290,10 +290,6 @@ func (f fakeInventory) ResetCluster(ctx context.Context, params installer.ResetC
 	panic("Implement Me!")
 }
 
-func (f fakeInventory) SetDebugStep(ctx context.Context, params installer.SetDebugStepParams) middleware.Responder {
-	panic("Implement Me!")
-}
-
 func (f fakeInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	panic("Implement Me!")
 }
@@ -311,6 +307,10 @@ func (f fakeInventory) UploadHostLogs(ctx context.Context, params installer.Uplo
 }
 
 func (f fakeInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
+func (f fakeInventory) GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
 	panic("Implement Me!")
 }
 

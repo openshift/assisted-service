@@ -64,6 +64,9 @@ type API interface {
 	   GetHost retrieves the details of the open shift bare metal host*/
 	GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error)
 	/*
+	   GetHostRequirements gets minimum host requirements*/
+	GetHostRequirements(ctx context.Context, params *GetHostRequirementsParams) (*GetHostRequirementsOK, error)
+	/*
 	   GetNextSteps retrieves the next operations that the host agent needs to perform*/
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
 	/*
@@ -90,9 +93,6 @@ type API interface {
 	/*
 	   ResetCluster resets a failed installation*/
 	ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error)
-	/*
-	   SetDebugStep sets a single shot debug step that will be sent next time the host agent will ask for a command*/
-	SetDebugStep(ctx context.Context, params *SetDebugStepParams) (*SetDebugStepNoContent, error)
 	/*
 	   UpdateCluster updates an open shift bare metal cluster definition*/
 	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
@@ -501,6 +501,31 @@ func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK
 }
 
 /*
+GetHostRequirements gets minimum host requirements
+*/
+func (a *Client) GetHostRequirements(ctx context.Context, params *GetHostRequirementsParams) (*GetHostRequirementsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetHostRequirements",
+		Method:             "GET",
+		PathPattern:        "/host_requirements",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetHostRequirementsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetHostRequirementsOK), nil
+
+}
+
+/*
 GetNextSteps retrieves the next operations that the host agent needs to perform
 */
 func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error) {
@@ -722,31 +747,6 @@ func (a *Client) ResetCluster(ctx context.Context, params *ResetClusterParams) (
 		return nil, err
 	}
 	return result.(*ResetClusterAccepted), nil
-
-}
-
-/*
-SetDebugStep sets a single shot debug step that will be sent next time the host agent will ask for a command
-*/
-func (a *Client) SetDebugStep(ctx context.Context, params *SetDebugStepParams) (*SetDebugStepNoContent, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "SetDebugStep",
-		Method:             "POST",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/debug",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &SetDebugStepReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetDebugStepNoContent), nil
 
 }
 

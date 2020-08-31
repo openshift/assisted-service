@@ -11,7 +11,7 @@ def main():
 
     log.info('Starting postgres deployment')
 
-    utils.set_profile(deploy_options.target, deploy_options.profile)
+    utils.verify_build_directory(deploy_options.namespace)
 
     deploy_postgres_secret(deploy_options)
     deploy_postgres(deploy_options)
@@ -25,10 +25,18 @@ def deploy_postgres_secret(deploy_options):
 
     utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
 
-    dst_file = utils.dump_yaml_file_docs('build/postgres-secret.yaml', docs)
+    dst_file = utils.dump_yaml_file_docs(
+        basename=f'build/{deploy_options.namespace}/postgres-secret.yaml',
+        docs=docs
+    )
 
     log.info('Deploying %s', dst_file)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 def deploy_postgres(deploy_options):
@@ -36,10 +44,18 @@ def deploy_postgres(deploy_options):
 
     utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
 
-    dst_file = utils.dump_yaml_file_docs('build/postgres-deployment.yaml', docs)
+    dst_file = utils.dump_yaml_file_docs(
+        basename=f'build/{deploy_options.namespace}/postgres-deployment.yaml',
+        docs=docs
+    )
 
     log.info('Deploying %s', dst_file)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 def deploy_postgres_storage(deploy_options):
@@ -49,15 +65,25 @@ def deploy_postgres_storage(deploy_options):
 
     log.info('Updating pvc size for postgres-pv-claim')
     pvc_size_utils.update_size_in_yaml_docs(
+        target=deploy_options.target,
         ns=deploy_options.namespace,
+        profile=deploy_options.profile,
         name='postgres-pv-claim',
         docs=docs
     )
 
-    dst_file = utils.dump_yaml_file_docs('build/postgres-storage.yaml', docs)
+    dst_file = utils.dump_yaml_file_docs(
+        basename=f'build/{deploy_options.namespace}/postgres-storage.yaml',
+        docs=docs
+    )
 
     log.info('Deploying %s', dst_file)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 if __name__ == "__main__":

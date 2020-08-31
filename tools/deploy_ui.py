@@ -9,14 +9,13 @@ log = utils.get_logger('deploy_ui')
 
 
 def main():
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--subsystem-test", help="deploy in subsystem mode", action="store_true")
     deploy_options = deployment_options.load_deployment_options(parser)
 
-    utils.set_profile(deploy_options.target, deploy_options.profile)
+    utils.verify_build_directory(deploy_options.namespace)
 
-    dst_file = os.path.join(os.getcwd(), "build/deploy_ui.yaml")
+    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'deploy_ui.yaml')
     image_fqdn = deployment_options.get_image_override(deploy_options, "ocp-metal-ui", "UI_IMAGE")
 
     tag = deployment_options.get_tag(image_fqdn)
@@ -37,12 +36,17 @@ def main():
 
     utils.check_output(cmd)
     log.info("Deploying %s", dst_file)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
     # in case of openshift deploy ingress as well
     if deploy_options.target == "oc-ingress":
-        src_file = os.path.join(os.getcwd(), "deploy/ui/ui_ingress.yaml")
-        dst_file = os.path.join(os.getcwd(), "build/ui_ingress.yaml")
+        src_file = os.path.join(os.getcwd(), 'deploy/ui/ui_ingress.yaml')
+        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'ui_ingress.yaml')
         with open(src_file, "r") as src:
             with open(dst_file, "w+") as dst:
                 data = src.read()
@@ -56,7 +60,12 @@ def main():
                 ))
                 log.info("Deploying ingress from %s", dst_file)
                 dst.write(data)
-        utils.apply(dst_file)
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile,
+            file=dst_file
+        )
 
 
 if __name__ == "__main__":

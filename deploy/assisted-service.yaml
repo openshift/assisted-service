@@ -26,6 +26,14 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8090
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8090
           envFrom:
             - configMapRef:
                 name: assisted-service-config

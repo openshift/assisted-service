@@ -17,6 +17,14 @@ DOCKER = "docker"
 PODMAN = "podman"
 
 
+def verify_build_directory(namespace):
+    dirname = os.path.join(os.getcwd(), 'build', namespace)
+    if os.path.isdir(dirname):
+        return
+    os.makedirs(dirname)
+    logging.info('Created build directory: %s', dirname)
+
+
 def get_logger(name, level=logging.INFO):
     fmt = '[%(levelname)s] %(asctime)s - %(name)s - %(message)s'
     formatter = logging.Formatter(fmt)
@@ -55,19 +63,13 @@ def check_output(cmd):
     return subprocess.check_output(cmd, shell=True).decode("utf-8")
 
 
-def set_profile(target, profile):
-    if target != LOCAL_TARGET:
-        return
-    check_output(f'{MINIKUBE_CMD} profile {profile}')
-
-
 def get_service_host(
         service,
         target=None,
         domain='',
         namespace='assisted-installer',
         profile='minikube'
-            ):
+        ):
     if target is None or target == LOCAL_TARGET:
         reply = check_output(
             f'{MINIKUBE_CMD} '
@@ -77,9 +79,11 @@ def get_service_host(
         )
         host = re.sub("http://(.*):.*", r'\1', reply)
     elif target == INGRESS_REMOTE_TARGET:
-        host = "{}.{}".format(service, get_domain(domain, namespace))
+        domain = get_domain(domain, target, namespace, profile)
+        host = f'{service}.{domain}'
     else:
-        cmd = '{kubecmd} -n {ns} get service {service} | grep {service}'.format(kubecmd=KUBECTL_CMD, ns=namespace, service=service)
+        kubectl_cmd = get_kubectl_command(target, namespace, profile)
+        cmd = f'{kubectl_cmd} get service {service} | grep {service}'
         reply = check_output(cmd)[:-1].split()
         host = reply[3]
     return host.strip()
@@ -99,7 +103,8 @@ def get_service_port(
             f'service --url {service}')
         port = reply.split(":")[-1]
     else:
-        cmd = '{kubecmd} -n {ns} get service {service} | grep {service}'.format(kubecmd=KUBECTL_CMD, ns=namespace, service=service)
+        kubectl_cmd = get_kubectl_command(target, namespace, profile)
+        cmd = f'{kubectl_cmd} get service {service} | grep {service}'
         reply = check_output(cmd)[:-1].split()
         port = reply[4].split(":")[0]
     return port.strip()
@@ -115,7 +120,8 @@ def get_service_url(
         ) -> str:
     # TODO: delete once rename everything to assisted-installer
     if target == INGRESS_REMOTE_TARGET:
-        service_host = f"assisted-installer.{get_domain(domain)}"
+        domain = get_domain(domain, target, namespace, profile)
+        service_host = f"assisted-installer.{domain}"
         return to_url(service_host, disable_tls)
     else:
         service_host = get_service_host(
@@ -140,27 +146,50 @@ def to_url(host, port=None, disable_tls=False):
     return f'{protocol}://{host}:{port}'
 
 
-def apply(file):
-    print(check_output("kubectl apply -f {}".format(file)))
+def apply(target, namespace, profile, file):
+    kubectl_cmd = get_kubectl_command(target, namespace, profile)
+    print(check_output(f'{kubectl_cmd} apply -f {file}'))
 
 
-def get_domain(domain="", namespace='assisted-installer'):
+def get_domain(domain="", target='minikube', namespace='assisted-installer', profile='minikube'):
     if domain:
         return domain
-    cmd = '{kubecmd} -n {ns} get ingresscontrollers.operator.openshift.io -n openshift-ingress-operator -o custom-columns=:.status.domain'.format(kubecmd=KUBECTL_CMD, ns=namespace)
+    kubectl_cmd = get_kubectl_command(target, namespace, profile)
+    cmd = f'{kubectl_cmd} get ingresscontrollers.operator.openshift.io -n openshift-ingress-operator -o custom-columns=:.status.domain'
     return check_output(cmd).split()[-1]
 
 
-def check_k8s_rollout(k8s_object, k8s_object_name, namespace="assisted-installer"):
-    cmd = '{} rollout status {}/{} --namespace {}'.format('kubectl', k8s_object, k8s_object_name, namespace)
+def check_k8s_rollout(
+        k8s_object,
+        k8s_object_name,
+        target,
+        namespace='assisted-installer',
+        profile='minikube'
+        ):
+    kubectl_cmd = get_kubectl_command(target, namespace, profile)
+    cmd = f'{kubectl_cmd} rollout status {k8s_object_name}/{k8s_object}'
     return check_output(cmd)
 
 
-def wait_for_rollout(k8s_object, k8s_object_name, namespace="assisted-installer", limit=10, desired_status="successfully rolled out"):
+def wait_for_rollout(
+        k8s_object,
+        k8s_object_name,
+        target,
+        namespace='assisted-installer',
+        profile='minikube',
+        limit=10,
+        desired_status='successfully rolled out'
+        ):
     # Wait for the element to ensure it exists
     for x in range(0, limit):
         try:
-            status = check_if_exists(k8s_object, k8s_object_name, namespace=namespace)
+            status = check_if_exists(
+                k8s_object=k8s_object,
+                k8s_object_name=k8s_object_name,
+                target=target,
+                namespace=namespace,
+                profile=profile
+            )
             if status:
                 break
             else:
@@ -170,7 +199,13 @@ def wait_for_rollout(k8s_object, k8s_object_name, namespace="assisted-installer"
 
     # Wait for the object to raise up
     for x in range(0, limit):
-        status = check_k8s_rollout(k8s_object, k8s_object_name, namespace)
+        status = check_k8s_rollout(
+            k8s_object=k8s_object,
+            k8s_object_name=k8s_object_name,
+            target=target,
+            namespace=namespace,
+            profile=profile
+        )
         print("Waiting for {}/{} to be ready".format(k8s_object, k8s_object_name))
         if desired_status in status:
             break
@@ -190,12 +225,64 @@ def get_yaml_field(field, yaml_path):
     return _field
 
 
-def check_if_exists(k8s_object, k8s_object_name, namespace="assisted-installer"):
+def check_if_exists(
+        k8s_object,
+        k8s_object_name,
+        target='minikube',
+        namespace='assisted-installer',
+        profile='minikube',
+        ):
     try:
-        cmd = "{} -n {} get {} {} --no-headers".format(KUBECTL_CMD, namespace, k8s_object, k8s_object_name)
+        kubectl_cmd = get_kubectl_command(target, namespace, profile)
+        cmd = f'{kubectl_cmd} get {k8s_object} {k8s_object_name} --no-headers'
         subprocess.check_output(cmd, stderr=None, shell=True).decode("utf-8")
         output = True
     except:
         output = False
 
     return output
+
+
+
+def is_tool(name):
+    """Check whether `name` is on PATH and marked as executable."""
+    return find_executable(name) is not None
+
+
+def get_runtime_command():
+    if is_tool(DOCKER):
+        cmd = DOCKER
+    elif is_tool(PODMAN):
+        cmd = PODMAN
+    else:
+        raise Exception("Nor %s nor %s are installed" % (PODMAN, DOCKER))
+    return cmd
+
+
+def get_kubectl_command(target=None, namespace=None, profile=None):
+    cmd = KUBECTL_CMD
+    if namespace is not None:
+        cmd += f' --namespace {namespace}'
+    if profile is None or target != LOCAL_TARGET:
+        return cmd
+    server = get_minikube_server(profile) if target == LOCAL_TARGET else None
+    cmd += f' --server https://{server}:8443'
+    return cmd
+
+
+def get_minikube_server(profile):
+    p = subprocess.Popen(
+        f'minikube ip --profile {profile}',
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    out = p.stdout.read().decode().strip()
+    err = p.stderr.read().decode().strip()
+    if err:
+        raise RuntimeError(
+            f'failed to get minikube ip for profile {profile}: {err}'
+        )
+
+    return out
+

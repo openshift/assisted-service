@@ -113,7 +113,7 @@ type GetPresignedForClusterFilesUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetPresignedForClusterFilesUnauthorized creates GetPresignedForClusterFilesUnauthorized with default headers values
@@ -123,13 +123,13 @@ func NewGetPresignedForClusterFilesUnauthorized() *GetPresignedForClusterFilesUn
 }
 
 // WithPayload adds the payload to the get presigned for cluster files unauthorized response
-func (o *GetPresignedForClusterFilesUnauthorized) WithPayload(payload *models.Error) *GetPresignedForClusterFilesUnauthorized {
+func (o *GetPresignedForClusterFilesUnauthorized) WithPayload(payload *models.InfraError) *GetPresignedForClusterFilesUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get presigned for cluster files unauthorized response
-func (o *GetPresignedForClusterFilesUnauthorized) SetPayload(payload *models.Error) {
+func (o *GetPresignedForClusterFilesUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -157,7 +157,7 @@ type GetPresignedForClusterFilesForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetPresignedForClusterFilesForbidden creates GetPresignedForClusterFilesForbidden with default headers values
@@ -167,13 +167,13 @@ func NewGetPresignedForClusterFilesForbidden() *GetPresignedForClusterFilesForbi
 }
 
 // WithPayload adds the payload to the get presigned for cluster files forbidden response
-func (o *GetPresignedForClusterFilesForbidden) WithPayload(payload *models.Error) *GetPresignedForClusterFilesForbidden {
+func (o *GetPresignedForClusterFilesForbidden) WithPayload(payload *models.InfraError) *GetPresignedForClusterFilesForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get presigned for cluster files forbidden response
-func (o *GetPresignedForClusterFilesForbidden) SetPayload(payload *models.Error) {
+func (o *GetPresignedForClusterFilesForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

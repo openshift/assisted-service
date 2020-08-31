@@ -108,20 +108,20 @@ func NewGetNextStepsUnauthorized() *GetNextStepsUnauthorized {
 Unauthorized.
 */
 type GetNextStepsUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetNextStepsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *GetNextStepsUnauthorized) GetPayload() *models.Error {
+func (o *GetNextStepsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetNextStepsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -141,20 +141,20 @@ func NewGetNextStepsForbidden() *GetNextStepsForbidden {
 Forbidden.
 */
 type GetNextStepsForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetNextStepsForbidden) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsForbidden  %+v", 403, o.Payload)
 }
 
-func (o *GetNextStepsForbidden) GetPayload() *models.Error {
+func (o *GetNextStepsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetNextStepsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

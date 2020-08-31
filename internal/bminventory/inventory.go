@@ -19,7 +19,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"text/template"
 	"time"
 
@@ -188,16 +187,9 @@ var clusterFileNames = []string{
 	"install-config.yaml",
 }
 
-type debugCmd struct {
-	cmd    string
-	stepID string
-}
-
 type bareMetalInventory struct {
 	Config
 	db            *gorm.DB
-	debugCmdMap   map[strfmt.UUID]debugCmd
-	debugCmdMux   sync.Mutex
 	log           logrus.FieldLogger
 	hostApi       host.API
 	clusterApi    cluster.API
@@ -224,7 +216,6 @@ func NewBareMetalInventory(
 		db:            db,
 		log:           log,
 		Config:        cfg,
-		debugCmdMap:   make(map[strfmt.UUID]debugCmd),
 		hostApi:       hostApi,
 		clusterApi:    clusterApi,
 		generator:     generator,
@@ -343,6 +334,9 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	if params.NewClusterParams.ServiceNetworkCidr == nil {
 		params.NewClusterParams.ServiceNetworkCidr = &DefaultServiceNetworkCidr
 	}
+	if params.NewClusterParams.VipDhcpAllocation == nil {
+		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
+	}
 
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:                       &id,
@@ -362,7 +356,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		HTTPProxy:                swag.StringValue(params.NewClusterParams.HTTPProxy),
 		HTTPSProxy:               swag.StringValue(params.NewClusterParams.HTTPSProxy),
 		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
-		VipDhcpAllocation:        swag.Bool(false),
+		VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
 	}}
 
 	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
@@ -385,6 +379,12 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	}
 	if err := validations.ValidateClusterNameFormat(swag.StringValue(params.NewClusterParams.Name)); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if sshPublicKey := swag.StringValue(&cluster.SSHPublicKey); sshPublicKey != "" {
+		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	err := b.clusterApi.RegisterCluster(ctx, &cluster)
@@ -904,6 +904,12 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		}
 	}
 
+	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
+		if err = validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
 		params.ClusterUpdateParams.HTTPSProxy,
 		params.ClusterUpdateParams.NoProxy); err != nil {
@@ -1031,9 +1037,12 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 		log.WithError(err).Warnf("Set Ingress VIP")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if params.ClusterUpdateParams.MachineNetworkCidr != nil {
+	if params.ClusterUpdateParams.MachineNetworkCidr != nil &&
+		*machineCidr != swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr) {
 		*machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
 		updates["machine_network_cidr"] = *machineCidr
+		updates["api_vip"] = ""
+		updates["ingress_vip"] = ""
 		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr), cluster.Hosts, log)
 	}
 	return nil
@@ -1249,6 +1258,16 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.Ge
 	return installer.NewGetClusterOK().WithPayload(&cluster.Cluster)
 }
 
+func (b *bareMetalInventory) GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
+	masterReqs := b.hostApi.GetHostRequirements(models.HostRoleMaster)
+	workerReqs := b.hostApi.GetHostRequirements(models.HostRoleWorker)
+	return installer.NewGetHostRequirementsOK().WithPayload(
+		&models.HostRequirements{
+			Master: &masterReqs,
+			Worker: &workerReqs,
+		})
+}
+
 func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var host models.Host
@@ -1278,7 +1297,10 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 			b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityError,
 				"Failed to register host: cluster cannot accept new hosts in its current state", time.Now())
 			return installer.NewRegisterHostForbidden().
-				WithPayload(common.GenerateError(http.StatusForbidden, err))
+				WithPayload(&models.InfraError{
+					Code:    swag.Int32(http.StatusForbidden),
+					Message: swag.String(err.Error()),
+				})
 		}
 	}
 
@@ -1364,10 +1386,6 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.Lis
 	return installer.NewListHostsOK().WithPayload(hosts)
 }
 
-func createStepID(stepType models.StepType) string {
-	return fmt.Sprintf("%s-%s", stepType, uuid.New().String()[:8])
-}
-
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var steps models.Steps
@@ -1416,18 +1434,6 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 	if err != nil {
 		log.WithError(err).Errorf("failed to get steps for host %s cluster %s", params.HostID, params.ClusterID)
 	}
-
-	b.debugCmdMux.Lock()
-	if cmd, ok := b.debugCmdMap[params.HostID]; ok {
-		step := &models.Step{}
-		step.StepType = models.StepTypeExecute
-		step.StepID = cmd.stepID
-		step.Command = "bash"
-		step.Args = []string{"-c", cmd.cmd}
-		steps.Instructions = append(steps.Instructions, step)
-		delete(b.debugCmdMap, params.HostID)
-	}
-	b.debugCmdMux.Unlock()
 
 	return installer.NewGetNextStepsOK().WithPayload(&steps)
 }
@@ -1599,21 +1605,6 @@ func filterReply(expected interface{}, input string) (string, error) {
 		return "", err
 	}
 	return string(reply), nil
-}
-
-func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params installer.SetDebugStepParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	stepID := createStepID(models.StepTypeExecute)
-	b.debugCmdMux.Lock()
-	b.debugCmdMap[params.HostID] = debugCmd{
-		cmd:    swag.StringValue(params.Step.Command),
-		stepID: stepID,
-	}
-	b.debugCmdMux.Unlock()
-	log.Infof("Added new debug command <%s> for cluster <%s> host <%s>: <%s>",
-		stepID, params.ClusterID, params.HostID, swag.StringValue(params.Step.Command))
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, "Added debug command", time.Now())
-	return installer.NewSetDebugStepNoContent()
 }
 
 func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.DisableHostParams) middleware.Responder {

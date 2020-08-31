@@ -23,17 +23,18 @@ import (
 )
 
 const (
-	statusInfoDisconnected               = "Host keepalive timeout"
-	statusInfoDisabled                   = "Host is disabled"
-	statusInfoDiscovering                = "Waiting for host hardware info"
-	statusInfoInsufficientHardware       = "Host does not pass minimum hardware requirements"
-	statusInfoPendingForInput            = "User input required"
-	statusInfoNotReadyForInstall         = "Host not ready for install"
-	statusInfoInstalling                 = "Installation in progress"
-	statusInfoResettingPendingUserAction = "Reboot the host into the installation image to complete resetting the installation"
-	statusInfoPreparingForInstallation   = "Preparing host for installation"
-	statusInfoPreparingTimedOut          = "Cluster is no longer preparing for installation"
-	statusInfoAbortingDueClusterErrors   = "Installation has been aborted due cluster errors"
+	statusInfoDisconnected               = "Host has stopped communicating with the installation service"
+	statusInfoDisabled                   = "Host was manually disabled"
+	statusInfoDiscovering                = "Waiting for host to send hardware details"
+	statusInfoInsufficientHardware       = "Host does not meet the minimum hardware requirements"
+	statusInfoPendingForInput            = "Waiting for user input"
+	statusInfoNotReadyForInstall         = "Host cannot be installed due to failing validation(s)"
+	statusInfoKnown                      = "Host is ready to be installed"
+	statusInfoInstalling                 = "Installation is in progress"
+	statusInfoResettingPendingUserAction = "Host requires booting into the discovery image to complete resetting the installation"
+	statusInfoPreparingForInstallation   = "Host is preparing for installation"
+	statusInfoPreparingTimedOut          = "Host failed to install because its preparation took longer than expected"
+	statusInfoAbortingDueClusterErrors   = "Host is part of a cluster that failed to install"
 )
 
 type UpdateReply struct {
@@ -73,9 +74,11 @@ func updateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 	}
 
 	if newStatus != srcStatus {
-		eventsHandler.AddEvent(ctx, clusterId, &hostId, common.GetEventSeverityFromHostStatus(newStatus),
-			fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\" (%s)", common.GetHostnameForMsg(host), srcStatus, newStatus, statusInfo),
-			time.Now())
+		msg := fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\"", common.GetHostnameForMsg(host), srcStatus, newStatus)
+		if statusInfo != "" {
+			msg += fmt.Sprintf(" (%s)", statusInfo)
+		}
+		eventsHandler.AddEvent(ctx, clusterId, &hostId, common.GetEventSeverityFromHostStatus(newStatus), msg, time.Now())
 		log.Infof("host %s from cluster %s has been updated with the following updates %+v", hostId, clusterId, extra)
 	}
 

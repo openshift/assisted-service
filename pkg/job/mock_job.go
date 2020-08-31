@@ -71,17 +71,17 @@ func (mr *MockAPIMockRecorder) Monitor(ctx, name, namespace interface{}) *gomock
 }
 
 // Delete mocks base method
-func (m *MockAPI) Delete(ctx context.Context, name, namespace string) error {
+func (m *MockAPI) Delete(ctx context.Context, name, namespace string, force bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, name, namespace)
+	ret := m.ctrl.Call(m, "Delete", ctx, name, namespace, force)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete
-func (mr *MockAPIMockRecorder) Delete(ctx, name, namespace interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) Delete(ctx, name, namespace, force interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockAPI)(nil).Delete), ctx, name, namespace)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockAPI)(nil).Delete), ctx, name, namespace, force)
 }
 
 // GenerateISO mocks base method

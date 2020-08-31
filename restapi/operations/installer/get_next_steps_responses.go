@@ -69,7 +69,7 @@ type GetNextStepsUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetNextStepsUnauthorized creates GetNextStepsUnauthorized with default headers values
@@ -79,13 +79,13 @@ func NewGetNextStepsUnauthorized() *GetNextStepsUnauthorized {
 }
 
 // WithPayload adds the payload to the get next steps unauthorized response
-func (o *GetNextStepsUnauthorized) WithPayload(payload *models.Error) *GetNextStepsUnauthorized {
+func (o *GetNextStepsUnauthorized) WithPayload(payload *models.InfraError) *GetNextStepsUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get next steps unauthorized response
-func (o *GetNextStepsUnauthorized) SetPayload(payload *models.Error) {
+func (o *GetNextStepsUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -113,7 +113,7 @@ type GetNextStepsForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetNextStepsForbidden creates GetNextStepsForbidden with default headers values
@@ -123,13 +123,13 @@ func NewGetNextStepsForbidden() *GetNextStepsForbidden {
 }
 
 // WithPayload adds the payload to the get next steps forbidden response
-func (o *GetNextStepsForbidden) WithPayload(payload *models.Error) *GetNextStepsForbidden {
+func (o *GetNextStepsForbidden) WithPayload(payload *models.InfraError) *GetNextStepsForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get next steps forbidden response
-func (o *GetNextStepsForbidden) SetPayload(payload *models.Error) {
+func (o *GetNextStepsForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

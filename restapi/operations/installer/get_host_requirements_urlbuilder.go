@@ -9,25 +9,17 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
-	"strings"
-
-	"github.com/go-openapi/strfmt"
 )
 
-// SetDebugStepURL generates an URL for the set debug step operation
-type SetDebugStepURL struct {
-	ClusterID strfmt.UUID
-	HostID    strfmt.UUID
-
+// GetHostRequirementsURL generates an URL for the get host requirements operation
+type GetHostRequirementsURL struct {
 	_basePath string
-	// avoid unkeyed usage
-	_ struct{}
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *SetDebugStepURL) WithBasePath(bp string) *SetDebugStepURL {
+func (o *GetHostRequirementsURL) WithBasePath(bp string) *GetHostRequirementsURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -35,29 +27,15 @@ func (o *SetDebugStepURL) WithBasePath(bp string) *SetDebugStepURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *SetDebugStepURL) SetBasePath(bp string) {
+func (o *GetHostRequirementsURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *SetDebugStepURL) Build() (*url.URL, error) {
+func (o *GetHostRequirementsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{cluster_id}/hosts/{host_id}/actions/debug"
-
-	clusterID := o.ClusterID.String()
-	if clusterID != "" {
-		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
-	} else {
-		return nil, errors.New("clusterId is required on SetDebugStepURL")
-	}
-
-	hostID := o.HostID.String()
-	if hostID != "" {
-		_path = strings.Replace(_path, "{host_id}", hostID, -1)
-	} else {
-		return nil, errors.New("hostId is required on SetDebugStepURL")
-	}
+	var _path = "/host_requirements"
 
 	_basePath := o._basePath
 	if _basePath == "" {
@@ -69,7 +47,7 @@ func (o *SetDebugStepURL) Build() (*url.URL, error) {
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *SetDebugStepURL) Must(u *url.URL, err error) *url.URL {
+func (o *GetHostRequirementsURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -80,17 +58,17 @@ func (o *SetDebugStepURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *SetDebugStepURL) String() string {
+func (o *GetHostRequirementsURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *SetDebugStepURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *GetHostRequirementsURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on SetDebugStepURL")
+		return nil, errors.New("scheme is required for a full url on GetHostRequirementsURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on SetDebugStepURL")
+		return nil, errors.New("host is required for a full url on GetHostRequirementsURL")
 	}
 
 	base, err := o.Build()
@@ -104,6 +82,6 @@ func (o *SetDebugStepURL) BuildFull(scheme, host string) (*url.URL, error) {
 }
 
 // StringFull returns the string representation of a complete url
-func (o *SetDebugStepURL) StringFull(scheme, host string) string {
+func (o *GetHostRequirementsURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

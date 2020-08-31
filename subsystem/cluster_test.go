@@ -36,7 +36,8 @@ const (
 )
 
 const (
-	validDiskSize = int64(128849018880)
+	validDiskSize     = int64(128849018880)
+	minSuccessesInRow = 2
 )
 
 var (
@@ -144,14 +145,15 @@ var _ = Describe("Cluster tests", func() {
 	})
 
 	It("cluster update", func() {
+		By("update cluster with valid ssh key")
 		host1 := registerHost(clusterID)
 		host2 := registerHost(clusterID)
 
-		publicKey := `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD14Gv4V5DVvyr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUAAbfmn/HalJTHB73LyjilKiPvJ+x2bG7AeiqyVHwtQSpt02FCdQGptmsSqqWF/b9botOO38eUsqPNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= oscohen@localhost.localdomain`
+		validPublicKey := `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD14Gv4V5DVvyr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUAAbfmn/HalJTHB73LyjilKiPvJ+x2bG7AeiqyVHwtQSpt02FCdQGptmsSqqWF/b9botOO38eUsqPNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= oscohen@localhost.localdomain`
 
 		c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
-				SSHPublicKey: &publicKey,
+				SSHPublicKey: &validPublicKey,
 				HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 					{
 						ID:   *host1.ID,
@@ -166,51 +168,95 @@ var _ = Describe("Cluster tests", func() {
 			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(c.GetPayload().SSHPublicKey).Should(Equal(publicKey))
+		Expect(c.GetPayload().SSHPublicKey).Should(Equal(validPublicKey))
 
 		h := getHost(clusterID, *host1.ID)
 		Expect(h.Role).Should(Equal(models.HostRole(models.HostRoleUpdateParamsMaster)))
 
 		h = getHost(clusterID, *host2.ID)
 		Expect(h.Role).Should(Equal(models.HostRole(models.HostRoleUpdateParamsWorker)))
+
+		By("update cluster invalid ssh key")
+		invalidPublicKey := `ssh-rsa AAAAB3NzaC1yc2EAAAADAABgQD14Gv4V5DVvyr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUAAbfmn/HalJTHB73LyjilKiPvJ+x2bG7AeiqyVHwtQSpt02FCdQGptmsSqqWF/b9botOO38eUsqPNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= oscohen@localhost.localdomain`
+
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				SSHPublicKey: &invalidPublicKey,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).Should(HaveOccurred())
 	})
 })
 
-func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string, timeout time.Duration, stateInfo string) {
-	log.Infof("Waiting for cluster %s status %s", clusterID, state)
-	for start := time.Now(); time.Since(start) < timeout; {
-		rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-		Expect(err).NotTo(HaveOccurred())
-		c := rep.GetPayload()
-		if swag.StringValue(c.Status) == state {
-			break
-		}
-		time.Sleep(time.Second)
-	}
+func isClusterInState(ctx context.Context, clusterID strfmt.UUID, state, stateInfo string) (bool, string) {
 	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 	c := rep.GetPayload()
-	Expect(swag.StringValue(c.Status)).Should(Equal(state))
-	if stateInfo != IgnoreStateInfo {
-		Expect(swag.StringValue(c.StatusInfo)).Should(Equal(stateInfo))
+	if swag.StringValue(c.Status) == state {
+		return stateInfo == IgnoreStateInfo || swag.StringValue(c.StatusInfo) == stateInfo, swag.StringValue(c.Status)
 	}
+
+	return false, swag.StringValue(c.Status)
+}
+
+func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string, timeout time.Duration, stateInfo string) {
+	log.Infof("Waiting for cluster %s status %s", clusterID, state)
+	var lastState string = ""
+	var success bool
+
+	for start, successInRow := time.Now(), 0; time.Since(start) < timeout; {
+		success, lastState = isClusterInState(ctx, clusterID, state, stateInfo)
+
+		if success {
+			successInRow++
+		} else {
+			successInRow = 0
+		}
+
+		// Wait for cluster state to be consistent
+		if successInRow >= minSuccessesInRow {
+			return
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	Expect(lastState).Should(Equal(state), fmt.Sprintf("Cluster %s wasn't in state %s for %d times in a row.",
+		clusterID, state, minSuccessesInRow))
+}
+
+func isHostInState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUID, state string) (bool, string) {
+	rep, err := userBMClient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
+	Expect(err).NotTo(HaveOccurred())
+	c := rep.GetPayload()
+	return swag.StringValue(c.Status) == state, swag.StringValue(c.Status)
 }
 
 func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUID, state string, timeout time.Duration) {
 	log.Infof("Waiting for host %s state %s", hostID, state)
-	for start := time.Now(); time.Since(start) < timeout; {
-		rep, err := userBMClient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
-		Expect(err).NotTo(HaveOccurred())
-		c := rep.GetPayload()
-		if swag.StringValue(c.Status) == state {
-			break
+	var lastState string = ""
+	var success bool
+
+	for start, successInRow := time.Now(), 0; time.Since(start) < timeout; {
+		success, lastState = isHostInState(ctx, clusterID, hostID, state)
+
+		if success {
+			successInRow++
+		} else {
+			successInRow = 0
 		}
+
+		// Wait for host state to be consistent
+		if successInRow >= minSuccessesInRow {
+			return
+		}
+
 		time.Sleep(time.Second)
 	}
-	rep, err := userBMClient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
-	Expect(err).NotTo(HaveOccurred())
-	c := rep.GetPayload()
-	ExpectWithOffset(1, swag.StringValue(c.Status)).Should(Equal(state))
+
+	Expect(lastState).Should(Equal(state), fmt.Sprintf("Host %s in Cluster %s wasn't in state %s for %d times in a row.",
+		hostID, clusterID, state, minSuccessesInRow))
 }
 
 func waitForClusterInstallationToStart(clusterID strfmt.UUID) {
@@ -514,7 +560,11 @@ var _ = Describe("cluster install", func() {
 		h4 := registerHost(clusterID)
 		generateHWPostStepReply(h4, validMasterHwInfo, "h4")
 		h5 := registerHost(clusterID)
+
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
 		generateHWPostStepReply(h5, validMasterHwInfo, "h5")
+
 		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
@@ -522,8 +572,12 @@ var _ = Describe("cluster install", func() {
 
 		By("add hosts with worker inventory expect the cluster to be ready")
 		h6 := registerHost(clusterID)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
+
 		generateHWPostStepReply(h6, validWorkerHwInfo, "h6")
 		waitForHostState(ctx, clusterID, *h6.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 

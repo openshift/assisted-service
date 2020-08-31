@@ -114,20 +114,20 @@ func NewCompleteInstallationUnauthorized() *CompleteInstallationUnauthorized {
 Unauthorized.
 */
 type CompleteInstallationUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *CompleteInstallationUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *CompleteInstallationUnauthorized) GetPayload() *models.Error {
+func (o *CompleteInstallationUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *CompleteInstallationUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -147,20 +147,20 @@ func NewCompleteInstallationForbidden() *CompleteInstallationForbidden {
 Forbidden.
 */
 type CompleteInstallationForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *CompleteInstallationForbidden) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationForbidden  %+v", 403, o.Payload)
 }
 
-func (o *CompleteInstallationForbidden) GetPayload() *models.Error {
+func (o *CompleteInstallationForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *CompleteInstallationForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -1,4 +1,5 @@
 import subprocess as sp
+import utils
 
 
 class BytesSuffix(object):
@@ -14,15 +15,14 @@ class BytesSuffix(object):
 
     @classmethod
     def to_bytes(cls, s):
-        to_bytes = cls.suffix_to_bytes[cls.get_suffix(s)]
-
         amount = cls.get_amount(s)
         if amount is None:
             raise ValueError(
                 f'failed to convert size to bytes: {s}'
             )
 
-        return amount * to_bytes
+        b = cls.suffix_to_bytes[cls.get_suffix(s)]
+        return amount * b
 
     @classmethod
     def get_suffix(cls, s):
@@ -63,9 +63,9 @@ class DecBytesSuffix(BytesSuffix):
     }
 
 
-def update_size_in_yaml_docs(ns, name, docs):
+def update_size_in_yaml_docs(target, ns, profile, name, docs):
     req = extract_requested_size_from_yaml_docs(name, docs)
-    cur = get_current_size_if_exist(ns, name)
+    cur = get_current_size_if_exist(target, ns, profile, name)
     size = determine_which_size_to_deploy(req, cur)
     set_size_in_yaml_docs(name, size, docs)
 
@@ -85,9 +85,10 @@ def extract_requested_size_from_yaml_docs(name, docs):
     )
 
 
-def get_current_size_if_exist(ns, name):
+def get_current_size_if_exist(target, ns, profile, name):
+    kubectl_cmd = utils.get_kubectl_command(target, ns, profile)
     p = sp.Popen(
-        f'kubectl -n {ns} get persistentvolumeclaims {name} '
+        f'{kubectl_cmd} get persistentvolumeclaims {name} '
         '-o=jsonpath="{.status.capacity.storage}"',
         shell=True,
         stdout=sp.PIPE,

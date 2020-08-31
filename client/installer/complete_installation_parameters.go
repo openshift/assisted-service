@@ -66,6 +66,8 @@ type CompleteInstallationParams struct {
 	ClusterID strfmt.UUID
 	/*CompletionParams*/
 	CompletionParams *models.CompletionParams
+	/*DiscoveryAgentVersion*/
+	DiscoveryAgentVersion *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -127,6 +129,17 @@ func (o *CompleteInstallationParams) SetCompletionParams(completionParams *model
 	o.CompletionParams = completionParams
 }
 
+// WithDiscoveryAgentVersion adds the discoveryAgentVersion to the complete installation params
+func (o *CompleteInstallationParams) WithDiscoveryAgentVersion(discoveryAgentVersion *string) *CompleteInstallationParams {
+	o.SetDiscoveryAgentVersion(discoveryAgentVersion)
+	return o
+}
+
+// SetDiscoveryAgentVersion adds the discoveryAgentVersion to the complete installation params
+func (o *CompleteInstallationParams) SetDiscoveryAgentVersion(discoveryAgentVersion *string) {
+	o.DiscoveryAgentVersion = discoveryAgentVersion
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *CompleteInstallationParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -144,6 +157,15 @@ func (o *CompleteInstallationParams) WriteToRequest(r runtime.ClientRequest, reg
 		if err := r.SetBodyParam(o.CompletionParams); err != nil {
 			return err
 		}
+	}
+
+	if o.DiscoveryAgentVersion != nil {
+
+		// header param discovery_agent_version
+		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
+			return err
+		}
+
 	}
 
 	if len(res) > 0 {
