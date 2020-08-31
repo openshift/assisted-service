@@ -462,13 +462,24 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		cluster.ProxyHash == clusterProxyHash {
 		var err error
 		imgName := getImageName(params.ClusterID)
-		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
+		imageExists, err = b.objectHandler.DoesObjectExist(ctx, imgName)
 		if err != nil {
-			log.WithError(err).Errorf("failed to contact storage backend")
-			msg := "Failed to generate image: error contacting storage backend"
-			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
+			log.WithError(err).Errorf("failed finding image on storage backend")
+			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
+				"Failed to generate image: error finding image on storage backend", time.Now())
 			return installer.NewInstallClusterInternalServerError().
-				WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("failed to contact storage backend")))
+				WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("failed finding image on storage backend")))
+		}
+
+		if imageExists {
+			imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
+			if err != nil {
+				log.WithError(err).Errorf("failed to contact storage backend")
+				b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
+					"Failed to generate image: error contacting storage backend", time.Now())
+				return installer.NewInstallClusterInternalServerError().
+					WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("failed to contact storage backend")))
+			}
 		}
 	}
 
