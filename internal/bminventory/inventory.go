@@ -2255,6 +2255,26 @@ func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params instal
 	return filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(respBody), downloadFileName, contentLength)
 }
 
+func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Downloading logs from cluster %s", params.ClusterID)
+	_, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	files, err := b.objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", params.ClusterID))
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	if len(files) < 1 {
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusNotFound,
+			errors.Errorf("No log files were found")))
+	}
+	fileName := fmt.Sprintf("%s_logs.tar", params.ClusterID)
+	return filemiddleware.NewTarResponder(ctx, installer.NewDownloadClusterLogsOK(), fileName, files, b.objectHandler)
+}
+
 func (b *bareMetalInventory) getLogsFullName(clusterId string, hostId string) string {
 	return fmt.Sprintf("%s/logs/%s/logs.tar.gz", clusterId, hostId)
 }
@@ -2268,6 +2288,20 @@ func (b *bareMetalInventory) getHost(ctx context.Context, clusterId string, host
 		return nil, common.NewApiError(http.StatusNotFound, errors.Errorf("Host %s not found", hostId))
 	}
 	return &host, nil
+}
+
+func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string) (*common.Cluster, error) {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster common.Cluster
+	if err := b.db.First(&cluster, identity.AddUserFilter(ctx, "id = ?"), clusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, common.NewApiError(http.StatusNotFound, err)
+		} else {
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+	return &cluster, nil
 }
 
 func (b *bareMetalInventory) customizeHost(host *models.Host) error {
