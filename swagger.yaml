@@ -993,52 +993,6 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/actions/debug:
-    post:
-      tags:
-        - installer
-      summary: Sets a single shot debug step that will be sent next time the host agent will ask for a command.
-      operationId: SetDebugStep
-      parameters:
-        - in: path
-          name: cluster_id
-          type: string
-          format: uuid
-          required: true
-        - in: path
-          name: host_id
-          type: string
-          format: uuid
-          required: true
-        - in: body
-          name: step
-          required: true
-          schema:
-            $ref: '#/definitions/debug-step'
-      responses:
-        204:
-          description: Success.
-        401:
-          description: Unauthorized.
-          schema:
-            $ref: '#/definitions/infra_error'
-        403:
-          description: Forbidden.
-          schema:
-            $ref: '#/definitions/infra_error'
-        404:
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-        405:
-          description: Method Not Allowed.
-          schema:
-            $ref: '#/definitions/error'
-        500:
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-
   /clusters/{cluster_id}/hosts/{host_id}/actions/enable:
     post:
       tags:
@@ -2148,14 +2102,6 @@ definitions:
         items:
           type: string
           format: uuid
-
-  debug-step:
-    type: object
-    required:
-      - command
-    properties:
-      command:
-        type: string
 
   l2-connectivity:
     type: object
