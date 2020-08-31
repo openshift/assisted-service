@@ -6,11 +6,13 @@ package cluster
 
 import (
 	context "context"
+	reflect "reflect"
+
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
-	reflect "reflect"
+	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 )
 
 // MockRegistrationAPI is a mock of RegistrationAPI interface
@@ -416,4 +418,19 @@ func (m *MockAPI) IsReadyForInstallation(c *common.Cluster) (bool, string) {
 func (mr *MockAPIMockRecorder) IsReadyForInstallation(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReadyForInstallation", reflect.TypeOf((*MockAPI)(nil).IsReadyForInstallation), c)
+}
+
+// CreateZippedClusterLogs mocks base method
+func (m *MockAPI) CreateZippedClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateZippedClusterLogs", ctx, c, objectHandler)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateZippedClusterLogs indicates an expected call of CreateZippedClusterLogs
+func (mr *MockAPIMockRecorder) CreateZippedClusterLogs(ctx, c, objectHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateZippedClusterLogs", reflect.TypeOf((*MockAPI)(nil).CreateZippedClusterLogs), ctx, c, objectHandler)
 }
