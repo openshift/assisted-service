@@ -5,18 +5,6 @@ import yaml
 import deployment_options
 
 
-SRC_FILE = os.path.join(os.getcwd(), "deploy/assisted-service-configmap.yaml")
-DST_FILE = os.path.join(os.getcwd(), "build/assisted-service-configmap.yaml")
-SERVICE = "assisted-service"
-
-
-def get_deployment_tag(args):
-    if args.deploy_manifest_tag:
-        return args.deploy_manifest_tag
-    if args.deploy_tag:
-        return args.deploy_tag
-
-
 def handle_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-dns-domains")
@@ -29,9 +17,22 @@ def handle_arguments():
     return deployment_options.load_deployment_options(parser)
 
 
+deploy_options = handle_arguments()
+
+SRC_FILE = os.path.join(os.getcwd(), 'deploy/assisted-service-configmap.yaml')
+DST_FILE = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-service-configmap.yaml')
+SERVICE = "assisted-service"
+
+
+def get_deployment_tag(args):
+    if args.deploy_manifest_tag:
+        return args.deploy_manifest_tag
+    if args.deploy_tag:
+        return args.deploy_tag
+
+
 def main():
-    deploy_options = handle_arguments()
-    utils.set_profile(deploy_options.target, deploy_options.profile)
+    utils.verify_build_directory(deploy_options.namespace)
 
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:
@@ -84,8 +85,12 @@ def main():
             data = yaml.dump(y)
             dst.write(data)
 
-    utils.apply(DST_FILE)
-
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=DST_FILE
+    )
 
 if __name__ == "__main__":
     main()

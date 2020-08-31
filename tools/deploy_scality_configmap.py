@@ -5,10 +5,10 @@ import deployment_options
 def main():
     deploy_options = deployment_options.load_deployment_options()
 
-    utils.set_profile(deploy_options.target, deploy_options.profile)
+    utils.verify_build_directory(deploy_options.namespace)
 
-    src_file = os.path.join(os.getcwd(), "deploy/s3/scality-secret.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/scality-secret.yaml")
+    src_file = os.path.join(os.getcwd(), 'deploy/s3/scality-secret.yaml')
+    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'scality-secret.yaml')
     scality_url = "http://cloudserver-front:8000"
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
@@ -17,7 +17,12 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 if __name__ == "__main__":

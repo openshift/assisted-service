@@ -9,13 +9,13 @@ def main():
     parser.add_argument("--deploy-namespace", type=lambda x: (str(x).lower() == 'true'), default=True)
     deploy_options = deployment_options.load_deployment_options(parser)
 
-    utils.set_profile(deploy_options.target, deploy_options.profile)
+    utils.verify_build_directory(deploy_options.namespace)
 
     if deploy_options.deploy_namespace is False:
         print("Not deploying namespace")
         return
-    src_file = os.path.join(os.getcwd(), "deploy/namespace/namespace.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/namespace.yaml")
+    src_file = os.path.join(os.getcwd(), 'deploy/namespace/namespace.yaml')
+    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'namespace.yaml')
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
@@ -23,8 +23,12 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    utils.apply(dst_file)
-
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 if __name__ == "__main__":
     main()

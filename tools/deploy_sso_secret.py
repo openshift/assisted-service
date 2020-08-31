@@ -8,7 +8,10 @@ parser.add_argument("--secret")
 parser.add_argument("--id")
 deploy_options = deployment_options.load_deployment_options(parser)
 
+
 def main():
+    utils.verify_build_directory(deploy_options.namespace)
+
     ocm_secret = deploy_options.secret
     if ocm_secret == "":
         ocm_secret = '""'
@@ -16,8 +19,8 @@ def main():
     if ocm_id == "":
         ocm_id = '""'
 
-    src_file = os.path.join(os.getcwd(), "deploy/assisted-installer-sso.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/assisted-installer-sso.yaml")
+    src_file = os.path.join(os.getcwd(), 'deploy/assisted-installer-sso.yaml')
+    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-installer-sso.yaml')
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
@@ -27,7 +30,12 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 if __name__ == "__main__":

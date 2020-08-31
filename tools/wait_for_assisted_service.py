@@ -25,7 +25,6 @@ def wait_for_request(url: str) -> bool:
 
 def main():
     deploy_options = handle_arguments()
-    utils.set_profile(deploy_options.target, deploy_options.profile)
 
     service_url = utils.get_service_url(service=SERVICE, target=deploy_options.target, domain=deploy_options.domain,
                                         namespace=deploy_options.namespace, profile=deploy_options.profile,

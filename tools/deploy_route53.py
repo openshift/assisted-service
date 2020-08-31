@@ -13,8 +13,8 @@ def deploy_secret():
         return
 
     # Renderized secret with specified secret
-    src_file = os.path.join(os.getcwd(), "deploy/route53/route53-secret.yaml")
-    dst_file = os.path.join(os.getcwd(), "build/route53-secret.yaml")
+    src_file = os.path.join(os.getcwd(), 'deploy/route53/route53-secret.yaml')
+    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'route53-secret.yaml')
     topic = 'Route53 Secret'
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
@@ -23,12 +23,17 @@ def deploy_secret():
             data = data.replace("BASE64_CREDS", deploy_options.secret)
             print("Deploying {}: {}".format(topic, dst_file))
             dst.write(data)
-    utils.apply(dst_file)
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=dst_file
+    )
 
 
 def main():
     deploy_secret()
-    utils.set_profile(deploy_options.target, deploy_options.profile)
+    utils.verify_build_directory(deploy_options.namespace)
 
 
 if __name__ == "__main__":
