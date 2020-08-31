@@ -355,15 +355,20 @@ func (m *Manager) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingres
 	log := logutil.FromContext(ctx, m.log)
 	switch swag.StringValue(c.Status) {
 	case models.ClusterStatusInsufficient, models.ClusterStatusReady:
-		if (c.APIVip != "" && apiVip != c.APIVip) || (c.IngressVip != "" && c.IngressVip != ingressVip) {
-			log.WithError(vipMismatchError(apiVip, ingressVip, c)).Warn("VIPs changed")
-		}
 		if err = db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
 			Updates(map[string]interface{}{"api_vip": apiVip,
 				"ingress_vip": ingressVip}).Error; err != nil {
 			log.WithError(err).Warnf("Update vips of cluster %s", c.ID.String())
 			return err
 		}
+		if apiVip != c.APIVip || c.IngressVip != ingressVip {
+			if c.APIVip != "" || c.IngressVip != "" {
+				log.WithError(vipMismatchError(apiVip, ingressVip, c)).Warn("VIPs changed")
+			}
+			m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
+				fmt.Sprintf("Cluster %s was updated with api-vip %s, ingress-vip %s", c.ID.String(), apiVip, ingressVip), time.Now())
+		}
+
 	case models.ClusterStatusInstalling, models.ClusterStatusPreparingForInstallation, models.ClusterStatusFinalizing:
 		if c.APIVip != apiVip || c.IngressVip != ingressVip {
 			err = vipMismatchError(apiVip, ingressVip, c)
