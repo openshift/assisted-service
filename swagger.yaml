@@ -2103,6 +2103,7 @@ definitions:
       install_config_overrides:
         type: string
         description: Json formatted string containing the user overrides for the install-config.yaml file
+        example: '{"networking":{"networkType": "OVN-Kubernetes"},"fips":true}'
         x-go-custom-tag: gorm:"type:varchar(2048)"
 
 
