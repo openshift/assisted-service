@@ -205,10 +205,6 @@ var _ = Describe("Proxy validations", func() {
 	})
 
 	Context("test no-proxy", func() {
-		It("'*' bypass proxy for all destinations", func() {
-			err := ValidateNoProxyFormat("*")
-			Expect(err).Should(BeNil())
-		})
 		It("domain name", func() {
 			err := ValidateNoProxyFormat("domain.com")
 			Expect(err).Should(BeNil())
@@ -228,6 +224,10 @@ var _ = Describe("Proxy validations", func() {
 		It("multiple entries", func() {
 			err := ValidateNoProxyFormat("domain.com,10.9.0.0/16,.otherdomain.com,10.9.8.7")
 			Expect(err).Should(BeNil())
+		})
+		It("'*' bypass proxy for all destinations", func() {
+			err := ValidateNoProxyFormat("*")
+			Expect(err).ShouldNot(BeNil())
 		})
 		It("invalid format", func() {
 			err := ValidateNoProxyFormat("...")
