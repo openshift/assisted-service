@@ -48,7 +48,6 @@ type InstructionConfig struct {
 	FreeAddressesImage      string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	DhcpLeaseAllocatorImage string `envconfig:"DHCP_LEASE_ALLOCATOR_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	SkipCertVerification    bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	InstallationTimeout     string `envconfig:"INSTALLATION_TIMEOUT" default:"120m"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator) *InstructionManager {
