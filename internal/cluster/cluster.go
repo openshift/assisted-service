@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
+
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -58,6 +60,7 @@ type API interface {
 	CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse
 	SetVips(ctx context.Context, c *common.Cluster, apiVip, ingressVip string, db *gorm.DB) error
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
+	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 }
 
 type PrepareConfig struct {
@@ -379,6 +382,31 @@ func (m *Manager) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingres
 		}
 	}
 	return nil
+}
+
+func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+	log := logutil.FromContext(ctx, m.log)
+	fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", c.ID)
+	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
+	if err != nil {
+		return "", common.NewApiError(http.StatusNotFound, err)
+	}
+	files = funk.Filter(files, func(x string) bool {
+		return x != fileName
+	}).([]string)
+
+	if len(files) < 1 {
+		return "", common.NewApiError(http.StatusNotFound,
+			errors.Errorf("No log files were found"))
+	}
+
+	log.Debugf("List of files to include into %s is %s", fileName, files)
+	err = common.TarAwsFiles(ctx, fileName, files, objectHandler, log)
+	if err != nil {
+		log.WithError(err).Errorf("failed to download file %s", fileName)
+		return "", common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return fileName, nil
 }
 
 func (m *Manager) IsReadyForInstallation(c *common.Cluster) (bool, string) {

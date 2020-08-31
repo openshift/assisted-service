@@ -218,3 +218,25 @@ func (f *FSClient) handleFile(ctx context.Context, log logrus.FieldLogger, fileP
 	log.Infof("Deleted expired file %s", filePath)
 	callback(ctx, log, filePath)
 }
+
+func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
+	log := logutil.FromContext(ctx, f.log)
+	var matches []string
+	err := filepath.Walk(f.basedir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if strings.HasPrefix(filepath.Base(path), prefix) && !info.IsDir() {
+			matches = append(matches, path)
+		}
+		return nil
+	})
+	if err != nil {
+		log.WithError(err).Error("Error listing files")
+		return nil, err
+	}
+	return matches, nil
+}
