@@ -874,17 +874,24 @@ var _ = Describe("HandlePreInstallationError", func() {
 
 var _ = Describe("SetVips", func() {
 	var (
-		ctx       = context.Background()
-		capi      API
-		db        *gorm.DB
-		clusterId strfmt.UUID
-		dbName    = "set_vips"
+		ctx        = context.Background()
+		capi       API
+		mockEvents *events.MockHandler
+		ctrl       *gomock.Controller
+		db         *gorm.DB
+		clusterId  strfmt.UUID
+		dbName     = "set_vips"
 	)
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
-		capi = NewManager(defaultTestConfig, getTestLog(), db, nil, nil, nil)
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		capi = NewManager(defaultTestConfig, getTestLog(), db, mockEvents, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
+	})
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
 	tests := []struct {
@@ -898,6 +905,7 @@ var _ = Describe("SetVips", func() {
 		expectedIngressVip string
 		expectedState      string
 		errorExpected      bool
+		eventExpected      bool
 	}{
 		{
 			name:               "success-empty",
@@ -908,6 +916,7 @@ var _ = Describe("SetVips", func() {
 			expectedIngressVip: "1.2.3.5",
 			errorExpected:      false,
 			expectedState:      models.ClusterStatusInsufficient,
+			eventExpected:      true,
 		},
 		{
 			name:               "success-empty from ready",
@@ -918,6 +927,7 @@ var _ = Describe("SetVips", func() {
 			expectedIngressVip: "1.2.3.5",
 			errorExpected:      false,
 			expectedState:      models.ClusterStatusReady,
+			eventExpected:      true,
 		},
 		{
 			name:               "success- insufficient",
@@ -930,6 +940,7 @@ var _ = Describe("SetVips", func() {
 			expectedIngressVip: "1.2.3.5",
 			errorExpected:      false,
 			expectedState:      models.ClusterStatusInsufficient,
+			eventExpected:      true,
 		},
 		{
 			name:               "success- ready same",
@@ -976,6 +987,9 @@ var _ = Describe("SetVips", func() {
 			cluster.APIVip = t.clusterApiVip
 			cluster.IngressVip = t.clusterIngressVip
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			if t.eventExpected {
+				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
+			}
 			err := capi.SetVips(ctx, &cluster, t.apiVip, t.ingressVip, db)
 			Expect(err != nil).To(Equal(t.errorExpected))
 			var c common.Cluster
