@@ -465,8 +465,8 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
 		if err != nil {
 			log.WithError(err).Errorf("failed to contact storage backend")
-			msg := "Failed to generate image: error contacting storage backend"
-			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
+			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
+				"Failed to generate image: error contacting storage backend", time.Now())
 			return installer.NewInstallClusterInternalServerError().
 				WithPayload(common.GenerateError(http.StatusInternalServerError, errors.New("failed to contact storage backend")))
 		}
