@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
 
 	"github.com/alecthomas/units"
@@ -984,9 +984,9 @@ var _ = Describe("cluster install", func() {
 				waitForClusterInstallationToStart(clusterID)
 				creds, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(creds.GetPayload().Username).To(Equal(bminventory.DefaultUser))
+				Expect(creds.GetPayload().Username).To(Equal(common.DefaultUser))
 				Expect(creds.GetPayload().ConsoleURL).To(Equal(
-					fmt.Sprintf("%s.%s.%s", bminventory.ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain)))
+					fmt.Sprintf("%s.%s.%s", common.ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain)))
 				Expect(len(creds.GetPayload().Password)).NotTo(Equal(0))
 			}
 		})

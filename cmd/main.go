@@ -51,7 +51,7 @@ const deploymet_type_k8s = "k8s"
 
 var Options struct {
 	Auth                        auth.Config
-	BMConfig                    bminventory.Config
+	BMConfig                    common.Config
 	DBConfig                    db.Config
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
