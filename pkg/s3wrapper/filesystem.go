@@ -218,3 +218,11 @@ func (f *FSClient) handleFile(ctx context.Context, log logrus.FieldLogger, fileP
 	log.Infof("Deleted expired file %s", filePath)
 	callback(ctx, log, filePath)
 }
+
+func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
+	return nil, nil
+}
+
+func (f *FSClient) DownloadListOfFiles(ctx context.Context, files []string) (io.ReadCloser, int64, error) {
+	return nil, 0, nil
+}
