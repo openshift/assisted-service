@@ -242,6 +242,9 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	if params.NewClusterParams.ServiceNetworkCidr == nil {
 		params.NewClusterParams.ServiceNetworkCidr = &DefaultServiceNetworkCidr
 	}
+	if params.NewClusterParams.VipDhcpAllocation == nil {
+		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
+	}
 
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:                       &id,
@@ -261,7 +264,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		HTTPProxy:                swag.StringValue(params.NewClusterParams.HTTPProxy),
 		HTTPSProxy:               swag.StringValue(params.NewClusterParams.HTTPSProxy),
 		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
-		VipDhcpAllocation:        swag.Bool(false),
+		VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
 	}}
 
 	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
@@ -942,9 +945,12 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 		log.WithError(err).Warnf("Set Ingress VIP")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if params.ClusterUpdateParams.MachineNetworkCidr != nil {
+	if params.ClusterUpdateParams.MachineNetworkCidr != nil &&
+		*machineCidr != swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr) {
 		*machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
 		updates["machine_network_cidr"] = *machineCidr
+		updates["api_vip"] = ""
+		updates["ingress_vip"] = ""
 		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr), cluster.Hosts, log)
 	}
 	return nil
