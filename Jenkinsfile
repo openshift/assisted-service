@@ -72,7 +72,7 @@ pipeline {
 
                         echo 'Get assisted-service log'
                         sh '''
-                        podman  logs installe > test_dd.log
+                        podman  logs installer > test_dd.log
                         mv test_dd.log $WORKSPACE/assisted-service.log || true
                         '''
 
@@ -108,12 +108,8 @@ pipeline {
         failure {
             script {
                 if (env.BRANCH_NAME == 'master')
-                    sh '''
-                           echo '{"text":"Attention! assisted-service master branch subsystem test failed, see: ' > data.txt
-                           echo ${BUILD_URL} >> data.txt
-                           echo '"}' >> data.txt
-                           curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt"  https://hooks.slack.com/services/$SLACK_TOKEN
-                    '''
+                    def data = [text: "Attention! assisted-service master branch subsystem test failed, see: ${BUILD_URL}"]
+                    writeJSON(file: 'data.txt', json: data, pretty: 4)
             }
         }
     }
