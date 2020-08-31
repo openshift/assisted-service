@@ -30,7 +30,6 @@ pipeline {
                         sh '''export PATH=$PATH:/usr/local/go/bin; make jenkins-deploy-for-subsystem'''
                         sh '''kubectl get pods -A'''
                         sh '''export PATH=$PATH:/usr/local/go/bin;make subsystem-run'''
-                        sh 'make clear-deployment'
 
                         echo 'Get assisted-service log'
                         sh '''
@@ -70,7 +69,6 @@ pipeline {
                         sh '''export PATH=$PATH:/usr/local/go/bin; make deploy-onprem'''
                         sh '''kubectl get pods -A'''
                         sh '''export PATH=$PATH:/usr/local/go/bin;make test-onprem'''
-                        sh '''make clean-onprem'''
 
                         echo 'Get assisted-service log'
                         sh '''
