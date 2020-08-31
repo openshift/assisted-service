@@ -12,7 +12,6 @@ def handle_arguments():
     parser.add_argument("--subsystem-test", action='store_true')
     parser.add_argument("--jwks-url", default="https://api.openshift.com/.well-known/jwks.json")
     parser.add_argument("--ocm-url", default="https://api-integration.6943.hive-integration.openshiftapps.com")
-    parser.add_argument("--installation-timeout", type=str, default="120m")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -49,8 +48,6 @@ def main():
             data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
             data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
             data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))
-            data = data.replace('REPLACE_INSTALLATION_TIMEOUT', f'"{deploy_options.installation_timeout}"')
-
             print("Deploying {}".format(DST_FILE))
 
             subsystem_versions = {"IMAGE_BUILDER": "ISO_CREATION",
