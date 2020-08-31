@@ -1465,74 +1465,6 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/debug": {
-      "post": {
-        "tags": [
-          "installer"
-        ],
-        "summary": "Sets a single shot debug step that will be sent next time the host agent will ask for a command.",
-        "operationId": "SetDebugStep",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "host_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "step",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/debug-step"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Success."
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
       "post": {
         "tags": [
@@ -2738,17 +2670,6 @@ func init() {
           "type": "string"
         },
         "username": {
-          "type": "string"
-        }
-      }
-    },
-    "debug-step": {
-      "type": "object",
-      "required": [
-        "command"
-      ],
-      "properties": {
-        "command": {
           "type": "string"
         }
       }
@@ -5061,74 +4982,6 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/debug": {
-      "post": {
-        "tags": [
-          "installer"
-        ],
-        "summary": "Sets a single shot debug step that will be sent next time the host agent will ask for a command.",
-        "operationId": "SetDebugStep",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "host_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "step",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/debug-step"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Success."
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
       "post": {
         "tags": [
@@ -6340,17 +6193,6 @@ func init() {
           "type": "string"
         },
         "username": {
-          "type": "string"
-        }
-      }
-    },
-    "debug-step": {
-      "type": "object",
-      "required": [
-        "command"
-      ],
-      "properties": {
-        "command": {
           "type": "string"
         }
       }

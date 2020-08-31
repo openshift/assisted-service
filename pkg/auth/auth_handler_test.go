@@ -290,10 +290,6 @@ func (f fakeInventory) ResetCluster(ctx context.Context, params installer.ResetC
 	panic("Implement Me!")
 }
 
-func (f fakeInventory) SetDebugStep(ctx context.Context, params installer.SetDebugStepParams) middleware.Responder {
-	panic("Implement Me!")
-}
-
 func (f fakeInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	panic("Implement Me!")
 }

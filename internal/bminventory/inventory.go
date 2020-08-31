@@ -18,7 +18,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"text/template"
 	"time"
 
@@ -129,16 +128,9 @@ var clusterFileNames = []string{
 	"install-config.yaml",
 }
 
-type debugCmd struct {
-	cmd    string
-	stepID string
-}
-
 type bareMetalInventory struct {
 	Config
 	db            *gorm.DB
-	debugCmdMap   map[strfmt.UUID]debugCmd
-	debugCmdMux   sync.Mutex
 	log           logrus.FieldLogger
 	hostApi       host.API
 	clusterApi    cluster.API
@@ -165,7 +157,6 @@ func NewBareMetalInventory(
 		db:            db,
 		log:           log,
 		Config:        cfg,
-		debugCmdMap:   make(map[strfmt.UUID]debugCmd),
 		hostApi:       hostApi,
 		clusterApi:    clusterApi,
 		generator:     generator,
@@ -1294,10 +1285,6 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.Lis
 	return installer.NewListHostsOK().WithPayload(hosts)
 }
 
-func createStepID(stepType models.StepType) string {
-	return fmt.Sprintf("%s-%s", stepType, uuid.New().String()[:8])
-}
-
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var steps models.Steps
@@ -1346,18 +1333,6 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 	if err != nil {
 		log.WithError(err).Errorf("failed to get steps for host %s cluster %s", params.HostID, params.ClusterID)
 	}
-
-	b.debugCmdMux.Lock()
-	if cmd, ok := b.debugCmdMap[params.HostID]; ok {
-		step := &models.Step{}
-		step.StepType = models.StepTypeExecute
-		step.StepID = cmd.stepID
-		step.Command = "bash"
-		step.Args = []string{"-c", cmd.cmd}
-		steps.Instructions = append(steps.Instructions, step)
-		delete(b.debugCmdMap, params.HostID)
-	}
-	b.debugCmdMux.Unlock()
 
 	return installer.NewGetNextStepsOK().WithPayload(&steps)
 }
@@ -1529,21 +1504,6 @@ func filterReply(expected interface{}, input string) (string, error) {
 		return "", err
 	}
 	return string(reply), nil
-}
-
-func (b *bareMetalInventory) SetDebugStep(ctx context.Context, params installer.SetDebugStepParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	stepID := createStepID(models.StepTypeExecute)
-	b.debugCmdMux.Lock()
-	b.debugCmdMap[params.HostID] = debugCmd{
-		cmd:    swag.StringValue(params.Step.Command),
-		stepID: stepID,
-	}
-	b.debugCmdMux.Unlock()
-	log.Infof("Added new debug command <%s> for cluster <%s> host <%s>: <%s>",
-		stepID, params.ClusterID, params.HostID, swag.StringValue(params.Step.Command))
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, "Added debug command", time.Now())
-	return installer.NewSetDebugStepNoContent()
 }
 
 func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.DisableHostParams) middleware.Responder {

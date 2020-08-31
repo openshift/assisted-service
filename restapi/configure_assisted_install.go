@@ -112,9 +112,6 @@ type InstallerAPI interface {
 	/* ResetCluster Resets a failed installation. */
 	ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder
 
-	/* SetDebugStep Sets a single shot debug step that will be sent next time the host agent will ask for a command. */
-	SetDebugStep(ctx context.Context, params installer.SetDebugStepParams) middleware.Responder
-
 	/* UpdateCluster Updates an OpenShift bare metal cluster definition. */
 	UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder
 
@@ -360,11 +357,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.ResetCluster(ctx, params)
-	})
-	api.InstallerSetDebugStepHandler = installer.SetDebugStepHandlerFunc(func(params installer.SetDebugStepParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.SetDebugStep(ctx, params)
 	})
 	api.InstallerUpdateClusterHandler = installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

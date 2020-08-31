@@ -94,9 +94,6 @@ type API interface {
 	   ResetCluster resets a failed installation*/
 	ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error)
 	/*
-	   SetDebugStep sets a single shot debug step that will be sent next time the host agent will ask for a command*/
-	SetDebugStep(ctx context.Context, params *SetDebugStepParams) (*SetDebugStepNoContent, error)
-	/*
 	   UpdateCluster updates an open shift bare metal cluster definition*/
 	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
 	/*
@@ -750,31 +747,6 @@ func (a *Client) ResetCluster(ctx context.Context, params *ResetClusterParams) (
 		return nil, err
 	}
 	return result.(*ResetClusterAccepted), nil
-
-}
-
-/*
-SetDebugStep sets a single shot debug step that will be sent next time the host agent will ask for a command
-*/
-func (a *Client) SetDebugStep(ctx context.Context, params *SetDebugStepParams) (*SetDebugStepNoContent, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "SetDebugStep",
-		Method:             "POST",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/debug",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &SetDebugStepReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SetDebugStepNoContent), nil
 
 }
 
