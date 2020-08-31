@@ -161,11 +161,16 @@ deploy-inventory-service-file: deploy-namespace
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --installation-timeout $(or "${INSTALLATION_TIMEOUT}","120m") $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
+	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
+		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
+		--installation-timeout $(or ${INSTALLATION_TIMEOUT},120m) $(DEPLOY_TAG_OPTION) \
+		--enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
-	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)"
-	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)"
+	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
+		--profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)"
+	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" \
+		--profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)"
 
 deploy-role: deploy-namespace
 	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
