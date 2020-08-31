@@ -2328,7 +2328,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		hostID         strfmt.UUID
 		c              common.Cluster
 		kubeconfigFile *os.File
-		clusterApi     cluster.API
+		mockClusterAPI *cluster.MockAPI
 		dbName         = "upload_logs"
 		mockS3Client   *s3wrapper.MockAPI
 		request        *http.Request
@@ -2341,12 +2341,11 @@ var _ = Describe("Upload and Download logs test", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil)
+		mockClusterAPI = cluster.NewMockAPI(ctrl)
 		mockJob := job.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -2525,6 +2524,43 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
 		Expect(*replyPayload.URL).Should(Equal("url"))
+	})
+	It("download cluster logs no cluster", func() {
+		clusterId := strToUUID(uuid.New().String())
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: *clusterId,
+		}
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
+	})
+
+	It("download cluster logs CreateZippedClusterLogs failed", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		mockClusterAPI.EXPECT().CreateZippedClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
+	})
+
+	It("download cluster logs Download failed", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		fileName := fmt.Sprintf("%s_logs.zip", clusterID)
+		mockClusterAPI.EXPECT().CreateZippedClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
+		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
+	})
+
+	It("download cluster logs happy flow", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		fileName := fmt.Sprintf("%s_logs.zip", clusterID)
+		mockClusterAPI.EXPECT().CreateZippedClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
+		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
+		generateReply := bm.DownloadClusterLogs(ctx, params)
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(r), fileName, 4)))
 	})
 
 })
