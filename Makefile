@@ -94,7 +94,7 @@ build-dummy-ignition: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/dummy-ignition dummy-ignition/main.go
 
 build-onprem: build-minimal build-iso-generator build-dummy-ignition
-	podman build -f Dockerfile.assisted-service-onprem -t ${SERVICE} .
+	podman build --build-arg NAMESPACE=$(NAMESPACE) -f Dockerfile.assisted-service-onprem -t ${SERVICE} .
 
 build-image: build
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
