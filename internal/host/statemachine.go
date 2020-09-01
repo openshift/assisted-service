@@ -176,7 +176,9 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeResettingPendingUserAction,
 		SourceStates: []stateswitch.State{
-			HostStatusResetting,
+			stateswitch.State(models.HostStatusResetting),
+			stateswitch.State(models.HostStatusDiscovering),
+			stateswitch.State(models.HostStatusKnown),
 		},
 		DestinationState: stateswitch.State(models.HostStatusResettingPendingUserAction),
 		PostTransition:   th.PostResettingPendingUserAction,
