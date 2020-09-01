@@ -88,7 +88,7 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 	switch status {
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
-			return "Machine network CIDR is undefined"
+			return "Machine network CIDR is undefined; setting the machine network CIDR initiates the VIPs DHCP lease allocation"
 		} else {
 			return "Machine network CIDR is undefined; the machine network CIDR can be defined by setting either the API VIP or the Ingress VIP"
 		}
@@ -141,7 +141,7 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "Machine network CIDR or API vip or Ingress vip is undefined"
+		return "Machine network CIDR or API VIP or Ingress VIP is undefined"
 	case ValidationSuccess:
 		return "Cluster machine CIDR equals to the calculated CIDR "
 	case ValidationFailure:
@@ -152,15 +152,24 @@ func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clu
 }
 
 func (v *clusterValidator) isApiVipDefined(c *clusterPreprocessContext) validationStatus {
+	if swag.BoolValue(c.cluster.VipDhcpAllocation) && c.cluster.MachineNetworkCidr == "" {
+		return ValidationPending
+	}
 	return boolValue(c.cluster.APIVip != "")
 }
 
 func (v *clusterValidator) printIsApiVipDefined(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
+	case ValidationPending:
+		return "Machine network CIDR is undefined"
 	case ValidationFailure:
-		return "API vip is undefined"
+		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
+			return "API VIP is undefined; after the machine network CIDR has been defined, the API VIP is received from DHCP lease allocation task which may take up to 2 minutes"
+		} else {
+			return "API VIP is undefined and must be provided"
+		}
 	case ValidationSuccess:
-		return "API vip is defined"
+		return "API VIP is defined"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
@@ -178,7 +187,7 @@ func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) validation
 func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "API vip is undefined"
+		return "API VIP is undefined"
 	case ValidationSuccess:
 		return fmt.Sprintf("%s %s belongs to machine CIDR and not in use ", ApiVipName, context.cluster.APIVip)
 	case ValidationFailure:
@@ -189,15 +198,24 @@ func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext,
 }
 
 func (v *clusterValidator) isIngressVipDefined(c *clusterPreprocessContext) validationStatus {
+	if swag.BoolValue(c.cluster.VipDhcpAllocation) && c.cluster.MachineNetworkCidr == "" {
+		return ValidationPending
+	}
 	return boolValue(c.cluster.IngressVip != "")
 }
 
 func (v *clusterValidator) printIsIngressVipDefined(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
+	case ValidationPending:
+		return "Machine network CIDR is undefined"
 	case ValidationFailure:
-		return "Ingress vip is undefined"
+		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
+			return "Ingress VIP is undefined; after the machine network CIDR has been defined, the Ingress VIP is received from DHCP lease allocation task which may take up to 2 minutes"
+		} else {
+			return "Ingress VIP is undefined and must be provided"
+		}
 	case ValidationSuccess:
-		return "Ingress vip is defined"
+		return "Ingress VIP is defined"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
@@ -214,7 +232,7 @@ func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) valida
 func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "Machine network CIDR or API vip or Ingress vip is undefined"
+		return "Ingress VIP is undefined"
 	case ValidationSuccess:
 		return fmt.Sprintf("%s %s belongs to machine CIDR and not in use ", IngressVipName, context.cluster.IngressVip)
 	case ValidationFailure:
@@ -316,7 +334,7 @@ func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, 
 		}
 		return ""
 	case ValidationPending:
-		return "At least one of the CIDRS [MachineNetworkCIDR, ClusterNetworkCIDR, ServiceNetworkCKIDR] is undefined"
+		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
