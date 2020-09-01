@@ -401,8 +401,12 @@ paths:
         - in: query
           name: file_name
           type: string
-          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml]
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, logs]
           required: true
+        - in: query
+          name: host_id
+          type: string
+          format: uuid
       responses:
         200:
           description: Success.
