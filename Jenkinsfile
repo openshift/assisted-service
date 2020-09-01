@@ -51,6 +51,7 @@ pipeline {
                         sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep createimage | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
                         mv test_dd.log $WORKSPACE/createimage.log || true
                         '''
+                        clear_slave()
                     }
                 }
                 stage('Test onprem') {
@@ -60,14 +61,12 @@ pipeline {
 
                         clear_slave()
 
-                        sh '''docker image prune -a -f'''
-                        sh '''make clear-deployment'''
                         sh '''export PATH=$PATH:/usr/local/go/bin; make build-onprem'''
                         withCredentials([usernamePassword(credentialsId: 'dockerio_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                             sh '''docker login docker.io -u $USER -p $PASS'''
                         }
                         sh '''export PATH=$PATH:/usr/local/go/bin; make deploy-onprem'''
-                        sh '''kubectl get pods -A'''
+                        sh '''podman ps'''
                         sh '''export PATH=$PATH:/usr/local/go/bin;make test-onprem'''
 
                         echo 'Get assisted-service log'
@@ -81,6 +80,7 @@ pipeline {
                         podman logs db > test_dd.log"
                         mv test_dd.log $WORKSPACE/postgres.log || true
                         '''
+                        clear_slave()
                     }
                 }
             }
@@ -131,7 +131,7 @@ void check_if_minikube_is_running() {
 }
 
 void clear_slave(){
-    sh 'make clean-onprem || true'
+    sh 'podman pod rm -f assisted-installer || true'
     sh 'make clear-deployment'
     sh 'podman image prune -a'
     sh 'docker image prune -a -f'
