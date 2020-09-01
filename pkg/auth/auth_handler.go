@@ -158,7 +158,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 
 	// Check if there was an error in parsing...
 	if err != nil {
-		a.log.Errorf("Error parsing token: %e", err)
+		a.log.Errorf("Error parsing token: %s", err.Error())
 		return nil, fmt.Errorf("Error parsing token: %v", err)
 	}
 
