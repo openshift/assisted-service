@@ -250,7 +250,8 @@ func (c *S3Client) UpdateObjectTimestamp(ctx context.Context, objectName string)
 
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == s3.ErrCodeNoSuchKey || aerr.Code() == "NotFound" {
+			// S3 returns MethodNotAllowed if an object existed but was deleted
+			if aerr.Code() == s3.ErrCodeNoSuchKey || aerr.Code() == "NotFound" || aerr.Code() == "MethodNotAllowed" {
 				return false, nil
 			}
 			return false, errors.Wrap(err, fmt.Sprintf("Failed to update tags on object %s from bucket %s (code %s)", objectName, c.cfg.S3Bucket, aerr.Code()))
