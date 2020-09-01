@@ -576,8 +576,8 @@ func (c *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) er
 func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *common.Cluster) error {
 	for _, chost := range cluster.Hosts {
 		if swag.StringValue(chost.Status) != host.HostStatusKnown {
-			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install", chost.ID.String(),
-				swag.StringValue(chost.Status)))
+			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install",
+				common.GetHostnameForMsg(chost), swag.StringValue(chost.Status)))
 		}
 		err := b.hostApi.RefreshStatus(ctx, chost, b.db)
 		if err != nil {
