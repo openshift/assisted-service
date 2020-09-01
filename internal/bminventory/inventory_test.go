@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/hostutil"
+
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -1289,6 +1291,94 @@ var _ = Describe("cluster", func() {
 				})
 			})
 
+			Context("Hostname", func() {
+				BeforeEach(func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID: &clusterID,
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
+					err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+						makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
+					Expect(err).ToNot(HaveOccurred())
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				})
+				It("Valid hostname", func() {
+					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+								{
+									Hostname: "a.b.c",
+									ID:       masterHostId1,
+								},
+							},
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				})
+				It("Valid splitted hostname", func() {
+					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+								{
+									Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.123456789",
+									ID:       masterHostId1,
+								},
+							},
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				})
+				It("Too long part", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+								{
+									Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij",
+									ID:       masterHostId1,
+								},
+							},
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				})
+				It("Too long", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+								{
+									Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.1234567890",
+									ID:       masterHostId1,
+								},
+							},
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				})
+				It("Preceding hyphen", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+								{
+									Hostname: "-abc",
+									ID:       masterHostId1,
+								},
+							},
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				})
+			})
+
 			Context("Update Network", func() {
 				BeforeEach(func() {
 					clusterID = strfmt.UUID(uuid.New().String())
@@ -2482,7 +2572,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.DownloadHostLogs(ctx, params)
-		downloadFileName := fmt.Sprintf("%s_%s", common.GetHostnameForMsg(&host), filepath.Base(fileName))
+		downloadFileName := fmt.Sprintf("%s_%s", hostutil.GetHostnameForMsg(&host), filepath.Base(fileName))
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(r), downloadFileName, 4)))
 	})
 

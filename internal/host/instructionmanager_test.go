@@ -3,6 +3,8 @@ package host
 import (
 	"context"
 
+	"github.com/openshift/assisted-service/internal/hostutil"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -153,7 +155,7 @@ var _ = Describe("instructionmanager", func() {
 
 func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents *events.MockHandler, instMng *InstructionManager, mockValidator *hardware.MockValidator, ctx context.Context,
 	expectedStepTypes []models.StepType) {
-	mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, common.GetEventSeverityFromHostStatus(state), gomock.Any(), gomock.Any())
+	mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, hostutil.GetEventSeverityFromHostStatus(state), gomock.Any(), gomock.Any())
 	updateReply, updateErr := updateHostStatus(ctx, getTestLog(), db, mockEvents, host.ClusterID, *host.ID, *host.Status, state, "")
 	ExpectWithOffset(1, updateErr).ShouldNot(HaveOccurred())
 	ExpectWithOffset(1, updateReply).ShouldNot(BeNil())

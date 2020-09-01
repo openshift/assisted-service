@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/openshift/assisted-service/internal/hostutil"
+
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
@@ -584,7 +586,7 @@ func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *commo
 	for _, chost := range cluster.Hosts {
 		if swag.StringValue(chost.Status) != host.HostStatusKnown {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install",
-				common.GetHostnameForMsg(chost), swag.StringValue(chost.Status)))
+				hostutil.GetHostnameForMsg(chost), swag.StringValue(chost.Status)))
 		}
 		err := b.hostApi.RefreshStatus(ctx, chost, b.db)
 		if err != nil {
@@ -1096,6 +1098,9 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 				params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID)
 			return common.NewApiError(http.StatusNotFound, err)
 		}
+		if err = hostutil.ValidateHostname(params.ClusterUpdateParams.HostsNames[i].Hostname); err != nil {
+			return err
+		}
 		err = b.hostApi.UpdateHostname(ctx, &host, params.ClusterUpdateParams.HostsNames[i].Hostname, db)
 		if err != nil {
 			log.WithError(err).Errorf("failed to set hostname <%s> host <%s> in cluster <%s>",
@@ -1265,7 +1270,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	}
 
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityInfo,
-		fmt.Sprintf("Host %s: registered to cluster", common.GetHostnameForMsg(&host)), time.Now())
+		fmt.Sprintf("Host %s: registered to cluster", hostutil.GetHostnameForMsg(&host)), time.Now())
 	return installer.NewRegisterHostCreated().WithPayload(&host)
 }
 
@@ -1755,7 +1760,7 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 	}
 
 	log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-	msg := fmt.Sprintf("Host %s: %s", common.GetHostnameForMsg(&host), event)
+	msg := fmt.Sprintf("Host %s: %s", hostutil.GetHostnameForMsg(&host), event)
 
 	b.eventsHandler.AddEvent(ctx, host.ClusterID, host.ID, models.EventSeverityInfo, msg, time.Now())
 	return installer.NewUpdateHostInstallProgressOK()
@@ -2283,7 +2288,7 @@ func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params instal
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	downloadFileName := fmt.Sprintf("%s_%s", common.GetHostnameForMsg(hostObject), filepath.Base(fileName))
+	downloadFileName := fmt.Sprintf("%s_%s", hostutil.GetHostnameForMsg(hostObject), filepath.Base(fileName))
 	return filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(respBody), downloadFileName, contentLength)
 }
 
@@ -2354,7 +2359,7 @@ func (b *bareMetalInventory) customizeHostStages(host *models.Host) {
 }
 
 func (b *bareMetalInventory) customizeHostname(host *models.Host) {
-	host.RequestedHostname = common.GetHostnameForMsg(host)
+	host.RequestedHostname = hostutil.GetHostnameForMsg(host)
 }
 
 func proxySettingsChanged(params *models.ClusterUpdateParams, cluster *common.Cluster) bool {
