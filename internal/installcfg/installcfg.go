@@ -248,3 +248,7 @@ func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, 
 
 	return yaml.Marshal(*cfg)
 }
+
+func ValidateInstallConfigJSON(s string) error {
+	return json.Unmarshal([]byte(s), &InstallerConfigBaremetal{})
+}

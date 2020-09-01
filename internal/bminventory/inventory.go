@@ -763,7 +763,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, par
 		}
 	}
 
-	if err = json.Unmarshal([]byte(params.InstallConfigParams), &installcfg.InstallerConfigBaremetal{}); err != nil {
+	if err = installcfg.ValidateInstallConfigJSON(params.InstallConfigParams); err != nil {
 		return installer.NewUpdateClusterInstallConfigBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 

@@ -124,6 +124,20 @@ var _ = Describe("installcfg", func() {
 	})
 })
 
+var _ = Describe("ValidateInstallConfigJSON", func() {
+	It("Succeeds when provided valid json", func() {
+		s := `{"apiVersion": "v3", "baseDomain": "example.com", "metadata": {"name": "things"}}`
+		err := ValidateInstallConfigJSON(s)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("Fails when provided invalid json", func() {
+		s := `{"apiVersion": 3, "baseDomain": "example.com", "metadata": {"name": "things"}}`
+		err := ValidateInstallConfigJSON(s)
+		Expect(err).Should(HaveOccurred())
+	})
+})
+
 func TestSubsystem(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "installcfg tests")
