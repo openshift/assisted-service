@@ -31,6 +31,10 @@ var defaultDisk = models.Disk{        // invalid disk used only for tests
 }
 var defaultProgressStage = models.HostStage("default progress stage") // invalid progress stage used only for tests
 
+var defaultConfig = &Config{
+	ResetTimeout: 3 * time.Minute,
+}
+
 var _ = Describe("update_role", func() {
 	var (
 		ctx           = context.Background()
@@ -43,7 +47,7 @@ var _ = Describe("update_role", func() {
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
-		state = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
+		state = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
@@ -183,7 +187,7 @@ var _ = Describe("update_progress", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), mockMetric)
+		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		host = getTestHost(id, clusterId, "")
@@ -370,7 +374,7 @@ var _ = Describe("monitor_disconnection", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil)
+		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig)
 		clusterID := strfmt.UUID(uuid.New().String())
 		host = getTestHost(strfmt.UUID(uuid.New().String()), clusterID, HostStatusDiscovering)
 		cluster := getTestCluster(clusterID, "1.1.0.0/16")
@@ -452,7 +456,7 @@ var _ = Describe("cancel installation", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
-		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil)
+		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil, defaultConfig)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		h = getTestHost(id, clusterId, HostStatusDiscovering)
@@ -528,12 +532,13 @@ var _ = Describe("reset host", func() {
 		h             models.Host
 		eventsHandler events.Handler
 		dbName        = "reset_host"
+		config        Config
 	)
-
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
-		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil)
+		config = *defaultConfig
+		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil, &config)
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
@@ -567,7 +572,27 @@ var _ = Describe("reset host", func() {
 			Expect(*h.Status).Should(Equal(HostStatusDiscovering))
 		})
 
-		It("reset pending user action", func() {
+		It("reset pending user action - passed timeout", func() {
+			id := strfmt.UUID(uuid.New().String())
+			clusterId := strfmt.UUID(uuid.New().String())
+			h = getTestHost(id, clusterId, models.HostStatusResetting)
+			then := time.Now().Add(-config.ResetTimeout)
+			h.StatusUpdatedAt = strfmt.DateTime(then)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			Expect(state.IsRequireUserActionReset(&h)).Should(Equal(true))
+			Expect(state.ResetPendingUserAction(ctx, &h, db)).ShouldNot(HaveOccurred())
+			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
+			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			resetEvent := events[len(events)-1]
+			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
+			eventMessage := fmt.Sprintf("User action is required in order to complete installation reset for host %s", common.GetHostnameForMsg(&h))
+			Expect(*resetEvent.Message).Should(Equal(eventMessage))
+		})
+
+		It("reset pending user action - host in reboot", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			h = getTestHost(id, clusterId, models.HostStatusResetting)
@@ -771,7 +796,7 @@ var _ = Describe("UpdateInventory", func() {
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -886,7 +911,7 @@ var _ = Describe("Update hostname", func() {
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil)
+		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -1002,7 +1027,7 @@ var _ = Describe("SetBootstrap", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil)
+		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 
@@ -1055,7 +1080,7 @@ var _ = Describe("PrepareForInstallation", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil)
+		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -1129,6 +1154,7 @@ var _ = Describe("AutoAssignRole", func() {
 			nil,
 			createValidatorCfg(),
 			nil,
+			defaultConfig,
 		)
 		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).ShouldNot(HaveOccurred())
 	})
@@ -1234,6 +1260,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 			nil,
 			createValidatorCfg(),
 			nil,
+			defaultConfig,
 		)
 		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).ShouldNot(HaveOccurred())
 	})

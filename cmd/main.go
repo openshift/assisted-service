@@ -65,6 +65,7 @@ var Options struct {
 	ClusterConfig               cluster.Config
 	DeployTarget                string `envconfig:"DEPLOY_TARGET" default:"k8s"`
 	OCMConfig                   ocm.Config
+	HostConfig                  host.Config
 }
 
 func main() {
@@ -115,7 +116,7 @@ func main() {
 	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, Options.InstructionConfig, connectivityValidator)
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
-	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator, instructionApi, &Options.HWValidatorConfig, metricsManager)
+	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator, instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		eventsHandler, hostApi, metricsManager)
 
