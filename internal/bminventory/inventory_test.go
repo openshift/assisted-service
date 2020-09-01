@@ -1474,11 +1474,45 @@ var _ = Describe("cluster", func() {
 								IngressVip:               &ingressVip,
 								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
 								ServiceNetworkCidr:       swag.String("193.168.4.0/23"),
-								ClusterNetworkHostPrefix: swag.Int64(33),
+								ClusterNetworkHostPrefix: swag.Int64(26),
 							},
 						})
 						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					})
+					It("Subnet prefix out of range", func() {
+						apiVip := "10.11.12.15"
+						ingressVip := "10.11.12.16"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								APIVip:                   &apiVip,
+								IngressVip:               &ingressVip,
+								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ServiceNetworkCidr:       swag.String("193.168.4.0/27"),
+								ClusterNetworkHostPrefix: swag.Int64(25),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					})
+					It("OK", func() {
+						apiVip := "10.11.12.15"
+						ingressVip := "10.11.12.16"
+						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
+						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								APIVip:                   &apiVip,
+								IngressVip:               &ingressVip,
+								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
+								ClusterNetworkHostPrefix: swag.Int64(25),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 					})
 					It("Bad subnet", func() {
 						apiVip := "10.11.12.15"

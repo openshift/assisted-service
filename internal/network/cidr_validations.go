@@ -35,8 +35,12 @@ func VerifySubnetCIDR(cidrStr string) error {
 	if err != nil {
 		return err
 	}
+	ones, _ := cidr.Mask.Size()
+	if ones < 1 || ones > 25 {
+		return errors.New("Address mask size must be between 1 to 25 and must include at least 128 addresses")
+	}
 	if cidr.IP.IsUnspecified() {
-		return errors.New("address must be specified")
+		return errors.New("address must not be unspecified.  Unspecified address is the zero address (0.0.0.0)")
 	}
 	if ip.To4().String() != cidr.IP.To4().String() {
 		return errors.Errorf("invalid network address. got %s, expecting %s", (&net.IPNet{IP: ip, Mask: cidr.Mask}).String(), cidr.String())
@@ -61,8 +65,8 @@ func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, servic
 }
 
 func VerifyNetworkHostPrefix(prefix int64) error {
-	if prefix < 1 || prefix > 32 {
-		return errors.Errorf("Network prefix %d is out of the allowed range (1 , 32)", prefix)
+	if prefix < 1 || prefix > 25 {
+		return errors.Errorf("Network prefix %d is out of the allowed range (1 , 25)", prefix)
 	}
 	return nil
 }
