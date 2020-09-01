@@ -41,6 +41,10 @@ type GetPresignedForClusterFilesParams struct {
 	  In: query
 	*/
 	FileName string
+	/*
+	  In: query
+	*/
+	HostID *strfmt.UUID
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -61,6 +65,11 @@ func (o *GetPresignedForClusterFilesParams) BindRequest(r *http.Request, route *
 
 	qFileName, qhkFileName, _ := qs.GetOK("file_name")
 	if err := o.bindFileName(qFileName, qhkFileName, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qHostID, qhkHostID, _ := qs.GetOK("host_id")
+	if err := o.bindHostID(qHostID, qhkHostID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -131,9 +140,45 @@ func (o *GetPresignedForClusterFilesParams) bindFileName(rawData []string, hasKe
 // validateFileName carries on validations for parameter FileName
 func (o *GetPresignedForClusterFilesParams) validateFileName(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"bootstrap.ign", "master.ign", "metadata.json", "worker.ign", "kubeadmin-password", "kubeconfig", "kubeconfig-noingress", "install-config.yaml"}, true); err != nil {
+	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"bootstrap.ign", "master.ign", "metadata.json", "worker.ign", "kubeadmin-password", "kubeconfig", "kubeconfig-noingress", "install-config.yaml", "logs"}, true); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// bindHostID binds and validates parameter HostID from query.
+func (o *GetPresignedForClusterFilesParams) bindHostID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("host_id", "query", "strfmt.UUID", raw)
+	}
+	o.HostID = (value.(*strfmt.UUID))
+
+	if err := o.validateHostID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateHostID carries on validations for parameter HostID
+func (o *GetPresignedForClusterFilesParams) validateHostID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("host_id", "query", "uuid", o.HostID.String(), formats); err != nil {
+		return err
+	}
 	return nil
 }

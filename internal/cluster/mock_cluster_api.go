@@ -6,11 +6,12 @@ package cluster
 
 import (
 	context "context"
+	reflect "reflect"
+
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
-	reflect "reflect"
 )
 
 // MockRegistrationAPI is a mock of RegistrationAPI interface
