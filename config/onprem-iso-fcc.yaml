@@ -129,7 +129,7 @@ storage:
               ipArr=($ips)
               for ip in "${ipArr[@]}"
                   do 
-                      printf "\n$ip assisted-api.local.openshift.io">>/etc/hosts
+                      printf "\n$ip assisted-api.local.openshift.io\n">>/etc/hosts
                   done
               printf "\nSERVICE_IPS=$ips">>/etc/assisted-service/environment
               
