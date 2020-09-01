@@ -173,6 +173,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		It("success with getting assisted installer IPs", func() {
 			result := bm.getIPs()
 			Expect(result).Should(Equal("127.0.0.1 assisted-api.local.openshift.io\n"))
+		})
 
 		It("image already exists", func() {
 			clusterId := strfmt.UUID(uuid.New().String())
