@@ -27,11 +27,12 @@ var _ = Describe("installcfg", func() {
 	BeforeEach(func() {
 		clusterId := strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterId,
-			OpenshiftVersion: "4.5",
-			BaseDNSDomain:    "redhat.com",
-			APIVip:           "102.345.34.34",
-			IngressVip:       "376.5.56.6",
+			ID:                     &clusterId,
+			OpenshiftVersion:       "4.5",
+			BaseDNSDomain:          "redhat.com",
+			APIVip:                 "102.345.34.34",
+			IngressVip:             "376.5.56.6",
+			InstallConfigOverrides: `{"networking":{"networkType": "OVN-Kubernetes"},"fips":true}`,
 		}}
 		id := strfmt.UUID(uuid.New().String())
 		host1 = models.Host{
@@ -93,9 +94,47 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Proxy.HTTPSProxy).Should(Equal(proxyURL))
 	})
 
+	It("correctly applies cluster overrides", func() {
+		var result InstallerConfigBaremetal
+		data, err := GetInstallConfig(logrus.New(), &cluster)
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		// test that overrides worked
+		Expect(result.Networking.NetworkType).Should(Equal("OVN-Kubernetes"))
+		Expect(result.FIPS).Should(Equal(true))
+		// test that existing values are kept
+		Expect(result.APIVersion).Should(Equal("v1"))
+		Expect(result.BaseDomain).Should(Equal("redhat.com"))
+	})
+
+	It("doesn't fail with empty overrides", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		data, err := GetInstallConfig(logrus.New(), &cluster)
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Networking.NetworkType).Should(Equal("OpenShiftSDN"))
+	})
+
 	AfterEach(func() {
 		// cleanup
 		ctrl.Finish()
+	})
+})
+
+var _ = Describe("ValidateInstallConfigJSON", func() {
+	It("Succeeds when provided valid json", func() {
+		s := `{"apiVersion": "v3", "baseDomain": "example.com", "metadata": {"name": "things"}}`
+		err := ValidateInstallConfigJSON(s)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("Fails when provided invalid json", func() {
+		s := `{"apiVersion": 3, "baseDomain": "example.com", "metadata": {"name": "things"}}`
+		err := ValidateInstallConfigJSON(s)
+		Expect(err).Should(HaveOccurred())
 	})
 })
 

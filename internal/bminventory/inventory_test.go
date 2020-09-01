@@ -2529,6 +2529,76 @@ var _ = Describe("Upload and Download logs test", func() {
 
 })
 
+var _ = Describe("UpdateClusterInstallConfig", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    = "update_cluster_install_config"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil)
+		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("saves the given string to the cluster", func() {
+		override := `{"controlPlane": {"hyperthreading": "Disabled"}}`
+		params := installer.UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: override,
+		}
+		response := bm.UpdateClusterInstallConfig(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigCreated{}))
+
+		var updated common.Cluster
+		err := db.First(&updated, "id = ?", clusterID).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(updated.InstallConfigOverrides).To(Equal(override))
+	})
+
+	It("returns not found with a non-existant cluster", func() {
+		override := `{"controlPlane": {"hyperthreading": "Disabled"}}`
+		params := installer.UpdateClusterInstallConfigParams{
+			ClusterID:           strfmt.UUID(uuid.New().String()),
+			InstallConfigParams: override,
+		}
+		response := bm.UpdateClusterInstallConfig(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigNotFound{}))
+	})
+
+	It("returns bad request when provided invalid json", func() {
+		override := `{"controlPlane": {"hyperthreading": "Disabled"`
+		params := installer.UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: override,
+		}
+		response := bm.UpdateClusterInstallConfig(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigBadRequest{}))
+	})
+
+	It("returns bad request when provided invalid options", func() {
+		override := `{"controlPlane": "foo"}`
+		params := installer.UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: override,
+		}
+		response := bm.UpdateClusterInstallConfig(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigBadRequest{}))
+	})
+})
+
 func verifyApiError(responder middleware.Responder, expectedHttpStatus int32) {
 	ExpectWithOffset(1, responder).To(BeAssignableToTypeOf(common.NewApiError(expectedHttpStatus, nil)))
 	conncreteError := responder.(*common.ApiErrorResponse)

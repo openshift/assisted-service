@@ -748,6 +748,33 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 	return nil
 }
 
+func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster common.Cluster
+	query := identity.AddUserFilter(ctx, "id = ?")
+
+	err := b.db.First(&cluster, query, params.ClusterID).Error
+	if err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return installer.NewUpdateClusterInstallConfigNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+		} else {
+			return installer.NewUpdateClusterInstallConfigInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+	}
+
+	if err = installcfg.ValidateInstallConfigJSON(params.InstallConfigParams); err != nil {
+		return installer.NewUpdateClusterInstallConfigBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+
+	err = b.db.Model(&common.Cluster{}).Where(query, params.ClusterID).Update("install_config_overrides", params.InstallConfigParams).Error
+	if err != nil {
+		return installer.NewUpdateClusterInstallConfigInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	return installer.NewUpdateClusterInstallConfigCreated()
+}
+
 func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 

@@ -136,6 +136,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerUpdateClusterHandler: installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateCluster has not yet been implemented")
 		}),
+		InstallerUpdateClusterInstallConfigHandler: installer.UpdateClusterInstallConfigHandlerFunc(func(params installer.UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.UpdateClusterInstallConfig has not yet been implemented")
+		}),
 		InstallerUpdateHostInstallProgressHandler: installer.UpdateHostInstallProgressHandlerFunc(func(params installer.UpdateHostInstallProgressParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateHostInstallProgress has not yet been implemented")
 		}),
@@ -265,6 +268,8 @@ type AssistedInstallAPI struct {
 	InstallerResetClusterHandler installer.ResetClusterHandler
 	// InstallerUpdateClusterHandler sets the operation handler for the update cluster operation
 	InstallerUpdateClusterHandler installer.UpdateClusterHandler
+	// InstallerUpdateClusterInstallConfigHandler sets the operation handler for the update cluster install config operation
+	InstallerUpdateClusterInstallConfigHandler installer.UpdateClusterInstallConfigHandler
 	// InstallerUpdateHostInstallProgressHandler sets the operation handler for the update host install progress operation
 	InstallerUpdateHostInstallProgressHandler installer.UpdateHostInstallProgressHandler
 	// InstallerUploadClusterIngressCertHandler sets the operation handler for the upload cluster ingress cert operation
@@ -446,6 +451,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerUpdateClusterHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateClusterHandler")
+	}
+	if o.InstallerUpdateClusterInstallConfigHandler == nil {
+		unregistered = append(unregistered, "installer.UpdateClusterInstallConfigHandler")
 	}
 	if o.InstallerUpdateHostInstallProgressHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateHostInstallProgressHandler")
@@ -677,6 +685,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/clusters/{cluster_id}"] = installer.NewUpdateCluster(o.context, o.InstallerUpdateClusterHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/clusters/{cluster_id}/install-config"] = installer.NewUpdateClusterInstallConfig(o.context, o.InstallerUpdateClusterInstallConfigHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}

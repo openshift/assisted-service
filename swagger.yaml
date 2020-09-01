@@ -524,6 +524,51 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/install-config:
+    patch:
+      tags:
+        - installer
+      summary: Override values in the install config
+      operationId: UpdateClusterInstallConfig
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: install-config-params
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: Success.
+        400:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /clusters/{cluster_id}/uploads/ingress-cert:
     post:
       tags:
@@ -2054,6 +2099,11 @@ definitions:
       validations_info:
         type: string
         description: Json formatted string containing the validations results for each validation id grouped by category (network, hosts-data, etc.)
+        x-go-custom-tag: gorm:"type:varchar(2048)"
+      install_config_overrides:
+        type: string
+        description: Json formatted string containing the user overrides for the install-config.yaml file
+        example: '{"networking":{"networkType": "OVN-Kubernetes"},"fips":true}'
         x-go-custom-tag: gorm:"type:varchar(2048)"
 
 

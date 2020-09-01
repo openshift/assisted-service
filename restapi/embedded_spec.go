@@ -1973,6 +1973,73 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/install-config": {
+      "patch": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Override values in the install config",
+        "operationId": "UpdateClusterInstallConfig",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "install-config-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
@@ -2234,6 +2301,12 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
+        },
+        "install_config_overrides": {
+          "description": "Json formatted string containing the user overrides for the install-config.yaml file",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
         },
         "install_started_at": {
           "description": "The time that this cluster began installation.",
@@ -5490,6 +5563,73 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/install-config": {
+      "patch": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Override values in the install config",
+        "operationId": "UpdateClusterInstallConfig",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "install-config-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
@@ -5775,6 +5915,12 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
+        },
+        "install_config_overrides": {
+          "description": "Json formatted string containing the user overrides for the install-config.yaml file",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
         },
         "install_started_at": {
           "description": "The time that this cluster began installation.",
