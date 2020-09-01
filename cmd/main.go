@@ -66,6 +66,7 @@ var Options struct {
 	DeployTarget                string `envconfig:"DEPLOY_TARGET" default:"k8s"`
 	OCMConfig                   ocm.Config
 	HostConfig                  host.Config
+	LogLevel                    string `envconfig:"LOG_LEVEL" default:"info"`
 }
 
 func main() {
@@ -75,6 +76,14 @@ func main() {
 	err := envconfig.Process("myapp", &Options)
 	if err != nil {
 		log.Fatal(err.Error())
+	}
+
+	logLevel, err := logrus.ParseLevel(Options.LogLevel)
+	if err != nil {
+		log.Error("Invalid Log Level: ", Options.LogLevel)
+	} else {
+		log.SetLevel(logLevel)
+		log.Info("Log Level: ", Options.LogLevel)
 	}
 
 	port := flag.String("port", "8090", "define port that the service will listen to")

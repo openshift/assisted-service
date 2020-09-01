@@ -76,6 +76,9 @@ parameters:
 - name: DHCP_LEASE_ALLOCATOR_IMAGE
   value: ''
   required: true
+- name: LOG_LEVEL
+  value: "info"
+  required: true
 apiVersion: v1
 kind: Template
 metadata:
@@ -233,6 +236,8 @@ objects:
                 value: ${FREE_ADDRESSES_IMAGE}
               - name: DHCP_LEASE_ALLOCATOR_IMAGE
                 value: ${DHCP_LEASE_ALLOCATOR_IMAGE}
+              - name: LOG_LEVEL
+                value: ${LOG_LEVEL}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
