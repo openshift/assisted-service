@@ -85,10 +85,13 @@ pipeline {
             }
         }
         stage('Publish images on push to master') {
+             agent { label 'centos_worker' }
              when {
                 branch 'master'
              }
             steps {
+                sh '''export PATH=$PATH:/usr/local/go/bin; make build-image build-assisted-iso-generator-image'''
+
                 withCredentials([usernamePassword(credentialsId: 'ocpmetal_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                     sh '''docker login quay.io -u $USER -p $PASS'''
                 }
