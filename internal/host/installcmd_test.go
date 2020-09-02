@@ -239,13 +239,13 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --url %s --insecure=false --host-name %s " +
+			"--controller-image %s --url %s --insecure=false --agent-image %s --host-name %s " +
 			"|| ( returnCode=$?; podman run --rm --privileged " +
 			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender " +
 			"-url %s -cluster-id %s -host-id %s --insecure=false -bootstrap %s; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, hostname,
+			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage, hostname,
 			DefaultInstructionConfig.InventoryImage, DefaultInstructionConfig.ServiceBaseURL, clusterId, hostId,
 			strconv.FormatBool(role == models.HostRoleBootstrap))))
 	} else {
@@ -255,13 +255,13 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --url %s --insecure=false " +
+			"--controller-image %s --url %s --insecure=false --agent-image %s " +
 			"|| ( returnCode=$?; podman run --rm --privileged " +
 			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender " +
 			"-url %s -cluster-id %s -host-id %s --insecure=false -bootstrap %s; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL,
+			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage,
 			DefaultInstructionConfig.InventoryImage, DefaultInstructionConfig.ServiceBaseURL, clusterId, hostId,
 			strconv.FormatBool(role == models.HostRoleBootstrap))))
 	}
