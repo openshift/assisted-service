@@ -4,115 +4,106 @@ pipeline {
     agent { label 'centos_worker' }
     triggers { cron(cron_string) }
     environment {
-        SERVICE = 'ocpmetal/assisted-service'
-        ISO_CREATION = 'assisted-iso-create'
+        PATH = "${PATH}:/usr/local/go/bin"
+
+        // Images
+        SERVICE = "quay.io/ocpmetal/assisted-service:${JOB_BASE_NAME}"
+        ISO_CREATION = "quay.io/ocpmetal/assisted-iso-create:${JOB_BASE_NAME}"
+
+        // Credentials
         SLACK_TOKEN = credentials('slack-token')
+        QUAY_IO_CREDS = credentials('ocpmetal_cred')
+        DOCKER_IO_CREDS = credentials('dockerio_cred')
     }
     options {
       timeout(time: 1, unit: 'HOURS')
     }
 
     stages {
-        stage('Test assisted-service') {
+        stage('Build') {
+            steps {
+                sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
+                sh "make update"
+            }
+        }
+
+        stage('Test') {
             parallel {
                 stage('Test on k8s') {
-
+                    agent { label 'centos_worker' }
                     steps {
-
                         check_if_minikube_is_running()
-
                         clear_slave()
 
-                        sh '''export PATH=$PATH:/usr/local/go/bin; make build-image build-assisted-iso-generator-image'''
-                        withCredentials([usernamePassword(credentialsId: 'dockerio_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                            sh '''docker login docker.io -u $USER -p $PASS'''
-                        }
-                        sh '''export PATH=$PATH:/usr/local/go/bin; make jenkins-deploy-for-subsystem'''
+                        sh '''docker login docker.io -u ${DOCKER_IO_CREDS_USR} -p ${DOCKER_IO_CREDS_PSW}'''
+                        sh '''make jenkins-deploy-for-subsystem'''
                         sh '''kubectl get pods -A'''
-                        sh '''export PATH=$PATH:/usr/local/go/bin;make subsystem-run'''
-
-                        echo 'Get assisted-service log'
-                        sh '''
-                        kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep assisted-service | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
-                        mv test_dd.log $WORKSPACE/assisted-service.log || true
-                        '''
-
-                        echo 'Get postgres log'
-                        sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep postgres | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
-                        mv test_dd.log $WORKSPACE/postgres.log || true
-                        '''
-
-                        echo 'Get scality log'
-                        sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep scality | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
-                        mv test_dd.log $WORKSPACE/scality.log || true
-                        '''
-
-                        echo 'Get createimage log'
-                        sh '''kubectl  get pods -o=custom-columns=NAME:.metadata.name -A | grep createimage | xargs -I {} sh -c "kubectl logs {} -n  assisted-installer > test_dd.log"
-                        mv test_dd.log $WORKSPACE/createimage.log || true
-                        '''
-                        clear_slave()
+                        sh '''make subsystem-run'''
+                    }
+                    post {
+                        always {
+                            script {
+                                for (pod in ["assisted-service", "postgres", "scality", "createimage"]) {
+                                    sh '''
+                                        echo "Get ${pod} log"
+                                        kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep ${pod} | xargs -r -I {} sh -c "kubectl logs {} -n assisted-installer > ${WORKSPACE}/${pod}.log" || true
+                                    '''
+                                }
+                            }
+                            clear_slave()
+                        }
                     }
                 }
                 stage('Test onprem') {
                     agent { label 'centos_worker' }
                     steps {
-
                         clear_slave()
 
-                        sh '''export PATH=$PATH:/usr/local/go/bin; make build-onprem'''
-                        withCredentials([usernamePassword(credentialsId: 'dockerio_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                            sh '''docker login docker.io -u $USER -p $PASS'''
-                        }
-                        sh '''export PATH=$PATH:/usr/local/go/bin; make deploy-onprem'''
+                        sh '''make build-onprem'''
+                        sh '''docker login docker.io -u ${DOCKER_IO_CREDS_USR} -p ${DOCKER_IO_CREDS_PSW}'''
+                        sh '''make deploy-onprem'''
                         sh '''podman ps'''
-                        sh '''export PATH=$PATH:/usr/local/go/bin;make test-onprem'''
-
-                        echo 'Get assisted-service log'
-                        sh '''
-                        podman  logs installer > test_dd.log
-                        mv test_dd.log $WORKSPACE/assisted-service.log || true
-                        '''
-
-                        echo 'Get postgres log'
-                        sh '''
-                        podman logs db > test_dd.log
-                        mv test_dd.log $WORKSPACE/postgres.log || true
-                        '''
-                        clear_slave()
+                        sh '''make test-onprem'''
+                    }
+                    post {
+                        always {
+                            script {
+                                for (pod in ["assisted-service", "postgres"]) {
+                                    sh '''
+                                        echo "Get ${pod} log"
+                                        kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep ${pod} | xargs -r -I {} sh -c "kubectl logs {} -n assisted-installer > ${WORKSPACE}/${pod}.log" || true
+                                    '''
+                                }
+                            }
+                            clear_slave()
+                        }
                     }
                 }
             }
         }
-        stage('Publish images on push to master') {
-             when {
-                branch 'master'
-             }
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'ocpmetal_cred', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                    sh '''docker login quay.io -u $USER -p $PASS'''
-                }
 
-                sh '''docker tag  ${SERVICE} quay.io/ocpmetal/assisted-service:latest'''
-                sh '''docker tag  ${SERVICE} quay.io/ocpmetal/assisted-service:${GIT_COMMIT}'''
+        stage('Publish') {
+            when { branch 'master' }
+            steps {
+                sh '''docker tag ${SERVICE} quay.io/ocpmetal/assisted-service:latest'''
+                sh '''docker tag ${SERVICE} quay.io/ocpmetal/assisted-service:${GIT_COMMIT}'''
                 sh '''docker push quay.io/ocpmetal/assisted-service:latest'''
                 sh '''docker push quay.io/ocpmetal/assisted-service:${GIT_COMMIT}'''
 
-                sh '''docker tag  ${ISO_CREATION} quay.io/ocpmetal/assisted-iso-create:latest'''
-                sh '''docker tag  ${ISO_CREATION} quay.io/ocpmetal/assisted-iso-create:${GIT_COMMIT}'''
+                sh '''docker tag ${ISO_CREATION} quay.io/ocpmetal/assisted-iso-create:latest'''
+                sh '''docker tag ${ISO_CREATION} quay.io/ocpmetal/assisted-iso-create:${GIT_COMMIT}'''
                 sh '''docker push quay.io/ocpmetal/assisted-iso-create:latest'''
                 sh '''docker push quay.io/ocpmetal/assisted-iso-create:${GIT_COMMIT}'''
             }
         }
-
     }
     post {
         failure {
+            when { branch 'master' }
             script {
-                if (env.BRANCH_NAME == 'master')
-                    def data = [text: "Attention! assisted-service master branch subsystem test failed, see: ${BUILD_URL}"]
-                    writeJSON(file: 'data.txt', json: data, pretty: 4)
-                    sh '''curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt"  https://hooks.slack.com/services/$SLACK_TOKEN'''
+                def data = [text: "Attention! ${BUILD_TAG} job failed, see: ${BUILD_URL}"]
+                writeJSON(file: 'data.txt', json: data, pretty: 4)
+                sh '''curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt"  https://hooks.slack.com/services/${SLACK_TOKEN}'''
             }
         }
     }
@@ -140,5 +131,4 @@ void clear_slave(){
     sh 'make clear-deployment'
     sh 'podman image prune -a'
     sh 'docker image prune -a -f'
-
 }
