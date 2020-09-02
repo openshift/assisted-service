@@ -52,7 +52,7 @@ def main():
                 urlretrieve(manifest_url, dst_file)
                 utils.apply(
                     target=deploy_options.target,
-                    namespace='olm',
+                    namespace=None,
                     profile=deploy_options.profile,
                     file=dst_file
                 )
