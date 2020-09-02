@@ -57,7 +57,6 @@ pipeline {
                 stage('Test onprem') {
                     agent { label 'centos_worker' }
                     steps {
-                        check_if_minikube_is_running()
 
                         clear_slave()
 
@@ -120,6 +119,8 @@ pipeline {
 }
 
 void check_if_minikube_is_running() {
+    sh '''minikube delete'''
+    sh '''minikube start --driver=none'''
     sh '''
         if [ $(minikube status|grep Running)="" ] ; then
             echo "minikube is not running on $NODE_NAME, failing job BUILD_URL"
