@@ -1,4 +1,7 @@
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 RUN mkdir /root/image
-# You can get RHCOS releases from here https://releases-rhcos.cloud.privileged.psi.redhat.com/
-RUN curl -L -k https://releases-rhcos.cloud.privileged.psi.redhat.com/storage/releases/4.6-devel/46.82.202008181531-0/x86_64/rhcos-46.82.202008181531-0-live.x86_64.iso -o /root/image/livecd.iso
+# You can get RHCOS releases from here https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/
+# You can get Fedora CoreOS from here https://getfedora.org/en/coreos/download?tab=metal_virtualized&stream=stable
+ARG OS_IMAGE
+ENV BASE_OS_IMAGE=$OS_IMAGE
+RUN curl -L -k ${BASE_OS_IMAGE} -o /root/image/livecd.iso

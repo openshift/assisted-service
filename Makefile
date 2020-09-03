@@ -8,6 +8,7 @@ NAMESPACE := $(or ${NAMESPACE},assisted-installer)
 PROFILE := $(or $(PROFILE),minikube)
 KUBECTL=kubectl -n $(NAMESPACE)
 
+BASE_OS_IMAGE ?= https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/32.20200809.3.0/x86_64/fedora-coreos-32.20200809.3.0-live.x86_64.iso
 ifeq ($(TARGET), minikube)
 define get_service
 minikube -p $(PROFILE) service --url $(1) -n $(NAMESPACE) | sed 's/http:\/\///g'
@@ -22,6 +23,7 @@ endif # TARGET
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},minikube-local-registry/ignition-dummy-generator:minikube-test)
+LIVE_ISO := $(or ${LIVE_ISO},quay.io/ocpmetal/livecd-iso:rhcos-livecd)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -117,6 +119,9 @@ update-minikube: build build-dummy-ignition
 
 build-dummy-ignition-image: build-dummy-ignition
 	docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
+
+build-livecd:
+	docker build --build-arg OS_IMAGE=${BASE_OS_IMAGE} -f Dockerfile.livecd-iso-image -t ${LIVE_ISO}
 
 ##########
 # Deploy #
