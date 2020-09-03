@@ -2474,19 +2474,11 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(r), downloadFileName, 4)))
 	})
 
-	It("Logs presigned no host id in file name", func() {
+	It("Logs presigned no host id", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  "logs/",
-		})
-		verifyApiError(generateReply, http.StatusBadRequest)
-	})
-	It("Logs presigned bad host id", func() {
-		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
-			ClusterID: clusterID,
-			FileName:  "logs/aaaaaaaa",
+			FileName:  "logs",
 		})
 		verifyApiError(generateReply, http.StatusBadRequest)
 	})
@@ -2495,7 +2487,8 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  fmt.Sprintf("logs/%s", hostID),
+			FileName:  "logs",
+			HostID:    &hostID,
 		})
 		verifyApiError(generateReply, http.StatusNotFound)
 	})
@@ -2508,7 +2501,8 @@ var _ = Describe("Upload and Download logs test", func() {
 			errors.Errorf("Dummy"))
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  fmt.Sprintf("logs/%s", hostID),
+			FileName:  "logs",
+			HostID:    &hostID,
 		})
 		verifyApiError(generateReply, http.StatusInternalServerError)
 	})
@@ -2520,7 +2514,8 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("url", nil)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  fmt.Sprintf("logs/%s", hostID),
+			FileName:  "logs",
+			HostID:    &hostID,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload

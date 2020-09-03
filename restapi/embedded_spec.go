@@ -790,12 +790,19 @@ func init() {
               "kubeadmin-password",
               "kubeconfig",
               "kubeconfig-noingress",
-              "install-config.yaml"
+              "install-config.yaml",
+              "logs"
             ],
             "type": "string",
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4380,12 +4387,19 @@ func init() {
               "kubeadmin-password",
               "kubeconfig",
               "kubeconfig-noingress",
-              "install-config.yaml"
+              "install-config.yaml",
+              "logs"
             ],
             "type": "string",
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
           }
         ],
         "responses": {

@@ -1609,13 +1609,11 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 	}
 	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID, params.FileName)
 
-	if strings.HasPrefix(params.FileName, "logs/") {
-		// there will always be at least 2 variables after splitting because of "logs/" prefix
-		hostId := strings.Split(params.FileName, "/")[1]
-		if !strfmt.IsUUID(hostId) {
-			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host id is not valid"))
+	if params.FileName == "logs" {
+		if params.HostID == nil {
+			return common.NewApiError(http.StatusBadRequest, errors.Errorf("HostId were not provided"))
 		}
-		host, err := b.getHost(ctx, params.ClusterID.String(), hostId)
+		host, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
