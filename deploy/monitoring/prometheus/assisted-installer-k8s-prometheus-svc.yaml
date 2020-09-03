@@ -14,4 +14,4 @@ spec:
   selector:
     app: prometheus
     prometheus: assisted-installer-prometheus
-  type: ClusterIP
+  type: NodePort

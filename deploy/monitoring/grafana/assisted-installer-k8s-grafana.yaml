@@ -82,4 +82,4 @@ spec:
     targetPort: grafana
   selector:
     app: grafana
-  type: ClusterIP
+  type: NodePort
