@@ -928,6 +928,8 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		if err := b.customizeHost(host); err != nil {
 			return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 		}
+		// Clear this field as it is not needed to be sent via API
+		host.FreeAddresses = ""
 	}
 
 	return installer.NewUpdateClusterCreated().WithPayload(&cluster.Cluster)
@@ -1178,6 +1180,12 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 	for i, c := range clusters {
 		mClusters[i] = &c.Cluster
 	}
+	for _, c := range mClusters {
+		for _, host := range c.Hosts {
+			// Clear this field as it is not needed to be sent via API
+			host.FreeAddresses = ""
+		}
+	}
 
 	return installer.NewListClustersOK().WithPayload(mClusters)
 }
@@ -1196,6 +1204,8 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.Ge
 		if err := b.customizeHost(host); err != nil {
 			return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 		}
+		// Clear this field as it is not needed to be sent via API
+		host.FreeAddresses = ""
 	}
 
 	return installer.NewGetClusterOK().WithPayload(&cluster.Cluster)
@@ -1308,6 +1318,8 @@ func (b *bareMetalInventory) GetHost(ctx context.Context, params installer.GetHo
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 	}
 
+	// Clear this field as it is not needed to be sent via API
+	host.FreeAddresses = ""
 	return installer.NewGetHostOK().WithPayload(&host)
 }
 
@@ -1324,6 +1336,8 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.Lis
 		if err := b.customizeHost(host); err != nil {
 			return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 		}
+		// Clear this field as it is not needed to be sent via API
+		host.FreeAddresses = ""
 	}
 
 	return installer.NewListHostsOK().WithPayload(hosts)
