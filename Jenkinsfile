@@ -15,6 +15,8 @@ pipeline {
     stages {
         stage('Check environment') {
             steps {
+                        sh '''minikube delete'''
+                        sh '''minikube start --driver=none'''
                         sh '''
                             if [ $(minikube status|grep Running)="" ] ; then
                                 echo "minikube is not running on $NODE_NAME, failing job BUILD_URL"
