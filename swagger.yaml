@@ -1334,6 +1334,52 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/logs:
+    get:
+      tags:
+        - installer
+      summary: Download cluster logs
+      security:
+        - userAuth: []
+      operationId: DownloadClusterLogs
+      produces:
+        - 'application/octet-stream'
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            type: file
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   # The following API call should be admin only
   /clusters/{cluster_id}/free_addresses:
     get:

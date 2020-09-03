@@ -1,11 +1,15 @@
 package cluster
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -1159,5 +1163,84 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("Cluster tarred files", func() {
+	var (
+		ctx          = context.Background()
+		capi         API
+		db           *gorm.DB
+		clusterId    strfmt.UUID
+		cl           common.Cluster
+		dbName       = "cluster_tar"
+		ctrl         *gomock.Controller
+		mockHostAPI  *host.MockAPI
+		mockS3Client *s3wrapper.MockAPI
+		prefix       string
+		files        []string
+		tarFile      string
+	)
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		cfg := Config{}
+		files = []string{"test", "test2"}
+		ctrl = gomock.NewController(GinkgoT())
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockEvents := events.NewMockHandler(ctrl)
+		capi = NewManager(cfg, getTestLog(), db, mockEvents, mockHostAPI, nil)
+		clusterId = strfmt.UUID(uuid.New().String())
+		cl = common.Cluster{
+			Cluster: models.Cluster{
+				ID:              &clusterId,
+				Status:          swag.String(models.ClusterStatusPreparingForInstallation),
+				StatusUpdatedAt: strfmt.DateTime(time.Now()),
+			},
+		}
+		tarFile = fmt.Sprintf("%s/logs/cluster_logs.tar", clusterId)
+		Expect(db.Create(&cl).Error).NotTo(HaveOccurred())
+		prefix = fmt.Sprintf("%s/logs/", cl.ID)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("list objects failed", func() {
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(nil, errors.Errorf("dummy"))
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("list objects no files", func() {
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{tarFile}, nil)
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("list objects only all logs file", func() {
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{}, nil)
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("download failed", func() {
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
+		mockS3Client.EXPECT().Download(ctx, files[0]).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
+		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("upload failed", func() {
+		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
+		mockS3Client.EXPECT().Download(ctx, gomock.Any()).Return(r, int64(4), nil).AnyTimes()
+		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), tarFile).Return(errors.Errorf("Dummy")).Times(1)
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
+		Expect(err).To(HaveOccurred())
 	})
 })

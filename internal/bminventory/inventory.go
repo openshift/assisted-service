@@ -2280,6 +2280,33 @@ func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params instal
 	return filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(respBody), downloadFileName, contentLength)
 }
 
+func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Downloading logs from cluster %s", params.ClusterID)
+	c, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	fileName, err := b.clusterApi.CreateTarredClusterLogs(ctx, c, b.objectHandler)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
+	if err != nil {
+		if _, ok := err.(s3wrapper.NotFound); ok {
+			log.WithError(err).Warnf("File not found %s", fileName)
+			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", params.ClusterID))
+		}
+
+		log.WithError(err).Errorf("failed to download file %s", fileName)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(respBody), fileName, contentLength)
+}
+
 func (b *bareMetalInventory) getLogsFullName(clusterId string, hostId string) string {
 	return fmt.Sprintf("%s/logs/%s/logs.tar.gz", clusterId, hostId)
 }
@@ -2293,6 +2320,20 @@ func (b *bareMetalInventory) getHost(ctx context.Context, clusterId string, host
 		return nil, common.NewApiError(http.StatusNotFound, errors.Errorf("Host %s not found", hostId))
 	}
 	return &host, nil
+}
+
+func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string) (*common.Cluster, error) {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster common.Cluster
+	if err := b.db.First(&cluster, identity.AddUserFilter(ctx, "id = ?"), clusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, common.NewApiError(http.StatusNotFound, err)
+		} else {
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+	return &cluster, nil
 }
 
 func (b *bareMetalInventory) customizeHost(host *models.Host) error {
