@@ -94,7 +94,10 @@ sudo journalctl -u agent.service
 `
 
 const ignitionConfigFormat = `{
-"ignition": { "version": "2.2.0" },
+  "ignition": {
+    "version": "2.2.0"{{if .PROXY_SETTINGS}},
+    {{.PROXY_SETTINGS}}{{end}}
+  },
   "passwd": {
     "users": [
       {{.userSshKey}}
@@ -175,7 +178,10 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	if !ok {
 		return "", fmt.Errorf("Pull secret does not contain auth for cloud.openshift.com")
 	}
-
+	proxySettings, err := proxySettingsForIgnition(cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
+	if err != nil {
+		return "", err
+	}
 	var ignitionParams = map[string]string{
 		"userSshKey":           b.getUserSshKey(params),
 		"AgentDockerImg":       b.AgentDockerImg,
@@ -183,6 +189,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"clusterId":            cluster.ID.String(),
 		"PullSecretToken":      r.AuthRaw,
 		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
+		"PROXY_SETTINGS":       proxySettings,
 		"HTTPProxy":            cluster.HTTPProxy,
 		"HTTPSProxy":           cluster.HTTPSProxy,
 		"NoProxy":              cluster.NoProxy,
@@ -2399,4 +2406,40 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy *string) error {
 		}
 	}
 	return nil
+}
+
+func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, error) {
+	if httpProxy == "" && httpsProxy == "" {
+		return "", nil
+	}
+
+	proxySettings := `"proxy": { {{.httpProxy}}{{.httpsProxy}}{{.noProxy}} }`
+	var httpProxyAttr, httpsProxyAttr, noProxyAttr string
+	if httpProxy != "" {
+		httpProxyAttr = `"httpProxy": "` + httpProxy + `"`
+	}
+	if httpsProxy != "" {
+		if httpProxy != "" {
+			httpsProxyAttr = ", "
+		}
+		httpsProxyAttr += `"httpsProxy": "` + httpsProxy + `"`
+	}
+	if noProxy != "" {
+		noProxyAttr = `, "noProxy": "` + noProxy + `"`
+	}
+	var proxyParams = map[string]string{
+		"httpProxy":  httpProxyAttr,
+		"httpsProxy": httpsProxyAttr,
+		"noProxy":    noProxyAttr,
+	}
+
+	tmpl, err := template.New("proxySettings").Parse(proxySettings)
+	if err != nil {
+		return "", err
+	}
+	buf := &bytes.Buffer{}
+	if err = tmpl.Execute(buf, proxyParams); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
