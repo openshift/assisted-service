@@ -21,6 +21,7 @@ import (
 	"text/template"
 	"time"
 
+	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -35,6 +36,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/internal/identity"
+	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -315,7 +317,17 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	if err = tmpl.Execute(buf, ignitionParams); err != nil {
 		return "", err
 	}
-	return buf.String(), nil
+
+	res := buf.String()
+	if cluster.IgnitionConfigOverrides != "" {
+		res, err = ignition.MergeIgnitionConfig(buf.Bytes(), []byte(cluster.IgnitionConfigOverrides))
+		if err != nil {
+			return "", err
+		}
+		b.log.Infof("Applying ignition overrides %s for cluster %s, resulting ignition: %s", cluster.IgnitionConfigOverrides, cluster.ID, res)
+	}
+
+	return res, nil
 }
 
 func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOParams) string {
@@ -329,6 +341,52 @@ func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOPa
 		"sshAuthorizedKeys": [
 		"%s"],
 		"groups": [ "sudo" ]}`, sshKey)
+}
+
+func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	c, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	isoParams := installer.GenerateClusterISOParams{ClusterID: params.ClusterID, ImageCreateParams: &models.ImageCreateParams{}}
+
+	cfg, err := b.formatIgnitionFile(c, isoParams, false)
+	if err != nil {
+		log.WithError(err).Error("Failed to format ignition config")
+		return common.GenerateErrorResponder(err)
+	}
+
+	configParams := models.DiscoveryIgnitionParams{Config: cfg}
+	return installer.NewGetDiscoveryIgnitionOK().WithPayload(&configParams)
+}
+
+func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	_, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	_, report, err := ign_3_1.Parse([]byte(params.DiscoveryIgnitionParams.Config))
+	if err != nil {
+		log.WithError(err).Errorf("Failed to parse ignition config patch %s", params.DiscoveryIgnitionParams)
+		return installer.NewUpdateDiscoveryIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+	if report.IsFatal() {
+		err = errors.Errorf("Ignition config patch %s failed validation: %s", params.DiscoveryIgnitionParams, report.String())
+		log.Error(err)
+		return installer.NewUpdateDiscoveryIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+
+	err = b.db.Model(&common.Cluster{}).Where(identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Update("ignition_config_overrides", params.DiscoveryIgnitionParams.Config).Error
+	if err != nil {
+		return installer.NewUpdateDiscoveryIgnitionInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	return installer.NewUpdateDiscoveryIgnitionCreated()
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
