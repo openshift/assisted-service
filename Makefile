@@ -23,7 +23,6 @@ endif # TARGET
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},minikube-local-registry/ignition-dummy-generator:minikube-test)
-LIVE_ISO := $(or ${LIVE_ISO},quay.io/ocpmetal/livecd-iso:rhcos-livecd)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -100,7 +99,7 @@ build-image: build
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
  		-f Dockerfile.assisted-service . -t $(SERVICE)
 
-build-assisted-iso-generator-image: build
+build-assisted-iso-generator-image: build build-livecd
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
@@ -121,7 +120,7 @@ build-dummy-ignition-image: build-dummy-ignition
 	docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
 
 build-livecd:
-	docker build --build-arg OS_IMAGE=${BASE_OS_IMAGE} -f Dockerfile.livecd-iso-image -t ${LIVE_ISO}
+	docker build --build-arg OS_IMAGE=${BASE_OS_IMAGE} -f Dockerfile.livecd-iso-image -t quay.io/ocpmetal/livecd-iso:rhcos-livecd
 
 ##########
 # Deploy #
