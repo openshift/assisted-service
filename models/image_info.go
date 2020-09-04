@@ -28,14 +28,14 @@ type ImageInfo struct {
 	// Format: date-time
 	ExpiresAt strfmt.DateTime `json:"expires_at,omitempty" gorm:"type:timestamp with time zone"`
 
-	// Image generator version
+	// Image generator version.
 	GeneratorVersion string `json:"generator_version,omitempty"`
 
 	// size bytes
 	// Minimum: 0
 	SizeBytes *int64 `json:"size_bytes,omitempty"`
 
-	// SSH public key for debugging the installation
+	// SSH public key for debugging the installation.
 	SSHPublicKey string `json:"ssh_public_key,omitempty" gorm:"type:varchar(1024)"`
 }
 

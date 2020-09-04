@@ -792,6 +792,127 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/discovery-ignition": {
+      "get": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Get the cluster discovery ignition config",
+        "operationId": "GetDiscoveryIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/discovery-ignition-params"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Override values in the discovery ignition config",
+        "operationId": "UpdateDiscoveryIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "discovery-ignition-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/discovery-ignition-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/downloads/files": {
       "get": {
         "security": [
@@ -1212,7 +1333,7 @@ func init() {
         "tags": [
           "events"
         ],
-        "summary": "Lists events for a cluster",
+        "summary": "Lists events for a cluster.",
         "operationId": "ListEvents",
         "parameters": [
           {
@@ -1307,7 +1428,7 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Success.",
             "schema": {
               "$ref": "#/definitions/free-addresses-list"
             }
@@ -1940,7 +2061,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Download host logs",
+        "summary": "Download host logs.",
         "operationId": "DownloadHostLogs",
         "deprecated": true,
         "parameters": [
@@ -2113,13 +2234,13 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The ID of the host to retrieve",
+            "description": "The ID of the host to retrieve.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
-            "description": "New progress value",
+            "description": "New progress value.",
             "name": "host-progress",
             "in": "body",
             "required": true,
@@ -2130,7 +2251,7 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "Update install progress"
+            "description": "Update install progress."
           },
           "401": {
             "description": "Unauthorized.",
@@ -2305,7 +2426,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Download cluster logs",
+        "summary": "Download cluster logs.",
         "operationId": "DownloadClusterLogs",
         "parameters": [
           {
@@ -2549,7 +2670,7 @@ func init() {
         "tags": [
           "versions"
         ],
-        "summary": "List of componenets versions",
+        "summary": "List of component versions.",
         "operationId": "ListComponentVersions",
         "responses": {
           "200": {
@@ -2566,7 +2687,7 @@ func init() {
         "tags": [
           "managed_domains"
         ],
-        "summary": "List of managed DNS domains",
+        "summary": "List of managed DNS domains.",
         "operationId": "ListManagedDomains",
         "responses": {
           "200": {
@@ -2589,7 +2710,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Get minimum host requirements",
+        "summary": "Get minimum host requirements.",
         "operationId": "GetHostRequirements",
         "responses": {
           "200": {
@@ -2716,7 +2837,7 @@ func init() {
           "type": "string"
         },
         "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
         },
@@ -2768,6 +2889,11 @@ func init() {
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
         },
+        "ignition_config_overrides": {
+          "description": "Json formatted string containing the user overrides for the initial ignition config",
+          "type": "string",
+          "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
+        },
         "ignition_generator_version": {
           "type": "string"
         },
@@ -2776,7 +2902,7 @@ func init() {
           "$ref": "#/definitions/image_info"
         },
         "ingress_vip": {
-          "description": "Virtual IP used for cluster ingress traffic.",
+          "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
@@ -2787,13 +2913,13 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "install_config_overrides": {
-          "description": "Json formatted string containing the user overrides for the install-config.yaml file",
+          "description": "JSON-formatted string containing the user overrides for the install-config.yaml file.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
           "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
         },
         "install_started_at": {
-          "description": "The time that this cluster began installation.",
+          "description": "The time that this cluster started installation.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
@@ -2816,7 +2942,7 @@ func init() {
           "type": "string"
         },
         "no_proxy": {
-          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string"
         },
         "openshift_version": {
@@ -2831,7 +2957,7 @@ func init() {
           "type": "string"
         },
         "pull_secret_set": {
-          "description": "True if the pull-secret has been added to the cluster",
+          "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
         },
         "service_network_cidr": {
@@ -2866,7 +2992,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "status_updated_at": {
-          "description": "The last time that the cluster status has been updated",
+          "description": "The last time that the cluster status was updated.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
@@ -2881,12 +3007,12 @@ func init() {
           "type": "string"
         },
         "validations_info": {
-          "description": "Json formatted string containing the validations results for each validation id grouped by category (network, hosts-data, etc.)",
+          "description": "JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "vip_dhcp_allocation": {
-          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
           "type": "boolean",
           "x-nullable": true
         }
@@ -2904,7 +3030,7 @@ func init() {
           "type": "string"
         },
         "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "default": "10.128.0.0/14",
           "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
@@ -2927,7 +3053,7 @@ func init() {
           "x-nullable": true
         },
         "ingress_vip": {
-          "description": "Virtual IP used for cluster ingress traffic.",
+          "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
@@ -2936,7 +3062,7 @@ func init() {
           "type": "string"
         },
         "no_proxy": {
-          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
         },
@@ -2949,7 +3075,7 @@ func init() {
           ]
         },
         "pull_secret": {
-          "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
         "service_network_cidr": {
@@ -2963,7 +3089,7 @@ func init() {
           "type": "string"
         },
         "vip_dhcp_allocation": {
-          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
           "type": "boolean",
           "default": true,
           "x-nullable": true
@@ -2996,7 +3122,7 @@ func init() {
           "x-nullable": true
         },
         "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$",
           "x-nullable": true
@@ -3055,7 +3181,7 @@ func init() {
           "x-nullable": true
         },
         "ingress_vip": {
-          "description": "Virtual IP used for cluster ingress traffic.",
+          "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
@@ -3067,17 +3193,17 @@ func init() {
           "x-nullable": true
         },
         "name": {
-          "description": "OpenShift cluster name",
+          "description": "OpenShift cluster name.",
           "type": "string",
           "x-nullable": true
         },
         "no_proxy": {
-          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
         },
         "pull_secret": {
-          "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string",
           "x-nullable": true
         },
@@ -3093,7 +3219,7 @@ func init() {
           "x-nullable": true
         },
         "vip_dhcp_allocation": {
-          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
           "type": "boolean",
           "x-nullable": true
         }
@@ -3249,17 +3375,17 @@ func init() {
       ],
       "properties": {
         "api_vip_mac": {
-          "description": "MAC address for API VIP.",
+          "description": "MAC address for the API virtual IP.",
           "type": "string",
           "format": "mac"
         },
         "ingress_vip_mac": {
-          "description": "MAC address for Ingress VIP.",
+          "description": "MAC address for the Ingress virtual IP.",
           "type": "string",
           "format": "mac"
         },
         "interface": {
-          "description": "The interface (NIC) to run the DHCP requests on.",
+          "description": "The network interface (NIC) to run the DHCP requests on.",
           "type": "string"
         }
       }
@@ -3272,14 +3398,21 @@ func init() {
       ],
       "properties": {
         "api_vip_address": {
-          "description": "The IPv4 address that was allocated by DHCP for API VIP.",
+          "description": "The IPv4 address that was allocated by DHCP for the API virtual IP.",
           "type": "string",
           "format": "ipv4"
         },
         "ingress_vip_address": {
-          "description": "The IPv4 address that was allocated by DHCP for Ingress VIP.",
+          "description": "The IPv4 address that was allocated by DHCP for the Ingress virtual IP.",
           "type": "string",
           "format": "ipv4"
+        }
+      }
+    },
+    "discovery-ignition-params": {
+      "properties": {
+        "config": {
+          "type": "string"
         }
       }
     },
@@ -3329,7 +3462,7 @@ func init() {
       ],
       "properties": {
         "code": {
-          "description": "Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, for if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.",
+          "description": "Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.",
           "type": "string"
         },
         "href": {
@@ -3351,7 +3484,7 @@ func init() {
           ]
         },
         "reason": {
-          "description": "Human readable description of the error.",
+          "description": "Human-readable description of the error.",
           "type": "string"
         }
       }
@@ -3386,7 +3519,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
         },
         "request_id": {
-          "description": "Unique identifier for the request that caused this event to occure",
+          "description": "Unique identifier of the request that caused this event to occur.",
           "type": "string",
           "format": "uuid"
         },
@@ -3499,11 +3632,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"primary_key\""
         },
         "installation_disk_path": {
-          "description": "Host installation path",
+          "description": "Host installation path.",
           "type": "string"
         },
         "installer_version": {
-          "description": "Installer version",
+          "description": "Installer version.",
           "type": "string"
         },
         "inventory": {
@@ -3541,13 +3674,13 @@ func init() {
           "$ref": "#/definitions/host-role"
         },
         "stage_started_at": {
-          "description": "Time at which the current progress stage started",
+          "description": "Time at which the current progress stage started.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "stage_updated_at": {
-          "description": "Time at which the current progress stage was last updated",
+          "description": "Time at which the current progress stage was last updated.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
@@ -3578,7 +3711,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "status_updated_at": {
-          "description": "The last time that the host status has been updated",
+          "description": "The last time that the host status was updated.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
@@ -3592,7 +3725,7 @@ func init() {
           "type": "string"
         },
         "validations_info": {
-          "description": "Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)",
+          "description": "JSON-formatted string containing the validation results for each validation id grouped by category (network, hardware, etc.)",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         }
@@ -3650,13 +3783,13 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "stage_started_at": {
-          "description": "Time at which the current progress stage started",
+          "description": "Time at which the current progress stage started.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "stage_updated_at": {
-          "description": "Time at which the current progress stage was last updated",
+          "description": "Time at which the current progress stage was last updated.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
@@ -3710,7 +3843,7 @@ func init() {
       "enum": [
         "Starting installation",
         "Waiting for control plane",
-        "Start Waiting for control plane",
+        "Start waiting for control plane",
         "Installing",
         "Writing image to disk",
         "Rebooting",
@@ -3780,14 +3913,14 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "generator_version": {
-          "description": "Image generator version",
+          "description": "Image generator version.",
           "type": "string"
         },
         "size_bytes": {
           "type": "integer"
         },
         "ssh_public_key": {
-          "description": "SSH public key for debugging the installation",
+          "description": "SSH public key for debugging the installation.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
         }
@@ -3808,7 +3941,7 @@ func init() {
           "minimum": 401
         },
         "message": {
-          "description": "Human readable description of the error.",
+          "description": "Human-readable description of the error.",
           "type": "string"
         }
       }
@@ -4896,6 +5029,127 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/discovery-ignition": {
+      "get": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Get the cluster discovery ignition config",
+        "operationId": "GetDiscoveryIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/discovery-ignition-params"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Override values in the discovery ignition config",
+        "operationId": "UpdateDiscoveryIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "discovery-ignition-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/discovery-ignition-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/downloads/files": {
       "get": {
         "security": [
@@ -5316,7 +5570,7 @@ func init() {
         "tags": [
           "events"
         ],
-        "summary": "Lists events for a cluster",
+        "summary": "Lists events for a cluster.",
         "operationId": "ListEvents",
         "parameters": [
           {
@@ -5411,7 +5665,7 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Success.",
             "schema": {
               "$ref": "#/definitions/free-addresses-list"
             }
@@ -6044,7 +6298,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Download host logs",
+        "summary": "Download host logs.",
         "operationId": "DownloadHostLogs",
         "deprecated": true,
         "parameters": [
@@ -6217,13 +6471,13 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The ID of the host to retrieve",
+            "description": "The ID of the host to retrieve.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
-            "description": "New progress value",
+            "description": "New progress value.",
             "name": "host-progress",
             "in": "body",
             "required": true,
@@ -6234,7 +6488,7 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "Update install progress"
+            "description": "Update install progress."
           },
           "401": {
             "description": "Unauthorized.",
@@ -6409,7 +6663,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Download cluster logs",
+        "summary": "Download cluster logs.",
         "operationId": "DownloadClusterLogs",
         "parameters": [
           {
@@ -6653,7 +6907,7 @@ func init() {
         "tags": [
           "versions"
         ],
-        "summary": "List of componenets versions",
+        "summary": "List of component versions.",
         "operationId": "ListComponentVersions",
         "responses": {
           "200": {
@@ -6670,7 +6924,7 @@ func init() {
         "tags": [
           "managed_domains"
         ],
-        "summary": "List of managed DNS domains",
+        "summary": "List of managed DNS domains.",
         "operationId": "ListManagedDomains",
         "responses": {
           "200": {
@@ -6693,7 +6947,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Get minimum host requirements",
+        "summary": "Get minimum host requirements.",
         "operationId": "GetHostRequirements",
         "responses": {
           "200": {
@@ -6844,7 +7098,7 @@ func init() {
           "type": "string"
         },
         "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
         },
@@ -6896,6 +7150,11 @@ func init() {
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
         },
+        "ignition_config_overrides": {
+          "description": "Json formatted string containing the user overrides for the initial ignition config",
+          "type": "string",
+          "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
+        },
         "ignition_generator_version": {
           "type": "string"
         },
@@ -6904,7 +7163,7 @@ func init() {
           "$ref": "#/definitions/image_info"
         },
         "ingress_vip": {
-          "description": "Virtual IP used for cluster ingress traffic.",
+          "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
@@ -6915,13 +7174,13 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "install_config_overrides": {
-          "description": "Json formatted string containing the user overrides for the install-config.yaml file",
+          "description": "JSON-formatted string containing the user overrides for the install-config.yaml file.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
           "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
         },
         "install_started_at": {
-          "description": "The time that this cluster began installation.",
+          "description": "The time that this cluster started installation.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
@@ -6944,7 +7203,7 @@ func init() {
           "type": "string"
         },
         "no_proxy": {
-          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string"
         },
         "openshift_version": {
@@ -6959,7 +7218,7 @@ func init() {
           "type": "string"
         },
         "pull_secret_set": {
-          "description": "True if the pull-secret has been added to the cluster",
+          "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
         },
         "service_network_cidr": {
@@ -6994,7 +7253,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "status_updated_at": {
-          "description": "The last time that the cluster status has been updated",
+          "description": "The last time that the cluster status was updated.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
@@ -7009,12 +7268,12 @@ func init() {
           "type": "string"
         },
         "validations_info": {
-          "description": "Json formatted string containing the validations results for each validation id grouped by category (network, hosts-data, etc.)",
+          "description": "JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "vip_dhcp_allocation": {
-          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
           "type": "boolean",
           "x-nullable": true
         }
@@ -7032,7 +7291,7 @@ func init() {
           "type": "string"
         },
         "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "default": "10.128.0.0/14",
           "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$"
@@ -7055,7 +7314,7 @@ func init() {
           "x-nullable": true
         },
         "ingress_vip": {
-          "description": "Virtual IP used for cluster ingress traffic.",
+          "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
@@ -7064,7 +7323,7 @@ func init() {
           "type": "string"
         },
         "no_proxy": {
-          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
         },
@@ -7077,7 +7336,7 @@ func init() {
           ]
         },
         "pull_secret": {
-          "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
         "service_network_cidr": {
@@ -7091,7 +7350,7 @@ func init() {
           "type": "string"
         },
         "vip_dhcp_allocation": {
-          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
           "type": "boolean",
           "default": true,
           "x-nullable": true
@@ -7124,7 +7383,7 @@ func init() {
           "x-nullable": true
         },
         "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
+          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$",
           "x-nullable": true
@@ -7165,7 +7424,7 @@ func init() {
           "x-nullable": true
         },
         "ingress_vip": {
-          "description": "Virtual IP used for cluster ingress traffic.",
+          "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
@@ -7177,17 +7436,17 @@ func init() {
           "x-nullable": true
         },
         "name": {
-          "description": "OpenShift cluster name",
+          "description": "OpenShift cluster name.",
           "type": "string",
           "x-nullable": true
         },
         "no_proxy": {
-          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.",
+          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
         },
         "pull_secret": {
-          "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.",
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string",
           "x-nullable": true
         },
@@ -7203,7 +7462,7 @@ func init() {
           "x-nullable": true
         },
         "vip_dhcp_allocation": {
-          "description": "Indicate if VIP DHCP allocation mode is enabled.",
+          "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
           "type": "boolean",
           "x-nullable": true
         }
@@ -7359,17 +7618,17 @@ func init() {
       ],
       "properties": {
         "api_vip_mac": {
-          "description": "MAC address for API VIP.",
+          "description": "MAC address for the API virtual IP.",
           "type": "string",
           "format": "mac"
         },
         "ingress_vip_mac": {
-          "description": "MAC address for Ingress VIP.",
+          "description": "MAC address for the Ingress virtual IP.",
           "type": "string",
           "format": "mac"
         },
         "interface": {
-          "description": "The interface (NIC) to run the DHCP requests on.",
+          "description": "The network interface (NIC) to run the DHCP requests on.",
           "type": "string"
         }
       }
@@ -7382,14 +7641,21 @@ func init() {
       ],
       "properties": {
         "api_vip_address": {
-          "description": "The IPv4 address that was allocated by DHCP for API VIP.",
+          "description": "The IPv4 address that was allocated by DHCP for the API virtual IP.",
           "type": "string",
           "format": "ipv4"
         },
         "ingress_vip_address": {
-          "description": "The IPv4 address that was allocated by DHCP for Ingress VIP.",
+          "description": "The IPv4 address that was allocated by DHCP for the Ingress virtual IP.",
           "type": "string",
           "format": "ipv4"
+        }
+      }
+    },
+    "discovery-ignition-params": {
+      "properties": {
+        "config": {
+          "type": "string"
         }
       }
     },
@@ -7439,7 +7705,7 @@ func init() {
       ],
       "properties": {
         "code": {
-          "description": "Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, for if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.",
+          "description": "Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.",
           "type": "string"
         },
         "href": {
@@ -7461,7 +7727,7 @@ func init() {
           ]
         },
         "reason": {
-          "description": "Human readable description of the error.",
+          "description": "Human-readable description of the error.",
           "type": "string"
         }
       }
@@ -7496,7 +7762,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
         },
         "request_id": {
-          "description": "Unique identifier for the request that caused this event to occure",
+          "description": "Unique identifier of the request that caused this event to occur.",
           "type": "string",
           "format": "uuid"
         },
@@ -7609,11 +7875,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"primary_key\""
         },
         "installation_disk_path": {
-          "description": "Host installation path",
+          "description": "Host installation path.",
           "type": "string"
         },
         "installer_version": {
-          "description": "Installer version",
+          "description": "Installer version.",
           "type": "string"
         },
         "inventory": {
@@ -7651,13 +7917,13 @@ func init() {
           "$ref": "#/definitions/host-role"
         },
         "stage_started_at": {
-          "description": "Time at which the current progress stage started",
+          "description": "Time at which the current progress stage started.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "stage_updated_at": {
-          "description": "Time at which the current progress stage was last updated",
+          "description": "Time at which the current progress stage was last updated.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
@@ -7688,7 +7954,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "status_updated_at": {
-          "description": "The last time that the host status has been updated",
+          "description": "The last time that the host status was updated.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
@@ -7702,7 +7968,7 @@ func init() {
           "type": "string"
         },
         "validations_info": {
-          "description": "Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)",
+          "description": "JSON-formatted string containing the validation results for each validation id grouped by category (network, hardware, etc.)",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         }
@@ -7760,13 +8026,13 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "stage_started_at": {
-          "description": "Time at which the current progress stage started",
+          "description": "Time at which the current progress stage started.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "stage_updated_at": {
-          "description": "Time at which the current progress stage was last updated",
+          "description": "Time at which the current progress stage was last updated.",
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
@@ -7820,7 +8086,7 @@ func init() {
       "enum": [
         "Starting installation",
         "Waiting for control plane",
-        "Start Waiting for control plane",
+        "Start waiting for control plane",
         "Installing",
         "Writing image to disk",
         "Rebooting",
@@ -7890,7 +8156,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "generator_version": {
-          "description": "Image generator version",
+          "description": "Image generator version.",
           "type": "string"
         },
         "size_bytes": {
@@ -7898,7 +8164,7 @@ func init() {
           "minimum": 0
         },
         "ssh_public_key": {
-          "description": "SSH public key for debugging the installation",
+          "description": "SSH public key for debugging the installation.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(1024)\""
         }
@@ -7919,7 +8185,7 @@ func init() {
           "minimum": 401
         },
         "message": {
-          "description": "Human readable description of the error.",
+          "description": "Human-readable description of the error.",
           "type": "string"
         }
       }

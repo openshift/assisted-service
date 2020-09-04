@@ -29,7 +29,7 @@ type ClusterUpdateParams struct {
 	// Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
 	BaseDNSDomain *string `json:"base_dns_domain,omitempty"`
 
-	// IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
+	// IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
 	ClusterNetworkCidr *string `json:"cluster_network_cidr,omitempty"`
 
@@ -54,7 +54,7 @@ type ClusterUpdateParams struct {
 	//
 	HTTPSProxy *string `json:"https_proxy,omitempty"`
 
-	// Virtual IP used for cluster ingress traffic.
+	// The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
 	IngressVip *string `json:"ingress_vip,omitempty"`
 
@@ -62,13 +62,13 @@ type ClusterUpdateParams struct {
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
 	MachineNetworkCidr *string `json:"machine_network_cidr,omitempty"`
 
-	// OpenShift cluster name
+	// OpenShift cluster name.
 	Name *string `json:"name,omitempty"`
 
-	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
+	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
-	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
+	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 	PullSecret *string `json:"pull_secret,omitempty"`
 
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
@@ -78,7 +78,7 @@ type ClusterUpdateParams struct {
 	// SSH public key for debugging OpenShift nodes.
 	SSHPublicKey *string `json:"ssh_public_key,omitempty"`
 
-	// Indicate if VIP DHCP allocation mode is enabled.
+	// Indicate if virtual IP DHCP allocation mode is enabled.
 	VipDhcpAllocation *bool `json:"vip_dhcp_allocation,omitempty"`
 }
 

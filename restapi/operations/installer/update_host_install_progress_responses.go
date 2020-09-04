@@ -16,7 +16,7 @@ import (
 // UpdateHostInstallProgressOKCode is the HTTP code returned for type UpdateHostInstallProgressOK
 const UpdateHostInstallProgressOKCode int = 200
 
-/*UpdateHostInstallProgressOK Update install progress
+/*UpdateHostInstallProgressOK Update install progress.
 
 swagger:response updateHostInstallProgressOK
 */

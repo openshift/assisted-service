@@ -58,11 +58,14 @@ type API interface {
 	   GetCluster retrieves the details of the open shift bare metal cluster*/
 	GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error)
 	/*
-	   GetClusterInstallConfig gets the cluster install config yaml*/
+	   GetClusterInstallConfig gets the cluster s install config y a m l*/
 	GetClusterInstallConfig(ctx context.Context, params *GetClusterInstallConfigParams) (*GetClusterInstallConfigOK, error)
 	/*
-	   GetCredentials gets the the cluster admin credentials*/
+	   GetCredentials gets the cluster admin credentials*/
 	GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error)
+	/*
+	   GetDiscoveryIgnition gets the cluster discovery ignition config*/
+	GetDiscoveryIgnition(ctx context.Context, params *GetDiscoveryIgnitionParams) (*GetDiscoveryIgnitionOK, error)
 	/*
 	   GetFreeAddresses retrieves the free address list for a network*/
 	GetFreeAddresses(ctx context.Context, params *GetFreeAddressesParams) (*GetFreeAddressesOK, error)
@@ -76,7 +79,7 @@ type API interface {
 	   GetNextSteps retrieves the next operations that the host agent needs to perform*/
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
 	/*
-	   GetPresignedForClusterFiles retrieves a presigned s3 URL for downloading cluster files*/
+	   GetPresignedForClusterFiles retrieves a pre signed s3 URL for downloading cluster files*/
 	GetPresignedForClusterFiles(ctx context.Context, params *GetPresignedForClusterFilesParams) (*GetPresignedForClusterFilesOK, error)
 	/*
 	   InstallCluster installs the open shift bare metal cluster*/
@@ -111,6 +114,9 @@ type API interface {
 	/*
 	   UpdateClusterInstallConfig overrides values in the install config*/
 	UpdateClusterInstallConfig(ctx context.Context, params *UpdateClusterInstallConfigParams) (*UpdateClusterInstallConfigCreated, error)
+	/*
+	   UpdateDiscoveryIgnition overrides values in the discovery ignition config*/
+	UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error)
 	/*
 	   UpdateHostInstallProgress updates installation progress*/
 	UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error)
@@ -469,7 +475,7 @@ func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*Get
 }
 
 /*
-GetClusterInstallConfig gets the cluster install config yaml
+GetClusterInstallConfig gets the cluster s install config y a m l
 */
 func (a *Client) GetClusterInstallConfig(ctx context.Context, params *GetClusterInstallConfigParams) (*GetClusterInstallConfigOK, error) {
 
@@ -494,7 +500,7 @@ func (a *Client) GetClusterInstallConfig(ctx context.Context, params *GetCluster
 }
 
 /*
-GetCredentials gets the the cluster admin credentials
+GetCredentials gets the cluster admin credentials
 */
 func (a *Client) GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error) {
 
@@ -515,6 +521,31 @@ func (a *Client) GetCredentials(ctx context.Context, params *GetCredentialsParam
 		return nil, err
 	}
 	return result.(*GetCredentialsOK), nil
+
+}
+
+/*
+GetDiscoveryIgnition gets the cluster discovery ignition config
+*/
+func (a *Client) GetDiscoveryIgnition(ctx context.Context, params *GetDiscoveryIgnitionParams) (*GetDiscoveryIgnitionOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetDiscoveryIgnition",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/discovery-ignition",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetDiscoveryIgnitionReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetDiscoveryIgnitionOK), nil
 
 }
 
@@ -619,7 +650,7 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 }
 
 /*
-GetPresignedForClusterFiles retrieves a presigned s3 URL for downloading cluster files
+GetPresignedForClusterFiles retrieves a pre signed s3 URL for downloading cluster files
 */
 func (a *Client) GetPresignedForClusterFiles(ctx context.Context, params *GetPresignedForClusterFilesParams) (*GetPresignedForClusterFilesOK, error) {
 
@@ -915,6 +946,31 @@ func (a *Client) UpdateClusterInstallConfig(ctx context.Context, params *UpdateC
 		return nil, err
 	}
 	return result.(*UpdateClusterInstallConfigCreated), nil
+
+}
+
+/*
+UpdateDiscoveryIgnition overrides values in the discovery ignition config
+*/
+func (a *Client) UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateDiscoveryIgnition",
+		Method:             "PATCH",
+		PathPattern:        "/clusters/{cluster_id}/discovery-ignition",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateDiscoveryIgnitionReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateDiscoveryIgnitionCreated), nil
 
 }
 

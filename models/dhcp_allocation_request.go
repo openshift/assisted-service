@@ -17,17 +17,17 @@ import (
 // swagger:model dhcp_allocation_request
 type DhcpAllocationRequest struct {
 
-	// MAC address for API VIP.
+	// MAC address for the API virtual IP.
 	// Required: true
 	// Format: mac
 	APIVipMac *strfmt.MAC `json:"api_vip_mac"`
 
-	// MAC address for Ingress VIP.
+	// MAC address for the Ingress virtual IP.
 	// Required: true
 	// Format: mac
 	IngressVipMac *strfmt.MAC `json:"ingress_vip_mac"`
 
-	// The interface (NIC) to run the DHCP requests on.
+	// The network interface (NIC) to run the DHCP requests on.
 	// Required: true
 	Interface *string `json:"interface"`
 }

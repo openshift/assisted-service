@@ -16,7 +16,7 @@ import (
 // GetFreeAddressesOKCode is the HTTP code returned for type GetFreeAddressesOK
 const GetFreeAddressesOKCode int = 200
 
-/*GetFreeAddressesOK Success
+/*GetFreeAddressesOK Success.
 
 swagger:response getFreeAddressesOK
 */

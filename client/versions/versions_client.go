@@ -18,7 +18,7 @@ import (
 // API is the interface of the versions client
 type API interface {
 	/*
-	   ListComponentVersions lists of componenets versions*/
+	   ListComponentVersions lists of component versions*/
 	ListComponentVersions(ctx context.Context, params *ListComponentVersionsParams) (*ListComponentVersionsOK, error)
 }
 
@@ -41,7 +41,7 @@ type Client struct {
 }
 
 /*
-ListComponentVersions lists of componenets versions
+ListComponentVersions lists of component versions
 */
 func (a *Client) ListComponentVersions(ctx context.Context, params *ListComponentVersionsParams) (*ListComponentVersionsOK, error) {
 

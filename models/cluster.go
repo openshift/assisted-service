@@ -30,7 +30,7 @@ type Cluster struct {
 	// Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
 	BaseDNSDomain string `json:"base_dns_domain,omitempty"`
 
-	// IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
+	// IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
 	ClusterNetworkCidr string `json:"cluster_network_cidr,omitempty"`
 
@@ -68,6 +68,9 @@ type Cluster struct {
 	// Format: uuid
 	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
 
+	// Json formatted string containing the user overrides for the initial ignition config
+	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty"`
+
 	// ignition generator version
 	IgnitionGeneratorVersion string `json:"ignition_generator_version,omitempty"`
 
@@ -75,7 +78,7 @@ type Cluster struct {
 	// Required: true
 	ImageInfo *ImageInfo `json:"image_info" gorm:"embedded;embedded_prefix:image_"`
 
-	// Virtual IP used for cluster ingress traffic.
+	// The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
 	IngressVip string `json:"ingress_vip,omitempty"`
 
@@ -83,10 +86,10 @@ type Cluster struct {
 	// Format: date-time
 	InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty" gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"`
 
-	// Json formatted string containing the user overrides for the install-config.yaml file
+	// JSON-formatted string containing the user overrides for the install-config.yaml file.
 	InstallConfigOverrides string `json:"install_config_overrides,omitempty" gorm:"type:varchar(2048)"`
 
-	// The time that this cluster began installation.
+	// The time that this cluster started installation.
 	// Format: date-time
 	InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty" gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"`
 
@@ -102,7 +105,7 @@ type Cluster struct {
 	// Name of the OpenShift cluster.
 	Name string `json:"name,omitempty"`
 
-	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
+	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy string `json:"no_proxy,omitempty"`
 
 	// Version of the OpenShift cluster.
@@ -112,7 +115,7 @@ type Cluster struct {
 	// org id
 	OrgID string `json:"org_id,omitempty"`
 
-	// True if the pull-secret has been added to the cluster
+	// True if the pull secret has been added to the cluster.
 	PullSecretSet bool `json:"pull_secret_set,omitempty"`
 
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
@@ -131,7 +134,7 @@ type Cluster struct {
 	// Required: true
 	StatusInfo *string `json:"status_info" gorm:"type:varchar(2048)"`
 
-	// The last time that the cluster status has been updated
+	// The last time that the cluster status was updated.
 	// Format: date-time
 	StatusUpdatedAt strfmt.DateTime `json:"status_updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
@@ -142,10 +145,10 @@ type Cluster struct {
 	// user name
 	UserName string `json:"user_name,omitempty"`
 
-	// Json formatted string containing the validations results for each validation id grouped by category (network, hosts-data, etc.)
+	// JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
 	ValidationsInfo string `json:"validations_info,omitempty" gorm:"type:varchar(2048)"`
 
-	// Indicate if VIP DHCP allocation mode is enabled.
+	// Indicate if virtual IP DHCP allocation mode is enabled.
 	VipDhcpAllocation *bool `json:"vip_dhcp_allocation,omitempty"`
 }
 

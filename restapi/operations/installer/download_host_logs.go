@@ -31,7 +31,7 @@ func NewDownloadHostLogs(ctx *middleware.Context, handler DownloadHostLogsHandle
 
 /*DownloadHostLogs swagger:route GET /clusters/{cluster_id}/hosts/{host_id}/logs installer downloadHostLogs
 
-Download host logs
+Download host logs.
 
 */
 type DownloadHostLogs struct {

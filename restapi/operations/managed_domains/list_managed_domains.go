@@ -31,7 +31,7 @@ func NewListManagedDomains(ctx *middleware.Context, handler ListManagedDomainsHa
 
 /*ListManagedDomains swagger:route GET /domains managed_domains listManagedDomains
 
-List of managed DNS domains
+List of managed DNS domains.
 
 */
 type ListManagedDomains struct {
