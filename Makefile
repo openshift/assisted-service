@@ -120,7 +120,7 @@ build-dummy-ignition-image: build-dummy-ignition
 	docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
 
 build-livecd:
-	docker build --build-arg OS_IMAGE=${BASE_OS_IMAGE} -f Dockerfile.livecd-iso-image -t quay.io/ocpmetal/livecd-iso:rhcos-livecd
+	docker build --build-arg OS_IMAGE=${BASE_OS_IMAGE} -f Dockerfile.livecd-iso-image . -t quay.io/ocpmetal/livecd-iso:rhcos-livecd
 
 ##########
 # Deploy #
