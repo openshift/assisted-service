@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
@@ -41,6 +42,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 const ClusterStatusInstalled = "installed"
@@ -2680,6 +2682,56 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
 
+})
+
+var _ = Describe("GetClusterInstallConfig", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    = "get_cluster_install_config"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil)
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:                     &clusterID,
+			BaseDNSDomain:          "example.com",
+			InstallConfigOverrides: `{"controlPlane": {"hyperthreading": "Disabled"}}`,
+		}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("returns the correct install config", func() {
+		params := installer.GetClusterInstallConfigParams{ClusterID: clusterID}
+		response := bm.GetClusterInstallConfig(ctx, params)
+		actual, ok := response.(*installer.GetClusterInstallConfigOK)
+		Expect(ok).To(BeTrue())
+
+		config := installcfg.InstallerConfigBaremetal{}
+		err := yaml.Unmarshal([]byte(actual.Payload), &config)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(config.ControlPlane.Hyperthreading).To(Equal("Disabled"))
+		Expect(config.APIVersion).To(Equal("v1"))
+		Expect(config.BaseDomain).To(Equal("example.com"))
+	})
+
+	It("returns not found with a non-existant cluster", func() {
+		params := installer.GetClusterInstallConfigParams{ClusterID: strfmt.UUID(uuid.New().String())}
+		response := bm.GetClusterInstallConfig(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
 })
 
 var _ = Describe("UpdateClusterInstallConfig", func() {

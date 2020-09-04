@@ -297,6 +297,10 @@ func (f fakeInventory) UpdateCluster(ctx context.Context, params installer.Updat
 	panic("Implement Me!")
 }
 
+func (f fakeInventory) GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
 func (f fakeInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {
 	panic("Implement Me!")
 }
