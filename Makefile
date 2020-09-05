@@ -21,6 +21,7 @@ endef # get_service
 endif # TARGET
 
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
+SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},minikube-local-registry/ignition-dummy-generator:minikube-test)
 GIT_REVISION := $(shell git rev-parse HEAD)
@@ -30,6 +31,8 @@ OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
+ISO_CREATION_DOCKER_DAEMON_PULL_STRING := $(or ${ISO_CREATION_DOCKER_DAEMON_PULL_STRING},docker-daemon:${ISO_CREATION})
+ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING := $(or ${ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING},docker-daemon:${SERVICE})
 
 all: build
 
@@ -93,8 +96,14 @@ build-iso-generator: $(BUILD_FOLDER)
 build-dummy-ignition: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/dummy-ignition dummy-ignition/main.go
 
-build-onprem: build-minimal build-iso-generator build-dummy-ignition
-	podman build --build-arg NAMESPACE=$(NAMESPACE) -f Dockerfile.assisted-service-onprem -t ${SERVICE} .
+build-onprem-dependencies: 
+	skipper make build-image build-assisted-iso-generator-image
+
+build-onprem: build-onprem-dependencies
+	podman pull $(ISO_CREATION_DOCKER_DAEMON_PULL_STRING)
+	podman pull $(ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING)
+	GIT_REVISION=${GIT_REVISION} podman build --network=host --build-arg GIT_REVISION \
+ 		-f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
 
 build-image: build
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
@@ -187,7 +196,7 @@ deploy-test: generate-keys
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
 	podman run -dt --pod assisted-installer --env-file onprem-environment --name db centos/postgresql-12-centos7
-	podman run -dt --pod assisted-installer --env-file onprem-environment --user assisted-installer  --restart always --name installer ${SERVICE}
+	podman run -dt --pod assisted-installer --env-file onprem-environment --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
 
 ########
