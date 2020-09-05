@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/hostutil"
-
+	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
 
@@ -63,29 +63,41 @@ var _ = Describe("RegisterHost", func() {
 		Expect(h.DiscoveryAgentVersion).To(Equal("v1.0.1"))
 	})
 
-	Context("register during installation put host in error", func() {
+	Context("register during installation", func() {
 		tests := []struct {
-			name     string
-			srcState string
+			name                  string
+			progressStage         models.HostStage
+			srcState              string
+			dstState              string
+			expectedError         error
+			expectedEventInfo     string
+			expectedEventStatus   string
+			expectedNilStatusInfo bool
 		}{
 			{
-				name:     "discovering",
-				srcState: HostStatusInstalling,
+				name:                "discovering",
+				srcState:            models.HostStatusInstalling,
+				dstState:            models.HostStatusError,
+				expectedEventInfo:   "Host %s: updated status from \"installing\" to \"error\" (The host unexpectedly restarted during the installation)",
+				expectedEventStatus: models.EventSeverityError,
 			},
 			{
-				name:     "insufficient",
-				srcState: HostStatusInstallingInProgress,
+				name:                "insufficient",
+				srcState:            models.HostStatusInstallingInProgress,
+				dstState:            models.HostStatusError,
+				expectedEventInfo:   "Host %s: updated status from \"installing-in-progress\" to \"error\" (The host unexpectedly restarted during the installation)",
+				expectedEventStatus: models.EventSeverityError,
+			},
+			{
+				name:                  "pending-user-action",
+				progressStage:         models.HostStageRebooting,
+				srcState:              models.HostStatusInstallingPendingUserAction,
+				dstState:              models.HostStatusInstallingPendingUserAction,
+				expectedError:         installer.NewRegisterHostForbidden(),
+				expectedEventInfo:     "",
+				expectedNilStatusInfo: true,
 			},
 		}
-
-		AfterEach(func() {
-			h := getHost(hostId, clusterId, db)
-			Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusError))
-			Expect(h.Role).Should(Equal(models.HostRoleMaster))
-			Expect(h.Inventory).Should(Equal(defaultHwInfo))
-			Expect(h.StatusInfo).NotTo(BeNil())
-		})
-
 		for i := range tests {
 			t := tests[i]
 
@@ -96,16 +108,36 @@ var _ = Describe("RegisterHost", func() {
 					Role:      models.HostRoleMaster,
 					Inventory: defaultHwInfo,
 					Status:    swag.String(t.srcState),
+					Progress: &models.HostProgressInfo{
+						CurrentStage: t.progressStage,
+					},
 				}).Error).ShouldNot(HaveOccurred())
-				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityError,
-					fmt.Sprintf("Host %s: updated status from \"%s\" to \"error\" (The host unexpectedly restarted during the installation)", hostId.String(), t.srcState),
-					gomock.Any())
 
-				Expect(hapi.RegisterHost(ctx, &models.Host{
+				if t.expectedEventInfo != "" && t.expectedEventStatus != "" {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, t.expectedEventStatus, fmt.Sprintf(t.expectedEventInfo, hostId.String()), gomock.Any())
+				}
+
+				err := hapi.RegisterHost(ctx, &models.Host{
 					ID:        &hostId,
 					ClusterID: clusterId,
 					Status:    swag.String(t.srcState),
-				})).ShouldNot(HaveOccurred())
+				})
+
+				if t.expectedError == nil {
+					Expect(err).ShouldNot(HaveOccurred())
+				} else {
+					Expect(err).Should(HaveOccurred())
+					Expect(err).Should(Equal(t.expectedError))
+				}
+				h := getHost(hostId, clusterId, db)
+				Expect(swag.StringValue(h.Status)).Should(Equal(t.dstState))
+				Expect(h.Role).Should(Equal(models.HostRoleMaster))
+				Expect(h.Inventory).Should(Equal(defaultHwInfo))
+				if t.expectedNilStatusInfo {
+					Expect(h.StatusInfo).Should(BeNil())
+				} else {
+					Expect(h.StatusInfo).ShouldNot(BeNil())
+				}
 			})
 		}
 	})
