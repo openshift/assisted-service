@@ -356,6 +356,19 @@ var _ = Describe("IgnitionParameters", func() {
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring("--insecure=false"))
 		})
+
+		It("ignition_file_contains_http_proxy", func() {
+			bm.ServiceBaseURL = "file://10.56.20.70:7878"
+			proxyCluster := cluster
+			proxyCluster.HTTPProxy = "http://10.10.1.1:3128"
+			proxyCluster.NoProxy = "quay.io"
+			text, err := bm.formatIgnitionFile(&proxyCluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			})
+
+			Expect(err).Should(BeNil())
+			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": "quay.io" }`))
+		})
 	}
 
 	Context("start with clean configuration", func() {
@@ -2647,3 +2660,49 @@ func addHost(hostId strfmt.UUID, role models.HostRole, state string, clusterId s
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	return host
 }
+
+var _ = Describe("proxySettingsForIgnition", func() {
+
+	Context("test proxy settings in discovery ignition", func() {
+		var parameters = []struct {
+			httpProxy, httpsProxy, noProxy, res string
+		}{
+			{"", "", "", ""},
+			{
+				"http://proxy.proxy", "", "",
+				`"proxy": { "httpProxy": "http://proxy.proxy" }`,
+			},
+			{
+				"http://proxy.proxy", "https://proxy.proxy", "",
+				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy" }`,
+			},
+			{
+				"http://proxy.proxy", "", ".domain",
+				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": ".domain" }`,
+			},
+			{
+				"http://proxy.proxy", "https://proxy.proxy", ".domain",
+				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": ".domain" }`,
+			},
+			{
+				"", "https://proxy.proxy", ".domain",
+				`"proxy": { "httpsProxy": "https://proxy.proxy", "noProxy": ".domain" }`,
+			},
+			{
+				"", "https://proxy.proxy", "",
+				`"proxy": { "httpsProxy": "https://proxy.proxy" }`,
+			},
+			{
+				"", "", ".domain", "",
+			},
+		}
+
+		It("verify rendered proxy settings", func() {
+			for _, p := range parameters {
+				s, err := proxySettingsForIgnition(p.httpProxy, p.httpsProxy, p.noProxy)
+				Expect(err).To(BeNil())
+				Expect(s).To(Equal(p.res))
+			}
+		})
+	})
+})
