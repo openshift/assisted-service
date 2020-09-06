@@ -31,6 +31,11 @@ OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
 
+ifdef INSTALLATION_TIMEOUT
+        INSTALLATION_TIMEOUT_FLAG = --installation-timeout $(INSTALLATION_TIMEOUT)
+endif
+
+
 all: build
 
 lint:
@@ -163,7 +168,7 @@ deploy-inventory-service-file: deploy-namespace
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
-		$(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
+		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \

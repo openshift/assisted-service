@@ -12,6 +12,7 @@ def handle_arguments():
     parser.add_argument("--subsystem-test", action='store_true')
     parser.add_argument("--jwks-url", default="https://api.openshift.com/.well-known/jwks.json")
     parser.add_argument("--ocm-url", default="https://api-integration.6943.hive-integration.openshiftapps.com")
+    parser.add_argument("--installation-timeout", type=int)
 
     return deployment_options.load_deployment_options(parser)
 
@@ -31,6 +32,7 @@ def get_deployment_tag(args):
 
 
 def main():
+    log = utils.get_logger('deploy-service-configmap')
     utils.verify_build_directory(deploy_options.namespace)
 
     with open(SRC_FILE, "r") as src:
@@ -48,7 +50,6 @@ def main():
             data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
             data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
             data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))
-            print("Deploying {}".format(DST_FILE))
 
             subsystem_versions = {"IMAGE_BUILDER": "ISO_CREATION",
                                   "IGNITION_GENERATE_IMAGE": "DUMMY_IGNITION"}
@@ -79,15 +80,21 @@ def main():
 
             y = yaml.load(data)
             y['data'].update(versions)
+
+            if deploy_options.installation_timeout:
+                y['data']['INSTALLATION_TIMEOUT'] = str(deploy_options.installation_timeout)
+
             data = yaml.dump(y)
             dst.write(data)
 
+    log.info("Deploying {}".format(DST_FILE))
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
         profile=deploy_options.profile,
         file=DST_FILE
     )
+
 
 if __name__ == "__main__":
     main()

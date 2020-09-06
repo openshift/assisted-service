@@ -39,6 +39,7 @@ type InstructionManager struct {
 	db           *gorm.DB
 	stateToSteps stateToStepsMap
 }
+
 type InstructionConfig struct {
 	ServiceBaseURL          string `envconfig:"SERVICE_BASE_URL"`
 	InstallerImage          string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
@@ -48,6 +49,7 @@ type InstructionConfig struct {
 	FreeAddressesImage      string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	DhcpLeaseAllocatorImage string `envconfig:"DHCP_LEASE_ALLOCATOR_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	SkipCertVerification    bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	InstallationTimeout     uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator) *InstructionManager {
