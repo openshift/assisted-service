@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/openshift/assisted-service/internal/hostutil"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/gorm"
@@ -67,7 +69,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"AGENT_IMAGE":            i.instructionConfig.InventoryImage,
 	}
 
-	hostname, _ := common.GetCurrentHostName(host)
+	hostname, _ := hostutil.GetCurrentHostName(host)
 	if hostname != "" {
 		cmdArgsTmpl = cmdArgsTmpl + " --host-name {{.HOST_NAME}}"
 		data["HOST_NAME"] = hostname

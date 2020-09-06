@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/hostutil"
+
 	"github.com/go-openapi/strfmt"
 
 	"github.com/filanov/stateswitch"
@@ -333,7 +335,7 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	eventSeverity := models.EventSeverityInfo
-	eventInfo := fmt.Sprintf("Installation canceled for host %s", common.GetHostnameForMsg(h))
+	eventInfo := fmt.Sprintf("Installation canceled for host %s", hostutil.GetHostnameForMsg(h))
 	shouldAddEvent := true
 	defer func() {
 		if shouldAddEvent {
@@ -348,7 +350,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 	})
 	if err != nil {
 		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to cancel installation of host %s: %s", common.GetHostnameForMsg(h), err.Error())
+		eventInfo = fmt.Sprintf("Failed to cancel installation of host %s: %s", hostutil.GetHostnameForMsg(h), err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	} else if swag.StringValue(h.Status) == models.HostStatusDisabled {
 		shouldAddEvent = false
@@ -375,7 +377,7 @@ func (m *Manager) IsRequireUserActionReset(h *models.Host) bool {
 
 func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	eventSeverity := models.EventSeverityInfo
-	eventInfo := fmt.Sprintf("Installation reset for host %s", common.GetHostnameForMsg(h))
+	eventInfo := fmt.Sprintf("Installation reset for host %s", hostutil.GetHostnameForMsg(h))
 	shouldAddEvent := true
 	defer func() {
 		if shouldAddEvent {
@@ -390,7 +392,7 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 	})
 	if err != nil {
 		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to reset installation of host %s. Error: %s", common.GetHostnameForMsg(h), err.Error())
+		eventInfo = fmt.Sprintf("Failed to reset installation of host %s. Error: %s", hostutil.GetHostnameForMsg(h), err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	} else if swag.StringValue(h.Status) == models.HostStatusDisabled {
 		shouldAddEvent = false
@@ -400,7 +402,7 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 
 func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	eventSeverity := models.EventSeverityInfo
-	eventInfo := fmt.Sprintf("User action is required in order to complete installation reset for host %s", common.GetHostnameForMsg(h))
+	eventInfo := fmt.Sprintf("User action is required in order to complete installation reset for host %s", hostutil.GetHostnameForMsg(h))
 	shouldAddEvent := true
 	defer func() {
 		if shouldAddEvent {
@@ -414,7 +416,7 @@ func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 	})
 	if err != nil {
 		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to set status of host %s to reset-pending-user-action. Error: %s", common.GetHostnameForMsg(h), err.Error())
+		eventInfo = fmt.Sprintf("Failed to set status of host %s to reset-pending-user-action. Error: %s", hostutil.GetHostnameForMsg(h), err.Error())
 		return err
 	} else if swag.StringValue(h.Status) == models.HostStatusDisabled {
 		shouldAddEvent = false

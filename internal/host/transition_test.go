@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/hostutil"
+
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -895,7 +897,7 @@ var _ = Describe("Enable", func() {
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				if t.sendEvent {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
-						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host to send hardware details)", common.GetHostnameForMsg(&host), srcState),
+						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host to send hardware details)", hostutil.GetHostnameForMsg(&host), srcState),
 						gomock.Any())
 				}
 				t.validation(hapi.EnableHost(ctx, &host))
@@ -1550,7 +1552,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if srcState != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, common.GetEventSeverityFromHostStatus(t.dstState),
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
 						gomock.Any(), gomock.Any())
 				}
 				err := hapi.RefreshStatus(ctx, &host, db)
@@ -1601,7 +1603,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster.Status = &t.clusterStatus
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if *host.Status != t.dstState {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, common.GetEventSeverityFromHostStatus(t.dstState),
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
 						gomock.Any(), gomock.Any())
 				}
 				err := hapi.RefreshStatus(ctx, &host, db)
