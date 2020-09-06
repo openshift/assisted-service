@@ -1125,12 +1125,17 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 	}
 
-	getInventoryStr := func(ipv4Addresses ...string) string {
-		inventory := models.Inventory{Interfaces: []*models.Interface{
-			{
-				IPV4Addresses: append(make([]string, 0), ipv4Addresses...),
+	getInventoryStr := func(hostname, bootMode string, ipv4Addresses ...string) string {
+		inventory := models.Inventory{
+			Interfaces: []*models.Interface{
+				{
+					IPV4Addresses: append(make([]string, 0), ipv4Addresses...),
+					MacAddress:    "some MAC address",
+				},
 			},
-		}}
+			Hostname: hostname,
+			Boot:     &models.Boot{CurrentBootMode: bootMode},
+		}
 		ret, _ := json.Marshal(&inventory)
 		return string(ret)
 	}
@@ -1158,9 +1163,9 @@ var _ = Describe("cluster", func() {
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 
-					addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-					addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
-					addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
+					addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+					addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+					addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
 				})
 
 				It("GetCluster", func() {
@@ -1386,9 +1391,9 @@ var _ = Describe("cluster", func() {
 						ID: &clusterID,
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
-					addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-					addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
-					addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
+					addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+					addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+					addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
 					err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
 						makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 					Expect(err).ToNot(HaveOccurred())
@@ -1765,9 +1770,9 @@ var _ = Describe("cluster", func() {
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
-				addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-				addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
-				addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("10.11.200.180/16"), db)
+				addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+				addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname2", "bootMode", "10.11.200.180/16"), db)
 				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
 				Expect(err).ToNot(HaveOccurred())

@@ -1,5 +1,6 @@
 #This image contains the RHCOS livecd.iso
-FROM quay.io/ocpmetal/livecd-iso:rhcos-livecd AS livecd-build
+# FROM quay.io/ocpmetal/livecd-iso:rhcos-livecd AS livecd-build
+FROM quay.io/yshnaidm/livecd-iso:v4.6 AS livecd-build
 RUN chmod 644 /root/image/livecd.iso
 
 FROM quay.io/coreos/coreos-installer:release AS installer-image
