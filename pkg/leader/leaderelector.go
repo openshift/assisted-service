@@ -20,7 +20,7 @@ const (
 type Config struct {
 	LeaseDuration time.Duration `envconfig:"LEADER_LEASE_DURATION" default:"15s"`
 	RetryInterval time.Duration `envconfig:"LEADER_RETRY_INTERVAL" default:"2s"`
-	RenewDeadline time.Duration `envconfig:"LEADER_RENEW_DEADLINE" default:"10s"`
+	RenewDeadline time.Duration `envconfig:"LEADER_RENEW_DEADLINE" default:"15s"`
 	Namespace     string        `envconfig:"NAMESPACE" default:"assisted-installer"`
 }
 
@@ -59,7 +59,7 @@ func (l *Elector) StartLeaderElection(ctx context.Context, leaderFunc func(), st
 		return err
 	}
 
-	leaderElector, err := l.createLeaderElector(resourceLock, leaderFunc, stopLeaderFunc)
+	leaderElector, err := l.createLeaderElector(ctx, resourceLock, leaderFunc, stopLeaderFunc)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (l *Elector) createResourceLock(name string) (resourcelock.Interface, error
 		})
 }
 
-func (l *Elector) createLeaderElector(resourceLock resourcelock.Interface, leaderFunc func(), stopLeaderFunc func()) (*leaderelection.LeaderElector, error) {
+func (l *Elector) createLeaderElector(ctx context.Context, resourceLock resourcelock.Interface, leaderFunc func(), stopLeaderFunc func()) (*leaderelection.LeaderElector, error) {
 	return leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
 		Lock:          resourceLock,
 		LeaseDuration: l.config.LeaseDuration,
@@ -102,9 +102,13 @@ func (l *Elector) createLeaderElector(resourceLock resourcelock.Interface, leade
 				leaderFunc()
 			},
 			OnStoppedLeading: func() {
-				l.log.Infof("NO LONGER LEADER, closing monitors")
+				l.log.Infof("NO LONGER LEADER, closing monitors, start leader election wait")
 				stopLeaderFunc()
 				l.isLeader = false
+				err := l.StartLeaderElection(ctx, leaderFunc, stopLeaderFunc)
+				if err != nil {
+					l.log.WithError(err).Fatal("Failed to restart leader, exiting")
+				}
 			},
 		},
 	})
