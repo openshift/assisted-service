@@ -38,13 +38,18 @@ func (f *DummyElector) StartLeaderElection(ctx context.Context, leaderFunc func(
 var _ ElectorInterface = &Elector{}
 
 type Elector struct {
-	log    logrus.FieldLogger
-	config Config
-	kube   *kubernetes.Clientset
+	log      logrus.FieldLogger
+	config   Config
+	kube     *kubernetes.Clientset
+	isLeader bool
 }
 
 func NewElector(kubeClient *kubernetes.Clientset, config Config, logger logrus.FieldLogger) *Elector {
-	return &Elector{log: logger, config: config, kube: kubeClient}
+	return &Elector{log: logger, config: config, kube: kubeClient, isLeader: false}
+}
+
+func (l *Elector) IsLeader() bool {
+	return l.isLeader
 }
 
 func (l *Elector) StartLeaderElection(ctx context.Context, leaderFunc func(), stopLeaderFunc func()) error {
@@ -93,11 +98,13 @@ func (l *Elector) createLeaderElector(resourceLock resourcelock.Interface, leade
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(_ context.Context) {
 				l.log.Info("Successfully acquired leadership lease")
+				l.isLeader = true
 				leaderFunc()
 			},
 			OnStoppedLeading: func() {
-				l.log.Fatal("NO LONGER LEADER, EXITING")
+				l.log.Infof("NO LONGER LEADER, closing monitors")
 				stopLeaderFunc()
+				l.isLeader = false
 			},
 		},
 	})
