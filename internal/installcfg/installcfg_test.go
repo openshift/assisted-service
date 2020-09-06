@@ -67,7 +67,7 @@ var _ = Describe("installcfg", func() {
 
 	It("create_configuration_with_all_hosts", func() {
 		var result InstallerConfigBaremetal
-		data, err := GetInstallConfig(logrus.New(), &cluster)
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -77,7 +77,7 @@ var _ = Describe("installcfg", func() {
 	It("create_configuration_with_one_host_disabled", func() {
 		var result InstallerConfigBaremetal
 		host3.Status = swag.String(models.HostStatusDisabled)
-		data, err := GetInstallConfig(logrus.New(), &cluster)
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -90,7 +90,7 @@ var _ = Describe("installcfg", func() {
 		proxyURL := "http://proxyserver:3218"
 		cluster.HTTPProxy = proxyURL
 		cluster.HTTPSProxy = proxyURL
-		data, err := GetInstallConfig(logrus.New(), &cluster)
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -100,7 +100,7 @@ var _ = Describe("installcfg", func() {
 
 	It("correctly applies cluster overrides", func() {
 		var result InstallerConfigBaremetal
-		data, err := GetInstallConfig(logrus.New(), &cluster)
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -115,11 +115,36 @@ var _ = Describe("installcfg", func() {
 	It("doesn't fail with empty overrides", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
-		data, err := GetInstallConfig(logrus.New(), &cluster)
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Networking.NetworkType).Should(Equal("OpenShiftSDN"))
+	})
+
+	It("CA AdditionalTrustBundle", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
+		data, err := GetInstallConfig(logrus.New(), &cluster, true, ca)
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.AdditionalTrustBundle).Should(Equal(" | -----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"))
+	})
+
+	It("CA AdditionalTrustBundle not added", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "CA-CERT")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.AdditionalTrustBundle).Should(Equal(""))
 	})
 
 	AfterEach(func() {

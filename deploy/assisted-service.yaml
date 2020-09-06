@@ -102,6 +102,8 @@ spec:
               value: "false"
             - name: LOG_LEVEL
               value: "info"
+            - name: INSTALL_RH_CA
+              value: "false"
             - name: NAMESPACE
               valueFrom:
                 fieldRef:

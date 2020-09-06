@@ -76,6 +76,9 @@ parameters:
 - name: DHCP_LEASE_ALLOCATOR_IMAGE
   value: ''
   required: true
+- name: INSTALL_RH_CA
+  value: "false"
+  required: true
 - name: LOG_LEVEL
   value: "info"
   required: true
@@ -240,6 +243,8 @@ objects:
                 value: ${DHCP_LEASE_ALLOCATOR_IMAGE}
               - name: LOG_LEVEL
                 value: ${LOG_LEVEL}
+              - name: INSTALL_RH_CA
+                value: ${INSTALL_RH_CA}
               - name: AWS_SHARED_CREDENTIALS_FILE
                 value: /etc/.aws/credentials
             volumeMounts:
