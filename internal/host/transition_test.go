@@ -1017,6 +1017,61 @@ var _ = Describe("Refresh Host", func() {
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
+
+	Context("host installation timeout", func() {
+		var srcState string
+
+		hostStatuses := []string{HostStatusInstalling, HostStatusInstallingInProgress}
+		installationStages := []models.HostStage{
+			models.HostStageStartingInstallation,
+			models.HostStageWritingImageToDisk,
+			models.HostStageRebooting,
+			models.HostStageConfiguring,
+			models.HostStageWaitingForIgnition,
+			models.HostStageInstalling}
+
+		for i := range hostStatuses {
+			status := hostStatuses[i]
+			for j := range installationStages {
+				stage := installationStages[j]
+				name := fmt.Sprintf("installation stage %s at %s", stage, status)
+				It(name, func() {
+					hostCheckInAt := strfmt.DateTime(time.Now())
+					srcState = status
+					host = getTestHost(hostId, clusterId, srcState)
+					host.Inventory = masterInventory()
+					host.Role = models.HostRoleMaster
+					host.CheckedInAt = hostCheckInAt
+
+					progress := models.HostProgressInfo{
+						CurrentStage:   stage,
+						StageStartedAt: strfmt.DateTime(time.Now().Add(-1 * time.Hour)),
+					}
+
+					host.Progress = &progress
+
+					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+					cluster = getTestCluster(clusterId, "1.2.3.0/24")
+					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, common.GetEventSeverityFromHostStatus(models.HostStatusError),
+						gomock.Any(), gomock.Any())
+					err := hapi.RefreshStatus(ctx, &host, db)
+
+					Expect(err).ToNot(HaveOccurred())
+					var resultHost models.Host
+					Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+					Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
+
+					timeFormat := InstallationProgressTimeout[stage].String()
+					info := fmt.Sprintf("Host failed to install because its installation stage %s took longer than expected %s", stage, timeFormat)
+					Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+
+				})
+			}
+		}
+	})
+
 	Context("All transitions", func() {
 		var srcState string
 		tests := []struct {
