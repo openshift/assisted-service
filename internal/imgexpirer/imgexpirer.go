@@ -48,6 +48,9 @@ func (m *Manager) ExpirationTask() {
 }
 
 func (m *Manager) DeletedImageCallback(ctx context.Context, log logrus.FieldLogger, objectName string) {
+	if !m.leaderElector.IsLeader() {
+		return
+	}
 	matches := uuidRegex.FindStringSubmatch(objectName)
 	if len(matches) != 2 {
 		log.Errorf("Cannot find cluster ID in object name: %s", objectName)
