@@ -30,6 +30,10 @@ OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
+
+# We decided to have an option to change replicas count only while running in minikube
+# That line is checking if we run on minikube
+# check if SERVICE_REPLICAS_COUNT was set and if yes change default value to required one
 REPLICAS_COUNT = $(shell if ! [ "${TARGET}" = "minikube" ];then echo 3; else echo $(or ${SERVICE_REPLICAS_COUNT},3);fi)
 
 ifdef INSTALLATION_TIMEOUT
