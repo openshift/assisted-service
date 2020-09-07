@@ -20,9 +20,12 @@ kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}'
 endef # get_service
 endif # TARGET
 
-SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
-SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
-ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
+ASSISTED_ORG ?= quay.io/ocpmetal
+ASSISTED_TAG ?= latest
+
+export SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
+export SERVICE_ONPREM := $(or ${SERVICE_ONPREM},${ASSISTED_ORG}/assisted-service-onprem:${ASSISTED_TAG})
+export ISO_CREATION := $(or ${ISO_CREATION},${ASSISTED_ORG}/assisted-iso-create:${ASSISTED_TAG})
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
@@ -117,8 +120,9 @@ build-onprem-dependencies:
 build-onprem: build-onprem-dependencies
 	podman pull $(ISO_CREATION_DOCKER_DAEMON_PULL_STRING)
 	podman pull $(ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING)
+	sed 's/^FROM .*assisted-service.*:latest/FROM $(subst /,\/,${SERVICE})/' Dockerfile.assisted-service-onprem | \
 	GIT_REVISION=${GIT_REVISION} podman build --network=host --build-arg GIT_REVISION \
- 		-f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
+ 		-f Dockerfile.assisted-service-onprem -f- . -t $(SERVICE_ONPREM)
 
 build-image: build
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
@@ -130,8 +134,9 @@ build-minimal-assisted-iso-generator-image: build-iso-generator
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
-update: build-image
+update: build-image build-minimal-assisted-iso-generator-image
 	docker push $(SERVICE)
+	docker push $(ISO_CREATION)
 
 update-minimal: build-minimal
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
@@ -151,6 +156,8 @@ endef # publish_image
 publish:
 	$(call publish_image,${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 	$(call publish_image,${SERVICE},quay.io/ocpmetal/assisted-service:${GIT_REVISION})
+	$(call publish_image,${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
+	$(call publish_image,${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:${GIT_REVISION})
 	$(call publish_image,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 	$(call publish_image,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${GIT_REVISION})
 
@@ -290,7 +297,7 @@ clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
 
 clean-onprem:
-	podman pod rm -f assisted-installer | true
+	-podman pod rm -f assisted-installer | true
 
 delete-minikube-profile:
 	minikube delete -p $(PROFILE)

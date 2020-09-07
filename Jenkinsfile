@@ -7,8 +7,8 @@ pipeline {
         PATH = "${PATH}:/usr/local/go/bin"
 
         // Images
-        SERVICE = "quay.io/ocpmetal/assisted-service:${BUILD_TAG}"
-        ISO_CREATION = "quay.io/ocpmetal/assisted-iso-create:${BUILD_TAG}"
+        ASSISTED_ORG = "quay.io/ocpmetal"
+        ASSISTED_TAG = "${BUILD_TAG}"
 
         // Credentials
         SLACK_TOKEN = credentials('slack-token')
@@ -28,15 +28,52 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "make build-image build-minimal-assisted-iso-generator-image"
-                sh "make jenkins-deploy-for-subsystem"
-                sh "kubectl get pods -A"
+                sh "make update"
             }
         }
 
-        stage('Subsystem Test') {
-            steps {
-                sh "make subsystem-run"
+        stage('Test') {
+            failFast true
+            parallel {
+                stage('K8s') {
+                    steps {
+                        sh "make jenkins-deploy-for-subsystem"
+                        sh "kubectl get pods -A"
+
+                        sh "make subsystem-run"
+                    }
+                }
+                stage("OnPrem") {
+                    agent { label 'centos_worker' }
+                    stages {
+                        stage('OnPrem - Init') {
+                            steps {
+                                sh 'make clean-onprem || true'
+                            }
+                        }
+
+                        stage("OnPrem - Build") {
+                            steps {
+                                sh "make build-onprem"
+                                sh "make deploy-onprem"
+                            }
+                        }
+                        stage("OnPrem - Test") {
+                            steps {
+
+                                sh "make test-onprem"
+                            }
+                        }
+                    }
+
+                    post {
+                        always {
+                            script {
+                                sh "make clean-onprem"
+                            }
+                        }
+                    }
+                }
             }
         }
 
