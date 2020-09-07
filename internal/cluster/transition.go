@@ -46,7 +46,7 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 	if !ok {
 		return errors.New("PostCancelInstallation invalid argument")
 	}
-	if sCluster.srcState == clusterStatusError {
+	if sCluster.srcState == models.ClusterStatusError {
 		return nil
 	}
 

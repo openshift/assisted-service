@@ -16,16 +16,6 @@ import (
 const MinHostsNeededForInstallation = 3
 
 const (
-	clusterStatusInsufficient           = "insufficient"
-	clusterStatusReady                  = "ready"
-	clusterStatusPrepareForInstallation = "preparing-for-installation"
-	clusterStatusInstalling             = "installing"
-	clusterStatusInstalled              = "installed"
-	clusterStatusError                  = "error"
-	//clusterStatusPendingForInput        = "pending-for-input
-)
-
-const (
 	statusInfoReady                           = "Cluster ready to be installed"
 	statusInfoInsufficient                    = "Cluster is not ready for install"
 	statusInfoInstalling                      = "Installation in progress"

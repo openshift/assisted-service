@@ -431,23 +431,23 @@ var _ = Describe("VerifyRegisterHost", func() {
 		}
 	}
 	It("Register host while cluster in ready state", func() {
-		checkVerifyRegisterHost(clusterStatusReady, false)
+		checkVerifyRegisterHost(models.ClusterStatusReady, false)
 	})
 	It("Register host while cluster in insufficient state", func() {
-		checkVerifyRegisterHost(clusterStatusInsufficient, false)
+		checkVerifyRegisterHost(models.ClusterStatusInsufficient, false)
 	})
 	It("Register host while cluster in installing state", func() {
-		checkVerifyRegisterHost(clusterStatusInstalling, true)
+		checkVerifyRegisterHost(models.ClusterStatusInstalling, true)
 	})
 	It("Register host while cluster in installing state", func() {
 		checkVerifyRegisterHost(models.ClusterStatusFinalizing, true)
 	})
 	It("Register host while cluster in error state", func() {
-		checkVerifyRegisterHost(clusterStatusError, true)
+		checkVerifyRegisterHost(models.ClusterStatusError, true)
 	})
 
 	It("Register host while cluster in installed state", func() {
-		checkVerifyRegisterHost(clusterStatusInstalled, true)
+		checkVerifyRegisterHost(models.ClusterStatusInstalled, true)
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
@@ -482,19 +482,19 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 		}
 	}
 	It("Update cluster while insufficient", func() {
-		checkVerifyClusterUpdatability(clusterStatusInsufficient, false)
+		checkVerifyClusterUpdatability(models.ClusterStatusInsufficient, false)
 	})
 	It("Update cluster while ready", func() {
-		checkVerifyClusterUpdatability(clusterStatusReady, false)
+		checkVerifyClusterUpdatability(models.ClusterStatusReady, false)
 	})
 	It("Update cluster while installing", func() {
-		checkVerifyClusterUpdatability(clusterStatusInstalling, true)
+		checkVerifyClusterUpdatability(models.ClusterStatusInstalling, true)
 	})
 	It("Update cluster while installed", func() {
-		checkVerifyClusterUpdatability(clusterStatusInstalled, true)
+		checkVerifyClusterUpdatability(models.ClusterStatusInstalled, true)
 	})
 	It("Update cluster while error", func() {
-		checkVerifyClusterUpdatability(clusterStatusError, true)
+		checkVerifyClusterUpdatability(models.ClusterStatusError, true)
 	})
 
 	AfterEach(func() {
@@ -515,7 +515,7 @@ var _ = Describe("SetGeneratorVersion", func() {
 		id = strfmt.UUID(uuid.New().String())
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
 			nil, nil, nil)
-		cluster := common.Cluster{Cluster: models.Cluster{ID: &id, Status: swag.String(clusterStatusReady)}}
+		cluster := common.Cluster{Cluster: models.Cluster{ID: &id, Status: swag.String(models.ClusterStatusReady)}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		cluster = geCluster(id, db)
 		Expect(clusterApi.SetGeneratorVersion(&cluster, "v1", db)).ShouldNot(HaveOccurred())
@@ -548,13 +548,13 @@ var _ = Describe("CancelInstallation", func() {
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:         &id,
-			Status:     swag.String(clusterStatusInsufficient),
+			Status:     swag.String(models.ClusterStatusInsufficient),
 			StatusInfo: swag.String(statusInfoInsufficient)}}
 	})
 
 	Context("cancel_installation", func() {
 		It("cancel_installation", func() {
-			c.Status = swag.String(clusterStatusInstalling)
+			c.Status = swag.String(models.ClusterStatusInstalling)
 			c.InstallStartedAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, c.InstallStartedAt)
@@ -567,7 +567,7 @@ var _ = Describe("CancelInstallation", func() {
 			Expect(*cancelEvent.Message).Should(Equal("Canceled cluster installation"))
 		})
 		It("cancel_failed_installation", func() {
-			c.Status = swag.String(clusterStatusError)
+			c.Status = swag.String(models.ClusterStatusError)
 			c.InstallStartedAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, c.InstallStartedAt)
@@ -582,7 +582,7 @@ var _ = Describe("CancelInstallation", func() {
 
 		AfterEach(func() {
 			db.First(&c, "id = ?", c.ID)
-			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusError))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
 		})
 	})
 
@@ -622,12 +622,12 @@ var _ = Describe("ResetCluster", func() {
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
-			Status: swag.String(clusterStatusError),
+			Status: swag.String(models.ClusterStatusError),
 		}}
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 		Expect(state.ResetCluster(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
 		db.First(&c, "id = ?", c.ID)
-		Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInsufficient))
+		Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 		events, err := eventsHandler.GetEvents(*c.ID, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(events)).ShouldNot(Equal(0))
@@ -640,7 +640,7 @@ var _ = Describe("ResetCluster", func() {
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
-			Status: swag.String(clusterStatusReady),
+			Status: swag.String(models.ClusterStatusReady),
 		}}
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 		reply := state.ResetCluster(ctx, &c, "some reason", db)
@@ -1030,7 +1030,7 @@ var _ = Describe("ready_state", func() {
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:                       &id,
-			Status:                   swag.String(clusterStatusReady),
+			Status:                   swag.String(models.ClusterStatusReady),
 			MachineNetworkCidr:       "1.2.3.0/24",
 			BaseDNSDomain:            "test.com",
 			PullSecretSet:            true,
@@ -1042,7 +1042,7 @@ var _ = Describe("ready_state", func() {
 		addInstallationRequirements(id, db)
 
 		cluster = geCluster(*cluster.ID, db)
-		Expect(swag.StringValue(cluster.Status)).Should(Equal(clusterStatusReady))
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusReady))
 		Expect(len(cluster.Hosts)).Should(Equal(3))
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	})
@@ -1052,7 +1052,7 @@ var _ = Describe("ready_state", func() {
 			clusterAfterRefresh, updateErr := clusterApi.RefreshStatus(ctx, &cluster, db)
 
 			Expect(updateErr).Should(BeNil())
-			Expect(*clusterAfterRefresh.Status).Should(Equal(clusterStatusReady))
+			Expect(*clusterAfterRefresh.Status).Should(Equal(models.ClusterStatusReady))
 		})
 
 		It("cluster is not satisfying the install requirements", func() {
@@ -1062,7 +1062,7 @@ var _ = Describe("ready_state", func() {
 			clusterAfterRefresh, updateErr := clusterApi.RefreshStatus(ctx, &cluster, db)
 
 			Expect(updateErr).Should(BeNil())
-			Expect(*clusterAfterRefresh.Status).Should(Equal(clusterStatusInsufficient))
+			Expect(*clusterAfterRefresh.Status).Should(Equal(models.ClusterStatusInsufficient))
 		})
 	})
 	AfterEach(func() {
