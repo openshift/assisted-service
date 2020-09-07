@@ -341,8 +341,6 @@ var _ = Describe("Host tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(db.Model(h).UpdateColumn("status", host.StateInsufficient).Error).NotTo(HaveOccurred())
-		h = getHost(clusterID, *h.ID)
-		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
 
 		freeAddressesReply, err := userBMClient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
 			ClusterID: clusterID,
@@ -379,8 +377,6 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).To(HaveOccurred())
-		h = getHost(clusterID, *h.ID)
-		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
 
 		//exit code is not 0
 		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
@@ -394,8 +390,6 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).To(HaveOccurred())
-		h = getHost(clusterID, *h.ID)
-		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
 	})
 
 	It("disable enable", func() {
