@@ -198,10 +198,12 @@ func (m *Manager) ClusterMonitoring() {
 
 func (m *Manager) DownloadFiles(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{clusterStatusInstalling,
+	allowedStatuses := []string{
+		models.ClusterStatusInstalling,
 		models.ClusterStatusFinalizing,
-		clusterStatusInstalled,
-		clusterStatusError}
+		models.ClusterStatusInstalled,
+		models.ClusterStatusError,
+	}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, files can be downloaded only when status is one of: %s",
 			c.ID, clusterStatus, allowedStatuses)
@@ -211,7 +213,7 @@ func (m *Manager) DownloadFiles(c *common.Cluster) (err error) {
 
 func (m *Manager) DownloadKubeconfig(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	if clusterStatus != clusterStatusInstalled {
+	if clusterStatus != models.ClusterStatusInstalled {
 		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only in installed state", c.ID, clusterStatus, "kubeconfig")
 	}
 
@@ -219,7 +221,7 @@ func (m *Manager) DownloadKubeconfig(c *common.Cluster) (err error) {
 }
 func (m *Manager) GetCredentials(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{clusterStatusInstalling, models.ClusterStatusFinalizing, clusterStatusInstalled}
+	allowedStatuses := []string{models.ClusterStatusInstalling, models.ClusterStatusFinalizing, models.ClusterStatusInstalled}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("Cluster %s is in %s state, credentials are available only in installing or installed state", c.ID, clusterStatus)
 	}
@@ -229,16 +231,16 @@ func (m *Manager) GetCredentials(c *common.Cluster) (err error) {
 
 func (m *Manager) UploadIngressCert(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{models.ClusterStatusFinalizing, clusterStatusInstalled}
+	allowedStatuses := []string{models.ClusterStatusFinalizing, models.ClusterStatusInstalled}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
-		err = errors.Errorf("Cluster %s is in %s state, upload ingress ca can be done only in %s or %s state", c.ID, clusterStatus, models.ClusterStatusFinalizing, clusterStatusInstalled)
+		err = errors.Errorf("Cluster %s is in %s state, upload ingress ca can be done only in %s or %s state", c.ID, clusterStatus, models.ClusterStatusFinalizing, models.ClusterStatusInstalled)
 	}
 	return err
 }
 
 func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{clusterStatusInsufficient, clusterStatusReady, models.ClusterStatusPendingForInput}
+	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("Cluster %s is in %s state, host can register only in one of %s", c.ID, clusterStatus, allowedStatuses)
 	}
@@ -247,7 +249,7 @@ func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 
 func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{clusterStatusInsufficient, clusterStatusReady, models.ClusterStatusPendingForInput}
+	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("Cluster %s is in %s state, cluster can be updated only in one of %s", c.ID, clusterStatus, allowedStatuses)
 	}
