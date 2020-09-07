@@ -8,6 +8,12 @@ import (
 )
 
 func (m *Manager) HostMonitoring() {
+	if !m.leaderElector.IsLeader() {
+		m.log.Debugf("Not a leader, exiting HostMonitoring")
+		return
+	}
+
+	m.log.Debugf("Running HostMonitoring")
 	var (
 		hosts     []*models.Host
 		requestID = requestid.NewID()

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openshift/assisted-service/pkg/leader"
+
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 
 	"github.com/filanov/stateswitch"
@@ -82,9 +84,11 @@ type Manager struct {
 	metricAPI       metrics.API
 	hostAPI         host.API
 	rp              *refreshPreprocessor
+	leaderElector   leader.Leader
 }
 
-func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hostAPI host.API, metricApi metrics.API) *Manager {
+func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hostAPI host.API, metricApi metrics.API,
+	leaderElector leader.Leader) *Manager {
 	th := &transitionHandler{
 		log:           log,
 		db:            db,
@@ -100,6 +104,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		metricAPI:       metricApi,
 		rp:              newRefreshPreprocessor(log, hostAPI),
 		hostAPI:         hostAPI,
+		leaderElector:   leaderElector,
 	}
 }
 
@@ -170,6 +175,11 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 }
 
 func (m *Manager) ClusterMonitoring() {
+	if !m.leaderElector.IsLeader() {
+		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
+		return
+	}
+	m.log.Debugf("Running ClusterMonitoring")
 	var (
 		clusters            []*common.Cluster
 		clusterAfterRefresh *common.Cluster

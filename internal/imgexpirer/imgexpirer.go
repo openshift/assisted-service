@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/openshift/assisted-service/pkg/leader"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
@@ -25,17 +27,22 @@ type Manager struct {
 	objectHandler s3wrapper.API
 	eventsHandler events.Handler
 	deleteTime    time.Duration
+	leaderElector leader.Leader
 }
 
-func NewManager(objectHandler s3wrapper.API, eventsHandler events.Handler, deleteTime time.Duration) *Manager {
+func NewManager(objectHandler s3wrapper.API, eventsHandler events.Handler, deleteTime time.Duration, leaderElector leader.ElectorInterface) *Manager {
 	return &Manager{
 		objectHandler: objectHandler,
 		eventsHandler: eventsHandler,
 		deleteTime:    deleteTime,
+		leaderElector: leaderElector,
 	}
 }
 
 func (m *Manager) ExpirationTask() {
+	if !m.leaderElector.IsLeader() {
+		return
+	}
 	ctx := requestid.ToContext(context.Background(), requestid.NewID())
 	m.objectHandler.ExpireObjects(ctx, imagePrefix, m.deleteTime, m.DeletedImageCallback)
 }
