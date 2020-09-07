@@ -37,6 +37,7 @@ const (
 	statusInfoPreparingForInstallation   = "Host is preparing for installation"
 	statusInfoPreparingTimedOut          = "Host failed to install because its preparation took longer than expected"
 	statusInfoAbortingDueClusterErrors   = "Host is part of a cluster that failed to install"
+	statusInfoInstallationTimedOut       = "Host failed to install because its installation stage $STAGE took longer than expected $MAX_TIME"
 )
 
 type UpdateReply struct {
