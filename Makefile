@@ -111,6 +111,9 @@ build-minimal-assisted-iso-generator-image: build-iso-generator
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
+build-dummy-ignition-image: build-dummy-ignition
+	docker build --network=host --build-arg NAMESPACE=$(NAMESPACE) -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
+
 update: build-image
 	docker push $(SERVICE)
 
@@ -124,8 +127,16 @@ update-minikube: build build-dummy-ignition
 		-f Dockerfile.assisted-service . -t $(SERVICE) && docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION} \
 		&& docker build --network=host --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
-build-dummy-ignition-image: build-dummy-ignition
-	docker build --network=host --build-arg NAMESPACE=$(NAMESPACE) -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
+define publish_image
+	docker tag ${1} ${2}
+	docker push ${2}
+endef # publish_image
+
+publish:
+	$(call publish_image,${SERVICE},quay.io/ocpmetal/assisted-service:latest)
+	$(call publish_image,${SERVICE},quay.io/ocpmetal/assisted-service:${GIT_REVISION})
+	$(call publish_image,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
+	$(call publish_image,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${GIT_REVISION})
 
 ##########
 # Deploy #
@@ -182,7 +193,7 @@ deploy-role: deploy-namespace
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
-jenkins-deploy-for-subsystem: generate-keys build-dummy-ignition-image build-assisted-iso-generator-image
+jenkins-deploy-for-subsystem: generate-keys build-dummy-ignition-image
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && $(MAKE) deploy-all
 
 deploy-test: generate-keys
