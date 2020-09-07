@@ -207,7 +207,7 @@ func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role models.HostRole, bo
 	host := models.Host{
 		ID:                &id,
 		ClusterID:         clusterId,
-		Status:            swag.String(HostStatusDiscovering),
+		Status:            swag.String(models.HostStatusDiscovering),
 		Role:              role,
 		Bootstrap:         bootstrap,
 		Inventory:         defaultInventory(),

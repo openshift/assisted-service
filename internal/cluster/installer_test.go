@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
@@ -89,11 +88,11 @@ var _ = Describe("installer", func() {
 		It("test getting master ids", func() {
 
 			for i := 0; i < 3; i++ {
-				hostsIds = append(hostsIds, addHost(models.HostRoleMaster, host.HostStatusKnown, id, db))
+				hostsIds = append(hostsIds, addHost(models.HostRoleMaster, models.HostStatusKnown, id, db))
 			}
 			masterKnownIds := hostsIds
-			hostsIds = append(hostsIds, addHost(models.HostRoleWorker, host.HostStatusKnown, id, db))
-			hostsIds = append(hostsIds, addHost(models.HostRoleMaster, host.HostStatusDiscovering, id, db))
+			hostsIds = append(hostsIds, addHost(models.HostRoleWorker, models.HostStatusKnown, id, db))
+			hostsIds = append(hostsIds, addHost(models.HostRoleMaster, models.HostStatusDiscovering, id, db))
 
 			replyMasterNodesIds, err := installerManager.GetMasterNodesIds(ctx, &cluster, db)
 			Expect(err).Should(BeNil())

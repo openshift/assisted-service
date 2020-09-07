@@ -185,7 +185,7 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 	if !ok {
 		return errors.New("PostCancelInstallation invalid argument")
 	}
-	if sHost.srcState == HostStatusError {
+	if sHost.srcState == models.HostStatusError {
 		return nil
 	}
 

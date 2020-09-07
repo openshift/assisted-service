@@ -29,7 +29,7 @@ var _ = Describe("inventory", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = getTestHost(id, clusterId, HostStatusDiscovering)
+		host = getTestHost(id, clusterId, models.HostStatusDiscovering)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 

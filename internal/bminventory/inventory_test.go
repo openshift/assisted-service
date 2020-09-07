@@ -791,7 +791,7 @@ var _ = Describe("GetFreeAddresses", func() {
 	It("success", func() {
 		clusterId := strToUUID(uuid.New().String())
 
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250")), host.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250")), models.HostStatusInsufficient)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/16")
 		reply := bm.GetFreeAddresses(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
@@ -805,7 +805,7 @@ var _ = Describe("GetFreeAddresses", func() {
 	It("success with limit", func() {
 		clusterId := strToUUID(uuid.New().String())
 
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250")), host.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250")), models.HostStatusInsufficient)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/16")
 		params.Limit = swag.Int64(2)
 		reply := bm.GetFreeAddresses(ctx, params)
@@ -819,7 +819,7 @@ var _ = Describe("GetFreeAddresses", func() {
 	It("success with limit and prefix", func() {
 		clusterId := strToUUID(uuid.New().String())
 
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250", "10.0.1.0")), host.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250", "10.0.1.0")), models.HostStatusInsufficient)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/16")
 		params.Limit = swag.Int64(2)
 		params.Prefix = swag.String("10.0.1")
@@ -834,9 +834,9 @@ var _ = Describe("GetFreeAddresses", func() {
 	It("one disconnected", func() {
 		clusterId := strToUUID(uuid.New().String())
 
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusInsufficient)
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2")), host.HostStatusKnown)
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24")), host.HostStatusDisconnected)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), models.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2")), models.HostStatusKnown)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24")), models.HostStatusDisconnected)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
 		reply := bm.GetFreeAddresses(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
@@ -849,10 +849,10 @@ var _ = Describe("GetFreeAddresses", func() {
 		clusterId := strToUUID(uuid.New().String())
 
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("192.168.0.0/24"),
-			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusInsufficient)
+			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), models.HostStatusInsufficient)
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2"),
-			makeFreeAddresses("192.168.0.0/24")), host.HostStatusKnown)
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.1", "10.0.0.2")), host.HostStatusInsufficient)
+			makeFreeAddresses("192.168.0.0/24")), models.HostStatusKnown)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.1", "10.0.0.2")), models.HostStatusInsufficient)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
 		reply := bm.GetFreeAddresses(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
@@ -864,10 +864,10 @@ var _ = Describe("GetFreeAddresses", func() {
 		clusterId := strToUUID(uuid.New().String())
 
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("192.168.0.0/24"),
-			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusInsufficient)
+			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), models.HostStatusInsufficient)
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2"),
-			makeFreeAddresses("192.168.0.0/24")), host.HostStatusKnown)
-		_ = makeHost(clusterId, "blah ", host.HostStatusInsufficient)
+			makeFreeAddresses("192.168.0.0/24")), models.HostStatusKnown)
+		_ = makeHost(clusterId, "blah ", models.HostStatusInsufficient)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
 		reply := bm.GetFreeAddresses(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
@@ -880,10 +880,10 @@ var _ = Describe("GetFreeAddresses", func() {
 		clusterId := strToUUID(uuid.New().String())
 
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("192.168.0.0/24"),
-			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusDisconnected)
+			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), models.HostStatusDisconnected)
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2"),
-			makeFreeAddresses("192.168.0.0/24")), host.HostStatusDiscovering)
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.1/24", "10.0.0.0", "10.0.0.2")), host.HostStatusInstalling)
+			makeFreeAddresses("192.168.0.0/24")), models.HostStatusDiscovering)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.1/24", "10.0.0.0", "10.0.0.2")), models.HostStatusInstalling)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
 		verifyApiError(bm.GetFreeAddresses(ctx, params), http.StatusNotFound)
 	})

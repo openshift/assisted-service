@@ -59,7 +59,7 @@ var _ = Describe("RegisterHost", func() {
 	It("register_new", func() {
 		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: clusterId, DiscoveryAgentVersion: "v1.0.1"})).ShouldNot(HaveOccurred())
 		h := getHost(hostId, clusterId, db)
-		Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusDiscovering))
+		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
 		Expect(h.DiscoveryAgentVersion).To(Equal("v1.0.1"))
 	})
 
@@ -150,25 +150,25 @@ var _ = Describe("RegisterHost", func() {
 		}{
 			{
 				name:     "discovering",
-				srcState: HostStatusDiscovering,
+				srcState: models.HostStatusDiscovering,
 			},
 			{
 				name:     "insufficient",
-				srcState: HostStatusInsufficient,
+				srcState: models.HostStatusInsufficient,
 			},
 			{
 				name:     "disconnected",
-				srcState: HostStatusDisconnected,
+				srcState: models.HostStatusDisconnected,
 			},
 			{
 				name:     "known",
-				srcState: HostStatusKnown,
+				srcState: models.HostStatusKnown,
 			},
 		}
 
 		AfterEach(func() {
 			h := getHost(hostId, clusterId, db)
-			Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusDiscovering))
+			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
 			Expect(h.Role).Should(Equal(models.HostRoleMaster))
 			Expect(h.Inventory).Should(Equal(""))
 			Expect(h.DiscoveryAgentVersion).To(Equal(discoveryAgentVersion))
@@ -210,15 +210,15 @@ var _ = Describe("RegisterHost", func() {
 		}{
 			{
 				name:     "disabled",
-				srcState: HostStatusDisabled,
+				srcState: models.HostStatusDisabled,
 			},
 			{
 				name:     "error",
-				srcState: HostStatusError,
+				srcState: models.HostStatusError,
 			},
 			{
 				name:     "installed",
-				srcState: HostStatusInstalled,
+				srcState: models.HostStatusInstalled,
 			},
 		}
 
@@ -364,7 +364,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = getTestHost(hostId, clusterId, "")
-		host.Status = swag.String(HostStatusInstalling)
+		host.Status = swag.String(models.HostStatusInstalling)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 
@@ -375,7 +375,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 		Expect(hapi.HandleInstallationFailure(ctx, &host)).ShouldNot(HaveOccurred())
 		h := getHost(hostId, clusterId, db)
-		Expect(swag.StringValue(h.Status)).Should(Equal(HostStatusError))
+		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusError))
 		Expect(swag.StringValue(h.StatusInfo)).Should(Equal("installation command failed"))
 	})
 
@@ -555,7 +555,7 @@ var _ = Describe("Install", func() {
 		success := func(reply error) {
 			Expect(reply).To(BeNil())
 			h := getHost(hostId, clusterId, db)
-			Expect(*h.Status).Should(Equal(HostStatusInstalling))
+			Expect(*h.Status).Should(Equal(models.HostStatusInstalling))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoInstalling))
 		}
 
@@ -566,7 +566,7 @@ var _ = Describe("Install", func() {
 		noChange := func(reply error) {
 			Expect(reply).To(BeNil())
 			h := getHost(hostId, clusterId, db)
-			Expect(*h.Status).Should(Equal(HostStatusDisabled))
+			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
 		}
 
 		tests := []struct {
@@ -581,52 +581,52 @@ var _ = Describe("Install", func() {
 			},
 			{
 				name:       "known",
-				srcState:   HostStatusKnown,
+				srcState:   models.HostStatusKnown,
 				validation: failure,
 			},
 			{
 				name:       "disabled nothing change",
-				srcState:   HostStatusDisabled,
+				srcState:   models.HostStatusDisabled,
 				validation: noChange,
 			},
 			{
 				name:       "disconnected",
-				srcState:   HostStatusDisconnected,
+				srcState:   models.HostStatusDisconnected,
 				validation: failure,
 			},
 			{
 				name:       "discovering",
-				srcState:   HostStatusDiscovering,
+				srcState:   models.HostStatusDiscovering,
 				validation: failure,
 			},
 			{
 				name:       "error",
-				srcState:   HostStatusError,
+				srcState:   models.HostStatusError,
 				validation: failure,
 			},
 			{
 				name:       "installed",
-				srcState:   HostStatusInstalled,
+				srcState:   models.HostStatusInstalled,
 				validation: failure,
 			},
 			{
 				name:       "installing",
-				srcState:   HostStatusInstalling,
+				srcState:   models.HostStatusInstalling,
 				validation: failure,
 			},
 			{
 				name:       "in-progress",
-				srcState:   HostStatusInstallingInProgress,
+				srcState:   models.HostStatusInstallingInProgress,
 				validation: failure,
 			},
 			{
 				name:       "insufficient",
-				srcState:   HostStatusInsufficient,
+				srcState:   models.HostStatusInsufficient,
 				validation: failure,
 			},
 			{
 				name:       "resetting",
-				srcState:   HostStatusResetting,
+				srcState:   models.HostStatusResetting,
 				validation: failure,
 			},
 		}
@@ -660,7 +660,7 @@ var _ = Describe("Install", func() {
 			Expect(hapi.Install(ctx, &host, tx)).ShouldNot(HaveOccurred())
 			Expect(tx.Commit().Error).ShouldNot(HaveOccurred())
 			h := getHost(hostId, clusterId, db)
-			Expect(*h.Status).Should(Equal(HostStatusInstalling))
+			Expect(*h.Status).Should(Equal(models.HostStatusInstalling))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoInstalling))
 		})
 
@@ -709,7 +709,7 @@ var _ = Describe("Disable", func() {
 		success := func(reply error) {
 			Expect(reply).To(BeNil())
 			h := getHost(hostId, clusterId, db)
-			Expect(*h.Status).Should(Equal(HostStatusDisabled))
+			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDisabled))
 		}
 
@@ -734,56 +734,56 @@ var _ = Describe("Disable", func() {
 		}{
 			{
 				name:       "known",
-				srcState:   HostStatusKnown,
+				srcState:   models.HostStatusKnown,
 				validation: success,
 				mocks:      []func(string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "disabled nothing change",
-				srcState:   HostStatusDisabled,
+				srcState:   models.HostStatusDisabled,
 				validation: failure,
 			},
 			{
 				name:       "disconnected",
-				srcState:   HostStatusDisconnected,
+				srcState:   models.HostStatusDisconnected,
 				validation: success,
 				mocks:      []func(string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "discovering",
-				srcState:   HostStatusDiscovering,
+				srcState:   models.HostStatusDiscovering,
 				validation: success,
 				mocks:      []func(string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "error",
-				srcState:   HostStatusError,
+				srcState:   models.HostStatusError,
 				validation: failure,
 			},
 			{
 				name:       "installed",
-				srcState:   HostStatusInstalled,
+				srcState:   models.HostStatusInstalled,
 				validation: failure,
 			},
 			{
 				name:       "installing",
-				srcState:   HostStatusInstalling,
+				srcState:   models.HostStatusInstalling,
 				validation: failure,
 			},
 			{
 				name:       "in-progress",
-				srcState:   HostStatusInstallingInProgress,
+				srcState:   models.HostStatusInstallingInProgress,
 				validation: failure,
 			},
 			{
 				name:       "insufficient",
-				srcState:   HostStatusInsufficient,
+				srcState:   models.HostStatusInsufficient,
 				validation: success,
 				mocks:      []func(string){mockEventsUpdateStatus},
 			},
 			{
 				name:       "resetting",
-				srcState:   HostStatusResetting,
+				srcState:   models.HostStatusResetting,
 				validation: failure,
 			},
 			{
@@ -840,7 +840,7 @@ var _ = Describe("Enable", func() {
 		success := func(reply error) {
 			Expect(reply).To(BeNil())
 			h := getHost(hostId, clusterId, db)
-			Expect(*h.Status).Should(Equal(HostStatusDiscovering))
+			Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
 			Expect(h.Inventory).Should(Equal(""))
 		}
@@ -860,61 +860,61 @@ var _ = Describe("Enable", func() {
 		}{
 			{
 				name:       "known",
-				srcState:   HostStatusKnown,
+				srcState:   models.HostStatusKnown,
 				validation: failure,
 				sendEvent:  false,
 			},
 			{
 				name:       "disabled to enable",
-				srcState:   HostStatusDisabled,
+				srcState:   models.HostStatusDisabled,
 				validation: success,
 				sendEvent:  true,
 			},
 			{
 				name:       "disconnected",
-				srcState:   HostStatusDisconnected,
+				srcState:   models.HostStatusDisconnected,
 				validation: failure,
 				sendEvent:  false,
 			},
 			{
 				name:       "discovering",
-				srcState:   HostStatusDiscovering,
+				srcState:   models.HostStatusDiscovering,
 				validation: failure,
 				sendEvent:  false,
 			},
 			{
 				name:       "error",
-				srcState:   HostStatusError,
+				srcState:   models.HostStatusError,
 				validation: failure,
 				sendEvent:  false,
 			},
 			{
 				name:       "installed",
-				srcState:   HostStatusInstalled,
+				srcState:   models.HostStatusInstalled,
 				validation: failure,
 				sendEvent:  false,
 			},
 			{
 				name:       "installing",
-				srcState:   HostStatusInstalling,
+				srcState:   models.HostStatusInstalling,
 				validation: failure,
 				sendEvent:  false,
 			},
 			{
 				name:       "in-progress",
-				srcState:   HostStatusInstallingInProgress,
+				srcState:   models.HostStatusInstallingInProgress,
 				validation: failure,
 				sendEvent:  false,
 			},
 			{
 				name:       "insufficient",
-				srcState:   HostStatusInsufficient,
+				srcState:   models.HostStatusInsufficient,
 				validation: failure,
 				sendEvent:  false,
 			},
 			{
 				name:       "resetting",
-				srcState:   HostStatusResetting,
+				srcState:   models.HostStatusResetting,
 				validation: failure,
 				sendEvent:  false,
 			},
@@ -1035,8 +1035,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "discovering to disconnected",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  false,
-				srcState:          HostStatusDiscovering,
-				dstState:          HostStatusDisconnected,
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusDisconnected,
 				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationFailure, messagePattern: "Host is disconnected"},
@@ -1056,8 +1056,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "insufficient to disconnected",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  false,
-				srcState:          HostStatusInsufficient,
-				dstState:          HostStatusDisconnected,
+				srcState:          models.HostStatusInsufficient,
+				dstState:          models.HostStatusDisconnected,
 				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationFailure, messagePattern: "Host is disconnected"},
@@ -1077,8 +1077,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "known to disconnected",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  false,
-				srcState:          HostStatusKnown,
-				dstState:          HostStatusDisconnected,
+				srcState:          models.HostStatusKnown,
+				dstState:          models.HostStatusDisconnected,
 				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
 				errorExpected:     false,
 			},
@@ -1086,8 +1086,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "pending to disconnected",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  false,
-				srcState:          HostStatusPendingForInput,
-				dstState:          HostStatusDisconnected,
+				srcState:          models.HostStatusPendingForInput,
+				dstState:          models.HostStatusDisconnected,
 				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationFailure, messagePattern: "Host is disconnected"},
@@ -1107,8 +1107,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "disconnected to disconnected",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  false,
-				srcState:          HostStatusDisconnected,
-				dstState:          HostStatusDisconnected,
+				srcState:          models.HostStatusDisconnected,
+				dstState:          models.HostStatusDisconnected,
 				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationFailure, messagePattern: "Host is disconnected"},
@@ -1128,8 +1128,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "disconnected to discovering",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
-				srcState:          HostStatusDisconnected,
-				dstState:          HostStatusDiscovering,
+				srcState:          models.HostStatusDisconnected,
+				dstState:          models.HostStatusDiscovering,
 				statusInfoChecker: makeValueChecker(statusInfoDiscovering),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1149,8 +1149,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "discovering to discovering",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
-				srcState:          HostStatusDiscovering,
-				dstState:          HostStatusDiscovering,
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusDiscovering,
 				statusInfoChecker: makeValueChecker(statusInfoDiscovering),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1170,8 +1170,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "disconnected to insufficient (1)",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
-				srcState:          HostStatusDisconnected,
-				dstState:          HostStatusInsufficient,
+				srcState:          models.HostStatusDisconnected,
+				dstState:          models.HostStatusInsufficient,
 				statusInfoChecker: makeValueChecker(statusInfoInsufficientHardware),
 				inventory:         insufficientHWInventory(),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1192,8 +1192,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "insufficient to insufficient (1)",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
-				srcState:          HostStatusInsufficient,
-				dstState:          HostStatusInsufficient,
+				srcState:          models.HostStatusInsufficient,
+				dstState:          models.HostStatusInsufficient,
 				statusInfoChecker: makeValueChecker(statusInfoInsufficientHardware),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1214,8 +1214,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "discovering to insufficient (1)",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
-				srcState:          HostStatusDiscovering,
-				dstState:          HostStatusInsufficient,
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusInsufficient,
 				statusInfoChecker: makeValueChecker(statusInfoInsufficientHardware),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1236,8 +1236,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "pending to insufficient (1)",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
-				srcState:          HostStatusPendingForInput,
-				dstState:          HostStatusPendingForInput,
+				srcState:          models.HostStatusPendingForInput,
+				dstState:          models.HostStatusPendingForInput,
 				statusInfoChecker: makeValueChecker(""),
 				inventory:         insufficientHWInventory(),
 				errorExpected:     true,
@@ -1246,8 +1246,8 @@ var _ = Describe("Refresh Host", func() {
 				name:              "known to insufficient (1)",
 				role:              models.HostRoleAutoAssign,
 				validCheckInTime:  true,
-				srcState:          HostStatusKnown,
-				dstState:          HostStatusKnown,
+				srcState:          models.HostStatusKnown,
+				dstState:          models.HostStatusKnown,
 				statusInfoChecker: makeValueChecker(""),
 				inventory:         insufficientHWInventory(),
 				errorExpected:     true,
@@ -1255,8 +1255,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:              "known to pending",
 				validCheckInTime:  true,
-				srcState:          HostStatusKnown,
-				dstState:          HostStatusPendingForInput,
+				srcState:          models.HostStatusKnown,
+				dstState:          models.HostStatusPendingForInput,
 				role:              models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1277,8 +1277,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:              "pending to pending",
 				validCheckInTime:  true,
-				srcState:          HostStatusPendingForInput,
-				dstState:          HostStatusPendingForInput,
+				srcState:          models.HostStatusPendingForInput,
+				dstState:          models.HostStatusPendingForInput,
 				role:              models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1299,8 +1299,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "disconnected to insufficient (2)",
 				validCheckInTime:   true,
-				srcState:           HostStatusDisconnected,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusDisconnected,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1322,8 +1322,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "discovering to insufficient (2)",
 				validCheckInTime:   true,
-				srcState:           HostStatusDiscovering,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusDiscovering,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1345,8 +1345,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "insufficient to insufficient (2)",
 				validCheckInTime:   true,
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1368,8 +1368,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "pending to insufficient (2)",
 				validCheckInTime:   true,
-				srcState:           HostStatusPendingForInput,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusPendingForInput,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1391,8 +1391,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "known to insufficient (2)",
 				validCheckInTime:   true,
-				srcState:           HostStatusKnown,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1414,8 +1414,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "insufficient to insufficient (2)",
 				validCheckInTime:   true,
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1437,8 +1437,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "insufficient to insufficient (localhost)",
 				validCheckInTime:   true,
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1461,8 +1461,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "discovering to known",
 				validCheckInTime:   true,
-				srcState:           HostStatusDiscovering,
-				dstState:           HostStatusKnown,
+				srcState:           models.HostStatusDiscovering,
+				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
@@ -1485,8 +1485,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "insufficient to known",
 				validCheckInTime:   true,
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusKnown,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
@@ -1509,8 +1509,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "pending to known",
 				validCheckInTime:   true,
-				srcState:           HostStatusPendingForInput,
-				dstState:           HostStatusKnown,
+				srcState:           models.HostStatusPendingForInput,
+				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
@@ -1533,8 +1533,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "known to known",
 				validCheckInTime:   true,
-				srcState:           HostStatusKnown,
-				dstState:           HostStatusKnown,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
@@ -1557,8 +1557,8 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:               "known to known with unexpected role",
 				validCheckInTime:   true,
-				srcState:           HostStatusKnown,
-				dstState:           HostStatusKnown,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               "kuku",
 				statusInfoChecker:  makeValueChecker(""),
@@ -1620,7 +1620,7 @@ var _ = Describe("Refresh Host", func() {
 			},
 			{
 				name:          "Timeout",
-				dstState:      HostStatusError,
+				dstState:      models.HostStatusError,
 				statusInfo:    statusInfoPreparingTimedOut,
 				clusterStatus: models.ClusterStatusInstalled,
 			},
@@ -1677,8 +1677,8 @@ var _ = Describe("Refresh Host", func() {
 		}{
 			{
 				name:               "insufficient to known",
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusKnown,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
@@ -1695,14 +1695,14 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
-				otherState:     HostStatusInsufficient,
+				otherState:     models.HostStatusInsufficient,
 				otherInventory: masterInventoryWithHostname("second"),
 				errorExpected:  false,
 			},
 			{
 				name:               "insufficient to insufficient (same hostname) 1",
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1719,14 +1719,14 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
-				otherState:     HostStatusInsufficient,
+				otherState:     models.HostStatusInsufficient,
 				otherInventory: masterInventoryWithHostname("first"),
 				errorExpected:  false,
 			},
 			{
 				name:               "insufficient to insufficient (same hostname) 2",
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1743,15 +1743,15 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
-				otherState:             HostStatusInsufficient,
+				otherState:             models.HostStatusInsufficient,
 				otherInventory:         masterInventoryWithHostname("second"),
 				otherRequestedHostname: "first",
 				errorExpected:          false,
 			},
 			{
 				name:               "insufficient to insufficient (same hostname) 3",
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1769,14 +1769,14 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:         masterInventoryWithHostname("first"),
 				requestedHostname: "second",
-				otherState:        HostStatusInsufficient,
+				otherState:        models.HostStatusInsufficient,
 				otherInventory:    masterInventoryWithHostname("second"),
 				errorExpected:     false,
 			},
 			{
 				name:               "insufficient to insufficient (same hostname) 4",
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1794,15 +1794,15 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
-				otherState:             HostStatusInsufficient,
+				otherState:             models.HostStatusInsufficient,
 				otherInventory:         masterInventoryWithHostname("second"),
 				otherRequestedHostname: "third",
 				errorExpected:          false,
 			},
 			{
 				name:               "insufficient to known 2",
-				srcState:           HostStatusInsufficient,
-				dstState:           HostStatusKnown,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
@@ -1820,7 +1820,7 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
-				otherState:             HostStatusInsufficient,
+				otherState:             models.HostStatusInsufficient,
 				otherInventory:         masterInventoryWithHostname("second"),
 				otherRequestedHostname: "forth",
 				errorExpected:          false,
@@ -1828,8 +1828,8 @@ var _ = Describe("Refresh Host", func() {
 
 			{
 				name:               "known to known",
-				srcState:           HostStatusKnown,
-				dstState:           HostStatusKnown,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
@@ -1846,14 +1846,14 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
-				otherState:     HostStatusInsufficient,
+				otherState:     models.HostStatusInsufficient,
 				otherInventory: masterInventoryWithHostname("second"),
 				errorExpected:  false,
 			},
 			{
 				name:               "known to insufficient (same hostname) 1",
-				srcState:           HostStatusKnown,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1870,14 +1870,14 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
-				otherState:     HostStatusInsufficient,
+				otherState:     models.HostStatusInsufficient,
 				otherInventory: masterInventoryWithHostname("first"),
 				errorExpected:  false,
 			},
 			{
 				name:               "known to insufficient (same hostname) 2",
-				srcState:           HostStatusKnown,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1894,15 +1894,15 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
-				otherState:             HostStatusInsufficient,
+				otherState:             models.HostStatusInsufficient,
 				otherInventory:         masterInventoryWithHostname("second"),
 				otherRequestedHostname: "first",
 				errorExpected:          false,
 			},
 			{
 				name:               "known to insufficient (same hostname) 3",
-				srcState:           HostStatusKnown,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1920,14 +1920,14 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:         masterInventoryWithHostname("first"),
 				requestedHostname: "second",
-				otherState:        HostStatusInsufficient,
+				otherState:        models.HostStatusInsufficient,
 				otherInventory:    masterInventoryWithHostname("second"),
 				errorExpected:     false,
 			},
 			{
 				name:               "known to insufficient (same hostname) 4",
-				srcState:           HostStatusKnown,
-				dstState:           HostStatusInsufficient,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
@@ -1945,15 +1945,15 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
-				otherState:             HostStatusInsufficient,
+				otherState:             models.HostStatusInsufficient,
 				otherInventory:         masterInventoryWithHostname("second"),
 				otherRequestedHostname: "third",
 				errorExpected:          false,
 			},
 			{
 				name:               "known to known 2",
-				srcState:           HostStatusKnown,
-				dstState:           HostStatusKnown,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
@@ -1969,7 +1969,7 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
-				otherState:             HostStatusInsufficient,
+				otherState:             models.HostStatusInsufficient,
 				otherInventory:         masterInventoryWithHostname("first"),
 				otherRequestedHostname: "forth",
 				errorExpected:          false,
@@ -1993,7 +1993,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				expectedSeverity := models.EventSeverityInfo
-				if t.dstState == HostStatusInsufficient {
+				if t.dstState == models.HostStatusInsufficient {
 					expectedSeverity = models.EventSeverityWarning
 				}
 				if !t.errorExpected && srcState != t.dstState {

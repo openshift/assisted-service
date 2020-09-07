@@ -137,7 +137,10 @@ func indexOfStage(element models.HostStage, data []models.HostStage) int {
 // update host role with an option to update only if the current role is srcRole to prevent races
 func updateRole(h *models.Host, role models.HostRole, db *gorm.DB, srcRole *string) error {
 	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient, HostStatusPendingForInput}
+	allowedStatuses := []string{
+		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
+		models.HostStatusInsufficient, models.HostStatusPendingForInput,
+	}
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host is in %s state, host role can be set only in one of %s states",

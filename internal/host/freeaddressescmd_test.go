@@ -29,7 +29,7 @@ var _ = Describe("free_addresses", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = getTestHost(id, clusterId, HostStatusInsufficient)
+		host = getTestHost(id, clusterId, models.HostStatusInsufficient)
 		host.Inventory = defaultInventory()
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})

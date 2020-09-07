@@ -589,7 +589,7 @@ func (c *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) er
 
 func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *common.Cluster) error {
 	for _, chost := range cluster.Hosts {
-		if swag.StringValue(chost.Status) != host.HostStatusKnown {
+		if swag.StringValue(chost.Status) != models.HostStatusKnown {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install",
 				hostutil.GetHostnameForMsg(chost), swag.StringValue(chost.Status)))
 		}
@@ -638,7 +638,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	var cluster common.Cluster
 	var err error
 
-	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).
+	if err = b.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).
 		First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
@@ -663,7 +663,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	}
 
 	// Reload again after refresh
-	if err = b.db.Preload("Hosts", "status <> ?", host.HostStatusDisabled).First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
+	if err = b.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 	// Verify cluster is ready to install
@@ -2208,7 +2208,7 @@ func applyLimit(ret models.FreeAddressesList, limitParam *int64) models.FreeAddr
 
 func (b *bareMetalInventory) getFreeAddresses(ctx context.Context, params installer.GetFreeAddressesParams, log logrus.FieldLogger) (models.FreeAddressesList, error) {
 	var hosts []*models.Host
-	err := b.db.Select("free_addresses").Find(&hosts, identity.AddUserFilter(ctx, "cluster_id = ? and status in (?)"), params.ClusterID.String(), []string{host.HostStatusInsufficient, host.HostStatusKnown}).Error
+	err := b.db.Select("free_addresses").Find(&hosts, identity.AddUserFilter(ctx, "cluster_id = ? and status in (?)"), params.ClusterID.String(), []string{models.HostStatusInsufficient, models.HostStatusKnown}).Error
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Error retreiving hosts for cluster %s", params.ClusterID.String()))
 	}

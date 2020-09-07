@@ -29,7 +29,7 @@ var _ = Describe("stop-podman", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = getTestHost(id, clusterId, HostStatusError)
+		host = getTestHost(id, clusterId, models.HostStatusError)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 

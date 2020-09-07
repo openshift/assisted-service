@@ -32,7 +32,7 @@ var _ = Describe("dhcpallocate", func() {
 
 		id = strfmt.UUID("32b4463e-5f94-4245-87cf-a6948014045c")
 		clusterId = strfmt.UUID("bd9d3b83-80a3-4b94-8b61-c12b2f1a2373")
-		host = getTestHost(id, clusterId, HostStatusInsufficient)
+		host = getTestHost(id, clusterId, models.HostStatusInsufficient)
 		host.Inventory = masterInventory()
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
