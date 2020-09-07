@@ -35,7 +35,7 @@ var _ = Describe("imgexpirer", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		deleteTime, _ := time.ParseDuration("60m")
-		imgExp = NewManager(nil, mockEvents, deleteTime)
+		imgExp = NewManager(nil, mockEvents, deleteTime, nil)
 	})
 	It("callback_valid_objname", func() {
 		clusterId := "53116787-3eb0-4211-93ac-611d5cedaa30"
