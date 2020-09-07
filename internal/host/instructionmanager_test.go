@@ -60,7 +60,7 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("discovering", func() {
 				checkStepsByState(models.HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, ctx,
-					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
+					[]models.StepType{models.StepTypeInventory})
 			})
 			It("known", func() {
 				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, ctx,
@@ -68,7 +68,7 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("disconnected", func() {
 				checkStepsByState(models.HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, ctx,
-					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
+					[]models.StepType{models.StepTypeInventory})
 			})
 			It("insufficient", func() {
 				checkStepsByState(models.HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, ctx,
@@ -106,7 +106,7 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("discovering", func() {
 				checkStepsByState(models.HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, ctx,
-					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
+					[]models.StepType{models.StepTypeInventory})
 			})
 			It("known", func() {
 				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, ctx,
@@ -114,7 +114,7 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("disconnected", func() {
 				checkStepsByState(models.HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, ctx,
-					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck})
+					[]models.StepType{models.StepTypeInventory})
 			})
 			It("insufficient", func() {
 				checkStepsByState(models.HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, ctx,
