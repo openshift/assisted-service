@@ -50,18 +50,16 @@ func (t *Thread) Stop() {
 }
 
 func (t *Thread) loop() {
-	intervalTimer := time.NewTimer(0)
-
 	defer close(t.done)
-	defer intervalTimer.Stop()
+	ticker := time.NewTicker(t.interval)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-t.done:
 			return
-		case <-intervalTimer.C:
+		case <-ticker.C:
 			t.exec()
-			intervalTimer.Reset(t.interval)
 		}
 	}
 }

@@ -8,6 +8,12 @@ import (
 )
 
 func (m *Manager) HostMonitoring() {
+	if !m.leaderElector.IsLeader() {
+		m.log.Debugf("Not a leader, exiting HostMonitoring")
+		return
+	}
+
+	m.log.Debugf("Running HostMonitoring")
 	var (
 		hosts     []*models.Host
 		requestID = requestid.NewID()
@@ -32,6 +38,10 @@ func (m *Manager) HostMonitoring() {
 		return
 	}
 	for _, host := range hosts {
+		if !m.leaderElector.IsLeader() {
+			m.log.Debugf("Not a leader, exiting HostMonitoring")
+			return
+		}
 		if err := m.RefreshStatus(ctx, host, m.db); err != nil {
 			log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
 		}

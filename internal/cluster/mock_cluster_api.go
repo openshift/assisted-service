@@ -12,7 +12,6 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
-
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 )
 

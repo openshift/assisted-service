@@ -7,7 +7,7 @@ spec:
   selector:
     matchLabels:
       app: assisted-service
-  replicas: 1
+  replicas: 3
   template:
     metadata:
       labels:
