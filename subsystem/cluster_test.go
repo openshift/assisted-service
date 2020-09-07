@@ -681,7 +681,7 @@ var _ = Describe("cluster install", func() {
 
 			By("Verify the db has been updated", func() {
 				hostInDb := getHost(clusterID, *hostID)
-				Expect(*hostInDb.Status).Should(Equal(host.HostStatusInstallingInProgress))
+				Expect(*hostInDb.Status).Should(Equal(models.HostStatusInstallingInProgress))
 				Expect(*hostInDb.StatusInfo).Should(Equal(string(installProgress)))
 				Expect(hostInDb.InstallationDiskPath).ShouldNot(BeEmpty())
 				Expect(hostInDb.Inventory).ShouldNot(BeEmpty())
@@ -712,7 +712,7 @@ var _ = Describe("cluster install", func() {
 
 			By("Verify the db has been updated", func() {
 				hostInDb := getHost(clusterID, *hostID)
-				Expect(*hostInDb.Status).Should(Equal(host.HostStatusInstallingInProgress))
+				Expect(*hostInDb.Status).Should(Equal(models.HostStatusInstallingInProgress))
 				Expect(*hostInDb.StatusInfo).Should(Equal(string(installProgress)))
 			})
 		})
@@ -825,7 +825,7 @@ var _ = Describe("cluster install", func() {
 				updateProgressWithInfo(*hosts[0].ID, clusterID, installProgress, installInfo)
 				hostFromDB := getHost(clusterID, *hosts[0].ID)
 
-				Expect(*hostFromDB.Status).Should(Equal(host.HostStatusInstallingInProgress))
+				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
 				Expect(*hostFromDB.StatusInfo).Should(Equal(string(installProgress)))
 				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(installProgress))
 				Expect(hostFromDB.Progress.ProgressInfo).Should(Equal(installInfo))
@@ -836,7 +836,7 @@ var _ = Describe("cluster install", func() {
 				updateProgress(*hosts[0].ID, clusterID, installProgress)
 				hostFromDB := getHost(clusterID, *hosts[0].ID)
 
-				Expect(*hostFromDB.Status).Should(Equal(host.HostStatusInstalled))
+				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstalled))
 				Expect(*hostFromDB.StatusInfo).Should(Equal(string(installProgress)))
 				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(installProgress))
 				Expect(hostFromDB.Progress.ProgressInfo).Should(BeEmpty())
@@ -863,7 +863,7 @@ var _ = Describe("cluster install", func() {
 				updateProgress(*hosts[1].ID, clusterID, installProgress)
 				hostFromDB := getHost(clusterID, *hosts[1].ID)
 
-				Expect(*hostFromDB.Status).Should(Equal(host.HostStatusInstallingInProgress))
+				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
 				Expect(*hostFromDB.StatusInfo).Should(Equal(string(installProgress)))
 				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(installProgress))
 				Expect(hostFromDB.Progress.ProgressInfo).Should(BeEmpty())
@@ -889,7 +889,7 @@ var _ = Describe("cluster install", func() {
 				updateProgressWithInfo(*hosts[1].ID, clusterID, installProgress, installInfo)
 				hostFromDB := getHost(clusterID, *hosts[1].ID)
 
-				Expect(*hostFromDB.Status).Should(Equal(host.HostStatusError))
+				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusError))
 				Expect(*hostFromDB.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", installProgress, installInfo)))
 				Expect(hostFromDB.Progress.CurrentStage).Should(Equal(models.HostStageWritingImageToDisk)) // Last stage
 				Expect(hostFromDB.Progress.ProgressInfo).Should(BeEmpty())
@@ -1989,7 +1989,7 @@ var _ = Describe("cluster install", func() {
 		h4 := registerHost(clusterID)
 		generateHWPostStepReply(h4, validHwInfo, "h3")
 		h4 = getHost(clusterID, *h4.ID)
-		waitForHostState(ctx, clusterID, *h4.ID, host.HostStatusInsufficient, time.Minute)
+		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusInsufficient, time.Minute)
 		waitForHostState(ctx, clusterID, *h3.ID, models.HostStatusInsufficient, time.Minute)
 
 		By("Check cluster install fails on validation")
@@ -2000,7 +2000,7 @@ var _ = Describe("cluster install", func() {
 		h5 := registerHost(clusterID)
 		generateHWPostStepReply(h5, validHwInfo, "reqh0")
 		h5 = getHost(clusterID, *h5.ID)
-		waitForHostState(ctx, clusterID, *h5.ID, host.HostStatusInsufficient, time.Minute)
+		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusInsufficient, time.Minute)
 		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, time.Minute)
 
 		By("Change requested hostname of an insufficient node")

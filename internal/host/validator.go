@@ -67,7 +67,7 @@ func bytesToGiB(bytes int64) int64 {
 
 func (c *validationContext) loadCluster() error {
 	var cluster common.Cluster
-	err := c.db.Preload("Hosts", "status <> ?", HostStatusDisabled).Take(&cluster, "id = ?", c.host.ClusterID.String()).Error
+	err := c.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Take(&cluster, "id = ?", c.host.ClusterID.String()).Error
 	if err == nil {
 		c.cluster = &cluster
 	}

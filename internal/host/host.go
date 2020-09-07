@@ -25,21 +25,6 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-const (
-	HostStatusDiscovering                 = "discovering"
-	HostStatusKnown                       = "known"
-	HostStatusDisconnected                = "disconnected"
-	HostStatusInsufficient                = "insufficient"
-	HostStatusDisabled                    = "disabled"
-	HostStatusInstalling                  = "installing"
-	HostStatusInstallingInProgress        = "installing-in-progress"
-	HostStatusInstallingPendingUserAction = "installing-pending-user-action"
-	HostStatusInstalled                   = "installed"
-	HostStatusError                       = "error"
-	HostStatusResetting                   = "resetting"
-	HostStatusPendingForInput             = "pending-for-input"
-)
-
 var BootstrapStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
 	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane,
@@ -169,8 +154,10 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
 	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
-		models.HostStatusInsufficient, models.HostStatusPendingForInput}
+	allowedStatuses := []string{
+		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
+		models.HostStatusInsufficient, models.HostStatusPendingForInput,
+	}
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
 		return common.NewApiError(http.StatusConflict,
 			errors.Errorf("Host is in %s state, host can be updated only in one of %s states",
@@ -233,7 +220,9 @@ func (m *Manager) GetNextSteps(ctx context.Context, host *models.Host) (models.S
 }
 
 func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error {
-	validStatuses := []string{HostStatusInstalling, HostStatusInstallingInProgress, HostStatusInstallingPendingUserAction}
+	validStatuses := []string{
+		models.HostStatusInstalling, models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction,
+	}
 	if !funk.ContainsString(validStatuses, swag.StringValue(h.Status)) {
 		return fmt.Errorf("can't set progress to host in status <%s>", swag.StringValue(h.Status))
 	}
@@ -259,7 +248,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	switch progress.CurrentStage {
 	case models.HostStageDone:
 		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
-			swag.StringValue(h.Status), HostStatusInstalled, statusInfo,
+			swag.StringValue(h.Status), models.HostStatusInstalled, statusInfo,
 			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 	case models.HostStageFailed:
 		// Keeps the last progress
@@ -269,10 +258,10 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		}
 
 		_, err = updateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
-			swag.StringValue(h.Status), HostStatusError, statusInfo)
+			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 	default:
 		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
-			swag.StringValue(h.Status), HostStatusInstallingInProgress, statusInfo,
+			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
 			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 	}
 	m.reportInstallationMetrics(ctx, h, previousProgress, progress.CurrentStage)
@@ -317,8 +306,10 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.Ho
 
 func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
 	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient,
-		HostStatusPendingForInput}
+	allowedStatuses := []string{
+		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
+		models.HostStatusInsufficient, models.HostStatusPendingForInput,
+	}
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host is in %s state, host name can be set only in one of %s states",

@@ -82,47 +82,47 @@ var _ = Describe("update_role", func() {
 		}{
 			{
 				name:     "discovering",
-				srcState: HostStatusDiscovering,
+				srcState: models.HostStatusDiscovering,
 				testFunc: success,
 			},
 			{
 				name:     "known",
-				srcState: HostStatusKnown,
+				srcState: models.HostStatusKnown,
 				testFunc: success,
 			},
 			{
 				name:     "disconnected",
-				srcState: HostStatusDisconnected,
+				srcState: models.HostStatusDisconnected,
 				testFunc: success,
 			},
 			{
 				name:     "insufficient",
-				srcState: HostStatusInsufficient,
+				srcState: models.HostStatusInsufficient,
 				testFunc: success,
 			},
 			{
 				name:     "disabled",
-				srcState: HostStatusDisabled,
+				srcState: models.HostStatusDisabled,
 				testFunc: failure,
 			},
 			{
 				name:     "error",
-				srcState: HostStatusError,
+				srcState: models.HostStatusError,
 				testFunc: failure,
 			},
 			{
 				name:     "installing",
-				srcState: HostStatusInstalling,
+				srcState: models.HostStatusInstalling,
 				testFunc: failure,
 			},
 			{
 				name:     "installed",
-				srcState: HostStatusInstalled,
+				srcState: models.HostStatusInstalled,
 				testFunc: failure,
 			},
 			{
 				name:     "installing-in-progress",
-				srcState: HostStatusInstallingInProgress,
+				srcState: models.HostStatusInstallingInProgress,
 				testFunc: failure,
 			},
 		}
@@ -136,7 +136,7 @@ var _ = Describe("update_role", func() {
 	})
 
 	It("update role with transaction", func() {
-		host = getTestHost(id, clusterID, HostStatusKnown)
+		host = getTestHost(id, clusterID, models.HostStatusKnown)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		By("rollback transaction", func() {
 			tx := db.Begin()
@@ -157,7 +157,7 @@ var _ = Describe("update_role", func() {
 	})
 
 	It("update role master to worker", func() {
-		host = getTestHost(id, clusterID, HostStatusKnown)
+		host = getTestHost(id, clusterID, models.HostStatusKnown)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, nil)).NotTo(HaveOccurred())
 		h := getHost(id, clusterID, db)
@@ -209,7 +209,7 @@ var _ = Describe("update_progress", func() {
 			ctrl = gomock.NewController(GinkgoT())
 			mockMetric = metrics.NewMockAPI(ctrl)
 			setDefaultReportHostInstallationMetrics(mockMetric)
-			host.Status = swag.String(HostStatusInstalling)
+			host.Status = swag.String(models.HostStatusInstalling)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		})
@@ -222,7 +222,7 @@ var _ = Describe("update_progress", func() {
 					gomock.Any())
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
-				Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
+				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
 			})
 
 			It("writing to disk", func() {
@@ -234,7 +234,7 @@ var _ = Describe("update_progress", func() {
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
-				Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
+				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
 			})
 
 			It("done", func() {
@@ -245,7 +245,7 @@ var _ = Describe("update_progress", func() {
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
-				Expect(*hostFromDB.Status).Should(Equal(HostStatusInstalled))
+				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstalled))
 			})
 
 			AfterEach(func() {
@@ -265,7 +265,7 @@ var _ = Describe("update_progress", func() {
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
 
-				Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
+				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusError))
 				Expect(*hostFromDB.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", progress.CurrentStage, progress.ProgressInfo)))
 			})
 
@@ -278,7 +278,7 @@ var _ = Describe("update_progress", func() {
 					gomock.Any())
 				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 				hostFromDB = getHost(*host.ID, host.ClusterID, db)
-				Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
+				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusError))
 				Expect(*hostFromDB.StatusInfo).Should(Equal(string(progress.CurrentStage)))
 			})
 
@@ -292,7 +292,7 @@ var _ = Describe("update_progress", func() {
 						gomock.Any())
 					Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
 					hostFromDB = getHost(*host.ID, host.ClusterID, db)
-					Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
+					Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
 					Expect(*hostFromDB.StatusInfo).Should(Equal(string(progress.CurrentStage)))
 
 					Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
@@ -310,7 +310,7 @@ var _ = Describe("update_progress", func() {
 						gomock.Any())
 					Expect(state.UpdateInstallProgress(ctx, hostFromDB, &newProgress)).ShouldNot(HaveOccurred())
 					hostFromDB = getHost(*host.ID, host.ClusterID, db)
-					Expect(*hostFromDB.Status).Should(Equal(HostStatusError))
+					Expect(*hostFromDB.Status).Should(Equal(models.HostStatusError))
 					Expect(*hostFromDB.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", newProgress.CurrentStage, newProgress.ProgressInfo)))
 
 					Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
@@ -321,7 +321,7 @@ var _ = Describe("update_progress", func() {
 			It("lower_stage", func() {
 				verifyDb := func() {
 					hostFromDB = getHost(*host.ID, host.ClusterID, db)
-					Expect(*hostFromDB.Status).Should(Equal(HostStatusInstallingInProgress))
+					Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
 					Expect(*hostFromDB.StatusInfo).Should(Equal(string(progress.CurrentStage)))
 
 					Expect(hostFromDB.Progress.CurrentStage).Should(Equal(progress.CurrentStage))
@@ -378,7 +378,7 @@ var _ = Describe("monitor_disconnection", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig)
 		clusterID := strfmt.UUID(uuid.New().String())
-		host = getTestHost(strfmt.UUID(uuid.New().String()), clusterID, HostStatusDiscovering)
+		host = getTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
 		cluster := getTestCluster(clusterID, "1.1.0.0/16")
 		Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
 		host.Inventory = workerInventory()
@@ -394,19 +394,19 @@ var _ = Describe("monitor_disconnection", func() {
 	Context("host_disconnecting", func() {
 		It("known_host_disconnects", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
-			host.Status = swag.String(HostStatusKnown)
+			host.Status = swag.String(models.HostStatusKnown)
 			db.Save(&host)
 		})
 
 		It("discovering_host_disconnects", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
-			host.Status = swag.String(HostStatusDiscovering)
+			host.Status = swag.String(models.HostStatusDiscovering)
 			db.Save(&host)
 		})
 
 		It("known_host_insufficient", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
-			host.Status = swag.String(HostStatusInsufficient)
+			host.Status = swag.String(models.HostStatusInsufficient)
 			db.Save(&host)
 		})
 
@@ -417,7 +417,7 @@ var _ = Describe("monitor_disconnection", func() {
 				gomock.Any())
 			state.HostMonitoring()
 			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
-			Expect(*host.Status).Should(Equal(HostStatusDisconnected))
+			Expect(*host.Status).Should(Equal(models.HostStatusDisconnected))
 		})
 	})
 
@@ -425,7 +425,7 @@ var _ = Describe("monitor_disconnection", func() {
 		It("host_connects", func() {
 			host.CheckedInAt = strfmt.DateTime(time.Now())
 			host.Inventory = ""
-			host.Status = swag.String(HostStatusDisconnected)
+			host.Status = swag.String(models.HostStatusDisconnected)
 			db.Save(&host)
 		})
 
@@ -435,7 +435,7 @@ var _ = Describe("monitor_disconnection", func() {
 				gomock.Any())
 			state.HostMonitoring()
 			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
-			Expect(*host.Status).Should(Equal(HostStatusDiscovering))
+			Expect(*host.Status).Should(Equal(models.HostStatusDiscovering))
 		})
 	})
 
@@ -461,7 +461,7 @@ var _ = Describe("cancel installation", func() {
 		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil, defaultConfig)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
-		h = getTestHost(id, clusterId, HostStatusDiscovering)
+		h = getTestHost(id, clusterId, models.HostStatusDiscovering)
 	})
 
 	AfterEach(func() {
@@ -571,7 +571,7 @@ var _ = Describe("reset host", func() {
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
-			Expect(*h.Status).Should(Equal(HostStatusDiscovering))
+			Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
 		})
 
 		It("reset pending user action - passed timeout", func() {
@@ -631,7 +631,7 @@ var _ = Describe("reset host", func() {
 		It("nothing_to_reset", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
-			h = getTestHost(id, clusterId, HostStatusDiscovering)
+			h = getTestHost(id, clusterId, models.HostStatusDiscovering)
 			reply := state.ResetHost(ctx, &h, "some reason", db)
 			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
 			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
@@ -644,7 +644,7 @@ var _ = Describe("reset host", func() {
 		It("reset pending user action failure", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
-			h = getTestHost(id, clusterId, HostStatusInstalling)
+			h = getTestHost(id, clusterId, models.HostStatusInstalling)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.IsRequireUserActionReset(&h)).Should(Equal(false))
 			Expect(state.ResetPendingUserAction(ctx, &h, db)).Should(HaveOccurred())
@@ -1033,7 +1033,7 @@ var _ = Describe("SetBootstrap", func() {
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 
-		host = getTestHost(hostId, clusterId, HostStatusResetting)
+		host = getTestHost(hostId, clusterId, models.HostStatusResetting)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 		h := getHost(*host.ID, host.ClusterID, db)
