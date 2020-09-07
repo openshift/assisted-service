@@ -1638,18 +1638,15 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 	if !b.objectHandler.IsAwsS3() {
 		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
 	}
+	var err error
 	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID, params.FileName)
 
 	if params.FileName == "logs" {
-		if params.HostID == nil {
-			return common.NewApiError(http.StatusBadRequest, errors.Errorf("HostId were not provided"))
-		}
-		host, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+		fullFileName, err = b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID)
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
-		fullFileName = b.getLogsFullName(params.ClusterID.String(), host.ID.String())
-	} else if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
+	} else if err = b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -1687,6 +1684,24 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig, contentLength)
+}
+
+func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID) (string, error) {
+	var fileName string
+	if hostId != nil {
+		host, err := b.getHost(ctx, clusterId.String(), hostId.String())
+		if err != nil {
+			return "", err
+		}
+		fileName = b.getLogsFullName(clusterId.String(), host.ID.String())
+	} else {
+		var err error
+		fileName, err = b.prepareClusterLogs(ctx, clusterId.String())
+		if err != nil {
+			return "", err
+		}
+	}
+	return fileName, nil
 }
 
 func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID, fileName string) error {
@@ -2314,12 +2329,7 @@ func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params instal
 func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Downloading logs from cluster %s", params.ClusterID)
-	c, err := b.getCluster(ctx, params.ClusterID.String())
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	fileName, err := b.clusterApi.CreateTarredClusterLogs(ctx, c, b.objectHandler)
+	fileName, err := b.prepareClusterLogs(ctx, params.ClusterID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -2336,6 +2346,19 @@ func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params ins
 	}
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(respBody), fileName, contentLength)
+}
+
+func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, clusterId string) (string, error) {
+	c, err := b.getCluster(ctx, clusterId)
+	if err != nil {
+		return "", err
+	}
+
+	fileName, err := b.clusterApi.CreateTarredClusterLogs(ctx, c, b.objectHandler)
+	if err != nil {
+		return "", err
+	}
+	return fileName, nil
 }
 
 func (b *bareMetalInventory) getLogsFullName(clusterId string, hostId string) string {

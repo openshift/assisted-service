@@ -2580,15 +2580,6 @@ var _ = Describe("Upload and Download logs test", func() {
 		downloadFileName := fmt.Sprintf("%s_%s", hostutil.GetHostnameForMsg(&host), filepath.Base(fileName))
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(r), downloadFileName, 4)))
 	})
-
-	It("Logs presigned no host id", func() {
-		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
-			ClusterID: clusterID,
-			FileName:  "logs",
-		})
-		verifyApiError(generateReply, http.StatusBadRequest)
-	})
 	It("Logs presigned host not found", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
@@ -2664,6 +2655,29 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.DownloadClusterLogs(ctx, params)
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(r), fileName, 4)))
+	})
+
+	It("Logs presigned cluster logs failed", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  "logs",
+		})
+		verifyApiError(generateReply, http.StatusInternalServerError)
+	})
+
+	It("Logs presigned cluster logs happy flow", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("tarred", nil)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, "tarred", gomock.Any()).Return("url", nil)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  "logs",
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
+		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
+		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
 
 })
