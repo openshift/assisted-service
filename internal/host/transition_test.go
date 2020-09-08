@@ -1021,7 +1021,7 @@ var _ = Describe("Refresh Host", func() {
 	Context("host installation timeout", func() {
 		var srcState string
 
-		hostStatuses := []string{HostStatusInstalling, HostStatusInstallingInProgress}
+		hostStatuses := []string{models.HostStatusInstalling, models.HostStatusInstallingInProgress}
 		installationStages := []models.HostStage{
 			models.HostStageStartingInstallation,
 			models.HostStageWritingImageToDisk,
@@ -1053,7 +1053,7 @@ var _ = Describe("Refresh Host", func() {
 					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 					cluster = getTestCluster(clusterId, "1.2.3.0/24")
 					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, common.GetEventSeverityFromHostStatus(models.HostStatusError),
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
 						gomock.Any(), gomock.Any())
 					err := hapi.RefreshStatus(ctx, &host, db)
 
