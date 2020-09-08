@@ -2,6 +2,7 @@ package installcfg
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strconv"
 
@@ -224,7 +225,7 @@ func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error
 	return nil
 }
 
-func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
+func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
 	cfg := getBasicInstallConfig(cluster)
 	err := setBMPlatformInstallconfig(log, cluster, cfg)
 	if err != nil {
@@ -234,6 +235,9 @@ func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, 
 	err = applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
 	if err != nil {
 		return nil, err
+	}
+	if addRhCa {
+		cfg.AdditionalTrustBundle = fmt.Sprintf(` | %s`, ca)
 	}
 
 	return yaml.Marshal(*cfg)
