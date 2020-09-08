@@ -1,6 +1,7 @@
 package validations
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -259,6 +260,51 @@ var _ = Describe("Proxy validations", func() {
 			Expect(err).ShouldNot(BeNil())
 		})
 	})
+})
+
+var _ = Describe("dns name", func() {
+	tests := []struct {
+		domainName string
+		valid      bool
+	}{
+		{
+			domainName: "a.com",
+			valid:      true,
+		},
+		{
+			domainName: "a",
+			valid:      false,
+		},
+		{
+			domainName: "co",
+			valid:      false,
+		},
+		{
+			domainName: "aaa",
+			valid:      false,
+		},
+		{
+			domainName: "abc.def",
+			valid:      true,
+		},
+		{
+			domainName: "-aaa.com",
+			valid:      false,
+		},
+		{
+			domainName: "a-aa.com",
+			valid:      true,
+		},
+	}
+	for _, t := range tests {
+		It(fmt.Sprintf("Domain name \"%s\"", t.domainName), func() {
+			if t.valid {
+				Expect(validateDomainNameFormat(t.domainName)).ToNot(HaveOccurred())
+			} else {
+				Expect(validateDomainNameFormat(t.domainName)).To(HaveOccurred())
+			}
+		})
+	}
 })
 
 func TestCluster(t *testing.T) {
