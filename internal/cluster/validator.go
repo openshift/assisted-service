@@ -326,18 +326,28 @@ func (v *clusterValidator) printSufficientMastersCount(context *clusterPreproces
 }
 
 func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext) validationStatus {
+	numberOfEnabledHosts := 0
 	foundNotKnownHost := false
 	for _, host := range c.cluster.Hosts {
-		if swag.StringValue(host.Status) != models.HostStatusDisabled && swag.StringValue(host.Status) != models.HostStatusKnown {
-			foundNotKnownHost = true
-			break
+		if swag.StringValue(host.Status) != models.HostStatusDisabled {
+			numberOfEnabledHosts++
+			if swag.StringValue(host.Status) != models.HostStatusKnown {
+				foundNotKnownHost = true
+			}
+
 		}
 	}
+	if numberOfEnabledHosts < common.MinMasterHostsNeededForInstallation {
+		return ValidationPending
+	}
+
 	return boolValue(!foundNotKnownHost)
 }
 
 func (v *clusterValidator) printAllHostsAreReadyToInstall(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
+	case ValidationPending:
+		return "Not enough discovered hosts"
 	case ValidationSuccess:
 		return "All hosts in the cluster are ready to install."
 	case ValidationFailure:

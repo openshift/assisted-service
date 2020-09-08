@@ -379,6 +379,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		hid4 = strfmt.UUID(uuid.New().String())
 		hid5 = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
+
+		mockHostAPIIsValidMasterCandidateTrue()
 	})
 	Context("All transitions", func() {
 		var srcState string
@@ -588,6 +590,36 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 					SufficientMastersCount: {status: ValidationFailure,
 						messagePattern: fmt.Sprintf("Clusters with less than %d dedicated masters or a single worker are not supported",
+							common.MinMasterHostsNeededForInstallation)},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "pending-for-input to insufficient - Not enough discovered hosts",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					AllHostsAreReadyToInstall:           {status: ValidationPending, messagePattern: "Not enough discovered hosts"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
+					SufficientMastersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("no sufficient count of master hosts candidates expected %d",
 							common.MinMasterHostsNeededForInstallation)},
 				}),
 				errorExpected: false,
@@ -970,6 +1002,11 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
+
+	mockHostAPIIsValidMasterCandidateTrue := func() {
+		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+	}
+
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
