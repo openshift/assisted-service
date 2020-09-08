@@ -76,6 +76,12 @@ skipper make unit-test
 skipper make unit-test TEST=./internal/host
 ```
 
+### Run unit tests with regex
+
+```shell
+skipper make unit-test FOCUS=cluster
+```
+
 ### Update service for the subsystem tests
 
 if you are making changes and don't want to deploy everything once again you can simply run this command:
