@@ -419,7 +419,7 @@ func (th *transitionHandler) HasInstallationTimedOut(sw stateswitch.StateSwitch,
 	}
 	maxDuration, ok := InstallationProgressTimeout[sHost.host.Progress.CurrentStage]
 	if !ok {
-		return false, nil
+		maxDuration = InstallationProgressTimeout["DEFAULT"]
 	}
 	return time.Since(time.Time(sHost.host.Progress.StageStartedAt)) > maxDuration, nil
 }

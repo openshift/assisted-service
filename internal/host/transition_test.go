@@ -1021,23 +1021,27 @@ var _ = Describe("Refresh Host", func() {
 	Context("host installation timeout", func() {
 		var srcState string
 
-		hostStatuses := []string{models.HostStatusInstalling, models.HostStatusInstallingInProgress}
 		installationStages := []models.HostStage{
 			models.HostStageStartingInstallation,
 			models.HostStageWritingImageToDisk,
 			models.HostStageRebooting,
 			models.HostStageConfiguring,
 			models.HostStageWaitingForIgnition,
-			models.HostStageInstalling}
+			models.HostStageInstalling,
+			"not_mentioned_stage",
+		}
+		timePassedTypes := map[string]time.Duration{
+			"under_timeout": 5 * time.Minute,
+			"over_timeout":  1 * time.Hour,
+		}
 
-		for i := range hostStatuses {
-			status := hostStatuses[i]
-			for j := range installationStages {
-				stage := installationStages[j]
-				name := fmt.Sprintf("installation stage %s at %s", stage, status)
+		for j := range installationStages {
+			stage := installationStages[j]
+			for passedTimeKind, passedTime := range timePassedTypes {
+				name := fmt.Sprintf("installation stage %s %s", stage, passedTimeKind)
 				It(name, func() {
 					hostCheckInAt := strfmt.DateTime(time.Now())
-					srcState = status
+					srcState = models.HostStatusInstallingInProgress
 					host = getTestHost(hostId, clusterId, srcState)
 					host.Inventory = masterInventory()
 					host.Role = models.HostRoleMaster
@@ -1045,7 +1049,7 @@ var _ = Describe("Refresh Host", func() {
 
 					progress := models.HostProgressInfo{
 						CurrentStage:   stage,
-						StageStartedAt: strfmt.DateTime(time.Now().Add(-1 * time.Hour)),
+						StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
 					}
 
 					host.Progress = &progress
@@ -1061,11 +1065,14 @@ var _ = Describe("Refresh Host", func() {
 					var resultHost models.Host
 					Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
 
-					Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
-
-					timeFormat := InstallationProgressTimeout[stage].String()
-					info := fmt.Sprintf("Host failed to install because its installation stage %s took longer than expected %s", stage, timeFormat)
-					Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+					if passedTimeKind == "under_timeout" {
+						Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingInProgress))
+					} else {
+						Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
+						timeFormat := InstallationProgressTimeout[stage].String()
+						info := fmt.Sprintf("Host failed to install because its installation stage %s took longer than expected %s", stage, timeFormat)
+						Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+					}
 
 				})
 			}

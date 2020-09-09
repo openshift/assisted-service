@@ -56,6 +56,7 @@ var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 	models.HostStageConfiguring:          30 * time.Minute,
 	models.HostStageWaitingForIgnition:   60 * time.Minute,
 	models.HostStageInstalling:           20 * time.Minute,
+	"DEFAULT":                            60 * time.Minute,
 }
 
 type Config struct {
