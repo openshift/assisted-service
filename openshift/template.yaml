@@ -84,6 +84,8 @@ parameters:
   required: true
 - name: REPLICAS_COUNT
   value: "3"
+- name: RELEASE_TAG
+  value: ''
 apiVersion: v1
 kind: Template
 metadata:
@@ -245,6 +247,8 @@ objects:
                 value: ${LOG_LEVEL}
               - name: INSTALL_RH_CA
                 value: ${INSTALL_RH_CA}
+              - name: RELEASE_TAG
+                value: ${RELEASE_TAG}
               - name: AWS_SHARED_CREDENTIALS_FILE
                 value: /etc/.aws/credentials
             volumeMounts:
