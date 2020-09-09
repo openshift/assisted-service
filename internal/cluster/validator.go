@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -65,6 +66,10 @@ func newClusterValidationContext(clusterId strfmt.UUID, db *gorm.DB) (*clusterPr
 		return nil, err
 	}
 	return ret, nil
+}
+
+func isDhcpLeaseAllocationTimedOut(c *clusterPreprocessContext) bool {
+	return c.cluster.MachineNetworkCidrUpdatedAt.String() != "" && time.Since(c.cluster.MachineNetworkCidrUpdatedAt) > DhcpLeaseTimeoutMinutes*time.Minute
 }
 
 func boolValue(b bool) validationStatus {
@@ -164,7 +169,11 @@ func (v *clusterValidator) printIsApiVipDefined(context *clusterPreprocessContex
 		return "Machine network CIDR is undefined"
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
-			return "API VIP is undefined; after the machine network CIDR has been defined, the API VIP is received from DHCP lease allocation task which may take up to 2 minutes"
+			if isDhcpLeaseAllocationTimedOut(context) {
+				return "API VIP is undefined; API VIP IP allocation from DHCP server has been timed out"
+			} else {
+				return "API VIP is undefined; after the machine network CIDR has been defined, the API VIP is received from DHCP lease allocation task which may take up to 2 minutes"
+			}
 		} else {
 			return "API VIP is undefined and must be provided"
 		}
@@ -210,7 +219,11 @@ func (v *clusterValidator) printIsIngressVipDefined(context *clusterPreprocessCo
 		return "Machine network CIDR is undefined"
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
-			return "Ingress VIP is undefined; after the machine network CIDR has been defined, the Ingress VIP is received from DHCP lease allocation task which may take up to 2 minutes"
+			if isDhcpLeaseAllocationTimedOut(context) {
+				return "Ingress VIP is undefined; Ingress VIP IP allocation from DHCP server has been timed out"
+			} else {
+				return "Ingress VIP is undefined; after the machine network CIDR has been defined, the Ingress VIP is received from DHCP lease allocation task which may take up to 2 minutes"
+			}
 		} else {
 			return "Ingress VIP is undefined and must be provided"
 		}

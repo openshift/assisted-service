@@ -995,6 +995,11 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	return installer.NewUpdateClusterCreated().WithPayload(&cluster.Cluster)
 }
 
+func setMachineNetworkCIDRForUpdate(updates map[string]interface{}, machineNetworkCIDR string) {
+	updates["machine_network_cidr"] = machineNetworkCIDR
+	updates["machine_network_cidr_updated_at"] = time.Now()
+}
+
 func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
@@ -1018,7 +1023,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	updates["machine_network_cidr"] = *machineCidr
+	setMachineNetworkCIDRForUpdate(updates, *machineCidr)
 
 	err = network.VerifyVips(cluster.Hosts, *machineCidr, apiVip, ingressVip, false, log)
 	if err != nil {
@@ -1042,7 +1047,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	if params.ClusterUpdateParams.MachineNetworkCidr != nil &&
 		*machineCidr != swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr) {
 		*machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
-		updates["machine_network_cidr"] = *machineCidr
+		setMachineNetworkCIDRForUpdate(updates, *machineCidr)
 		updates["api_vip"] = ""
 		updates["ingress_vip"] = ""
 		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr), cluster.Hosts, log)
@@ -1097,8 +1102,8 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		updates["vip_dhcp_allocation"] = vipDhcpAllocation
 		updates["api_vip"] = ""
 		updates["ingress_vip"] = ""
-		updates["machine_network_cidr"] = ""
 		machineCidr = ""
+		setMachineNetworkCIDRForUpdate(updates, machineCidr)
 	}
 	if vipDhcpAllocation {
 		err = b.updateDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
@@ -1124,7 +1129,6 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 			updates["pull_secret_set"] = false
 		}
 	}
-
 	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", params.ClusterID))

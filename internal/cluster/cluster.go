@@ -26,6 +26,8 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+const DhcpLeaseTimeoutMinutes = 2
+
 //go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go
 
 type RegistrationAPI interface {
@@ -75,16 +77,17 @@ type Config struct {
 
 type Manager struct {
 	Config
-	log             logrus.FieldLogger
-	db              *gorm.DB
-	registrationAPI RegistrationAPI
-	installationAPI InstallationAPI
-	eventsHandler   events.Handler
-	sm              stateswitch.StateMachine
-	metricAPI       metrics.API
-	hostAPI         host.API
-	rp              *refreshPreprocessor
-	leaderElector   leader.Leader
+	log                  logrus.FieldLogger
+	db                   *gorm.DB
+	registrationAPI      RegistrationAPI
+	installationAPI      InstallationAPI
+	eventsHandler        events.Handler
+	sm                   stateswitch.StateMachine
+	metricAPI            metrics.API
+	hostAPI              host.API
+	rp                   *refreshPreprocessor
+	leaderElector        leader.Leader
+	prevMonitorInvokedAt time.Time
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hostAPI host.API, metricApi metrics.API,
@@ -95,16 +98,17 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		prepareConfig: cfg.PrepareConfig,
 	}
 	return &Manager{
-		log:             log,
-		db:              db,
-		registrationAPI: NewRegistrar(log, db),
-		installationAPI: NewInstaller(log, db),
-		eventsHandler:   eventsHandler,
-		sm:              NewClusterStateMachine(th),
-		metricAPI:       metricApi,
-		rp:              newRefreshPreprocessor(log, hostAPI),
-		hostAPI:         hostAPI,
-		leaderElector:   leaderElector,
+		log:                  log,
+		db:                   db,
+		registrationAPI:      NewRegistrar(log, db),
+		installationAPI:      NewInstaller(log, db),
+		eventsHandler:        eventsHandler,
+		sm:                   NewClusterStateMachine(th),
+		metricAPI:            metricApi,
+		rp:                   newRefreshPreprocessor(log, hostAPI),
+		hostAPI:              hostAPI,
+		leaderElector:        leaderElector,
+		prevMonitorInvokedAt: time.Now(),
 	}
 }
 
@@ -174,6 +178,17 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 	return m.installationAPI.GetMasterNodesIds(ctx, c, db)
 }
 
+func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorInvokedAt time.Time) bool {
+	timeToCompare := c.MachineNetworkCidrUpdatedAt.Add(DhcpLeaseTimeoutMinutes * time.Minute)
+	return swag.BoolValue(c.VipDhcpAllocation) && (c.APIVip == "" || c.IngressVip == "") && c.MachineNetworkCidr != "" &&
+		(m.prevMonitorInvokedAt.Before(timeToCompare) || m.prevMonitorInvokedAt.Equal(timeToCompare)) &&
+		curMonitorInvokedAt.After(timeToCompare)
+}
+
+func (m *Manager) triggerLeaseTimeoutEvent(ctx context.Context, c *common.Cluster) {
+	m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, "API and Ingress VIPs lease allocation has been timed out", time.Now())
+}
+
 func (m *Manager) ClusterMonitoring() {
 	if !m.leaderElector.IsLeader() {
 		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
@@ -187,8 +202,12 @@ func (m *Manager) ClusterMonitoring() {
 		ctx                 = requestid.ToContext(context.Background(), requestID)
 		log                 = requestid.RequestIDLogger(m.log, requestID)
 		err                 error
+		curMonitorInvokedAt = time.Now()
 	)
 
+	defer func() {
+		m.prevMonitorInvokedAt = curMonitorInvokedAt
+	}()
 	if err = m.db.Find(&clusters).Error; err != nil {
 		log.WithError(err).Errorf("failed to get clusters")
 		return
@@ -206,6 +225,10 @@ func (m *Manager) ClusterMonitoring() {
 		if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
 			log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
 				swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
+		}
+
+		if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
+			m.triggerLeaseTimeoutEvent(ctx, cluster)
 		}
 	}
 }

@@ -407,6 +407,107 @@ var _ = Describe("cluster monitor", func() {
 	})
 })
 
+var _ = Describe("lease timeout event", func() {
+	var (
+		db          *gorm.DB
+		c           common.Cluster
+		id          strfmt.UUID
+		clusterApi  *Manager
+		ctrl        *gomock.Controller
+		mockHostAPI *host.MockAPI
+		mockMetric  *metrics.MockAPI
+		dbName      = "cluster_monitor"
+		mockEvents  *events.MockHandler
+	)
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		id = strfmt.UUID(uuid.New().String())
+		ctrl = gomock.NewController(GinkgoT())
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
+		dummy := &leader.DummyElector{}
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
+			mockEvents, mockHostAPI, mockMetric, dummy)
+	})
+	tests := []struct {
+		name                string
+		srcState            string
+		apiVip              string
+		ingressVip          string
+		shouldTimeout       bool
+		eventCalllsExpected int
+	}{
+		{
+			name:                "VIPs exist",
+			srcState:            models.ClusterStatusReady,
+			apiVip:              "1.2.3.4",
+			ingressVip:          "1.2.3.5",
+			shouldTimeout:       true,
+			eventCalllsExpected: 1,
+		},
+		{
+			name:                "API Vip missing with timeout",
+			srcState:            models.ClusterStatusReady,
+			ingressVip:          "1.2.3.5",
+			shouldTimeout:       true,
+			eventCalllsExpected: 2,
+		},
+		{
+			name:                "API Vip missing without timeout",
+			srcState:            models.ClusterStatusReady,
+			ingressVip:          "1.2.3.5",
+			shouldTimeout:       false,
+			eventCalllsExpected: 1,
+		},
+		{
+			name:                "API Vip missing without timeout from insufficient",
+			srcState:            models.ClusterStatusInsufficient,
+			ingressVip:          "1.2.3.5",
+			shouldTimeout:       false,
+			eventCalllsExpected: 0,
+		},
+		{
+			name:                "Ingress Vip missing with timeout from insufficient",
+			srcState:            models.ClusterStatusInsufficient,
+			apiVip:              "1.2.3.5",
+			shouldTimeout:       true,
+			eventCalllsExpected: 1,
+		},
+	}
+	for _, t := range tests {
+		It(t.name, func() {
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:                       &id,
+				Status:                   swag.String(t.srcState),
+				APIVip:                   t.apiVip,
+				IngressVip:               t.ingressVip,
+				MachineNetworkCidr:       "1.2.3.0/24",
+				BaseDNSDomain:            "test.com",
+				PullSecretSet:            true,
+				ClusterNetworkCidr:       "1.2.4.0/24",
+				ServiceNetworkCidr:       "1.2.5.0/24",
+				ClusterNetworkHostPrefix: 24,
+				VipDhcpAllocation:        swag.Bool(true),
+			}}
+			if t.shouldTimeout {
+				c.MachineNetworkCidrUpdatedAt = time.Now().Add(-2 * time.Minute)
+			} else {
+				c.MachineNetworkCidrUpdatedAt = time.Now().Add(-1 * time.Minute)
+			}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+			if t.eventCalllsExpected > 0 {
+				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(t.eventCalllsExpected)
+			}
+			clusterApi.ClusterMonitoring()
+			ctrl.Finish()
+		})
+	}
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
 var _ = Describe("VerifyRegisterHost", func() {
 	var (
 		db          *gorm.DB
