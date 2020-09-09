@@ -454,4 +454,25 @@ var _ = Describe("Host tests", func() {
 		h = getHost(*cluster2.GetPayload().ID, *hostID)
 		Expect(swag.StringValue(h.Status)).Should(Equal("discovering"))
 	})
+
+	It("register_wrong_pull_secret", func() {
+		if !Options.EnableAuth {
+			Skip("auth is disabled")
+		}
+
+		wrongTokenStubID, err := wiremock.createWrongStubTokenAuth(WrongPullSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		hostID := strToUUID(uuid.New().String())
+		_, err = badAgentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+			ClusterID: clusterID,
+			NewHostParams: &models.HostCreateParams{
+				HostID: hostID,
+			},
+		})
+		Expect(err).To(HaveOccurred())
+
+		err = wiremock.DeleteStub(wrongTokenStubID)
+		Expect(err).ToNot(HaveOccurred())
+	})
 })

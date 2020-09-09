@@ -24,6 +24,7 @@ type Config struct {
 	ClientID     string `envconfig:"OCM_SERVICE_CLIENT_ID" default:""`
 	ClientSecret string `envconfig:"OCM_SERVICE_CLIENT_SECRET" default:""`
 	SelfToken    string `envconfig:"OCM_SELF_TOKEN" default:""`
+	TokenURL     string `envconfig:"OCM_TOKEN_URL" default:""`
 }
 
 type SdKLogger struct {
@@ -84,6 +85,7 @@ func (c *Client) NewConnection() (*sdkClient.Connection, error) {
 	builder := sdkClient.NewConnectionBuilder().
 		Logger(c.logger).
 		URL(c.config.BaseURL).
+		TokenURL(c.config.TokenURL).
 		Metrics("api_outbound")
 
 	if c.config.ClientID != "" && c.config.ClientSecret != "" {

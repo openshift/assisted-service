@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"flag"
 	"fmt"
 	"io"
@@ -17,7 +18,7 @@ func main() {
 	flag.Parse()
 
 	if fileExists(keysDir + "/auth-test-pub.json") {
-		fmt.Printf("Keys already generated. To re-generate, delete files: %s/auth-test-pub.json, %s/auth-test.json, %s/auth-tokenString\n", keysDir, keysDir, keysDir)
+		fmt.Printf("Keys already generated. To re-generate, delete files: %s/auth-test-pub.json, %s/auth-test.json, %s/auth-token*String\n", keysDir, keysDir, keysDir)
 		return
 	}
 	//Generate RSA Keypair
@@ -26,29 +27,23 @@ func main() {
 	//Generate keys in JWK format
 	pubJSJWKS, privJSJWKS, kid, _ := keygen_tools.GenJSJWKS(priv, pub)
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-		"account_number": "1234567",
-		"is_internal":    false,
-		"is_active":      true,
-		"account_id":     "7654321",
-		"org_id":         "1010101",
-		"last_name":      "Doe",
-		"type":           "User",
-		"locale":         "en_US",
-		"first_name":     "John",
-		"email":          "jdoe123@example.com",
-		"username":       "jdoe123@example.com",
-		"is_org_admin":   false,
-		"clientId":       "1234",
-	})
-	token.Header["kid"] = kid
-	tokenString, err := token.SignedString(priv)
-
+	tokenString, err := getTokenString(getUserToken(), kid, priv)
 	if err != nil {
 		fmt.Printf("Token Signing error: %v\n", err)
 	}
+
+	tokenAdminString, err := getTokenString(getAdminToken(), kid, priv)
+	if err != nil {
+		fmt.Printf("Token Signing error: %v\n", err)
+	}
+
+	tokenUnallowedString, err := getTokenString(getUnallowedUserToken(), kid, priv)
+	if err != nil {
+		fmt.Printf("Token Signing error: %v\n", err)
+	}
+
 	fmt.Printf("Generating Keys and Token to path: %s\n", keysDir)
-	err = newFile(keysDir+"/auth-test-pub.json", pubJSJWKS, 0444)
+	err = newFile(keysDir+"/auth-test-pub.json", pubJSJWKS, 0400)
 	if err != nil {
 		fmt.Printf("Failed to write file auth-test-pub.json: %v\n", err)
 	}
@@ -59,6 +54,14 @@ func main() {
 	err = newFile(keysDir+"/auth-tokenString", []byte(tokenString), 0400)
 	if err != nil {
 		fmt.Printf("Failed to write file auth-tokenString: %v\n", err)
+	}
+	err = newFile(keysDir+"/auth-tokenAdminString", []byte(tokenAdminString), 0400)
+	if err != nil {
+		fmt.Printf("Failed to write file auth-tokenAdminString: %v\n", err)
+	}
+	err = newFile(keysDir+"/auth-tokenUnallowedString", []byte(tokenUnallowedString), 0400)
+	if err != nil {
+		fmt.Printf("Failed to write file auth-tokenUnallowedString: %v\n", err)
 	}
 }
 
@@ -83,4 +86,39 @@ func newFile(filename string, data []byte, perm os.FileMode) error {
 		err = err1
 	}
 	return err
+}
+
+func getTokenString(token *jwt.Token, kid string, priv crypto.PrivateKey) (string, error) {
+	token.Header["kid"] = kid
+	return token.SignedString(priv)
+}
+
+func createTokenWithClaims(email, username string) *jwt.Token {
+	return jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+		"account_number": "1234567",
+		"is_internal":    false,
+		"is_active":      true,
+		"account_id":     "7654321",
+		"org_id":         "1010101",
+		"last_name":      "Doe",
+		"type":           "User",
+		"locale":         "en_US",
+		"first_name":     "John",
+		"email":          email,
+		"username":       username,
+		"is_org_admin":   false,
+		"clientId":       "1234",
+	})
+}
+
+func getUserToken() *jwt.Token {
+	return createTokenWithClaims("jdoe123@example.com", "jdoe123@example.com")
+}
+
+func getAdminToken() *jwt.Token {
+	return createTokenWithClaims("admin@example.com", "admin@example.com")
+}
+
+func getUnallowedUserToken() *jwt.Token {
+	return createTokenWithClaims("unallowed@example.com", "unallowed@example.com")
 }
