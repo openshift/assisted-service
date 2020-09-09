@@ -76,6 +76,24 @@ func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 	return result, nil
 }
 
+func AddRHRegPullSecret(secret, rhCred string) (string, error) {
+	if rhCred == "" {
+		return "", fmt.Errorf("invalid pull secret")
+	}
+	var s imagePullSecret
+	err := json.Unmarshal([]byte(secret), &s)
+	if err != nil {
+		return secret, fmt.Errorf("invalid pull secret: %v", err)
+	}
+	s.Auths["registry.stage.redhat.io"] = make(map[string]interface{})
+	s.Auths["registry.stage.redhat.io"]["auth"] = base64.StdEncoding.EncodeToString([]byte(rhCred))
+	ps, err := json.Marshal(s)
+	if err != nil {
+		return secret, err
+	}
+	return string(ps), nil
+}
+
 /*
 const (
 	registryCredsToCheck string = "registry.redhat.io"

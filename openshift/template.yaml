@@ -79,6 +79,9 @@ parameters:
 - name: INSTALL_RH_CA
   value: "false"
   required: true
+- name: REGISTRY_CREDS
+  value: ""
+  required: true
 - name: LOG_LEVEL
   value: "info"
   required: true
@@ -247,6 +250,8 @@ objects:
                 value: ${LOG_LEVEL}
               - name: INSTALL_RH_CA
                 value: ${INSTALL_RH_CA}
+              - name: REGISTRY_CREDS
+                value: ${REGISTRY_CREDS}
               - name: RELEASE_TAG
                 value: ${RELEASE_TAG}
               - name: AWS_SHARED_CREDENTIALS_FILE

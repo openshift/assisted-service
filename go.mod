@@ -37,9 +37,12 @@ require (
 	github.com/slok/go-http-metrics v0.8.0
 	github.com/stretchr/testify v1.6.1
 	github.com/thoas/go-funk v0.6.0
+	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
+	golang.org/x/tools v0.0.0-20200103221440-774c71fcf114 // indirect
 	gopkg.in/square/go-jose.v2 v2.2.2
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.18.5

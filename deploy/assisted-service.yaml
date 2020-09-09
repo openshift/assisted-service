@@ -104,6 +104,8 @@ spec:
               value: "info"
             - name: INSTALL_RH_CA
               value: "false"
+            - name: REGISTRY_CREDS
+              value: ""
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
