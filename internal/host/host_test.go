@@ -321,7 +321,9 @@ var _ = Describe("update_progress", func() {
 					Expect(hostFromDB.Progress.ProgressInfo).Should(Equal(progress.ProgressInfo))
 				})
 			})
+		})
 
+		Context("Invalid progress", func() {
 			It("lower_stage", func() {
 				verifyDb := func() {
 					hostFromDB = getHost(*host.ID, host.ClusterID, db)
@@ -355,6 +357,25 @@ var _ = Describe("update_progress", func() {
 					Expect(state.UpdateInstallProgress(ctx, hostFromDB, &newProgress)).Should(HaveOccurred())
 					verifyDb()
 				})
+			})
+
+			It("update_on_installed", func() {
+				verifyDb := func() {
+					hostFromDB = getHost(*host.ID, host.ClusterID, db)
+
+					Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstalled))
+					Expect(hostFromDB.StatusInfo).Should(BeNil())
+					Expect(hostFromDB.Progress.CurrentStage).Should(BeEmpty())
+					Expect(hostFromDB.Progress.ProgressInfo).Should(BeEmpty())
+				}
+
+				Expect(db.Model(&host).Updates(map[string]interface{}{"status": swag.String(models.HostStatusInstalled)}).Error).To(Not(HaveOccurred()))
+				verifyDb()
+
+				progress.CurrentStage = models.HostStageRebooting
+				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).Should(HaveOccurred())
+
+				verifyDb()
 			})
 		})
 	})
