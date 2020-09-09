@@ -81,20 +81,20 @@ func NewDisableHostOK() *DisableHostOK {
 Success.
 */
 type DisableHostOK struct {
-	Payload *models.Host
+	Payload *models.Cluster
 }
 
 func (o *DisableHostOK) Error() string {
 	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostOK  %+v", 200, o.Payload)
 }
 
-func (o *DisableHostOK) GetPayload() *models.Host {
+func (o *DisableHostOK) GetPayload() *models.Cluster {
 	return o.Payload
 }
 
 func (o *DisableHostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Host)
+	o.Payload = new(models.Cluster)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

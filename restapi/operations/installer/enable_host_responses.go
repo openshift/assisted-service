@@ -25,7 +25,7 @@ type EnableHostOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Host `json:"body,omitempty"`
+	Payload *models.Cluster `json:"body,omitempty"`
 }
 
 // NewEnableHostOK creates EnableHostOK with default headers values
@@ -35,13 +35,13 @@ func NewEnableHostOK() *EnableHostOK {
 }
 
 // WithPayload adds the payload to the enable host o k response
-func (o *EnableHostOK) WithPayload(payload *models.Host) *EnableHostOK {
+func (o *EnableHostOK) WithPayload(payload *models.Cluster) *EnableHostOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the enable host o k response
-func (o *EnableHostOK) SetPayload(payload *models.Host) {
+func (o *EnableHostOK) SetPayload(payload *models.Cluster) {
 	o.Payload = payload
 }
 

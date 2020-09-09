@@ -621,6 +621,31 @@ var _ = Describe("cluster install", func() {
 			clusterID = *cluster.ID
 			registerHostsAndSetRoles(clusterID, 4)
 		})
+
+		It("[only_k8s]disable enable master, monitor cluster status", func() {
+			By("get masters")
+			c, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			hosts := getClusterMasters(c.GetPayload())
+			Expect(len(hosts)).Should(Equal(3))
+
+			By("disable master, expect cluster to become insufficient")
+			disableRet, err := userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
+				HostID:    *hosts[0].ID,
+				ClusterID: clusterID,
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(swag.StringValue(disableRet.GetPayload().Status)).Should(Equal(models.ClusterStatusInsufficient))
+
+			By("enable master, expect cluster to become ready")
+			enableRet, err := userBMClient.Installer.EnableHost(ctx, &installer.EnableHostParams{
+				HostID:    *hosts[0].ID,
+				ClusterID: clusterID,
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(swag.StringValue(enableRet.GetPayload().Status)).Should(Equal(models.ClusterStatusReady))
+		})
+
 		It("[only_k8s]register host while installing", func() {
 			_, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())

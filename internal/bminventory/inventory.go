@@ -1609,9 +1609,23 @@ func filterReply(expected interface{}, input string) (string, error) {
 func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.DisableHostParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var host models.Host
+	var cluster common.Cluster
 	log.Info("disabling host: ", params.HostID)
 
-	if err := b.db.First(&host, identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Error; err != nil {
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.First(&host, identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			log.WithError(err).Errorf("host %s not found", params.HostID)
 			return common.NewApiError(http.StatusNotFound, err)
@@ -1622,7 +1636,18 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if err := b.hostApi.DisableHost(ctx, &host); err != nil {
+	if err := tx.First(&cluster, identity.AddUserFilter(ctx, "id = ?"), host.ClusterID).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			log.WithError(err).Errorf("cluster %s not found", host.ClusterID.String())
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		log.WithError(err).Errorf("failed to get cluster %s", host.ClusterID.String())
+		msg := "Failed to disable host: error fetching cluster from DB"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	if err := b.hostApi.DisableHost(ctx, &host, tx); err != nil {
 		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
 		msg := "Failed to disable host: error disabling host in current status"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
@@ -1635,17 +1660,43 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 	}
 
+	c, err := b.refreshClusterAndHostStatuses(ctx, cluster, host, tx)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Error(err)
+		return installer.NewResetClusterInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction")))
+	}
+	txSuccess = true
+
 	msg := "Host disabled by user"
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, msg, time.Now())
-	return installer.NewDisableHostOK().WithPayload(&host)
+	return installer.NewDisableHostOK().WithPayload(&c.Cluster)
 }
 
 func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var host models.Host
+	var cluster common.Cluster
 	log.Info("enable host: ", params.HostID)
 
-	if err := b.db.First(&host, identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Error; err != nil {
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.First(&host, identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			log.WithError(err).Errorf("host %s not found", params.HostID)
 			return common.NewApiError(http.StatusNotFound, err)
@@ -1656,7 +1707,18 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if err := b.hostApi.EnableHost(ctx, &host); err != nil {
+	if err := tx.First(&cluster, identity.AddUserFilter(ctx, "id = ?"), host.ClusterID).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			log.WithError(err).Errorf("cluster %s not found", host.ClusterID.String())
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		log.WithError(err).Errorf("failed to get cluster %s", host.ClusterID.String())
+		msg := "Failed to enable host: error fetching cluster from DB"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	if err := b.hostApi.EnableHost(ctx, &host, tx); err != nil {
 		log.WithError(err).Errorf("failed to enable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
 		msg := "Failed to enable host: error disabling host in current status"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
@@ -1669,9 +1731,36 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 	}
 
+	c, err := b.refreshClusterAndHostStatuses(ctx, cluster, host, tx)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Error(err)
+		return common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
+	}
+	txSuccess = true
+
 	msg := "Host enabled by user"
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, msg, time.Now())
-	return installer.NewEnableHostOK().WithPayload(&host)
+	return installer.NewEnableHostOK().WithPayload(&c.Cluster)
+}
+
+func (b *bareMetalInventory) refreshClusterAndHostStatuses(ctx context.Context, c common.Cluster, h models.Host, db *gorm.DB) (*common.Cluster, error) {
+	if err := b.hostApi.RefreshStatus(ctx, &h, db); err != nil {
+		msg := "Failed to refresh host status"
+		b.eventsHandler.AddEvent(ctx, *c.ID, h.ID, models.EventSeverityError, msg, time.Now())
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	updatedCluster, err := b.clusterApi.RefreshStatus(ctx, &c, db)
+	if err != nil {
+		msg := "Failed to refresh cluster status"
+		b.eventsHandler.AddEvent(ctx, *c.ID, h.ID, models.EventSeverityError, msg, time.Now())
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return updatedCluster, nil
 }
 
 func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder {

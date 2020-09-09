@@ -81,20 +81,20 @@ func NewEnableHostOK() *EnableHostOK {
 Success.
 */
 type EnableHostOK struct {
-	Payload *models.Host
+	Payload *models.Cluster
 }
 
 func (o *EnableHostOK) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostOK  %+v", 200, o.Payload)
 }
 
-func (o *EnableHostOK) GetPayload() *models.Host {
+func (o *EnableHostOK) GetPayload() *models.Cluster {
 	return o.Payload
 }
 
 func (o *EnableHostOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Host)
+	o.Payload = new(models.Cluster)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

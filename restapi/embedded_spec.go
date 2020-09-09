@@ -1499,7 +1499,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/host"
+              "$ref": "#/definitions/cluster"
             }
           },
           "401": {
@@ -1566,7 +1566,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/host"
+              "$ref": "#/definitions/cluster"
             }
           },
           "401": {
@@ -5166,7 +5166,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/host"
+              "$ref": "#/definitions/cluster"
             }
           },
           "401": {
@@ -5233,7 +5233,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/host"
+              "$ref": "#/definitions/cluster"
             }
           },
           "401": {

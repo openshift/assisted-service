@@ -803,7 +803,7 @@ var _ = Describe("Disable", func() {
 					m(t.srcState)
 				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				t.validation(hapi.DisableHost(ctx, &host))
+				t.validation(hapi.DisableHost(ctx, &host, db))
 			})
 		}
 	})
@@ -932,7 +932,7 @@ var _ = Describe("Enable", func() {
 						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host to send hardware details)", hostutil.GetHostnameForMsg(&host), srcState),
 						gomock.Any())
 				}
-				t.validation(hapi.EnableHost(ctx, &host))
+				t.validation(hapi.EnableHost(ctx, &host, db))
 			})
 		}
 	})

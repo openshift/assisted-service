@@ -245,6 +245,7 @@ func (th *transitionHandler) PostInstallHost(sw stateswitch.StateSwitch, args st
 
 type TransitionArgsDisableHost struct {
 	ctx context.Context
+	db  *gorm.DB
 }
 
 func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -257,7 +258,7 @@ func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args st
 		return errors.New("PostDisableHost invalid argument")
 	}
 
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		statusInfoDisabled)
 }
 
@@ -267,6 +268,7 @@ func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args st
 
 type TransitionArgsEnableHost struct {
 	ctx context.Context
+	db  *gorm.DB
 }
 
 func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -279,7 +281,7 @@ func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args sta
 		return errors.New("PostEnableHost invalid argument")
 	}
 
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		statusInfoDiscovering, "inventory", "")
 }
 

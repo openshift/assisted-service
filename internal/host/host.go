@@ -73,9 +73,9 @@ type API interface {
 	ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	ResetPendingUserAction(ctx context.Context, h *models.Host, db *gorm.DB) error
 	// Disable host from getting any requests
-	DisableHost(ctx context.Context, h *models.Host) error
+	DisableHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	// Enable host to get requests (disabled by default)
-	EnableHost(ctx context.Context, h *models.Host) error
+	EnableHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	// Install host - db is optional, for transactions
 	Install(ctx context.Context, h *models.Host, db *gorm.DB) error
 	// Set a new inventory information
@@ -207,15 +207,17 @@ func (m *Manager) Install(ctx context.Context, h *models.Host, db *gorm.DB) erro
 	})
 }
 
-func (m *Manager) EnableHost(ctx context.Context, h *models.Host) error {
+func (m *Manager) EnableHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	return m.sm.Run(TransitionTypeEnableHost, newStateHost(h), &TransitionArgsEnableHost{
 		ctx: ctx,
+		db:  db,
 	})
 }
 
-func (m *Manager) DisableHost(ctx context.Context, h *models.Host) error {
+func (m *Manager) DisableHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	return m.sm.Run(TransitionTypeDisableHost, newStateHost(h), &TransitionArgsDisableHost{
 		ctx: ctx,
+		db:  db,
 	})
 }
 

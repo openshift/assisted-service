@@ -1063,7 +1063,7 @@ paths:
         200:
           description: Success.
           schema:
-            $ref: '#/definitions/host'
+            $ref: '#/definitions/cluster'
         401:
           description: Unauthorized.
           schema:
@@ -1109,7 +1109,7 @@ paths:
         200:
           description: Success.
           schema:
-            $ref: '#/definitions/host'
+            $ref: '#/definitions/cluster'
         401:
           description: Unauthorized.
           schema:
