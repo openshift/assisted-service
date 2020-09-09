@@ -131,7 +131,7 @@ update-minikube: build build-dummy-ignition
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
 		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
 		-f Dockerfile.assisted-service . -t $(SERVICE) && docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION} \
-		&& docker build --network=host --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+		&& docker build --network=host --build-arg GIT_REVISION --build-arg OS_IMAGE=${BASE_OS_IMAGE} -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 define publish_image
 	docker tag ${1} ${2}
