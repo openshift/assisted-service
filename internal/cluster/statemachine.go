@@ -24,7 +24,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusInstalling),
 			stateswitch.State(models.ClusterStatusError),
 		},
-		DestinationState: stateswitch.State(models.ClusterStatusError),
+		DestinationState: stateswitch.State(models.ClusterStatusCancelled),
 		PostTransition:   th.PostCancelInstallation,
 	})
 
@@ -34,6 +34,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusPreparingForInstallation),
 			stateswitch.State(models.ClusterStatusInstalling),
 			stateswitch.State(models.ClusterStatusError),
+			stateswitch.State(models.ClusterStatusCancelled),
 		},
 		DestinationState: stateswitch.State(models.ClusterStatusInsufficient),
 		PostTransition:   th.PostResetCluster,

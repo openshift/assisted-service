@@ -54,7 +54,7 @@ var _ = Describe("Transition tests", func() {
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
 		})
 
 		It("cancel_installation_conflict", func() {
@@ -83,11 +83,11 @@ var _ = Describe("Transition tests", func() {
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
-			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("original error"))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
+			Expect(swag.StringValue(c.StatusInfo)).ShouldNot(Equal("original error"))
 		})
 	})
-	Context("cancel_installation", func() {
+	Context("complete_installation", func() {
 		It("complete installation success", func() {
 			c := common.Cluster{
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusFinalizing)},

@@ -1323,7 +1323,7 @@ var _ = Describe("cluster install", func() {
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c = rep.GetPayload()
-				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
 				for _, host := range c.Hosts {
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusError))
 				}
@@ -1344,12 +1344,8 @@ var _ = Describe("cluster install", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				c := rep.GetPayload()
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
-				rep, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-				Expect(err).ShouldNot(HaveOccurred())
-				c = rep.GetPayload()
 
 				verifyErrorStates := func() {
-					Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
 					for _, host := range c.Hosts {
 						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError,
 							defaultWaitForHostStateTimeout)
@@ -1359,6 +1355,10 @@ var _ = Describe("cluster install", func() {
 				verifyErrorStates()
 				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
+				rep, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).ShouldNot(HaveOccurred())
+				c = rep.GetPayload()
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
 				verifyErrorStates()
 			})
 			It("[only_k8s]cancel cluster with various hosts states", func() {
@@ -1424,7 +1424,7 @@ var _ = Describe("cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				c = rep.GetPayload()
 				Expect(len(c.Hosts)).Should(Equal(5))
-				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
 				for _, host := range c.Hosts {
 					if host.ID.String() == disabledHost.ID.String() {
 						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))

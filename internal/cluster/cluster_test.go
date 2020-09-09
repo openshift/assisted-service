@@ -968,7 +968,7 @@ var _ = Describe("CancelInstallation", func() {
 
 		AfterEach(func() {
 			db.First(&c, "id = ?", c.ID)
-			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
 		})
 	})
 
