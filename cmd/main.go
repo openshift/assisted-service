@@ -1,12 +1,20 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/openshift/assisted-service/pkg/thread"
+
+	"github.com/openshift/assisted-service/internal/imgexpirer"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -21,7 +29,6 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
-	"github.com/openshift/assisted-service/internal/imgexpirer"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -30,10 +37,10 @@ import (
 	"github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
+	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -65,6 +72,9 @@ var Options struct {
 	ClusterConfig               cluster.Config
 	DeployTarget                string `envconfig:"DEPLOY_TARGET" default:"k8s"`
 	OCMConfig                   ocm.Config
+	HostConfig                  host.Config
+	LogLevel                    string `envconfig:"LOG_LEVEL" default:"info"`
+	LeaderConfig                leader.Config
 }
 
 func main() {
@@ -74,6 +84,14 @@ func main() {
 	err := envconfig.Process("myapp", &Options)
 	if err != nil {
 		log.Fatal(err.Error())
+	}
+
+	logLevel, err := logrus.ParseLevel(Options.LogLevel)
+	if err != nil {
+		log.Error("Invalid Log Level: ", Options.LogLevel)
+	} else {
+		log.SetLevel(logLevel)
+		log.Info("Log Level: ", Options.LogLevel)
 	}
 
 	port := flag.String("port", "8090", "define port that the service will listen to")
@@ -99,12 +117,13 @@ func main() {
 
 	var ocmClient *ocm.Client
 	if Options.Auth.EnableAuth {
-		ocmClient, err = ocm.NewClient(Options.OCMConfig)
+		ocmClient, err = ocm.NewClient(Options.OCMConfig, log)
 		if err != nil {
 			log.Fatal("Failed to Create OCM Client, ", err)
 		}
 	}
 
+	var lead leader.ElectorInterface
 	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"))
 	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
 	versionHandler := versions.NewHandler(Options.Versions)
@@ -115,19 +134,6 @@ func main() {
 	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, Options.InstructionConfig, connectivityValidator)
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
-	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator, instructionApi, &Options.HWValidatorConfig, metricsManager)
-	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager)
-
-	clusterStateMonitor := thread.New(
-		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
-	clusterStateMonitor.Start()
-	defer clusterStateMonitor.Stop()
-
-	hostStateMonitor := thread.New(
-		log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
-	hostStateMonitor.Start()
-	defer hostStateMonitor.Stop()
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
 
@@ -161,7 +167,22 @@ func main() {
 			log.Fatal("failed to create client:", err)
 		}
 		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
+
+		cfg, cerr := clientcmd.BuildConfigFromFlags("", "")
+		if cerr != nil {
+			log.WithError(cerr).Fatalf("Failed to create kubernetes cluster config")
+		}
+		k8sClient := kubernetes.NewForConfigOrDie(cfg)
+		lead = leader.NewElector(k8sClient, Options.LeaderConfig, "assisted-service-leader-election-helper",
+			log.WithField("pkg", "monitor-runner"))
+		err = lead.StartLeaderElection(context.Background())
+		if err != nil {
+			log.WithError(cerr).Fatalf("Failed to start leader")
+		}
+
 	case "onprem":
+
+		lead = &leader.DummyElector{}
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
 		objectHandler = s3wrapper.NewFSClient("/data", log)
 		if objectHandler == nil {
@@ -173,6 +194,21 @@ func main() {
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
 
+	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
+		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead)
+	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
+		eventsHandler, hostApi, metricsManager, lead)
+
+	clusterStateMonitor := thread.New(
+		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
+	clusterStateMonitor.Start()
+	defer clusterStateMonitor.Stop()
+
+	hostStateMonitor := thread.New(
+		log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
+	hostStateMonitor.Start()
+	defer hostStateMonitor.Stop()
+
 	if newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL); err != nil {
 		log.WithError(err).Fatalf("failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	} else {
@@ -183,7 +219,7 @@ func main() {
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
-	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime)
+	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead)
 	imageExpirationMonitor := thread.New(
 		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
 	imageExpirationMonitor.Start()

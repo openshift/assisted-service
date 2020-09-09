@@ -64,6 +64,8 @@ type GetPresignedForClusterFilesParams struct {
 	ClusterID strfmt.UUID
 	/*FileName*/
 	FileName string
+	/*HostID*/
+	HostID *strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -125,6 +127,17 @@ func (o *GetPresignedForClusterFilesParams) SetFileName(fileName string) {
 	o.FileName = fileName
 }
 
+// WithHostID adds the hostID to the get presigned for cluster files params
+func (o *GetPresignedForClusterFilesParams) WithHostID(hostID *strfmt.UUID) *GetPresignedForClusterFilesParams {
+	o.SetHostID(hostID)
+	return o
+}
+
+// SetHostID adds the hostId to the get presigned for cluster files params
+func (o *GetPresignedForClusterFilesParams) SetHostID(hostID *strfmt.UUID) {
+	o.HostID = hostID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetPresignedForClusterFilesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -145,6 +158,22 @@ func (o *GetPresignedForClusterFilesParams) WriteToRequest(r runtime.ClientReque
 		if err := r.SetQueryParam("file_name", qFileName); err != nil {
 			return err
 		}
+	}
+
+	if o.HostID != nil {
+
+		// query param host_id
+		var qrHostID strfmt.UUID
+		if o.HostID != nil {
+			qrHostID = *o.HostID
+		}
+		qHostID := qrHostID.String()
+		if qHostID != "" {
+			if err := r.SetQueryParam("host_id", qHostID); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if len(res) > 0 {

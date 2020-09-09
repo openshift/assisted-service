@@ -73,6 +73,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerDownloadClusterKubeconfigHandler: installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadClusterKubeconfig has not yet been implemented")
 		}),
+		InstallerDownloadClusterLogsHandler: installer.DownloadClusterLogsHandlerFunc(func(params installer.DownloadClusterLogsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.DownloadClusterLogs has not yet been implemented")
+		}),
 		InstallerDownloadHostLogsHandler: installer.DownloadHostLogsHandlerFunc(func(params installer.DownloadHostLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadHostLogs has not yet been implemented")
 		}),
@@ -135,6 +138,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerUpdateClusterHandler: installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateCluster has not yet been implemented")
+		}),
+		InstallerUpdateClusterInstallConfigHandler: installer.UpdateClusterInstallConfigHandlerFunc(func(params installer.UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.UpdateClusterInstallConfig has not yet been implemented")
 		}),
 		InstallerUpdateHostInstallProgressHandler: installer.UpdateHostInstallProgressHandlerFunc(func(params installer.UpdateHostInstallProgressParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateHostInstallProgress has not yet been implemented")
@@ -223,6 +229,8 @@ type AssistedInstallAPI struct {
 	InstallerDownloadClusterISOHandler installer.DownloadClusterISOHandler
 	// InstallerDownloadClusterKubeconfigHandler sets the operation handler for the download cluster kubeconfig operation
 	InstallerDownloadClusterKubeconfigHandler installer.DownloadClusterKubeconfigHandler
+	// InstallerDownloadClusterLogsHandler sets the operation handler for the download cluster logs operation
+	InstallerDownloadClusterLogsHandler installer.DownloadClusterLogsHandler
 	// InstallerDownloadHostLogsHandler sets the operation handler for the download host logs operation
 	InstallerDownloadHostLogsHandler installer.DownloadHostLogsHandler
 	// InstallerEnableHostHandler sets the operation handler for the enable host operation
@@ -265,6 +273,8 @@ type AssistedInstallAPI struct {
 	InstallerResetClusterHandler installer.ResetClusterHandler
 	// InstallerUpdateClusterHandler sets the operation handler for the update cluster operation
 	InstallerUpdateClusterHandler installer.UpdateClusterHandler
+	// InstallerUpdateClusterInstallConfigHandler sets the operation handler for the update cluster install config operation
+	InstallerUpdateClusterInstallConfigHandler installer.UpdateClusterInstallConfigHandler
 	// InstallerUpdateHostInstallProgressHandler sets the operation handler for the update host install progress operation
 	InstallerUpdateHostInstallProgressHandler installer.UpdateHostInstallProgressHandler
 	// InstallerUploadClusterIngressCertHandler sets the operation handler for the upload cluster ingress cert operation
@@ -384,6 +394,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerDownloadClusterKubeconfigHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadClusterKubeconfigHandler")
 	}
+	if o.InstallerDownloadClusterLogsHandler == nil {
+		unregistered = append(unregistered, "installer.DownloadClusterLogsHandler")
+	}
 	if o.InstallerDownloadHostLogsHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadHostLogsHandler")
 	}
@@ -446,6 +459,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerUpdateClusterHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateClusterHandler")
+	}
+	if o.InstallerUpdateClusterInstallConfigHandler == nil {
+		unregistered = append(unregistered, "installer.UpdateClusterInstallConfigHandler")
 	}
 	if o.InstallerUpdateHostInstallProgressHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateHostInstallProgressHandler")
@@ -596,6 +612,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/clusters/{cluster_id}/logs"] = installer.NewDownloadClusterLogs(o.context, o.InstallerDownloadClusterLogsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewDownloadHostLogs(o.context, o.InstallerDownloadHostLogsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
@@ -677,6 +697,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/clusters/{cluster_id}"] = installer.NewUpdateCluster(o.context, o.InstallerUpdateClusterHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/clusters/{cluster_id}/install-config"] = installer.NewUpdateClusterInstallConfig(o.context, o.InstallerUpdateClusterInstallConfigHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}

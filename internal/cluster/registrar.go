@@ -28,7 +28,7 @@ type registrar struct {
 }
 
 func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster) error {
-	cluster.Status = swag.String(clusterStatusInsufficient)
+	cluster.Status = swag.String(models.ClusterStatusInsufficient)
 	cluster.StatusInfo = swag.String(statusInfoInsufficient)
 	cluster.StatusUpdatedAt = strfmt.DateTime(time.Now())
 	tx := r.db.Begin()
@@ -66,7 +66,7 @@ func (r *registrar) DeregisterCluster(ctx context.Context, cluster *common.Clust
 		}
 	}()
 
-	if swag.StringValue(cluster.Status) == clusterStatusInstalling {
+	if swag.StringValue(cluster.Status) == models.ClusterStatusInstalling {
 		tx.Rollback()
 		return errors.Errorf("cluster %s can not be removed while being installed", cluster.ID)
 	}

@@ -39,26 +39,26 @@ var _ = Describe("Transition tests", func() {
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
-		capi = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler, nil, mockMetric)
+		capi = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler, nil, mockMetric, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
 	Context("cancel_installation", func() {
 		It("cancel_installation", func() {
 			c := common.Cluster{
-				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(clusterStatusInstalling)},
+				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusInstalling)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, c.InstallStartedAt)
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusError))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
 		})
 
 		It("cancel_installation_conflict", func() {
 			c := common.Cluster{
-				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(clusterStatusInsufficient)},
+				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusInsufficient)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, c.InstallStartedAt)
@@ -67,7 +67,7 @@ var _ = Describe("Transition tests", func() {
 			Expect(int(replay.StatusCode())).Should(Equal(http.StatusConflict))
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInsufficient))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 		})
 
 		It("cancel_failed_installation", func() {
@@ -75,14 +75,14 @@ var _ = Describe("Transition tests", func() {
 				Cluster: models.Cluster{
 					ID:         &clusterId,
 					StatusInfo: swag.String("original error"),
-					Status:     swag.String(clusterStatusError)},
+					Status:     swag.String(models.ClusterStatusError)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, c.InstallStartedAt)
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusError))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
 			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("original error"))
 		})
 	})
@@ -93,10 +93,10 @@ var _ = Describe("Transition tests", func() {
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, c.OpenshiftVersion, c.InstallStartedAt)
-			Expect(capi.CompleteInstallation(ctx, &c, true, clusterStatusInstalled)).ShouldNot(HaveOccurred())
+			Expect(capi.CompleteInstallation(ctx, &c, true, models.ClusterStatusInstalled)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInstalled))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalled))
 		})
 
 		It("complete installation failed", func() {
@@ -108,14 +108,14 @@ var _ = Describe("Transition tests", func() {
 			Expect(capi.CompleteInstallation(ctx, &c, false, "aaaa")).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusError))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
 			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("aaaa"))
 
 		})
 
 		It("complete_installation_conflict", func() {
 			c := common.Cluster{
-				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(clusterStatusInstalling)},
+				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusInstalling)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, c.OpenshiftVersion, c.InstallStartedAt)
@@ -124,12 +124,12 @@ var _ = Describe("Transition tests", func() {
 			Expect(int(replay.StatusCode())).Should(Equal(http.StatusConflict))
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInstalling))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
 		})
 
 		It("complete_installation_conflict_failed", func() {
 			c := common.Cluster{
-				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(clusterStatusInstalling)},
+				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusInstalling)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, c.OpenshiftVersion, c.InstallStartedAt)
@@ -138,7 +138,7 @@ var _ = Describe("Transition tests", func() {
 			Expect(int(replay.StatusCode())).Should(Equal(http.StatusConflict))
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(clusterStatusInstalling))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
 		})
 	})
 	AfterEach(func() {
@@ -162,7 +162,7 @@ var _ = Describe("Cancel cluster installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		capi = NewManager(defaultTestConfig, getTestLog(), db, mockEventsHandler, nil, mockMetric)
+		capi = NewManager(defaultTestConfig, getTestLog(), db, mockEventsHandler, nil, mockMetric, nil)
 	})
 
 	acceptNewEvents := func(times int) {
@@ -230,7 +230,7 @@ var _ = Describe("Reset cluster", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
-		capi = NewManager(defaultTestConfig, getTestLog(), db, mockEventsHandler, nil, nil)
+		capi = NewManager(defaultTestConfig, getTestLog(), db, mockEventsHandler, nil, nil, nil)
 	})
 
 	acceptNewEvents := func(times int) {
@@ -357,7 +357,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric)
+			mockEvents, mockHostAPI, mockMetric, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -400,11 +400,11 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					isMachineCidrEqualsToCalculatedCidr: {status: ValidationPending, messagePattern: "Machine network CIDR or API vip or Ingress vip is undefined"},
-					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API vip is undefined"},
-					isApiVipValid:                       {status: ValidationPending, messagePattern: "API vip is undefined"},
-					isIngressVipDefined:                 {status: ValidationFailure, messagePattern: "Ingress vip is undefined"},
-					isIngressVipValid:                   {status: ValidationPending, messagePattern: "Ingress vip is undefined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationPending, messagePattern: "Machine network CIDR or API VIP or Ingress VIP is undefined"},
+					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API VIP is undefined"},
+					isApiVipValid:                       {status: ValidationPending, messagePattern: "API VIP is undefined"},
+					isIngressVipDefined:                 {status: ValidationFailure, messagePattern: "Ingress VIP is undefined"},
+					isIngressVipValid:                   {status: ValidationPending, messagePattern: "Ingress VIP is undefined"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
@@ -433,9 +433,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -465,9 +465,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "Cluster has hosts that are not ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -495,9 +495,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API vip is undefined"},
-					isApiVipValid:                       {status: ValidationPending, messagePattern: "API vip is undefined"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API VIP is undefined"},
+					isApiVipValid:                       {status: ValidationPending, messagePattern: "API VIP is undefined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -525,9 +525,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationFailure, messagePattern: "Base DNS Domain is undefined"},
@@ -555,9 +555,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -584,9 +584,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -614,9 +614,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -644,9 +644,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -674,9 +674,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
@@ -819,7 +819,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric)
+			mockEvents, mockHostAPI, mockMetric, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -862,15 +862,15 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
 					isClusterCidrDefined:                {status: ValidationFailure, messagePattern: "Cluster Network CIDR is undefined"},
 					isServiceCidrDefined:                {status: ValidationFailure, messagePattern: "Service Network CIDR is undefined"},
-					noCidrOverlapping:                   {status: ValidationPending, messagePattern: "At least one of the CIDRS .MachineNetworkCIDR, ClusterNetworkCIDR, ServiceNetworkCKIDR. is undefined"},
+					noCidrOverlapping:                   {status: ValidationPending, messagePattern: "At least one of the CIDRs .Machine Network, Cluster Network, Service Network. is undefined"},
 					networkPrefixValid:                  {status: ValidationFailure, messagePattern: "Invalid cluster network prefix: Network prefix 0 is out of the allowed range"},
 				}),
 				errorExpected: false,
@@ -894,9 +894,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
@@ -927,9 +927,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
@@ -1017,7 +1017,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric)
+			mockEvents, mockHostAPI, mockMetric, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1060,11 +1060,11 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationFailure, messagePattern: "Machine network CIDR is undefined"},
-					isMachineCidrEqualsToCalculatedCidr: {status: ValidationPending, messagePattern: "Machine network CIDR or API vip or Ingress vip is undefined"},
-					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API vip is undefined"},
-					isApiVipValid:                       {status: ValidationPending, messagePattern: "API vip is undefined"},
-					isIngressVipDefined:                 {status: ValidationFailure, messagePattern: "Ingress vip is undefined"},
-					isIngressVipValid:                   {status: ValidationPending, messagePattern: "Ingress vip is undefined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationPending, messagePattern: "Machine network CIDR or API VIP or Ingress VIP is undefined"},
+					isApiVipDefined:                     {status: ValidationPending, messagePattern: "Machine network CIDR is undefined"},
+					isApiVipValid:                       {status: ValidationPending, messagePattern: "API VIP is undefined"},
+					isIngressVipDefined:                 {status: ValidationPending, messagePattern: "Machine network CIDR is undefined"},
+					isIngressVipValid:                   {status: ValidationPending, messagePattern: "Ingress VIP is undefined"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
@@ -1093,9 +1093,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -1125,9 +1125,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "Cluster has hosts that are not ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -1155,9 +1155,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API vip is undefined"},
-					isApiVipValid:                       {status: ValidationPending, messagePattern: "API vip is undefined"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API VIP is undefined"},
+					isApiVipValid:                       {status: ValidationPending, messagePattern: "API VIP is undefined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -1185,9 +1185,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -1215,9 +1215,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
@@ -1245,9 +1245,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API vip is defined"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
 					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
-					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress vip is defined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},

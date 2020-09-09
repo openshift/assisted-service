@@ -39,6 +39,7 @@ type InstructionManager struct {
 	db           *gorm.DB
 	stateToSteps stateToStepsMap
 }
+
 type InstructionConfig struct {
 	ServiceBaseURL          string `envconfig:"SERVICE_BASE_URL"`
 	InstallerImage          string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
@@ -48,6 +49,7 @@ type InstructionConfig struct {
 	FreeAddressesImage      string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	DhcpLeaseAllocatorImage string `envconfig:"DHCP_LEASE_ALLOCATOR_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	SkipCertVerification    bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	InstallationTimeout     uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator) *InstructionManager {
@@ -65,8 +67,8 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 		stateToSteps: stateToStepsMap{
 			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
 			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
-			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultBackedOffInstructionInSec},
-			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec},
 			models.HostStatusPendingForInput:          {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
 			models.HostStatusInstalling:               {[]CommandGetter{installCmd, dhcpAllocateCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusInstallingInProgress:     {[]CommandGetter{dhcpAllocateCmd}, defaultNextInstructionInSec},
@@ -82,13 +84,13 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 
 	log := logutil.FromContext(ctx, i.log)
 	ClusterID := host.ClusterID
-	HostID := host.ID
-	HostStatus := swag.StringValue(host.Status)
-	log.Infof("GetNextSteps cluster: ,<%s> host: <%s>, host status: <%s>", ClusterID, HostID, HostStatus)
+	hostID := host.ID
+	hostStatus := swag.StringValue(host.Status)
+	log.Infof("GetNextSteps cluster: ,<%s> host: <%s>, host status: <%s>", ClusterID, hostID, hostStatus)
 
 	returnSteps := models.Steps{}
 
-	if cmdsMap, ok := i.stateToSteps[HostStatus]; ok {
+	if cmdsMap, ok := i.stateToSteps[hostStatus]; ok {
 		//need to add the step id
 		returnSteps.NextInstructionSeconds = cmdsMap.NextStepInSec
 		for _, cmd := range cmdsMap.Commands {
@@ -107,7 +109,7 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 	} else {
 		returnSteps.NextInstructionSeconds = defaultNextInstructionInSec
 	}
-	logSteps(returnSteps, ClusterID, HostID, log)
+	logSteps(returnSteps, ClusterID, hostID, log)
 	return returnSteps, nil
 }
 

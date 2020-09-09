@@ -29,7 +29,7 @@ var _ = Describe("reset", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = getTestHost(id, clusterId, HostStatusResetting)
+		host = getTestHost(id, clusterId, models.HostStatusResetting)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 

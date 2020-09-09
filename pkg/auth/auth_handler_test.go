@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/patrickmn/go-cache"
 
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -137,7 +138,9 @@ func TestAuth(t *testing.T) {
 			}
 			AuthHandler := NewAuthHandler(fakeConfig, nil, log.WithField("pkg", "auth"))
 			AuthHandler.client = &ocm.Client{
-				Authorization: &mockOCMAuthorization{},
+				Authentication: &mockOCMAuthentication{},
+				Authorization:  &mockOCMAuthorization{},
+				Cache:          cache.New(1*time.Hour, 30*time.Minute),
 			}
 
 			h, _ := restapi.Handler(restapi.Config{
@@ -294,6 +297,10 @@ func (f fakeInventory) UpdateCluster(ctx context.Context, params installer.Updat
 	panic("Implement Me!")
 }
 
+func (f fakeInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
 func (f fakeInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {
 	panic("Implement Me!")
 }
@@ -313,5 +320,20 @@ func (f fakeInventory) DownloadHostLogs(ctx context.Context, params installer.Do
 func (f fakeInventory) GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
 	panic("Implement Me!")
 }
+func (f fakeInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
+	panic("Implement Me!")
+}
 
 var _ restapi.InstallerAPI = fakeInventory{}
+
+type mockOCMAuthentication struct {
+	ocm.OCMAuthentication
+}
+
+var authenticatePullSecretMock = func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
+	return &ocm.AuthPayload{}, nil
+}
+
+func (m *mockOCMAuthentication) AuthenticatePullSecret(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
+	return authenticatePullSecretMock(ctx, pullSecret)
+}

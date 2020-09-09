@@ -12,35 +12,33 @@ import (
 )
 
 const (
-	bareMetalClusterResource string = "BareMetalCluster"
-	amsActionCreate          string = "create"
-	capabilityName           string = "bare_metal_installer_admin"
-	capabilityType           string = "Account"
+	BareMetalClusterResource string = "BareMetalCluster"
+	AMSActionCreate          string = "create"
+	CapabilityName           string = "bare_metal_installer_admin"
+	CapabilityType           string = "Account"
 
 	// AdminUsername for disabled auth
 	AdminUsername string = "admin"
 )
 
 type AuthzHandler struct {
-	EnableAuth  bool
-	EnableAuthz bool
-	log         logrus.FieldLogger
-	client      *ocm.Client
+	EnableAuth bool
+	log        logrus.FieldLogger
+	client     *ocm.Client
 }
 
 func NewAuthzHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthzHandler {
 	a := &AuthzHandler{
-		EnableAuth:  cfg.EnableAuth,
-		EnableAuthz: cfg.EnableAuthz,
-		client:      ocmCLient,
-		log:         log,
+		EnableAuth: cfg.EnableAuth,
+		client:     ocmCLient,
+		log:        log,
 	}
 	return a
 }
 
 // CreateAuthorizer returns Authorizer if auth is enabled
 func (a *AuthzHandler) CreateAuthorizer() func(*http.Request) error {
-	if !a.EnableAuthz {
+	if !a.EnableAuth {
 		return func(*http.Request) error {
 			return nil
 		}
@@ -52,9 +50,6 @@ func (a *AuthzHandler) CreateAuthorizer() func(*http.Request) error {
 // Authorizer is used to authorize a request after the Auth function was called using the "Auth*" functions
 // and the principal was stored in the context in the "AuthKey" context value.
 func (a *AuthzHandler) Authorizer(request *http.Request) error {
-	if !a.EnableAuth {
-		return nil
-	}
 	payload := PayloadFromContext(request.Context())
 	username := payload.Username
 	payloadFromCache, found := a.client.Cache.Get(username)
@@ -86,7 +81,7 @@ func (a *AuthzHandler) Authorizer(request *http.Request) error {
 // which is allowed for users with BareMetalInstallerUser role.
 func (a *AuthzHandler) allowedToUseAssistedInstaller(username string) (bool, error) {
 	return a.client.Authorization.AccessReview(
-		context.Background(), username, amsActionCreate, bareMetalClusterResource)
+		context.Background(), username, AMSActionCreate, BareMetalClusterResource)
 }
 
 // PayloadFromContext returns auth payload from the specified context

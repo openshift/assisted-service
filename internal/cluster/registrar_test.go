@@ -32,15 +32,15 @@ var _ = Describe("registrar", func() {
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
-			Status: swag.String(clusterStatusInsufficient),
+			Status: swag.String(models.ClusterStatusInsufficient),
 		}}
 
 		//register cluster
 		updateErr = registerManager.RegisterCluster(ctx, &cluster)
 		Expect(updateErr).Should(BeNil())
-		Expect(swag.StringValue(cluster.Status)).Should(Equal(clusterStatusInsufficient))
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 		cluster = geCluster(*cluster.ID, db)
-		Expect(swag.StringValue(cluster.Status)).Should(Equal(clusterStatusInsufficient))
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 	})
 
 	Context("register cluster", func() {
@@ -49,7 +49,7 @@ var _ = Describe("registrar", func() {
 			Expect(updateErr).Should(HaveOccurred())
 
 			cluster = geCluster(*cluster.ID, db)
-			Expect(swag.StringValue(cluster.Status)).Should(Equal(clusterStatusInsufficient))
+			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 		})
 	})
 
@@ -74,7 +74,7 @@ var _ = Describe("registrar", func() {
 
 			db.First(&cluster, "id = ?", cluster.ID)
 			Expect(db.First(&cluster, "id = ?", cluster.ID).Error).NotTo(HaveOccurred())
-			Expect(swag.StringValue(cluster.Status)).Should(Equal(clusterStatusInstalling))
+			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInstalling))
 
 		})
 	})

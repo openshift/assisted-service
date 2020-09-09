@@ -233,31 +233,31 @@ func (mr *MockAPIMockRecorder) ResetPendingUserAction(ctx, h, db interface{}) *g
 }
 
 // DisableHost mocks base method
-func (m *MockAPI) DisableHost(ctx context.Context, h *models.Host) error {
+func (m *MockAPI) DisableHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DisableHost", ctx, h)
+	ret := m.ctrl.Call(m, "DisableHost", ctx, h, db)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DisableHost indicates an expected call of DisableHost
-func (mr *MockAPIMockRecorder) DisableHost(ctx, h interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) DisableHost(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableHost", reflect.TypeOf((*MockAPI)(nil).DisableHost), ctx, h)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableHost", reflect.TypeOf((*MockAPI)(nil).DisableHost), ctx, h, db)
 }
 
 // EnableHost mocks base method
-func (m *MockAPI) EnableHost(ctx context.Context, h *models.Host) error {
+func (m *MockAPI) EnableHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnableHost", ctx, h)
+	ret := m.ctrl.Call(m, "EnableHost", ctx, h, db)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // EnableHost indicates an expected call of EnableHost
-func (mr *MockAPIMockRecorder) EnableHost(ctx, h interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) EnableHost(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableHost", reflect.TypeOf((*MockAPI)(nil).EnableHost), ctx, h)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableHost", reflect.TypeOf((*MockAPI)(nil).EnableHost), ctx, h, db)
 }
 
 // Install mocks base method

@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/hostutil"
+
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -360,6 +362,19 @@ var _ = Describe("IgnitionParameters", func() {
 
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring("--insecure=false"))
+		})
+
+		It("ignition_file_contains_http_proxy", func() {
+			bm.ServiceBaseURL = "file://10.56.20.70:7878"
+			proxyCluster := cluster
+			proxyCluster.HTTPProxy = "http://10.10.1.1:3128"
+			proxyCluster.NoProxy = "quay.io"
+			text, err := bm.formatIgnitionFile(&proxyCluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			})
+
+			Expect(err).Should(BeNil())
+			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": "quay.io" }`))
 		})
 	}
 
@@ -781,7 +796,7 @@ var _ = Describe("GetFreeAddresses", func() {
 	It("success", func() {
 		clusterId := strToUUID(uuid.New().String())
 
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250")), host.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250")), models.HostStatusInsufficient)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/16")
 		reply := bm.GetFreeAddresses(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
@@ -795,7 +810,7 @@ var _ = Describe("GetFreeAddresses", func() {
 	It("success with limit", func() {
 		clusterId := strToUUID(uuid.New().String())
 
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250")), host.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250")), models.HostStatusInsufficient)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/16")
 		params.Limit = swag.Int64(2)
 		reply := bm.GetFreeAddresses(ctx, params)
@@ -809,7 +824,7 @@ var _ = Describe("GetFreeAddresses", func() {
 	It("success with limit and prefix", func() {
 		clusterId := strToUUID(uuid.New().String())
 
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250", "10.0.1.0")), host.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/16", "10.0.10.1", "10.0.20.0", "10.0.9.250", "10.0.1.0")), models.HostStatusInsufficient)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/16")
 		params.Limit = swag.Int64(2)
 		params.Prefix = swag.String("10.0.1")
@@ -824,9 +839,9 @@ var _ = Describe("GetFreeAddresses", func() {
 	It("one disconnected", func() {
 		clusterId := strToUUID(uuid.New().String())
 
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusInsufficient)
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2")), host.HostStatusKnown)
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24")), host.HostStatusDisconnected)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), models.HostStatusInsufficient)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2")), models.HostStatusKnown)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24")), models.HostStatusDisconnected)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
 		reply := bm.GetFreeAddresses(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
@@ -839,10 +854,10 @@ var _ = Describe("GetFreeAddresses", func() {
 		clusterId := strToUUID(uuid.New().String())
 
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("192.168.0.0/24"),
-			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusInsufficient)
+			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), models.HostStatusInsufficient)
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2"),
-			makeFreeAddresses("192.168.0.0/24")), host.HostStatusKnown)
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.1", "10.0.0.2")), host.HostStatusInsufficient)
+			makeFreeAddresses("192.168.0.0/24")), models.HostStatusKnown)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.1", "10.0.0.2")), models.HostStatusInsufficient)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
 		reply := bm.GetFreeAddresses(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
@@ -854,10 +869,10 @@ var _ = Describe("GetFreeAddresses", func() {
 		clusterId := strToUUID(uuid.New().String())
 
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("192.168.0.0/24"),
-			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusInsufficient)
+			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), models.HostStatusInsufficient)
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2"),
-			makeFreeAddresses("192.168.0.0/24")), host.HostStatusKnown)
-		_ = makeHost(clusterId, "blah ", host.HostStatusInsufficient)
+			makeFreeAddresses("192.168.0.0/24")), models.HostStatusKnown)
+		_ = makeHost(clusterId, "blah ", models.HostStatusInsufficient)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
 		reply := bm.GetFreeAddresses(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewGetFreeAddressesOK()))
@@ -870,10 +885,10 @@ var _ = Describe("GetFreeAddresses", func() {
 		clusterId := strToUUID(uuid.New().String())
 
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("192.168.0.0/24"),
-			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), host.HostStatusDisconnected)
+			makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1")), models.HostStatusDisconnected)
 		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.2"),
-			makeFreeAddresses("192.168.0.0/24")), host.HostStatusDiscovering)
-		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.1/24", "10.0.0.0", "10.0.0.2")), host.HostStatusInstalling)
+			makeFreeAddresses("192.168.0.0/24")), models.HostStatusDiscovering)
+		_ = makeHost(clusterId, makeFreeNetworksAddressesStr(makeFreeAddresses("10.0.0.1/24", "10.0.0.0", "10.0.0.2")), models.HostStatusInstalling)
 		params := makeGetFreeAddressesParams(*clusterId, "10.0.0.0/24")
 		verifyApiError(bm.GetFreeAddresses(ctx, params), http.StatusNotFound)
 	})
@@ -1115,12 +1130,17 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 	}
 
-	getInventoryStr := func(ipv4Addresses ...string) string {
-		inventory := models.Inventory{Interfaces: []*models.Interface{
-			{
-				IPV4Addresses: append(make([]string, 0), ipv4Addresses...),
+	getInventoryStr := func(hostname, bootMode string, ipv4Addresses ...string) string {
+		inventory := models.Inventory{
+			Interfaces: []*models.Interface{
+				{
+					IPV4Addresses: append(make([]string, 0), ipv4Addresses...),
+					MacAddress:    "some MAC address",
+				},
 			},
-		}}
+			Hostname: hostname,
+			Boot:     &models.Boot{CurrentBootMode: bootMode},
+		}
 		ret, _ := json.Marshal(&inventory)
 		return string(ret)
 	}
@@ -1148,9 +1168,9 @@ var _ = Describe("cluster", func() {
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 
-					addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-					addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
-					addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
+					addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+					addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+					addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
 				})
 
 				It("GetCluster", func() {
@@ -1281,7 +1301,7 @@ var _ = Describe("cluster", func() {
 				})
 			})
 
-			Context("Update Network", func() {
+			Context("Hostname", func() {
 				BeforeEach(func() {
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
@@ -1289,8 +1309,96 @@ var _ = Describe("cluster", func() {
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 					addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-					addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
-					addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.6/24", "7.8.9.10/24"), db)
+					err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+						makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
+					Expect(err).ToNot(HaveOccurred())
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				})
+				It("Valid hostname", func() {
+					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+								{
+									Hostname: "a.b.c",
+									ID:       masterHostId1,
+								},
+							},
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				})
+				It("Valid splitted hostname", func() {
+					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+								{
+									Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.123456789",
+									ID:       masterHostId1,
+								},
+							},
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				})
+				It("Too long part", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+								{
+									Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij",
+									ID:       masterHostId1,
+								},
+							},
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				})
+				It("Too long", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+								{
+									Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.1234567890",
+									ID:       masterHostId1,
+								},
+							},
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				})
+				It("Preceding hyphen", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+								{
+									Hostname: "-abc",
+									ID:       masterHostId1,
+								},
+							},
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				})
+			})
+
+			Context("Update Network", func() {
+				BeforeEach(func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID: &clusterID,
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+					addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+					addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
 					err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
 						makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 					Expect(err).ToNot(HaveOccurred())
@@ -1479,11 +1587,45 @@ var _ = Describe("cluster", func() {
 								IngressVip:               &ingressVip,
 								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
 								ServiceNetworkCidr:       swag.String("193.168.4.0/23"),
-								ClusterNetworkHostPrefix: swag.Int64(33),
+								ClusterNetworkHostPrefix: swag.Int64(26),
 							},
 						})
 						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					})
+					It("Subnet prefix out of range", func() {
+						apiVip := "10.11.12.15"
+						ingressVip := "10.11.12.16"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								APIVip:                   &apiVip,
+								IngressVip:               &ingressVip,
+								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ServiceNetworkCidr:       swag.String("193.168.4.0/27"),
+								ClusterNetworkHostPrefix: swag.Int64(25),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					})
+					It("OK", func() {
+						apiVip := "10.11.12.15"
+						ingressVip := "10.11.12.16"
+						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
+						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								APIVip:                   &apiVip,
+								IngressVip:               &ingressVip,
+								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
+								ClusterNetworkHostPrefix: swag.Int64(25),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 					})
 					It("Bad subnet", func() {
 						apiVip := "10.11.12.15"
@@ -1633,9 +1775,9 @@ var _ = Describe("cluster", func() {
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
-				addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-				addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.5/24", "10.11.50.80/16"), db)
-				addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("10.11.200.180/16"), db)
+				addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+				addHost(masterHostId3, models.HostRoleMaster, "known", clusterID, getInventoryStr("hostname2", "bootMode", "10.11.200.180/16"), db)
 				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
 				Expect(err).ToNot(HaveOccurred())
@@ -2012,7 +2154,7 @@ var _ = Describe("KubeConfig download", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil)
+			db, nil, nil, nil, nil)
 
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -2141,7 +2283,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil)
+			db, nil, nil, nil, nil)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
@@ -2299,7 +2441,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		hostID         strfmt.UUID
 		c              common.Cluster
 		kubeconfigFile *os.File
-		clusterApi     cluster.API
+		mockClusterAPI *cluster.MockAPI
 		dbName         = "upload_logs"
 		mockS3Client   *s3wrapper.MockAPI
 		request        *http.Request
@@ -2312,12 +2454,11 @@ var _ = Describe("Upload and Download logs test", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil)
+		mockClusterAPI = cluster.NewMockAPI(ctrl)
 		mockJob := job.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -2441,32 +2582,16 @@ var _ = Describe("Upload and Download logs test", func() {
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.DownloadHostLogs(ctx, params)
-		downloadFileName := fmt.Sprintf("%s_%s", common.GetHostnameForMsg(&host), filepath.Base(fileName))
+		downloadFileName := fmt.Sprintf("%s_%s", hostutil.GetHostnameForMsg(&host), filepath.Base(fileName))
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(r), downloadFileName, 4)))
-	})
-
-	It("Logs presigned no host id in file name", func() {
-		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
-			ClusterID: clusterID,
-			FileName:  "logs/",
-		})
-		verifyApiError(generateReply, http.StatusBadRequest)
-	})
-	It("Logs presigned bad host id", func() {
-		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
-			ClusterID: clusterID,
-			FileName:  "logs/aaaaaaaa",
-		})
-		verifyApiError(generateReply, http.StatusBadRequest)
 	})
 	It("Logs presigned host not found", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  fmt.Sprintf("logs/%s", hostID),
+			FileName:  "logs",
+			HostID:    &hostID,
 		})
 		verifyApiError(generateReply, http.StatusNotFound)
 	})
@@ -2479,7 +2604,8 @@ var _ = Describe("Upload and Download logs test", func() {
 			errors.Errorf("Dummy"))
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  fmt.Sprintf("logs/%s", hostID),
+			FileName:  "logs",
+			HostID:    &hostID,
 		})
 		verifyApiError(generateReply, http.StatusInternalServerError)
 	})
@@ -2491,13 +2617,144 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("url", nil)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  fmt.Sprintf("logs/%s", hostID),
+			FileName:  "logs",
+			HostID:    &hostID,
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
+		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
+		Expect(*replyPayload.URL).Should(Equal("url"))
+	})
+	It("download cluster logs no cluster", func() {
+		clusterId := strToUUID(uuid.New().String())
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: *clusterId,
+		}
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
+	})
+
+	It("download cluster logs CreateTarredClusterLogs failed", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
+	})
+
+	It("download cluster logs Download failed", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		fileName := fmt.Sprintf("%s_logs.zip", clusterID)
+		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
+		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
+	})
+
+	It("download cluster logs happy flow", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		fileName := fmt.Sprintf("%s_logs.zip", clusterID)
+		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
+		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
+		generateReply := bm.DownloadClusterLogs(ctx, params)
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(r), fileName, 4)))
+	})
+
+	It("Logs presigned cluster logs failed", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  "logs",
+		})
+		verifyApiError(generateReply, http.StatusInternalServerError)
+	})
+
+	It("Logs presigned cluster logs happy flow", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("tarred", nil)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, "tarred", gomock.Any()).Return("url", nil)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  "logs",
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
 
+})
+
+var _ = Describe("UpdateClusterInstallConfig", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    = "update_cluster_install_config"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil)
+		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("saves the given string to the cluster", func() {
+		override := `{"controlPlane": {"hyperthreading": "Disabled"}}`
+		params := installer.UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: override,
+		}
+		response := bm.UpdateClusterInstallConfig(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigCreated{}))
+
+		var updated common.Cluster
+		err := db.First(&updated, "id = ?", clusterID).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(updated.InstallConfigOverrides).To(Equal(override))
+	})
+
+	It("returns not found with a non-existant cluster", func() {
+		override := `{"controlPlane": {"hyperthreading": "Disabled"}}`
+		params := installer.UpdateClusterInstallConfigParams{
+			ClusterID:           strfmt.UUID(uuid.New().String()),
+			InstallConfigParams: override,
+		}
+		response := bm.UpdateClusterInstallConfig(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigNotFound{}))
+	})
+
+	It("returns bad request when provided invalid json", func() {
+		override := `{"controlPlane": {"hyperthreading": "Disabled"`
+		params := installer.UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: override,
+		}
+		response := bm.UpdateClusterInstallConfig(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigBadRequest{}))
+	})
+
+	It("returns bad request when provided invalid options", func() {
+		override := `{"controlPlane": "foo"}`
+		params := installer.UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: override,
+		}
+		response := bm.UpdateClusterInstallConfig(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigBadRequest{}))
+	})
 })
 
 func verifyApiError(responder middleware.Responder, expectedHttpStatus int32) {
@@ -2517,3 +2774,49 @@ func addHost(hostId strfmt.UUID, role models.HostRole, state string, clusterId s
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	return host
 }
+
+var _ = Describe("proxySettingsForIgnition", func() {
+
+	Context("test proxy settings in discovery ignition", func() {
+		var parameters = []struct {
+			httpProxy, httpsProxy, noProxy, res string
+		}{
+			{"", "", "", ""},
+			{
+				"http://proxy.proxy", "", "",
+				`"proxy": { "httpProxy": "http://proxy.proxy" }`,
+			},
+			{
+				"http://proxy.proxy", "https://proxy.proxy", "",
+				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy" }`,
+			},
+			{
+				"http://proxy.proxy", "", ".domain",
+				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": ".domain" }`,
+			},
+			{
+				"http://proxy.proxy", "https://proxy.proxy", ".domain",
+				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": ".domain" }`,
+			},
+			{
+				"", "https://proxy.proxy", ".domain",
+				`"proxy": { "httpsProxy": "https://proxy.proxy", "noProxy": ".domain" }`,
+			},
+			{
+				"", "https://proxy.proxy", "",
+				`"proxy": { "httpsProxy": "https://proxy.proxy" }`,
+			},
+			{
+				"", "", ".domain", "",
+			},
+		}
+
+		It("verify rendered proxy settings", func() {
+			for _, p := range parameters {
+				s, err := proxySettingsForIgnition(p.httpProxy, p.httpsProxy, p.noProxy)
+				Expect(err).To(BeNil())
+				Expect(s).To(Equal(p.res))
+			}
+		})
+	})
+})

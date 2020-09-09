@@ -33,10 +33,10 @@ def main():
     with open(SRC_FILE, "r") as src:
         raw_data = src.read()
         raw_data = raw_data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
-
         data = yaml.safe_load(raw_data)
 
         image_fqdn = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
+        data["spec"]["replicas"] = deploy_options.replicas_count
         data["spec"]["template"]["spec"]["containers"][0]["image"] = image_fqdn
         if deploy_options.subsystem_test:
             if data["spec"]["template"]["spec"]["containers"][0].get("env", None) is None:
@@ -44,9 +44,11 @@ def main():
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'CLUSTER_MONITOR_INTERVAL', 'value': TEST_CLUSTER_MONITOR_INTERVAL})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'HOST_MONITOR_INTERVAL', 'value': TEST_HOST_MONITOR_INTERVAL})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'JWKS_CERT', 'value': load_key()})
-            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'ENABLE_AUTH_AGENT', 'value': "False"})
-            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'ENABLE_AUTHZ', 'value': "False"})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'SUBSYSTEM_RUN', 'value': 'True'})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_BASE_URL', 'value': 'http://wiremock.assisted-installer.svc.cluster.local:8080'})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_TOKEN_URL', 'value': 'http://wiremock.assisted-installer.svc.cluster.local:8080/token'})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_ID', 'value': 'mock-ocm-client-id'})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_SECRET', 'value': 'mock-ocm-client-secret'})
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
         else:
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Always"

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -175,13 +176,20 @@ func ValidateClusterNameFormat(name string) error {
 
 // ValidateHTTPProxyFormat validates the HTTP Proxy and HTTPS Proxy format
 func ValidateHTTPProxyFormat(proxyURL string) error {
-	if strings.HasPrefix(proxyURL, "https") {
+	if !govalidator.IsURL(proxyURL) {
+		return fmt.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
+	}
+	u, err := url.Parse(proxyURL)
+	if err != nil {
+		return fmt.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
+	}
+	if u.Scheme == "https" {
 		return fmt.Errorf("The URL scheme must be http; https is currently not supported: '%s'", proxyURL)
 	}
-	if govalidator.IsURL(proxyURL) {
-		return nil
+	if u.Scheme != "http" {
+		return fmt.Errorf("The URL scheme must be http and specified in the URL: '%s'", proxyURL)
 	}
-	return fmt.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
+	return nil
 }
 
 // ValidateNoProxyFormat validates the no-proxy format which should be a comma-separated list

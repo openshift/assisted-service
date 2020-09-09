@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/hostutil"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/thoas/go-funk"
@@ -74,11 +76,11 @@ func updateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 	}
 
 	if newStatus != srcStatus {
-		msg := fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\"", common.GetHostnameForMsg(host), srcStatus, newStatus)
+		msg := fmt.Sprintf("Host %s: updated status from \"%s\" to \"%s\"", hostutil.GetHostnameForMsg(host), srcStatus, newStatus)
 		if statusInfo != "" {
 			msg += fmt.Sprintf(" (%s)", statusInfo)
 		}
-		eventsHandler.AddEvent(ctx, clusterId, &hostId, common.GetEventSeverityFromHostStatus(newStatus), msg, time.Now())
+		eventsHandler.AddEvent(ctx, clusterId, &hostId, hostutil.GetEventSeverityFromHostStatus(newStatus), msg, time.Now())
 		log.Infof("host %s from cluster %s has been updated with the following updates %+v", hostId, clusterId, extra)
 	}
 
@@ -135,7 +137,10 @@ func indexOfStage(element models.HostStage, data []models.HostStage) int {
 // update host role with an option to update only if the current role is srcRole to prevent races
 func updateRole(h *models.Host, role models.HostRole, db *gorm.DB, srcRole *string) error {
 	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{HostStatusDiscovering, HostStatusKnown, HostStatusDisconnected, HostStatusInsufficient, HostStatusPendingForInput}
+	allowedStatuses := []string{
+		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
+		models.HostStatusInsufficient, models.HostStatusPendingForInput,
+	}
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host is in %s state, host role can be set only in one of %s states",

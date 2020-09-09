@@ -43,6 +43,9 @@ type API interface {
 	   DownloadClusterKubeconfig downloads the kubeconfig file for this cluster*/
 	DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error)
 	/*
+	   DownloadClusterLogs downloads cluster logs*/
+	DownloadClusterLogs(ctx context.Context, params *DownloadClusterLogsParams, writer io.Writer) (*DownloadClusterLogsOK, error)
+	/*
 	   DownloadHostLogs downloads host logs*/
 	DownloadHostLogs(ctx context.Context, params *DownloadHostLogsParams, writer io.Writer) (*DownloadHostLogsOK, error)
 	/*
@@ -96,6 +99,9 @@ type API interface {
 	/*
 	   UpdateCluster updates an open shift bare metal cluster definition*/
 	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
+	/*
+	   UpdateClusterInstallConfig overrides values in the install config*/
+	UpdateClusterInstallConfig(ctx context.Context, params *UpdateClusterInstallConfigParams) (*UpdateClusterInstallConfigCreated, error)
 	/*
 	   UpdateHostInstallProgress updates installation progress*/
 	UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error)
@@ -322,6 +328,31 @@ func (a *Client) DownloadClusterKubeconfig(ctx context.Context, params *Download
 		return nil, err
 	}
 	return result.(*DownloadClusterKubeconfigOK), nil
+
+}
+
+/*
+DownloadClusterLogs downloads cluster logs
+*/
+func (a *Client) DownloadClusterLogs(ctx context.Context, params *DownloadClusterLogsParams, writer io.Writer) (*DownloadClusterLogsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadClusterLogs",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/logs",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DownloadClusterLogsReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadClusterLogsOK), nil
 
 }
 
@@ -772,6 +803,31 @@ func (a *Client) UpdateCluster(ctx context.Context, params *UpdateClusterParams)
 		return nil, err
 	}
 	return result.(*UpdateClusterCreated), nil
+
+}
+
+/*
+UpdateClusterInstallConfig overrides values in the install config
+*/
+func (a *Client) UpdateClusterInstallConfig(ctx context.Context, params *UpdateClusterInstallConfigParams) (*UpdateClusterInstallConfigCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateClusterInstallConfig",
+		Method:             "PATCH",
+		PathPattern:        "/clusters/{cluster_id}/install-config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateClusterInstallConfigReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateClusterInstallConfigCreated), nil
 
 }
 

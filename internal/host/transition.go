@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openshift/assisted-service/client/installer"
+
 	"encoding/json"
 
 	"github.com/openshift/assisted-service/internal/events"
@@ -99,6 +101,9 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 	if !ok {
 		return errors.New("PostRegisterDuringReboot incompatible type of StateSwitch")
 	}
+	if swag.StringValue(&sHost.srcState) == models.HostStatusInstallingPendingUserAction {
+		return installer.NewRegisterHostForbidden()
+	}
 	params, ok := args.(*TransitionArgsRegisterHost)
 	if !ok {
 		return errors.New("PostRegisterDuringReboot invalid argument")
@@ -180,7 +185,7 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 	if !ok {
 		return errors.New("PostCancelInstallation invalid argument")
 	}
-	if sHost.srcState == HostStatusError {
+	if sHost.srcState == models.HostStatusError {
 		return nil
 	}
 
@@ -209,7 +214,7 @@ func (th *transitionHandler) PostResetHost(sw stateswitch.StateSwitch, args stat
 	}
 
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		params.reason)
+		params.reason, "StatusUpdatedAt", strfmt.DateTime(time.Now()))
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -240,6 +245,7 @@ func (th *transitionHandler) PostInstallHost(sw stateswitch.StateSwitch, args st
 
 type TransitionArgsDisableHost struct {
 	ctx context.Context
+	db  *gorm.DB
 }
 
 func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -252,7 +258,7 @@ func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args st
 		return errors.New("PostDisableHost invalid argument")
 	}
 
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		statusInfoDisabled)
 }
 
@@ -262,6 +268,7 @@ func (th *transitionHandler) PostDisableHost(sw stateswitch.StateSwitch, args st
 
 type TransitionArgsEnableHost struct {
 	ctx context.Context
+	db  *gorm.DB
 }
 
 func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -274,7 +281,7 @@ func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args sta
 		return errors.New("PostEnableHost invalid argument")
 	}
 
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		statusInfoDiscovering, "inventory", "")
 }
 

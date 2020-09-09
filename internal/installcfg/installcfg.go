@@ -1,38 +1,32 @@
 package installcfg
 
 import (
+	"encoding/json"
 	"fmt"
-	"net"
+	"sort"
+	"strconv"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/models"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
-type bmc struct {
-	Address  string `yaml:"address"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-}
-
 type host struct {
-	Name            string `yaml:"name"`
-	Role            string `yaml:"role"`
-	Bmc             bmc    `yaml:"bmc"`
-	BootMACAddress  string `yaml:"bootMACAddress"`
-	BootMode        string `yaml:"bootMode"`
-	HardwareProfile string `yaml:"hardwareProfile"`
+	Name           string `yaml:"name"`
+	Role           string `yaml:"role"`
+	BootMACAddress string `yaml:"bootMACAddress"`
+	BootMode       string `yaml:"bootMode"`
 }
 
 type baremetal struct {
-	ProvisioningNetworkInterface string `yaml:"provisioningNetworkInterface"`
-	APIVIP                       string `yaml:"apiVIP"`
-	IngressVIP                   string `yaml:"ingressVIP"`
-	DNSVIP                       string `yaml:"dnsVIP"`
-	Hosts                        []host `yaml:"hosts"`
+	ProvisioningNetwork string `yaml:"provisioningNetwork"`
+	APIVIP              string `yaml:"apiVIP"`
+	IngressVIP          string `yaml:"ingressVIP"`
+	Hosts               []host `yaml:"hosts"`
 }
 
 type platform struct {
@@ -64,16 +58,24 @@ type InstallerConfigBaremetal struct {
 		Name string `yaml:"name"`
 	} `yaml:"metadata"`
 	Compute []struct {
-		Name     string `yaml:"name"`
-		Replicas int    `yaml:"replicas"`
+		Hyperthreading string `yaml:"hyperthreading"`
+		Name           string `yaml:"name"`
+		Replicas       int    `yaml:"replicas"`
 	} `yaml:"compute"`
 	ControlPlane struct {
-		Name     string `yaml:"name"`
-		Replicas int    `yaml:"replicas"`
+		Hyperthreading string `yaml:"hyperthreading"`
+		Name           string `yaml:"name"`
+		Replicas       int    `yaml:"replicas"`
 	} `yaml:"controlPlane"`
-	Platform   platform `yaml:"platform"`
-	PullSecret string   `yaml:"pullSecret"`
-	SSHKey     string   `yaml:"sshKey"`
+	Platform              platform `yaml:"platform"`
+	FIPS                  bool     `yaml:"fips"`
+	PullSecret            string   `yaml:"pullSecret"`
+	SSHKey                string   `yaml:"sshKey"`
+	AdditionalTrustBundle string   `yaml:"additionalTrustBundle,omitempty"`
+	ImageContentSources   []struct {
+		Mirrors []string `yaml:"mirrors"`
+		Source  string   `yaml:"source"`
+	} `yaml:"imageContentSources,omitempty"`
 }
 
 func countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
@@ -84,6 +86,18 @@ func countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
 		}
 	}
 	return count
+}
+
+func getBMHName(host *models.Host, masterIdx, workerIdx *int) string {
+	prefix := "openshift-master-"
+	index := masterIdx
+	if host.Role == models.HostRoleWorker {
+		prefix = "openshift-worker-"
+		index = workerIdx
+	}
+	name := prefix + strconv.Itoa(*index)
+	*index = *index + 1
+	return name
 }
 
 func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
@@ -121,20 +135,24 @@ func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
 			Name: cluster.Name,
 		},
 		Compute: []struct {
-			Name     string `yaml:"name"`
-			Replicas int    `yaml:"replicas"`
+			Hyperthreading string `yaml:"hyperthreading"`
+			Name           string `yaml:"name"`
+			Replicas       int    `yaml:"replicas"`
 		}{
 			{
-				Name:     string(models.HostRoleWorker),
-				Replicas: countHostsByRole(cluster, models.HostRoleWorker),
+				Hyperthreading: "Enabled",
+				Name:           string(models.HostRoleWorker),
+				Replicas:       countHostsByRole(cluster, models.HostRoleWorker),
 			},
 		},
 		ControlPlane: struct {
-			Name     string `yaml:"name"`
-			Replicas int    `yaml:"replicas"`
+			Hyperthreading string `yaml:"hyperthreading"`
+			Name           string `yaml:"name"`
+			Replicas       int    `yaml:"replicas"`
 		}{
-			Name:     string(models.HostRoleMaster),
-			Replicas: countHostsByRole(cluster, models.HostRoleMaster),
+			Hyperthreading: "Enabled",
+			Name:           string(models.HostRoleMaster),
+			Replicas:       countHostsByRole(cluster, models.HostRoleMaster),
 		},
 		PullSecret: cluster.PullSecret,
 		SSHKey:     cluster.SSHPublicKey,
@@ -150,71 +168,81 @@ func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
 	return cfg
 }
 
-// [TODO] - remove once we decide to use specific values from the hosts of the cluster
-func getDummyMAC(log logrus.FieldLogger, dummyMAC string, count int) (string, error) {
-	hwMac, err := net.ParseMAC(dummyMAC)
-	if err != nil {
-		log.Warn("Failed to parse dummyMac")
-		return "", err
-	}
-	hwMac[len(hwMac)-1] = hwMac[len(hwMac)-1] + byte(count)
-	return hwMac.String(), nil
-}
-
 func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster, cfg *InstallerConfigBaremetal) error {
 	// set hosts
 	numMasters := countHostsByRole(cluster, models.HostRoleMaster)
 	numWorkers := countHostsByRole(cluster, models.HostRoleWorker)
-	masterCount := 0
-	workerCount := 0
 	hosts := make([]host, numWorkers+numMasters)
 
-	// dummy MAC and port, once we start using real BMH, those values should be set from cluster
-	dummyMAC := "00:aa:39:b3:51:10"
-	dummyPort := 6230
+	yamlHostIdx := 0
+	masterIdx := 0
+	workerIdx := 0
+	sortedHosts := make([]*models.Host, len(cluster.Hosts))
+	copy(sortedHosts, cluster.Hosts)
+	sort.Slice(sortedHosts, func(i, j int) bool {
+		return hostutil.GetHostnameForMsg(sortedHosts[i]) < hostutil.GetHostnameForMsg(sortedHosts[j])
+	})
+	for _, host := range sortedHosts {
+		if swag.StringValue(host.Status) == models.HostStatusDisabled {
+			continue
+		}
+		log.Info("host name is %s", hostutil.GetHostnameForMsg(host))
+		hosts[yamlHostIdx].Name = getBMHName(host, &masterIdx, &workerIdx)
+		hosts[yamlHostIdx].Role = string(host.Role)
 
-	for i := range hosts {
-		log.Infof("Setting master, host %d, master count %d", i, masterCount)
-		if i >= numMasters {
-			hosts[i].Name = fmt.Sprintf("openshift-worker-%d", workerCount)
-			hosts[i].Role = string(models.HostRoleWorker)
-			workerCount += 1
-		} else {
-			hosts[i].Name = fmt.Sprintf("openshift-master-%d", masterCount)
-			hosts[i].Role = string(models.HostRoleMaster)
-			masterCount += 1
-		}
-		hosts[i].Bmc = bmc{
-			Address:  fmt.Sprintf("ipmi://192.168.111.1:%d", dummyPort+i),
-			Username: "admin",
-			Password: "rackattack",
-		}
-		hwMac, err := getDummyMAC(log, dummyMAC, i)
+		var inventory models.Inventory
+		err := json.Unmarshal([]byte(host.Inventory), &inventory)
 		if err != nil {
-			log.Warn("Failed to parse dummyMac")
+			log.Warn("Failed to unmarshall host %s inventory", hostutil.GetHostnameForMsg(host))
 			return err
 		}
-		hosts[i].BootMACAddress = hwMac
-		hosts[i].BootMode = "UEFI"
-		hosts[i].HardwareProfile = "unknown"
+		hosts[yamlHostIdx].BootMACAddress = inventory.Interfaces[0].MacAddress
+		hosts[yamlHostIdx].BootMode = "UEFI"
+		if inventory.Boot != nil && inventory.Boot.CurrentBootMode != "uefi" {
+			hosts[yamlHostIdx].BootMode = "legacy"
+		}
+		yamlHostIdx += 1
 	}
 	cfg.Platform = platform{
 		Baremetal: baremetal{
-			ProvisioningNetworkInterface: "ens4",
-			APIVIP:                       cluster.APIVip,
-			IngressVIP:                   cluster.IngressVip,
-			DNSVIP:                       cluster.APIVip,
-			Hosts:                        hosts,
+			ProvisioningNetwork: "Unmanaged",
+			APIVIP:              cluster.APIVip,
+			IngressVIP:          cluster.IngressVip,
+			Hosts:               hosts,
 		},
 	}
 	return nil
 }
 
-func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
+func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error {
+	if overrides == "" {
+		return nil
+	}
+
+	if err := json.Unmarshal([]byte(overrides), cfg); err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
 	cfg := getBasicInstallConfig(cluster)
 	err := setBMPlatformInstallconfig(log, cluster, cfg)
 	if err != nil {
 		return nil, err
 	}
+
+	err = applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
+	if err != nil {
+		return nil, err
+	}
+	if addRhCa {
+		cfg.AdditionalTrustBundle = fmt.Sprintf(` | %s`, ca)
+	}
+
 	return yaml.Marshal(*cfg)
+}
+
+func ValidateInstallConfigJSON(s string) error {
+	return json.Unmarshal([]byte(s), &InstallerConfigBaremetal{})
 }

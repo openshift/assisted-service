@@ -6,6 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openshift/assisted-service/pkg/leader"
+
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
+
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -58,6 +62,7 @@ type API interface {
 	CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse
 	SetVips(ctx context.Context, c *common.Cluster, apiVip, ingressVip string, db *gorm.DB) error
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
+	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 }
 
 type PrepareConfig struct {
@@ -79,9 +84,11 @@ type Manager struct {
 	metricAPI       metrics.API
 	hostAPI         host.API
 	rp              *refreshPreprocessor
+	leaderElector   leader.Leader
 }
 
-func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hostAPI host.API, metricApi metrics.API) *Manager {
+func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hostAPI host.API, metricApi metrics.API,
+	leaderElector leader.Leader) *Manager {
 	th := &transitionHandler{
 		log:           log,
 		db:            db,
@@ -97,6 +104,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		metricAPI:       metricApi,
 		rp:              newRefreshPreprocessor(log, hostAPI),
 		hostAPI:         hostAPI,
+		leaderElector:   leaderElector,
 	}
 }
 
@@ -167,6 +175,11 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 }
 
 func (m *Manager) ClusterMonitoring() {
+	if !m.leaderElector.IsLeader() {
+		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
+		return
+	}
+	m.log.Debugf("Running ClusterMonitoring")
 	var (
 		clusters            []*common.Cluster
 		clusterAfterRefresh *common.Cluster
@@ -181,6 +194,10 @@ func (m *Manager) ClusterMonitoring() {
 		return
 	}
 	for _, cluster := range clusters {
+		if !m.leaderElector.IsLeader() {
+			m.log.Debugf("Not a leader, exiting ClusterMonitoring")
+			return
+		}
 		if clusterAfterRefresh, err = m.RefreshStatus(ctx, cluster, m.db); err != nil {
 			log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
 			continue
@@ -195,10 +212,12 @@ func (m *Manager) ClusterMonitoring() {
 
 func (m *Manager) DownloadFiles(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{clusterStatusInstalling,
+	allowedStatuses := []string{
+		models.ClusterStatusInstalling,
 		models.ClusterStatusFinalizing,
-		clusterStatusInstalled,
-		clusterStatusError}
+		models.ClusterStatusInstalled,
+		models.ClusterStatusError,
+	}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, files can be downloaded only when status is one of: %s",
 			c.ID, clusterStatus, allowedStatuses)
@@ -208,7 +227,7 @@ func (m *Manager) DownloadFiles(c *common.Cluster) (err error) {
 
 func (m *Manager) DownloadKubeconfig(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	if clusterStatus != clusterStatusInstalled {
+	if clusterStatus != models.ClusterStatusInstalled {
 		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only in installed state", c.ID, clusterStatus, "kubeconfig")
 	}
 
@@ -216,7 +235,7 @@ func (m *Manager) DownloadKubeconfig(c *common.Cluster) (err error) {
 }
 func (m *Manager) GetCredentials(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{clusterStatusInstalling, models.ClusterStatusFinalizing, clusterStatusInstalled}
+	allowedStatuses := []string{models.ClusterStatusInstalling, models.ClusterStatusFinalizing, models.ClusterStatusInstalled}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("Cluster %s is in %s state, credentials are available only in installing or installed state", c.ID, clusterStatus)
 	}
@@ -226,16 +245,16 @@ func (m *Manager) GetCredentials(c *common.Cluster) (err error) {
 
 func (m *Manager) UploadIngressCert(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{models.ClusterStatusFinalizing, clusterStatusInstalled}
+	allowedStatuses := []string{models.ClusterStatusFinalizing, models.ClusterStatusInstalled}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
-		err = errors.Errorf("Cluster %s is in %s state, upload ingress ca can be done only in %s or %s state", c.ID, clusterStatus, models.ClusterStatusFinalizing, clusterStatusInstalled)
+		err = errors.Errorf("Cluster %s is in %s state, upload ingress ca can be done only in %s or %s state", c.ID, clusterStatus, models.ClusterStatusFinalizing, models.ClusterStatusInstalled)
 	}
 	return err
 }
 
 func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{clusterStatusInsufficient, clusterStatusReady, models.ClusterStatusPendingForInput}
+	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("Cluster %s is in %s state, host can register only in one of %s", c.ID, clusterStatus, allowedStatuses)
 	}
@@ -244,7 +263,7 @@ func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 
 func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{clusterStatusInsufficient, clusterStatusReady, models.ClusterStatusPendingForInput}
+	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("Cluster %s is in %s state, cluster can be updated only in one of %s", c.ID, clusterStatus, allowedStatuses)
 	}
@@ -379,6 +398,31 @@ func (m *Manager) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingres
 		}
 	}
 	return nil
+}
+
+func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+	log := logutil.FromContext(ctx, m.log)
+	fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", c.ID)
+	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
+	if err != nil {
+		return "", common.NewApiError(http.StatusNotFound, err)
+	}
+	files = funk.Filter(files, func(x string) bool {
+		return x != fileName
+	}).([]string)
+
+	if len(files) < 1 {
+		return "", common.NewApiError(http.StatusNotFound,
+			errors.Errorf("No log files were found"))
+	}
+
+	log.Debugf("List of files to include into %s is %s", fileName, files)
+	err = common.TarAwsFiles(ctx, fileName, files, objectHandler, log)
+	if err != nil {
+		log.WithError(err).Errorf("failed to download file %s", fileName)
+		return "", common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return fileName, nil
 }
 
 func (m *Manager) IsReadyForInstallation(c *common.Cluster) (bool, string) {

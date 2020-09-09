@@ -21,10 +21,11 @@ import (
 )
 
 var DefaultInstructionConfig = InstructionConfig{
-	ServiceBaseURL:  "http://10.35.59.36:30485",
-	InstallerImage:  "quay.io/ocpmetal/assisted-installer:latest",
-	ControllerImage: "quay.io/ocpmetal/assisted-installer-controller:latest",
-	InventoryImage:  "quay.io/ocpmetal/assisted-installer-agent:latest",
+	ServiceBaseURL:      "http://10.35.59.36:30485",
+	InstallerImage:      "quay.io/ocpmetal/assisted-installer:latest",
+	ControllerImage:     "quay.io/ocpmetal/assisted-installer-controller:latest",
+	InventoryImage:      "quay.io/ocpmetal/assisted-installer-agent:latest",
+	InstallationTimeout: 120,
 }
 
 var _ = Describe("installcmd", func() {
@@ -206,7 +207,7 @@ func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role models.HostRole, bo
 	host := models.Host{
 		ID:                &id,
 		ClusterID:         clusterId,
-		Status:            swag.String(HostStatusDiscovering),
+		Status:            swag.String(models.HostStatusDiscovering),
 		Role:              role,
 		Bootstrap:         bootstrap,
 		Inventory:         defaultInventory(),
@@ -239,15 +240,15 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --url %s --insecure=false --host-name %s " +
+			"--controller-image %s --url %s --insecure=false --agent-image %s --host-name %s --installation-timeout %s " +
 			"|| ( returnCode=$?; podman run --rm --privileged " +
 			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender " +
 			"-url %s -cluster-id %s -host-id %s --insecure=false -bootstrap %s; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, hostname,
-			DefaultInstructionConfig.InventoryImage, DefaultInstructionConfig.ServiceBaseURL, clusterId, hostId,
-			strconv.FormatBool(role == models.HostRoleBootstrap))))
+			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage, hostname,
+			strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)), DefaultInstructionConfig.InventoryImage, DefaultInstructionConfig.ServiceBaseURL,
+			clusterId, hostId, strconv.FormatBool(role == models.HostRoleBootstrap))))
 	} else {
 		installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 			"--privileged --pid=host " +
@@ -255,13 +256,13 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
 			"--cluster-id %s " +
 			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --url %s --insecure=false " +
+			"--controller-image %s --url %s --insecure=false --agent-image %s --installation-timeout %s " +
 			"|| ( returnCode=$?; podman run --rm --privileged " +
 			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender " +
 			"-url %s -cluster-id %s -host-id %s --insecure=false -bootstrap %s; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL,
+			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage, strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)),
 			DefaultInstructionConfig.InventoryImage, DefaultInstructionConfig.ServiceBaseURL, clusterId, hostId,
 			strconv.FormatBool(role == models.HostRoleBootstrap))))
 	}

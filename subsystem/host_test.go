@@ -116,8 +116,6 @@ var _ = Describe("Host tests", func() {
 		steps := getNextSteps(clusterID, *host.ID)
 		_, ok := getStepInList(steps, models.StepTypeInventory)
 		Expect(ok).Should(Equal(true))
-		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
-		Expect(ok).Should(Equal(true))
 		host = getHost(clusterID, *host.ID)
 		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
 		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
@@ -137,10 +135,6 @@ var _ = Describe("Host tests", func() {
 		Expect(steps.NextInstructionSeconds).Should(Equal(int64(120)))
 		Expect(len(steps.Instructions)).Should(Equal(0))
 		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
-		steps = getNextSteps(clusterID, *host.ID)
-		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
-		Expect(ok).Should(Equal(true))
-		Expect(db.Model(host).Update("status", "disconnected").Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
 		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
 		Expect(ok).Should(Equal(true))
@@ -167,8 +161,6 @@ var _ = Describe("Host tests", func() {
 		steps := getNextSteps(clusterID, *host.ID)
 		_, ok := getStepInList(steps, models.StepTypeInventory)
 		Expect(ok).Should(Equal(true))
-		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
-		Expect(ok).Should(Equal(true))
 		host = getHost(clusterID, *host.ID)
 		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
 		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
@@ -196,10 +188,6 @@ var _ = Describe("Host tests", func() {
 		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
 		Expect(ok).Should(Equal(true))
 		_, ok = getStepInList(steps, models.StepTypeDhcpLeaseAllocate)
-		Expect(ok).Should(Equal(true))
-		Expect(db.Model(host).Update("status", "disconnected").Error).NotTo(HaveOccurred())
-		steps = getNextSteps(clusterID, *host.ID)
-		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
 		Expect(ok).Should(Equal(true))
 		Expect(db.Model(host).Update("status", "error").Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
@@ -341,8 +329,6 @@ var _ = Describe("Host tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(db.Model(h).UpdateColumn("status", host.StateInsufficient).Error).NotTo(HaveOccurred())
-		h = getHost(clusterID, *h.ID)
-		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
 
 		freeAddressesReply, err := userBMClient.Installer.GetFreeAddresses(ctx, &installer.GetFreeAddressesParams{
 			ClusterID: clusterID,
@@ -379,8 +365,6 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).To(HaveOccurred())
-		h = getHost(clusterID, *h.ID)
-		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
 
 		//exit code is not 0
 		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
@@ -394,8 +378,6 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).To(HaveOccurred())
-		h = getHost(clusterID, *h.ID)
-		Expect(h.FreeAddresses).Should(Equal(free_addresses_report))
 	})
 
 	It("disable enable", func() {
@@ -471,5 +453,26 @@ var _ = Describe("Host tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		h = getHost(*cluster2.GetPayload().ID, *hostID)
 		Expect(swag.StringValue(h.Status)).Should(Equal("discovering"))
+	})
+
+	It("register_wrong_pull_secret", func() {
+		if !Options.EnableAuth {
+			Skip("auth is disabled")
+		}
+
+		wrongTokenStubID, err := wiremock.createWrongStubTokenAuth(WrongPullSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		hostID := strToUUID(uuid.New().String())
+		_, err = badAgentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+			ClusterID: clusterID,
+			NewHostParams: &models.HostCreateParams{
+				HostID: hostID,
+			},
+		})
+		Expect(err).To(HaveOccurred())
+
+		err = wiremock.DeleteStub(wrongTokenStubID)
+		Expect(err).ToNot(HaveOccurred())
 	})
 })

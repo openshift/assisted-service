@@ -76,6 +76,16 @@ parameters:
 - name: DHCP_LEASE_ALLOCATOR_IMAGE
   value: ''
   required: true
+- name: INSTALL_RH_CA
+  value: "false"
+  required: true
+- name: LOG_LEVEL
+  value: "info"
+  required: true
+- name: REPLICAS_COUNT
+  value: "3"
+- name: RELEASE_TAG
+  value: ''
 apiVersion: v1
 kind: Template
 metadata:
@@ -89,7 +99,7 @@ objects:
     selector:
       matchLabels:
         app: assisted-service
-    replicas: 1
+    replicas: ${{REPLICAS_COUNT}}
     template:
       metadata:
         labels:
@@ -119,11 +129,6 @@ objects:
                 path: /ready
                 port: 8090
             env:
-              - name: ROUTE53_SECRET
-                valueFrom:
-                  secretKeyRef:
-                    key: route53_secret
-                    name: route53-creds
               - name: AWS_SECRET_ACCESS_KEY
                 valueFrom:
                   secretKeyRef:
@@ -238,7 +243,23 @@ objects:
                 value: ${FREE_ADDRESSES_IMAGE}
               - name: DHCP_LEASE_ALLOCATOR_IMAGE
                 value: ${DHCP_LEASE_ALLOCATOR_IMAGE}
-
+              - name: LOG_LEVEL
+                value: ${LOG_LEVEL}
+              - name: INSTALL_RH_CA
+                value: ${INSTALL_RH_CA}
+              - name: RELEASE_TAG
+                value: ${RELEASE_TAG}
+              - name: AWS_SHARED_CREDENTIALS_FILE
+                value: /etc/.aws/credentials
+            volumeMounts:
+              - name: route53-creds
+                mountPath: "/etc/.aws"
+                readOnly: true
+        volumes:
+          - name: route53-creds
+            secret:
+              secretName: route53-creds
+              optional: true
 - apiVersion: v1
   kind: Service
   metadata:

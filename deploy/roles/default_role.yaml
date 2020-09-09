@@ -30,6 +30,28 @@ rules:
       - batch
     resources:
       - jobs
+  - verbs:
+      - create
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+  - verbs:
+      - get
+      - update
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+    resourceNames: ["assisted-service-leader-election-helper"]
+  - verbs:
+      - '*'
+    apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1

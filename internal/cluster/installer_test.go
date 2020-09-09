@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
@@ -33,7 +32,7 @@ var _ = Describe("installer", func() {
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
-			Status: swag.String(clusterStatusReady),
+			Status: swag.String(models.ClusterStatusReady),
 		}}
 
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -41,12 +40,12 @@ var _ = Describe("installer", func() {
 
 	Context("install cluster", func() {
 		It("cluster is insufficient", func() {
-			cluster = updateClusterState(cluster, clusterStatusInsufficient, db)
+			cluster = updateClusterState(cluster, models.ClusterStatusInsufficient, db)
 			err := installerManager.Install(ctx, &cluster, db)
 			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is expected to have exactly 3 known master to be installed, got 0", cluster.ID).Error()))
 		})
 		It("cluster is installing", func() {
-			cluster = updateClusterState(cluster, clusterStatusInstalling, db)
+			cluster = updateClusterState(cluster, models.ClusterStatusInstalling, db)
 			err := installerManager.Install(ctx, &cluster, db)
 			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is already installing", cluster.ID).Error()))
 		})
@@ -56,12 +55,12 @@ var _ = Describe("installer", func() {
 			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is already %s", cluster.ID, models.ClusterStatusFinalizing).Error()))
 		})
 		It("cluster is in error", func() {
-			cluster = updateClusterState(cluster, clusterStatusError, db)
+			cluster = updateClusterState(cluster, models.ClusterStatusError, db)
 			err := installerManager.Install(ctx, &cluster, db)
 			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s has a error", cluster.ID).Error()))
 		})
 		It("cluster is installed", func() {
-			cluster = updateClusterState(cluster, clusterStatusInstalled, db)
+			cluster = updateClusterState(cluster, models.ClusterStatusInstalled, db)
 			err := installerManager.Install(ctx, &cluster, db)
 			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is already installed", cluster.ID).Error()))
 		})
@@ -71,17 +70,17 @@ var _ = Describe("installer", func() {
 			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s state is unclear - cluster state: its fun to be unknown", cluster.ID).Error()))
 		})
 		It("cluster is ready", func() {
-			cluster = updateClusterState(cluster, clusterStatusReady, db)
+			cluster = updateClusterState(cluster, models.ClusterStatusReady, db)
 			Expect(installerManager.Install(ctx, &cluster, db)).Should(HaveOccurred())
 		})
 		It("cluster is ready", func() {
-			cluster = updateClusterState(cluster, clusterStatusPrepareForInstallation, db)
+			cluster = updateClusterState(cluster, models.ClusterStatusPreparingForInstallation, db)
 			err := installerManager.Install(ctx, &cluster, db)
 			Expect(err).Should(BeNil())
 
 			Expect(db.Preload("Hosts").First(&cluster, "id = ?", cluster.ID).Error).ShouldNot(HaveOccurred())
 
-			Expect(swag.StringValue(cluster.Status)).Should(Equal(clusterStatusInstalling))
+			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInstalling))
 		})
 	})
 
@@ -89,11 +88,11 @@ var _ = Describe("installer", func() {
 		It("test getting master ids", func() {
 
 			for i := 0; i < 3; i++ {
-				hostsIds = append(hostsIds, addHost(models.HostRoleMaster, host.HostStatusKnown, id, db))
+				hostsIds = append(hostsIds, addHost(models.HostRoleMaster, models.HostStatusKnown, id, db))
 			}
 			masterKnownIds := hostsIds
-			hostsIds = append(hostsIds, addHost(models.HostRoleWorker, host.HostStatusKnown, id, db))
-			hostsIds = append(hostsIds, addHost(models.HostRoleMaster, host.HostStatusDiscovering, id, db))
+			hostsIds = append(hostsIds, addHost(models.HostRoleWorker, models.HostStatusKnown, id, db))
+			hostsIds = append(hostsIds, addHost(models.HostRoleMaster, models.HostStatusDiscovering, id, db))
 
 			replyMasterNodesIds, err := installerManager.GetMasterNodesIds(ctx, &cluster, db)
 			Expect(err).Should(BeNil())
