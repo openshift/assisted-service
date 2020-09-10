@@ -144,7 +144,7 @@ const ignitionConfigFormat = `{
     "files": [{
       "overwrite": true,
       "path": "/etc/motd",
-      "mode": 644,
+      "mode": 420,
       "user": {
           "name": "root"
       },
@@ -153,7 +153,7 @@ const ignitionConfigFormat = `{
 	{
 		"overwrite": true,
 		"path": "/root/.docker/config.json",
-		"mode": 644,
+		"mode": 420,
 		"user": {
 			"name": "root"
 		},
@@ -162,7 +162,7 @@ const ignitionConfigFormat = `{
 	{
 	  "overwrite": true,
 	  "path": "/etc/pki/ca-trust/source/anchors/rh-it-root-ca.crt",
-	  "mode": 644,
+	  "mode": 420,
 	  "user": {
 	      "name": "root"
 	  },
