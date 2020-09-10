@@ -897,7 +897,7 @@ var _ = Describe("cluster install", func() {
 
 			By("cant_report_after_error", func() {
 				installProgress := &models.HostProgress{
-					CurrentStage: models.HostStageWritingImageToDisk,
+					CurrentStage: models.HostStageDone,
 				}
 
 				_, err := agentBMClient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
