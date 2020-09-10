@@ -1,4 +1,7 @@
 ---
+parameters:
+- name: IMAGE_TAG
+  required: true
 apiVersion: v1
 kind: Template
 metadata:
