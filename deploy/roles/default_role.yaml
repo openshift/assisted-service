@@ -45,12 +45,6 @@ rules:
     resources:
       - configmaps
     resourceNames: ["assisted-service-leader-election-helper"]
-  - verbs:
-      - '*'
-    apiGroups:
-      - coordination.k8s.io
-    resources:
-      - leases
 
 ---
 kind: RoleBinding
