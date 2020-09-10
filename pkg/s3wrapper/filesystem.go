@@ -27,7 +27,7 @@ func NewFSClient(basedir string, logger *logrus.Logger) *FSClient {
 	return &FSClient{log: logger, basedir: basedir}
 }
 
-func (c *FSClient) IsAwsS3() bool {
+func (f *FSClient) IsAwsS3() bool {
 	return false
 }
 
