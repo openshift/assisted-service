@@ -102,6 +102,8 @@ spec:
               value: "false"
             - name: LOG_LEVEL
               value: "info"
+            - name: LOG_FORMAT
+              value: "text"
             - name: INSTALL_RH_CA
               value: "false"
             - name: REGISTRY_CREDS

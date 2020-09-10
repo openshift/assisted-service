@@ -64,11 +64,13 @@ func (l *SdKLogger) Error(ctx context.Context, format string, args ...interface{
 	l.FieldLogger.Errorf(format, args...)
 }
 
-func NewClient(config Config, log *logrus.Logger) (*Client, error) {
+func NewClient(config Config, log logrus.FieldLogger) (*Client, error) {
+
+	entry := log.(*logrus.Entry)
 
 	client := &Client{
 		config: &config,
-		logger: &SdKLogger{Log: log, FieldLogger: log.WithField("pkg", "ocm")},
+		logger: &SdKLogger{Log: entry.Logger, FieldLogger: log.WithField("pkg", "ocm")},
 		Cache:  cache.New(1*time.Minute, 30*time.Minute),
 	}
 	client.Authentication = &authentication{
