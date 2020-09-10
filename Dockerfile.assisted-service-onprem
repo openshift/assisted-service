@@ -28,6 +28,7 @@ ENV COREOS_IMAGE=$WORK_DIR/livecd.iso
 
 # install config
 # [TODO] - change this line to use openshift-installer from the release, once we are ready
+COPY --from=config-gen $WORK_DIR/oc $WORK_DIR
 COPY --from=config-gen $WORK_DIR/openshift-install $WORK_DIR
 COPY --from=config-gen $WORK_DIR/render_files.py $WORK_DIR
 COPY --from=config-gen $WORK_DIR/utils.py $WORK_DIR
@@ -38,4 +39,6 @@ COPY --from=config-gen $WORK_DIR/test_utils.py $WORK_DIR
 ENV WORK_DIR=$WORK_DIR
 
 COPY --from=assisted-service /assisted-service /assisted-service
+COPY --from=assisted-service /clients/* /clients/
+RUN pip3 install /clients/*
 CMD ["/assisted-service"]
