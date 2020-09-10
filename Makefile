@@ -23,7 +23,7 @@ endif # TARGET
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},minikube-local-registry/ignition-dummy-generator:minikube-test)
-BASE_OS_IMAGE ?= https://releases-rhcos.cloud.privileged.psi.redhat.com/storage/releases/4.6-devel/46.82.202008261306-0/x86_64/rhcos-46.82.202008261306-0-live.x86_64.iso
+BASE_OS_IMAGE ?= https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/latest-4.6/rhcos-4.6.0-0.nightly-2020-09-09-130911-x86_64-live.x86_64.iso
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
