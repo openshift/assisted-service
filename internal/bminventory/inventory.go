@@ -954,7 +954,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 
 	if err := tx.Commit().Error; err != nil {
 		log.Error(err)
-		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, fmt.Errorf("DB error, failed to commit")))
+		return common.GenerateErrorResponder(fmt.Errorf("DB error, failed to commit"))
 	}
 	txSuccess = true
 
@@ -964,13 +964,13 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 
 	if err := b.db.Preload("Hosts").First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
-		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+		return common.GenerateErrorResponder(err)
 	}
 
 	cluster.HostNetworks = calculateHostNetworks(log, &cluster)
 	for _, host := range cluster.Hosts {
 		if err := b.customizeHost(host); err != nil {
-			return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+			return common.GenerateErrorResponder(err)
 		}
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
@@ -1246,7 +1246,7 @@ func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.Ge
 	cluster.HostNetworks = calculateHostNetworks(log, &cluster)
 	for _, host := range cluster.Hosts {
 		if err := b.customizeHost(host); err != nil {
-			return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+			return common.GenerateErrorResponder(err)
 		}
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
@@ -1325,7 +1325,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	if err := b.customizeHost(&host); err != nil {
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityError,
 			"Failed to register host: error setting host properties", time.Now())
-		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+		return common.GenerateErrorResponder(err)
 	}
 
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityInfo,
@@ -1359,7 +1359,7 @@ func (b *bareMetalInventory) GetHost(ctx context.Context, params installer.GetHo
 	}
 
 	if err := b.customizeHost(&host); err != nil {
-		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+		return common.GenerateErrorResponder(err)
 	}
 
 	// Clear this field as it is not needed to be sent via API
@@ -1378,7 +1378,7 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.Lis
 
 	for _, host := range hosts {
 		if err := b.customizeHost(host); err != nil {
-			return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+			return common.GenerateErrorResponder(err)
 		}
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
@@ -1659,7 +1659,7 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 	if err := b.customizeHost(&host); err != nil {
 		msg := "Failed to disable host: error setting host properties"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
-		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+		return common.GenerateErrorResponder(err)
 	}
 
 	c, err := b.refreshClusterAndHostStatuses(ctx, cluster, host, tx)
@@ -1730,7 +1730,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 	if err := b.customizeHost(&host); err != nil {
 		msg := "Failed to enable host: error setting host properties"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
-		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+		return common.GenerateErrorResponder(err)
 	}
 
 	c, err := b.refreshClusterAndHostStatuses(ctx, cluster, host, tx)
