@@ -18,11 +18,15 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
+
+	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/ocm"
 )
 
 const (
-	clusterNameRegex = "^([a-z]([-a-z0-9]*[a-z0-9])?)*$"
-	dnsNameRegex     = "^([a-z0-9]+(-[a-z0-9]+)*[.])+[a-z]{2,}$"
+	clusterNameRegex  = "^([a-z]([-a-z0-9]*[a-z0-9])?)*$"
+	dnsNameRegex      = "^([a-z0-9]+(-[a-z0-9]+)*[.])+[a-z]{2,}$"
+	CloudOpenShiftCom = "cloud.openshift.com"
 )
 
 type imagePullSecret struct {
@@ -78,10 +82,24 @@ const (
 )
 */
 
-func ValidatePullSecret(secret string) error {
-	_, err := ParsePullSecret(secret)
+func ValidatePullSecret(secret string, username string, authHandler auth.AuthHandler) error {
+	creds, err := ParsePullSecret(secret)
 	if err != nil {
 		return err
+	}
+
+	if authHandler.EnableAuth {
+		r, ok := creds["cloud.openshift.com"]
+		if !ok {
+			return errors.Errorf("Pull secret does not contain auth for cloud.openshift.com")
+		}
+		user, err := authHandler.AuthAgentAuth(r.AuthRaw)
+		if err != nil {
+			return errors.Errorf("Failed to authenticate Pull Secret Token")
+		}
+		if (user.(*ocm.AuthPayload)).Username != username {
+			return errors.Errorf("Pull Secret Token does not match User")
+		}
 	}
 	/*
 		Actual credentials check is disabled for not until we solve how to do it in tests and subsystem
