@@ -806,6 +806,22 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 	return nil
 }
 
+func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	c, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	cfg, err := installcfg.GetInstallConfig(log, c, false, "")
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	return installer.NewGetClusterInstallConfigOK().WithPayload(string(cfg))
+}
+
 func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
