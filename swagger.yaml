@@ -560,11 +560,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -603,11 +603,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
@@ -1608,11 +1608,11 @@ paths:
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         403:
           description: Forbidden.
           schema:
-            $ref: '#/definitions/error'
+            $ref: '#/definitions/infra_error'
         405:
           description: Method Not Allowed.
           schema:

@@ -2078,13 +2078,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -2143,13 +2143,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -2383,13 +2383,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "405": {
@@ -5877,13 +5877,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5942,13 +5942,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -6182,13 +6182,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "405": {
