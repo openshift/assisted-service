@@ -7,24 +7,22 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/openshift/assisted-service/pkg/leader"
-
-	"github.com/openshift/assisted-service/internal/hostutil"
-
-	"github.com/go-openapi/strfmt"
-
 	"github.com/filanov/stateswitch"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/internal/hostutil"
+	"github.com/openshift/assisted-service/pkg/leader"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
+
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
 
 var BootstrapStages = [...]models.HostStage{
@@ -49,6 +47,16 @@ var manualRebootStages = [...]models.HostStage{
 	models.HostStageConfiguring,
 	models.HostStageJoined,
 	models.HostStageDone,
+}
+
+var InstallationProgressTimeout = map[models.HostStage]time.Duration{
+	models.HostStageStartingInstallation: 10 * time.Minute,
+	models.HostStageWritingImageToDisk:   20 * time.Minute,
+	models.HostStageRebooting:            30 * time.Minute,
+	models.HostStageConfiguring:          30 * time.Minute,
+	models.HostStageWaitingForIgnition:   60 * time.Minute,
+	models.HostStageInstalling:           20 * time.Minute,
+	"DEFAULT":                            60 * time.Minute,
 }
 
 type Config struct {
