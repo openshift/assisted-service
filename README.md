@@ -86,21 +86,6 @@ skipper make update && kubectl get pod --namespace assisted-installer -o name | 
 
 It will build and push a new image of the service to your Docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.
 
-## Update Discovery Image base OS
-￼
-￼If you want to update the underlying operating system image used by the discovery iso, follow these steps:
-￼
-￼1. Choose the base os image you want to use
-￼
-￼    1. RHCOS: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/
-￼    2. Fedora CoreOS: https://getfedora.org/en/coreos/download?tab=metal_virtualized&stream=stable
-￼2. Build the new iso generator image
-￼
-￼    ```sh
-￼    # Example with RHCOS
-￼    BASE_OS_IMAGE=https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/latest/rhcos-4.6.0-0.nightly-2020-08-26-093617-x86_64-live.x86_64.iso make build-assisted-iso-generator-image
-￼    ```
-
 ## Deployment
 
 ### Deploy to minikube
