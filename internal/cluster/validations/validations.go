@@ -5,9 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/openshift/assisted-service/internal/common"
 
 	"github.com/pkg/errors"
 
@@ -17,7 +20,10 @@ import (
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 )
 
-const clusterNameRegex = "^([a-z]([-a-z0-9]*[a-z0-9])?)*$"
+const (
+	clusterNameRegex = "^([a-z]([-a-z0-9]*[a-z0-9])?)*$"
+	dnsNameRegex     = "^([a-z0-9]+(-[a-z0-9]+)*[.])+[a-z]{2,}$"
+)
 
 type imagePullSecret struct {
 	Auths map[string]map[string]interface{} `json:"auths"`
@@ -100,8 +106,22 @@ func ValidatePullSecret(secret string) error {
 	return nil
 }
 
+func validateDomainNameFormat(dnsDomainName string) error {
+	matched, err := regexp.MatchString(dnsNameRegex, dnsDomainName)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "DNS name validation for %s", dnsDomainName))
+	}
+	if !matched {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("DNS format mismatch: %s domain name is not valid", dnsDomainName))
+	}
+	return nil
+}
+
 // ValidateBaseDNS validates the specified base domain name
 func ValidateBaseDNS(dnsDomainName, dnsDomainID, dnsProviderType string) error {
+	if err := validateDomainNameFormat(dnsDomainName); err != nil {
+		return err
+	}
 	var dnsProvider dnsproviders.Provider
 	switch dnsProviderType {
 	case "route53":
