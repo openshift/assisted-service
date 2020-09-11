@@ -84,6 +84,7 @@ type Config struct {
 	BaseDNSDomains       map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
 	SkipCertVerification bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 	InstallRHCa          bool              `envconfig:"INSTALL_RH_CA" default:"false"`
+	RhQaRegCred          string            `envconfig:"REGISTRY_CREDS" default:""`
 }
 
 const agentMessageOfTheDay = `
@@ -143,16 +144,25 @@ const ignitionConfigFormat = `{
     "files": [{
       "overwrite": true,
       "path": "/etc/motd",
-      "mode": 644,
+      "mode": 420,
       "user": {
           "name": "root"
       },
       "contents": { "source": "data:,{{.AGENT_MOTD}}" }
-	}{{if .RH_ROOT_CA}},
+	},
+	{
+		"overwrite": true,
+		"path": "/root/.docker/config.json",
+		"mode": 420,
+		"user": {
+			"name": "root"
+		},
+		"contents": { "source": "data:,{{.PULL_SECRET}}" }
+	  }{{if .RH_ROOT_CA}},
 	{
 	  "overwrite": true,
 	  "path": "/etc/pki/ca-trust/source/anchors/rh-it-root-ca.crt",
-	  "mode": 644,
+	  "mode": 420,
 	  "user": {
 	      "name": "root"
 	  },
@@ -213,6 +223,18 @@ func NewBareMetalInventory(
 	}
 }
 
+func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.FieldLogger) (string, error) {
+	if b.Config.RhQaRegCred != "" {
+		ps, err := validations.AddRHRegPullSecret(pullSecret, b.Config.RhQaRegCred)
+		if err != nil {
+			log.Errorf("Failed to add RH QA Credentials to Pull Secret: %s", err.Error())
+			return "", fmt.Errorf("Failed to add RH QA Credentials to Pull Secret: %s", err.Error())
+		}
+		return ps, nil
+	}
+	return pullSecret, nil
+}
+
 func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams) (string, error) {
 	creds, err := validations.ParsePullSecret(cluster.PullSecret)
 	if err != nil {
@@ -237,6 +259,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"clusterId":            cluster.ID.String(),
 		"PullSecretToken":      r.AuthRaw,
 		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
+		"PULL_SECRET":          url.PathEscape(cluster.PullSecret),
 		"RH_ROOT_CA":           rhCa,
 		"PROXY_SETTINGS":       proxySettings,
 		"HTTPProxy":            cluster.HTTPProxy,
@@ -332,7 +355,12 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 			return installer.NewRegisterClusterBadRequest().
 				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to validate Pull-secret")))
 		}
-		setPullSecret(&cluster, params.NewClusterParams.PullSecret)
+		ps, err := b.updatePullSecret(params.NewClusterParams.PullSecret, log)
+		if err != nil {
+			return installer.NewRegisterClusterBadRequest().
+				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to update Pull-secret with additional credentials")))
+		}
+		setPullSecret(&cluster, ps)
 	}
 	if err := validations.ValidateClusterNameFormat(swag.StringValue(params.NewClusterParams.Name)); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -897,6 +925,12 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 			return installer.NewUpdateClusterBadRequest().
 				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to validate Pull-secret")))
 		}
+		ps, errUpdate := b.updatePullSecret(*params.ClusterUpdateParams.PullSecret, log)
+		if errUpdate != nil {
+			return installer.NewUpdateClusterBadRequest().
+				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to update Pull-secret with additional credentials")))
+		}
+		params.ClusterUpdateParams.PullSecret = &ps
 	}
 	if newClusterName := swag.StringValue(params.ClusterUpdateParams.Name); newClusterName != "" {
 		if err = validations.ValidateClusterNameFormat(newClusterName); err != nil {
