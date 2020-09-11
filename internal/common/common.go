@@ -70,13 +70,12 @@ func CreateTar(ctx context.Context, w io.Writer, files []string, client s3wrappe
 }
 
 // Tar given files in s3 bucket.
-// We open pipe for reading from aws and writing archived back to it while zipping them.
+// We open pipe for reading from aws and writing archived back to it while archiving them.
 // It creates stream by using io.pipe
 func TarAwsFiles(ctx context.Context, tarName string, files []string, client s3wrapper.API, log logrus.FieldLogger) error {
 	// Create pipe
 	var err error
 	pr, pw := io.Pipe()
-	// Create zip.Write which will writes to pipes
 	wg := sync.WaitGroup{}
 	// Wait for downloader and uploader
 	wg.Add(2)
@@ -89,7 +88,7 @@ func TarAwsFiles(ctx context.Context, tarName string, files []string, client s3w
 		}()
 		downloadError := CreateTar(ctx, pw, files, client, false)
 		if downloadError != nil && err == nil {
-			err = errors.Wrapf(downloadError, "Failed to download files while creating zip %s", tarName)
+			err = errors.Wrapf(downloadError, "Failed to download files while creating archive %s", tarName)
 			log.Error(err)
 		}
 	}()
@@ -103,7 +102,7 @@ func TarAwsFiles(ctx context.Context, tarName string, files []string, client s3w
 		// Upload the file, body is `io.Reader` from pipe
 		uploadError := client.UploadStream(ctx, pr, tarName)
 		if uploadError != nil && err == nil {
-			err = errors.Wrapf(uploadError, "Failed to upload zip %s", tarName)
+			err = errors.Wrapf(uploadError, "Failed to upload archive %s", tarName)
 			log.Error(err)
 		}
 	}()
