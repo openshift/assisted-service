@@ -244,7 +244,7 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"|| ( returnCode=$?; podman run --rm --privileged " +
 			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender " +
-			"-url %s -cluster-id %s -host-id %s --insecure=false -bootstrap %s; exit $returnCode; )"
+			"-url %s -cluster-id %s -host-id %s --insecure=false -bootstrap=%s; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
 			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage, hostname,
 			strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)), DefaultInstructionConfig.InventoryImage, DefaultInstructionConfig.ServiceBaseURL,
@@ -260,7 +260,7 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 			"|| ( returnCode=$?; podman run --rm --privileged " +
 			"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 			"--env PULL_SECRET_TOKEN --name logs-sender %s logs_sender " +
-			"-url %s -cluster-id %s -host-id %s --insecure=false -bootstrap %s; exit $returnCode; )"
+			"-url %s -cluster-id %s -host-id %s --insecure=false -bootstrap=%s; exit $returnCode; )"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
 			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage, strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)),
 			DefaultInstructionConfig.InventoryImage, DefaultInstructionConfig.ServiceBaseURL, clusterId, hostId,
