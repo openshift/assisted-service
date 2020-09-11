@@ -5,6 +5,7 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 )
 
 type ISOGenerator interface {
@@ -12,7 +13,7 @@ type ISOGenerator interface {
 }
 
 type InstallConfigGenerator interface {
-	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error
+	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, objectHandler s3wrapper.API) error
 	AbortInstallConfig(ctx context.Context, cluster common.Cluster) error
 }
 
