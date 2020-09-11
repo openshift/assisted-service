@@ -8,7 +8,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
-	logrus "github.com/sirupsen/logrus"
+	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 	reflect "reflect"
 )
 
@@ -49,32 +49,18 @@ func (mr *MockLocalJobMockRecorder) AbortInstallConfig(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortInstallConfig", reflect.TypeOf((*MockLocalJob)(nil).AbortInstallConfig), arg0, arg1)
 }
 
-// Execute mocks base method
-func (m *MockLocalJob) Execute(arg0, arg1 string, arg2 []string, arg3 logrus.FieldLogger) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Execute indicates an expected call of Execute
-func (mr *MockLocalJobMockRecorder) Execute(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockLocalJob)(nil).Execute), arg0, arg1, arg2, arg3)
-}
-
 // GenerateInstallConfig mocks base method
-func (m *MockLocalJob) GenerateInstallConfig(arg0 context.Context, arg1 common.Cluster, arg2 []byte) error {
+func (m *MockLocalJob) GenerateInstallConfig(arg0 context.Context, arg1 common.Cluster, arg2 []byte, arg3 s3wrapper.API) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateInstallConfig", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GenerateInstallConfig", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // GenerateInstallConfig indicates an expected call of GenerateInstallConfig
-func (mr *MockLocalJobMockRecorder) GenerateInstallConfig(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockLocalJobMockRecorder) GenerateInstallConfig(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockLocalJob)(nil).GenerateInstallConfig), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockLocalJob)(nil).GenerateInstallConfig), arg0, arg1, arg2, arg3)
 }
 
 // UploadBaseISO mocks base method

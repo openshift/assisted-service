@@ -5,9 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/openshift/assisted-service/internal/ignition"
-
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/pkg/generator"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/sirupsen/logrus"
