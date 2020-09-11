@@ -3,7 +3,9 @@ package common
 import (
 	"archive/tar"
 	"context"
+	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -40,9 +42,18 @@ func CreateTar(ctx context.Context, w io.Writer, files []string, client s3wrappe
 			return errors.Wrapf(err, "Failed to open reader for %s", file)
 		}
 
+		// removing folders
+		fileNameSplit := strings.Split(file, "/")
+		fileName := file
+		if len(fileNameSplit) > 1 {
+			fileName = fmt.Sprintf("%s_%s", fileNameSplit[len(fileNameSplit)-2],
+				fileNameSplit[len(fileNameSplit)-1])
+		}
+
 		header := tar.Header{
-			Name: file,
+			Name: fileName,
 			Size: objectSize,
+			Mode: 0644,
 		}
 		err = tarWriter.WriteHeader(&header)
 		if err != nil && !continueOnError {
