@@ -38,8 +38,13 @@ func (c *connectivityCheckCmd) GetStep(ctx context.Context, host *models.Host) (
 
 	hostsData, err := convertHostsToConnectivityCheckParams(host.ID, hosts, c.connectivityValidator)
 	if err != nil {
-		c.log.Errorf("failed to convert hosts to connectivity params for host %s cluster %s", host.ID, host.ClusterID)
+		c.log.WithError(err).Errorf("failed to convert hosts to connectivity params for host %s cluster %s", host.ID, host.ClusterID)
 		return nil, err
+	}
+
+	// Skip this step in case there is no hosts to check
+	if hostsData == "" {
+		return nil, nil
 	}
 
 	step := &models.Step{
