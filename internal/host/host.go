@@ -234,14 +234,22 @@ func (m *Manager) GetNextSteps(ctx context.Context, host *models.Host) (models.S
 }
 
 func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error {
+	previousProgress := h.Progress
+
+	if previousProgress != nil &&
+		previousProgress.CurrentStage == progress.CurrentStage &&
+		previousProgress.ProgressInfo == progress.ProgressInfo {
+		return nil
+	}
+
 	validStatuses := []string{
 		models.HostStatusInstalling, models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction,
 	}
 	if !funk.ContainsString(validStatuses, swag.StringValue(h.Status)) {
 		return fmt.Errorf("Can't set progress <%s> to host in status <%s>", progress.CurrentStage, swag.StringValue(h.Status))
 	}
-	previousProgress := h.Progress
-	if h.Progress.CurrentStage != "" && progress.CurrentStage != models.HostStageFailed {
+
+	if previousProgress.CurrentStage != "" && progress.CurrentStage != models.HostStageFailed {
 		// Verify the new stage is higher or equal to the current host stage according to its role stages array
 		stages := m.GetStagesByRole(h.Role, h.Bootstrap)
 		currentIndex := indexOfStage(progress.CurrentStage, stages)
@@ -250,9 +258,9 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			return errors.Errorf("Stages %s isn't available for host role %s bootstrap %s",
 				progress.CurrentStage, h.Role, strconv.FormatBool(h.Bootstrap))
 		}
-		if currentIndex < indexOfStage(h.Progress.CurrentStage, stages) {
+		if currentIndex < indexOfStage(previousProgress.CurrentStage, stages) {
 			return errors.Errorf("Can't assign lower stage \"%s\" after host has been in stage \"%s\"",
-				progress.CurrentStage, h.Progress.CurrentStage)
+				progress.CurrentStage, previousProgress.CurrentStage)
 		}
 	}
 
@@ -263,7 +271,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	case models.HostStageDone:
 		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstalled, statusInfo,
-			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
+			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 	case models.HostStageFailed:
 		// Keeps the last progress
 
@@ -276,7 +284,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	default:
 		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
-			h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
+			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 	}
 	m.reportInstallationMetrics(ctx, h, previousProgress, progress.CurrentStage)
 	return err
