@@ -52,7 +52,7 @@ import (
 )
 
 func init() {
-	strfmt.MarshalFormat = strfmt.ISO8601LocalTime
+	strfmt.MarshalFormat = strfmt.RFC3339Millis
 }
 
 const deploymet_type_k8s = "k8s"
