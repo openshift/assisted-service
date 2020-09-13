@@ -67,6 +67,7 @@ pipeline {
                 for (service in ["assisted-service","postgres","scality","createimage"]) {
                     sh "kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep ${service} | xargs -r -I {} sh -c \"kubectl logs {} -n assisted-installer > ${service}.log\" || true"
                 }
+            archiveArtifacts artifacts: '*.log', fingerprint: true
             }
         }
     }
