@@ -81,7 +81,6 @@ parameters:
   required: true
 - name: REGISTRY_CREDS
   value: ""
-  required: true
 - name: LOG_LEVEL
   value: "info"
   required: true
