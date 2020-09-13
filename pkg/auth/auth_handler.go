@@ -84,7 +84,7 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 	}
 	user, err := a.client.Authentication.AuthenticatePullSecret(context.Background(), token)
 	if err != nil {
-		a.log.Error("Error Authenticating PullSecret token: %v", err)
+		a.log.Errorf("Error Authenticating PullSecret token: %v", err)
 		return nil, err
 	}
 	err = a.storeAdminInPayload(user)
