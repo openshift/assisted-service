@@ -1020,6 +1020,7 @@ var _ = Describe("Refresh Host", func() {
 
 	Context("host installation timeout", func() {
 		var srcState string
+		var invalidStage models.HostStage = "not_mentioned_stage"
 
 		installationStages := []models.HostStage{
 			models.HostStageStartingInstallation,
@@ -1028,11 +1029,11 @@ var _ = Describe("Refresh Host", func() {
 			models.HostStageConfiguring,
 			models.HostStageWaitingForIgnition,
 			models.HostStageInstalling,
-			"not_mentioned_stage",
+			invalidStage,
 		}
 		timePassedTypes := map[string]time.Duration{
 			"under_timeout": 5 * time.Minute,
-			"over_timeout":  1 * time.Hour,
+			"over_timeout":  90 * time.Minute,
 		}
 
 		for j := range installationStages {
