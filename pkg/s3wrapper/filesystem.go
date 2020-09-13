@@ -19,11 +19,11 @@ import (
 )
 
 type FSClient struct {
-	log     *logrus.Logger
+	log     logrus.FieldLogger
 	basedir string
 }
 
-func NewFSClient(basedir string, logger *logrus.Logger) *FSClient {
+func NewFSClient(basedir string, logger logrus.FieldLogger) *FSClient {
 	return &FSClient{log: logger, basedir: basedir}
 }
 
