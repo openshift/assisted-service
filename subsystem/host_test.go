@@ -113,6 +113,9 @@ var _ = Describe("Host tests", func() {
 
 	It("next step", func() {
 		host := registerHost(clusterID)
+		host2 := registerHost(clusterID)
+		Expect(db.Model(host2).UpdateColumns(&models.Host{Inventory: defaultInventory(),
+			Status: swag.String(models.HostStatusInsufficient)}).Error).NotTo(HaveOccurred())
 		steps := getNextSteps(clusterID, *host.ID)
 		_, ok := getStepInList(steps, models.StepTypeInventory)
 		Expect(ok).Should(Equal(true))
@@ -158,6 +161,9 @@ var _ = Describe("Host tests", func() {
 		Expect(db.Table("clusters").Where("id = ?", clusterID.String()).UpdateColumn("machine_network_cidr", "1.2.3.0/24").Error).ToNot(HaveOccurred())
 		Expect(err).ToNot(HaveOccurred())
 		host := registerHost(clusterID)
+		host2 := registerHost(clusterID)
+		Expect(db.Model(host2).UpdateColumns(&models.Host{Inventory: defaultInventory(),
+			Status: swag.String(models.HostStatusInsufficient)}).Error).NotTo(HaveOccurred())
 		steps := getNextSteps(clusterID, *host.ID)
 		_, ok := getStepInList(steps, models.StepTypeInventory)
 		Expect(ok).Should(Equal(true))

@@ -29,20 +29,20 @@ var _ = Describe("connectivitycheckcmd", func() {
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = getTestHost(id, clusterId, models.HostStatusDiscovering)
+		host = getTestHost(id, clusterId, models.HostStatusInsufficient)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 
 	It("get_step", func() {
 		stepReply, stepErr = connectivityCheckCmd.GetStep(ctx, &host)
-		Expect(stepReply.StepType).To(Equal(models.StepTypeConnectivityCheck))
+		Expect(stepReply).To(BeNil())
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 
 	It("get_step_unknow_cluster_id", func() {
 		host.ClusterID = strfmt.UUID(uuid.New().String())
 		stepReply, stepErr = connectivityCheckCmd.GetStep(ctx, &host)
-		Expect(stepReply.StepType).To(Equal(models.StepTypeConnectivityCheck))
+		Expect(stepReply).To(BeNil())
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 

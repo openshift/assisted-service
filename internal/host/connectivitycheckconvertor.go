@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/go-openapi/swag"
+	"github.com/thoas/go-funk"
+
 	"github.com/openshift/assisted-service/internal/connectivity"
 
 	"github.com/go-openapi/strfmt"
@@ -13,6 +16,13 @@ import (
 func convertHostsToConnectivityCheckParams(currentHostId *strfmt.UUID, hosts []*models.Host, connectivityValidator connectivity.Validator) (string, error) {
 	var connectivityCheckHosts models.ConnectivityCheckParams
 	for i := range hosts {
+		// We don't need to check if host is in some certain states:
+		// discovering - Host doesn't have inventory yet
+		// disabled - Host does not participate in cluster
+		// disconnected - Host does not have connectivity to the network now
+		if funk.ContainsString([]string{models.HostStatusDiscovering, models.HostStatusDisabled, models.HostStatusDisconnected}, swag.StringValue(hosts[i].Status)) {
+			continue
+		}
 		if hosts[i].ID.String() != currentHostId.String() {
 			interfaces, err := connectivityValidator.GetHostValidInterfaces(hosts[i])
 			if err != nil {
