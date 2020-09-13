@@ -414,10 +414,10 @@ var _ = Describe("Cancel host installation", func() {
 		{state: models.HostStatusInstalled, success: true},
 		{state: models.HostStatusError, success: true},
 		{state: models.HostStatusDisabled, success: true},
+		{state: models.HostStatusInstallingPendingUserAction, success: true},
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusInstallingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict},
 	}
@@ -487,10 +487,10 @@ var _ = Describe("Reset host", func() {
 		{state: models.HostStatusInstalled, success: true},
 		{state: models.HostStatusError, success: true},
 		{state: models.HostStatusDisabled, success: true},
+		{state: models.HostStatusInstallingPendingUserAction, success: true},
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusInstallingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict},
 	}
