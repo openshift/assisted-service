@@ -30,6 +30,13 @@ func GenerateInternalFromError(err error) *models.Error {
 	}
 }
 
+func GenerateInfraError(id int32, err error) *models.InfraError {
+	return &models.InfraError{
+		Code:    swag.Int32(id),
+		Message: swag.String(err.Error()),
+	}
+}
+
 type ApiErrorResponse struct {
 	statusCode int32
 	err        error
@@ -57,9 +64,42 @@ func NewApiError(statusCode int32, err error) *ApiErrorResponse {
 	}
 }
 
+type InfraErrorResponse struct {
+	*ApiErrorResponse
+}
+
+func (i *InfraErrorResponse) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+	rw.WriteHeader(int(i.statusCode))
+	if err := producer.Produce(rw, GenerateInfraError(i.statusCode, i.err)); err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
+}
+
+func NewInfraError(statusCode int32, err error) *InfraErrorResponse {
+	return &InfraErrorResponse{
+		ApiErrorResponse: &ApiErrorResponse{
+			statusCode: statusCode,
+			err:        err,
+		},
+	}
+}
+
+func IsKnownError(err error) bool {
+	switch err.(type) {
+	case *ApiErrorResponse:
+		return true
+	case *InfraErrorResponse:
+		return true
+	default:
+		return false
+	}
+}
+
 func GenerateErrorResponder(err error) middleware.Responder {
 	switch errValue := err.(type) {
 	case *ApiErrorResponse:
+		return errValue
+	case *InfraErrorResponse:
 		return errValue
 	default:
 		return NewApiError(http.StatusInternalServerError, err)
@@ -69,6 +109,8 @@ func GenerateErrorResponder(err error) middleware.Responder {
 func GenerateErrorResponderWithDefault(err error, defaultCode int32) middleware.Responder {
 	switch errValue := err.(type) {
 	case *ApiErrorResponse:
+		return errValue
+	case *InfraErrorResponse:
 		return errValue
 	default:
 		return NewApiError(defaultCode, err)
