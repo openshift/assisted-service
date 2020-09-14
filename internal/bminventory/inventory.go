@@ -2561,14 +2561,14 @@ func (b *bareMetalInventory) changeDNSRecordSets(ctx context.Context, cluster co
 			dnsRecordSetFunc = dnsProvider.DeleteRecordSet
 		}
 
-		// Create/Delete A record for API Virtual IP
+		// Create/Delete A record for API virtual IP
 		_, err := dnsRecordSetFunc(domain.APIDomainName, cluster.APIVip)
 		if err != nil {
 			log.WithError(err).Errorf("failed to update DNS record: (%s, %s)",
 				domain.APIDomainName, cluster.APIVip)
 			return err
 		}
-		// Create/Delete A record for Ingress Virtual IP
+		// Create/Delete A record for Ingress virtual IP
 		_, err = dnsRecordSetFunc(domain.IngressDomainName, cluster.IngressVip)
 		if err != nil {
 			log.WithError(err).Errorf("failed to update DNS record: (%s, %s)",
