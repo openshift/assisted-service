@@ -21,7 +21,7 @@
         "path": "/etc/assisted-service/environment",
         "filesystem": "root",
         "contents": {
-          "source": "data:,POSTGRESQL_DATABASE%3Dinstaller%0APOSTGRESQL_PASSWORD%3Dadmin%0APOSTGRESQL_USER%3Dadmin%0ADB_HOST%3D127.0.0.1%0ADB_PORT%3D5432%0ADB_USER%3Dadmin%0ADB_PASS%3Dadmin%0ADB_NAME%3Dinstaller%0ASERVICE_BASE_URL%3Dhttp%3A%2F%2Fassisted-api.local.openshift.io%3A8080%0ADEPLOY_TARGET%3Donprem%0A"
+          "source": "data:,POSTGRESQL_DATABASE%3Dinstaller%0APOSTGRESQL_PASSWORD%3Dadmin%0APOSTGRESQL_USER%3Dadmin%0ADB_HOST%3D127.0.0.1%0ADB_PORT%3D5432%0ADB_USER%3Dadmin%0ADB_PASS%3Dadmin%0ADB_NAME%3Dinstaller%0ASERVICE_BASE_URL%3Dhttp%3A%2F%2Fassisted-api.local.openshift.io%3A8080%0ADEPLOY_TARGET%3Donprem%0AOPENSHIFT_INSTALL_RELEASE_IMAGE%3Dquay.io%2Focpmetal%2Focp-release%3Av1.0.9.1%0A"
         },
         "mode": 420
       },
