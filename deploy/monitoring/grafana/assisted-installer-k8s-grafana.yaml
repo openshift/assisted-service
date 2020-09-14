@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: grafana
-        image: grafana/grafana:latest
+        image: quay.io/openshift/origin-grafana:latest
         imagePullPolicy: IfNotPresent
         ports:
         - name: grafana
