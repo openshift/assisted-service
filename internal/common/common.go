@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -51,9 +52,10 @@ func CreateTar(ctx context.Context, w io.Writer, files []string, client s3wrappe
 		}
 
 		header := tar.Header{
-			Name: fileName,
-			Size: objectSize,
-			Mode: 0644,
+			Name:    fileName,
+			Size:    objectSize,
+			Mode:    0644,
+			ModTime: time.Now(),
 		}
 		err = tarWriter.WriteHeader(&header)
 		if err != nil && !continueOnError {
