@@ -2,23 +2,25 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"testing"
 	"time"
-
-	"github.com/patrickmn/go-cache"
-
-	"github.com/openshift/assisted-service/client"
-	"github.com/openshift/assisted-service/pkg/ocm"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/openshift/assisted-service/client"
 	clientInstaller "github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
+	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,73 +37,105 @@ func TestAuth(t *testing.T) {
 	userKeyValue := "bearer " + userToken
 	t.Parallel()
 	tests := []struct {
-		name                   string
-		authInfo               runtime.ClientAuthInfoWriter
-		isListOperation        bool
-		enableAuth             bool
-		addHeaders             bool
-		expectedRequestSuccess bool
+		name            string
+		authInfo        runtime.ClientAuthInfoWriter
+		isListOperation bool
+		enableAuth      bool
+		addHeaders      bool
+		mockOcmAuth     func(a *ocm.MockOCMAuthentication)
+		expectedError   interface{}
 	}{
 		{
-			name:                   "User Successful Authentication",
-			authInfo:               UserAuthHeaderWriter(userKeyValue),
-			isListOperation:        true,
-			enableAuth:             true,
-			addHeaders:             true,
-			expectedRequestSuccess: true,
+			name:            "User Successful Authentication",
+			authInfo:        UserAuthHeaderWriter(userKeyValue),
+			isListOperation: true,
+			enableAuth:      true,
+			addHeaders:      true,
 		},
 		{
-			name:                   "User Unsuccessful Authentication",
-			authInfo:               UserAuthHeaderWriter("bearer bad_token"),
-			isListOperation:        true,
-			enableAuth:             true,
-			addHeaders:             true,
-			expectedRequestSuccess: false,
+			name:            "User Unsuccessful Authentication",
+			authInfo:        UserAuthHeaderWriter("bearer bad_token"),
+			isListOperation: true,
+			enableAuth:      true,
+			addHeaders:      true,
+			expectedError:   installer.NewListClustersUnauthorized(),
 		},
 		{
-			name:                   "Fail User Auth Without Headers",
-			authInfo:               UserAuthHeaderWriter(userKeyValue),
-			isListOperation:        true,
-			enableAuth:             true,
-			addHeaders:             false,
-			expectedRequestSuccess: false,
+			name:            "Fail User Auth Without Headers",
+			authInfo:        UserAuthHeaderWriter(userKeyValue),
+			isListOperation: true,
+			enableAuth:      true,
+			addHeaders:      false,
+			expectedError:   installer.NewListClustersUnauthorized(),
 		},
 		{
-			name:                   "Agent Successful Authentication",
-			authInfo:               AgentAuthHeaderWriter(agentKeyValue),
-			isListOperation:        false,
-			enableAuth:             true,
-			addHeaders:             true,
-			expectedRequestSuccess: true,
+			name:            "Agent Successful Authentication",
+			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
+			isListOperation: false,
+			enableAuth:      true,
+			addHeaders:      true,
+			mockOcmAuth:     mockOcmAuthSuccess,
 		},
 		{
-			name:                   "Fail Agent Auth Without Headers",
-			authInfo:               AgentAuthHeaderWriter(agentKeyValue),
-			isListOperation:        false,
-			enableAuth:             true,
-			addHeaders:             false,
-			expectedRequestSuccess: false,
+			name:            "Agent ocm authentication failure",
+			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
+			isListOperation: false,
+			enableAuth:      true,
+			addHeaders:      true,
+			expectedError:   installer.NewGetClusterUnauthorized(),
+			mockOcmAuth:     mockOcmAuthFailure,
 		},
 		{
-			name:                   "Ignore User Auth If Auth Disabled",
-			authInfo:               UserAuthHeaderWriter(userKeyValue),
-			isListOperation:        true,
-			enableAuth:             false,
-			addHeaders:             false,
-			expectedRequestSuccess: true,
+			name:            "Agent ocm authentication failure can not send request",
+			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
+			isListOperation: false,
+			enableAuth:      true,
+			addHeaders:      true,
+			expectedError:   installer.NewGetClusterServiceUnavailable(),
+			mockOcmAuth:     mockOcmAuthSendRequestFailure,
 		},
 		{
-			name:                   "Ignore Agent Auth If Auth Disabled",
-			authInfo:               AgentAuthHeaderWriter(agentKeyValue),
-			isListOperation:        false,
-			enableAuth:             false,
-			addHeaders:             false,
-			expectedRequestSuccess: true,
+			name:            "Agent ocm authentication failure return internal error",
+			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
+			isListOperation: false,
+			enableAuth:      true,
+			addHeaders:      true,
+			expectedError:   installer.NewGetClusterInternalServerError(),
+			mockOcmAuth:     mockOcmAuthInternalError,
+		},
+		{
+			name:            "Fail Agent Auth Without Headers",
+			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
+			isListOperation: false,
+			enableAuth:      true,
+			addHeaders:      false,
+			expectedError:   installer.NewGetClusterUnauthorized(),
+		},
+		{
+			name:            "Ignore User Auth If Auth Disabled",
+			authInfo:        UserAuthHeaderWriter(userKeyValue),
+			isListOperation: true,
+			enableAuth:      false,
+			addHeaders:      false,
+		},
+		{
+			name:            "Ignore Agent Auth If Auth Disabled",
+			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
+			isListOperation: false,
+			enableAuth:      false,
+			addHeaders:      false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			ocmAuth := ocm.NewMockOCMAuthentication(ctrl)
+			if tt.mockOcmAuth != nil {
+				tt.mockOcmAuth(ocmAuth)
+			}
+
 			fakeConfig := Config{
 				EnableAuth: tt.enableAuth,
 				JwkCertURL: "",
@@ -109,7 +143,7 @@ func TestAuth(t *testing.T) {
 			}
 			AuthHandler := NewAuthHandler(fakeConfig, nil, log.WithField("pkg", "auth"))
 			AuthHandler.client = &ocm.Client{
-				Authentication: &mockOCMAuthentication{},
+				Authentication: ocmAuth,
 				Authorization:  &mockOCMAuthorization{},
 				Cache:          cache.New(1*time.Hour, 30*time.Minute),
 			}
@@ -143,11 +177,6 @@ func TestAuth(t *testing.T) {
 			defer server.Close()
 			time.Sleep(time.Second * 1) // Allow the server to start
 
-			expectedStatusCode := 401
-			if tt.expectedRequestSuccess {
-				expectedStatusCode = 200
-			}
-
 			var e error
 			if tt.isListOperation {
 				_, e = bmclient.Installer.ListClusters(context.TODO(), &clientInstaller.ListClustersParams{})
@@ -157,15 +186,13 @@ func TestAuth(t *testing.T) {
 					ClusterID: strfmt.UUID(id.String()),
 				})
 			}
-			if expectedStatusCode == 200 {
-				assert.Nil(t, e)
-			} else if expectedStatusCode == 401 {
-				assert.NotNil(t, e)
-			} else {
-				apierr := e.(*runtime.APIError)
-				assert.Equal(t, apierr.Code, expectedStatusCode)
 
+			if tt.expectedError != nil {
+				assert.Equal(t, reflect.TypeOf(e).String(), reflect.TypeOf(tt.expectedError).String())
+			} else {
+				assert.Nil(t, e)
 			}
+
 		})
 	}
 }
@@ -301,14 +328,30 @@ func (f fakeInventory) DownloadClusterLogs(ctx context.Context, params installer
 
 var _ restapi.InstallerAPI = fakeInventory{}
 
-type mockOCMAuthentication struct {
-	ocm.OCMAuthentication
+var mockOcmAuthFailure = func(a *ocm.MockOCMAuthentication) {
+	a.EXPECT().AuthenticatePullSecret(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
+			return nil, fmt.Errorf("error")
+		}).Times(1)
 }
 
-var authenticatePullSecretMock = func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
-	return &ocm.AuthPayload{}, nil
+var mockOcmAuthInternalError = func(a *ocm.MockOCMAuthentication) {
+	a.EXPECT().AuthenticatePullSecret(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
+			return nil, common.NewApiError(http.StatusInternalServerError, fmt.Errorf("error"))
+		}).Times(1)
 }
 
-func (m *mockOCMAuthentication) AuthenticatePullSecret(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
-	return authenticatePullSecretMock(ctx, pullSecret)
+var mockOcmAuthSendRequestFailure = func(a *ocm.MockOCMAuthentication) {
+	a.EXPECT().AuthenticatePullSecret(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
+			return nil, common.NewApiError(http.StatusServiceUnavailable, fmt.Errorf("error"))
+		}).Times(1)
+}
+
+var mockOcmAuthSuccess = func(a *ocm.MockOCMAuthentication) {
+	a.EXPECT().AuthenticatePullSecret(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
+			return &ocm.AuthPayload{}, nil
+		}).Times(1)
 }
