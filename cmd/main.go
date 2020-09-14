@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
 	"github.com/openshift/assisted-service/pkg/leader"
+	logconfig "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -73,25 +74,40 @@ var Options struct {
 	DeployTarget                string `envconfig:"DEPLOY_TARGET" default:"k8s"`
 	OCMConfig                   ocm.Config
 	HostConfig                  host.Config
-	LogLevel                    string `envconfig:"LOG_LEVEL" default:"info"`
+	LogConfig                   logconfig.Config
 	LeaderConfig                leader.Config
 }
 
-func main() {
+func InitLogs() *logrus.Entry {
 	log := logrus.New()
 	log.SetReportCaller(true)
 
-	err := envconfig.Process("myapp", &Options)
-	if err != nil {
-		log.Fatal(err.Error())
+	logger := log.WithFields(logrus.Fields{})
+
+	//set log format according to configuration
+	logger.Info("Setting log format: ", Options.LogConfig.LogFormat)
+	if Options.LogConfig.LogFormat == logconfig.LogFormatJson {
+		log.SetFormatter(&logrus.JSONFormatter{})
 	}
 
-	logLevel, err := logrus.ParseLevel(Options.LogLevel)
+	//set log level according to configuration
+	logger.Info("Setting Log Level: ", Options.LogConfig.LogLevel)
+	logLevel, err := logrus.ParseLevel(Options.LogConfig.LogLevel)
 	if err != nil {
-		log.Error("Invalid Log Level: ", Options.LogLevel)
+		logger.Error("Invalid Log Level: ", Options.LogConfig.LogLevel)
 	} else {
 		log.SetLevel(logLevel)
-		log.Info("Log Level: ", Options.LogLevel)
+	}
+
+	return logger
+}
+
+func main() {
+	err := envconfig.Process("myapp", &Options)
+	log := InitLogs()
+
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
 	port := flag.String("port", "8090", "define port that the service will listen to")
@@ -215,7 +231,8 @@ func main() {
 		Options.BMConfig.S3EndpointURL = newUrl
 	}
 
-	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig, generator, eventsHandler, objectHandler, metricsManager)
+	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
+		generator, eventsHandler, objectHandler, metricsManager, *authHandler)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 

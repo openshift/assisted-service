@@ -106,6 +106,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeCancelInstallation,
 		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingPendingUserAction),
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusInstalling),
 			stateswitch.State(models.HostStatusInstallingInProgress),
@@ -129,6 +130,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeResetHost,
 		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingPendingUserAction),
 			stateswitch.State(models.HostStatusInstalling),
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusInstallingInProgress),
@@ -231,6 +233,16 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		Condition:        th.HasClusterError,
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoAbortingDueClusterErrors),
+	})
+
+	// Time out while host installation
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingInProgress)},
+		Condition:        stateswitch.And(th.HasInstallationTimedOut, stateswitch.Not(th.HasClusterError)),
+		DestinationState: stateswitch.State(models.HostStatusError),
+		PostTransition:   th.PostRefreshHost(statusInfoInstallationTimedOut),
 	})
 
 	// Noop transitions for cluster error

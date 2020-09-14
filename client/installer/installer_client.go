@@ -58,6 +58,9 @@ type API interface {
 	   GetCluster retrieves the details of the open shift bare metal cluster*/
 	GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error)
 	/*
+	   GetClusterInstallConfig gets the cluster install config yaml*/
+	GetClusterInstallConfig(ctx context.Context, params *GetClusterInstallConfigParams) (*GetClusterInstallConfigOK, error)
+	/*
 	   GetCredentials gets the the cluster admin credentials*/
 	GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error)
 	/*
@@ -453,6 +456,31 @@ func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*Get
 		return nil, err
 	}
 	return result.(*GetClusterOK), nil
+
+}
+
+/*
+GetClusterInstallConfig gets the cluster install config yaml
+*/
+func (a *Client) GetClusterInstallConfig(ctx context.Context, params *GetClusterInstallConfigParams) (*GetClusterInstallConfigOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterInstallConfig",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/install-config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetClusterInstallConfigReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterInstallConfigOK), nil
 
 }
 

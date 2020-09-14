@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/openshift/assisted-service/internal/host"
@@ -1028,19 +1029,20 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 	Context("All transitions", func() {
 		var srcState string
 		tests := []struct {
-			name               string
-			srcState           string
-			srcStatusInfo      string
-			machineNetworkCidr string
-			apiVip             string
-			ingressVip         string
-			dnsDomain          string
-			pullSecretSet      bool
-			dstState           string
-			hosts              []models.Host
-			statusInfoChecker  statusInfoChecker
-			validationsChecker *validationsChecker
-			errorExpected      bool
+			name                    string
+			srcState                string
+			srcStatusInfo           string
+			machineNetworkCidr      string
+			apiVip                  string
+			ingressVip              string
+			dnsDomain               string
+			pullSecretSet           bool
+			dstState                string
+			hosts                   []models.Host
+			statusInfoChecker       statusInfoChecker
+			validationsChecker      *validationsChecker
+			setMachineCidrUpdatedAt bool
+			errorExpected           bool
 		}{
 			{
 				name:               "pending-for-input to pending-for-input",
@@ -1137,6 +1139,36 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
+				name:               "ready to dhcp timeout - api vip not defined",
+				srcState:           models.ClusterStatusReady,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "",
+				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API VIP IP allocation from DHCP server has been timed out"},
+					isApiVipValid:                       {status: ValidationPending, messagePattern: "API VIP is undefined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
+				}),
+				errorExpected: false,
+			},
+			{
 				name:               "ready to insufficient - api vip not defined",
 				srcState:           models.ClusterStatusReady,
 				dstState:           models.ClusterStatusInsufficient,
@@ -1155,8 +1187,39 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
-					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "API VIP is undefined"},
+					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "after the machine network CIDR has been defined, the API VIP is received from DHCP lease allocation task which may take up to 2 minutes"},
 					isApiVipValid:                       {status: ValidationPending, messagePattern: "API VIP is undefined"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "Base DNS Domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "Pull secret is set"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
+				}),
+				setMachineCidrUpdatedAt: true,
+				errorExpected:           false,
+			},
+			{
+				name:               "dhcp timeout to ready",
+				srcState:           models.ClusterStatusInsufficient,
+				dstState:           models.ClusterStatusReady,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.7",
+				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoReady),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
 					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to machine CIDR and not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
@@ -1333,6 +1396,11 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 						ServiceNetworkCidr:       "1.2.5.0/24",
 						ClusterNetworkHostPrefix: 24,
 					},
+				}
+				if t.setMachineCidrUpdatedAt {
+					cluster.MachineNetworkCidrUpdatedAt = time.Now()
+				} else {
+					cluster.MachineNetworkCidrUpdatedAt = time.Now().Add(-3 * time.Minute)
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 				for i := range t.hosts {

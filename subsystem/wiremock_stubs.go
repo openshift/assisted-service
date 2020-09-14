@@ -46,7 +46,7 @@ const (
 	fakePayloadUsername      string = "jdoe123@example.com"
 	fakePayloadAdmin         string = "admin@example.com"
 	fakePayloadUnallowedUser string = "unallowed@example.com"
-	FakePullSecret           string = "fake_secret"
+	FakePS                   string = "dXNlcjpwYXNzd29yZAo="
 	WrongPullSecret          string = "wrong_secret"
 )
 
@@ -59,7 +59,7 @@ func (w *WireMock) CreateWiremockStubsForOCM() error {
 		return err
 	}
 
-	if _, err := w.createStubTokenAuth(FakePullSecret, fakePayloadUsername); err != nil {
+	if _, err := w.createStubTokenAuth(FakePS, fakePayloadUsername); err != nil {
 		return err
 	}
 

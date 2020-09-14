@@ -51,7 +51,7 @@ type API interface {
 var _ API = &S3Client{}
 
 type S3Client struct {
-	log     *logrus.Logger
+	log     logrus.FieldLogger
 	session *session.Session
 	client  s3iface.S3API
 	cfg     *Config
@@ -68,7 +68,7 @@ type Config struct {
 const timestampTagKey = "create_sec_since_epoch"
 
 // NewS3Client creates new s3 client using default config along with defined env variables
-func NewS3Client(cfg *Config, logger *logrus.Logger) *S3Client {
+func NewS3Client(cfg *Config, logger logrus.FieldLogger) *S3Client {
 	awsSession, err := newS3Session(cfg)
 	if err != nil {
 		return nil

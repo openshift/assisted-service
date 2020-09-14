@@ -10,7 +10,6 @@ parameters:
   required: true
 - name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
   value: ''
-  required: true
 - name: OPENSHIFT_INSTALL_RELEASE_IMAGE
   value: ''
   required: true
@@ -79,6 +78,8 @@ parameters:
 - name: INSTALL_RH_CA
   value: "false"
   required: true
+- name: REGISTRY_CREDS
+  value: ""
 - name: LOG_LEVEL
   value: "info"
   required: true
@@ -247,6 +248,8 @@ objects:
                 value: ${LOG_LEVEL}
               - name: INSTALL_RH_CA
                 value: ${INSTALL_RH_CA}
+              - name: REGISTRY_CREDS
+                value: ${REGISTRY_CREDS}
               - name: RELEASE_TAG
                 value: ${RELEASE_TAG}
               - name: AWS_SHARED_CREDENTIALS_FILE

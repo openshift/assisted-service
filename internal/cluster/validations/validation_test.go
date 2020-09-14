@@ -1,6 +1,8 @@
 package validations
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -10,30 +12,71 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	auth "github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/sirupsen/logrus"
 )
 
 // #nosec
 const (
-	validSecretFormat   = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
-	invalidAuthFormat   = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
-	invalidSecretFormat = "{\"auths\":{\"cloud.openshift.com\":{\"key\":\"abcdef=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"adasfsdf=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"tatastata==\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
-	validSSHPublicKey   = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD14Gv4V1111yr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUA111mn/HalJTHB73LyjilKiPvJ+x2bG7Aeiq111wtQSpt02FCdQGptmsSqqWF/b9botOO38e111PNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= xxxxxx@localhost.localdomain"
-	invalidSSHPublicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDI2PBP9RuAHCJ1JvxS0gkK7cm1sMHtdqCYuHzK7fmoMSPeAu+GEPVlBmes825gabO7vUK/pVmcsP9mQLXB0KZ8m/QEBXSO9vmF8dEt5OqtpRLcRzxmcnU1iUs50VSQyEeSxdSV4KA9JuWa+q0f3o3VO+CF6s4kQvQ4lumyCyNSFIBnFCX16+O8syah/UpHUWVqJeHaXCV8qzYKyRvy6nMI5lqCgxe+ENqHkgfkQkgEKHZ8gEnzHtJgewZ3E6fbjQ59eEEvF0zb7WKKWA0YzWOMVGGybj4cFMPQ4Jt7iJ0OZKPBQZMHBcPNrej5lasgcKR7nH5XS0UjHhX5vZJ7e7zONHK4XZj6OjEOXilg3/4rxSn0+QQtT1v0RDXRQhHS6sCyRFV12MqEP8XjPIdBMbE26lRwk3tBwWx7plj3UCVamQid3nY5kslD4X7+cqE8n3bNF922rhCy5STycfEFN3XTs73yKvVPjpro4aQw4BVi4P7B7m7F1d/DqRBuYwWuQ6cLLLLLLLLLLL= root@xxxxxx.xx.xxx.xxx.redhat.com"
+	validSecretFormat        = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
+	invalidAuthFormat        = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
+	invalidSecretFormat      = "{\"auths\":{\"cloud.openshift.com\":{\"key\":\"abcdef=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"adasfsdf=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"tatastata==\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
+	validSSHPublicKey        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD14Gv4V1111yr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUA111mn/HalJTHB73LyjilKiPvJ+x2bG7Aeiq111wtQSpt02FCdQGptmsSqqWF/b9botOO38e111PNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= xxxxxx@localhost.localdomain"
+	invalidSSHPublicKey      = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDI2PBP9RuAHCJ1JvxS0gkK7cm1sMHtdqCYuHzK7fmoMSPeAu+GEPVlBmes825gabO7vUK/pVmcsP9mQLXB0KZ8m/QEBXSO9vmF8dEt5OqtpRLcRzxmcnU1iUs50VSQyEeSxdSV4KA9JuWa+q0f3o3VO+CF6s4kQvQ4lumyCyNSFIBnFCX16+O8syah/UpHUWVqJeHaXCV8qzYKyRvy6nMI5lqCgxe+ENqHkgfkQkgEKHZ8gEnzHtJgewZ3E6fbjQ59eEEvF0zb7WKKWA0YzWOMVGGybj4cFMPQ4Jt7iJ0OZKPBQZMHBcPNrej5lasgcKR7nH5XS0UjHhX5vZJ7e7zONHK4XZj6OjEOXilg3/4rxSn0+QQtT1v0RDXRQhHS6sCyRFV12MqEP8XjPIdBMbE26lRwk3tBwWx7plj3UCVamQid3nY5kslD4X7+cqE8n3bNF922rhCy5STycfEFN3XTs73yKvVPjpro4aQw4BVi4P7B7m7F1d/DqRBuYwWuQ6cLLLLLLLLLLL= root@xxxxxx.xx.xxx.xxx.redhat.com"
+	userName                 = "jdoe123@example.com"
+	validSecretFormatUpdated = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.stage.redhat.io\":{\"auth\":\"c29tZW9uZUBleGFtcGxlLmNvbTp0aGlzaXNhc2VjcmV0\"}}}"
+	regCred                  = "someone@example.com:thisisasecret"
 )
 
 var _ = Describe("Pull secret validation", func() {
+	log := logrus.New()
+	fakeConfigDisabled := auth.Config{
+		EnableAuth: false,
+		JwkCertURL: "",
+		JwkCert:    "",
+	}
+	authHandlerDisabled := auth.NewAuthHandler(fakeConfigDisabled, nil, log.WithField("pkg", "auth"))
+	_, JwkCert := auth.GetTokenAndCert()
+	fakeConfig := auth.Config{
+		EnableAuth: true,
+		JwkCertURL: "",
+		JwkCert:    string(JwkCert),
+	}
+	client := &ocm.Client{
+		Authentication: &mockOCMAuthentication{},
+		Authorization:  &mockOCMAuthorization{},
+	}
+	authHandler := auth.NewAuthHandler(fakeConfig, client, log.WithField("pkg", "auth"))
 
 	Context("test secret format", func() {
 		It("valid format", func() {
-			err := ValidatePullSecret(validSecretFormat)
+			err := ValidatePullSecret(validSecretFormat, "", *authHandlerDisabled)
 			Expect(err).Should(BeNil())
 		})
 		It("invalid format for the auth", func() {
-			err := ValidatePullSecret(invalidAuthFormat)
+			err := ValidatePullSecret(invalidAuthFormat, "", *authHandlerDisabled)
 			Expect(err).ShouldNot(BeNil())
 		})
 		It("invalid format", func() {
-			err := ValidatePullSecret(invalidSecretFormat)
+			err := ValidatePullSecret(invalidSecretFormat, "", *authHandlerDisabled)
+			Expect(err).ShouldNot(BeNil())
+		})
+		It("valid format - Invalid user", func() {
+			err := ValidatePullSecret(validSecretFormat, "NotSameUser@example.com", *authHandler)
+			Expect(err)
+		})
+		It("valid format - Valid user", func() {
+			err := ValidatePullSecret(validSecretFormat, userName, *authHandler)
+			Expect(err).Should(BeNil())
+		})
+		It("Add RH Reg PullSecret ", func() {
+			ps, err := AddRHRegPullSecret(validSecretFormat, regCred)
+			Expect(err).Should(BeNil())
+			Expect(ps).To(Equal(validSecretFormatUpdated))
+		})
+		It("Check empty RH Reg PullSecret ", func() {
+			_, err := AddRHRegPullSecret(validSecretFormat, "")
 			Expect(err).ShouldNot(BeNil())
 		})
 	})
@@ -50,6 +93,38 @@ var _ = Describe("SSH Key validation", func() {
 		Expect(err).ShouldNot(BeNil())
 	})
 })
+
+type mockOCMAuthentication struct {
+	ocm.OCMAuthentication
+}
+
+var authenticatePullSecretMock = func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
+	payload := &ocm.AuthPayload{}
+	payload.Username = userName
+	return payload, nil
+}
+
+func (m *mockOCMAuthentication) AuthenticatePullSecret(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
+	return authenticatePullSecretMock(ctx, pullSecret)
+}
+
+type mockOCMAuthorization struct {
+	ocm.OCMAuthorization
+}
+
+var accessReviewMock func(ctx context.Context, username, action, resourceType string) (allowed bool, err error)
+
+var capabilityReviewMock = func(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error) {
+	return false, nil
+}
+
+func (m *mockOCMAuthorization) AccessReview(ctx context.Context, username, action, resourceType string) (allowed bool, err error) {
+	return accessReviewMock(ctx, username, action, resourceType)
+}
+
+func (m *mockOCMAuthorization) CapabilityReview(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error) {
+	return capabilityReviewMock(ctx, username, capabilityName, capabilityType)
+}
 
 type mockRoute53Client struct {
 	route53iface.Route53API
@@ -259,6 +334,51 @@ var _ = Describe("Proxy validations", func() {
 			Expect(err).ShouldNot(BeNil())
 		})
 	})
+})
+
+var _ = Describe("dns name", func() {
+	tests := []struct {
+		domainName string
+		valid      bool
+	}{
+		{
+			domainName: "a.com",
+			valid:      true,
+		},
+		{
+			domainName: "a",
+			valid:      false,
+		},
+		{
+			domainName: "co",
+			valid:      false,
+		},
+		{
+			domainName: "aaa",
+			valid:      false,
+		},
+		{
+			domainName: "abc.def",
+			valid:      true,
+		},
+		{
+			domainName: "-aaa.com",
+			valid:      false,
+		},
+		{
+			domainName: "a-aa.com",
+			valid:      true,
+		},
+	}
+	for _, t := range tests {
+		It(fmt.Sprintf("Domain name \"%s\"", t.domainName), func() {
+			if t.valid {
+				Expect(validateDomainNameFormat(t.domainName)).ToNot(HaveOccurred())
+			} else {
+				Expect(validateDomainNameFormat(t.domainName)).To(HaveOccurred())
+			}
+		})
+	}
 })
 
 func TestCluster(t *testing.T) {

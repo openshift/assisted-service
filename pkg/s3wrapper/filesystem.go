@@ -19,15 +19,15 @@ import (
 )
 
 type FSClient struct {
-	log     *logrus.Logger
+	log     logrus.FieldLogger
 	basedir string
 }
 
-func NewFSClient(basedir string, logger *logrus.Logger) *FSClient {
+func NewFSClient(basedir string, logger logrus.FieldLogger) *FSClient {
 	return &FSClient{log: logger, basedir: basedir}
 }
 
-func (c *FSClient) IsAwsS3() bool {
+func (f *FSClient) IsAwsS3() bool {
 	return false
 }
 
@@ -85,13 +85,13 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 	}()
 	for {
 		length, err := reader.Read(buffer)
-		if err != nil && err != io.EOF {
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
 			err = errors.Wrapf(err, "Unable to read data for upload to file %s", filePath)
 			log.Error(err)
 			return err
-		}
-		if length == 0 {
-			break
 		}
 		if _, err := fo.Write(buffer[0:length]); err != nil {
 			err = errors.Wrapf(err, "Unable to write data to file %s", filePath)
@@ -222,6 +222,7 @@ func (f *FSClient) handleFile(ctx context.Context, log logrus.FieldLogger, fileP
 func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
 	log := logutil.FromContext(ctx, f.log)
 	var matches []string
+	prefixWithBase := filepath.Join(f.basedir, prefix)
 	err := filepath.Walk(f.basedir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -229,8 +230,13 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 		if info.IsDir() {
 			return nil
 		}
-		if strings.HasPrefix(filepath.Base(path), prefix) && !info.IsDir() {
-			matches = append(matches, path)
+		if strings.HasPrefix(path, prefixWithBase) && !info.IsDir() {
+			relative, err := filepath.Rel(f.basedir, path)
+			if err != nil {
+				return err
+			}
+
+			matches = append(matches, filepath.Join("/", relative))
 		}
 		return nil
 	})

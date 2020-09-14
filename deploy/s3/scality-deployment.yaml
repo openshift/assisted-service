@@ -16,7 +16,7 @@ spec:
         app: scality
     spec:
       containers:
-        - image: scality/s3server
+        - image: quay.io/ocpmetal/s3server
           imagePullPolicy: Always
           name: s3server
           env:

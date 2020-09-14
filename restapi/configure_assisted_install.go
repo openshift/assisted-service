@@ -76,6 +76,9 @@ type InstallerAPI interface {
 	/* GetCluster Retrieves the details of the OpenShift bare metal cluster. */
 	GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder
 
+	/* GetClusterInstallConfig Get the cluster install config yaml */
+	GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder
+
 	/* GetCredentials Get the the cluster admin credentials. */
 	GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder
 
@@ -288,6 +291,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetCluster(ctx, params)
+	})
+	api.InstallerGetClusterInstallConfigHandler = installer.GetClusterInstallConfigHandlerFunc(func(params installer.GetClusterInstallConfigParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetClusterInstallConfig(ctx, params)
 	})
 	api.InstallerGetCredentialsHandler = installer.GetCredentialsHandlerFunc(func(params installer.GetCredentialsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

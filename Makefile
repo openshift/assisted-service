@@ -21,9 +21,9 @@ endef # get_service
 endif # TARGET
 
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
+SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},minikube-local-registry/ignition-dummy-generator:minikube-test)
-BASE_OS_IMAGE ?= https://releases-rhcos.cloud.privileged.psi.redhat.com/storage/releases/4.6-devel/46.82.202008261306-0/x86_64/rhcos-46.82.202008261306-0-live.x86_64.iso
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -31,6 +31,8 @@ OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
+ISO_CREATION_DOCKER_DAEMON_PULL_STRING := $(or ${ISO_CREATION_DOCKER_DAEMON_PULL_STRING},docker-daemon:${ISO_CREATION})
+ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING := $(or ${ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING},docker-daemon:${SERVICE})
 
 # We decided to have an option to change replicas count only while running in minikube
 # That line is checking if we run on minikube
@@ -39,6 +41,11 @@ REPLICAS_COUNT = $(shell if ! [ "${TARGET}" = "minikube" ];then echo 3; else ech
 
 ifdef INSTALLATION_TIMEOUT
         INSTALLATION_TIMEOUT_FLAG = --installation-timeout $(INSTALLATION_TIMEOUT)
+endif
+
+# define focus flag for test so users can run individual tests or suites
+ifdef FOCUS
+        GINKGO_FOCUS_FLAG = -ginkgo.focus=${FOCUS}
 endif
 
 
@@ -104,8 +111,14 @@ build-iso-generator: $(BUILD_FOLDER)
 build-dummy-ignition: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/dummy-ignition dummy-ignition/main.go
 
-build-onprem: build-minimal build-iso-generator build-dummy-ignition
-	podman build --build-arg NAMESPACE=$(NAMESPACE) -f Dockerfile.assisted-service-onprem -t ${SERVICE} .
+build-onprem-dependencies: 
+	skipper make build-image build-assisted-iso-generator-image
+
+build-onprem: build-onprem-dependencies
+	podman pull $(ISO_CREATION_DOCKER_DAEMON_PULL_STRING)
+	podman pull $(ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING)
+	GIT_REVISION=${GIT_REVISION} podman build --network=host --build-arg GIT_REVISION \
+ 		-f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
 
 build-image: build
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
@@ -114,7 +127,7 @@ build-image: build
 build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
 
 build-minimal-assisted-iso-generator-image: build-iso-generator
-	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) --build-arg OS_IMAGE=${BASE_OS_IMAGE} \
+	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 build-dummy-ignition-image: build-dummy-ignition
@@ -209,8 +222,8 @@ deploy-test: generate-keys
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
-	podman run -dt --pod assisted-installer --env-file onprem-environment --name db centos/postgresql-12-centos7
-	podman run -dt --pod assisted-installer --env-file onprem-environment --user assisted-installer --restart always --name installer ${SERVICE}
+	podman run -dt --pod assisted-installer --env-file onprem-environment --name db quay.io/ocpmetal/postgresql-12-centos7
+	podman run -dt --pod assisted-installer --env-file onprem-environment --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
 
 ########
@@ -228,7 +241,7 @@ test:
 		TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
 		TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
 		ENABLE_AUTH="true" \
-		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 30m
+		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
 
 deploy-wiremock: deploy-namespace
 	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
@@ -249,7 +262,7 @@ unit-test:
 	sleep 3
 	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 postgres:12.3-alpine -c 'max_connections=10000'
 	until PGPASSWORD=admin pg_isready -U admin --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done
-	SKIP_UT_DB=1 SERVICE_IPS=127.0.0.1 go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) -cover || (docker kill postgres && /bin/false)
+	SKIP_UT_DB=1 SERVICE_IPS=127.0.0.1 go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) -cover || (docker kill postgres && /bin/false)
 	docker kill postgres
 
 test-onprem:
@@ -257,7 +270,7 @@ test-onprem:
 	INVENTORY=127.0.0.1:8090 \
 	DB_HOST=127.0.0.1 \
 	DB_PORT=5432 \
-	go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 30m
+	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
 
 #########
 # Clean #

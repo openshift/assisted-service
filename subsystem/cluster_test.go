@@ -620,7 +620,7 @@ var _ = Describe("cluster install", func() {
 			registerHostsAndSetRoles(clusterID, 4)
 		})
 
-		It("[only_k8s]disable enable master, monitor cluster status", func() {
+		It("[only_k8s]disable enable master", func() {
 			By("get masters")
 			c, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
@@ -635,13 +635,12 @@ var _ = Describe("cluster install", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(disableRet.GetPayload().Status)).Should(Equal(models.ClusterStatusInsufficient))
 
-			By("enable master, expect cluster to become ready")
-			enableRet, err := userBMClient.Installer.EnableHost(ctx, &installer.EnableHostParams{
+			By("enable master")
+			_, err = userBMClient.Installer.EnableHost(ctx, &installer.EnableHostParams{
 				HostID:    *hosts[0].ID,
 				ClusterID: clusterID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(enableRet.GetPayload().Status)).Should(Equal(models.ClusterStatusReady))
 		})
 
 		It("[only_k8s]register host while installing", func() {
@@ -897,7 +896,7 @@ var _ = Describe("cluster install", func() {
 
 			By("cant_report_after_error", func() {
 				installProgress := &models.HostProgress{
-					CurrentStage: models.HostStageWritingImageToDisk,
+					CurrentStage: models.HostStageDone,
 				}
 
 				_, err := agentBMClient.Installer.UpdateHostInstallProgress(ctx, &installer.UpdateHostInstallProgressParams{
@@ -1279,6 +1278,29 @@ var _ = Describe("cluster install", func() {
 						continue
 					}
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusError))
+				}
+			})
+			It("cancel host - wrong boot order", func() {
+				c := installCluster(clusterID)
+				hostID := c.Hosts[0].ID
+				_, ok := getStepInList(getNextSteps(clusterID, *hostID), models.StepTypeInstall)
+				Expect(ok).Should(Equal(true))
+				updateProgress(*hostID, clusterID, models.HostStageRebooting)
+
+				_, err := agentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+					ClusterID: clusterID,
+					NewHostParams: &models.HostCreateParams{
+						HostID: hostID,
+					},
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				hostInDb := getHost(clusterID, *hostID)
+				Expect(*hostInDb.Status).Should(Equal(models.HostStatusInstallingPendingUserAction))
+				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).ShouldNot(HaveOccurred())
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError,
+						defaultWaitForHostStateTimeout)
 				}
 			})
 		})

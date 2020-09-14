@@ -37,6 +37,7 @@ const (
 	statusInfoPreparingForInstallation   = "Host is preparing for installation"
 	statusInfoPreparingTimedOut          = "Host failed to install because its preparation took longer than expected"
 	statusInfoAbortingDueClusterErrors   = "Host is part of a cluster that failed to install"
+	statusInfoInstallationTimedOut       = "Host failed to install because its installation stage $STAGE took longer than expected $MAX_TIME"
 )
 
 type UpdateReply struct {
@@ -181,7 +182,7 @@ func CreateUploadLogsCmd(host *models.Host, baseURL string, agentImage string, s
 	cmdArgsTmpl += "podman run --rm --privileged " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 		"--env PULL_SECRET_TOKEN --name logs-sender {{.AGENT_IMAGE}} logs_sender " +
-		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} --insecure={{.SKIP_CERT_VERIFICATION}} -bootstrap {{.BOOTSTRAP}}"
+		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} --insecure={{.SKIP_CERT_VERIFICATION}} -bootstrap={{.BOOTSTRAP}}"
 
 	if preservePreviousCommandReturnCode {
 		cmdArgsTmpl = cmdArgsTmpl + "; exit $returnCode; )"

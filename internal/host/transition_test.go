@@ -414,10 +414,10 @@ var _ = Describe("Cancel host installation", func() {
 		{state: models.HostStatusInstalled, success: true},
 		{state: models.HostStatusError, success: true},
 		{state: models.HostStatusDisabled, success: true},
+		{state: models.HostStatusInstallingPendingUserAction, success: true},
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusInstallingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict},
 	}
@@ -487,10 +487,10 @@ var _ = Describe("Reset host", func() {
 		{state: models.HostStatusInstalled, success: true},
 		{state: models.HostStatusError, success: true},
 		{state: models.HostStatusDisabled, success: true},
+		{state: models.HostStatusInstallingPendingUserAction, success: true},
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusInstallingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict},
 	}
@@ -1017,6 +1017,70 @@ var _ = Describe("Refresh Host", func() {
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
+
+	Context("host installation timeout", func() {
+		var srcState string
+
+		installationStages := []models.HostStage{
+			models.HostStageStartingInstallation,
+			models.HostStageWritingImageToDisk,
+			models.HostStageRebooting,
+			models.HostStageConfiguring,
+			models.HostStageWaitingForIgnition,
+			models.HostStageInstalling,
+			"not_mentioned_stage",
+		}
+		timePassedTypes := map[string]time.Duration{
+			"under_timeout": 5 * time.Minute,
+			"over_timeout":  1 * time.Hour,
+		}
+
+		for j := range installationStages {
+			stage := installationStages[j]
+			for passedTimeKind, passedTime := range timePassedTypes {
+				name := fmt.Sprintf("installation stage %s %s", stage, passedTimeKind)
+				It(name, func() {
+					hostCheckInAt := strfmt.DateTime(time.Now())
+					srcState = models.HostStatusInstallingInProgress
+					host = getTestHost(hostId, clusterId, srcState)
+					host.Inventory = masterInventory()
+					host.Role = models.HostRoleMaster
+					host.CheckedInAt = hostCheckInAt
+
+					progress := models.HostProgressInfo{
+						CurrentStage:   stage,
+						StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+					}
+
+					host.Progress = &progress
+
+					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+					cluster = getTestCluster(clusterId, "1.2.3.0/24")
+					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+					if passedTimeKind == "over_timeout" {
+						mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+							gomock.Any(), gomock.Any())
+					}
+					err := hapi.RefreshStatus(ctx, &host, db)
+
+					Expect(err).ToNot(HaveOccurred())
+					var resultHost models.Host
+					Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+					if passedTimeKind == "under_timeout" {
+						Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingInProgress))
+					} else {
+						Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
+						timeFormat := InstallationProgressTimeout[stage].String()
+						info := fmt.Sprintf("Host failed to install because its installation stage %s took longer than expected %s", stage, timeFormat)
+						Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+					}
+
+				})
+			}
+		}
+	})
+
 	Context("All transitions", func() {
 		var srcState string
 		tests := []struct {

@@ -5,9 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/openshift/assisted-service/internal/common"
 
 	"github.com/pkg/errors"
 
@@ -15,9 +18,16 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
+
+	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/ocm"
 )
 
-const clusterNameRegex = "^([a-z]([-a-z0-9]*[a-z0-9])?)*$"
+const (
+	clusterNameRegex  = "^([a-z]([-a-z0-9]*[a-z0-9])?)*$"
+	dnsNameRegex      = "^([a-z0-9]+(-[a-z0-9]+)*[.])+[a-z]{2,}$"
+	CloudOpenShiftCom = "cloud.openshift.com"
+)
 
 type imagePullSecret struct {
 	Auths map[string]map[string]interface{} `json:"auths"`
@@ -66,16 +76,48 @@ func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 	return result, nil
 }
 
+func AddRHRegPullSecret(secret, rhCred string) (string, error) {
+	if rhCred == "" {
+		return "", fmt.Errorf("invalid pull secret")
+	}
+	var s imagePullSecret
+	err := json.Unmarshal([]byte(secret), &s)
+	if err != nil {
+		return secret, fmt.Errorf("invalid pull secret: %v", err)
+	}
+	s.Auths["registry.stage.redhat.io"] = make(map[string]interface{})
+	s.Auths["registry.stage.redhat.io"]["auth"] = base64.StdEncoding.EncodeToString([]byte(rhCred))
+	ps, err := json.Marshal(s)
+	if err != nil {
+		return secret, err
+	}
+	return string(ps), nil
+}
+
 /*
 const (
 	registryCredsToCheck string = "registry.redhat.io"
 )
 */
 
-func ValidatePullSecret(secret string) error {
-	_, err := ParsePullSecret(secret)
+func ValidatePullSecret(secret string, username string, authHandler auth.AuthHandler) error {
+	creds, err := ParsePullSecret(secret)
 	if err != nil {
 		return err
+	}
+
+	if authHandler.EnableAuth {
+		r, ok := creds["cloud.openshift.com"]
+		if !ok {
+			return errors.Errorf("Pull secret does not contain auth for cloud.openshift.com")
+		}
+		user, err := authHandler.AuthAgentAuth(r.AuthRaw)
+		if err != nil {
+			return errors.Errorf("Failed to authenticate Pull Secret Token")
+		}
+		if (user.(*ocm.AuthPayload)).Username != username {
+			return errors.Errorf("Pull Secret Token does not match User")
+		}
 	}
 	/*
 		Actual credentials check is disabled for not until we solve how to do it in tests and subsystem
@@ -100,8 +142,22 @@ func ValidatePullSecret(secret string) error {
 	return nil
 }
 
+func validateDomainNameFormat(dnsDomainName string) error {
+	matched, err := regexp.MatchString(dnsNameRegex, dnsDomainName)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "DNS name validation for %s", dnsDomainName))
+	}
+	if !matched {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("DNS format mismatch: %s domain name is not valid", dnsDomainName))
+	}
+	return nil
+}
+
 // ValidateBaseDNS validates the specified base domain name
 func ValidateBaseDNS(dnsDomainName, dnsDomainID, dnsProviderType string) error {
+	if err := validateDomainNameFormat(dnsDomainName); err != nil {
+		return err
+	}
 	var dnsProvider dnsproviders.Provider
 	switch dnsProviderType {
 	case "route53":
