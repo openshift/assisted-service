@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # required for `skipper` according to
 # https://github.com/Stratoscale/skipper/blob/upstream/README.md#python3-environment
 export LC_ALL="en_US.UTF-8"

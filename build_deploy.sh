@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 source build_images.sh
 
 DOCKER_CONF="${PWD}/.docker"

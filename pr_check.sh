@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 IMAGE_TEST=assisted-service-test
 
 # run some 'assisted-service' checks inside a golang container
