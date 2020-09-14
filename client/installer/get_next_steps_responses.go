@@ -59,6 +59,12 @@ func (o *GetNextStepsReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
+	case 503:
+		result := NewGetNextStepsServiceUnavailable()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
@@ -252,6 +258,39 @@ func (o *GetNextStepsInternalServerError) GetPayload() *models.Error {
 }
 
 func (o *GetNextStepsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetNextStepsServiceUnavailable creates a GetNextStepsServiceUnavailable with default headers values
+func NewGetNextStepsServiceUnavailable() *GetNextStepsServiceUnavailable {
+	return &GetNextStepsServiceUnavailable{}
+}
+
+/*GetNextStepsServiceUnavailable handles this case with default header values.
+
+Unavailable.
+*/
+type GetNextStepsServiceUnavailable struct {
+	Payload *models.Error
+}
+
+func (o *GetNextStepsServiceUnavailable) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsServiceUnavailable  %+v", 503, o.Payload)
+}
+
+func (o *GetNextStepsServiceUnavailable) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetNextStepsServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

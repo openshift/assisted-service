@@ -320,3 +320,47 @@ func (o *RegisterHostInternalServerError) WriteResponse(rw http.ResponseWriter, 
 		}
 	}
 }
+
+// RegisterHostServiceUnavailableCode is the HTTP code returned for type RegisterHostServiceUnavailable
+const RegisterHostServiceUnavailableCode int = 503
+
+/*RegisterHostServiceUnavailable Unavailable.
+
+swagger:response registerHostServiceUnavailable
+*/
+type RegisterHostServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewRegisterHostServiceUnavailable creates RegisterHostServiceUnavailable with default headers values
+func NewRegisterHostServiceUnavailable() *RegisterHostServiceUnavailable {
+
+	return &RegisterHostServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the register host service unavailable response
+func (o *RegisterHostServiceUnavailable) WithPayload(payload *models.Error) *RegisterHostServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register host service unavailable response
+func (o *RegisterHostServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterHostServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

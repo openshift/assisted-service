@@ -320,3 +320,47 @@ func (o *CompleteInstallationInternalServerError) WriteResponse(rw http.Response
 		}
 	}
 }
+
+// CompleteInstallationServiceUnavailableCode is the HTTP code returned for type CompleteInstallationServiceUnavailable
+const CompleteInstallationServiceUnavailableCode int = 503
+
+/*CompleteInstallationServiceUnavailable Unavailable.
+
+swagger:response completeInstallationServiceUnavailable
+*/
+type CompleteInstallationServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewCompleteInstallationServiceUnavailable creates CompleteInstallationServiceUnavailable with default headers values
+func NewCompleteInstallationServiceUnavailable() *CompleteInstallationServiceUnavailable {
+
+	return &CompleteInstallationServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the complete installation service unavailable response
+func (o *CompleteInstallationServiceUnavailable) WithPayload(payload *models.Error) *CompleteInstallationServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the complete installation service unavailable response
+func (o *CompleteInstallationServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *CompleteInstallationServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
