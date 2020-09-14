@@ -1752,7 +1752,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 		}
 	}()
 
-	if err := tx.First(&host, identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Error; err != nil {
+	handleHostLoadDBError := func(err error) error {
 		if gorm.IsRecordNotFoundError(err) {
 			log.WithError(err).Errorf("host %s not found", params.HostID)
 			return common.NewApiError(http.StatusNotFound, err)
@@ -1761,6 +1761,10 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 		msg := "Failed to enable host: error fetching host from DB"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
 		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	if err := tx.First(&host, identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Error; err != nil {
+		return common.GenerateErrorResponder(handleHostLoadDBError(err))
 	}
 
 	if err := tx.First(&cluster, identity.AddUserFilter(ctx, "id = ?"), host.ClusterID).Error; err != nil {
@@ -1785,6 +1789,11 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 		msg := "Failed to enable host: error setting host properties"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
 		return common.GenerateErrorResponder(err)
+	}
+
+	// reload host after enable-host transition.
+	if err := tx.First(&host, identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Error; err != nil {
+		return common.GenerateErrorResponder(handleHostLoadDBError(err))
 	}
 
 	c, err := b.refreshClusterAndHostStatuses(ctx, cluster, host, tx)
