@@ -296,8 +296,6 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
-	// workaround until UI support for 4.6 is committed
-	params.NewClusterParams.OpenshiftVersion = swag.String("4.6")
 
 	if err := validateProxySettings(params.NewClusterParams.HTTPProxy,
 		params.NewClusterParams.HTTPSProxy,
