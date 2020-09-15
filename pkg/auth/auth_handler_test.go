@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"github.com/go-openapi/swag"
 	"net/http"
 	"net/url"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/pkg/ocm"
 
+	//apiErrors "github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -25,6 +27,49 @@ import (
 
 func serv(server *http.Server) {
 	_ = server.ListenAndServe()
+}
+
+type MyError struct {
+
+	// Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, for if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.
+	// Required: true
+	Code *string `json:"code"`
+
+	// Self link.
+	// Required: true
+	Href *string `json:"href"`
+
+	// Numeric identifier of the error.
+	// Required: true
+	// Maximum: 504
+	// Minimum: 400
+	ID *int32 `json:"id"`
+
+	// Indicates the type of this object. Will always be 'Error'.
+	// Required: true
+	// Enum: [Error]
+	Kind *string `json:"kind"`
+
+	// Human readable description of the error.
+	// Required: true
+	Reason *string `json:"reason"`
+}
+
+func NewMyError(code int32, reason string) MyError {
+	var k string = "Error"
+	var c string = "1111"
+	return MyError{
+		Code:   &c,
+		Href:   &c,
+		ID:     &code,
+		Kind:   &k,
+		Reason: &reason,
+	}
+
+}
+
+func (e MyError) Error() string {
+	return *e.Reason
 }
 
 func TestAuth(t *testing.T) {
@@ -114,7 +159,7 @@ func TestAuth(t *testing.T) {
 				Cache:          cache.New(1*time.Hour, 30*time.Minute),
 			}
 
-			h, _ := restapi.Handler(restapi.Config{
+			h, api, _ := restapi.HandlerAPI(restapi.Config{
 				AuthAgentAuth:       AuthHandler.AuthAgentAuth,
 				AuthUserAuth:        AuthHandler.AuthUserAuth,
 				APIKeyAuthenticator: AuthHandler.CreateAuthenticator(),
@@ -126,6 +171,13 @@ func TestAuth(t *testing.T) {
 				InnerMiddleware:     nil,
 			})
 
+			se := func (rw http.ResponseWriter, r *http.Request, err error) {
+				e := NewMyError(500, err.Error())
+				//apiErrors.ServeError(rw, r, e)
+				b, _ := swag.WriteJSON(e)
+				_, _ = rw.Write(b)
+			}
+			api.ServeError = se
 			cfg := client.Config{
 				URL: &url.URL{
 					Scheme: client.DefaultSchemes[0],
