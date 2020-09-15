@@ -1,5 +1,5 @@
 variant: fcos
-version: 1.0.0
+version: 1.1.0
 passwd:
   users:
     - name: core
@@ -43,8 +43,7 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStartPre=podman pull --authfile /etc/assisted-service/auth.json rhel8/postgresql-12:latest
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --name db rhel8/postgresql-12:latest
+            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db rhel8/postgresql-12:latest
             TimeoutStartSec=300
           
             [Install]
@@ -58,7 +57,6 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStartPre=podman pull quay.io/ocpmetal/assisted-service:latest
             ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs/nginx-selfsigned.crt:/data/nginx-selfsigned.crt:z --restart always --name installer quay.io/ocpmetal/assisted-service:latest
             TimeoutStartSec=300
           
@@ -73,7 +71,6 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStartPre=podman pull quay.io/ocpmetal/ocp-metal-ui:latest
             ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs:/certs:z -v /etc/assisted-service/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
             TimeoutStartSec=300
           
