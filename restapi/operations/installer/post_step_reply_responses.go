@@ -300,3 +300,47 @@ func (o *PostStepReplyInternalServerError) WriteResponse(rw http.ResponseWriter,
 		}
 	}
 }
+
+// PostStepReplyServiceUnavailableCode is the HTTP code returned for type PostStepReplyServiceUnavailable
+const PostStepReplyServiceUnavailableCode int = 503
+
+/*PostStepReplyServiceUnavailable Unavailable.
+
+swagger:response postStepReplyServiceUnavailable
+*/
+type PostStepReplyServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostStepReplyServiceUnavailable creates PostStepReplyServiceUnavailable with default headers values
+func NewPostStepReplyServiceUnavailable() *PostStepReplyServiceUnavailable {
+
+	return &PostStepReplyServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the post step reply service unavailable response
+func (o *PostStepReplyServiceUnavailable) WithPayload(payload *models.Error) *PostStepReplyServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post step reply service unavailable response
+func (o *PostStepReplyServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostStepReplyServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

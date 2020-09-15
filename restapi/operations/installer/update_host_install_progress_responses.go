@@ -256,3 +256,47 @@ func (o *UpdateHostInstallProgressInternalServerError) WriteResponse(rw http.Res
 		}
 	}
 }
+
+// UpdateHostInstallProgressServiceUnavailableCode is the HTTP code returned for type UpdateHostInstallProgressServiceUnavailable
+const UpdateHostInstallProgressServiceUnavailableCode int = 503
+
+/*UpdateHostInstallProgressServiceUnavailable Unavailable.
+
+swagger:response updateHostInstallProgressServiceUnavailable
+*/
+type UpdateHostInstallProgressServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUpdateHostInstallProgressServiceUnavailable creates UpdateHostInstallProgressServiceUnavailable with default headers values
+func NewUpdateHostInstallProgressServiceUnavailable() *UpdateHostInstallProgressServiceUnavailable {
+
+	return &UpdateHostInstallProgressServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the update host install progress service unavailable response
+func (o *UpdateHostInstallProgressServiceUnavailable) WithPayload(payload *models.Error) *UpdateHostInstallProgressServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update host install progress service unavailable response
+func (o *UpdateHostInstallProgressServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UpdateHostInstallProgressServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

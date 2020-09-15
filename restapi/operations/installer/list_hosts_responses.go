@@ -235,3 +235,47 @@ func (o *ListHostsInternalServerError) WriteResponse(rw http.ResponseWriter, pro
 		}
 	}
 }
+
+// ListHostsServiceUnavailableCode is the HTTP code returned for type ListHostsServiceUnavailable
+const ListHostsServiceUnavailableCode int = 503
+
+/*ListHostsServiceUnavailable Unavailable.
+
+swagger:response listHostsServiceUnavailable
+*/
+type ListHostsServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListHostsServiceUnavailable creates ListHostsServiceUnavailable with default headers values
+func NewListHostsServiceUnavailable() *ListHostsServiceUnavailable {
+
+	return &ListHostsServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the list hosts service unavailable response
+func (o *ListHostsServiceUnavailable) WithPayload(payload *models.Error) *ListHostsServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list hosts service unavailable response
+func (o *ListHostsServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListHostsServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

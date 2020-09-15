@@ -235,3 +235,47 @@ func (o *ListClustersInternalServerError) WriteResponse(rw http.ResponseWriter, 
 		}
 	}
 }
+
+// ListClustersServiceUnavailableCode is the HTTP code returned for type ListClustersServiceUnavailable
+const ListClustersServiceUnavailableCode int = 503
+
+/*ListClustersServiceUnavailable Unavailable.
+
+swagger:response listClustersServiceUnavailable
+*/
+type ListClustersServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewListClustersServiceUnavailable creates ListClustersServiceUnavailable with default headers values
+func NewListClustersServiceUnavailable() *ListClustersServiceUnavailable {
+
+	return &ListClustersServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the list clusters service unavailable response
+func (o *ListClustersServiceUnavailable) WithPayload(payload *models.Error) *ListClustersServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list clusters service unavailable response
+func (o *ListClustersServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListClustersServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
