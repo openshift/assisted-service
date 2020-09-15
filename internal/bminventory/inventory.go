@@ -2668,7 +2668,11 @@ func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, er
 		httpsProxyAttr += `"httpsProxy": "` + httpsProxy + `"`
 	}
 	if noProxy != "" {
-		noProxyAttr = `, "noProxy": "` + noProxy + `"`
+		noProxyStr, err := json.Marshal(strings.Split(noProxy, ","))
+		if err != nil {
+			return "", err
+		}
+		noProxyAttr = `, "noProxy": ` + string(noProxyStr)
 	}
 	var proxyParams = map[string]string{
 		"httpProxy":  httpProxyAttr,

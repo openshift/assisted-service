@@ -381,7 +381,7 @@ var _ = Describe("IgnitionParameters", func() {
 			})
 
 			Expect(err).Should(BeNil())
-			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": "quay.io" }`))
+			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
 		})
 	}
 
@@ -2849,15 +2849,15 @@ var _ = Describe("proxySettingsForIgnition", func() {
 			},
 			{
 				"http://proxy.proxy", "", ".domain",
-				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": ".domain" }`,
+				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": [".domain"] }`,
 			},
 			{
 				"http://proxy.proxy", "https://proxy.proxy", ".domain",
-				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": ".domain" }`,
+				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": [".domain"] }`,
 			},
 			{
-				"", "https://proxy.proxy", ".domain",
-				`"proxy": { "httpsProxy": "https://proxy.proxy", "noProxy": ".domain" }`,
+				"", "https://proxy.proxy", ".domain,123.123.123.123",
+				`"proxy": { "httpsProxy": "https://proxy.proxy", "noProxy": [".domain","123.123.123.123"] }`,
 			},
 			{
 				"", "https://proxy.proxy", "",
