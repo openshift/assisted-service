@@ -25,6 +25,7 @@ type Config struct {
 	ClientSecret string `envconfig:"OCM_SERVICE_CLIENT_SECRET" default:""`
 	SelfToken    string `envconfig:"OCM_SELF_TOKEN" default:""`
 	TokenURL     string `envconfig:"OCM_TOKEN_URL" default:""`
+	LogLevel     string `envconfig:"OCM_LOG_LEVEL" default:"info"`
 }
 
 type SdKLogger struct {
@@ -65,12 +66,15 @@ func (l *SdKLogger) Error(ctx context.Context, format string, args ...interface{
 }
 
 func NewClient(config Config, log logrus.FieldLogger) (*Client, error) {
-
 	entry := log.(*logrus.Entry)
+	logger := &SdKLogger{Log: entry.Logger, FieldLogger: log}
+	if logLevel, err := logrus.ParseLevel(config.LogLevel); err == nil {
+		logger.Log.SetLevel(logLevel)
+	}
 
 	client := &Client{
 		config: &config,
-		logger: &SdKLogger{Log: entry.Logger, FieldLogger: log.WithField("pkg", "ocm")},
+		logger: logger,
 		Cache:  cache.New(1*time.Minute, 30*time.Minute),
 	}
 	client.Authentication = &authentication{

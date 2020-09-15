@@ -25,6 +25,9 @@ parameters:
 - name: OCM_BASE_URL
   value: ''
   required: true
+- name: OCM_LOG_LEVEL
+  value: "info"
+  required: false
 - name: S3_USE_SSL
   value: "true"
 - name: IMAGE_BUILDER
@@ -210,6 +213,8 @@ objects:
                 value: ${ALLOWED_DOMAINS}
               - name: OCM_BASE_URL
                 value: ${OCM_BASE_URL}
+              - name: OCM_LOG_LEVEL
+                value: ${OCM_LOG_LEVEL}
               - name: IMAGE_BUILDER
                 value: ${IMAGE_BUILDER}:${IMAGE_TAG}
               - name: HW_VALIDATOR_MIN_RAM_GIB_MASTER

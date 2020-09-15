@@ -133,7 +133,8 @@ func main() {
 
 	var ocmClient *ocm.Client
 	if Options.Auth.EnableAuth {
-		ocmClient, err = ocm.NewClient(Options.OCMConfig, log)
+		ocmLog := logrus.New()
+		ocmClient, err = ocm.NewClient(Options.OCMConfig, ocmLog.WithField("pkg", "ocm"))
 		if err != nil {
 			log.Fatal("Failed to Create OCM Client, ", err)
 		}
