@@ -27,7 +27,7 @@ objects:
               - POST
               - --user
               - $(USER):$(TOKEN)
-              - $(URL)/job/cloud.redhat.com_assisted-test-infra/buildWithParameters?OFFLINE_TOKEN_CRED=$(OFFLINE_TOKEN_CRED)&PULL_SECRET_CRED=$(PULL_SECRET_CRED)&ASSISTED_SERVICE_URL=$(ASSISTED_SERVICE_URL)
+              - $(URL)?OFFLINE_TOKEN_CRED=$(OFFLINE_TOKEN_CRED)&PULL_SECRET_CRED=$(PULL_SECRET_CRED)&ASSISTED_SERVICE_URL=$(ASSISTED_SERVICE_URL)
             env:
               - name: URL
                 valueFrom:
