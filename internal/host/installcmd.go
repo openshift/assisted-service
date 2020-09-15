@@ -80,6 +80,21 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		data["INSTALLATION_TIMEOUT"] = strconv.Itoa(int(i.instructionConfig.InstallationTimeout))
 	}
 
+	if cluster.HTTPProxy != "" || cluster.HTTPSProxy != "" {
+		if cluster.HTTPProxy != "" {
+			cmdArgsTmpl = cmdArgsTmpl + " --http-proxy {{.HTTP_PROXY}}"
+			data["HTTP_PROXY"] = cluster.HTTPProxy
+		}
+		if cluster.HTTPSProxy != "" {
+			cmdArgsTmpl = cmdArgsTmpl + " --https-proxy {{.HTTPS_PROXY}}"
+			data["HTTPS_PROXY"] = cluster.HTTPSProxy
+		}
+		if cluster.NoProxy != "" {
+			cmdArgsTmpl = cmdArgsTmpl + " --no-proxy {{.NO_PROXY}}"
+			data["NO_PROXY"] = cluster.NoProxy
+		}
+	}
+
 	// added to run upload logs if install command fails
 	// will return same exit code as installer command
 	logsCommand, err := CreateUploadLogsCmd(host, i.instructionConfig.ServiceBaseURL,
