@@ -152,6 +152,26 @@ var _ = Describe("cluster monitor", func() {
 			shouldHaveUpdated = false
 			expectedState = "installing"
 		})
+		It("with workers 1 in error, installing -> installing", func() {
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createWorkerHost(id, "installing", db)
+			createWorkerHost(id, "error", db)
+			mockHostAPIIsValidMasterCandidateTrue(5)
+			shouldHaveUpdated = false
+			expectedState = "installing"
+		})
+		It("with workers 2 in installing, installing -> installing", func() {
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createWorkerHost(id, "installing", db)
+			createWorkerHost(id, "installing", db)
+			mockHostAPIIsValidMasterCandidateTrue(5)
+			shouldHaveUpdated = false
+			expectedState = "installing"
+		})
 		It("installing -> installing (some hosts are installed)", func() {
 			createHost(id, "installing", db)
 			createHost(id, "installed", db)
@@ -178,6 +198,15 @@ var _ = Describe("cluster monitor", func() {
 			shouldHaveUpdated = false
 			expectedState = "installing"
 		})
+		It("with worker installing -> installing", func() {
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(3)
+
+			shouldHaveUpdated = true
+			expectedState = models.ClusterStatusFinalizing
+		})
 		It("installing -> finalizing", func() {
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
@@ -187,6 +216,18 @@ var _ = Describe("cluster monitor", func() {
 			shouldHaveUpdated = true
 			expectedState = models.ClusterStatusFinalizing
 		})
+		It("with workers installing -> finalizing", func() {
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createWorkerHost(id, "installing", db)
+			createWorkerHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(5)
+
+			shouldHaveUpdated = true
+			expectedState = models.ClusterStatusFinalizing
+		})
+
 		It("installing -> error", func() {
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "error", db)
@@ -210,10 +251,39 @@ var _ = Describe("cluster monitor", func() {
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "installing", db)
 			createHost(id, "installed", db)
-			mockHostAPIIsValidMasterCandidateTrue(2)
+			createWorkerHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(3)
 			shouldHaveUpdated = true
 			expectedState = "error"
 
+		})
+		It("with workers in error, installing -> error", func() {
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createWorkerHost(id, "error", db)
+			createWorkerHost(id, "error", db)
+			mockHostAPIIsValidMasterCandidateTrue(5)
+			shouldHaveUpdated = true
+			expectedState = "error"
+		})
+		It("with single worker in error, installing -> error", func() {
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createWorkerHost(id, "error", db)
+			mockHostAPIIsValidMasterCandidateTrue(4)
+			shouldHaveUpdated = true
+			expectedState = "error"
+		})
+		It("with single worker in error, installing -> error", func() {
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createWorkerHost(id, "error", db)
+			mockHostAPIIsValidMasterCandidateTrue(4)
+			shouldHaveUpdated = true
+			expectedState = "error"
 		})
 	})
 
@@ -773,6 +843,18 @@ func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 		ID:        &hostId,
 		ClusterID: clusterId,
 		Role:      models.HostRoleMaster,
+		Status:    swag.String(state),
+		Inventory: defaultInventory(),
+	}
+	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+}
+
+func createWorkerHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
+	hostId := strfmt.UUID(uuid.New().String())
+	host := models.Host{
+		ID:        &hostId,
+		ClusterID: clusterId,
+		Role:      models.HostRoleWorker,
 		Status:    swag.String(state),
 		Inventory: defaultInventory(),
 	}

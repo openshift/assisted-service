@@ -195,12 +195,13 @@ func If(id stringer) stateswitch.Condition {
 //check if we should move to finalizing state
 func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
-	mappedMastersByRole := MapMasterHostsByStatus(sCluster.cluster)
 
-	// Cluster is in finalizing
-	mastersInInstalled := mappedMastersByRole[models.HostStatusInstalled]
-	if ok && len(mastersInInstalled) >= MinHostsNeededForInstallation {
-		th.log.Infof("Cluster %s has at least %d installed hosts, cluster is finalizing.", sCluster.cluster.ID, len(mastersInInstalled))
+	installedStatus := []string{models.HostStatusInstalled}
+
+	// Move to finalizing state when 3 masters and at least 1 worker (if workers are given) moved to installed state
+	if ok && th.enoughMastersAndWorkers(sCluster, installedStatus) {
+		th.log.Infof("Cluster %s has at least required number of installed hosts, "+
+			"cluster is finalizing.", sCluster.cluster.ID)
 		return true, nil
 	}
 	return false, nil
@@ -209,16 +210,31 @@ func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args state
 //check if we should stay in installing state
 func (th *transitionHandler) IsInstalling(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, _ := sw.(*stateCluster)
-	mappedMastersByRole := MapMasterHostsByStatus(sCluster.cluster)
 
-	mastersInSomeInstallingStatus := len(mappedMastersByRole[models.HostStatusInstalling]) +
-		len(mappedMastersByRole[models.HostStatusInstallingInProgress]) +
-		len(mappedMastersByRole[models.HostStatusInstalled]) +
-		len(mappedMastersByRole[models.HostStatusInstallingPendingUserAction])
-	if mastersInSomeInstallingStatus >= MinHostsNeededForInstallation {
-		return true, nil
+	installingStatuses := []string{models.HostStatusInstalling, models.HostStatusInstallingInProgress,
+		models.HostStatusInstalled, models.HostStatusInstallingPendingUserAction}
+	return th.enoughMastersAndWorkers(sCluster, installingStatuses), nil
+}
+
+func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, statuses []string) bool {
+	mappedMastersByRole := MapMasterHostsByStatus(sCluster.cluster)
+	mappedWorkersByRole := MapWorkersHostsByStatus(sCluster.cluster)
+	mastersInSomeInstallingStatus := 0
+	workersInSomeInstallingStatus := 0
+
+	for _, status := range statuses {
+		mastersInSomeInstallingStatus += len(mappedMastersByRole[status])
+		workersInSomeInstallingStatus += len(mappedWorkersByRole[status])
 	}
-	return false, nil
+
+	numberOfExpectedWorkers := NumberOfWorkers(sCluster.cluster)
+
+	// to be installed cluster need 3 master and at least 1 worker(if workers were given)
+	if mastersInSomeInstallingStatus >= MinMastersNeededForInstallation &&
+		(numberOfExpectedWorkers == 0 || workersInSomeInstallingStatus >= MinWorkersNeededForInstallation) {
+		return true
+	}
+	return false
 }
 
 //check if prepare for installation reach to timeout
