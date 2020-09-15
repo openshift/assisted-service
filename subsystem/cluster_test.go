@@ -1535,6 +1535,64 @@ var _ = Describe("cluster install", func() {
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
 				}
 			})
+
+			It("[only_k8s]reset cluster with hosts after reboot and one disabled host", func() {
+				By("register a new worker")
+				disabledHost := registerHost(clusterID)
+				generateHWPostStepReply(disabledHost, validHwInfo, "hostname")
+				generateFAPostStepReply(disabledHost, validFreeAddresses)
+				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
+					},
+					},
+					ClusterID: clusterID,
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("disable worker")
+				_, err = userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
+					ClusterID: clusterID,
+					HostID:    *disabledHost.ID,
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusDisabled,
+					defaultWaitForHostStateTimeout)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+					clusterReadyStateInfo)
+
+				By("install cluster")
+				c := installCluster(clusterID)
+				Expect(len(c.Hosts)).Should(Equal(5))
+				for _, host := range c.Hosts {
+					if host.ID.String() == disabledHost.ID.String() {
+						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))
+						continue
+					}
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling,
+						defaultWaitForHostStateTimeout)
+					updateProgress(*host.ID, clusterID, models.HostStageRebooting)
+				}
+
+				By("reset installation and verify hosts statuses")
+				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c = rep.GetPayload()
+				Expect(len(c.Hosts)).Should(Equal(5))
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
+				for _, host := range c.Hosts {
+					if host.ID.String() == disabledHost.ID.String() {
+						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))
+						continue
+					}
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
+						defaultWaitForClusterStateTimeout)
+				}
+			})
 		})
 	})
 

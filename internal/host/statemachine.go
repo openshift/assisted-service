@@ -196,6 +196,14 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostResettingPendingUserAction,
 	})
 
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeResettingPendingUserAction,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusDisabled),
+		},
+		DestinationState: stateswitch.State(models.HostStatusDisabled),
+	})
+
 	// Prepare for installation
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypePrepareForInstallation,
