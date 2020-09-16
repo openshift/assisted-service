@@ -30,6 +30,7 @@ spec:
             httpGet:
               path: /health
               port: 8090
+            initialDelaySeconds: 30
           readinessProbe:
             httpGet:
               path: /ready
