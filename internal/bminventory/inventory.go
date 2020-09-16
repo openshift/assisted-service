@@ -297,6 +297,10 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
 
+	if params.NewClusterParams.HTTPProxy != nil &&
+		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
+		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
+	}
 	if err := validateProxySettings(params.NewClusterParams.HTTPProxy,
 		params.NewClusterParams.HTTPSProxy,
 		params.NewClusterParams.NoProxy); err != nil {
@@ -942,6 +946,10 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		}
 	}
 
+	if params.ClusterUpdateParams.HTTPProxy != nil &&
+		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
+		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
+	}
 	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
 		params.ClusterUpdateParams.HTTPSProxy,
 		params.ClusterUpdateParams.NoProxy); err != nil {
