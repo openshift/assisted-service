@@ -52,7 +52,8 @@ endif
 all: build
 
 _pre_commit_hooks:
-	@${ROOT_DIR}/.hooks/check-commits.sh
+	@-cp ${ROOT_DIR}/tools/check-commit-message.sh ${ROOT_DIR}/.git/hooks/commit-msg
+	${ROOT_DIR}/tools/check-commits.sh
 
 lint: _pre_commit_hooks
 	golangci-lint run -v
