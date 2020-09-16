@@ -195,6 +195,36 @@ func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster) ([]*mo
 	return ret, nil
 }
 
+func GetClusterNetworks(cluster *common.Cluster, log logrus.FieldLogger) []string {
+	var err error
+	cidrs := make(map[string]bool)
+	for _, h := range cluster.Hosts {
+		if h.Inventory != "" {
+			var inventory models.Inventory
+			err = json.Unmarshal([]byte(h.Inventory), &inventory)
+			if err != nil {
+				log.WithError(err).Warnf("Unmarshal inventory %s", h.Inventory)
+				continue
+			}
+			for _, inf := range inventory.Interfaces {
+				for _, ipv4 := range inf.IPV4Addresses {
+					_, cidr, err := net.ParseCIDR(ipv4)
+					if err != nil {
+						log.WithError(err).Warnf("Parse CIDR %s", ipv4)
+						continue
+					}
+					cidrs[cidr.String()] = true
+				}
+			}
+		}
+	}
+	ret := make([]string, 0)
+	for cidr := range cidrs {
+		ret = append(ret, cidr)
+	}
+	return ret
+}
+
 func IsHostInMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
 	_, machineIpnet, err := net.ParseCIDR(cluster.MachineNetworkCidr)
 	if err != nil {
