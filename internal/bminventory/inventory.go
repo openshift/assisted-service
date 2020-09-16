@@ -2242,7 +2242,10 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 	log.Infof("complete cluster %s installation", params.ClusterID)
 
 	var c common.Cluster
-	if err := b.db.Preload("Hosts").First(&c, "id = ?", params.ClusterID).Error; err != nil {
+	if err := b.db.Preload("Hosts").First(&c, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return common.NewApiError(http.StatusNotFound, err)
+		}
 		return common.GenerateErrorResponder(err)
 	}
 
