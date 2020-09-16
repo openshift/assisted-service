@@ -141,6 +141,7 @@ func main() {
 	}
 
 	var lead leader.ElectorInterface
+	var autoMigrationLeader leader.ElectorInterface
 	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"))
 	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
 	versionHandler := versions.NewHandler(Options.Versions)
@@ -190,16 +191,23 @@ func main() {
 			log.WithError(cerr).Fatalf("Failed to create kubernetes cluster config")
 		}
 		k8sClient := kubernetes.NewForConfigOrDie(cfg)
+
+		autoMigrationLeader = leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
+			RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
+			"assisted-service-migration-helper",
+			log.WithField("pkg", "migrationLeader"))
+
 		lead = leader.NewElector(k8sClient, Options.LeaderConfig, "assisted-service-leader-election-helper",
 			log.WithField("pkg", "monitor-runner"))
+
 		err = lead.StartLeaderElection(context.Background())
 		if err != nil {
 			log.WithError(cerr).Fatalf("Failed to start leader")
 		}
 
 	case "onprem":
-
 		lead = &leader.DummyElector{}
+		autoMigrationLeader = lead
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
 		objectHandler = s3wrapper.NewFSClient("/data", log)
 		if objectHandler == nil {
@@ -209,6 +217,11 @@ func main() {
 		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
+	}
+
+	err = autoMigrationWithLeader(autoMigrationLeader, db, log)
+	if err != nil {
+		log.WithError(err).Fatal("Failed auto migration process")
 	}
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
@@ -320,4 +333,13 @@ func (a *ApiEnabler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (a *ApiEnabler) Enable() {
 	a.isEnabled = true
 	a.log.Info("API is enabled")
+}
+
+func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.DB, log logrus.FieldLogger) error {
+	return migrationLeader.RunWithLeader(context.Background(), func() error {
+		log.Infof("Start automigration")
+		err := db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{}).Error
+		log.Infof("Finish automigration")
+		return err
+	})
 }

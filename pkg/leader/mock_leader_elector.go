@@ -6,8 +6,9 @@ package leader
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockLeader is a mock of Leader interface
@@ -96,4 +97,18 @@ func (m *MockElectorInterface) StartLeaderElection(ctx context.Context) error {
 func (mr *MockElectorInterfaceMockRecorder) StartLeaderElection(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartLeaderElection", reflect.TypeOf((*MockElectorInterface)(nil).StartLeaderElection), ctx)
+}
+
+// RunWithLeader mocks base method
+func (m *MockElectorInterface) RunWithLeader(ctx context.Context, run func() error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RunWithLeader", ctx, run)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RunWithLeader indicates an expected call of RunWithLeader
+func (mr *MockElectorInterfaceMockRecorder) RunWithLeader(ctx, run interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunWithLeader", reflect.TypeOf((*MockElectorInterface)(nil).RunWithLeader), ctx, run)
 }
