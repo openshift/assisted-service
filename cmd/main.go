@@ -256,6 +256,15 @@ func main() {
 	imageExpirationMonitor.Start()
 	defer imageExpirationMonitor.Stop()
 
+	//Set inner handler chain. Inner handlers requires access to the Route
+	innerHandler := func() func(http.Handler) http.Handler {
+		return func(h http.Handler) http.Handler {
+			wrapped := metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry)(h)
+			wrapped = logconfig.ContextHandler()(wrapped)
+			return wrapped
+		}
+	}
+
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:       authHandler.AuthAgentAuth,
 		AuthUserAuth:        authHandler.AuthUserAuth,
@@ -266,7 +275,7 @@ func main() {
 		Logger:              log.Printf,
 		VersionsAPI:         versionHandler,
 		ManagedDomainsAPI:   domainHandler,
-		InnerMiddleware:     metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry),
+		InnerMiddleware:     innerHandler(),
 	})
 	if err != nil {
 		log.Fatal("Failed to init rest handler,", err)
