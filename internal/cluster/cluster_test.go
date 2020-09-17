@@ -312,7 +312,7 @@ var _ = Describe("cluster monitor", func() {
 					BaseDNSDomain:            "test.com",
 					PullSecretSet:            true,
 					StatusInfo:               swag.String(statusInfoInsufficient),
-					ClusterNetworkCidr:       "1.2.4.0/24",
+					ClusterNetworkCidr:       "1.3.0.0/16",
 					ServiceNetworkCidr:       "1.2.5.0/24",
 					ClusterNetworkHostPrefix: 24,
 				}}
@@ -392,7 +392,7 @@ var _ = Describe("cluster monitor", func() {
 					IngressVip:               "1.2.3.6",
 					BaseDNSDomain:            "test.com",
 					PullSecretSet:            true,
-					ClusterNetworkCidr:       "1.2.4.0/24",
+					ClusterNetworkCidr:       "1.3.0.0/16",
 					ServiceNetworkCidr:       "1.2.5.0/24",
 					ClusterNetworkHostPrefix: 24,
 				}}
@@ -557,7 +557,7 @@ var _ = Describe("lease timeout event", func() {
 				MachineNetworkCidr:       "1.2.3.0/24",
 				BaseDNSDomain:            "test.com",
 				PullSecretSet:            true,
-				ClusterNetworkCidr:       "1.2.4.0/24",
+				ClusterNetworkCidr:       "1.3.0.0/16",
 				ServiceNetworkCidr:       "1.2.5.0/24",
 				ClusterNetworkHostPrefix: 24,
 				VipDhcpAllocation:        swag.Bool(true),
@@ -1243,8 +1243,8 @@ var _ = Describe("ready_state", func() {
 			MachineNetworkCidr:       "1.2.3.0/24",
 			BaseDNSDomain:            "test.com",
 			PullSecretSet:            true,
-			ClusterNetworkCidr:       "1.2.4.0/24",
-			ServiceNetworkCidr:       "1.2.5.0/24",
+			ServiceNetworkCidr:       "1.2.4.0/24",
+			ClusterNetworkCidr:       "1.3.0.0/16",
 			ClusterNetworkHostPrefix: 24,
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
