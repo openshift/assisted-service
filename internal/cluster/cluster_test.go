@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/openshift/assisted-service/pkg/leader"
 
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -1441,5 +1443,60 @@ var _ = Describe("Cluster tarred files", func() {
 		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), tarFile).Return(errors.Errorf("Dummy")).Times(1)
 		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
+	})
+})
+
+var _ = Describe("CompleteInstallation", func() {
+	var (
+		ctrl          *gomock.Controller
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		c             common.Cluster
+		eventsHandler events.Handler
+		mockMetric    *metrics.MockAPI
+		dbName        = "complete_installation"
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		eventsHandler = events.New(db, logrus.New())
+		dummy := &leader.DummyElector{}
+		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler, nil, mockMetric, dummy)
+		id := strfmt.UUID(uuid.New().String())
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &id,
+			Status: swag.String(models.ClusterStatusFinalizing),
+		}}
+		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+	})
+
+	It("complete installation successfully", func() {
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, gomock.Any(), gomock.Any()).Times(1)
+		apiErr := state.CompleteInstallation(ctx, &c, true, "")
+		Expect(apiErr).ShouldNot(HaveOccurred())
+		events, err := eventsHandler.GetEvents(*c.ID, nil)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(events)).ShouldNot(Equal(0))
+		resetEvent := events[len(events)-1]
+		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
+	})
+	It("complete installation failure", func() {
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, gomock.Any(), gomock.Any()).Times(1)
+		apiErr := state.CompleteInstallation(ctx, &c, false, "dummy error")
+		Expect(apiErr).ShouldNot(HaveOccurred())
+		events, err := eventsHandler.GetEvents(*c.ID, nil)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(events)).ShouldNot(Equal(0))
+		resetEvent := events[len(events)-1]
+		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityCritical))
+		Expect(funk.Contains(*resetEvent.Message, "dummy error")).Should(Equal(true))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 })

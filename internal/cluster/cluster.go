@@ -354,10 +354,15 @@ func (m *Manager) CompleteInstallation(ctx context.Context, c *common.Cluster, s
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	result := models.ClusterStatusInstalled
+	severity := models.EventSeverityInfo
+	eventMsg := fmt.Sprintf("Successfully finished installing cluster %s", c.Name)
 	if !successfullyFinished {
 		result = models.ClusterStatusError
+		severity = models.EventSeverityCritical
+		eventMsg = fmt.Sprintf("Failed installing cluster %s. Reason: %s", c.Name, reason)
 	}
 	m.metricAPI.ClusterInstallationFinished(log, result, c.OpenshiftVersion, c.InstallStartedAt)
+	m.eventsHandler.AddEvent(ctx, *c.ID, nil, severity, eventMsg, time.Now())
 	return nil
 }
 
