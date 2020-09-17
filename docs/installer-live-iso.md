@@ -101,16 +101,3 @@ The FCC file transpiles to an ignition config using:
 ````
 podman run --rm -v ./config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > onprem-iso-config.ign
 ````
-
-The transpiled ignition config is version 3.0.0. The RHCOS live ISO we are currently using is able to read v2.2.0. To change the ignition file to v2.2.0:
-
-* Change version: from 3.0.0 to 2.2.0
-* For each file in the storage -> files section add 
-
-````
-"filesystem": "root",
-````
-
-These two edits will not be necessary once we move to a RHCOS image that supports
-ignition v3.0.0.
-
