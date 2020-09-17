@@ -4,16 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
-)
-
-const (
-	sendRequestError = "can't send request"
 )
 
 //go:generate mockgen -source=pullsecret_auth.go -package=ocm -destination=mock_pullsecret_auth.go
@@ -46,11 +41,17 @@ func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret s
 
 	response, err := accessTokenAPI.TokenAuthorization().Post().Request(request).Send()
 	if err != nil {
-		// failed to send request
-		if strings.Contains(err.Error(), sendRequestError) {
-			return nil, common.NewApiError(http.StatusServiceUnavailable, err)
+		a.client.logger.Error(context.Background(), "Fail to send TokenAuthorization. Error: %v", err)
+		if response != nil {
+			a.client.logger.Error(context.Background(), "Fail to send TokenAuthorization. Response: %v", response)
+			if response.Status() >= 400 && response.Status() < 500 {
+				return nil, common.NewInfraError(http.StatusUnauthorized, err)
+			}
+			if response.Status() >= 500 {
+				return nil, common.NewApiError(http.StatusServiceUnavailable, err)
+			}
 		}
-		return nil, err
+		return nil, common.NewApiError(http.StatusServiceUnavailable, err)
 	}
 
 	responseVal, ok := response.GetResponse()
