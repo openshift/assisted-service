@@ -215,7 +215,7 @@ func (th *transitionHandler) PostResetHost(sw stateswitch.StateSwitch, args stat
 	}
 
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		params.reason, "StatusUpdatedAt", strfmt.DateTime(time.Now()))
+		params.reason, "StatusUpdatedAt", strfmt.DateTime(time.Now()), "LogsCollectedAt", strfmt.DateTime(time.Time{}))
 }
 
 ////////////////////////////////////////////////////////////////////////////
