@@ -369,7 +369,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	}
 
 	if sshPublicKey := swag.StringValue(&cluster.SSHPublicKey); sshPublicKey != "" {
-		sshPublicKey = strings.TrimSpace(cluster.SSHPublicKey)
+		sshPublicKey = strings.TrimSpace(strings.Replace(sshPublicKey, "\n", "", -1))
 		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -943,7 +943,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}
 
 	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
-		sshPublicKey = strings.TrimSpace(sshPublicKey)
+		sshPublicKey = strings.TrimSpace(strings.Replace(sshPublicKey, "\n", "", -1))
 		if err = validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
