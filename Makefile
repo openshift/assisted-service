@@ -1,9 +1,11 @@
 NAMESPACE := $(or ${NAMESPACE},assisted-installer)
+RT_CMD ?= docker
 
 PWD = $(shell pwd)
 UID = $(shell id -u)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+CONTAINER_COMMAND = $(shell if [ ! -z "${RT_CMD}" ] && [ -x "$(shell command -v ${RT_CMD})" ] ;then echo "${RT_CMD}"; elif [ -x "$(shell command -v docker)" ];then echo "docker" ; else echo "podman"; fi)
 
 TARGET := $(or ${TARGET},minikube)
 PROFILE := $(or $(PROFILE),minikube)
@@ -86,19 +88,35 @@ generate-from-swagger: generate-go-client generate-go-server
 
 generate-go-server:
 	rm -rf restapi
-	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
+ifeq ($(CONTAINER_COMMAND),docker)
+	$(CONTAINER_COMMAND) run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
 		quay.io/goswagger/swagger:v0.25.0 generate server --template=stratoscale -f swagger.yaml \
 		--template-dir=/templates/contrib
+else ifeq ($(CONTAINER_COMMAND),podman)
+	$(CONTAINER_COMMAND) run -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
+		quay.io/goswagger/swagger:v0.25.0 generate server --template=stratoscale -f swagger.yaml \
+		--template-dir=/templates/contrib
+else
+	@echo "Runtime not implemented"
+endif
 
 generate-go-client:
 	rm -rf client models
-	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
+ifeq ($(CONTAINER_COMMAND),docker)
+	$(CONTAINER_COMMAND) run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
 		quay.io/goswagger/swagger:v0.25.0 generate client --template=stratoscale -f swagger.yaml \
 		--template-dir=/templates/contrib
+else ifeq ($(CONTAINER_COMMAND),podman)
+	$(CONTAINER_COMMAND) run -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
+		quay.io/goswagger/swagger:v0.25.0 generate client --template=stratoscale -f swagger.yaml \
+		--template-dir=/templates/contrib
+else
+	@echo "Runtime not implemented"
+endif
 
 generate-python-client: $(BUILD_FOLDER)
 	rm -rf $(BUILD_FOLDER)/assisted-service-client*
-	docker run --rm -u ${UID} --entrypoint /bin/sh \
+	$(CONTAINER_COMMAND) run --rm -u ${UID} --entrypoint /bin/sh \
 		-v $(BUILD_FOLDER):/local:Z \
 		-v $(ROOT_DIR)/swagger.yaml:/swagger.yaml:ro,Z \
 		-v $(ROOT_DIR)/tools/generate_python_client.sh:/script.sh:ro,Z \
@@ -140,6 +158,13 @@ build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-a
 build-minimal-assisted-iso-generator-image:
 	docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+else ifeq ($(CONTAINER_COMMAND),podman)
+	GIT_REVISION=${GIT_REVISION} $(CONTAINER_COMMAND) build --net=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) \
+ 		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+else
+	@echo "Runtime not implemented"
+endif
+
 
 update: build-all
 	docker push $(SERVICE)
