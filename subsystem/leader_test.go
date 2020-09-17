@@ -111,6 +111,11 @@ func getHomeDir() string {
 }
 
 var _ = Describe("Leader tests", func() {
+	if Options.DeployTarget != "k8s" {
+		log.Info("Leader tests are disabled for non-k8s deployments")
+		return
+	}
+
 	configMapName := "leader-test"
 	kubeconfig := path.Join(getHomeDir(), ".kube/config")
 	if kubeconfig == "" {

@@ -31,6 +31,7 @@ var Options struct {
 	TestTokenAdmin     string `envconfig:"TEST_TOKEN_ADMIN"`
 	TestTokenUnallowed string `envconfig:"TEST_TOKEN_UNALLOWED"`
 	OCMHost            string `envconfig:"OCM_HOST"`
+	DeployTarget       string `envconfig:"DEPLOY_TARGET" default:"k8s"`
 }
 
 func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {
