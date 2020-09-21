@@ -1120,6 +1120,17 @@ var _ = Describe("SetVips", func() {
 			eventExpected:      true,
 		},
 		{
+			name:               "success-empty, from pending-from-input",
+			srcState:           models.ClusterStatusPendingForInput,
+			apiVip:             "1.2.3.4",
+			ingressVip:         "1.2.3.5",
+			expectedApiVip:     "1.2.3.4",
+			expectedIngressVip: "1.2.3.5",
+			errorExpected:      false,
+			expectedState:      models.ClusterStatusPendingForInput,
+			eventExpected:      true,
+		},
+		{
 			name:               "success-empty from ready",
 			srcState:           models.ClusterStatusReady,
 			apiVip:             "1.2.3.4",

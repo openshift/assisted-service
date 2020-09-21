@@ -401,7 +401,7 @@ func (m *Manager) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingres
 	}
 	log := logutil.FromContext(ctx, m.log)
 	switch swag.StringValue(c.Status) {
-	case models.ClusterStatusInsufficient, models.ClusterStatusReady:
+	case models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient, models.ClusterStatusReady:
 		if err = db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
 			Updates(map[string]interface{}{"api_vip": apiVip,
 				"ingress_vip": ingressVip}).Error; err != nil {
