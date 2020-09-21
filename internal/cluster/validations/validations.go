@@ -142,7 +142,7 @@ func ValidatePullSecret(secret string, username string, authHandler auth.AuthHan
 	return nil
 }
 
-func validateDomainNameFormat(dnsDomainName string) error {
+func ValidateDomainNameFormat(dnsDomainName string) error {
 	matched, err := regexp.MatchString(dnsNameRegex, dnsDomainName)
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "DNS name validation for %s", dnsDomainName))
@@ -155,9 +155,6 @@ func validateDomainNameFormat(dnsDomainName string) error {
 
 // ValidateBaseDNS validates the specified base domain name
 func ValidateBaseDNS(dnsDomainName, dnsDomainID, dnsProviderType string) error {
-	if err := validateDomainNameFormat(dnsDomainName); err != nil {
-		return err
-	}
 	var dnsProvider dnsproviders.Provider
 	switch dnsProviderType {
 	case "route53":
