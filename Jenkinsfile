@@ -22,6 +22,7 @@ pipeline {
         stage('Init') {
             steps {
                 sh 'make clear-all || true'
+                sh 'make ci-lint'
             }
         }
 
