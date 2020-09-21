@@ -57,7 +57,7 @@ func (g *dummyGenerator) Generate(ctx context.Context, installConfig []byte) err
 
 // UploadToS3 uploads the generated files to the configured S3-compatible storage
 func (g *dummyGenerator) UploadToS3(ctx context.Context) error {
-	return uploadToS3(ctx, g.workDir, g.cluster.ID.String(), g.s3Client, g.log)
+	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
 }
 
 func (g *dummyGenerator) UpdateEtcHosts(serviceIPs string) error {

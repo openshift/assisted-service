@@ -1,6 +1,7 @@
 package ignition
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -306,6 +307,134 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(f.Mode).To(Equal(swag.Int(0o644)))
 			Expect(f.Contents.Source).To(Equal(swag.String("data:,ingress")))
 			Expect(f.Path).To(Equal("/etc/keepalived/lease-ingress"))
+		})
+	})
+})
+
+var _ = Describe("createHostIgnitions", func() {
+	const masterIgn = `{
+		  "ignition": {
+		    "config": {
+		      "merge": [
+			{
+			  "source": "https://192.168.126.199:22623/config/master"
+			}
+		      ]
+		    },
+		    "security": {
+		      "tls": {
+			"certificateAuthorities": [
+			  {
+			    "source": "data:text/plain;charset=utf-8;base64,LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURFRENDQWZpZ0F3SUJBZ0lJUk90aUgvOC82ckF3RFFZSktvWklodmNOQVFFTEJRQXdKakVTTUJBR0ExVUUKQ3hNSmIzQmxibk5vYVdaME1SQXdEZ1lEVlFRREV3ZHliMjkwTFdOaE1CNFhEVEl3TURreE9ERTVORFV3TVZvWApEVE13TURreE5qRTVORFV3TVZvd0pqRVNNQkFHQTFVRUN4TUpiM0JsYm5Ob2FXWjBNUkF3RGdZRFZRUURFd2R5CmIyOTBMV05oTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUE1c1orVWtaaGsxUWQKeFU3cWI3YXArNFczaS9ZWTFzZktURC8ybDVJTjFJeVhPajlSL1N2VG5SOGYvajNJa1JHMWN5ZXR4bnNlNm1aZwpaOW1IRDJMV0srSEFlTTJSYXpuRkEwVmFwOWxVbVRrd3Vza2Z3QzhnMWJUZUVHUlEyQmFId09KekpvdjF4a0ZICmU2TUZCMlcxek1rTWxLTkwycnlzMzRTeVYwczJpNTFmTTJvTEM2SXRvWU91RVVVa2o0dnVUbThPYm5rV0t4ZnAKR1VGMThmNzVYeHJId0tVUEd0U0lYMGxpVGJNM0tiTDY2V2lzWkFIeStoN1g1dnVaaFYzYXhwTVFMdlczQ2xvcQpTaG9zSXY4SWNZbUJxc210d2t1QkN3cWxibEo2T2gzblFrelorVHhQdGhkdWsrZytzaVBUNi9va0JKU2M2cURjClBaNUNyN3FrR3dJREFRQUJvMEl3UURBT0JnTlZIUThCQWY4RUJBTUNBcVF3RHdZRFZSMFRBUUgvQkFVd0F3RUIKL3pBZEJnTlZIUTRFRmdRVWNSbHFHT1g3MWZUUnNmQ0tXSGFuV3NwMFdmRXdEUVlKS29aSWh2Y05BUUVMQlFBRApnZ0VCQU5Xc0pZMDY2RnNYdzFOdXluMEkwNUtuVVdOMFY4NVJVV2drQk9Wd0J5bHluTVRneGYyM3RaY1FsS0U4CjVHMlp4Vzl5NmpBNkwzMHdSNWhOcnBzM2ZFcUhobjg3UEM3L2tWQWlBOWx6NjBwV2ovTE5GU1hobDkyejBGMEIKcGNUQllFc1JNYU0zTFZOK0tZb3Q2cnJiamlXdmxFMU9hS0Q4dnNBdkk5YXVJREtOdTM0R2pTaUJGWXMrelRjSwphUUlTK3UzRHVYMGpVY001aUgrMmwzNGxNR0hlY2tjS1hnUWNXMGJiT28xNXY1Q2ExenJtQ2hIUHUwQ2NhMU1MCjJaM2MxMHVXZnR2OVZnbC9LcEpzSjM3b0phbTN1Mmp6MXN0K3hHby9iTmVSdHpOMjdXQSttaDZ6bXFwRldYKzUKdWFjZUY1SFRWc0FkbmtJWHpwWXBuek5qb0lFPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+			  }
+			]
+		      }
+		    },
+		    "version": "3.1.0"
+		  },
+		  "storage": {
+		    "files": [
+		      {
+			"filesystem": "root",
+			"path": "/etc/keepalived/unsupported-monitor.conf",
+			"mode": 644,
+			"contents": {
+			  "source": "data:,api-vip:%0A%20%20name:%20api%0A%20%20mac-address:%2000:1a:4a:b8:a9:d6%0A%20%20ip-address:%20192.168.126.199%0Aingress-vip:%0A%20%20name:%20ingress%0A%20%20mac-address:%2000:1a:4a:09:b7:50%0A%20%20ip-address:%20192.168.126.126%0A"
+			}
+		      }
+		    ]
+		  }
+		}`
+	const workerIgn = `{
+		  "ignition": {
+		    "config": {
+		      "merge": [
+			{
+			  "source": "https://192.168.126.199:22623/config/worker"
+			}
+		      ]
+		    },
+		    "security": {
+		      "tls": {
+			"certificateAuthorities": [
+			  {
+			    "source": "data:text/plain;charset=utf-8;base64,LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURFRENDQWZpZ0F3SUJBZ0lJUk90aUgvOC82ckF3RFFZSktvWklodmNOQVFFTEJRQXdKakVTTUJBR0ExVUUKQ3hNSmIzQmxibk5vYVdaME1SQXdEZ1lEVlFRREV3ZHliMjkwTFdOaE1CNFhEVEl3TURreE9ERTVORFV3TVZvWApEVE13TURreE5qRTVORFV3TVZvd0pqRVNNQkFHQTFVRUN4TUpiM0JsYm5Ob2FXWjBNUkF3RGdZRFZRUURFd2R5CmIyOTBMV05oTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUE1c1orVWtaaGsxUWQKeFU3cWI3YXArNFczaS9ZWTFzZktURC8ybDVJTjFJeVhPajlSL1N2VG5SOGYvajNJa1JHMWN5ZXR4bnNlNm1aZwpaOW1IRDJMV0srSEFlTTJSYXpuRkEwVmFwOWxVbVRrd3Vza2Z3QzhnMWJUZUVHUlEyQmFId09KekpvdjF4a0ZICmU2TUZCMlcxek1rTWxLTkwycnlzMzRTeVYwczJpNTFmTTJvTEM2SXRvWU91RVVVa2o0dnVUbThPYm5rV0t4ZnAKR1VGMThmNzVYeHJId0tVUEd0U0lYMGxpVGJNM0tiTDY2V2lzWkFIeStoN1g1dnVaaFYzYXhwTVFMdlczQ2xvcQpTaG9zSXY4SWNZbUJxc210d2t1QkN3cWxibEo2T2gzblFrelorVHhQdGhkdWsrZytzaVBUNi9va0JKU2M2cURjClBaNUNyN3FrR3dJREFRQUJvMEl3UURBT0JnTlZIUThCQWY4RUJBTUNBcVF3RHdZRFZSMFRBUUgvQkFVd0F3RUIKL3pBZEJnTlZIUTRFRmdRVWNSbHFHT1g3MWZUUnNmQ0tXSGFuV3NwMFdmRXdEUVlKS29aSWh2Y05BUUVMQlFBRApnZ0VCQU5Xc0pZMDY2RnNYdzFOdXluMEkwNUtuVVdOMFY4NVJVV2drQk9Wd0J5bHluTVRneGYyM3RaY1FsS0U4CjVHMlp4Vzl5NmpBNkwzMHdSNWhOcnBzM2ZFcUhobjg3UEM3L2tWQWlBOWx6NjBwV2ovTE5GU1hobDkyejBGMEIKcGNUQllFc1JNYU0zTFZOK0tZb3Q2cnJiamlXdmxFMU9hS0Q4dnNBdkk5YXVJREtOdTM0R2pTaUJGWXMrelRjSwphUUlTK3UzRHVYMGpVY001aUgrMmwzNGxNR0hlY2tjS1hnUWNXMGJiT28xNXY1Q2ExenJtQ2hIUHUwQ2NhMU1MCjJaM2MxMHVXZnR2OVZnbC9LcEpzSjM3b0phbTN1Mmp6MXN0K3hHby9iTmVSdHpOMjdXQSttaDZ6bXFwRldYKzUKdWFjZUY1SFRWc0FkbmtJWHpwWXBuek5qb0lFPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+			  }
+			]
+		      }
+		    },
+		    "version": "3.1.0"
+		  }
+		}`
+
+	BeforeEach(func() {
+		masterPath := filepath.Join(workDir, "master.ign")
+		err := ioutil.WriteFile(masterPath, []byte(masterIgn), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		workerPath := filepath.Join(workDir, "worker.ign")
+		err = ioutil.WriteFile(workerPath, []byte(workerIgn), 0600)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Context("with multiple hosts with a hostname", func() {
+		It("adds the hostname file", func() {
+			cluster.Hosts = []*models.Host{
+				{
+					RequestedHostname: "master0.example.com",
+					Role:              models.HostRoleMaster,
+				},
+				{
+					RequestedHostname: "master1.example.com",
+					Role:              models.HostRoleMaster,
+				},
+				{
+					RequestedHostname: "worker0.example.com",
+					Role:              models.HostRoleWorker,
+				},
+				{
+					RequestedHostname: "worker1.example.com",
+					Role:              models.HostRoleWorker,
+				},
+			}
+
+			// create an ID for each host
+			for _, host := range cluster.Hosts {
+				id := strfmt.UUID(uuid.New().String())
+				host.ID = &id
+			}
+
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", nil, log).(*installerGenerator)
+			err := g.createHostIgnitions()
+			Expect(err).NotTo(HaveOccurred())
+
+			for _, host := range cluster.Hosts {
+				ignBytes, err := ioutil.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", host.Role, host.ID)))
+				Expect(err).NotTo(HaveOccurred())
+				config, _, err := config_31.Parse(ignBytes)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Ensuring the correct role file was used")
+				sourceURL := config.Ignition.Config.Merge[0].Source
+				if host.Role == models.HostRoleMaster {
+					Expect(*sourceURL).To(Equal("https://192.168.126.199:22623/config/master"))
+				} else if host.Role == models.HostRoleWorker {
+					Expect(*sourceURL).To(Equal("https://192.168.126.199:22623/config/worker"))
+				}
+
+				By("Validating the hostname file was added")
+				var f *config_31_types.File
+				for fileidx, file := range config.Storage.Files {
+					if file.Node.Path == "/etc/hostname" {
+						f = &config.Storage.Files[fileidx]
+						break
+					}
+				}
+				Expect(f).NotTo(BeNil())
+				Expect(*f.Node.User.Name).To(Equal("root"))
+				Expect(*f.FileEmbedded1.Contents.Source).To(Equal(fmt.Sprintf("data:,%s", host.RequestedHostname)))
+				Expect(*f.FileEmbedded1.Mode).To(Equal(420))
+			}
 		})
 	})
 })
