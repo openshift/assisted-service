@@ -85,14 +85,12 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 	user, err := a.client.Authentication.AuthenticatePullSecret(context.Background(), token)
 	if err != nil {
 		a.log.Errorf("Error Authenticating PullSecret token: %v", err)
-		if common.IsKnownError(err) {
-			return nil, err
-		}
-		return nil, common.NewInfraError(http.StatusUnauthorized, err)
+		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
 	err = a.storeAdminInPayload(user)
 	if err != nil {
-		return nil, err
+		a.log.Errorf("Unable to fetch user's capabilities: %v", err)
+		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
 	return user, nil
 }
@@ -177,7 +175,8 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 
 	err = a.storeAdminInPayload(payload)
 	if err != nil {
-		return nil, err
+		a.log.Errorf("Unable to fetch user's capabilities: %v", err)
+		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
 
 	if payload.Username == "" {
@@ -191,7 +190,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 func (a *AuthHandler) storeAdminInPayload(payload *ocm.AuthPayload) error {
 	admin, err := a.isAdmin(payload.Username)
 	if err != nil {
-		return fmt.Errorf("Unable to fetch user's capabilities: %v", err)
+		return err
 	}
 	payload.IsAdmin = admin
 	return nil
