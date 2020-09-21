@@ -8,6 +8,8 @@
 
 ## Prerequisites
 
+
+
 1. Docker
 1. skipper https://github.com/stratoscale/skipper
 1. minikube (for tests)
@@ -265,4 +267,5 @@ A document that can assist troubleshooting: [link](https://docs.google.com/docum
     * metadata.json
     * kubeadmin-password
 
-   Files are uploaded to deployed S3 under the name template "<cluster-id>/<filename>".
+
+  Files are uploaded to deployed S3 under the name template "<cluster-id>/<filename>".
