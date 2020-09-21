@@ -386,7 +386,7 @@ var _ = Describe("IgnitionParameters", func() {
 			})
 
 			Expect(err).Should(BeNil())
-			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": "quay.io" }`))
+			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
 		})
 	}
 
@@ -1256,6 +1256,36 @@ var _ = Describe("cluster", func() {
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
+			})
+
+			It("ssh key with newline", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56u" +
+					"ar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvH" +
+					"MAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqng" +
+					"qbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3f" +
+					"AC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAq" +
+					"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com gggggggg fdddddddddddddddddddddddd" +
+					"dddddddddddddddd"
+				sshKeyWithNewLine := sshKey + " \n"
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						SSHPublicKey: &sshKeyWithNewLine,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				var cluster common.Cluster
+				err = db.First(&cluster, "id = ?", clusterID).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cluster.SSHPublicKey).Should(Equal(sshKey))
 			})
 
 			It("empty pull-secret", func() {
@@ -2854,15 +2884,15 @@ var _ = Describe("proxySettingsForIgnition", func() {
 			},
 			{
 				"http://proxy.proxy", "", ".domain",
-				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": ".domain" }`,
+				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": [".domain"] }`,
 			},
 			{
 				"http://proxy.proxy", "https://proxy.proxy", ".domain",
-				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": ".domain" }`,
+				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": [".domain"] }`,
 			},
 			{
-				"", "https://proxy.proxy", ".domain",
-				`"proxy": { "httpsProxy": "https://proxy.proxy", "noProxy": ".domain" }`,
+				"", "https://proxy.proxy", ".domain,123.123.123.123",
+				`"proxy": { "httpsProxy": "https://proxy.proxy", "noProxy": [".domain","123.123.123.123"] }`,
 			},
 			{
 				"", "https://proxy.proxy", "",

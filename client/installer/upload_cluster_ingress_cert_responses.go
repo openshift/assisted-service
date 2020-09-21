@@ -65,6 +65,12 @@ func (o *UploadClusterIngressCertReader) ReadResponse(response runtime.ClientRes
 			return nil, err
 		}
 		return nil, result
+	case 503:
+		result := NewUploadClusterIngressCertServiceUnavailable()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
@@ -279,6 +285,39 @@ func (o *UploadClusterIngressCertInternalServerError) GetPayload() *models.Error
 }
 
 func (o *UploadClusterIngressCertInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUploadClusterIngressCertServiceUnavailable creates a UploadClusterIngressCertServiceUnavailable with default headers values
+func NewUploadClusterIngressCertServiceUnavailable() *UploadClusterIngressCertServiceUnavailable {
+	return &UploadClusterIngressCertServiceUnavailable{}
+}
+
+/*UploadClusterIngressCertServiceUnavailable handles this case with default header values.
+
+Unavailable.
+*/
+type UploadClusterIngressCertServiceUnavailable struct {
+	Payload *models.Error
+}
+
+func (o *UploadClusterIngressCertServiceUnavailable) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertServiceUnavailable  %+v", 503, o.Payload)
+}
+
+func (o *UploadClusterIngressCertServiceUnavailable) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UploadClusterIngressCertServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

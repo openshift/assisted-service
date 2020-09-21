@@ -8,12 +8,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/openshift/assisted-service/pkg/ocm"
-
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
-
-	"github.com/dgrijalva/jwt-go"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/sirupsen/logrus"
 )
 
@@ -85,7 +84,10 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 	user, err := a.client.Authentication.AuthenticatePullSecret(context.Background(), token)
 	if err != nil {
 		a.log.Errorf("Error Authenticating PullSecret token: %v", err)
-		return nil, err
+		if common.IsKnownError(err) {
+			return nil, err
+		}
+		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
 	err = a.storeAdminInPayload(user)
 	if err != nil {
@@ -217,7 +219,10 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 			}
 			p, err := authenticate(token)
 			if err != nil {
-				return false, nil, err
+				if common.IsKnownError(err) {
+					return true, nil, err
+				}
+				return true, nil, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 			return true, p, nil
 		})

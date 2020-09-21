@@ -17,7 +17,7 @@ const (
 
 type Config struct {
 	LogLevel  string `envconfig:"LOG_LEVEL" default:"info"`
-	LogFormat string `envconfig:"LOG_FORMAT" default:"json"`
+	LogFormat string `envconfig:"LOG_FORMAT" default:"text"`
 }
 
 // FromContext equip a given logger with values from the given context

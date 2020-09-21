@@ -53,6 +53,12 @@ func (o *ListHostsReader) ReadResponse(response runtime.ClientResponse, consumer
 			return nil, err
 		}
 		return nil, result
+	case 503:
+		result := NewListHostsServiceUnavailable()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
@@ -211,6 +217,39 @@ func (o *ListHostsInternalServerError) GetPayload() *models.Error {
 }
 
 func (o *ListHostsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewListHostsServiceUnavailable creates a ListHostsServiceUnavailable with default headers values
+func NewListHostsServiceUnavailable() *ListHostsServiceUnavailable {
+	return &ListHostsServiceUnavailable{}
+}
+
+/*ListHostsServiceUnavailable handles this case with default header values.
+
+Unavailable.
+*/
+type ListHostsServiceUnavailable struct {
+	Payload *models.Error
+}
+
+func (o *ListHostsServiceUnavailable) Error() string {
+	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsServiceUnavailable  %+v", 503, o.Payload)
+}
+
+func (o *ListHostsServiceUnavailable) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ListHostsServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

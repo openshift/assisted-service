@@ -51,6 +51,7 @@ type Config struct {
 	RetryAttempts       int           `envconfig:"JOB_RETRY_ATTEMPTS" default:"30"`
 	ImageBuilder        string        `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
 	Namespace           string        `envconfig:"NAMESPACE" default:"assisted-installer"`
+	S3SecretName        string        `envconfig:"S3_SECRET_NAME" default:"assisted-installer-s3"`
 	S3EndpointURL       string        `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
 	S3Bucket            string        `envconfig:"S3_BUCKET" default:"test"`
 	S3Region            string        `envconfig:"S3_REGION"`
@@ -243,20 +244,48 @@ func (k *kubeJob) createImageJob(jobName, imgName, ignitionConfig string, perfor
 									Value: imgName,
 								},
 								{
-									Name:  "S3_BUCKET",
-									Value: k.Config.S3Bucket,
+									Name: "S3_BUCKET",
+									ValueFrom: &core.EnvVarSource{
+										SecretKeyRef: &core.SecretKeySelector{
+											LocalObjectReference: core.LocalObjectReference{
+												Name: k.Config.S3SecretName,
+											},
+											Key: "bucket",
+										},
+									},
 								},
 								{
-									Name:  "S3_REGION",
-									Value: k.Config.S3Region,
+									Name: "S3_REGION",
+									ValueFrom: &core.EnvVarSource{
+										SecretKeyRef: &core.SecretKeySelector{
+											LocalObjectReference: core.LocalObjectReference{
+												Name: k.Config.S3SecretName,
+											},
+											Key: "aws_region",
+										},
+									},
 								},
 								{
-									Name:  "AWS_ACCESS_KEY_ID",
-									Value: k.Config.AwsAccessKeyID,
+									Name: "AWS_ACCESS_KEY_ID",
+									ValueFrom: &core.EnvVarSource{
+										SecretKeyRef: &core.SecretKeySelector{
+											LocalObjectReference: core.LocalObjectReference{
+												Name: k.Config.S3SecretName,
+											},
+											Key: "aws_access_key_id",
+										},
+									},
 								},
 								{
-									Name:  "AWS_SECRET_ACCESS_KEY",
-									Value: k.Config.AwsSecretAccessKey,
+									Name: "AWS_SECRET_ACCESS_KEY",
+									ValueFrom: &core.EnvVarSource{
+										SecretKeyRef: &core.SecretKeySelector{
+											LocalObjectReference: core.LocalObjectReference{
+												Name: k.Config.S3SecretName,
+											},
+											Key: "aws_secret_access_key",
+										},
+									},
 								},
 							},
 						},
@@ -354,8 +383,15 @@ func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, c
 									Value: jobName,
 								},
 								{
-									Name:  "S3_BUCKET",
-									Value: k.Config.S3Bucket,
+									Name: "S3_BUCKET",
+									ValueFrom: &core.EnvVarSource{
+										SecretKeyRef: &core.SecretKeySelector{
+											LocalObjectReference: core.LocalObjectReference{
+												Name: k.Config.S3SecretName,
+											},
+											Key: "bucket",
+										},
+									},
 								},
 								{
 									Name:  "S3_REGION",
@@ -370,12 +406,26 @@ func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, c
 									Value: k.ReleaseImage, //TODO: change this to match the cluster openshift version
 								},
 								{
-									Name:  "AWS_ACCESS_KEY_ID",
-									Value: k.Config.AwsAccessKeyID,
+									Name: "AWS_ACCESS_KEY_ID",
+									ValueFrom: &core.EnvVarSource{
+										SecretKeyRef: &core.SecretKeySelector{
+											LocalObjectReference: core.LocalObjectReference{
+												Name: k.Config.S3SecretName,
+											},
+											Key: "aws_access_key_id",
+										},
+									},
 								},
 								{
-									Name:  "AWS_SECRET_ACCESS_KEY",
-									Value: k.Config.AwsSecretAccessKey,
+									Name: "AWS_SECRET_ACCESS_KEY",
+									ValueFrom: &core.EnvVarSource{
+										SecretKeyRef: &core.SecretKeySelector{
+											LocalObjectReference: core.LocalObjectReference{
+												Name: k.Config.S3SecretName,
+											},
+											Key: "aws_secret_access_key",
+										},
+									},
 								},
 								{
 									Name:  "SKIP_CERT_VERIFICATION",

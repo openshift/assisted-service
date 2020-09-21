@@ -13,7 +13,10 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-const MinHostsNeededForInstallation = 3
+const (
+	MinMastersNeededForInstallation = 3
+	MinWorkersNeededForInstallation = 1
+)
 
 const (
 	statusInfoReady                           = "Cluster ready to be installed"
@@ -95,11 +98,29 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 	return masterNodesIds, nil
 }
 
-func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	hostMap := make(map[string][]*models.Host)
-
+func NumberOfWorkers(c *common.Cluster) int {
+	num := 0
 	for _, host := range c.Hosts {
-		if host.Role != models.HostRoleMaster {
+		if host.Role != models.HostRoleWorker || *host.Status == models.HostStatusDisabled {
+			continue
+		}
+		num += 1
+	}
+	return num
+}
+
+func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
+	return mapHostsByStatus(c, models.HostRoleMaster)
+}
+
+func MapWorkersHostsByStatus(c *common.Cluster) map[string][]*models.Host {
+	return mapHostsByStatus(c, models.HostRoleWorker)
+}
+
+func mapHostsByStatus(c *common.Cluster, role models.HostRole) map[string][]*models.Host {
+	hostMap := make(map[string][]*models.Host)
+	for _, host := range c.Hosts {
+		if role != "" && host.Role != role {
 			continue
 		}
 		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {
@@ -112,14 +133,5 @@ func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
 }
 
 func MapHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	hostMap := make(map[string][]*models.Host)
-
-	for _, host := range c.Hosts {
-		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {
-			hostMap[swag.StringValue(host.Status)] = append(hostMap[swag.StringValue(host.Status)], host)
-		} else {
-			hostMap[swag.StringValue(host.Status)] = []*models.Host{host}
-		}
-	}
-	return hostMap
+	return mapHostsByStatus(c, "")
 }

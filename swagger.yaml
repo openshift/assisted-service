@@ -95,6 +95,10 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
 
   /clusters/{cluster_id}:
     get:
@@ -138,6 +142,10 @@ paths:
             $ref: '#/definitions/error'
         500:
           description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
           schema:
             $ref: '#/definitions/error'
 
@@ -381,6 +389,10 @@ paths:
             $ref: '#/definitions/error'
         500:
           description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
           schema:
             $ref: '#/definitions/error'
 
@@ -659,6 +671,10 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/actions/install:
     post:
@@ -842,6 +858,10 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/hosts:
     post:
@@ -895,6 +915,10 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
 
     get:
       tags:
@@ -933,6 +957,10 @@ paths:
             $ref: '#/definitions/error'
         500:
           description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
           schema:
             $ref: '#/definitions/error'
 
@@ -1077,6 +1105,10 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/hosts/{host_id}/actions/enable:
     post:
@@ -1219,6 +1251,10 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
 
     post:
       tags:
@@ -1273,6 +1309,10 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/hosts/{host_id}/logs:
     post:
@@ -1311,12 +1351,24 @@ paths:
       responses:
         204:
           description: Success.
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
         404:
           description: Error.
           schema:
             $ref: '#/definitions/error'
         500:
           description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
           schema:
             $ref: '#/definitions/error'
 

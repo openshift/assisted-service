@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/openshift/assisted-service/pkg/leader"
 
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -152,6 +154,26 @@ var _ = Describe("cluster monitor", func() {
 			shouldHaveUpdated = false
 			expectedState = "installing"
 		})
+		It("with workers 1 in error, installing -> installing", func() {
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createWorkerHost(id, "installing", db)
+			createWorkerHost(id, "error", db)
+			mockHostAPIIsValidMasterCandidateTrue(5)
+			shouldHaveUpdated = false
+			expectedState = "installing"
+		})
+		It("with workers 2 in installing, installing -> installing", func() {
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createWorkerHost(id, "installing", db)
+			createWorkerHost(id, "installing", db)
+			mockHostAPIIsValidMasterCandidateTrue(5)
+			shouldHaveUpdated = false
+			expectedState = "installing"
+		})
 		It("installing -> installing (some hosts are installed)", func() {
 			createHost(id, "installing", db)
 			createHost(id, "installed", db)
@@ -178,6 +200,15 @@ var _ = Describe("cluster monitor", func() {
 			shouldHaveUpdated = false
 			expectedState = "installing"
 		})
+		It("with worker installing -> installing", func() {
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(3)
+
+			shouldHaveUpdated = true
+			expectedState = models.ClusterStatusFinalizing
+		})
 		It("installing -> finalizing", func() {
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
@@ -187,6 +218,18 @@ var _ = Describe("cluster monitor", func() {
 			shouldHaveUpdated = true
 			expectedState = models.ClusterStatusFinalizing
 		})
+		It("with workers installing -> finalizing", func() {
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createWorkerHost(id, "installing", db)
+			createWorkerHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(5)
+
+			shouldHaveUpdated = true
+			expectedState = models.ClusterStatusFinalizing
+		})
+
 		It("installing -> error", func() {
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "error", db)
@@ -210,10 +253,39 @@ var _ = Describe("cluster monitor", func() {
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "installing", db)
 			createHost(id, "installed", db)
-			mockHostAPIIsValidMasterCandidateTrue(2)
+			createWorkerHost(id, "installed", db)
+			mockHostAPIIsValidMasterCandidateTrue(3)
 			shouldHaveUpdated = true
 			expectedState = "error"
 
+		})
+		It("with workers in error, installing -> error", func() {
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createWorkerHost(id, "error", db)
+			createWorkerHost(id, "error", db)
+			mockHostAPIIsValidMasterCandidateTrue(5)
+			shouldHaveUpdated = true
+			expectedState = "error"
+		})
+		It("with single worker in error, installing -> error", func() {
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createHost(id, "installing", db)
+			createWorkerHost(id, "error", db)
+			mockHostAPIIsValidMasterCandidateTrue(4)
+			shouldHaveUpdated = true
+			expectedState = "error"
+		})
+		It("with single worker in error, installing -> error", func() {
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createHost(id, "installed", db)
+			createWorkerHost(id, "error", db)
+			mockHostAPIIsValidMasterCandidateTrue(4)
+			shouldHaveUpdated = true
+			expectedState = "error"
 		})
 	})
 
@@ -773,6 +845,18 @@ func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 		ID:        &hostId,
 		ClusterID: clusterId,
 		Role:      models.HostRoleMaster,
+		Status:    swag.String(state),
+		Inventory: defaultInventory(),
+	}
+	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+}
+
+func createWorkerHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
+	hostId := strfmt.UUID(uuid.New().String())
+	host := models.Host{
+		ID:        &hostId,
+		ClusterID: clusterId,
+		Role:      models.HostRoleWorker,
 		Status:    swag.String(state),
 		Inventory: defaultInventory(),
 	}
@@ -1359,5 +1443,60 @@ var _ = Describe("Cluster tarred files", func() {
 		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), tarFile).Return(errors.Errorf("Dummy")).Times(1)
 		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
+	})
+})
+
+var _ = Describe("CompleteInstallation", func() {
+	var (
+		ctrl          *gomock.Controller
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		c             common.Cluster
+		eventsHandler events.Handler
+		mockMetric    *metrics.MockAPI
+		dbName        = "complete_installation"
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		eventsHandler = events.New(db, logrus.New())
+		dummy := &leader.DummyElector{}
+		state = NewManager(defaultTestConfig, getTestLog(), db, eventsHandler, nil, mockMetric, dummy)
+		id := strfmt.UUID(uuid.New().String())
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &id,
+			Status: swag.String(models.ClusterStatusFinalizing),
+		}}
+		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+	})
+
+	It("complete installation successfully", func() {
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, gomock.Any(), gomock.Any()).Times(1)
+		apiErr := state.CompleteInstallation(ctx, &c, true, "")
+		Expect(apiErr).ShouldNot(HaveOccurred())
+		events, err := eventsHandler.GetEvents(*c.ID, nil)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(events)).ShouldNot(Equal(0))
+		resetEvent := events[len(events)-1]
+		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
+	})
+	It("complete installation failure", func() {
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, gomock.Any(), gomock.Any()).Times(1)
+		apiErr := state.CompleteInstallation(ctx, &c, false, "dummy error")
+		Expect(apiErr).ShouldNot(HaveOccurred())
+		events, err := eventsHandler.GetEvents(*c.ID, nil)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(events)).ShouldNot(Equal(0))
+		resetEvent := events[len(events)-1]
+		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityCritical))
+		Expect(funk.Contains(*resetEvent.Message, "dummy error")).Should(Equal(true))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 })

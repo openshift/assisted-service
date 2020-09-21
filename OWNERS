@@ -1,6 +1,6 @@
 # See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
 
-approvers:
+reviewers:
 - avishayt
 - empovit
 - eranco74
@@ -15,3 +15,10 @@ approvers:
 - yevgeny-shnaidman
 - yuvigold
 - masayag
+
+approvers:
+- eranco74
+- filanov
+- gamli75
+- romfreiman
+- ronniel1

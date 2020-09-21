@@ -74,6 +74,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       },
@@ -195,6 +201,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -468,6 +480,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -754,6 +772,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -1263,6 +1287,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       },
@@ -1338,6 +1368,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -1677,6 +1713,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       },
@@ -1755,6 +1797,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -1884,6 +1932,18 @@ func init() {
           "204": {
             "description": "Success."
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
           "404": {
             "description": "Error.",
             "schema": {
@@ -1892,6 +1952,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -1973,6 +2039,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -2241,6 +2313,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -3795,6 +3873,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       },
@@ -3916,6 +4000,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -4189,6 +4279,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -4475,6 +4571,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -4984,6 +5086,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       },
@@ -5059,6 +5167,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -5398,6 +5512,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/error"
             }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           }
         }
       },
@@ -5476,6 +5596,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -5605,6 +5731,18 @@ func init() {
           "204": {
             "description": "Success."
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
           "404": {
             "description": "Error.",
             "schema": {
@@ -5613,6 +5751,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -5694,6 +5838,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -5962,6 +6112,12 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }

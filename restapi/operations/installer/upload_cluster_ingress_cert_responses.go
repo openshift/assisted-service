@@ -300,3 +300,47 @@ func (o *UploadClusterIngressCertInternalServerError) WriteResponse(rw http.Resp
 		}
 	}
 }
+
+// UploadClusterIngressCertServiceUnavailableCode is the HTTP code returned for type UploadClusterIngressCertServiceUnavailable
+const UploadClusterIngressCertServiceUnavailableCode int = 503
+
+/*UploadClusterIngressCertServiceUnavailable Unavailable.
+
+swagger:response uploadClusterIngressCertServiceUnavailable
+*/
+type UploadClusterIngressCertServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUploadClusterIngressCertServiceUnavailable creates UploadClusterIngressCertServiceUnavailable with default headers values
+func NewUploadClusterIngressCertServiceUnavailable() *UploadClusterIngressCertServiceUnavailable {
+
+	return &UploadClusterIngressCertServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the upload cluster ingress cert service unavailable response
+func (o *UploadClusterIngressCertServiceUnavailable) WithPayload(payload *models.Error) *UploadClusterIngressCertServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the upload cluster ingress cert service unavailable response
+func (o *UploadClusterIngressCertServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UploadClusterIngressCertServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

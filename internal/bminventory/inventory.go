@@ -412,9 +412,11 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
-	// workaround until UI support for 4.6 is committed
-	params.NewClusterParams.OpenshiftVersion = swag.String("4.6")
 
+	if params.NewClusterParams.HTTPProxy != nil &&
+		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
+		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
+	}
 	if err := validateProxySettings(params.NewClusterParams.HTTPProxy,
 		params.NewClusterParams.HTTPSProxy,
 		params.NewClusterParams.NoProxy); err != nil {
@@ -483,9 +485,11 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	}
 
 	if sshPublicKey := swag.StringValue(&cluster.SSHPublicKey); sshPublicKey != "" {
+		sshPublicKey = strings.TrimSpace(cluster.SSHPublicKey)
 		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
+		cluster.SSHPublicKey = sshPublicKey
 	}
 
 	err := b.clusterApi.RegisterCluster(ctx, &cluster)
@@ -1055,11 +1059,17 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	}
 
 	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
+		sshPublicKey = strings.TrimSpace(sshPublicKey)
 		if err = validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
+		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
 	}
 
+	if params.ClusterUpdateParams.HTTPProxy != nil &&
+		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
+		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
+	}
 	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
 		params.ClusterUpdateParams.HTTPSProxy,
 		params.ClusterUpdateParams.NoProxy); err != nil {
@@ -2360,7 +2370,10 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 	log.Infof("complete cluster %s installation", params.ClusterID)
 
 	var c common.Cluster
-	if err := b.db.Preload("Hosts").First(&c, "id = ?", params.ClusterID).Error; err != nil {
+	if err := b.db.Preload("Hosts").First(&c, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return common.NewApiError(http.StatusNotFound, err)
+		}
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -2784,7 +2797,11 @@ func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, er
 		httpsProxyAttr += `"httpsProxy": "` + httpsProxy + `"`
 	}
 	if noProxy != "" {
-		noProxyAttr = `, "noProxy": "` + noProxy + `"`
+		noProxyStr, err := json.Marshal(strings.Split(noProxy, ","))
+		if err != nil {
+			return "", err
+		}
+		noProxyAttr = `, "noProxy": ` + string(noProxyStr)
 	}
 	var proxyParams = map[string]string{
 		"httpProxy":  httpProxyAttr,

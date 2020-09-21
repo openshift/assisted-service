@@ -29,6 +29,18 @@ func (o *UploadHostLogsReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewUploadHostLogsUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewUploadHostLogsForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewUploadHostLogsNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -37,6 +49,12 @@ func (o *UploadHostLogsReader) ReadResponse(response runtime.ClientResponse, con
 		return nil, result
 	case 500:
 		result := NewUploadHostLogsInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 503:
+		result := NewUploadHostLogsServiceUnavailable()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -64,6 +82,72 @@ func (o *UploadHostLogsNoContent) Error() string {
 }
 
 func (o *UploadHostLogsNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewUploadHostLogsUnauthorized creates a UploadHostLogsUnauthorized with default headers values
+func NewUploadHostLogsUnauthorized() *UploadHostLogsUnauthorized {
+	return &UploadHostLogsUnauthorized{}
+}
+
+/*UploadHostLogsUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type UploadHostLogsUnauthorized struct {
+	Payload *models.InfraError
+}
+
+func (o *UploadHostLogsUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *UploadHostLogsUnauthorized) GetPayload() *models.InfraError {
+	return o.Payload
+}
+
+func (o *UploadHostLogsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.InfraError)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUploadHostLogsForbidden creates a UploadHostLogsForbidden with default headers values
+func NewUploadHostLogsForbidden() *UploadHostLogsForbidden {
+	return &UploadHostLogsForbidden{}
+}
+
+/*UploadHostLogsForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type UploadHostLogsForbidden struct {
+	Payload *models.InfraError
+}
+
+func (o *UploadHostLogsForbidden) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsForbidden  %+v", 403, o.Payload)
+}
+
+func (o *UploadHostLogsForbidden) GetPayload() *models.InfraError {
+	return o.Payload
+}
+
+func (o *UploadHostLogsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.InfraError)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -123,6 +207,39 @@ func (o *UploadHostLogsInternalServerError) GetPayload() *models.Error {
 }
 
 func (o *UploadHostLogsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUploadHostLogsServiceUnavailable creates a UploadHostLogsServiceUnavailable with default headers values
+func NewUploadHostLogsServiceUnavailable() *UploadHostLogsServiceUnavailable {
+	return &UploadHostLogsServiceUnavailable{}
+}
+
+/*UploadHostLogsServiceUnavailable handles this case with default header values.
+
+Unavailable.
+*/
+type UploadHostLogsServiceUnavailable struct {
+	Payload *models.Error
+}
+
+func (o *UploadHostLogsServiceUnavailable) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsServiceUnavailable  %+v", 503, o.Payload)
+}
+
+func (o *UploadHostLogsServiceUnavailable) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UploadHostLogsServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

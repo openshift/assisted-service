@@ -59,6 +59,12 @@ func (o *UpdateHostInstallProgressReader) ReadResponse(response runtime.ClientRe
 			return nil, err
 		}
 		return nil, result
+	case 503:
+		result := NewUpdateHostInstallProgressServiceUnavailable()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
@@ -240,6 +246,39 @@ func (o *UpdateHostInstallProgressInternalServerError) GetPayload() *models.Erro
 }
 
 func (o *UpdateHostInstallProgressInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUpdateHostInstallProgressServiceUnavailable creates a UpdateHostInstallProgressServiceUnavailable with default headers values
+func NewUpdateHostInstallProgressServiceUnavailable() *UpdateHostInstallProgressServiceUnavailable {
+	return &UpdateHostInstallProgressServiceUnavailable{}
+}
+
+/*UpdateHostInstallProgressServiceUnavailable handles this case with default header values.
+
+Unavailable.
+*/
+type UpdateHostInstallProgressServiceUnavailable struct {
+	Payload *models.Error
+}
+
+func (o *UpdateHostInstallProgressServiceUnavailable) Error() string {
+	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressServiceUnavailable  %+v", 503, o.Payload)
+}
+
+func (o *UpdateHostInstallProgressServiceUnavailable) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UpdateHostInstallProgressServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

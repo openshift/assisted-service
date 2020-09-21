@@ -37,6 +37,94 @@ func (o *UploadHostLogsNoContent) WriteResponse(rw http.ResponseWriter, producer
 	rw.WriteHeader(204)
 }
 
+// UploadHostLogsUnauthorizedCode is the HTTP code returned for type UploadHostLogsUnauthorized
+const UploadHostLogsUnauthorizedCode int = 401
+
+/*UploadHostLogsUnauthorized Unauthorized.
+
+swagger:response uploadHostLogsUnauthorized
+*/
+type UploadHostLogsUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.InfraError `json:"body,omitempty"`
+}
+
+// NewUploadHostLogsUnauthorized creates UploadHostLogsUnauthorized with default headers values
+func NewUploadHostLogsUnauthorized() *UploadHostLogsUnauthorized {
+
+	return &UploadHostLogsUnauthorized{}
+}
+
+// WithPayload adds the payload to the upload host logs unauthorized response
+func (o *UploadHostLogsUnauthorized) WithPayload(payload *models.InfraError) *UploadHostLogsUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the upload host logs unauthorized response
+func (o *UploadHostLogsUnauthorized) SetPayload(payload *models.InfraError) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UploadHostLogsUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// UploadHostLogsForbiddenCode is the HTTP code returned for type UploadHostLogsForbidden
+const UploadHostLogsForbiddenCode int = 403
+
+/*UploadHostLogsForbidden Forbidden.
+
+swagger:response uploadHostLogsForbidden
+*/
+type UploadHostLogsForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.InfraError `json:"body,omitempty"`
+}
+
+// NewUploadHostLogsForbidden creates UploadHostLogsForbidden with default headers values
+func NewUploadHostLogsForbidden() *UploadHostLogsForbidden {
+
+	return &UploadHostLogsForbidden{}
+}
+
+// WithPayload adds the payload to the upload host logs forbidden response
+func (o *UploadHostLogsForbidden) WithPayload(payload *models.InfraError) *UploadHostLogsForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the upload host logs forbidden response
+func (o *UploadHostLogsForbidden) SetPayload(payload *models.InfraError) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UploadHostLogsForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // UploadHostLogsNotFoundCode is the HTTP code returned for type UploadHostLogsNotFound
 const UploadHostLogsNotFoundCode int = 404
 
@@ -117,6 +205,50 @@ func (o *UploadHostLogsInternalServerError) SetPayload(payload *models.Error) {
 func (o *UploadHostLogsInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(500)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// UploadHostLogsServiceUnavailableCode is the HTTP code returned for type UploadHostLogsServiceUnavailable
+const UploadHostLogsServiceUnavailableCode int = 503
+
+/*UploadHostLogsServiceUnavailable Unavailable.
+
+swagger:response uploadHostLogsServiceUnavailable
+*/
+type UploadHostLogsServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUploadHostLogsServiceUnavailable creates UploadHostLogsServiceUnavailable with default headers values
+func NewUploadHostLogsServiceUnavailable() *UploadHostLogsServiceUnavailable {
+
+	return &UploadHostLogsServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the upload host logs service unavailable response
+func (o *UploadHostLogsServiceUnavailable) WithPayload(payload *models.Error) *UploadHostLogsServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the upload host logs service unavailable response
+func (o *UploadHostLogsServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UploadHostLogsServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {
