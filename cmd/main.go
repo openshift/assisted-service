@@ -202,7 +202,7 @@ func main() {
 
 		err = lead.StartLeaderElection(context.Background())
 		if err != nil {
-			log.WithError(cerr).Fatalf("Failed to start leader")
+			log.WithError(err).Fatalf("Failed to start leader")
 		}
 
 	case "onprem":
