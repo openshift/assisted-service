@@ -142,15 +142,9 @@ func bmhIsMaster(bmh *bmh_v1alpha1.BareMetalHost) bool {
 // updateBootstrap adds a status annotation to each BareMetalHost defined in the
 // bootstrap ignition file
 func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
-	bootstrapBytes, err := ioutil.ReadFile(bootstrapPath)
+	config, err := parseIgnitionFile(bootstrapPath)
 	if err != nil {
-		g.log.Errorf("error reading file %s: %v", bootstrapPath, err)
-		return err
-	}
-
-	config, _, err := config_31.Parse(bootstrapBytes)
-	if err != nil {
-		g.log.Errorf("error parsing bootstrap ignition: %v", err)
+		g.log.Error(err)
 		return err
 	}
 
@@ -199,15 +193,9 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 
 	config.Storage.Files = newFiles
 
-	// write ignition back to disk
-	updatedBytes, err := json.Marshal(config)
+	err = writeIgnitionFile(bootstrapPath, config)
 	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(bootstrapPath, updatedBytes, 0600)
-	if err != nil {
-		g.log.Errorf("error writing file %s: %v", bootstrapPath, err)
+		g.log.Error(err)
 		return err
 	}
 	g.log.Infof("Updated file %s", bootstrapPath)
@@ -390,6 +378,35 @@ func uploadToS3(ctx context.Context, workDir string, clusterID string, s3Client 
 			return err
 		}
 		log.Infof("Uploaded file %s as object %s", fullPath, key)
+	}
+
+	return nil
+}
+
+func parseIgnitionFile(path string) (*config_31_types.Config, error) {
+	configBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, errors.Errorf("error reading file %s: %v", path, err)
+	}
+
+	config, _, err := config_31.Parse(configBytes)
+	if err != nil {
+		return nil, errors.Errorf("error parsing ignition: %v", err)
+	}
+
+	return &config, nil
+}
+
+// writeIgnitionFile writes an ignition config to a given path on disk
+func writeIgnitionFile(path string, config *config_31_types.Config) error {
+	updatedBytes, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(path, updatedBytes, 0600)
+	if err != nil {
+		return errors.Wrapf(err, "error writing file %s", path)
 	}
 
 	return nil
