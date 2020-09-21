@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
 	"github.com/openshift/assisted-service/internal/common"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/sirupsen/logrus"
 )
@@ -206,6 +207,7 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 		getToken := func(r *http.Request) string { return r.Header.Get(name) }
 
 		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
+			log := logutil.FromContext(r.Context(), a.log)
 			if !a.EnableAuth {
 				a.log.Debug("API Key Authentication Disabled")
 				return true, &ocm.AuthPayload{
@@ -219,6 +221,7 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 			}
 			p, err := authenticate(token)
 			if err != nil {
+				log.Errorf("Fail to authenticate. Error %v", err)
 				if common.IsKnownError(err) {
 					return true, nil, err
 				}
