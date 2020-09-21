@@ -26,8 +26,6 @@ RUN cd build && python3 setup.py sdist --dist-dir /assisted-service-client
 
 # Create final image
 FROM registry.access.redhat.com/ubi8/ubi:latest
-ARG GIT_REVISION
-LABEL "git_revision"=${GIT_REVISION}
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /assisted-service-client/assisted-service-client-*.tar.gz /clients/
 CMD ["/assisted-service"]
