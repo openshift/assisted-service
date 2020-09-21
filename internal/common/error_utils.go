@@ -116,3 +116,10 @@ func GenerateErrorResponderWithDefault(err error, defaultCode int32) middleware.
 		return NewApiError(defaultCode, err)
 	}
 }
+
+func ApiErrorWithDefaultInfraError(err error, defaultCode int32) error {
+	if IsKnownError(err) {
+		return err
+	}
+	return NewInfraError(defaultCode, err)
+}
