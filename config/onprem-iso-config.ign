@@ -45,7 +45,7 @@
         "path": "/etc/assisted-service/startup_script.sh",
         "filesystem": "root",
         "contents": {
-          "source": "data:,%23!%2Fbin%2Fbash%0Aips%3D%24(hostname%20-I)%0AipArr%3D(%24ips)%0Afor%20ip%20in%20%22%24%7BipArr%5B%40%5D%7D%22%0A%20%20%20%20do%20%0A%20%20%20%20%20%20%20%20printf%20%22%5Cn%24ip%20assisted-api.local.openshift.io%5Cn%22%3E%3E%2Fetc%2Fhosts%0A%20%20%20%20done%0Aprintf%20%22%5CnSERVICE_IPS%3D%24ips%22%3E%3E%2Fetc%2Fassisted-service%2Fenvironment%0A"
+          "source": "data:,%23!%2Fbin%2Fbash%0Aips%3D%24(hostname%20-I)%0AipArr%3D(%24ips)%0Afor%20ip%20in%20%22%24%7BipArr%5B%40%5D%7D%22%0A%20%20%20%20do%20%0A%20%20%20%20%20%20%20%20printf%20%22%5Cn%24ip%20assisted-api.local.openshift.io%5Cn%22%3E%3E%2Fetc%2Fhosts%0A%20%20%20%20done%0Aprintf%20%22%5CnASSISTED_SERVICE_IPS%3D%24ips%22%3E%3E%2Fetc%2Fassisted-service%2Fenvironment%0A"
         },
         "mode": 420
       }

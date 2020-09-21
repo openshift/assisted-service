@@ -42,6 +42,7 @@ type InstructionManager struct {
 
 type InstructionConfig struct {
 	ServiceBaseURL          string `envconfig:"SERVICE_BASE_URL"`
+	ServiceIPs              string `envconfig:"ASSISTED_SERVICE_IPS" default:""`
 	InstallerImage          string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
 	ControllerImage         string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
 	ConnectivityCheckImage  string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`

@@ -68,6 +68,10 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"SKIP_CERT_VERIFICATION": strconv.FormatBool(i.instructionConfig.SkipCertVerification),
 		"AGENT_IMAGE":            i.instructionConfig.InventoryImage,
 	}
+	if i.instructionConfig.ServiceIPs != "" {
+		cmdArgsTmpl = cmdArgsTmpl + " --assisted-service-ips '{{.ASSISTED_SERVICE_IPS}}'"
+		data["ASSISTED_SERVICE_IPS"] = strings.TrimSpace(i.instructionConfig.ServiceIPs)
+	}
 
 	hostname, _ := hostutil.GetCurrentHostName(host)
 	if hostname != "" {
