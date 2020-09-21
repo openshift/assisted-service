@@ -1844,7 +1844,7 @@ func (b *bareMetalInventory) refreshClusterStatus(
 	var c common.Cluster
 
 	filter := identity.AddUserFilter(ctx, "id = ?")
-	if err := db.First(&c, filter, clusterID).Error; err != nil {
+	if err := db.Preload("Hosts").First(&c, filter, clusterID).Error; err != nil {
 		return nil, err
 	}
 
