@@ -103,13 +103,22 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefreshStatus,
 		SourceStates: []stateswitch.State{
-			stateswitch.State(models.ClusterStatusPendingForInput),
 			stateswitch.State(models.ClusterStatusReady),
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
 		Condition:        stateswitch.And(stateswitch.Not(If(VipDhcpAllocationSet)), stateswitch.Not(requiredInputFieldsExistNonDhcp)),
 		DestinationState: stateswitch.State(models.ClusterStatusPendingForInput),
 		PostTransition:   th.PostRefreshCluster(statusInfoPendingForInput),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusPendingForInput),
+		},
+		Condition:        stateswitch.And(stateswitch.Not(If(VipDhcpAllocationSet)), stateswitch.Not(requiredInputFieldsExistNonDhcp)),
+		DestinationState: stateswitch.State(models.ClusterStatusPendingForInput),
+		PostTransition:   th.PostRefreshClusterValidationsInfoUpdate,
 	})
 
 	// In order for this transition to be fired at least one of the validations in isSufficientForInstallNonDhcp must fail.
@@ -134,13 +143,22 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefreshStatus,
 		SourceStates: []stateswitch.State{
-			stateswitch.State(models.ClusterStatusPendingForInput),
 			stateswitch.State(models.ClusterStatusReady),
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
 		Condition:        stateswitch.And(If(VipDhcpAllocationSet), stateswitch.Not(pendingConditions)),
 		DestinationState: stateswitch.State(models.ClusterStatusPendingForInput),
 		PostTransition:   th.PostRefreshCluster(statusInfoPendingForInput),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusPendingForInput),
+		},
+		Condition:        stateswitch.And(If(VipDhcpAllocationSet), stateswitch.Not(pendingConditions)),
+		DestinationState: stateswitch.State(models.ClusterStatusPendingForInput),
+		PostTransition:   th.PostRefreshClusterValidationsInfoUpdate,
 	})
 
 	// In order for this transition to be fired at least one of the validations in isSufficientForInstallDhcp must fail.

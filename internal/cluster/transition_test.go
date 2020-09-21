@@ -386,6 +386,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 			{
 				name:               "pending-for-input to pending-for-input",
 				srcState:           models.ClusterStatusPendingForInput,
+				srcStatusInfo:      statusInfoPendingForInput,
 				dstState:           models.ClusterStatusPendingForInput,
 				machineNetworkCidr: "",
 				apiVip:             "",
@@ -849,6 +850,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 			{
 				name:               "pending-for-input to pending-for-input",
 				srcState:           models.ClusterStatusPendingForInput,
+				srcStatusInfo:      statusInfoPendingForInput,
 				dstState:           models.ClusterStatusPendingForInput,
 				machineNetworkCidr: "1.2.3.0/24",
 				apiVip:             "1.2.3.4",
@@ -1047,6 +1049,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 			{
 				name:               "pending-for-input to pending-for-input",
 				srcState:           models.ClusterStatusPendingForInput,
+				srcStatusInfo:      statusInfoPendingForInput,
 				dstState:           models.ClusterStatusPendingForInput,
 				machineNetworkCidr: "",
 				apiVip:             "",

@@ -341,3 +341,29 @@ func setPendingUserReset(ctx context.Context, c *common.Cluster, db *gorm.DB, ho
 	txSuccess = true
 	return nil
 }
+
+func (th *transitionHandler) PostRefreshClusterValidationsInfoUpdate(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return errors.New("PostRefreshClusterValidationsInfoUpdate incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshCluster)
+	if !ok {
+		return errors.New("PostRefreshClusterValidationsInfoUpdate invalid argument")
+	}
+	res, err := json.Marshal(&params.validationResults)
+	if err != nil {
+		return err
+	}
+	if string(res) == sCluster.cluster.ValidationsInfo {
+		return nil
+	}
+	_, err = UpdateCluster(
+		logutil.FromContext(params.ctx, th.log),
+		params.db,
+		*sCluster.cluster.ID,
+		sCluster.srcState,
+		"validations_info",
+		string(res))
+	return err
+}
