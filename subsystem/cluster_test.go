@@ -781,6 +781,65 @@ var _ = Describe("cluster install", func() {
 
 		})
 
+		It("[only_k8s]install_cluster install command failed", func() {
+			By("Installing cluster")
+			c := installCluster(clusterID)
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
+			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+			Expect(len(c.Hosts)).Should(Equal(4))
+			for _, host := range c.Hosts {
+				Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusInstalling))
+			}
+
+			// post failure to execute the install command
+			_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+				ClusterID: clusterID,
+				HostID:    *c.Hosts[0].ID,
+				Reply: &models.StepReply{
+					ExitCode: bminventory.ContainerAlreadyRunningExitCode,
+					StepType: models.StepTypeInstall,
+					Output:   "blabla",
+					Error:    "Some random error",
+					StepID:   string(models.StepTypeInstall),
+				},
+			})
+			// For some reason the post step reply API return bad request in case the exit code isn't 0
+			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewPostStepReplyBadRequest())))
+
+			By("Verifying installation failed")
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, "failed")
+		})
+
+		It("[only_k8s]install_cluster assisted-installer already running", func() {
+			By("Installing cluster")
+			c := installCluster(clusterID)
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
+			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+			Expect(len(c.Hosts)).Should(Equal(4))
+			for _, host := range c.Hosts {
+				Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusInstalling))
+			}
+
+			// post failure to execute the install command due to a running assisted-installer
+			_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+				ClusterID: clusterID,
+				HostID:    *c.Hosts[0].ID,
+				Reply: &models.StepReply{
+					ExitCode: bminventory.ContainerAlreadyRunningExitCode,
+					StepType: models.StepTypeInstall,
+					Output:   "blabla",
+					Error:    "Trying to pull registry.stage.redhat.io/openshift4/assisted-installer-rhel8:v4.6.0-19...\nGetting image source signatures\nCopying blob sha256:e5fbed36397a9434b3330d01bcf53befb828e476be291c8e1c026a9753d59dfd\nCopying blob sha256:0fd3b5213a9b4639d32bf2ef6a3d7cc9891c4d8b23639ff7ae99d66ecb490a70\nCopying blob sha256:aebb8c5568533b57ee3da86262f7bff81383a2a624b9f54b9da3418705009901\nCopying config sha256:67bbdf0b8fb27217b9c5f6fa3593925309ef8c95b8b0be8b44713ba5f826fcee\nWriting manifest to image destination\nStoring signatures\nError: error creating container storage: the container name \"assisted-installer\" is already in use by \"331fe687f4af5c7adf75a9ddaaadfb801739ba1815bfcaafd4db7392bf9049bc\". You have to remove that container to be able to reuse that name.: that name is already in use\n",
+					StepID:   string(models.StepTypeInstall) + "-123465",
+				},
+			})
+			// For some reason the post step reply API return bad request in case the exit code isn't 0
+			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewPostStepReplyBadRequest())))
+			By("Verify host status is still installing")
+			_, status := isHostInState(ctx, clusterID, *c.Hosts[0].ID, models.HostStatusInstalling)
+			Expect(status).Should(Equal(models.HostStatusInstalling))
+
+		})
+
 		// TODO: re-enable the test when cluster monitor state will be affected by hosts states and cluster
 		// will not be ready of all the hosts are not ready.
 		//It("installation_conflicts", func() {
