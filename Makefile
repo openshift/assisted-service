@@ -70,7 +70,7 @@ format:
 ############
 
 generate:
-	go generate $(shell go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi')
+	go generate $(shell go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi\|assisted-service/generated')
 
 generate-from-swagger: generate-go-client generate-go-server
 
