@@ -126,10 +126,9 @@ storage:
             inline: |
               #!/bin/bash
               ips=$(hostname -I)
-              ipArr=($ips)
+              read -r -a ipArr <<< "$ips"
               for ip in "${ipArr[@]}"
                   do 
-                      printf "\n$ip assisted-api.local.openshift.io\n">>/etc/hosts
+                      printf "\n%s assisted-api.local.openshift.io\n" "$ip" >> /etc/hosts
                   done
-              printf "\nASSISTED_SERVICE_IPS=$ips">>/etc/assisted-service/environment
-              
+              printf "\nASSISTED_SERVICE_IPS=%s" "$ips" >> /etc/assisted-service/environment
