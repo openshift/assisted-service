@@ -51,11 +51,10 @@ endif
 
 all: build
 
-_pre_commit_hooks:
-	@-cp ${ROOT_DIR}/tools/check-commit-message.sh ${ROOT_DIR}/.git/hooks/commit-msg
+ci-lint:
 	${ROOT_DIR}/tools/check-commits.sh
 
-lint: _pre_commit_hooks
+lint:
 	golangci-lint run -v
 
 $(BUILD_FOLDER):
