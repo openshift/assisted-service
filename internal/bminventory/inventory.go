@@ -86,6 +86,7 @@ type Config struct {
 	InstallRHCa          bool              `envconfig:"INSTALL_RH_CA" default:"false"`
 	RhQaRegCred          string            `envconfig:"REGISTRY_CREDS" default:""`
 	AgentTimeoutStart    time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
+	ServiceIPs           string            `envconfig:"SERVICE_IPS" default:""`
 }
 
 const agentMessageOfTheDay = `
@@ -177,7 +178,15 @@ const ignitionConfigFormat = `{
 		"name": "root"
 	  },
 	  "contents": { "source": "{{.ServiceCACertData}}" }
-	}{{end}}]
+	}{{end}}{{if .ServiceIPs}},
+	{
+	  "path": "/etc/hosts",
+	  "mode": 420,
+	  "user": {
+	    "name": "root"
+	  },
+	  "append": [{ "source": "{{.ServiceIPs}}" }]
+  	}{{end}}]
   }
 }`
 
@@ -307,6 +316,9 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		}
 		ignitionParams["ServiceCACertData"] = dataurl.EncodeBytes(caCertData)
 		ignitionParams["HostCACertPath"] = common.HostCACertPath
+	}
+	if b.Config.ServiceIPs != "" {
+		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(ignition.GetServiceIPHostnames(b.Config.ServiceIPs)))
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {

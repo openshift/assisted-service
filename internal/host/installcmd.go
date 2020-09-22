@@ -101,6 +101,11 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		data["HOST_CA_CERT_PATH"] = common.HostCACertPath
 	}
 
+	if i.instructionConfig.ServiceIPs != "" {
+		cmdArgsTmpl = cmdArgsTmpl + " --service-ips '{{.SERVICE_IPS}}'"
+		data["SERVICE_IPS"] = strings.TrimSpace(i.instructionConfig.ServiceIPs)
+	}
+
 	bootdevice, err := getBootDevice(i.log, i.hwValidator, *host)
 	if err != nil {
 		return nil, err

@@ -58,6 +58,10 @@ func (g *dummyGenerator) UploadToS3(ctx context.Context, s3Client s3wrapper.API)
 	return uploadToS3(ctx, g.workDir, g.cluster.ID.String(), s3Client, g.log)
 }
 
+func (g *dummyGenerator) UpdateEtcHosts(serviceIPs string) error {
+	return nil
+}
+
 const kubeconfig string = `
 clusters:
 - cluster:

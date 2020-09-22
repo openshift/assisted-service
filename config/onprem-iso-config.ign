@@ -21,7 +21,7 @@
         "path": "/etc/assisted-service/create_certs.sh",
         "contents": {
           "compression": "gzip",
-          "source": "data:;base64,H4sIAAAAAAAC/5zPsW6DMBAG4J2nuNL5cKCAklQMiClL2qp9AWNfExdjUt+lhbevImXqEinbDfd/v/7HB9W7oHrNx2QcrIuAJ1AkRmlmx0IWmeKPM6TCwYUZDUXhZDpRYPYQ6RtwrlYbwDBZYkCrF4anugLkc/8FqeqarlXvH81bp16a9orCLrBo7ymqbt/kmyLL63WWF0VWpYDaWpoF0otARlovez1Ss3vd/v8M9DvQApH1tliVa8CBlukstxdcbyb/ye4QyGYXB+/MmijPiTmOk4W6LO9sT/4CAAD//9U0UEGMAQAA"
+          "source": "data:;base64,H4sIAAAAAAAC/5yPsU7DMBCG9zzFEeaLK0grKMoQhYUlCJUXcOxrY+LYwXeF5O1RUdW1Urd/+b5P//2d6lxQneY+GwfrEuAEisQozexYyCJT+nGGVDi4MKOhJJzFiQKzh0TfgPN69QwYoiUGtHpheNysAfnYfUGumqqp1e6z+mjUe1WfpfAWWLT3lFTTVpeUnlzho9G++A/0bi+FizmgtpZmgfzkJCO1l1aPVL22u+11ONDvQAsk1tuHVfkEONASj3L95nkz+T27QyBbnDx4I2uSvGSmH6OFTVneWM/+AgAA//9PXnJesQEAAA=="
         },
         "mode": 420
       },
@@ -29,7 +29,7 @@
         "path": "/etc/assisted-service/environment",
         "contents": {
           "compression": "gzip",
-          "source": "data:;base64,H4sIAAAAAAAC/1SOwU7zMBCE73mXOnXa/n9byQe3WZpIbmxsF8TJshpTIiVOSAyCt0eWEITbzsxqvhFc6ZMEdc9MTjU9UAWk8VOwbevGZJYKqtQjlzmxddf4eXJRIL/d/GAKrjTB2X+0REuEoyO41GSzXmVR/H2Opb+qouc5XIF8KI9g4iZzkYy8hDBM+zTFuwzhf1uEswxt9tv1epXkIBh/MprKE2jS+2F03U/BkZojSG0E1QVJaxts6m+N/1hMrn2empt3NbqOIeECKlWUd9qUldKUMSOBQaSXZ3oC8vpmP1HTp/116FywbTwWo2udndz+HaMl2iGcfAUAAP//jwJhOVIBAAA="
+          "source": "data:;base64,H4sIAAAAAAAC/1SO0W4yIRSE7/ddZF31z9+acIHuqW6CQgHb9IoQF5UEYbvQpn37hqRp7d2ZmZOZjzOpNgLkI9UtUWRFJGAXUjbe27G6STmR8pmJFpv+6sJtcpAgvt12pbdMKtzM/qMpmqKmOJwJhf8t5rMi/j6X0l+1J7vbcQniqVuDLkz6ICi+5DykZV2blFzKtp+YwSEfj8ajONiQLu6UkYvLu8ViXrXAKXvRiogNKBzDMNrrT+Wa6DUIpTlRW1z3Jps6nF34mCTrT8mdg+3RccwV47CX2+5B6W4vFaFUC6BQeLod2QB+fTOfyMU6HoerzcaXYzJab02yy/cGTdE9aqqvAAAA///Sic/8ZAEAAA=="
         },
         "mode": 420
       },
@@ -47,6 +47,14 @@
           "source": "data:,replace-with-your-urlencoded-pull-secret"
         },
         "mode": 420
+      },
+      {
+        "path": "/etc/assisted-service/startup_script.sh",
+        "contents": {
+          "compression": "gzip",
+          "source": "data:;base64,H4sIAAAAAAAC/0SOwUorQRBF9/0V9/VLiIKT/oGZoEgWsxMDbowknZmaTEFS3XQ1QVD/XXoUU5u7KDjn/P/nDizu4HU0HLWZ3YxBs/gzoWpvTSLfo0qoPDg+pIS6rmFnHNWaISRwBAvs7GP6vt6/fVkDAH3AtOViYskD7FbmCq/KmqmvfOTlKXT+tAyRREce8pLDVuyEt1it4Ch3ruToL1OoNO46bfbUjQGlA5949+lYVqlHRViog7tzx8XeXNWb9fNL+7jetU+bZq4/kkK6iv7KlNKFO3IkF05BziTZfAcAAP//9XIuQCcBAAA="
+        },
+        "mode": 420
       }
     ]
   },
@@ -58,7 +66,12 @@
         "name": "assisted-service-certs.service"
       },
       {
-        "contents": "[Unit]\nAfter=network-online.target\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman pod create --name assisted-installer -p 8443\n\n[Install]\nWantedBy=multi-user.target\n",
+        "contents": "[Unit]\nAfter=network-online.target\n\n[Service]\nType=forking\nRestart=no\nExecStart=/bin/bash /etc/assisted-service/startup_script.sh\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "assisted-service-ip-configuration.service"
+      },
+      {
+        "contents": "[Unit]\nAfter=assisted-service-ip-configuration.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman pod create --name assisted-installer -p 8443\n\n[Install]\nWantedBy=multi-user.target\n",
         "enabled": true,
         "name": "assisted-service-pod.service"
       },
