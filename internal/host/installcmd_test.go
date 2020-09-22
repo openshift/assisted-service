@@ -43,13 +43,16 @@ var _ = Describe("installcmd", func() {
 		instructionConfig InstructionConfig
 		disks             []*models.Disk
 		dbName            = "install_cmd"
+		openshiftVersions map[string]common.OpenshiftVersion
 	)
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		instructionConfig = DefaultInstructionConfig
-		installCmd = NewInstallCmd(getTestLog(), db, mockValidator, instructionConfig)
+		openshiftVersions = map[string]common.OpenshiftVersion{"4.5": {ReleaseImage: "testRelease",
+			McoImage: "testMco", RhcosImage: "testRhcos"}}
+		installCmd = NewInstallCmd(getTestLog(), db, mockValidator, instructionConfig, openshiftVersions)
 		cluster = createClusterInDb(db)
 		clusterId = *cluster.ID
 		host = createHostInDb(db, clusterId, models.HostRoleMaster, false, "")
@@ -120,15 +123,18 @@ var _ = Describe("installcmd", func() {
 var _ = Describe("installcmd arguments", func() {
 
 	var (
-		ctx        = context.Background()
-		host       models.Host
-		db         *gorm.DB
-		validator  *hardware.MockValidator
-		dbName     = "installcmd_args"
-		controller *gomock.Controller
+		ctx               = context.Background()
+		host              models.Host
+		db                *gorm.DB
+		validator         *hardware.MockValidator
+		dbName            = "installcmd_args"
+		controller        *gomock.Controller
+		openshiftVersions map[string]common.OpenshiftVersion
 	)
 
 	BeforeSuite(func() {
+		openshiftVersions = map[string]common.OpenshiftVersion{"4.5": {ReleaseImage: "testRelease",
+			McoImage: "testMco", RhcosImage: "testRhcos"}}
 		db = common.PrepareTestDB(dbName)
 		cluster := createClusterInDb(db)
 		host = createHostInDb(db, *cluster.ID, models.HostRoleMaster, false, "")
@@ -147,7 +153,7 @@ var _ = Describe("installcmd arguments", func() {
 
 		It("insecure_cert_is_false_by_default", func() {
 			config := &InstructionConfig{}
-			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
+			installCmd := NewInstallCmd(getTestLog(), db, validator, *config, openshiftVersions)
 			reply, err := installCmd.GetStep(ctx, &host)
 			verifyStepArg(reply, err, `--insecure[ =\w]*`, "--insecure=false")
 		})
@@ -156,7 +162,7 @@ var _ = Describe("installcmd arguments", func() {
 			config := &InstructionConfig{
 				SkipCertVerification: false,
 			}
-			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
+			installCmd := NewInstallCmd(getTestLog(), db, validator, *config, openshiftVersions)
 			reply, err := installCmd.GetStep(ctx, &host)
 			verifyStepArg(reply, err, `--insecure[ =\w]*`, "--insecure=false")
 		})
@@ -165,7 +171,7 @@ var _ = Describe("installcmd arguments", func() {
 			config := &InstructionConfig{
 				SkipCertVerification: true,
 			}
-			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
+			installCmd := NewInstallCmd(getTestLog(), db, validator, *config, openshiftVersions)
 			reply, err := installCmd.GetStep(ctx, &host)
 			verifyStepArg(reply, err, `--insecure[ =\w]*`, "--insecure=true")
 		})
@@ -174,7 +180,7 @@ var _ = Describe("installcmd arguments", func() {
 			config := &InstructionConfig{
 				ServiceBaseURL: "ws://remote-host:8080",
 			}
-			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
+			installCmd := NewInstallCmd(getTestLog(), db, validator, *config, openshiftVersions)
 			stepReply, err := installCmd.GetStep(ctx, &host)
 			verifyStepArg(stepReply, err, `-url [\w\d:/-]+`, fmt.Sprintf("-url %s", config.ServiceBaseURL))
 		})

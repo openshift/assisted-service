@@ -36,15 +36,18 @@ var _ = Describe("instructionmanager", func() {
 		cnValidator       *connectivity.MockValidator
 		instructionConfig InstructionConfig
 		dbName            = "instructionmanager"
+		openshiftVersions map[string]common.OpenshiftVersion
 	)
 
 	BeforeEach(func() {
+		openshiftVersions = map[string]common.OpenshiftVersion{"4.5": {ReleaseImage: "testRelease",
+			McoImage: "testMco", RhcosImage: "testRhcos"}}
 		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		hwValidator = hardware.NewMockValidator(ctrl)
 		cnValidator = connectivity.NewMockValidator(ctrl)
-		instMng = NewInstructionManager(getTestLog(), db, hwValidator, instructionConfig, cnValidator)
+		instMng = NewInstructionManager(getTestLog(), db, hwValidator, instructionConfig, cnValidator, openshiftVersions)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = getTestHost(hostId, clusterId, "unknown invalid state")

@@ -20,6 +20,9 @@ type API interface {
 	/*
 	   ListComponentVersions lists of componenets versions*/
 	ListComponentVersions(ctx context.Context, params *ListComponentVersionsParams) (*ListComponentVersionsOK, error)
+	/*
+	   ListSupportedOpenshiftVersions retrieves the list of open shift supported versions*/
+	ListSupportedOpenshiftVersions(ctx context.Context, params *ListSupportedOpenshiftVersionsParams) (*ListSupportedOpenshiftVersionsOK, error)
 }
 
 // New creates a new versions API client.
@@ -62,5 +65,30 @@ func (a *Client) ListComponentVersions(ctx context.Context, params *ListComponen
 		return nil, err
 	}
 	return result.(*ListComponentVersionsOK), nil
+
+}
+
+/*
+ListSupportedOpenshiftVersions retrieves the list of open shift supported versions
+*/
+func (a *Client) ListSupportedOpenshiftVersions(ctx context.Context, params *ListSupportedOpenshiftVersionsParams) (*ListSupportedOpenshiftVersionsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ListSupportedOpenshiftVersions",
+		Method:             "GET",
+		PathPattern:        "/supported_openshift_versions",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ListSupportedOpenshiftVersionsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListSupportedOpenshiftVersionsOK), nil
 
 }
