@@ -1,0 +1,57 @@
+name: image-push
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.x
+    - name: Install dependencies
+      run: |
+        sudo pip install strato-skipper
+        mkdir -p ~/.docker
+        echo "{}" > ~/.docker/config.json
+        touch ${HOME}/.gitconfig
+        ln -s Dockerfile.assisted-service Dockerfile
+    - name: build
+      run: |
+        skipper make build
+    - name: Get release version
+      id: get_version
+      run: echo ::set-env name=GIT_REVISION::$(echo ${GITHUB_SHA})
+    - name: create python client
+      run: |
+        skipper make create-python-client
+    - name: Publish assisted-service to Registry
+      if: github.event_name != 'pull_request'
+      uses: elgohr/Publish-Docker-Github-Action@2.15
+      with:
+        name: assisted-service
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        REGISTRY: 'quay.io/ocpmetal'
+        dockerfile: "Dockerfile.assisted-service"
+        buildargs: GIT_REVISION
+        tags: "latest,${{ env.GIT_REVISION }}"
+    - name: Publish assisted-service PR image to Registry
+      if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      uses: elgohr/Publish-Docker-Github-Action@2.15
+      with:
+        name: assisted-service
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        REGISTRY: 'quay.io/ocpmetal'
+        dockerfile: "Dockerfile.assisted-service"
+        buildargs: GIT_REVISION, QUAY_TAG_EXPIRATION
+        tags: "PR_${{ env.GIT_REVISION }}"

@@ -20,13 +20,9 @@ kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}'
 endef # get_service
 endif # TARGET
 
-ASSISTED_ORG ?= quay.io/ocpmetal
-ASSISTED_TAG ?= latest
-CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
-
-SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
-SERVICE_ONPREM := $(or ${SERVICE_ONPREM},${ASSISTED_ORG}/assisted-service-onprem:${ASSISTED_TAG})
-ISO_CREATION := $(or ${ISO_CREATION},${ASSISTED_ORG}/assisted-iso-create:${ASSISTED_TAG})
+SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
+SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
+ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},minikube-local-registry/ignition-dummy-generator:minikube-test)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
@@ -124,31 +120,34 @@ build-onprem-dependencies:
 build-onprem: build-onprem-dependencies
 	podman pull $(ISO_CREATION_DOCKER_DAEMON_PULL_STRING)
 	podman pull $(ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING)
-	podman build CONTAINER_BUILD_PARAMS -f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
+	GIT_REVISION=${GIT_REVISION} podman build --network=host --build-arg GIT_REVISION \
+ 		-f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
 
 build-image: build
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
+ 		-f Dockerfile.assisted-service . -t $(SERVICE)
 
 build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
 
 build-minimal-assisted-iso-generator-image: build-iso-generator
-	docker build $(CONTAINER_BUILD_PARAMS) --build-arg NAMESPACE=$(NAMESPACE) \
+	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 build-dummy-ignition-image: build-dummy-ignition
-	docker build $(CONTAINER_BUILD_PARAMS) --build-arg NAMESPACE=$(NAMESPACE) -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
+	docker build --network=host --build-arg NAMESPACE=$(NAMESPACE) -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
 
 update: build-image
 	docker push $(SERVICE)
 
 update-minimal: build-minimal
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
+		-f Dockerfile.assisted-service . -t $(SERVICE)
 
 update-minikube: build build-dummy-ignition
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
-		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE) && \
-		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION} && \
-		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
+		-f Dockerfile.assisted-service . -t $(SERVICE) && docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION} \
+		&& docker build --network=host --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 define publish_image
 	docker tag ${1} ${2}
@@ -286,9 +285,9 @@ clean:
 	-rm -rf $(BUILD_FOLDER)
 
 subsystem-clean:
-	-$(KUBECTL) get pod -o name | grep dummyimage | xargs -r $(KUBECTL) delete --grace-period=0 --force 1> /dev/null || true
-	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete --grace-period=0 --force 1> /dev/null || true
-	-$(KUBECTL) get pod -o name | grep ignition-generator | xargs -r $(KUBECTL) delete --grace-period=0 --force 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep dummyimage | xargs -r $(KUBECTL) delete 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete 1> /dev/null || true
+	-$(KUBECTL) get pod -o name | grep ignition-generator | xargs -r $(KUBECTL) delete 1> /dev/null || true
 
 clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true

@@ -7,9 +7,8 @@ pipeline {
         PATH = "${PATH}:/usr/local/go/bin"
 
         // Images
-        ASSISTED_ORG = "quay.io/ocpmetal"
-        ASSISTED_TAG = "${BUILD_TAG}"
-        CONTAINER_BUILD_EXTRA_PARAMS = "${env.BRANCH_NAME != "master" ? "--label quay.expires-after=2d" : ""}"
+        SERVICE = "quay.io/ocpmetal/assisted-service:${BUILD_TAG}"
+        ISO_CREATION = "quay.io/ocpmetal/assisted-iso-create:${BUILD_TAG}"
 
         // Credentials
         SLACK_TOKEN = credentials('slack-token')
@@ -29,31 +28,15 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
                 sh "make build-image build-minimal-assisted-iso-generator-image"
-                sh "make update"
+                sh "make jenkins-deploy-for-subsystem"
+                sh "kubectl get pods -A"
             }
         }
 
-        stage('Test') {
-            failFast true
-            parallel {
-                stage('Subsystem test') {
-                    steps {
-                        sh "make jenkins-deploy-for-subsystem"
-                        sh "kubectl get pods -A"
-
-                        sh '''make subsystem-run'''
-                    }
-                }
-                stage('System test') {
-                    steps {
-                        // TODO: need to change to a dedicated branch
-                        build job: 'assisted-test-infra/release-4.6', propagate: true, wait: true, parameters: [
-                            string(name: 'SERVICE', value: "${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG}")
-                        ]
-                    }
-                }
+        stage('Subsystem Test') {
+            steps {
+                sh "make subsystem-run"
             }
         }
 
