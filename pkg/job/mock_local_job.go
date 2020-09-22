@@ -66,7 +66,7 @@ func (mr *MockLocalJobMockRecorder) GenerateISO(ctx, cluster, jobName, imageName
 }
 
 // GenerateInstallConfig mocks base method
-func (m *MockLocalJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error {
+func (m *MockLocalJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateInstallConfig", ctx, cluster, cfg)
 	ret0, _ := ret[0].(error)
@@ -74,7 +74,7 @@ func (m *MockLocalJob) GenerateInstallConfig(ctx context.Context, cluster common
 }
 
 // GenerateInstallConfig indicates an expected call of GenerateInstallConfig
-func (mr *MockLocalJobMockRecorder) GenerateInstallConfig(ctx, cluster, cfg interface{}) *gomock.Call {
+func (mr *MockLocalJobMockRecorder) GenerateInstallConfig(ctx, cluster, cfg, releaseImage interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockLocalJob)(nil).GenerateInstallConfig), ctx, cluster, cfg)
 }

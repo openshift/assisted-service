@@ -99,17 +99,17 @@ func (mr *MockAPIMockRecorder) GenerateISO(ctx, cluster, jobName, imageName, ign
 }
 
 // GenerateInstallConfig mocks base method
-func (m *MockAPI) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error {
+func (m *MockAPI) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateInstallConfig", ctx, cluster, cfg)
+	ret := m.ctrl.Call(m, "GenerateInstallConfig", ctx, cluster, cfg, releaseImage)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // GenerateInstallConfig indicates an expected call of GenerateInstallConfig
-func (mr *MockAPIMockRecorder) GenerateInstallConfig(ctx, cluster, cfg interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GenerateInstallConfig(ctx, cluster, cfg, releaseImage interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockAPI)(nil).GenerateInstallConfig), ctx, cluster, cfg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockAPI)(nil).GenerateInstallConfig), ctx, cluster, cfg, releaseImage)
 }
 
 // AbortInstallConfig mocks base method

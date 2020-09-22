@@ -148,6 +148,9 @@ type ManagedDomainsAPI interface {
 type VersionsAPI interface {
 	/* ListComponentVersions List of componenets versions */
 	ListComponentVersions(ctx context.Context, params versions.ListComponentVersionsParams) middleware.Responder
+
+	/* ListSupportedOpenshiftVersions Retrieves the list of OpenShift supported versions */
+	ListSupportedOpenshiftVersions(ctx context.Context, params versions.ListSupportedOpenshiftVersionsParams) middleware.Responder
 }
 
 // Config is configuration for Handler
@@ -356,6 +359,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.ManagedDomainsAPI.ListManagedDomains(ctx, params)
+	})
+	api.VersionsListSupportedOpenshiftVersionsHandler = versions.ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.VersionsAPI.ListSupportedOpenshiftVersions(ctx, params)
 	})
 	api.InstallerPostStepReplyHandler = installer.PostStepReplyHandlerFunc(func(params installer.PostStepReplyParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
