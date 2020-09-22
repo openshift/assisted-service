@@ -90,6 +90,8 @@ parameters:
   value: "3"
 - name: RELEASE_TAG
   value: ''
+- name: AGENT_TIMEOUT_START
+  value: ''
 apiVersion: v1
 kind: Template
 metadata:
@@ -258,6 +260,8 @@ objects:
                 value: ${REGISTRY_CREDS}
               - name: RELEASE_TAG
                 value: ${RELEASE_TAG}
+              - name: AGENT_TIMEOUT_START
+                value: ${AGENT_TIMEOUT_START}
               - name: AWS_SHARED_CREDENTIALS_FILE
                 value: /etc/.aws/credentials
             volumeMounts:
