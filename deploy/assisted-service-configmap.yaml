@@ -9,9 +9,16 @@ data:
   SERVICE_BASE_URL: REPLACE_BASE_URL
   NAMESPACE: REPLACE_NAMESPACE
   BASE_DNS_DOMAINS: REPLACE_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
-  OPENSHIFT_INSTALL_RELEASE_IMAGE: "quay.io/ocpmetal/ocp-release:4.6.0-0.nightly-2020-08-31-220837"
   CREATE_S3_BUCKET: "true"
   ENABLE_AUTH: REPLACE_AUTH_ENABLED_FLAG
   JWKS_URL: REPLACE_JWKS_URL # example https://example.com/.well-known/jwks.json
   OCM_BASE_URL: REPLACE_OCM_BASE_URL
   SKIP_CERT_VERIFICATION: "true"
+  OPENSHIFT_VERSIONS: |-
+    {
+      "4.6": {
+        "rhcos" :"https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/46.82.202008260918-0/x86_64/rhcos-46.82.202008260918-0-metal.x86_64.raw.gz",
+        "mco": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:dc1a34f55c712b2b9c5e5a14dd85e67cbdae11fd147046ac2fef9eaf179ab221",
+        "release": "quay.io/ocpmetal/ocp-release:4.6.0-0.nightly-2020-08-31-220837"
+      }
+    }

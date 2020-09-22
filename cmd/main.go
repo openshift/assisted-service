@@ -76,6 +76,7 @@ var Options struct {
 	HostConfig                  host.Config
 	LogConfig                   logconfig.Config
 	LeaderConfig                leader.Config
+	OpenshiftVersions           string `envconfig:"OPENSHIFT_VERSIONS"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -115,6 +116,11 @@ func main() {
 
 	log.Println("Starting bm service")
 
+	openshiftVersionsMap, err := common.CreateOpenshiftVersionMapFromString(Options.OpenshiftVersions)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to parse supported openshift versions")
+	}
+
 	// Connect to db
 	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
@@ -144,12 +150,14 @@ func main() {
 	var autoMigrationLeader leader.ElectorInterface
 	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"))
 	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
-	versionHandler := versions.NewHandler(Options.Versions)
+	versionHandler := versions.NewHandler(Options.Versions, log.WithField("pkg", "versions"),
+		common.GetOpenshiftVersionsListFromMap(openshiftVersionsMap))
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
-	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, Options.InstructionConfig, connectivityValidator)
+	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
+		Options.InstructionConfig, connectivityValidator, openshiftVersionsMap)
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
 
@@ -246,7 +254,7 @@ func main() {
 	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
-		generator, eventsHandler, objectHandler, metricsManager, *authHandler)
+		generator, eventsHandler, objectHandler, metricsManager, *authHandler, openshiftVersionsMap)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 

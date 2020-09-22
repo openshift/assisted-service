@@ -30,6 +30,7 @@ securityDefinitions:
 security:
   - userAuth: []
 
+
 paths:
   /clusters:
     post:
@@ -1594,6 +1595,22 @@ paths:
           schema:
             $ref: '#/definitions/list-versions'
 
+  /supported_openshift_versions:
+    get:
+      tags:
+        - versions
+      operationId: ListSupportedOpenshiftVersions
+      summary: Retrieves the list of OpenShift supported versions
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/openshift-versions'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
   /host_requirements:
     get:
       tags:
@@ -1939,7 +1956,6 @@ definitions:
         description: Name of the OpenShift cluster.
       openshift_version:
         type: string
-        enum: ['4.5', '4.6']
         description: Version of the OpenShift cluster.
       base_dns_domain:
         type: string
@@ -2120,7 +2136,6 @@ definitions:
         type: string
       openshift_version:
         type: string
-        enum: ['4.5', '4.6']
         description: Version of the OpenShift cluster.
       image_info:
         $ref: '#/definitions/image_info'
@@ -2695,3 +2710,8 @@ definitions:
       - 'sufficient-masters-count'
       - 'dns-domain-defined'
       - 'pull-secret-set'
+
+  openshift-versions:
+    type: array
+    items:
+      type: string

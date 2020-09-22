@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openshift/assisted-service/internal/common"
+
 	"github.com/openshift/assisted-service/internal/connectivity"
 
 	"github.com/jinzhu/gorm"
@@ -52,9 +54,11 @@ type InstructionConfig struct {
 	InstallationTimeout     uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 }
 
-func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator) *InstructionManager {
+func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator,
+	instructionConfig InstructionConfig, connectivityValidator connectivity.Validator, openshiftVersions map[string]common.OpenshiftVersion) *InstructionManager {
+
 	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.ConnectivityCheckImage)
-	installCmd := NewInstallCmd(log, db, hwValidator, instructionConfig)
+	installCmd := NewInstallCmd(log, db, hwValidator, instructionConfig, openshiftVersions)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.InventoryImage)
 	freeAddressesCmd := NewFreeAddressesCmd(log, instructionConfig.FreeAddressesImage)
 	resetCmd := NewResetInstallationCmd(log)

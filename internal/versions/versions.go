@@ -3,6 +3,8 @@ package versions
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi"
@@ -19,14 +21,16 @@ type Versions struct {
 	ReleaseTag        string `envconfig:"RELEASE_TAG" default:""`
 }
 
-func NewHandler(versions Versions) *handler {
-	return &handler{versions: versions}
+func NewHandler(versions Versions, log logrus.FieldLogger, openshiftVersions []string) *handler {
+	return &handler{versions: versions, log: log, openshiftVersions: openshiftVersions}
 }
 
 var _ restapi.VersionsAPI = (*handler)(nil)
 
 type handler struct {
-	versions Versions
+	versions          Versions
+	openshiftVersions []string
+	log               logrus.FieldLogger
 }
 
 func (h *handler) ListComponentVersions(ctx context.Context, params operations.ListComponentVersionsParams) middleware.Responder {
@@ -42,4 +46,8 @@ func (h *handler) ListComponentVersions(ctx context.Context, params operations.L
 			},
 			ReleaseTag: h.versions.ReleaseTag,
 		})
+}
+
+func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params operations.ListSupportedOpenshiftVersionsParams) middleware.Responder {
+	return operations.NewListSupportedOpenshiftVersionsOK().WithPayload(h.openshiftVersions)
 }

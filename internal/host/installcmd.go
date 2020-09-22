@@ -24,14 +24,18 @@ type installCmd struct {
 	db                *gorm.DB
 	hwValidator       hardware.Validator
 	instructionConfig InstructionConfig
+	openshiftVersions map[string]common.OpenshiftVersion
 }
 
-func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig) *installCmd {
+func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig,
+	openshiftVersions map[string]common.OpenshiftVersion) *installCmd {
+
 	return &installCmd{
 		baseCmd:           baseCmd{log: log},
 		db:                db,
 		hwValidator:       hwValidator,
 		instructionConfig: instructionConfig,
+		openshiftVersions: openshiftVersions,
 	}
 }
 

@@ -188,15 +188,16 @@ var clusterFileNames = []string{
 
 type bareMetalInventory struct {
 	Config
-	db            *gorm.DB
-	log           logrus.FieldLogger
-	hostApi       host.API
-	clusterApi    cluster.API
-	eventsHandler events.Handler
-	objectHandler s3wrapper.API
-	metricApi     metrics.API
-	generator     generator.ISOInstallConfigGenerator
-	authHandler   auth.AuthHandler
+	db                *gorm.DB
+	log               logrus.FieldLogger
+	hostApi           host.API
+	clusterApi        cluster.API
+	eventsHandler     events.Handler
+	objectHandler     s3wrapper.API
+	metricApi         metrics.API
+	generator         generator.ISOInstallConfigGenerator
+	authHandler       auth.AuthHandler
+	openshiftVersions map[string]common.OpenshiftVersion
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}
@@ -212,18 +213,20 @@ func NewBareMetalInventory(
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,
 	authHandler auth.AuthHandler,
+	openshiftVersions map[string]common.OpenshiftVersion,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
-		db:            db,
-		log:           log,
-		Config:        cfg,
-		hostApi:       hostApi,
-		clusterApi:    clusterApi,
-		generator:     generator,
-		eventsHandler: eventsHandler,
-		objectHandler: objectHandler,
-		metricApi:     metricApi,
-		authHandler:   authHandler,
+		db:                db,
+		log:               log,
+		Config:            cfg,
+		hostApi:           hostApi,
+		clusterApi:        clusterApi,
+		generator:         generator,
+		eventsHandler:     eventsHandler,
+		objectHandler:     objectHandler,
+		metricApi:         metricApi,
+		authHandler:       authHandler,
+		openshiftVersions: openshiftVersions,
 	}
 }
 
@@ -301,6 +304,13 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
+
+	if swag.StringValue(params.NewClusterParams.OpenshiftVersion) != "" {
+		if _, ok := b.openshiftVersions[swag.StringValue(params.NewClusterParams.OpenshiftVersion)]; !ok {
+			return common.NewApiError(http.StatusBadRequest,
+				errors.Errorf("Openshift version %s is not supported", swag.StringValue(params.NewClusterParams.OpenshiftVersion)))
+		}
+	}
 
 	if params.NewClusterParams.HTTPProxy != nil &&
 		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
@@ -896,8 +906,10 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
 
-	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg); err != nil {
-		log.WithError(err).Errorf("Failed generating kubeconfig files for cluster %s", cluster.ID)
+	releaseImage := b.openshiftVersions[cluster.OpenshiftVersion].ReleaseImage
+
+	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg, releaseImage); err != nil {
+		log.WithError(err).Errorf("Faled generating kubeconfig files for cluster %s", cluster.ID)
 		return err
 	}
 
