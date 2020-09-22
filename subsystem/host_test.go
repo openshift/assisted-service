@@ -477,8 +477,31 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).To(HaveOccurred())
+		Expect(err).Should(BeAssignableToTypeOf(installer.NewRegisterHostUnauthorized()))
 
 		err = wiremock.DeleteStub(wrongTokenStubID)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("register_failed_sso", func() {
+		if !Options.EnableAuth {
+			Skip("auth is disabled")
+		}
+
+		failSSOStubID, errStub := wiremock.createFailedStubSSOToken(WrongPullSecret)
+		Expect(errStub).ToNot(HaveOccurred())
+
+		hostID := strToUUID(uuid.New().String())
+		_, err := failedSSOAgent.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
+			ClusterID: clusterID,
+			NewHostParams: &models.HostCreateParams{
+				HostID: hostID,
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(err).Should(BeAssignableToTypeOf(installer.NewRegisterHostServiceUnavailable()))
+
+		err = wiremock.DeleteStub(failSSOStubID)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

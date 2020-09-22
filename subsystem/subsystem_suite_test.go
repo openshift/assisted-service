@@ -18,7 +18,7 @@ import (
 )
 
 var db *gorm.DB
-var agentBMClient, badAgentBMClient, userBMClient, adminUserBMClient, unallowedUserBMClient *client.AssistedInstall
+var agentBMClient, badAgentBMClient, failedSSOAgent, userBMClient, adminUserBMClient, unallowedUserBMClient *client.AssistedInstall
 var log *logrus.Logger
 var wiremock *WireMock
 
@@ -61,11 +61,13 @@ func init() {
 	adminUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenAdmin))
 	unallowedUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenUnallowed))
 	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(FakePS))
+	anotherAgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(failedSSOFakePullSecret))
 	badAgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(WrongPullSecret))
 	userBMClient = client.New(userClientCfg)
 	adminUserBMClient = client.New(adminUserClientCfg)
 	unallowedUserBMClient = client.New(unallowedUserClientCfg)
 	agentBMClient = client.New(agentClientCfg)
+	failedSSOAgent = client.New(anotherAgentClientCfg)
 	badAgentBMClient = client.New(badAgentClientCfg)
 
 	db, err = gorm.Open("postgres",

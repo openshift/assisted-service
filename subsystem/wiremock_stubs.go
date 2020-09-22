@@ -47,6 +47,7 @@ const (
 	fakePayloadAdmin         string = "admin@example.com"
 	fakePayloadUnallowedUser string = "unallowed@example.com"
 	FakePS                   string = "dXNlcjpwYXNzd29yZAo="
+	failedSSOFakePullSecret  string = "dXNlcjI6cGFzc3dvcmQyCg==" // #nosec
 	WrongPullSecret          string = "wrong_secret"
 )
 
@@ -60,6 +61,10 @@ func (w *WireMock) CreateWiremockStubsForOCM() error {
 	}
 
 	if _, err := w.createStubTokenAuth(FakePS, fakePayloadUsername); err != nil {
+		return err
+	}
+
+	if _, err := w.createStubTokenAuth(failedSSOFakePullSecret, fakePayloadUsername); err != nil {
 		return err
 	}
 
@@ -112,6 +117,24 @@ func (w *WireMock) createStubToken(testToken string) (string, error) {
 		Response: &ResponseDefinition{
 			Status: 200,
 			Body:   string(resBody),
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+		},
+	}
+
+	return w.addStub(tokenStub)
+}
+
+func (w *WireMock) createFailedStubSSOToken(testToken string) (string, error) {
+
+	tokenStub := &StubDefinition{
+		Request: &RequestDefinition{
+			URL:    tokenPath,
+			Method: "POST",
+		},
+		Response: &ResponseDefinition{
+			Status: 500,
 			Headers: map[string]string{
 				"Content-Type": "application/json",
 			},
