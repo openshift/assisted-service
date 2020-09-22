@@ -4,9 +4,12 @@ FROM quay.io/ocpmetal/assisted-ignition-generator:latest AS config-gen
 
 FROM centos:8
 
+ARG GIT_REVISION
 ARG WORK_DIR=/data
 ARG USER=assisted-installer
 ARG NAMESPACE=assisted-installer
+
+LABEL "git_revision"=${GIT_REVISION}
 
 RUN yum install -y libvirt-libs python3 python3-pip findutils wget && \
     yum clean all && \

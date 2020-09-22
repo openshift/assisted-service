@@ -65,6 +65,9 @@ const (
 const DefaultUser = "kubeadmin"
 const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 
+// 125 is the generic exit code for cases the error is in podman / docker and not the container we tried to run
+const ContainerAlreadyRunningExitCode = 125
+
 var (
 	DefaultClusterNetworkCidr       = "10.128.0.0/14"
 	DefaultClusterNetworkHostPrefix = int64(23)
@@ -1523,7 +1526,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 	if params.Reply.ExitCode != 0 {
 		err = fmt.Errorf(msg)
 		log.WithError(err).Errorf("Exit code is <%d> ", params.Reply.ExitCode)
-		handlingError := handleReplyError(params, b, ctx, &host)
+		handlingError := b.handleReplyError(params, ctx, &host)
 		if handlingError != nil {
 			log.WithError(handlingError).Errorf("Failed handling reply error for host <%s> cluster <%s>", params.HostID, params.ClusterID)
 		}
@@ -1553,9 +1556,14 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 	return installer.NewPostStepReplyNoContent()
 }
 
-func handleReplyError(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, h *models.Host) error {
+func (b *bareMetalInventory) handleReplyError(params installer.PostStepReplyParams, ctx context.Context, h *models.Host) error {
 
 	if params.Reply.StepType == models.StepTypeInstall {
+		// Handle case of installation error due to an already running assisted-installer.
+		if params.Reply.ExitCode == ContainerAlreadyRunningExitCode && strings.Contains(params.Reply.Error, "the container name \"assisted-installer\" is already in use") {
+			b.log.Warnf("Install command failed due to an already running installation: %s", params.Reply.Error)
+			return nil
+		}
 		//if it's install step - need to move host to error
 		return b.hostApi.HandleInstallationFailure(ctx, h)
 	}
