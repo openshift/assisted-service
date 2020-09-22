@@ -137,10 +137,14 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin"
+            ]
           },
           {
-            "agentAuth": []
+            "agentAuth": [
+              "admin"
+            ]
           }
         ],
         "tags": [
@@ -3858,10 +3862,14 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin"
+            ]
           },
           {
-            "agentAuth": []
+            "agentAuth": [
+              "admin"
+            ]
           }
         ],
         "tags": [

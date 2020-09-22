@@ -101,8 +101,8 @@ paths:
       tags:
         - installer
       security:
-        - userAuth: []
-        - agentAuth: []
+        - userAuth: [admin]
+        - agentAuth: [admin]
       summary: Retrieves the details of the OpenShift bare metal cluster.
       operationId: GetCluster
       parameters:

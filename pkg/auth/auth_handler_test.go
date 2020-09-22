@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
-	"github.com/go-openapi/swag"
+	"fmt"
+
+	//"github.com/go-openapi/swag"
 	"net/http"
 	"net/url"
 	"testing"
@@ -75,9 +77,10 @@ func (e MyError) Error() string {
 func TestAuth(t *testing.T) {
 	log := logrus.New()
 
-	userToken, JwkCert := GetTokenAndCert()
+	//userToken, JwkCert := GetTokenAndCert()
+	_, JwkCert := GetTokenAndCert()
 	agentKeyValue := "fake_pull_secret"
-	userKeyValue := "bearer " + userToken
+	//userKeyValue := "bearer " + userToken
 	t.Parallel()
 	tests := []struct {
 		name                   string
@@ -87,30 +90,32 @@ func TestAuth(t *testing.T) {
 		addHeaders             bool
 		expectedRequestSuccess bool
 	}{
-		{
-			name:                   "User Successful Authentication",
-			authInfo:               UserAuthHeaderWriter(userKeyValue),
-			isListOperation:        true,
-			enableAuth:             true,
-			addHeaders:             true,
-			expectedRequestSuccess: true,
-		},
-		{
-			name:                   "User Unsuccessful Authentication",
-			authInfo:               UserAuthHeaderWriter("bearer bad_token"),
-			isListOperation:        true,
-			enableAuth:             true,
-			addHeaders:             true,
-			expectedRequestSuccess: false,
-		},
-		{
-			name:                   "Fail User Auth Without Headers",
-			authInfo:               UserAuthHeaderWriter(userKeyValue),
-			isListOperation:        true,
-			enableAuth:             true,
-			addHeaders:             false,
-			expectedRequestSuccess: false,
-		},
+		/*
+			{
+				name:                   "User Successful Authentication",
+				authInfo:               UserAuthHeaderWriter(userKeyValue),
+				isListOperation:        true,
+				enableAuth:             true,
+				addHeaders:             true,
+				expectedRequestSuccess: true,
+			},
+			{
+				name:                   "User Unsuccessful Authentication",
+				authInfo:               UserAuthHeaderWriter("bearer bad_token"),
+				isListOperation:        true,
+				enableAuth:             true,
+				addHeaders:             true,
+				expectedRequestSuccess: false,
+			},
+			{
+				name:                   "Fail User Auth Without Headers",
+				authInfo:               UserAuthHeaderWriter(userKeyValue),
+				isListOperation:        true,
+				enableAuth:             true,
+				addHeaders:             false,
+				expectedRequestSuccess: false,
+			},
+		*/
 		{
 			name:                   "Agent Successful Authentication",
 			authInfo:               AgentAuthHeaderWriter(agentKeyValue),
@@ -119,30 +124,32 @@ func TestAuth(t *testing.T) {
 			addHeaders:             true,
 			expectedRequestSuccess: true,
 		},
-		{
-			name:                   "Fail Agent Auth Without Headers",
-			authInfo:               AgentAuthHeaderWriter(agentKeyValue),
-			isListOperation:        false,
-			enableAuth:             true,
-			addHeaders:             false,
-			expectedRequestSuccess: false,
-		},
-		{
-			name:                   "Ignore User Auth If Auth Disabled",
-			authInfo:               UserAuthHeaderWriter(userKeyValue),
-			isListOperation:        true,
-			enableAuth:             false,
-			addHeaders:             false,
-			expectedRequestSuccess: true,
-		},
-		{
-			name:                   "Ignore Agent Auth If Auth Disabled",
-			authInfo:               AgentAuthHeaderWriter(agentKeyValue),
-			isListOperation:        false,
-			enableAuth:             false,
-			addHeaders:             false,
-			expectedRequestSuccess: true,
-		},
+		/*
+			{
+				name:                   "Fail Agent Auth Without Headers",
+				authInfo:               AgentAuthHeaderWriter(agentKeyValue),
+				isListOperation:        false,
+				enableAuth:             true,
+				addHeaders:             false,
+				expectedRequestSuccess: false,
+			},
+			{
+				name:                   "Ignore User Auth If Auth Disabled",
+				authInfo:               UserAuthHeaderWriter(userKeyValue),
+				isListOperation:        true,
+				enableAuth:             false,
+				addHeaders:             false,
+				expectedRequestSuccess: true,
+			},
+			{
+				name:                   "Ignore Agent Auth If Auth Disabled",
+				authInfo:               AgentAuthHeaderWriter(agentKeyValue),
+				isListOperation:        false,
+				enableAuth:             false,
+				addHeaders:             false,
+				expectedRequestSuccess: true,
+			},
+		*/
 	}
 
 	for _, tt := range tests {
@@ -159,7 +166,19 @@ func TestAuth(t *testing.T) {
 				Cache:          cache.New(1*time.Hour, 30*time.Minute),
 			}
 
-			h, api, _ := restapi.HandlerAPI(restapi.Config{
+			// Authorizer is used to authorize a request after the Auth function was called using the "Auth*" functions
+			// and the principal was stored in the context in the "AuthKey" context value.
+			authorizer := func(request *http.Request) error {
+				route := middleware.MatchedRouteFrom(request)
+				if route.Authenticators == nil {
+					fmt.Println("Authorized user: No security enabled. All roles are allowed")
+					return nil
+				}
+				fmt.Printf("Scope is %s\n", route.Authenticator.Scopes["agentAuth"])
+				return nil
+			}
+			//h, api, _ := restapi.HandlerAPI(restapi.Config{
+			h, _, _ := restapi.HandlerAPI(restapi.Config{
 				AuthAgentAuth:       AuthHandler.AuthAgentAuth,
 				AuthUserAuth:        AuthHandler.AuthUserAuth,
 				APIKeyAuthenticator: AuthHandler.CreateAuthenticator(),
@@ -169,15 +188,18 @@ func TestAuth(t *testing.T) {
 				VersionsAPI:         nil,
 				ManagedDomainsAPI:   nil,
 				InnerMiddleware:     nil,
+				Authorizer:          authorizer,
 			})
 
-			se := func (rw http.ResponseWriter, r *http.Request, err error) {
-				e := NewMyError(500, err.Error())
-				//apiErrors.ServeError(rw, r, e)
-				b, _ := swag.WriteJSON(e)
-				_, _ = rw.Write(b)
-			}
-			api.ServeError = se
+			/*
+				se := func (rw http.ResponseWriter, r *http.Request, err error) {
+					e := NewMyError(500, err.Error())
+					//apiErrors.ServeError(rw, r, e)
+					b, _ := swag.WriteJSON(e)
+					_, _ = rw.Write(b)
+				}
+				api.ServeError = se
+			*/
 			cfg := client.Config{
 				URL: &url.URL{
 					Scheme: client.DefaultSchemes[0],
@@ -193,7 +215,6 @@ func TestAuth(t *testing.T) {
 			server := &http.Server{Addr: "localhost:8081", Handler: h}
 			go serv(server)
 			defer server.Close()
-			time.Sleep(time.Second * 1) // Allow the server to start
 
 			expectedStatusCode := 401
 			if tt.expectedRequestSuccess {
