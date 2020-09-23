@@ -3,18 +3,19 @@ package job
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
-
-	"github.com/openshift/assisted-service/internal/network"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/generator"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	batch "k8s.io/api/batch/v1"
@@ -61,26 +62,29 @@ type Config struct {
 	JobMemoryLimit      string        `envconfig:"JOB_MEMORY_LIMIT" default:"1000Mi"`
 	JobCPURequests      string        `envconfig:"JOB_CPU_REQUESTS" default:"300m"`
 	JobMemoryRequests   string        `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
-	IgnitionGenerator   string        `envconfig:"IGNITION_GENERATE_IMAGE" default:"quay.io/ocpmetal/assisted-ignition-generator:latest"` // TODO: update the latest once the repository has git workflow
 	ServiceBaseURL      string        `envconfig:"SERVICE_BASE_URL"`
 	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
 	SubsystemRun         bool   `envconfig:"SUBSYSTEM_RUN"`
 	ReleaseImage         string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
 	SkipCertVerification bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	WorkDir              string `envconfig:"WORK_DIR" default:"/data/"`
+	DummyIgnition        bool   `envconfig:"DUMMY_IGNITION"`
 }
 
-func New(log logrus.FieldLogger, kube client.Client, cfg Config) *kubeJob {
+func New(log logrus.FieldLogger, kube client.Client, s3Client s3wrapper.API, cfg Config) *kubeJob {
 	return &kubeJob{
-		Config: cfg,
-		log:    log,
-		kube:   kube,
+		Config:   cfg,
+		log:      log,
+		kube:     kube,
+		s3Client: s3Client,
 	}
 }
 
 type kubeJob struct {
 	Config
-	log  logrus.FieldLogger
-	kube client.Client
+	log      logrus.FieldLogger
+	kube     client.Client
+	s3Client s3wrapper.API
 }
 
 func (k *kubeJob) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
@@ -304,7 +308,7 @@ func (k *kubeJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobNa
 		previousCreatedAt := time.Time(cluster.ImageInfo.CreatedAt)
 		// Kill the previous job in case it's still running
 		prevJobName := fmt.Sprintf("createimage-%s-%s", cluster.ID, previousCreatedAt.Format("20060102150405"))
-		log.Info("Attempting to delete job %s", prevJobName)
+		log.Infof("Attempting to delete job %s", prevJobName)
 		if err := k.Delete(ctx, prevJobName, k.Namespace, false); err != nil {
 			log.WithError(err).Errorf("failed to kill previous job in cluster %s", cluster.ID)
 			msg := "Failed to generate image: error stopping previous image generation"
@@ -336,150 +340,56 @@ func (k *kubeJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobNa
 	return nil
 }
 
-func (k *kubeJob) createKubeconfigJob(cluster *common.Cluster, jobName string, cfg []byte, encodedDhcpFileContents string) *batch.Job {
-	id := cluster.ID
-	ignitionGeneratorImage := k.Config.IgnitionGenerator
-	var pullPolicy core.PullPolicy = "Always"
-	if k.Config.SubsystemRun {
-		pullPolicy = "Never"
-	}
-	ret := &batch.Job{
-		TypeMeta: meta.TypeMeta{
-			Kind:       "Job",
-			APIVersion: "batch/v1",
-		},
-		ObjectMeta: meta.ObjectMeta{
-			Name:      jobName,
-			Namespace: k.Config.Namespace,
-		},
-		Spec: batch.JobSpec{
-			BackoffLimit: swag.Int32(2),
-			Template: core.PodTemplateSpec{
-				ObjectMeta: meta.ObjectMeta{
-					Name:      jobName,
-					Namespace: k.Config.Namespace,
-				},
-				Spec: core.PodSpec{
-					Containers: []core.Container{
-						{
-							Name:            ignitionGeneratorPrefix,
-							Image:           ignitionGeneratorImage,
-							ImagePullPolicy: pullPolicy,
-							Env: []core.EnvVar{
-								{
-									Name:  "S3_ENDPOINT_URL",
-									Value: k.Config.S3EndpointURL,
-								},
-								{
-									Name:  "INSTALLER_CONFIG",
-									Value: string(cfg),
-								},
-								{
-									Name:  "INVENTORY_ENDPOINT",
-									Value: strings.TrimSpace(k.Config.ServiceBaseURL) + "/api/assisted-install/v1",
-								},
-								{
-									Name:  "IMAGE_NAME",
-									Value: jobName,
-								},
-								{
-									Name: "S3_BUCKET",
-									ValueFrom: &core.EnvVarSource{
-										SecretKeyRef: &core.SecretKeySelector{
-											LocalObjectReference: core.LocalObjectReference{
-												Name: k.Config.S3SecretName,
-											},
-											Key: "bucket",
-										},
-									},
-								},
-								{
-									Name:  "S3_REGION",
-									Value: k.Config.S3Region,
-								},
-								{
-									Name:  "CLUSTER_ID",
-									Value: id.String(),
-								},
-								{
-									Name:  "OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE",
-									Value: k.ReleaseImage, //TODO: change this to match the cluster openshift version
-								},
-								{
-									Name: "AWS_ACCESS_KEY_ID",
-									ValueFrom: &core.EnvVarSource{
-										SecretKeyRef: &core.SecretKeySelector{
-											LocalObjectReference: core.LocalObjectReference{
-												Name: k.Config.S3SecretName,
-											},
-											Key: "aws_access_key_id",
-										},
-									},
-								},
-								{
-									Name: "AWS_SECRET_ACCESS_KEY",
-									ValueFrom: &core.EnvVarSource{
-										SecretKeyRef: &core.SecretKeySelector{
-											LocalObjectReference: core.LocalObjectReference{
-												Name: k.Config.S3SecretName,
-											},
-											Key: "aws_secret_access_key",
-										},
-									},
-								},
-								{
-									Name:  "SKIP_CERT_VERIFICATION",
-									Value: strconv.FormatBool(k.Config.SkipCertVerification),
-								},
-							},
-							Resources: core.ResourceRequirements{
-								Limits: core.ResourceList{
-									"cpu":    getQuantity(k.Config.JobCPULimit),
-									"memory": getQuantity(k.Config.JobMemoryLimit),
-								},
-								Requests: core.ResourceList{
-									"cpu":    getQuantity(k.Config.JobCPURequests),
-									"memory": getQuantity(k.Config.JobMemoryRequests),
-								},
-							},
-						},
-					},
-					RestartPolicy: "Never",
-				},
-			},
-		},
-	}
-	if encodedDhcpFileContents != "" {
-		ret.Spec.Template.Spec.Containers[0].Env = append(ret.Spec.Template.Spec.Containers[0].Env,
-			core.EnvVar{
-				Name:  "DHCP_ALLOCATION_FILE",
-				Value: encodedDhcpFileContents,
-			})
-	}
-	return ret
-}
-
-// creates install config
+// GenerateInstallConfig creates install config and ignition files
 func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error {
 	log := logutil.FromContext(ctx, k.log)
-	ctime := time.Time(cluster.CreatedAt)
-	cTimestamp := strconv.FormatInt(ctime.Unix(), 10)
-	jobName := fmt.Sprintf("%s-%s-%s", ignitionGeneratorPrefix, cluster.ID.String(), cTimestamp)[:63]
-	encodedDhcpFileContents, err := network.GetEncodedDhcpParamFileContents(&cluster)
-	if err != nil {
-		wrapped := errors.Wrapf(err, "Could not create DHCP encoded file")
-		log.WithError(wrapped).Errorf("GenerateInstallConfig")
-		return wrapped
+	workDir := filepath.Join(k.Config.WorkDir, cluster.ID.String())
+	installerCacheDir := filepath.Join(k.Config.WorkDir, "installercache")
+	err := os.Mkdir(workDir, 0755)
+	if err != nil && !os.IsExist(err) {
+		return err
 	}
-	if err := k.Create(ctx, k.createKubeconfigJob(&cluster, jobName, cfg, encodedDhcpFileContents)); err != nil {
-		log.WithError(err).Errorf("Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
-		return errors.Wrapf(err, "Failed to create kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
+	defer func() {
+		// keep results in case of failure so a human can debug
+		if err != nil {
+			debugPath := filepath.Join(k.Config.WorkDir, cluster.ID.String()+"-failed")
+			// remove any prior failed results
+			err2 := os.RemoveAll(debugPath)
+			if err2 != nil && !os.IsNotExist(err2) {
+				log.WithError(err).Errorf("Could not remove previous directory with failed config results: %s", debugPath)
+				return
+			}
+			err2 = os.Rename(workDir, debugPath)
+			if err2 != nil {
+				log.WithError(err).Errorf("Could not rename %s to %s", workDir, debugPath)
+				return
+			}
+			return
+		}
+		err2 := os.RemoveAll(workDir)
+		if err2 != nil {
+			log.WithError(err).Error("Failed to clean up generated ignition directory")
+		}
+	}()
+
+	// runs openshift-install to generate ignition files, then modifies them as necessary
+	var generator ignition.Generator
+	if k.Config.DummyIgnition {
+		generator = ignition.NewDummyGenerator(workDir, &cluster, log)
+	} else {
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, k.Config.ReleaseImage, log)
+	}
+	err = generator.Generate(cfg)
+	if err != nil {
+		return err
 	}
 
-	if err := k.Monitor(ctx, jobName, k.Config.Namespace); err != nil {
-		log.WithError(err).Errorf("Generating kubeconfig files %s failed for cluster %s", jobName, cluster.ID)
-		return errors.Wrapf(err, "Generating kubeconfig files %s failed for cluster %s", jobName, cluster.ID)
+	// upload files to S3
+	err = generator.UploadToS3(ctx, k.s3Client)
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
 

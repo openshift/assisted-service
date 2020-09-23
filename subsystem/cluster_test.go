@@ -198,6 +198,7 @@ func isClusterInState(ctx context.Context, clusterID strfmt.UUID, state, stateIn
 	if swag.StringValue(c.Status) == state {
 		return stateInfo == IgnoreStateInfo || swag.StringValue(c.StatusInfo) == stateInfo, swag.StringValue(c.Status)
 	}
+	Expect(swag.StringValue(c.Status)).NotTo(Equal("error"))
 
 	return false, swag.StringValue(c.Status)
 }
@@ -218,6 +219,7 @@ func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state strin
 
 		// Wait for cluster state to be consistent
 		if successInRow >= minSuccessesInRow {
+			log.Infof("cluster %s has status %s", clusterID, state)
 			return
 		}
 
@@ -251,6 +253,7 @@ func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.
 
 		// Wait for host state to be consistent
 		if successInRow >= minSuccessesInRow {
+			log.Infof("host %s has status %s", clusterID, state)
 			return
 		}
 

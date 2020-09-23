@@ -82,6 +82,7 @@ storage:
                 DB_NAME=installer
                 SERVICE_BASE_URL=http://assisted-api.local.openshift.io:8080
                 DEPLOY_TARGET=onprem
+                OPENSHIFT_INSTALL_RELEASE_IMAGE=quay.io/ocpmetal/ocp-release:v1.0.9.1
         - path: /etc/assisted-service/nginx.conf
           mode: 0644
           contents:

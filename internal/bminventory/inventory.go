@@ -792,6 +792,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		if err = b.generateClusterInstallConfig(asyncCtx, cluster); err != nil {
 			return
 		}
+		log.Infof("generated ignition for cluster %s", cluster.ID.String())
 
 		cInstaller := clusterInstaller{
 			ctx:    asyncCtx, // Need a new context for async part
@@ -896,7 +897,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	}
 
 	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg); err != nil {
-		log.WithError(err).Errorf("Faled generating kubeconfig files for cluster %s", cluster.ID)
+		log.WithError(err).Errorf("Failed generating kubeconfig files for cluster %s", cluster.ID)
 		return err
 	}
 

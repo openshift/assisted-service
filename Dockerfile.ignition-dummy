@@ -1,7 +1,0 @@
-FROM registry.access.redhat.com/ubi8/ubi:latest
-
-ARG NAMESPACE=assisted-installer
-
-COPY build/$NAMESPACE/dummy-ignition /dummy-ignition
-COPY subsystem/test_kubeconfig /kubeconfig-noingress
-CMD ["/dummy-ignition"]
