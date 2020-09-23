@@ -7,8 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/openshift/assisted-service/internal/ignition"
-
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/ignition"
