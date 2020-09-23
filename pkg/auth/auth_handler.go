@@ -14,7 +14,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
-	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 )
 
@@ -83,10 +82,6 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 		a.log.Error("OCM client unavailable")
 		return nil, fmt.Errorf("OCM client unavailable")
 	}
-	authUser, found := a.client.Cache.Get(token)
-	if found {
-		return authUser, nil
-	}
 	user, err := a.client.Authentication.AuthenticatePullSecret(context.Background(), token)
 	if err != nil {
 		a.log.Errorf("Error Authenticating PullSecret token: %v", err)
@@ -97,7 +92,6 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 		a.log.Errorf("Unable to fetch user's capabilities: %v", err)
 		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
-	a.client.Cache.Set(token, user, cache.DefaultExpiration)
 	return user, nil
 }
 
