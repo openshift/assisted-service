@@ -288,7 +288,7 @@ clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
 
 clean-onprem:
-	podman pod rm -f -i assisted-installer
+	podman pod rm -f assisted-installer | true
 
 delete-minikube-profile:
 	minikube delete -p $(PROFILE)
