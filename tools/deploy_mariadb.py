@@ -11,7 +11,7 @@ def main():
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
@@ -27,7 +27,7 @@ def main():
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
             print("Deploying {}".format(dst_file))
             dst.write(data)
     utils.apply(
@@ -42,7 +42,7 @@ def main():
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
             try:
                 kubectl_cmd = utils.get_kubectl_command(
                     target=deploy_options.target,

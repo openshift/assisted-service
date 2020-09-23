@@ -32,7 +32,7 @@ def main():
 
     with open(SRC_FILE, "r") as src:
         raw_data = src.read()
-        raw_data = raw_data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+        raw_data = raw_data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
         data = yaml.safe_load(raw_data)
 
         image_fqdn = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")

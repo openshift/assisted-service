@@ -24,7 +24,7 @@ def main():
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
             data = data.replace('REPLACE_OCM_SECRET', ocm_secret)
             data = data.replace('REPLACE_OCM_ID', ocm_id)
             print("Deploying {}".format(dst_file))
