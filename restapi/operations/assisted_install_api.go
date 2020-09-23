@@ -86,6 +86,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		ManifestsDownloadClusterManifestHandler: manifests.DownloadClusterManifestHandlerFunc(func(params manifests.DownloadClusterManifestParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation manifests.DownloadClusterManifest has not yet been implemented")
 		}),
+		InstallerDownloadHostIgnitionHandler: installer.DownloadHostIgnitionHandlerFunc(func(params installer.DownloadHostIgnitionParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.DownloadHostIgnition has not yet been implemented")
+		}),
 		InstallerDownloadHostLogsHandler: installer.DownloadHostLogsHandlerFunc(func(params installer.DownloadHostLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadHostLogs has not yet been implemented")
 		}),
@@ -112,6 +115,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerGetHostHandler: installer.GetHostHandlerFunc(func(params installer.GetHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetHost has not yet been implemented")
+		}),
+		InstallerGetHostIgnitionHandler: installer.GetHostIgnitionHandlerFunc(func(params installer.GetHostIgnitionParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetHostIgnition has not yet been implemented")
 		}),
 		InstallerGetHostRequirementsHandler: installer.GetHostRequirementsHandlerFunc(func(params installer.GetHostRequirementsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetHostRequirements has not yet been implemented")
@@ -268,6 +274,8 @@ type AssistedInstallAPI struct {
 	InstallerDownloadClusterLogsHandler installer.DownloadClusterLogsHandler
 	// ManifestsDownloadClusterManifestHandler sets the operation handler for the download cluster manifest operation
 	ManifestsDownloadClusterManifestHandler manifests.DownloadClusterManifestHandler
+	// InstallerDownloadHostIgnitionHandler sets the operation handler for the download host ignition operation
+	InstallerDownloadHostIgnitionHandler installer.DownloadHostIgnitionHandler
 	// InstallerDownloadHostLogsHandler sets the operation handler for the download host logs operation
 	InstallerDownloadHostLogsHandler installer.DownloadHostLogsHandler
 	// InstallerEnableHostHandler sets the operation handler for the enable host operation
@@ -286,6 +294,8 @@ type AssistedInstallAPI struct {
 	InstallerGetFreeAddressesHandler installer.GetFreeAddressesHandler
 	// InstallerGetHostHandler sets the operation handler for the get host operation
 	InstallerGetHostHandler installer.GetHostHandler
+	// InstallerGetHostIgnitionHandler sets the operation handler for the get host ignition operation
+	InstallerGetHostIgnitionHandler installer.GetHostIgnitionHandler
 	// InstallerGetHostRequirementsHandler sets the operation handler for the get host requirements operation
 	InstallerGetHostRequirementsHandler installer.GetHostRequirementsHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
@@ -457,6 +467,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.ManifestsDownloadClusterManifestHandler == nil {
 		unregistered = append(unregistered, "manifests.DownloadClusterManifestHandler")
 	}
+	if o.InstallerDownloadHostIgnitionHandler == nil {
+		unregistered = append(unregistered, "installer.DownloadHostIgnitionHandler")
+	}
 	if o.InstallerDownloadHostLogsHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadHostLogsHandler")
 	}
@@ -483,6 +496,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetHostHandler == nil {
 		unregistered = append(unregistered, "installer.GetHostHandler")
+	}
+	if o.InstallerGetHostIgnitionHandler == nil {
+		unregistered = append(unregistered, "installer.GetHostIgnitionHandler")
 	}
 	if o.InstallerGetHostRequirementsHandler == nil {
 		unregistered = append(unregistered, "installer.GetHostRequirementsHandler")
@@ -709,6 +725,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition"] = installer.NewDownloadHostIgnition(o.context, o.InstallerDownloadHostIgnitionHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewDownloadHostLogs(o.context, o.InstallerDownloadHostLogsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
@@ -742,6 +762,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}"] = installer.NewGetHost(o.context, o.InstallerGetHostHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/ignition"] = installer.NewGetHostIgnition(o.context, o.InstallerGetHostIgnitionHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

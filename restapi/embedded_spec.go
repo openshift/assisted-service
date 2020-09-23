@@ -2008,6 +2008,158 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition": {
+      "get": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Downloads the customized ignition file for this host",
+        "operationId": "DownloadHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/hosts/{host_id}/ignition": {
+      "get": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Get the customized ignition file for this host",
+        "operationId": "GetHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-ignition-params"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
       "get": {
         "security": [
@@ -4301,6 +4453,13 @@ func init() {
         "host_id": {
           "type": "string",
           "format": "uuid"
+        }
+      }
+    },
+    "host-ignition-params": {
+      "properties": {
+        "config": {
+          "type": "string"
         }
       }
     },
@@ -6870,6 +7029,158 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition": {
+      "get": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Downloads the customized ignition file for this host",
+        "operationId": "DownloadHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/hosts/{host_id}/ignition": {
+      "get": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Get the customized ignition file for this host",
+        "operationId": "GetHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-ignition-params"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
       "get": {
         "security": [
@@ -9188,6 +9499,13 @@ func init() {
         "host_id": {
           "type": "string",
           "format": "uuid"
+        }
+      }
+    },
+    "host-ignition-params": {
+      "properties": {
+        "config": {
+          "type": "string"
         }
       }
     },

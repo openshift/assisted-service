@@ -1795,6 +1795,109 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/hosts/{host_id}/ignition:
+    get:
+      tags:
+        - installer
+      summary: Get the customized ignition file for this host
+      operationId: GetHostIgnition
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          type: string
+          format: uuid
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/host-ignition-params'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition:
+    get:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      summary: Downloads the customized ignition file for this host
+      operationId: DownloadHostIgnition
+      produces:
+        - application/octet-stream
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          type: string
+          format: uuid
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            type: file
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+
   /clusters/{cluster_id}/logs:
     post:
       tags:
@@ -3361,3 +3464,8 @@ definitions:
     required:
       - file_name
       - content
+
+  host-ignition-params:
+    properties:
+      config:
+        type: string
