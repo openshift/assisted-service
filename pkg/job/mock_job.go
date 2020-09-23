@@ -8,7 +8,6 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
-	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
@@ -99,17 +98,17 @@ func (mr *MockAPIMockRecorder) UploadBaseISO() *gomock.Call {
 }
 
 // GenerateInstallConfig mocks base method
-func (m *MockAPI) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, objectHandler s3wrapper.API) error {
+func (m *MockAPI) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateInstallConfig", ctx, cluster, cfg, objectHandler)
+	ret := m.ctrl.Call(m, "GenerateInstallConfig", ctx, cluster, cfg)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // GenerateInstallConfig indicates an expected call of GenerateInstallConfig
-func (mr *MockAPIMockRecorder) GenerateInstallConfig(ctx, cluster, cfg, objectHandler interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GenerateInstallConfig(ctx, cluster, cfg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockAPI)(nil).GenerateInstallConfig), ctx, cluster, cfg, objectHandler)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockAPI)(nil).GenerateInstallConfig), ctx, cluster, cfg)
 }
 
 // AbortInstallConfig mocks base method

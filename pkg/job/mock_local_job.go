@@ -8,7 +8,6 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
-	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 	reflect "reflect"
 )
 
@@ -50,17 +49,17 @@ func (mr *MockLocalJobMockRecorder) AbortInstallConfig(arg0, arg1 interface{}) *
 }
 
 // GenerateInstallConfig mocks base method
-func (m *MockLocalJob) GenerateInstallConfig(arg0 context.Context, arg1 common.Cluster, arg2 []byte, arg3 s3wrapper.API) error {
+func (m *MockLocalJob) GenerateInstallConfig(arg0 context.Context, arg1 common.Cluster, arg2 []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateInstallConfig", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "GenerateInstallConfig", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // GenerateInstallConfig indicates an expected call of GenerateInstallConfig
-func (mr *MockLocalJobMockRecorder) GenerateInstallConfig(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockLocalJobMockRecorder) GenerateInstallConfig(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockLocalJob)(nil).GenerateInstallConfig), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockLocalJob)(nil).GenerateInstallConfig), arg0, arg1, arg2)
 }
 
 // UploadBaseISO mocks base method
