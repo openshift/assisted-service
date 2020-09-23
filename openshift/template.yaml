@@ -91,7 +91,7 @@ parameters:
 - name: RELEASE_TAG
   value: ''
 - name: AGENT_TIMEOUT_START
-  value: ''
+  value: '5m'
 apiVersion: v1
 kind: Template
 metadata:
