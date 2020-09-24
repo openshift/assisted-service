@@ -54,6 +54,12 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 	return cluster, nil
 }
 
+func clusterExistsInDB(db *gorm.DB, clusterId strfmt.UUID, where map[string]interface{}) bool {
+	where["id"] = clusterId.String()
+	var cluster common.Cluster
+	return db.Select("id").Take(&cluster, where).Error == nil
+}
+
 func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string, extra ...interface{}) (*common.Cluster, error) {
 	updates := make(map[string]interface{})
 
@@ -68,7 +74,7 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 	// Status is required as well to avoid races between different components.
 	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
 
-	if dbReply.Error != nil || dbReply.RowsAffected == 0 {
+	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !clusterExistsInDB(db, clusterId, updates)) {
 		return nil, errors.Errorf("failed to update cluster %s. nothing have changed", clusterId)
 	}
 
