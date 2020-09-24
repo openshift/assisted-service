@@ -220,8 +220,11 @@ deploy-test: generate-keys
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
 	podman run -dt --pod assisted-installer --env-file onprem-environment --name db quay.io/ocpmetal/postgresql-12-centos7
-	podman run -dt --pod assisted-installer --env-file onprem-environment --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
+	podman run -dt --pod assisted-installer --env-file onprem-environment --env DUMMY_IGNITION=$(DUMMY_IGNITION) --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
+
+deploy-onprem-for-subsystem:
+	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
 ########
 # Test #
@@ -264,9 +267,9 @@ unit-test:
 
 test-onprem:
 	INVENTORY=127.0.0.1:8090 \
-	INVENTORY=127.0.0.1:8090 \
 	DB_HOST=127.0.0.1 \
 	DB_PORT=5432 \
+	DEPLOY_TARGET=onprem \
 	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
 
 #########
@@ -285,7 +288,7 @@ clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
 
 clean-onprem:
-	podman pod rm -f -i assisted-installer
+	podman pod rm -f assisted-installer | true
 
 delete-minikube-profile:
 	minikube delete -p $(PROFILE)
