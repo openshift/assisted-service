@@ -9,6 +9,12 @@ TARGET := $(or ${TARGET},minikube)
 PROFILE := $(or $(PROFILE),minikube)
 KUBECTL=kubectl -n $(NAMESPACE)
 
+# Verify minikube is running, otherwise abort
+_MINIKUBE := $(shell if [ -x "$(shell command -v minikube)" ];then minikube status; fi)
+ifneq ($(.SHELLSTATUS),0)
+    $(error $(_MINIKUBE))
+endif
+
 ifeq ($(TARGET), minikube)
 define get_service
 minikube -p $(PROFILE) service --url $(1) -n $(NAMESPACE) | sed 's/http:\/\///g'
