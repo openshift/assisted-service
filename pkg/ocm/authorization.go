@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/openshift/assisted-service/pkg/commonutils"
+
 	azv1 "github.com/openshift-online/ocm-sdk-go/authorizations/v1"
 	"github.com/openshift/assisted-service/internal/common"
 )
@@ -19,6 +21,7 @@ type authorization struct {
 }
 
 func (a authorization) AccessReview(ctx context.Context, username, action, resourceType string) (allowed bool, err error) {
+	defer commonutils.MeasureOperation("OCM-AccessReview", a.client.log, a.client.metricsApi)()
 	accessReview := a.client.connection.Authorizations().V1().AccessReview()
 
 	request, err := azv1.NewAccessReviewRequest().
@@ -46,6 +49,7 @@ func (a authorization) AccessReview(ctx context.Context, username, action, resou
 }
 
 func (a authorization) CapabilityReview(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error) {
+	defer commonutils.MeasureOperation("OCM-CapabilityReview", a.client.log, a.client.metricsApi)()
 	capabilityReview := a.client.connection.Authorizations().V1().CapabilityReview()
 
 	request, err := azv1.NewCapabilityReviewRequest().

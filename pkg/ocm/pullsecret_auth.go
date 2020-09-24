@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/openshift/assisted-service/pkg/commonutils"
+
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	"github.com/openshift/assisted-service/internal/common"
 )
@@ -19,6 +21,7 @@ type authentication struct {
 }
 
 func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret string) (user *AuthPayload, err error) {
+	defer commonutils.MeasureOperation("OCM-AuthenticatePullSecret", a.client.log, a.client.metricsApi)()
 	accessTokenAPI := a.client.connection.AccountsMgmt().V1()
 	request, err := amgmtv1.NewTokenAuthorizationRequest().AuthorizationToken(pullSecret).Build()
 	if err != nil {

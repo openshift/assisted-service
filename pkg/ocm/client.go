@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/metrics"
+
 	sdkClient "github.com/openshift-online/ocm-sdk-go"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
@@ -15,6 +17,8 @@ type Client struct {
 	logger     sdkClient.Logger
 	connection *sdkClient.Connection
 	Cache      *cache.Cache
+	log        logrus.FieldLogger
+	metricsApi metrics.API
 
 	Authentication OCMAuthentication
 	Authorization  OCMAuthorization
@@ -66,7 +70,7 @@ func (l *SdKLogger) Error(ctx context.Context, format string, args ...interface{
 	l.FieldLogger.Errorf(format, args...)
 }
 
-func NewClient(config Config, log logrus.FieldLogger) (*Client, error) {
+func NewClient(config Config, log logrus.FieldLogger, metricsApi metrics.API) (*Client, error) {
 	entry := log.(*logrus.Entry)
 	logger := &SdKLogger{Log: entry.Logger, FieldLogger: log}
 	if logLevel, err := logrus.ParseLevel(config.LogLevel); err == nil {
@@ -74,9 +78,11 @@ func NewClient(config Config, log logrus.FieldLogger) (*Client, error) {
 	}
 
 	client := &Client{
-		config: &config,
-		logger: logger,
-		Cache:  cache.New(10*time.Minute, 30*time.Minute),
+		config:     &config,
+		logger:     logger,
+		Cache:      cache.New(10*time.Minute, 30*time.Minute),
+		metricsApi: metricsApi,
+		log:        log,
 	}
 	err := client.newConnection()
 	if err != nil {
