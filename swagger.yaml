@@ -1974,7 +1974,7 @@ definitions:
         type: boolean
         description: Indicate if VIP DHCP allocation mode is enabled.
         x-nullable: true
-        default: false
+        default: true
       http_proxy:
         type: string
         description: |

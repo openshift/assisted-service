@@ -2687,7 +2687,7 @@ func init() {
         "vip_dhcp_allocation": {
           "description": "Indicate if VIP DHCP allocation mode is enabled.",
           "type": "boolean",
-          "default": false,
+          "default": true,
           "x-nullable": true
         }
       }
@@ -6510,7 +6510,7 @@ func init() {
         "vip_dhcp_allocation": {
           "description": "Indicate if VIP DHCP allocation mode is enabled.",
           "type": "boolean",
-          "default": false,
+          "default": true,
           "x-nullable": true
         }
       }
