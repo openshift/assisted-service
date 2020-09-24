@@ -28,7 +28,7 @@ RUN cd build && python3 setup.py sdist --dist-dir /assisted-service-client
 FROM centos:8
 
 # openshift-install requires this
-RUN yum install -y libvirt-libs && yum clean all
+RUN yum install -y libvirt-libs python && yum clean all
 
 ARG WORK_DIR=/data
 

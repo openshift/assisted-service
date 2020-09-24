@@ -21,6 +21,7 @@ pipeline {
     stages {
         stage('Init') {
             steps {
+                sh "echo hello world"
                 sh 'make clear-all || true'
                 sh 'make ci-lint'
             }
