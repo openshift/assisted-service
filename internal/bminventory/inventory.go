@@ -445,9 +445,9 @@ func (b *bareMetalInventory) RegisterDay2Cluster(ctx context.Context, params ins
 	return installer.NewRegisterDay2ClusterCreated().WithPayload(&cluster.Cluster)
 }
 
-func (b *bareMetalInventory) formatNodeIgnitionFile(consoleURL string) ([]byte, error) {
+func (b *bareMetalInventory) formatNodeIgnitionFile(apiVipDnsname string) ([]byte, error) {
 	var ignitionParams = map[string]string{
-		"SOURCE": "http://" + consoleURL + ":22624/config/worker",
+		"SOURCE": "http://" + apiVipDnsname + ":22624/config/worker",
 	}
 	tmpl, err := template.New("nodeIgnition").Parse(nodeIgnitionFormat)
 	if err != nil {
