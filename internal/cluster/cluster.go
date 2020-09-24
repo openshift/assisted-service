@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/network"
+
 	"github.com/openshift/assisted-service/pkg/leader"
 
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -178,6 +180,46 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 	return m.installationAPI.GetMasterNodesIds(ctx, c, db)
 }
 
+func (m *Manager) tryAssignMachineCidr(cluster *common.Cluster) error {
+	networks := network.GetClusterNetworks(cluster, m.log)
+	if len(networks) == 1 {
+		/*
+		 * Auto assign machine network CIDR is relevant if there is only single host network.  Otherwise the user
+		 * has to select the machine network CIDR
+		 */
+		return m.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(&common.Cluster{
+			Cluster: models.Cluster{
+				MachineNetworkCidr: networks[0],
+			},
+			MachineNetworkCidrUpdatedAt: time.Now(),
+		}).Error
+	}
+	return nil
+}
+
+func (m *Manager) autoAssignMachineNetworkCidrs() error {
+	var clusters []*common.Cluster
+	/*
+	 * The aim is to get from DB only clusters that are candidates for machine network CIDR auto assign
+	 * The cluster query is for clusters that have their DHCP mode set (vip_dhcp_allocation), the machine network CIDR empty, and in status insufficient, or pending for input.
+	 * For these clusters the hosts query is all hosts that are not in status (disabled, disconnected, discovering),
+	 * since we want to calculate the host networks only from hosts wkith relevant inventory
+	 */
+	err := m.db.Preload("Hosts", "status not in (?)", []string{models.HostStatusDisabled, models.HostStatusDisconnected, models.HostStatusDiscovering}).
+		Find(&clusters, "vip_dhcp_allocation = ? and machine_network_cidr = '' and status in (?)", true, []string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}).Error
+	if err != nil {
+		m.log.WithError(err).Warn("Query for clusters for machine network cidr allocation")
+		return err
+	}
+	for _, cluster := range clusters {
+		err = m.tryAssignMachineCidr(cluster)
+		if err != nil {
+			m.log.WithError(err).Warnf("Set machine cidr for cluster %s", cluster.ID.String())
+		}
+	}
+	return nil
+}
+
 func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorInvokedAt time.Time) bool {
 	timeToCompare := c.MachineNetworkCidrUpdatedAt.Add(DhcpLeaseTimeoutMinutes * time.Minute)
 	return swag.BoolValue(c.VipDhcpAllocation) && (c.APIVip == "" || c.IngressVip == "") && c.MachineNetworkCidr != "" &&
@@ -202,9 +244,10 @@ func (m *Manager) ClusterMonitoring() {
 		ctx                 = requestid.ToContext(context.Background(), requestID)
 		log                 = requestid.RequestIDLogger(m.log, requestID)
 		err                 error
-		curMonitorInvokedAt = time.Now()
 	)
 
+	_ = m.autoAssignMachineNetworkCidrs()
+	curMonitorInvokedAt := time.Now()
 	defer func() {
 		m.prevMonitorInvokedAt = curMonitorInvokedAt
 	}()
