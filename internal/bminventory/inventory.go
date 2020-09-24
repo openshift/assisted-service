@@ -1107,6 +1107,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	machineCidr := cluster.MachineNetworkCidr
 	serviceCidr := cluster.ServiceNetworkCidr
 	clusterCidr := cluster.ClusterNetworkCidr
+	hostNetworkPrefix := cluster.ClusterNetworkHostPrefix
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
 	if params.ClusterUpdateParams.Name != nil {
 		updates["name"] = *params.ClusterUpdateParams.Name
@@ -1125,7 +1126,14 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		if err = network.VerifyNetworkHostPrefix(*params.ClusterUpdateParams.ClusterNetworkHostPrefix); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-		updates["cluster_network_host_prefix"] = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
+		hostNetworkPrefix = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
+		updates["cluster_network_host_prefix"] = hostNetworkPrefix
+	}
+	if clusterCidr != "" {
+		err = network.VerifyClusterCidrSize(int(hostNetworkPrefix), clusterCidr, len(cluster.Hosts))
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
 		if err = network.VerifySubnetCIDR(*params.ClusterUpdateParams.ServiceNetworkCidr); err != nil {

@@ -369,7 +369,11 @@ func (v *clusterValidator) printIsPullSecretSet(context *clusterPreprocessContex
 }
 
 func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) validationStatus {
-	return boolValue(network.VerifyNetworkHostPrefix(c.cluster.ClusterNetworkHostPrefix) == nil)
+	if c.cluster.ClusterNetworkCidr == "" {
+		return ValidationPending
+	}
+	return boolValue(network.VerifyNetworkHostPrefix(c.cluster.ClusterNetworkHostPrefix) == nil &&
+		network.VerifyClusterCidrSize(int(c.cluster.ClusterNetworkHostPrefix), c.cluster.ClusterNetworkCidr, len(c.cluster.Hosts)) == nil)
 }
 
 func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, status validationStatus) string {
@@ -377,10 +381,15 @@ func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, 
 	case ValidationSuccess:
 		return "Cluster Network Prefix valid"
 	case ValidationFailure:
-		if err := network.VerifyNetworkHostPrefix(c.cluster.ClusterNetworkHostPrefix); err != nil {
+		var err error
+		if err = network.VerifyNetworkHostPrefix(c.cluster.ClusterNetworkHostPrefix); err != nil {
 			return fmt.Sprintf("Invalid cluster network prefix: %s", err.Error())
+		} else if err = network.VerifyClusterCidrSize(int(c.cluster.ClusterNetworkHostPrefix), c.cluster.ClusterNetworkCidr, len(c.cluster.Hosts)); err != nil {
+			return err.Error()
 		}
 		return ""
+	case ValidationPending:
+		return "Cluster Network CIDR is undefined"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}

@@ -48,6 +48,28 @@ func VerifySubnetCIDR(cidrStr string) error {
 	return nil
 }
 
+func max(x, y int) int {
+	if x > y {
+		return x
+	}
+	return y
+}
+
+func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, numberOfHosts int) error {
+	_, cidr, err := net.ParseCIDR(clusterNetworkCIDR)
+	if err != nil {
+		return err
+	}
+	clusterNetworkPrefix, _ := cidr.Mask.Size()
+	requestedNumHosts := max(4, numberOfHosts)
+	possibleNumHosts := 1 << max(hostNetworkPrefix-clusterNetworkPrefix, 0)
+	if requestedNumHosts > possibleNumHosts {
+		return errors.Errorf("Cluster network CIDR prefix %d does not contain enough addresses for %d hosts each one with %d prefix (%d addresses)",
+			clusterNetworkPrefix, requestedNumHosts, hostNetworkPrefix, 1<<(32-hostNetworkPrefix))
+	}
+	return nil
+}
+
 func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string) error {
 	err := VerifyCIDRsNotOverlap(machineNetworkCidr, serviceNetworkCidr)
 	if err != nil {
