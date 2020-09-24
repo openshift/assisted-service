@@ -7,6 +7,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
 	github.com/aws/aws-sdk-go v1.32.6
+	github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
 	github.com/coreos/ignition/v2 v2.6.0

@@ -8,7 +8,6 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
-	events "github.com/openshift/assisted-service/internal/events"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
@@ -84,18 +83,18 @@ func (mr *MockAPIMockRecorder) Delete(ctx, name, namespace, force interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockAPI)(nil).Delete), ctx, name, namespace, force)
 }
 
-// GenerateISO mocks base method
-func (m *MockAPI) GenerateISO(ctx context.Context, cluster common.Cluster, jobName, imageName, ignitionConfig string, eventsHandler events.Handler) error {
+// UploadBaseISO mocks base method
+func (m *MockAPI) UploadBaseISO() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateISO", ctx, cluster, jobName, imageName, ignitionConfig, eventsHandler)
+	ret := m.ctrl.Call(m, "UploadBaseISO")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// GenerateISO indicates an expected call of GenerateISO
-func (mr *MockAPIMockRecorder) GenerateISO(ctx, cluster, jobName, imageName, ignitionConfig, eventsHandler interface{}) *gomock.Call {
+// UploadBaseISO indicates an expected call of UploadBaseISO
+func (mr *MockAPIMockRecorder) UploadBaseISO() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateISO", reflect.TypeOf((*MockAPI)(nil).GenerateISO), ctx, cluster, jobName, imageName, ignitionConfig, eventsHandler)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadBaseISO", reflect.TypeOf((*MockAPI)(nil).UploadBaseISO))
 }
 
 // GenerateInstallConfig mocks base method
