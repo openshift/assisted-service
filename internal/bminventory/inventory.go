@@ -322,7 +322,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		params.NewClusterParams.ServiceNetworkCidr = &DefaultServiceNetworkCidr
 	}
 	if params.NewClusterParams.VipDhcpAllocation == nil {
-		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
+		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
 	}
 
 	cluster := common.Cluster{Cluster: models.Cluster{

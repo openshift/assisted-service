@@ -356,13 +356,6 @@ var _ = Describe("cluster install - DHCP", func() {
 		Expect(err).NotTo(HaveOccurred())
 		cluster = registerClusterReply.GetPayload()
 		log.Infof("Register cluster %s", cluster.ID.String())
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
-				VipDhcpAllocation: swag.Bool(true),
-			},
-			ClusterID: *cluster.ID,
-		})
-		Expect(err).ToNot(HaveOccurred())
 	})
 	Context("install cluster cases", func() {
 		var clusterID strfmt.UUID
@@ -586,8 +579,9 @@ var _ = Describe("cluster install", func() {
 		ingressVip := "1.2.3.6"
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
-				APIVip:     &apiVip,
-				IngressVip: &ingressVip,
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
 			},
 			ClusterID: clusterID,
 		})
@@ -609,8 +603,9 @@ var _ = Describe("cluster install", func() {
 		ingressVip := "1.2.3.6"
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
-				APIVip:     &apiVip,
-				IngressVip: &ingressVip,
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
 			},
 			ClusterID: clusterID,
 		})
@@ -1790,8 +1785,9 @@ var _ = Describe("cluster install", func() {
 				{ID: *wh2.ID, Role: models.HostRoleUpdateParamsWorker},
 				{ID: *wh3.ID, Role: models.HostRoleUpdateParamsWorker},
 			},
-				APIVip:     &apiVip,
-				IngressVip: &ingressVip,
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
 			},
 			ClusterID: clusterID,
 		})
@@ -1919,8 +1915,9 @@ var _ = Describe("cluster install", func() {
 		ingressVip := "1.2.3.9"
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
-				APIVip:     &apiVip,
-				IngressVip: &ingressVip,
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
 			},
 			ClusterID: clusterID,
 		})
@@ -2323,8 +2320,9 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 	ingressVip := ""
 	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 		ClusterUpdateParams: &models.ClusterUpdateParams{
-			APIVip:     &apiVip,
-			IngressVip: &ingressVip,
+			VipDhcpAllocation: swag.Bool(false),
+			APIVip:            &apiVip,
+			IngressVip:        &ingressVip,
 		},
 		ClusterID: clusterID,
 	})

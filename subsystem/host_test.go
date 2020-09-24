@@ -112,6 +112,13 @@ var _ = Describe("Host tests", func() {
 	}
 
 	It("next step", func() {
+		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterID: clusterID,
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				VipDhcpAllocation: swag.Bool(false),
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
 		host := registerHost(clusterID)
 		host2 := registerHost(clusterID)
 		Expect(db.Model(host2).UpdateColumns(&models.Host{Inventory: defaultInventory(),
@@ -152,14 +159,7 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("next step - DHCP", func() {
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterID: clusterID,
-			ClusterUpdateParams: &models.ClusterUpdateParams{
-				VipDhcpAllocation: swag.Bool(true),
-			},
-		})
 		Expect(db.Table("clusters").Where("id = ?", clusterID.String()).UpdateColumn("machine_network_cidr", "1.2.3.0/24").Error).ToNot(HaveOccurred())
-		Expect(err).ToNot(HaveOccurred())
 		host := registerHost(clusterID)
 		host2 := registerHost(clusterID)
 		Expect(db.Model(host2).UpdateColumns(&models.Host{Inventory: defaultInventory(),
