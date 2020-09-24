@@ -26,7 +26,7 @@ require (
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/openshift-online/ocm-sdk-go v0.1.118
+	github.com/openshift-online/ocm-sdk-go v0.1.130
 	github.com/ory/dockertest/v3 v3.6.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pborman/uuid v1.2.0
@@ -48,6 +48,5 @@ require (
 	k8s.io/api v0.18.5
 	k8s.io/apimachinery v0.18.5
 	k8s.io/client-go v0.18.5
-	k8s.io/klog/v2 v2.0.0
 	sigs.k8s.io/controller-runtime v0.6.1
 )
