@@ -62,9 +62,9 @@ type Host struct {
 	// inventory
 	Inventory string `json:"inventory,omitempty" gorm:"type:text"`
 
-	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.
+	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, Day2host for day2 operations.
 	// Required: true
-	// Enum: [Host]
+	// Enum: [Host Day2Host]
 	Kind *string `json:"kind"`
 
 	// logs collected at
@@ -93,7 +93,7 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting]
+	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting day2-installed]
 	Status *string `json:"status"`
 
 	// status info
@@ -254,7 +254,7 @@ var hostTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["Host"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Host","Day2Host"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -266,6 +266,9 @@ const (
 
 	// HostKindHost captures enum value "Host"
 	HostKindHost string = "Host"
+
+	// HostKindDay2Host captures enum value "Day2Host"
+	HostKindDay2Host string = "Day2Host"
 )
 
 // prop value enum
@@ -387,7 +390,7 @@ var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting","day2-installed"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -438,6 +441,9 @@ const (
 
 	// HostStatusResetting captures enum value "resetting"
 	HostStatusResetting string = "resetting"
+
+	// HostStatusDay2Installed captures enum value "day2-installed"
+	HostStatusDay2Installed string = "day2-installed"
 )
 
 // prop value enum

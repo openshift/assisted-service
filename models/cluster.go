@@ -87,9 +87,9 @@ type Cluster struct {
 	// Format: date-time
 	InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty" gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"`
 
-	// Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link.
+	// Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'ClusterDay2' for day2 operations
 	// Required: true
-	// Enum: [Cluster]
+	// Enum: [Cluster ClusterDay2]
 	Kind *string `json:"kind"`
 
 	// A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.
@@ -121,7 +121,7 @@ type Cluster struct {
 
 	// Status of the OpenShift cluster.
 	// Required: true
-	// Enum: [insufficient ready error preparing-for-installation pending-for-input installing finalizing installed]
+	// Enum: [insufficient ready error preparing-for-installation pending-for-input installing finalizing installed day2cluster]
 	Status *string `json:"status"`
 
 	// Additional information pertaining to the status of the OpenShift cluster.
@@ -425,7 +425,7 @@ var clusterTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["Cluster"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Cluster","ClusterDay2"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -437,6 +437,9 @@ const (
 
 	// ClusterKindCluster captures enum value "Cluster"
 	ClusterKindCluster string = "Cluster"
+
+	// ClusterKindClusterDay2 captures enum value "ClusterDay2"
+	ClusterKindClusterDay2 string = "ClusterDay2"
 )
 
 // prop value enum
@@ -534,7 +537,7 @@ var clusterTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["insufficient","ready","error","preparing-for-installation","pending-for-input","installing","finalizing","installed"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["insufficient","ready","error","preparing-for-installation","pending-for-input","installing","finalizing","installed","day2cluster"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -567,6 +570,9 @@ const (
 
 	// ClusterStatusInstalled captures enum value "installed"
 	ClusterStatusInstalled string = "installed"
+
+	// ClusterStatusDay2cluster captures enum value "day2cluster"
+	ClusterStatusDay2cluster string = "day2cluster"
 )
 
 // prop value enum

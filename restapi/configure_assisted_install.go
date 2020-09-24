@@ -112,6 +112,9 @@ type InstallerAPI interface {
 	/* RegisterCluster Creates a new OpenShift bare metal cluster definition. */
 	RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder
 
+	/* RegisterDay2Cluster Creates a new OpenShift bare metal cluster definition for day2 nodes. */
+	RegisterDay2Cluster(ctx context.Context, params installer.RegisterDay2ClusterParams) middleware.Responder
+
 	/* RegisterHost Registers a new OpenShift bare metal host. */
 	RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder
 
@@ -366,6 +369,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.RegisterCluster(ctx, params)
+	})
+	api.InstallerRegisterDay2ClusterHandler = installer.RegisterDay2ClusterHandlerFunc(func(params installer.RegisterDay2ClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.RegisterDay2Cluster(ctx, params)
 	})
 	api.InstallerRegisterHostHandler = installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

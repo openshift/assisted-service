@@ -2907,3 +2907,76 @@ var _ = Describe("proxySettingsForIgnition", func() {
 		})
 	})
 })
+
+var _ = Describe("Register Day2 cluster test", func() {
+
+	var (
+		bm               *bareMetalInventory
+		cfg              Config
+		db               *gorm.DB
+		ctx              = context.Background()
+		ctrl             *gomock.Controller
+		clusterID        strfmt.UUID
+		clusterName      string
+		apiVIPDnsname    string
+		openshiftVersion string
+		mockClusterAPI   *cluster.MockAPI
+		mockHostApi      *host.MockAPI
+		mockJobApi       *job.MockAPI
+		mockS3Client     *s3wrapper.MockAPI
+		request          *http.Request
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		clusterID = strfmt.UUID(uuid.New().String())
+		clusterName = "day2-cluster"
+		openshiftVersion = "4.6"
+		apiVIPDnsname = "api-vip.redhat.com"
+		mockClusterAPI = cluster.NewMockAPI(ctrl)
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockJobApi = job.NewMockAPI(ctrl)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, mockJobApi, nil, mockS3Client, nil, getTestAuthHandler())
+		body := &bytes.Buffer{}
+		request, _ = http.NewRequest("POST", "test", body)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("Create Day2 cluster", func() {
+		params := installer.RegisterDay2ClusterParams{
+			HTTPRequest: request,
+			NewDay2ClusterParams: &models.Day2ClusterCreateParams{
+				APIVipDnsname:    &apiVIPDnsname,
+				ID:               &clusterID,
+				Name:             &clusterName,
+				OpenshiftVersion: &openshiftVersion,
+			},
+		}
+		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
+		mockClusterAPI.EXPECT().RegisterDay2Cluster(ctx, gomock.Any()).Return(nil).Times(1)
+		res := bm.RegisterDay2Cluster(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterDay2ClusterCreated()))
+	})
+
+	It("Create Day2 cluster fail upload", func() {
+                params := installer.RegisterDay2ClusterParams{
+                        HTTPRequest: request,
+                        NewDay2ClusterParams: &models.Day2ClusterCreateParams{
+                                APIVipDnsname:    &apiVIPDnsname,
+                                ID:               &clusterID,
+                                Name:             &clusterName,
+                                OpenshiftVersion: &openshiftVersion,
+                        },
+                }
+                fileName := fmt.Sprintf("%s/worker.ign", clusterID)
+                mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("dummy")).Times(1)
+                res := bm.RegisterDay2Cluster(ctx, params)
+                Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterDay2ClusterInternalServerError()))
+        })
+})

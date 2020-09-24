@@ -2343,6 +2343,45 @@ func init() {
         }
       }
     },
+    "/day2_clusters": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Creates a new OpenShift bare metal cluster definition for day2 nodes.",
+        "operationId": "RegisterDay2Cluster",
+        "parameters": [
+          {
+            "name": "new-day2-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/day2-cluster-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/domains": {
       "get": {
         "tags": [
@@ -2524,10 +2563,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link.",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'ClusterDay2' for day2 operations",
           "type": "string",
           "enum": [
-            "Cluster"
+            "Cluster",
+            "ClusterDay2"
           ]
         },
         "machine_network_cidr": {
@@ -2579,7 +2619,8 @@ func init() {
             "pending-for-input",
             "installing",
             "finalizing",
-            "installed"
+            "installed",
+            "day2cluster"
           ]
         },
         "status_info": {
@@ -2956,6 +2997,37 @@ func init() {
         }
       }
     },
+    "day2-cluster-create-params": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "api_vip_dnsname",
+        "openshift_version"
+      ],
+      "properties": {
+        "api_vip_dnsname": {
+          "description": "api vip domain.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the object.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "description": "Name of the OpenShift cluster.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string",
+          "enum": [
+            "4.6"
+          ]
+        }
+      }
+    },
     "dhcp_allocation_request": {
       "type": "object",
       "required": [
@@ -3223,10 +3295,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, Day2host for day2 operations.",
           "type": "string",
           "enum": [
-            "Host"
+            "Host",
+            "Day2Host"
           ]
         },
         "logs_collected_at": {
@@ -3279,7 +3352,8 @@ func init() {
             "resetting-pending-user-action",
             "installed",
             "error",
-            "resetting"
+            "resetting",
+            "day2-installed"
           ]
         },
         "status_info": {
@@ -6142,6 +6216,45 @@ func init() {
         }
       }
     },
+    "/day2_clusters": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Creates a new OpenShift bare metal cluster definition for day2 nodes.",
+        "operationId": "RegisterDay2Cluster",
+        "parameters": [
+          {
+            "name": "new-day2-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/day2-cluster-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/domains": {
       "get": {
         "tags": [
@@ -6347,10 +6460,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link.",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'ClusterDay2' for day2 operations",
           "type": "string",
           "enum": [
-            "Cluster"
+            "Cluster",
+            "ClusterDay2"
           ]
         },
         "machine_network_cidr": {
@@ -6402,7 +6516,8 @@ func init() {
             "pending-for-input",
             "installing",
             "finalizing",
-            "installed"
+            "installed",
+            "day2cluster"
           ]
         },
         "status_info": {
@@ -6761,6 +6876,37 @@ func init() {
         }
       }
     },
+    "day2-cluster-create-params": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "api_vip_dnsname",
+        "openshift_version"
+      ],
+      "properties": {
+        "api_vip_dnsname": {
+          "description": "api vip domain.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the object.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "description": "Name of the OpenShift cluster.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string",
+          "enum": [
+            "4.6"
+          ]
+        }
+      }
+    },
     "dhcp_allocation_request": {
       "type": "object",
       "required": [
@@ -7028,10 +7174,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, Day2host for day2 operations.",
           "type": "string",
           "enum": [
-            "Host"
+            "Host",
+            "Day2Host"
           ]
         },
         "logs_collected_at": {
@@ -7084,7 +7231,8 @@ func init() {
             "resetting-pending-user-action",
             "installed",
             "error",
-            "resetting"
+            "resetting",
+            "day2-installed"
           ]
         },
         "status_info": {

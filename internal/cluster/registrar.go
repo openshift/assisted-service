@@ -28,9 +28,17 @@ type registrar struct {
 }
 
 func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster) error {
-	cluster.Status = swag.String(models.ClusterStatusInsufficient)
-	cluster.StatusInfo = swag.String(statusInfoInsufficient)
-	cluster.StatusUpdatedAt = strfmt.DateTime(time.Now())
+	return r.registerCluster(ctx, cluster, models.ClusterStatusInsufficient, statusInfoInsufficient, time.Now())
+}
+
+func (r *registrar) RegisterDay2Cluster(ctx context.Context, cluster *common.Cluster) error {
+	return r.registerCluster(ctx, cluster, models.ClusterStatusDay2cluster, statusInfoDay2cluster, time.Now())
+}
+
+func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster, status, statusInfo string, registerTime time.Time) error {
+	cluster.Status = swag.String(status)
+	cluster.StatusInfo = swag.String(statusInfo)
+	cluster.StatusUpdatedAt = strfmt.DateTime(registerTime)
 	tx := r.db.Begin()
 	defer func() {
 		if rec := recover(); rec != nil {

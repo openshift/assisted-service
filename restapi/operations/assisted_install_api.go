@@ -133,6 +133,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerRegisterClusterHandler: installer.RegisterClusterHandlerFunc(func(params installer.RegisterClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterCluster has not yet been implemented")
 		}),
+		InstallerRegisterDay2ClusterHandler: installer.RegisterDay2ClusterHandlerFunc(func(params installer.RegisterDay2ClusterParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.RegisterDay2Cluster has not yet been implemented")
+		}),
 		InstallerRegisterHostHandler: installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterHost has not yet been implemented")
 		}),
@@ -272,6 +275,8 @@ type AssistedInstallAPI struct {
 	InstallerPostStepReplyHandler installer.PostStepReplyHandler
 	// InstallerRegisterClusterHandler sets the operation handler for the register cluster operation
 	InstallerRegisterClusterHandler installer.RegisterClusterHandler
+	// InstallerRegisterDay2ClusterHandler sets the operation handler for the register day2 cluster operation
+	InstallerRegisterDay2ClusterHandler installer.RegisterDay2ClusterHandler
 	// InstallerRegisterHostHandler sets the operation handler for the register host operation
 	InstallerRegisterHostHandler installer.RegisterHostHandler
 	// InstallerResetClusterHandler sets the operation handler for the reset cluster operation
@@ -458,6 +463,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerRegisterClusterHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterClusterHandler")
+	}
+	if o.InstallerRegisterDay2ClusterHandler == nil {
+		unregistered = append(unregistered, "installer.RegisterDay2ClusterHandler")
 	}
 	if o.InstallerRegisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterHostHandler")
@@ -697,6 +705,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters"] = installer.NewRegisterCluster(o.context, o.InstallerRegisterClusterHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/day2_clusters"] = installer.NewRegisterDay2Cluster(o.context, o.InstallerRegisterDay2ClusterHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

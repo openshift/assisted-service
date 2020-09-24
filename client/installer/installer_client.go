@@ -94,6 +94,9 @@ type API interface {
 	   RegisterCluster creates a new open shift bare metal cluster definition*/
 	RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error)
 	/*
+	   RegisterDay2Cluster creates a new open shift bare metal cluster definition for day2 nodes*/
+	RegisterDay2Cluster(ctx context.Context, params *RegisterDay2ClusterParams) (*RegisterDay2ClusterCreated, error)
+	/*
 	   RegisterHost registers a new open shift bare metal host*/
 	RegisterHost(ctx context.Context, params *RegisterHostParams) (*RegisterHostCreated, error)
 	/*
@@ -756,6 +759,31 @@ func (a *Client) RegisterCluster(ctx context.Context, params *RegisterClusterPar
 		return nil, err
 	}
 	return result.(*RegisterClusterCreated), nil
+
+}
+
+/*
+RegisterDay2Cluster creates a new open shift bare metal cluster definition for day2 nodes
+*/
+func (a *Client) RegisterDay2Cluster(ctx context.Context, params *RegisterDay2ClusterParams) (*RegisterDay2ClusterCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "RegisterDay2Cluster",
+		Method:             "POST",
+		PathPattern:        "/day2_clusters",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &RegisterDay2ClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*RegisterDay2ClusterCreated), nil
 
 }
 

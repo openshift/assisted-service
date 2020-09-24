@@ -1622,6 +1622,31 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /day2_clusters:
+    post:
+      tags:
+        - installer
+      summary: Creates a new OpenShift bare metal cluster definition for day2 nodes.
+      operationId: RegisterDay2Cluster
+      parameters:
+        - in: body
+          name: new-day2-cluster-params
+          required: true
+          schema:
+            $ref: '#/definitions/day2-cluster-create-params'
+      responses:
+        201:
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        400:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
 
 definitions:
   list-managed-domains:
@@ -1735,8 +1760,8 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Host']
-        description: Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.
+        enum: ['Host', 'Day2Host']
+        description: Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, Day2host for day2 operations.
       id:
         type: string
         format: uuid
@@ -1767,6 +1792,7 @@ definitions:
           - installed
           - error
           - resetting
+          - day2-installed
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
@@ -2089,6 +2115,29 @@ definitions:
             hostname:
               type: string
 
+  day2-cluster-create-params:
+    type: object
+    required:
+      - id
+      - name
+      - api_vip_dnsname
+      - openshift_version
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier of the object.
+      name:
+        type: string
+        description: Name of the OpenShift cluster.
+      api_vip_dnsname:
+        type: string
+        description: api vip domain.
+      openshift_version:
+        type: string
+        enum: ['4.6']
+        description: Version of the OpenShift cluster.
+
   cluster:
     type: object
     required:
@@ -2101,8 +2150,8 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Cluster']
-        description: Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link.
+        enum: ['Cluster', 'ClusterDay2']
+        description: Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'ClusterDay2' for day2 operations
       id:
         type: string
         format: uuid
@@ -2183,6 +2232,7 @@ definitions:
           - installing
           - finalizing
           - installed
+          - day2cluster
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"

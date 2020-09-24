@@ -283,6 +283,10 @@ func (f fakeInventory) RegisterCluster(ctx context.Context, params installer.Reg
 	return installer.NewRegisterClusterCreated()
 }
 
+func (f fakeInventory) RegisterDay2Cluster(ctx context.Context, params installer.RegisterDay2ClusterParams) middleware.Responder {
+	return installer.NewRegisterDay2ClusterCreated()
+}
+
 func (f fakeInventory) RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder {
 	return installer.NewRegisterHostCreated()
 }
