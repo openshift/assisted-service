@@ -172,6 +172,7 @@ func (c *S3Client) UploadFile(ctx context.Context, filePath, objectName string) 
 func (c *S3Client) UploadISO(ctx context.Context, ignitionConfig, objectPrefix string) error {
 	log := logutil.FromContext(ctx, c.log)
 	objectName := fmt.Sprintf("%s.iso", objectPrefix)
+	log.Debugf("Started upload of ISO %s", objectName)
 
 	// Get info from the ISO's header
 	areaOffsetBytes, areaLengthBytes, err := c.getISOHeaderInfo(log, BaseObjectName)
@@ -180,7 +181,7 @@ func (c *S3Client) UploadISO(ctx context.Context, ignitionConfig, objectPrefix s
 		log.Error(err)
 		return err
 	}
-	log.Debugf("areaOffsetBytes: %d, areaLengthBytes: %d", areaOffsetBytes, areaLengthBytes)
+	log.Debugf("Read header info for ISO %s - areaOffsetBytes: %d, areaLengthBytes: %d", objectName, areaOffsetBytes, areaLengthBytes)
 
 	baseObjectSize, err := c.GetObjectSizeBytes(ctx, BaseObjectName)
 	if err != nil {
@@ -195,6 +196,7 @@ func (c *S3Client) UploadISO(ctx context.Context, ignitionConfig, objectPrefix s
 		return err
 	}
 
+	log.Debugf("Creating multi-part upload of ISO %s", objectName)
 	multiOut, err := c.client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{Bucket: aws.String(c.cfg.S3Bucket), Key: aws.String(objectName)})
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to start upload for %s", objectName)
@@ -214,6 +216,7 @@ func (c *S3Client) UploadISO(ctx context.Context, ignitionConfig, objectPrefix s
 	}()
 
 	// First part: copy the first part of the live ISO, until the embedded area
+	log.Debugf("Creating part 1 of multi-part upload of ISO %s", objectName)
 	completedPart, err := c.uploadPartCopy(log, 1, uploadID, BaseObjectName, objectName, 0, areaOffsetBytes-1)
 	if err != nil {
 		return err
@@ -239,6 +242,7 @@ func (c *S3Client) UploadISO(ctx context.Context, ignitionConfig, objectPrefix s
 		return err
 	}
 
+	log.Debugf("Uploading part 2 (ignition) of multi-part upload of ISO %s", objectName)
 	completedPart, err = c.uploadIgnition(log, 2, uploadID, objectName, ignitionConfig, origContents, areaLengthBytes)
 	if err != nil {
 		return err
@@ -246,12 +250,14 @@ func (c *S3Client) UploadISO(ctx context.Context, ignitionConfig, objectPrefix s
 	completedParts = append(completedParts, completedPart)
 
 	// Third part: copy the last part of the live ISO, after the embedded area
+	log.Debugf("Creating part 3 of multi-part upload of ISO %s", objectName)
 	completedPart, err = c.uploadPartCopy(log, 3, uploadID, BaseObjectName, objectName, areaOffsetBytes+fiveMB, baseObjectSize-1)
 	if err != nil {
 		return err
 	}
 	completedParts = append(completedParts, completedPart)
 
+	log.Debugf("Completing multi-part upload of ISO %s", objectName)
 	_, err = c.client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
 		Bucket:   aws.String(c.cfg.S3Bucket),
 		Key:      aws.String(objectName),
@@ -265,6 +271,7 @@ func (c *S3Client) UploadISO(ctx context.Context, ignitionConfig, objectPrefix s
 		log.Error(err)
 		return err
 	}
+	log.Debugf("Completed upload of ISO %s", objectName)
 	return nil
 }
 
