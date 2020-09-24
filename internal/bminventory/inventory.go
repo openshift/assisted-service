@@ -994,8 +994,8 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		return installer.NewUpdateClusterConflict().WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
 
-	if updateClusterConflict := b.validateDNSDomain(params, log); updateClusterConflict != nil {
-		return updateClusterConflict
+	if err = b.validateDNSDomain(params, log); err != nil {
+		return common.GenerateErrorResponder(err)
 	}
 
 	err = b.updateClusterData(ctx, &cluster, params, tx, log)
@@ -2398,23 +2398,25 @@ func (b *bareMetalInventory) getDNSDomain(clusterName, baseDNSDomainName string)
 	}, nil
 }
 
-func (b *bareMetalInventory) validateDNSDomain(params installer.UpdateClusterParams, log logrus.FieldLogger) *installer.UpdateClusterConflict {
+func (b *bareMetalInventory) validateDNSDomain(params installer.UpdateClusterParams, log logrus.FieldLogger) error {
 	clusterName := swag.StringValue(params.ClusterUpdateParams.Name)
 	clusterBaseDomain := swag.StringValue(params.ClusterUpdateParams.BaseDNSDomain)
+	if clusterBaseDomain != "" {
+		if err := validations.ValidateDomainNameFormat(clusterBaseDomain); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
 	dnsDomain, err := b.getDNSDomain(clusterName, clusterBaseDomain)
 	if err == nil && dnsDomain != nil {
 		// Cluster's baseDNSDomain is defined in config (BaseDNSDomains map)
 		if err = b.validateBaseDNS(dnsDomain); err != nil {
 			log.WithError(err).Errorf("Invalid base DNS domain: %s", clusterBaseDomain)
-			return installer.NewUpdateClusterConflict().
-				WithPayload(common.GenerateError(http.StatusConflict,
-					errors.New("Base DNS domain isn't configured properly")))
+			return common.NewApiError(http.StatusConflict, errors.New("Base DNS domain isn't configured properly"))
 		}
 		if err = b.validateDNSRecords(dnsDomain); err != nil {
 			log.WithError(err).Errorf("DNS records already exist for cluster: %s", params.ClusterID)
-			return installer.NewUpdateClusterConflict().
-				WithPayload(common.GenerateError(http.StatusConflict,
-					errors.New("DNS records already exist for cluster - please change 'Cluster Name'")))
+			return common.NewApiError(http.StatusConflict,
+				errors.New("DNS records already exist for cluster - please change 'Cluster Name'"))
 		}
 	}
 	return nil

@@ -373,9 +373,9 @@ var _ = Describe("dns name", func() {
 	for _, t := range tests {
 		It(fmt.Sprintf("Domain name \"%s\"", t.domainName), func() {
 			if t.valid {
-				Expect(validateDomainNameFormat(t.domainName)).ToNot(HaveOccurred())
+				Expect(ValidateDomainNameFormat(t.domainName)).ToNot(HaveOccurred())
 			} else {
-				Expect(validateDomainNameFormat(t.domainName)).To(HaveOccurred())
+				Expect(ValidateDomainNameFormat(t.domainName)).To(HaveOccurred())
 			}
 		})
 	}
