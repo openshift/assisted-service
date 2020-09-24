@@ -1011,6 +1011,11 @@ var _ = Describe("cluster", func() {
 	mockClusterPrepareForInstallationSuccess := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
+
+	mockDurationsSuccess := func() {
+		mockMetric.EXPECT().Duration(gomock.Any(), gomock.Any()).Return().AnyTimes()
+	}
+
 	mockClusterPrepareForInstallationFailure := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(errors.Errorf("error")).Times(1)
@@ -1153,6 +1158,7 @@ var _ = Describe("cluster", func() {
 
 				It("GetCluster", func() {
 					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
+					mockDurationsSuccess()
 					reply := bm.GetCluster(ctx, installer.GetClusterParams{
 						ClusterID: clusterID,
 					})
@@ -1194,6 +1200,9 @@ var _ = Describe("cluster", func() {
 			}
 		})
 		Context("Update", func() {
+			BeforeEach(func() {
+				mockDurationsSuccess()
+			})
 			It("update_cluster_while_installing", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
@@ -1412,7 +1421,6 @@ var _ = Describe("cluster", func() {
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 				})
 				Context("Non DHCP", func() {
-
 					It("No machine network", func() {
 						apiVip := "8.8.8.8"
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -1668,6 +1676,7 @@ var _ = Describe("cluster", func() {
 					})
 				})
 				Context("DHCP", func() {
+
 					It("Vips in DHCP", func() {
 						apiVip := "10.11.12.15"
 						ingressVip := "10.11.12.16"
@@ -1804,6 +1813,7 @@ var _ = Describe("cluster", func() {
 				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
 				Expect(err).ToNot(HaveOccurred())
+				mockDurationsSuccess()
 			})
 
 			It("success", func() {
