@@ -109,11 +109,11 @@ type InstallerAPI interface {
 	/* PostStepReply Posts the result of the operations from the host agent. */
 	PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder
 
+	/* RegisterAddHostsCluster Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster. */
+	RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder
+
 	/* RegisterCluster Creates a new OpenShift bare metal cluster definition. */
 	RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder
-
-	/* RegisterDay2Cluster Creates a new OpenShift bare metal cluster definition for day2 nodes. */
-	RegisterDay2Cluster(ctx context.Context, params installer.RegisterDay2ClusterParams) middleware.Responder
 
 	/* RegisterHost Registers a new OpenShift bare metal host. */
 	RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder
@@ -365,15 +365,15 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.PostStepReply(ctx, params)
 	})
+	api.InstallerRegisterAddHostsClusterHandler = installer.RegisterAddHostsClusterHandlerFunc(func(params installer.RegisterAddHostsClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.RegisterAddHostsCluster(ctx, params)
+	})
 	api.InstallerRegisterClusterHandler = installer.RegisterClusterHandlerFunc(func(params installer.RegisterClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.RegisterCluster(ctx, params)
-	})
-	api.InstallerRegisterDay2ClusterHandler = installer.RegisterDay2ClusterHandlerFunc(func(params installer.RegisterDay2ClusterParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.RegisterDay2Cluster(ctx, params)
 	})
 	api.InstallerRegisterHostHandler = installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

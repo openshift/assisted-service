@@ -14,10 +14,10 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// Day2ClusterCreateParams day2 cluster create params
+// AddHostsClusterCreateParams add hosts cluster create params
 //
-// swagger:model day2-cluster-create-params
-type Day2ClusterCreateParams struct {
+// swagger:model add-hosts-cluster-create-params
+type AddHostsClusterCreateParams struct {
 
 	// api vip domain.
 	// Required: true
@@ -38,8 +38,8 @@ type Day2ClusterCreateParams struct {
 	OpenshiftVersion *string `json:"openshift_version"`
 }
 
-// Validate validates this day2 cluster create params
-func (m *Day2ClusterCreateParams) Validate(formats strfmt.Registry) error {
+// Validate validates this add hosts cluster create params
+func (m *AddHostsClusterCreateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateAPIVipDnsname(formats); err != nil {
@@ -64,7 +64,7 @@ func (m *Day2ClusterCreateParams) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Day2ClusterCreateParams) validateAPIVipDnsname(formats strfmt.Registry) error {
+func (m *AddHostsClusterCreateParams) validateAPIVipDnsname(formats strfmt.Registry) error {
 
 	if err := validate.Required("api_vip_dnsname", "body", m.APIVipDnsname); err != nil {
 		return err
@@ -73,7 +73,7 @@ func (m *Day2ClusterCreateParams) validateAPIVipDnsname(formats strfmt.Registry)
 	return nil
 }
 
-func (m *Day2ClusterCreateParams) validateID(formats strfmt.Registry) error {
+func (m *AddHostsClusterCreateParams) validateID(formats strfmt.Registry) error {
 
 	if err := validate.Required("id", "body", m.ID); err != nil {
 		return err
@@ -86,7 +86,7 @@ func (m *Day2ClusterCreateParams) validateID(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Day2ClusterCreateParams) validateName(formats strfmt.Registry) error {
+func (m *AddHostsClusterCreateParams) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
@@ -95,7 +95,7 @@ func (m *Day2ClusterCreateParams) validateName(formats strfmt.Registry) error {
 	return nil
 }
 
-var day2ClusterCreateParamsTypeOpenshiftVersionPropEnum []interface{}
+var addHostsClusterCreateParamsTypeOpenshiftVersionPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -103,25 +103,25 @@ func init() {
 		panic(err)
 	}
 	for _, v := range res {
-		day2ClusterCreateParamsTypeOpenshiftVersionPropEnum = append(day2ClusterCreateParamsTypeOpenshiftVersionPropEnum, v)
+		addHostsClusterCreateParamsTypeOpenshiftVersionPropEnum = append(addHostsClusterCreateParamsTypeOpenshiftVersionPropEnum, v)
 	}
 }
 
 const (
 
-	// Day2ClusterCreateParamsOpenshiftVersionNr46 captures enum value "4.6"
-	Day2ClusterCreateParamsOpenshiftVersionNr46 string = "4.6"
+	// AddHostsClusterCreateParamsOpenshiftVersionNr46 captures enum value "4.6"
+	AddHostsClusterCreateParamsOpenshiftVersionNr46 string = "4.6"
 )
 
 // prop value enum
-func (m *Day2ClusterCreateParams) validateOpenshiftVersionEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, day2ClusterCreateParamsTypeOpenshiftVersionPropEnum, true); err != nil {
+func (m *AddHostsClusterCreateParams) validateOpenshiftVersionEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, addHostsClusterCreateParamsTypeOpenshiftVersionPropEnum, true); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Day2ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
+func (m *AddHostsClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
 
 	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
 		return err
@@ -136,7 +136,7 @@ func (m *Day2ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Regist
 }
 
 // MarshalBinary interface implementation
-func (m *Day2ClusterCreateParams) MarshalBinary() ([]byte, error) {
+func (m *AddHostsClusterCreateParams) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -144,8 +144,8 @@ func (m *Day2ClusterCreateParams) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *Day2ClusterCreateParams) UnmarshalBinary(b []byte) error {
-	var res Day2ClusterCreateParams
+func (m *AddHostsClusterCreateParams) UnmarshalBinary(b []byte) error {
+	var res AddHostsClusterCreateParams
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

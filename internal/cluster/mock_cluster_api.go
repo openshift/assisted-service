@@ -6,13 +6,12 @@ package cluster
 
 import (
 	context "context"
-	reflect "reflect"
-
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
+	reflect "reflect"
 )
 
 // MockRegistrationAPI is a mock of RegistrationAPI interface
@@ -52,18 +51,18 @@ func (mr *MockRegistrationAPIMockRecorder) RegisterCluster(ctx, c interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterCluster), ctx, c)
 }
 
-// RegisterDay2Cluster mocks base method
-func (m *MockRegistrationAPI) RegisterDay2Cluster(ctx context.Context, c *common.Cluster) error {
+// RegisterAddHostsCluster mocks base method
+func (m *MockRegistrationAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterDay2Cluster", ctx, c)
+	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", ctx, c)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RegisterDay2Cluster indicates an expected call of RegisterDay2Cluster
-func (mr *MockRegistrationAPIMockRecorder) RegisterDay2Cluster(ctx, c interface{}) *gomock.Call {
+// RegisterAddHostsCluster indicates an expected call of RegisterAddHostsCluster
+func (mr *MockRegistrationAPIMockRecorder) RegisterAddHostsCluster(ctx, c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterDay2Cluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterDay2Cluster), ctx, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterAddHostsCluster), ctx, c)
 }
 
 // DeregisterCluster mocks base method
@@ -169,18 +168,18 @@ func (mr *MockAPIMockRecorder) RegisterCluster(ctx, c interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockAPI)(nil).RegisterCluster), ctx, c)
 }
 
-// RegisterDay2Cluster mocks base method
-func (m *MockAPI) RegisterDay2Cluster(ctx context.Context, c *common.Cluster) error {
+// RegisterAddHostsCluster mocks base method
+func (m *MockAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterDay2Cluster", ctx, c)
+	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", ctx, c)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RegisterDay2Cluster indicates an expected call of RegisterDay2Cluster
-func (mr *MockAPIMockRecorder) RegisterDay2Cluster(ctx, c interface{}) *gomock.Call {
+// RegisterAddHostsCluster indicates an expected call of RegisterAddHostsCluster
+func (mr *MockAPIMockRecorder) RegisterAddHostsCluster(ctx, c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterDay2Cluster", reflect.TypeOf((*MockAPI)(nil).RegisterDay2Cluster), ctx, c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsCluster", reflect.TypeOf((*MockAPI)(nil).RegisterAddHostsCluster), ctx, c)
 }
 
 // DeregisterCluster mocks base method

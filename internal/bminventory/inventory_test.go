@@ -2931,7 +2931,7 @@ var _ = Describe("Register Day2 cluster test", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
 		clusterID = strfmt.UUID(uuid.New().String())
-		clusterName = "day2-cluster"
+		clusterName = "add-hosts-cluster"
 		openshiftVersion = "4.6"
 		apiVIPDnsname = "api-vip.redhat.com"
 		mockClusterAPI = cluster.NewMockAPI(ctrl)
@@ -2947,10 +2947,10 @@ var _ = Describe("Register Day2 cluster test", func() {
 		ctrl.Finish()
 	})
 
-	It("Create Day2 cluster", func() {
-		params := installer.RegisterDay2ClusterParams{
+	It("Create AddHosts cluster", func() {
+		params := installer.RegisterAddHostsClusterParams{
 			HTTPRequest: request,
-			NewDay2ClusterParams: &models.Day2ClusterCreateParams{
+			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
 				APIVipDnsname:    &apiVIPDnsname,
 				ID:               &clusterID,
 				Name:             &clusterName,
@@ -2959,15 +2959,15 @@ var _ = Describe("Register Day2 cluster test", func() {
 		}
 		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
-		mockClusterAPI.EXPECT().RegisterDay2Cluster(ctx, gomock.Any()).Return(nil).Times(1)
-		res := bm.RegisterDay2Cluster(ctx, params)
-		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterDay2ClusterCreated()))
+		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		res := bm.RegisterAddHostsCluster(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
 	})
 
-	It("Create Day2 cluster fail upload", func() {
-		params := installer.RegisterDay2ClusterParams{
+	It("Create AddHosts cluster fail upload", func() {
+		params := installer.RegisterAddHostsClusterParams{
 			HTTPRequest: request,
-			NewDay2ClusterParams: &models.Day2ClusterCreateParams{
+			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
 				APIVipDnsname:    &apiVIPDnsname,
 				ID:               &clusterID,
 				Name:             &clusterName,
@@ -2976,7 +2976,7 @@ var _ = Describe("Register Day2 cluster test", func() {
 		}
 		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("dummy")).Times(1)
-		res := bm.RegisterDay2Cluster(ctx, params)
-		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterDay2ClusterInternalServerError()))
+		res := bm.RegisterAddHostsCluster(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterInternalServerError()))
 	})
 })

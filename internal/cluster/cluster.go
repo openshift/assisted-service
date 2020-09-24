@@ -33,8 +33,8 @@ const DhcpLeaseTimeoutMinutes = 2
 type RegistrationAPI interface {
 	// Register a new cluster
 	RegisterCluster(ctx context.Context, c *common.Cluster) error
-	// Register a new day2 cluster
-	RegisterDay2Cluster(ctx context.Context, c *common.Cluster) error
+	// Register a new add-host cluster
+	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error
 	//deregister cluster
 	DeregisterCluster(ctx context.Context, c *common.Cluster) error
 }
@@ -126,8 +126,8 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error 
 	return err
 }
 
-func (m *Manager) RegisterDay2Cluster(ctx context.Context, c *common.Cluster) error {
-	err := m.registrationAPI.RegisterDay2Cluster(ctx, c)
+func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
+	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c)
 	if err != nil {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
 			fmt.Sprintf("Failed to register day 2 cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())

@@ -16,18 +16,18 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// NewRegisterDay2ClusterParams creates a new RegisterDay2ClusterParams object
+// NewRegisterAddHostsClusterParams creates a new RegisterAddHostsClusterParams object
 // no default values defined in spec.
-func NewRegisterDay2ClusterParams() RegisterDay2ClusterParams {
+func NewRegisterAddHostsClusterParams() RegisterAddHostsClusterParams {
 
-	return RegisterDay2ClusterParams{}
+	return RegisterAddHostsClusterParams{}
 }
 
-// RegisterDay2ClusterParams contains all the bound params for the register day2 cluster operation
+// RegisterAddHostsClusterParams contains all the bound params for the register add hosts cluster operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters RegisterDay2Cluster
-type RegisterDay2ClusterParams struct {
+// swagger:parameters RegisterAddHostsCluster
+type RegisterAddHostsClusterParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -36,26 +36,26 @@ type RegisterDay2ClusterParams struct {
 	  Required: true
 	  In: body
 	*/
-	NewDay2ClusterParams *models.Day2ClusterCreateParams
+	NewAddHostsClusterParams *models.AddHostsClusterCreateParams
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewRegisterDay2ClusterParams() beforehand.
-func (o *RegisterDay2ClusterParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewRegisterAddHostsClusterParams() beforehand.
+func (o *RegisterAddHostsClusterParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body models.Day2ClusterCreateParams
+		var body models.AddHostsClusterCreateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("newDay2ClusterParams", "body", ""))
+				res = append(res, errors.Required("newAddHostsClusterParams", "body", ""))
 			} else {
-				res = append(res, errors.NewParseError("newDay2ClusterParams", "body", "", err))
+				res = append(res, errors.NewParseError("newAddHostsClusterParams", "body", "", err))
 			}
 		} else {
 			// validate body object
@@ -64,11 +64,11 @@ func (o *RegisterDay2ClusterParams) BindRequest(r *http.Request, route *middlewa
 			}
 
 			if len(res) == 0 {
-				o.NewDay2ClusterParams = &body
+				o.NewAddHostsClusterParams = &body
 			}
 		}
 	} else {
-		res = append(res, errors.Required("newDay2ClusterParams", "body", ""))
+		res = append(res, errors.Required("newAddHostsClusterParams", "body", ""))
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

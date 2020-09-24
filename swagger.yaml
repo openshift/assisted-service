@@ -1622,18 +1622,18 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /day2_clusters:
+  /add_hosts_clusters:
     post:
       tags:
         - installer
-      summary: Creates a new OpenShift bare metal cluster definition for day2 nodes.
-      operationId: RegisterDay2Cluster
+      summary: Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster.
+      operationId: RegisterAddHostsCluster
       parameters:
         - in: body
-          name: new-day2-cluster-params
+          name: new-add-hosts-cluster-params
           required: true
           schema:
-            $ref: '#/definitions/day2-cluster-create-params'
+            $ref: '#/definitions/add-hosts-cluster-create-params'
       responses:
         201:
           description: Success.
@@ -1760,8 +1760,8 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Host', 'Day2Host']
-        description: Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, Day2host for day2 operations.
+        enum: ['Host', 'AddToExistingClusterHost']
+        description: Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, 'AddToExistingClusterHost' for host being added to existing OCP cluster.
       id:
         type: string
         format: uuid
@@ -1792,7 +1792,7 @@ definitions:
           - installed
           - error
           - resetting
-          - day2-installed
+          - added-to-existing-ocp
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
@@ -2115,7 +2115,7 @@ definitions:
             hostname:
               type: string
 
-  day2-cluster-create-params:
+  add-hosts-cluster-create-params:
     type: object
     required:
       - id
@@ -2150,8 +2150,8 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Cluster', 'ClusterDay2']
-        description: Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'ClusterDay2' for day2 operations
+        enum: ['Cluster', 'AddHostsCluster']
+        description: Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'AddHostCluster' for cluster that add hosts to existing OCP cluster
       id:
         type: string
         format: uuid
@@ -2232,7 +2232,7 @@ definitions:
           - installing
           - finalizing
           - installed
-          - day2cluster
+          - adding-hosts
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"

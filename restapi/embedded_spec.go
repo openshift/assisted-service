@@ -37,6 +37,45 @@ func init() {
   "host": "api.openshift.com",
   "basePath": "/api/assisted-install/v1",
   "paths": {
+    "/add_hosts_clusters": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster.",
+        "operationId": "RegisterAddHostsCluster",
+        "parameters": [
+          {
+            "name": "new-add-hosts-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/add-hosts-cluster-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters": {
       "get": {
         "tags": [
@@ -2343,45 +2382,6 @@ func init() {
         }
       }
     },
-    "/day2_clusters": {
-      "post": {
-        "tags": [
-          "installer"
-        ],
-        "summary": "Creates a new OpenShift bare metal cluster definition for day2 nodes.",
-        "operationId": "RegisterDay2Cluster",
-        "parameters": [
-          {
-            "name": "new-day2-cluster-params",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/day2-cluster-create-params"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/cluster"
-            }
-          },
-          "400": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/domains": {
       "get": {
         "tags": [
@@ -2448,6 +2448,37 @@ func init() {
     }
   },
   "definitions": {
+    "add-hosts-cluster-create-params": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "api_vip_dnsname",
+        "openshift_version"
+      ],
+      "properties": {
+        "api_vip_dnsname": {
+          "description": "api vip domain.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the object.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "description": "Name of the OpenShift cluster.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string",
+          "enum": [
+            "4.6"
+          ]
+        }
+      }
+    },
     "boot": {
       "type": "object",
       "properties": {
@@ -2563,11 +2594,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'ClusterDay2' for day2 operations",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'AddHostCluster' for cluster that add hosts to existing OCP cluster",
           "type": "string",
           "enum": [
             "Cluster",
-            "ClusterDay2"
+            "AddHostsCluster"
           ]
         },
         "machine_network_cidr": {
@@ -2620,7 +2651,7 @@ func init() {
             "installing",
             "finalizing",
             "installed",
-            "day2cluster"
+            "adding-hosts"
           ]
         },
         "status_info": {
@@ -2997,37 +3028,6 @@ func init() {
         }
       }
     },
-    "day2-cluster-create-params": {
-      "type": "object",
-      "required": [
-        "id",
-        "name",
-        "api_vip_dnsname",
-        "openshift_version"
-      ],
-      "properties": {
-        "api_vip_dnsname": {
-          "description": "api vip domain.",
-          "type": "string"
-        },
-        "id": {
-          "description": "Unique identifier of the object.",
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "description": "Name of the OpenShift cluster.",
-          "type": "string"
-        },
-        "openshift_version": {
-          "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.6"
-          ]
-        }
-      }
-    },
     "dhcp_allocation_request": {
       "type": "object",
       "required": [
@@ -3295,11 +3295,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, Day2host for day2 operations.",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, 'AddToExistingClusterHost' for host being added to existing OCP cluster.",
           "type": "string",
           "enum": [
             "Host",
-            "Day2Host"
+            "AddToExistingClusterHost"
           ]
         },
         "logs_collected_at": {
@@ -3353,7 +3353,7 @@ func init() {
             "installed",
             "error",
             "resetting",
-            "day2-installed"
+            "added-to-existing-ocp"
           ]
         },
         "status_info": {
@@ -3910,6 +3910,45 @@ func init() {
   "host": "api.openshift.com",
   "basePath": "/api/assisted-install/v1",
   "paths": {
+    "/add_hosts_clusters": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster.",
+        "operationId": "RegisterAddHostsCluster",
+        "parameters": [
+          {
+            "name": "new-add-hosts-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/add-hosts-cluster-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters": {
       "get": {
         "tags": [
@@ -6216,45 +6255,6 @@ func init() {
         }
       }
     },
-    "/day2_clusters": {
-      "post": {
-        "tags": [
-          "installer"
-        ],
-        "summary": "Creates a new OpenShift bare metal cluster definition for day2 nodes.",
-        "operationId": "RegisterDay2Cluster",
-        "parameters": [
-          {
-            "name": "new-day2-cluster-params",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/day2-cluster-create-params"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/cluster"
-            }
-          },
-          "400": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/domains": {
       "get": {
         "tags": [
@@ -6342,6 +6342,37 @@ func init() {
         },
         "role": {
           "$ref": "#/definitions/host-role-update-params"
+        }
+      }
+    },
+    "add-hosts-cluster-create-params": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "api_vip_dnsname",
+        "openshift_version"
+      ],
+      "properties": {
+        "api_vip_dnsname": {
+          "description": "api vip domain.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the object.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "description": "Name of the OpenShift cluster.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string",
+          "enum": [
+            "4.6"
+          ]
         }
       }
     },
@@ -6460,11 +6491,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'ClusterDay2' for day2 operations",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'AddHostCluster' for cluster that add hosts to existing OCP cluster",
           "type": "string",
           "enum": [
             "Cluster",
-            "ClusterDay2"
+            "AddHostsCluster"
           ]
         },
         "machine_network_cidr": {
@@ -6517,7 +6548,7 @@ func init() {
             "installing",
             "finalizing",
             "installed",
-            "day2cluster"
+            "adding-hosts"
           ]
         },
         "status_info": {
@@ -6876,37 +6907,6 @@ func init() {
         }
       }
     },
-    "day2-cluster-create-params": {
-      "type": "object",
-      "required": [
-        "id",
-        "name",
-        "api_vip_dnsname",
-        "openshift_version"
-      ],
-      "properties": {
-        "api_vip_dnsname": {
-          "description": "api vip domain.",
-          "type": "string"
-        },
-        "id": {
-          "description": "Unique identifier of the object.",
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "description": "Name of the OpenShift cluster.",
-          "type": "string"
-        },
-        "openshift_version": {
-          "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.6"
-          ]
-        }
-      }
-    },
     "dhcp_allocation_request": {
       "type": "object",
       "required": [
@@ -7174,11 +7174,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, Day2host for day2 operations.",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, 'AddToExistingClusterHost' for host being added to existing OCP cluster.",
           "type": "string",
           "enum": [
             "Host",
-            "Day2Host"
+            "AddToExistingClusterHost"
           ]
         },
         "logs_collected_at": {
@@ -7232,7 +7232,7 @@ func init() {
             "installed",
             "error",
             "resetting",
-            "day2-installed"
+            "added-to-existing-ocp"
           ]
         },
         "status_info": {

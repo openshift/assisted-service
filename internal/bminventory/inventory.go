@@ -398,20 +398,20 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	return installer.NewRegisterClusterCreated().WithPayload(&cluster.Cluster)
 }
 
-func (b *bareMetalInventory) RegisterDay2Cluster(ctx context.Context, params installer.RegisterDay2ClusterParams) middleware.Responder {
+func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	id := params.NewDay2ClusterParams.ID
+	id := params.NewAddHostsClusterParams.ID
 	url := installer.GetClusterURL{ClusterID: *id}
-	consoleURL := swag.StringValue(params.NewDay2ClusterParams.APIVipDnsname)
-	clusterName := swag.StringValue(params.NewDay2ClusterParams.Name)
-	openshiftVersion := swag.StringValue(params.NewDay2ClusterParams.OpenshiftVersion)
+	consoleURL := swag.StringValue(params.NewAddHostsClusterParams.APIVipDnsname)
+	clusterName := swag.StringValue(params.NewAddHostsClusterParams.Name)
+	openshiftVersion := swag.StringValue(params.NewAddHostsClusterParams.OpenshiftVersion)
 
-	log.Infof("Register day2-cluster: %s with id %s", clusterName, id.String())
+	log.Infof("Register add-hosts-cluster: %s with id %s", clusterName, id.String())
 
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:               id,
 		Href:             swag.String(url.String()),
-		Kind:             swag.String(models.ClusterKindClusterDay2),
+		Kind:             swag.String(models.ClusterKindAddHostsCluster),
 		Name:             clusterName,
 		OpenshiftVersion: openshiftVersion,
 		UpdatedAt:        strfmt.DateTime{},
@@ -430,19 +430,19 @@ func (b *bareMetalInventory) RegisterDay2Cluster(ctx context.Context, params ins
 	fileName := fmt.Sprintf("%s/%s", cluster.ID, workerIgnition)
 	err = b.objectHandler.Upload(ctx, ignitionConfig, fileName)
 	if err != nil {
-		return installer.NewRegisterDay2ClusterInternalServerError().
+		return installer.NewRegisterAddHostsClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", fileName)))
 	}
 
-	// After registering the cluster, its status should be 'ClusterStatusDay2cluster'
-	err = b.clusterApi.RegisterDay2Cluster(ctx, &cluster)
+	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
+	err = b.clusterApi.RegisterAddHostsCluster(ctx, &cluster)
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", clusterName)
-		return installer.NewRegisterDay2ClusterInternalServerError().
+		return installer.NewRegisterAddHostsClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	return installer.NewRegisterDay2ClusterCreated().WithPayload(&cluster.Cluster)
+	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&cluster.Cluster)
 }
 
 func (b *bareMetalInventory) formatNodeIgnitionFile(apiVipDnsname string) ([]byte, error) {
@@ -1441,8 +1441,8 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
 	kind := swag.String(models.HostKindHost)
-	if swag.StringValue(cluster.Kind) == models.ClusterKindClusterDay2 {
-		kind = swag.String(models.HostKindDay2Host)
+	if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		kind = swag.String(models.HostKindAddToExistingClusterHost)
 	}
 	host = models.Host{
 		ID:                    params.NewHostParams.HostID,

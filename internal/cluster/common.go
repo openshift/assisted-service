@@ -28,7 +28,7 @@ const (
 	statusInfoPreparingForInstallationTimeout = "Preparing cluster for installation timeout"
 	statusInfoPendingForInput                 = "User input required"
 	statusInfoError                           = "cluster has hosts in error"
-	statusInfoDay2cluster                     = "cluster is day2cluster"
+	statusInfoAddingHosts                     = "cluster is adding hosts to existing OCP cluster"
 )
 
 func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
