@@ -1556,7 +1556,7 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.ClusterUpdateParams{
 								APIVip:                   &apiVip,
 								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ClusterNetworkCidr:       swag.String("192.168.0.0/21"),
 								ServiceNetworkCidr:       swag.String("193.168.5.0/24"),
 								ClusterNetworkHostPrefix: swag.Int64(23),
 							},
@@ -1566,7 +1566,7 @@ var _ = Describe("cluster", func() {
 						Expect(actual.Payload.APIVip).To(Equal(apiVip))
 						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
 						Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
-						Expect(actual.Payload.ClusterNetworkCidr).To(Equal("192.168.5.0/24"))
+						Expect(actual.Payload.ClusterNetworkCidr).To(Equal("192.168.0.0/21"))
 						Expect(actual.Payload.ServiceNetworkCidr).To(Equal("193.168.5.0/24"))
 						expectedNetworks := sortedNetworks([]*models.HostNetwork{
 							{
@@ -1606,7 +1606,7 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.ClusterUpdateParams{
 								APIVip:                   &apiVip,
 								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ClusterNetworkCidr:       swag.String("192.168.0.0/21"),
 								ServiceNetworkCidr:       swag.String("192.168.4.0/23"),
 								ClusterNetworkHostPrefix: swag.Int64(23),
 							},
@@ -1638,7 +1638,7 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.ClusterUpdateParams{
 								APIVip:                   &apiVip,
 								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
 								ServiceNetworkCidr:       swag.String("193.168.4.0/27"),
 								ClusterNetworkHostPrefix: swag.Int64(25),
 							},
@@ -1657,7 +1657,7 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.ClusterUpdateParams{
 								APIVip:                   &apiVip,
 								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
 								ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
 								ClusterNetworkHostPrefix: swag.Int64(25),
 							},
@@ -1672,9 +1672,25 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.ClusterUpdateParams{
 								APIVip:                   &apiVip,
 								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("1.168.5.0/24"),
+								ClusterNetworkCidr:       swag.String("1.168.0.0/23"),
 								ServiceNetworkCidr:       swag.String("193.168.4.0/1"),
 								ClusterNetworkHostPrefix: swag.Int64(23),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					})
+					It("Not enough addresses", func() {
+						apiVip := "10.11.12.15"
+						ingressVip := "10.11.12.16"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								APIVip:                   &apiVip,
+								IngressVip:               &ingressVip,
+								ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
+								ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
+								ClusterNetworkHostPrefix: swag.Int64(24),
 							},
 						})
 						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
