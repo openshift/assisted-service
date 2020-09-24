@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -15,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	auth "github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
-	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,7 +46,6 @@ var _ = Describe("Pull secret validation", func() {
 	client := &ocm.Client{
 		Authentication: &mockOCMAuthentication{},
 		Authorization:  &mockOCMAuthorization{},
-		Cache:          cache.New(1*time.Minute, 30*time.Minute),
 	}
 	authHandler := auth.NewAuthHandler(fakeConfig, client, log.WithField("pkg", "auth"))
 
