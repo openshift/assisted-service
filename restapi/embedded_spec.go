@@ -3353,7 +3353,7 @@ func init() {
             "installed",
             "error",
             "resetting",
-            "added-to-existing-ocp"
+            "added-to-existing-cluster"
           ]
         },
         "status_info": {
@@ -7232,7 +7232,7 @@ func init() {
             "installed",
             "error",
             "resetting",
-            "added-to-existing-ocp"
+            "added-to-existing-cluster"
           ]
         },
         "status_info": {

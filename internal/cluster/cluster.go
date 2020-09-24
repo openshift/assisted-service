@@ -130,10 +130,10 @@ func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster
 	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c)
 	if err != nil {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
-			fmt.Sprintf("Failed to register day 2 cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())
+			fmt.Sprintf("Failed to register add-hosts cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())
 	} else {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
-			fmt.Sprintf("Registered day 2 cluster \"%s\"", c.Name), time.Now())
+			fmt.Sprintf("Registered add-hosts cluster \"%s\"", c.Name), time.Now())
 	}
 	return err
 }

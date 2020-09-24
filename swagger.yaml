@@ -1792,7 +1792,7 @@ definitions:
           - installed
           - error
           - resetting
-          - added-to-existing-ocp
+          - added-to-existing-cluster
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
