@@ -595,7 +595,9 @@ var _ = Describe("reset host", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			h = getTestHost(id, clusterId, models.HostStatusError)
+			h.LogsCollectedAt = strfmt.DateTime(time.Now())
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			Expect(h.LogsCollectedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResetting))
@@ -606,6 +608,7 @@ var _ = Describe("reset host", func() {
 			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			eventMessage := fmt.Sprintf("Installation reset for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*resetEvent.Message).Should(Equal(eventMessage))
+			Expect(h.LogsCollectedAt).Should(Equal(strfmt.DateTime(time.Time{})))
 		})
 
 		It("register resetting host", func() {

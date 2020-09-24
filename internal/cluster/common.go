@@ -13,7 +13,10 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-const MinHostsNeededForInstallation = 3
+const (
+	MinMastersNeededForInstallation = 3
+	MinWorkersNeededForInstallation = 1
+)
 
 const (
 	statusInfoReady                           = "Cluster ready to be installed"
@@ -51,6 +54,12 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 	return cluster, nil
 }
 
+func clusterExistsInDB(db *gorm.DB, clusterId strfmt.UUID, where map[string]interface{}) bool {
+	where["id"] = clusterId.String()
+	var cluster common.Cluster
+	return db.Select("id").Take(&cluster, where).Error == nil
+}
+
 func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string, extra ...interface{}) (*common.Cluster, error) {
 	updates := make(map[string]interface{})
 
@@ -65,7 +74,7 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 	// Status is required as well to avoid races between different components.
 	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
 
-	if dbReply.Error != nil || dbReply.RowsAffected == 0 {
+	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !clusterExistsInDB(db, clusterId, updates)) {
 		return nil, errors.Errorf("failed to update cluster %s. nothing have changed", clusterId)
 	}
 
@@ -95,11 +104,29 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 	return masterNodesIds, nil
 }
 
-func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	hostMap := make(map[string][]*models.Host)
-
+func NumberOfWorkers(c *common.Cluster) int {
+	num := 0
 	for _, host := range c.Hosts {
-		if host.Role != models.HostRoleMaster {
+		if host.Role != models.HostRoleWorker || *host.Status == models.HostStatusDisabled {
+			continue
+		}
+		num += 1
+	}
+	return num
+}
+
+func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
+	return mapHostsByStatus(c, models.HostRoleMaster)
+}
+
+func MapWorkersHostsByStatus(c *common.Cluster) map[string][]*models.Host {
+	return mapHostsByStatus(c, models.HostRoleWorker)
+}
+
+func mapHostsByStatus(c *common.Cluster, role models.HostRole) map[string][]*models.Host {
+	hostMap := make(map[string][]*models.Host)
+	for _, host := range c.Hosts {
+		if role != "" && host.Role != role {
 			continue
 		}
 		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {
@@ -112,14 +139,5 @@ func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
 }
 
 func MapHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	hostMap := make(map[string][]*models.Host)
-
-	for _, host := range c.Hosts {
-		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {
-			hostMap[swag.StringValue(host.Status)] = append(hostMap[swag.StringValue(host.Status)], host)
-		} else {
-			hostMap[swag.StringValue(host.Status)] = []*models.Host{host}
-		}
-	}
-	return hostMap
+	return mapHostsByStatus(c, "")
 }

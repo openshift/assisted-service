@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,6 +33,7 @@ type Leader interface {
 type ElectorInterface interface {
 	Leader
 	StartLeaderElection(ctx context.Context) error
+	RunWithLeader(ctx context.Context, run func() error) error
 }
 
 type DummyElector struct{}
@@ -41,6 +44,10 @@ func (f *DummyElector) StartLeaderElection(ctx context.Context) error {
 
 func (f *DummyElector) IsLeader() bool {
 	return true
+}
+
+func (f *DummyElector) RunWithLeader(ctx context.Context, run func() error) error {
+	return run()
 }
 
 var _ ElectorInterface = &Elector{}
@@ -54,11 +61,43 @@ type Elector struct {
 }
 
 func NewElector(kubeClient *kubernetes.Clientset, config Config, configMapName string, logger logrus.FieldLogger) *Elector {
+	logger = logger.WithField("configMap", configMapName)
 	return &Elector{log: logger, config: config, kube: kubeClient, configMapName: configMapName, isLeader: false}
 }
 
 func (l *Elector) IsLeader() bool {
 	return l.isLeader
+}
+
+// Wait for leader, run given function, drop leader and exit.
+func (l *Elector) RunWithLeader(ctx context.Context, run func() error) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	err := l.StartLeaderElection(ctx)
+	if err != nil {
+		return err
+	}
+	err = l.waitForLeader(ctx)
+	if err != nil {
+		return err
+	}
+	return run()
+}
+
+func (l *Elector) waitForLeader(ctx context.Context) error {
+	ticker := time.NewTicker(l.config.RetryInterval)
+	l.log.Infof("Start waiting for leader")
+	for {
+		select {
+		case <-ctx.Done(): // Done returns a channel that's closed when work done on behalf of this context is canceled
+			return errors.Errorf("cancelled while waiting for leader")
+		case <-ticker.C:
+			if l.isLeader {
+				l.log.Infof("Got leader, stop waiting")
+				return nil
+			}
+		}
+	}
 }
 
 func (l *Elector) StartLeaderElection(ctx context.Context) error {
@@ -80,21 +119,20 @@ func (l *Elector) StartLeaderElection(ctx context.Context) error {
 		return err
 	}
 
-	l.log.Infof("Attempting to acquire leader lease with configmap %s", l.configMapName)
+	l.log.Infof("Attempting to acquire leader lease")
 	// Running loop cause leaderElector.Run is blocking
 	// and needs to be restarted while leader is lost
 	// will exit if context was cancelled
 	go func() {
 		for {
-			l.log.Infof("Starting leader elections process with configmap %s", l.configMapName)
+			l.log.Infof("Starting leader elections process")
 			if ctx.Err() != nil {
-				l.log.Warnf("Given context was cancelled, exiting leader elector for configmap %s", l.configMapName)
+				l.log.Infof("Given context was cancelled, exiting leader elector")
 				return
 			}
 			leaderElector.Run(ctx)
 		}
 	}()
-
 	return nil
 }
 
@@ -137,11 +175,11 @@ func (l *Elector) createLeaderElector(resourceLock resourcelock.Interface) (*lea
 		RetryPeriod:   l.config.RetryInterval,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(_ context.Context) {
-				l.log.Infof("Successfully acquired leadership lease %s", l.configMapName)
+				l.log.Infof("Successfully acquired leadership lease")
 				l.isLeader = true
 			},
 			OnStoppedLeading: func() {
-				l.log.Infof("NO LONGER LEADER for configmap %s", l.configMapName)
+				l.log.Infof("NO LONGER LEADER")
 				l.isLeader = false
 			},
 		},

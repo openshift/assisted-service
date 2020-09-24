@@ -21,6 +21,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
@@ -45,14 +46,13 @@ import (
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 func init() {
-	strfmt.MarshalFormat = strfmt.ISO8601LocalTime
+	strfmt.MarshalFormat = strfmt.RFC3339Millis
 }
 
 const deploymet_type_k8s = "k8s"
@@ -133,13 +133,15 @@ func main() {
 
 	var ocmClient *ocm.Client
 	if Options.Auth.EnableAuth {
-		ocmClient, err = ocm.NewClient(Options.OCMConfig, log)
+		ocmLog := logrus.New()
+		ocmClient, err = ocm.NewClient(Options.OCMConfig, ocmLog.WithField("pkg", "ocm"))
 		if err != nil {
 			log.Fatal("Failed to Create OCM Client, ", err)
 		}
 	}
 
 	var lead leader.ElectorInterface
+	var autoMigrationLeader leader.ElectorInterface
 	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"))
 	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
 	versionHandler := versions.NewHandler(Options.Versions)
@@ -163,6 +165,11 @@ func main() {
 	var generator generator.ISOInstallConfigGenerator
 	var objectHandler s3wrapper.API
 
+	err = bmh_v1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	if err != nil {
+		log.Fatal("Failed to add BareMetalHost to scheme", err)
+	}
+
 	switch Options.DeployTarget {
 	case deploymet_type_k8s:
 		var kclient client.Client
@@ -173,32 +180,34 @@ func main() {
 		}
 		createS3Bucket(objectHandler)
 
-		scheme := runtime.NewScheme()
-		if err = clientgoscheme.AddToScheme(scheme); err != nil {
-			log.Fatal("Failed to add K8S scheme", err)
-		}
-
-		kclient, err = client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
+		kclient, err = client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
 		if err != nil {
 			log.Fatal("failed to create client:", err)
 		}
-		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
+		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig)
 
 		cfg, cerr := clientcmd.BuildConfigFromFlags("", "")
 		if cerr != nil {
 			log.WithError(cerr).Fatalf("Failed to create kubernetes cluster config")
 		}
 		k8sClient := kubernetes.NewForConfigOrDie(cfg)
+
+		autoMigrationLeader = leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
+			RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
+			"assisted-service-migration-helper",
+			log.WithField("pkg", "migrationLeader"))
+
 		lead = leader.NewElector(k8sClient, Options.LeaderConfig, "assisted-service-leader-election-helper",
 			log.WithField("pkg", "monitor-runner"))
+
 		err = lead.StartLeaderElection(context.Background())
 		if err != nil {
-			log.WithError(cerr).Fatalf("Failed to start leader")
+			log.WithError(err).Fatalf("Failed to start leader")
 		}
 
 	case "onprem":
-
 		lead = &leader.DummyElector{}
+		autoMigrationLeader = lead
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
 		objectHandler = s3wrapper.NewFSClient("/data", log)
 		if objectHandler == nil {
@@ -208,6 +217,11 @@ func main() {
 		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
+	}
+
+	err = autoMigrationWithLeader(autoMigrationLeader, db, log)
+	if err != nil {
+		log.WithError(err).Fatal("Failed auto migration process")
 	}
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
@@ -273,9 +287,10 @@ func main() {
 	if Options.DeployTarget == deploymet_type_k8s {
 		go func() {
 			defer apiEnabler.Enable()
-			//Run first ISO dummy for image pull, this is done so that the image will be pulled and the api will take less time.
-			// blocking function that can take a long time.
-			bminventory.GenerateDummyISOImage(log, generator, eventsHandler)
+			// Upload the live image which will serve as a basis for user-generated images.
+			if err = generator.UploadBaseISO(); err != nil {
+				log.Fatal("Failed to upload base image", err)
+			}
 		}()
 	} else {
 		apiEnabler.Enable()
@@ -319,4 +334,13 @@ func (a *ApiEnabler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (a *ApiEnabler) Enable() {
 	a.isEnabled = true
 	a.log.Info("API is enabled")
+}
+
+func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.DB, log logrus.FieldLogger) error {
+	return migrationLeader.RunWithLeader(context.Background(), func() error {
+		log.Infof("Start automigration")
+		err := db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{}).Error
+		log.Infof("Finish automigration")
+		return err
+	})
 }

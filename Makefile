@@ -23,8 +23,8 @@ endif # TARGET
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
-DUMMY_IGNITION := $(or ${DUMMY_IGNITION},minikube-local-registry/ignition-dummy-generator:minikube-test)
 BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/46.82.202008260918-0/x86_64/rhcos-46.82.202008260918-0-live.x86_64.iso)
+DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -44,8 +44,16 @@ ifdef INSTALLATION_TIMEOUT
         INSTALLATION_TIMEOUT_FLAG = --installation-timeout $(INSTALLATION_TIMEOUT)
 endif
 
+# define focus flag for test so users can run individual tests or suites
+ifdef FOCUS
+        GINKGO_FOCUS_FLAG = -ginkgo.focus=${FOCUS}
+endif
+
 
 all: build
+
+ci-lint:
+	${ROOT_DIR}/tools/check-commits.sh
 
 lint:
 	golangci-lint run -v
@@ -54,8 +62,8 @@ $(BUILD_FOLDER):
 	mkdir -p $(BUILD_FOLDER)
 
 format:
-	goimports -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/ dummy-ignition/
-	gofmt -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/ dummy-ignition/
+	goimports -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/
+	gofmt -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/
 
 ############
 # Generate #
@@ -104,9 +112,6 @@ build-minimal: $(BUILD_FOLDER)
 build-iso-generator: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-iso-create assisted-iso-create/main.go
 
-build-dummy-ignition: $(BUILD_FOLDER)
-	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/dummy-ignition dummy-ignition/main.go
-
 build-onprem-dependencies: 
 	skipper make build-image build-assisted-iso-generator-image
 
@@ -126,9 +131,6 @@ build-minimal-assisted-iso-generator-image: build-iso-generator
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
-build-dummy-ignition-image: build-dummy-ignition
-	docker build --network=host --build-arg NAMESPACE=$(NAMESPACE) -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
-
 update: build-image
 	docker push $(SERVICE)
 
@@ -136,11 +138,11 @@ update-minimal: build-minimal
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
 		-f Dockerfile.assisted-service . -t $(SERVICE)
 
-update-minikube: build build-dummy-ignition
+update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
 		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
-		-f Dockerfile.assisted-service . -t $(SERVICE) && docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION} \
-		&& docker build --network=host --build-arg GIT_REVISION --build-arg OS_IMAGE=$(BASE_OS_IMAGE) -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+		-f Dockerfile.assisted-service . -t $(SERVICE) \
+		&& docker build --network=host --build-arg GIT_REVISION --build-arg OS_IMAGE=$(BASE_OS_IMAGE)  -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 define publish_image
 	docker tag ${1} ${2}
@@ -208,17 +210,17 @@ deploy-role: deploy-namespace
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
-jenkins-deploy-for-subsystem: generate-keys build-dummy-ignition-image
+jenkins-deploy-for-subsystem: generate-keys
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && $(MAKE) deploy-wiremock deploy-all
 
 deploy-test: generate-keys
 	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
-	&& export DUMMY_IGNITION=${DUMMY_IGNITION} && ISO_CREATION=minikube-local-registry/assisted-iso-create:minikube-test \
+	&& export DUMMY_IGNITION="True" && ISO_CREATION=minikube-local-registry/assisted-iso-create:minikube-test \
 	$(MAKE) update-minikube deploy-wiremock deploy-all
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
-	podman run -dt --pod assisted-installer --env-file onprem-environment --name db centos/postgresql-12-centos7
+	podman run -dt --pod assisted-installer --env-file onprem-environment --name db quay.io/ocpmetal/postgresql-12-centos7
 	podman run -dt --pod assisted-installer --env-file onprem-environment --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
 
@@ -237,7 +239,7 @@ test:
 		TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
 		TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
 		ENABLE_AUTH="true" \
-		go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 30m
+		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 120m
 
 deploy-wiremock: deploy-namespace
 	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
@@ -258,7 +260,7 @@ unit-test:
 	sleep 3
 	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 postgres:12.3-alpine -c 'max_connections=10000'
 	until PGPASSWORD=admin pg_isready -U admin --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done
-	SKIP_UT_DB=1 go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) -cover || (docker kill postgres && /bin/false)
+	SKIP_UT_DB=1 go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) -cover -timeout 20m || (docker kill postgres && /bin/false)
 	docker kill postgres
 
 test-onprem:
@@ -266,7 +268,7 @@ test-onprem:
 	INVENTORY=127.0.0.1:8090 \
 	DB_HOST=127.0.0.1 \
 	DB_PORT=5432 \
-	go test -v ./subsystem/... -count=1 -ginkgo.focus=${FOCUS} -ginkgo.v -timeout 30m
+	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
 
 #########
 # Clean #
@@ -278,9 +280,7 @@ clean:
 	-rm -rf $(BUILD_FOLDER)
 
 subsystem-clean:
-	-$(KUBECTL) get pod -o name | grep dummyimage | xargs -r $(KUBECTL) delete 1> /dev/null || true
 	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete 1> /dev/null || true
-	-$(KUBECTL) get pod -o name | grep ignition-generator | xargs -r $(KUBECTL) delete 1> /dev/null || true
 
 clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true

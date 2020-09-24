@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/openshift/assisted-service/pkg/ocm"
-
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
-
-	"github.com/dgrijalva/jwt-go"
+	"github.com/openshift/assisted-service/internal/common"
+	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/sirupsen/logrus"
 )
 
@@ -85,11 +85,12 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 	user, err := a.client.Authentication.AuthenticatePullSecret(context.Background(), token)
 	if err != nil {
 		a.log.Errorf("Error Authenticating PullSecret token: %v", err)
-		return nil, err
+		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
 	err = a.storeAdminInPayload(user)
 	if err != nil {
-		return nil, err
+		a.log.Errorf("Unable to fetch user's capabilities: %v", err)
+		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
 	return user, nil
 }
@@ -174,7 +175,8 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 
 	err = a.storeAdminInPayload(payload)
 	if err != nil {
-		return nil, err
+		a.log.Errorf("Unable to fetch user's capabilities: %v", err)
+		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
 
 	if payload.Username == "" {
@@ -188,7 +190,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 func (a *AuthHandler) storeAdminInPayload(payload *ocm.AuthPayload) error {
 	admin, err := a.isAdmin(payload.Username)
 	if err != nil {
-		return fmt.Errorf("Unable to fetch user's capabilities: %v", err)
+		return err
 	}
 	payload.IsAdmin = admin
 	return nil
@@ -204,6 +206,7 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 		getToken := func(r *http.Request) string { return r.Header.Get(name) }
 
 		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
+			log := logutil.FromContext(r.Context(), a.log)
 			if !a.EnableAuth {
 				a.log.Debug("API Key Authentication Disabled")
 				return true, &ocm.AuthPayload{
@@ -217,7 +220,11 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 			}
 			p, err := authenticate(token)
 			if err != nil {
-				return false, nil, err
+				log.Errorf("Fail to authenticate. Error %v", err)
+				if common.IsKnownError(err) {
+					return true, nil, err
+				}
+				return true, nil, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 			return true, p, nil
 		})

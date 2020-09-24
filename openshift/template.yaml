@@ -25,6 +25,9 @@ parameters:
 - name: OCM_BASE_URL
   value: ''
   required: true
+- name: OCM_LOG_LEVEL
+  value: "info"
+  required: false
 - name: S3_USE_SSL
   value: "true"
 - name: IMAGE_BUILDER
@@ -87,6 +90,8 @@ parameters:
   value: "3"
 - name: RELEASE_TAG
   value: ''
+- name: AGENT_TIMEOUT_START
+  value: '3m'
 apiVersion: v1
 kind: Template
 metadata:
@@ -125,6 +130,7 @@ objects:
               httpGet:
                 path: /health
                 port: 8090
+              initialDelaySeconds: 30
             readinessProbe:
               httpGet:
                 path: /ready
@@ -210,6 +216,8 @@ objects:
                 value: ${ALLOWED_DOMAINS}
               - name: OCM_BASE_URL
                 value: ${OCM_BASE_URL}
+              - name: OCM_LOG_LEVEL
+                value: ${OCM_LOG_LEVEL}
               - name: IMAGE_BUILDER
                 value: ${IMAGE_BUILDER}:${IMAGE_TAG}
               - name: HW_VALIDATOR_MIN_RAM_GIB_MASTER
@@ -252,6 +260,8 @@ objects:
                 value: ${REGISTRY_CREDS}
               - name: RELEASE_TAG
                 value: ${RELEASE_TAG}
+              - name: AGENT_TIMEOUT_START
+                value: ${AGENT_TIMEOUT_START}
               - name: AWS_SHARED_CREDENTIALS_FILE
                 value: /etc/.aws/credentials
             volumeMounts:

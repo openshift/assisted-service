@@ -198,6 +198,7 @@ func isClusterInState(ctx context.Context, clusterID strfmt.UUID, state, stateIn
 	if swag.StringValue(c.Status) == state {
 		return stateInfo == IgnoreStateInfo || swag.StringValue(c.StatusInfo) == stateInfo, swag.StringValue(c.Status)
 	}
+	Expect(swag.StringValue(c.Status)).NotTo(Equal("error"))
 
 	return false, swag.StringValue(c.Status)
 }
@@ -218,6 +219,7 @@ func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state strin
 
 		// Wait for cluster state to be consistent
 		if successInRow >= minSuccessesInRow {
+			log.Infof("cluster %s has status %s", clusterID, state)
 			return
 		}
 
@@ -251,6 +253,7 @@ func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.
 
 		// Wait for host state to be consistent
 		if successInRow >= minSuccessesInRow {
+			log.Infof("host %s has status %s", clusterID, state)
 			return
 		}
 
@@ -620,7 +623,7 @@ var _ = Describe("cluster install", func() {
 			registerHostsAndSetRoles(clusterID, 4)
 		})
 
-		It("[only_k8s]disable enable master, monitor cluster status", func() {
+		It("[only_k8s]disable enable master", func() {
 			By("get masters")
 			c, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
@@ -635,13 +638,12 @@ var _ = Describe("cluster install", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(disableRet.GetPayload().Status)).Should(Equal(models.ClusterStatusInsufficient))
 
-			By("enable master, expect cluster to become ready")
-			enableRet, err := userBMClient.Installer.EnableHost(ctx, &installer.EnableHostParams{
+			By("enable master")
+			_, err = userBMClient.Installer.EnableHost(ctx, &installer.EnableHostParams{
 				HostID:    *hosts[0].ID,
 				ClusterID: clusterID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(enableRet.GetPayload().Status)).Should(Equal(models.ClusterStatusReady))
 		})
 
 		It("[only_k8s]register host while installing", func() {
@@ -779,6 +781,65 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			By("Verifying installation failed")
 			waitForClusterState(ctx, clusterID, "error", defaultWaitForClusterStateTimeout, "failed")
+
+		})
+
+		It("[only_k8s]install_cluster install command failed", func() {
+			By("Installing cluster")
+			c := installCluster(clusterID)
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
+			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+			Expect(len(c.Hosts)).Should(Equal(4))
+			for _, host := range c.Hosts {
+				Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusInstalling))
+			}
+
+			// post failure to execute the install command
+			_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+				ClusterID: clusterID,
+				HostID:    *c.Hosts[0].ID,
+				Reply: &models.StepReply{
+					ExitCode: bminventory.ContainerAlreadyRunningExitCode,
+					StepType: models.StepTypeInstall,
+					Output:   "blabla",
+					Error:    "Some random error",
+					StepID:   string(models.StepTypeInstall),
+				},
+			})
+			// For some reason the post step reply API return bad request in case the exit code isn't 0
+			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewPostStepReplyBadRequest())))
+
+			By("Verifying installation failed")
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, "failed")
+		})
+
+		It("[only_k8s]install_cluster assisted-installer already running", func() {
+			By("Installing cluster")
+			c := installCluster(clusterID)
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
+			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+			Expect(len(c.Hosts)).Should(Equal(4))
+			for _, host := range c.Hosts {
+				Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusInstalling))
+			}
+
+			// post failure to execute the install command due to a running assisted-installer
+			_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+				ClusterID: clusterID,
+				HostID:    *c.Hosts[0].ID,
+				Reply: &models.StepReply{
+					ExitCode: bminventory.ContainerAlreadyRunningExitCode,
+					StepType: models.StepTypeInstall,
+					Output:   "blabla",
+					Error:    "Trying to pull registry.stage.redhat.io/openshift4/assisted-installer-rhel8:v4.6.0-19...\nGetting image source signatures\nCopying blob sha256:e5fbed36397a9434b3330d01bcf53befb828e476be291c8e1c026a9753d59dfd\nCopying blob sha256:0fd3b5213a9b4639d32bf2ef6a3d7cc9891c4d8b23639ff7ae99d66ecb490a70\nCopying blob sha256:aebb8c5568533b57ee3da86262f7bff81383a2a624b9f54b9da3418705009901\nCopying config sha256:67bbdf0b8fb27217b9c5f6fa3593925309ef8c95b8b0be8b44713ba5f826fcee\nWriting manifest to image destination\nStoring signatures\nError: error creating container storage: the container name \"assisted-installer\" is already in use by \"331fe687f4af5c7adf75a9ddaaadfb801739ba1815bfcaafd4db7392bf9049bc\". You have to remove that container to be able to reuse that name.: that name is already in use\n",
+					StepID:   string(models.StepTypeInstall) + "-123465",
+				},
+			})
+			// For some reason the post step reply API return bad request in case the exit code isn't 0
+			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewPostStepReplyBadRequest())))
+			By("Verify host status is still installing")
+			_, status := isHostInState(ctx, clusterID, *c.Hosts[0].ID, models.HostStatusInstalling)
+			Expect(status).Should(Equal(models.HostStatusInstalling))
 
 		})
 
@@ -1534,6 +1595,64 @@ var _ = Describe("cluster install", func() {
 						continue
 					}
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+				}
+			})
+
+			It("[only_k8s]reset cluster with hosts after reboot and one disabled host", func() {
+				By("register a new worker")
+				disabledHost := registerHost(clusterID)
+				generateHWPostStepReply(disabledHost, validHwInfo, "hostname")
+				generateFAPostStepReply(disabledHost, validFreeAddresses)
+				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
+					},
+					},
+					ClusterID: clusterID,
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("disable worker")
+				_, err = userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
+					ClusterID: clusterID,
+					HostID:    *disabledHost.ID,
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusDisabled,
+					defaultWaitForHostStateTimeout)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+					clusterReadyStateInfo)
+
+				By("install cluster")
+				c := installCluster(clusterID)
+				Expect(len(c.Hosts)).Should(Equal(5))
+				for _, host := range c.Hosts {
+					if host.ID.String() == disabledHost.ID.String() {
+						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))
+						continue
+					}
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling,
+						defaultWaitForHostStateTimeout)
+					updateProgress(*host.ID, clusterID, models.HostStageRebooting)
+				}
+
+				By("reset installation and verify hosts statuses")
+				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c = rep.GetPayload()
+				Expect(len(c.Hosts)).Should(Equal(5))
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
+				for _, host := range c.Hosts {
+					if host.ID.String() == disabledHost.ID.String() {
+						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))
+						continue
+					}
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
+						defaultWaitForClusterStateTimeout)
 				}
 			})
 		})

@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/pkg/externalmocks"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
 	batch "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -67,7 +68,9 @@ var _ = Describe("job_test", func() {
 
 	Context("simple", func() {
 		BeforeEach(func() {
-			j = New(log, kube, Config{
+			s3api := s3wrapper.NewMockAPI(ctrl)
+
+			j = New(log, kube, s3api, Config{
 				MonitorLoopInterval: 0,
 				RetryInterval:       0,
 				RetryAttempts:       1,
@@ -127,7 +130,9 @@ var _ = Describe("job_test", func() {
 
 	Context("monitor_retry", func() {
 		BeforeEach(func() {
-			j = New(log, kube, Config{
+			s3api := s3wrapper.NewMockAPI(ctrl)
+
+			j = New(log, kube, s3api, Config{
 				MonitorLoopInterval: 0,
 				RetryInterval:       0,
 				RetryAttempts:       3,

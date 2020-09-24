@@ -233,4 +233,35 @@ var _ = Describe("Leader tests", func() {
 		log.Infof("Verifying leader still exists")
 		waitForPredicate(timeout, test1.isLeader)
 	})
+	It("Verify run with leader", func() {
+		index := 0
+		leader1 := leader.NewElector(client, cf, configMapName, log)
+		leader2 := leader.NewElector(client, cf, configMapName, log)
+		test1 := NewTest(leader1, "leader_1")
+		tests = []*Test{test1}
+
+		By("Start leader1")
+		test1.start()
+		waitForPredicate(timeout, test1.isLeader)
+
+		By("leader2 run with leader, verify it waiting")
+
+		go func() {
+			err := leader2.RunWithLeader(context.Background(), func() error {
+				index += 1
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+		}()
+		// lets wait and verify that leader is not changed
+		time.Sleep(5 * time.Second)
+		Expect(index).To(Equal(0))
+
+		By("stopping leader1, verify leader2 runs")
+		test1.stop()
+		waitForPredicate(timeout, test1.isNotLeader)
+		waitForPredicate(timeout, func() bool {
+			return index == 1 && !leader2.IsLeader()
+		})
+	})
 })

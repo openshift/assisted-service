@@ -180,6 +180,10 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster,
 	sortedHosts := make([]*models.Host, len(cluster.Hosts))
 	copy(sortedHosts, cluster.Hosts)
 	sort.Slice(sortedHosts, func(i, j int) bool {
+		// sort logic: masters before workers, between themselves - by hostname
+		if sortedHosts[i].Role != sortedHosts[j].Role {
+			return sortedHosts[i].Role == models.HostRoleMaster
+		}
 		return hostutil.GetHostnameForMsg(sortedHosts[i]) < hostutil.GetHostnameForMsg(sortedHosts[j])
 	})
 	for _, host := range sortedHosts {

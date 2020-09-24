@@ -276,3 +276,47 @@ func (o *GetNextStepsInternalServerError) WriteResponse(rw http.ResponseWriter, 
 		}
 	}
 }
+
+// GetNextStepsServiceUnavailableCode is the HTTP code returned for type GetNextStepsServiceUnavailable
+const GetNextStepsServiceUnavailableCode int = 503
+
+/*GetNextStepsServiceUnavailable Unavailable.
+
+swagger:response getNextStepsServiceUnavailable
+*/
+type GetNextStepsServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetNextStepsServiceUnavailable creates GetNextStepsServiceUnavailable with default headers values
+func NewGetNextStepsServiceUnavailable() *GetNextStepsServiceUnavailable {
+
+	return &GetNextStepsServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the get next steps service unavailable response
+func (o *GetNextStepsServiceUnavailable) WithPayload(payload *models.Error) *GetNextStepsServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get next steps service unavailable response
+func (o *GetNextStepsServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetNextStepsServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

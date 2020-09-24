@@ -319,3 +319,47 @@ func (o *DownloadClusterFilesInternalServerError) WriteResponse(rw http.Response
 		}
 	}
 }
+
+// DownloadClusterFilesServiceUnavailableCode is the HTTP code returned for type DownloadClusterFilesServiceUnavailable
+const DownloadClusterFilesServiceUnavailableCode int = 503
+
+/*DownloadClusterFilesServiceUnavailable Unavailable.
+
+swagger:response downloadClusterFilesServiceUnavailable
+*/
+type DownloadClusterFilesServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDownloadClusterFilesServiceUnavailable creates DownloadClusterFilesServiceUnavailable with default headers values
+func NewDownloadClusterFilesServiceUnavailable() *DownloadClusterFilesServiceUnavailable {
+
+	return &DownloadClusterFilesServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the download cluster files service unavailable response
+func (o *DownloadClusterFilesServiceUnavailable) WithPayload(payload *models.Error) *DownloadClusterFilesServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the download cluster files service unavailable response
+func (o *DownloadClusterFilesServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DownloadClusterFilesServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

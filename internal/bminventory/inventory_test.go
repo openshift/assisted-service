@@ -75,24 +75,6 @@ func strToUUID(s string) *strfmt.UUID {
 	return &u
 }
 
-func mockGenerateISOSuccess(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
-	if mockKubeJob != nil {
-		mockKubeJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
-	}
-	if mockLocalJob != nil {
-		mockLocalJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
-	}
-}
-
-func mockGenerateISOFailure(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
-	if mockKubeJob != nil {
-		mockKubeJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).Times(times)
-	}
-	if mockLocalJob != nil {
-		mockLocalJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).Times(times)
-	}
-}
-
 func mockGenerateInstallConfigSuccess(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
 	if mockKubeJob != nil {
 		mockKubeJob.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -156,9 +138,9 @@ var _ = Describe("GenerateClusterISO", func() {
 	RunGenerateClusterISOTests := func() {
 		It("success", func() {
 			clusterId := registerCluster(true).ID
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), fmt.Sprintf("discovery-image-%s", clusterId.String()))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
@@ -171,9 +153,9 @@ var _ = Describe("GenerateClusterISO", func() {
 
 		It("success with proxy", func() {
 			clusterId := registerClusterWithHTTPProxy(true, "http://1.1.1.1:1234").ID
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", SSH public key "+
 				"is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -218,8 +200,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			cluster.ImageInfo = &models.ImageInfo{GeneratorVersion: bm.Config.ImageBuilder}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(true)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
@@ -235,8 +217,8 @@ var _ = Describe("GenerateClusterISO", func() {
 
 		It("success with AWS S3", func() {
 			clusterId := registerCluster(true).ID
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(true)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
@@ -257,20 +239,9 @@ var _ = Describe("GenerateClusterISO", func() {
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISONotFound()))
 		})
 
-		It("failed_to_create_job", func() {
+		It("failed_to_upload_iso", func() {
 			clusterId := registerCluster(true).ID
-			mockGenerateISOFailure(mockKubeJob, mockLocalJob, 1)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOInternalServerError()))
-		})
-
-		It("job_failed", func() {
-			clusterId := registerCluster(true).ID
-			mockGenerateISOFailure(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
@@ -292,7 +263,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			cluster := registerCluster(true)
 			cluster.PullSecret = "{\"auths\":{\"another.cloud.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"
 			clusterId := cluster.ID
-			mockGenerateISOFailure(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
@@ -381,7 +352,7 @@ var _ = Describe("IgnitionParameters", func() {
 			})
 
 			Expect(err).Should(BeNil())
-			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": "quay.io" }`))
+			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
 		})
 	}
 
@@ -1251,6 +1222,36 @@ var _ = Describe("cluster", func() {
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
+			})
+
+			It("ssh key with newline", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56u" +
+					"ar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvH" +
+					"MAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqng" +
+					"qbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3f" +
+					"AC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAq" +
+					"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com gggggggg fdddddddddddddddddddddddd" +
+					"dddddddddddddddd"
+				sshKeyWithNewLine := sshKey + " \n"
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						SSHPublicKey: &sshKeyWithNewLine,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				var cluster common.Cluster
+				err = db.First(&cluster, "id = ?", clusterID).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cluster.SSHPublicKey).Should(Equal(sshKey))
 			})
 
 			It("empty pull-secret", func() {
@@ -2849,15 +2850,15 @@ var _ = Describe("proxySettingsForIgnition", func() {
 			},
 			{
 				"http://proxy.proxy", "", ".domain",
-				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": ".domain" }`,
+				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": [".domain"] }`,
 			},
 			{
 				"http://proxy.proxy", "https://proxy.proxy", ".domain",
-				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": ".domain" }`,
+				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": [".domain"] }`,
 			},
 			{
-				"", "https://proxy.proxy", ".domain",
-				`"proxy": { "httpsProxy": "https://proxy.proxy", "noProxy": ".domain" }`,
+				"", "https://proxy.proxy", ".domain,123.123.123.123",
+				`"proxy": { "httpsProxy": "https://proxy.proxy", "noProxy": [".domain","123.123.123.123"] }`,
 			},
 			{
 				"", "https://proxy.proxy", "",

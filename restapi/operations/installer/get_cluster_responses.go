@@ -276,3 +276,47 @@ func (o *GetClusterInternalServerError) WriteResponse(rw http.ResponseWriter, pr
 		}
 	}
 }
+
+// GetClusterServiceUnavailableCode is the HTTP code returned for type GetClusterServiceUnavailable
+const GetClusterServiceUnavailableCode int = 503
+
+/*GetClusterServiceUnavailable Unavailable.
+
+swagger:response getClusterServiceUnavailable
+*/
+type GetClusterServiceUnavailable struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetClusterServiceUnavailable creates GetClusterServiceUnavailable with default headers values
+func NewGetClusterServiceUnavailable() *GetClusterServiceUnavailable {
+
+	return &GetClusterServiceUnavailable{}
+}
+
+// WithPayload adds the payload to the get cluster service unavailable response
+func (o *GetClusterServiceUnavailable) WithPayload(payload *models.Error) *GetClusterServiceUnavailable {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get cluster service unavailable response
+func (o *GetClusterServiceUnavailable) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetClusterServiceUnavailable) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(503)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

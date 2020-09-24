@@ -1,25 +1,21 @@
 package job
 
 import (
-	"bytes"
 	"context"
 	"os"
-	"os/exec"
-	"strconv"
-	"strings"
+	"path/filepath"
 
-	"github.com/openshift/assisted-service/internal/network"
-	"github.com/pkg/errors"
+	"github.com/openshift/assisted-service/internal/ignition"
 
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/pkg/generator"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/sirupsen/logrus"
 )
 
+//go:generate mockgen -package=job -destination=mock_local_job.go . LocalJob
+
 type LocalJob interface {
-	Execute(pythonCommand string, pythonFilePath string, envVars []string, log logrus.FieldLogger) error
 	generator.ISOInstallConfigGenerator
 }
 
@@ -35,42 +31,29 @@ func NewLocalJob(log logrus.FieldLogger, cfg Config) *localJob {
 	}
 }
 
-func (j *localJob) Execute(pythonCommand string, pythonFilePath string, envVars []string, log logrus.FieldLogger) error {
-	cmd := exec.Command(pythonCommand, pythonFilePath)
-	cmd.Env = envVars
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	if err := cmd.Run(); err != nil {
-		log.Infoln("envVars: " + strings.Join(envVars, ","))
-		log.WithError(err).Errorf(pythonFilePath)
-		return err
-	}
-	log.Infoln(cmd.Stdout)
-	return nil
-}
-
-// creates install config
+// GenerateInstallConfig creates install config and ignition files
 func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error {
 	log := logutil.FromContext(ctx, j.log)
-	encodedDhcpFileContents, err := network.GetEncodedDhcpParamFileContents(&cluster)
+	workDir := filepath.Join(j.Config.WorkDir, cluster.ID.String())
+	installerCacheDir := filepath.Join(j.Config.WorkDir, "installercache")
+	err := os.Mkdir(workDir, 0755)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	// runs openshift-install to generate ignition files, then modifies them as necessary
+	var generator ignition.Generator
+	if j.Config.DummyIgnition {
+		generator = ignition.NewDummyGenerator(workDir, &cluster, log)
+	} else {
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, j.Config.ReleaseImage, log)
+	}
+	err = generator.Generate(cfg)
 	if err != nil {
-		wrapped := errors.Wrapf(err, "Could not create DHCP encoded file")
-		log.WithError(wrapped).Errorf("GenerateInstallConfig")
-		return wrapped
+		return err
 	}
-	envVars := append(os.Environ(),
-		"INSTALLER_CONFIG="+string(cfg),
-		"INVENTORY_ENDPOINT="+strings.TrimSpace(j.Config.ServiceBaseURL)+"/api/assisted-install/v1",
-		"IMAGE_NAME="+j.Config.IgnitionGenerator,
-		"CLUSTER_ID="+cluster.ID.String(),
-		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+j.Config.ReleaseImage,
-		"WORK_DIR=/data",
-		"SKIP_CERT_VERIFICATION="+strconv.FormatBool(j.Config.SkipCertVerification),
-	)
-	if encodedDhcpFileContents != "" {
-		envVars = append(envVars, "DHCP_ALLOCATION_FILE="+encodedDhcpFileContents)
-	}
-	return j.Execute("python3", "./data/render_files.py", envVars, log)
+
+	return nil
 }
 
 func (j *localJob) AbortInstallConfig(ctx context.Context, cluster common.Cluster) error {
@@ -78,24 +61,6 @@ func (j *localJob) AbortInstallConfig(ctx context.Context, cluster common.Cluste
 	return nil
 }
 
-func (j *localJob) GenerateISO(ctx context.Context, cluster common.Cluster, jobName string, imageName string, ignitionConfig string, eventsHandler events.Handler) error {
-	log := logutil.FromContext(ctx, j.log)
-	workDir := "/data"
-	cmd := exec.Command(workDir + "/assisted-iso-create")
-	cmd.Env = append(os.Environ(),
-		"IGNITION_CONFIG="+ignitionConfig,
-		"IMAGE_NAME="+imageName,
-		"COREOS_IMAGE="+workDir+"/livecd.iso",
-		"USE_S3=false",
-		"WORK_DIR="+workDir,
-	)
-
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-	if err := cmd.Run(); err != nil {
-		log.Errorf("assisted-iso-create failed: %s", out.String())
-		return err
-	}
+func (j *localJob) UploadBaseISO() error {
 	return nil
 }
