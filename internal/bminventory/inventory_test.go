@@ -2965,18 +2965,18 @@ var _ = Describe("Register Day2 cluster test", func() {
 	})
 
 	It("Create Day2 cluster fail upload", func() {
-                params := installer.RegisterDay2ClusterParams{
-                        HTTPRequest: request,
-                        NewDay2ClusterParams: &models.Day2ClusterCreateParams{
-                                APIVipDnsname:    &apiVIPDnsname,
-                                ID:               &clusterID,
-                                Name:             &clusterName,
-                                OpenshiftVersion: &openshiftVersion,
-                        },
-                }
-                fileName := fmt.Sprintf("%s/worker.ign", clusterID)
-                mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("dummy")).Times(1)
-                res := bm.RegisterDay2Cluster(ctx, params)
-                Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterDay2ClusterInternalServerError()))
-        })
+		params := installer.RegisterDay2ClusterParams{
+			HTTPRequest: request,
+			NewDay2ClusterParams: &models.Day2ClusterCreateParams{
+				APIVipDnsname:    &apiVIPDnsname,
+				ID:               &clusterID,
+				Name:             &clusterName,
+				OpenshiftVersion: &openshiftVersion,
+			},
+		}
+		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("dummy")).Times(1)
+		res := bm.RegisterDay2Cluster(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterDay2ClusterInternalServerError()))
+	})
 })
