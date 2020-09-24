@@ -140,7 +140,7 @@ update-minimal: build-minimal
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
 		-f Dockerfile.assisted-service . -t $(SERVICE)
 
-update-minikube: build
+_update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
 		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
 		-f Dockerfile.assisted-service . -t $(SERVICE) \
@@ -167,6 +167,9 @@ else ifdef DEPLOY_MANIFEST_PATH
 else ifdef DEPLOY_MANIFEST_TAG
   DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
 endif
+
+_verify_minikube:
+	minikube status
 
 deploy-all: $(BUILD_FOLDER) deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
 	echo "Deployment done"
@@ -213,13 +216,14 @@ deploy-role: deploy-namespace
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
-jenkins-deploy-for-subsystem: generate-keys
-	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && $(MAKE) deploy-wiremock deploy-all
+jenkins-deploy-for-subsystem: _verify_minikube generate-keys
+	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
+	$(MAKE) deploy-wiremock deploy-all
 
-deploy-test: generate-keys
+deploy-test: _verify_minikube generate-keys
 	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
 	&& export DUMMY_IGNITION="True" && ISO_CREATION=minikube-local-registry/assisted-iso-create:minikube-test \
-	$(MAKE) update-minikube deploy-wiremock deploy-all
+	$(MAKE) _update-minikube deploy-wiremock deploy-all
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
