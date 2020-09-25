@@ -7,7 +7,6 @@ import (
 
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 )
 
@@ -21,11 +20,6 @@ type authentication struct {
 }
 
 func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret string) (user *AuthPayload, err error) {
-	authUser, found := a.client.Cache.Get(pullSecret)
-	if found {
-		return authUser.(*AuthPayload), nil
-	}
-
 	connection, err := a.client.NewConnection()
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError,
@@ -64,7 +58,6 @@ func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret s
 	payload.FirstName = responseVal.Account().FirstName()
 	payload.LastName = responseVal.Account().LastName()
 	payload.Email = responseVal.Account().Email()
-	a.client.Cache.Set(pullSecret, payload, cache.DefaultExpiration)
 
 	return payload, nil
 }
