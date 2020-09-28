@@ -765,7 +765,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 		db          *gorm.DB
 		id          strfmt.UUID
 		clusterApi  *Manager
-		errTemplate = "Cluster %s is in %s state, host can register only in one of [insufficient ready pending-for-input]"
+		errTemplate = "Cluster %s is in %s state, host can register only in one of [insufficient ready pending-for-input adding-hosts]"
 		dbName      = "verify_register_host"
 	)
 
@@ -817,7 +817,7 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 		db          *gorm.DB
 		id          strfmt.UUID
 		clusterApi  *Manager
-		errTemplate = "Cluster %s is in %s state, cluster can be updated only in one of [insufficient ready pending-for-input]"
+		errTemplate = "Cluster %s is in %s state, cluster can be updated only in one of [insufficient ready pending-for-input adding-hosts]"
 		dbName      = "verify_cluster_updatability"
 	)
 

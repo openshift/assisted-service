@@ -255,9 +255,11 @@ var _ = Describe("RegisterHost", func() {
 			dstState           string
 			eventSeverity      string
 			eventMessage       string
+			origRole           models.HostRole
 			expectedRole       models.HostRole
 			expectedStatusInfo string
 			expectedInventory  string
+			hostKind           string
 		}{
 			{
 				srcState: models.HostStatusInstallingInProgress,
@@ -273,6 +275,8 @@ var _ = Describe("RegisterHost", func() {
 					"please reboot and fix boot order to boot from disk /dev/test-disk (test-serial)",
 				expectedRole:      models.HostRoleMaster,
 				expectedInventory: defaultInventory(),
+				hostKind:          models.HostKindHost,
+				origRole:          models.HostRoleMaster,
 			},
 			{
 				srcState: models.HostStatusResetting,
@@ -282,6 +286,8 @@ var _ = Describe("RegisterHost", func() {
 				dstState:          models.HostStatusResetting,
 				expectedRole:      models.HostRoleMaster,
 				expectedInventory: defaultInventory(),
+				hostKind:          models.HostKindHost,
+				origRole:          models.HostRoleMaster,
 			},
 			{
 				srcState: models.HostStatusResettingPendingUserAction,
@@ -294,6 +300,25 @@ var _ = Describe("RegisterHost", func() {
 					"(Waiting for host to send hardware details)",
 				expectedStatusInfo: statusInfoDiscovering,
 				expectedRole:       models.HostRoleMaster,
+				hostKind:           models.HostKindHost,
+				origRole:           models.HostRoleMaster,
+			},
+			{
+				srcState: models.HostStatusAddedToExistingCluster,
+				progress: models.HostProgressInfo{
+					CurrentStage: models.HostStageRebooting,
+				},
+				dstState:      models.HostStatusInstallingPendingUserAction,
+				eventSeverity: models.EventSeverityWarning,
+				eventMessage: "Host %s: updated status from \"added-to-existing-cluster\" to \"installing-pending-user-action\" " +
+					"(Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot " +
+					"order to boot from disk /dev/test-disk (test-serial))",
+				expectedStatusInfo: "Expected the host to boot from disk, but it booted the installation image - " +
+					"please reboot and fix boot order to boot from disk /dev/test-disk (test-serial)",
+				expectedRole:      models.HostRoleWorker,
+				expectedInventory: defaultInventory(),
+				hostKind:          models.HostKindAddToExistingClusterHost,
+				origRole:          models.HostRoleWorker,
 			},
 		}
 
@@ -304,11 +329,12 @@ var _ = Describe("RegisterHost", func() {
 				Expect(db.Create(&models.Host{
 					ID:                   &hostId,
 					ClusterID:            clusterId,
-					Role:                 models.HostRoleMaster,
+					Role:                 t.origRole,
 					Inventory:            defaultInventory(),
 					Status:               swag.String(t.srcState),
 					Progress:             &t.progress,
 					InstallationDiskPath: GetDeviceFullName(defaultDisk.Name),
+					Kind:                 &t.hostKind,
 				}).Error).ShouldNot(HaveOccurred())
 
 				if t.eventSeverity != "" && t.eventMessage != "" {

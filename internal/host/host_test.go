@@ -724,6 +724,7 @@ func getTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
 		Status:      swag.String(state),
 		Inventory:   defaultInventory(),
 		Role:        models.HostRoleWorker,
+		Kind:        swag.String(models.HostKindHost),
 		CheckedInAt: strfmt.DateTime(time.Now()),
 	}
 }
