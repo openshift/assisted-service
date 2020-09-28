@@ -1767,6 +1767,8 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 
 	txSuccess := false
 	tx := b.db.Begin()
+	tx = transaction.AddForUpdateQueryOption(tx)
+
 	defer func() {
 		if !txSuccess {
 			log.Error("update cluster failed")
@@ -1821,6 +1823,8 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 
 	txSuccess := false
 	tx := b.db.Begin()
+	tx = transaction.AddForUpdateQueryOption(tx)
+
 	defer func() {
 		if !txSuccess {
 			log.Error("update cluster failed")
