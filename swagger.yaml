@@ -416,9 +416,15 @@ paths:
           enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, logs]
           required: true
         - in: query
+          name: logs_type
+          type: string
+          enum: ["host", "controller", "all"]
+          required: false
+        - in: query
           name: host_id
           type: string
           format: uuid
+          required: false
       responses:
         200:
           description: Success.
@@ -1321,6 +1327,7 @@ paths:
       security:
         - agentAuth: []
       summary: Agent API to upload logs.
+      deprecated: true
       operationId: UploadHostLogs
       consumes:
         - multipart/form-data
@@ -1376,6 +1383,7 @@ paths:
       tags:
         - installer
       summary: Download host logs
+      deprecated: true
       security:
         - userAuth: []
       operationId: DownloadHostLogs
@@ -1423,6 +1431,62 @@ paths:
             $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/logs:
+    post:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      summary: Agent API to upload logs.
+      operationId: UploadLogs
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: formData
+          name: upfile
+          type: file
+          required: false
+          maxLength: 20971520  #20MB
+          description: The file to upload.
+          x-mimetype: application/zip
+        - in: query
+          name: logs_type
+          type: string
+          enum: ['host', 'controller']
+          required: true
+        - in: query
+          name: host_id
+          type: string
+          format: uuid
+          required: false
+      responses:
+        204:
+          description: Success.
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
     get:
       tags:
         - installer
@@ -1438,6 +1502,16 @@ paths:
           type: string
           format: uuid
           required: true
+        - in: query
+          name: logs_type
+          type: string
+          enum: ['host', 'controller', 'all']
+          required: false
+        - in: query
+          name: host_id
+          type: string
+          format: uuid
+          required: false
       responses:
         200:
           description: Success.
@@ -2747,3 +2821,11 @@ definitions:
       - 'sufficient-masters-count'
       - 'dns-domain-defined'
       - 'pull-secret-set'
+
+  logs_type:
+    type: string
+    enum:
+      - 'host'
+      - 'controller'
+      - 'all'
+      - ''
