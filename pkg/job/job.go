@@ -26,7 +26,7 @@ import (
 )
 
 const ignitionGeneratorPrefix = "ignition-generator"
-const UploadBaseISOJobName = s3wrapper.BaseObjectName
+const UploadBaseISOJobName = s3wrapper.BaseObjectName + "-"
 
 //go:generate mockgen -source=job.go -package=job -destination=mock_job.go
 type API interface {
@@ -196,8 +196,8 @@ func (k *kubeJob) uploadImageJob(jobName, imageName string) *batch.Job {
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: meta.ObjectMeta{
-			Name:      jobName,
-			Namespace: k.Config.Namespace,
+			GenerateName: jobName,
+			Namespace:    k.Config.Namespace,
 		},
 		Spec: batch.JobSpec{
 			BackoffLimit: swag.Int32(2),
@@ -290,12 +290,13 @@ func (k *kubeJob) UploadBaseISO() error {
 	log := logutil.FromContext(ctx, k.log)
 
 	log.Infof("Creating job %s", UploadBaseISOJobName)
-	if err := k.Create(ctx, k.uploadImageJob(UploadBaseISOJobName, s3wrapper.BaseObjectName)); err != nil {
+	uploadJob := k.uploadImageJob(UploadBaseISOJobName, s3wrapper.BaseObjectName)
+	if err := k.Create(ctx, uploadJob); err != nil {
 		log.WithError(err).Error("failed to create image job")
 		return err
 	}
 
-	if err := k.Monitor(ctx, UploadBaseISOJobName, k.Namespace); err != nil {
+	if err := k.Monitor(ctx, uploadJob.Name, k.Namespace); err != nil {
 		log.WithError(err).Error("image creation failed")
 		return err
 	}
