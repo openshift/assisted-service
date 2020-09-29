@@ -1948,6 +1948,9 @@ definitions:
       connectivity:
         x-go-custom-tag: gorm:"type:text"
         type: string
+      api_vip_connectivity:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
       inventory:
         x-go-custom-tag: gorm:"type:text"
         type: string
@@ -2779,7 +2782,7 @@ definitions:
       type: string
       pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
 
-  connectivity_check_api_request:
+  api_vip_connectivity_request:
     type: object
     required:
       - url
@@ -2787,6 +2790,13 @@ definitions:
       url:
         type: string
         description: URL address of the API.
+  
+  api_vip_connectivity_response:
+    type: object
+    properties:
+      is_success:
+        type: boolean
+        description: API VIP connecitivty check result.
 
   credentials:
     type: object
@@ -2829,6 +2839,7 @@ definitions:
       - 'hostname-valid'
       - 'belongs-to-machine-cidr'
       - 'time-skew-exists'
+      - 'api-vip-connected'
 
   dhcp_allocation_request:
     type: object

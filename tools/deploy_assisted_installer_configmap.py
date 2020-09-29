@@ -62,7 +62,8 @@ def main():
                         "CONTROLLER_IMAGE": "assisted-installer-controller",
                         "AGENT_DOCKER_IMAGE": "assisted-installer-agent",
                         "CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent",
-                        "INVENTORY_IMAGE": "assisted-installer-agent"}
+                        "INVENTORY_IMAGE": "assisted-installer-agent",
+                        "API_VIP_CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
                 if deploy_options.subsystem_test and env_var_name in subsystem_versions.keys():
                     image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, subsystem_versions[env_var_name])

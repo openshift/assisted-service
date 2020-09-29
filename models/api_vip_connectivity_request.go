@@ -12,18 +12,18 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// ConnectivityCheckAPIRequest connectivity check api request
+// APIVipConnectivityRequest api vip connectivity request
 //
-// swagger:model connectivity_check_api_request
-type ConnectivityCheckAPIRequest struct {
+// swagger:model api_vip_connectivity_request
+type APIVipConnectivityRequest struct {
 
 	// URL address of the API.
 	// Required: true
 	URL *string `json:"url"`
 }
 
-// Validate validates this connectivity check api request
-func (m *ConnectivityCheckAPIRequest) Validate(formats strfmt.Registry) error {
+// Validate validates this api vip connectivity request
+func (m *APIVipConnectivityRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateURL(formats); err != nil {
@@ -36,7 +36,7 @@ func (m *ConnectivityCheckAPIRequest) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ConnectivityCheckAPIRequest) validateURL(formats strfmt.Registry) error {
+func (m *APIVipConnectivityRequest) validateURL(formats strfmt.Registry) error {
 
 	if err := validate.Required("url", "body", m.URL); err != nil {
 		return err
@@ -46,7 +46,7 @@ func (m *ConnectivityCheckAPIRequest) validateURL(formats strfmt.Registry) error
 }
 
 // MarshalBinary interface implementation
-func (m *ConnectivityCheckAPIRequest) MarshalBinary() ([]byte, error) {
+func (m *APIVipConnectivityRequest) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -54,8 +54,8 @@ func (m *ConnectivityCheckAPIRequest) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *ConnectivityCheckAPIRequest) UnmarshalBinary(b []byte) error {
-	var res ConnectivityCheckAPIRequest
+func (m *APIVipConnectivityRequest) UnmarshalBinary(b []byte) error {
+	var res APIVipConnectivityRequest
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

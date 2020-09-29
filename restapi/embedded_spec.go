@@ -2658,6 +2658,27 @@ func init() {
         }
       }
     },
+    "api_vip_connectivity_request": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "description": "URL address of the API.",
+          "type": "string"
+        }
+      }
+    },
+    "api_vip_connectivity_response": {
+      "type": "object",
+      "properties": {
+        "is_success": {
+          "description": "API VIP connecitivty check result.",
+          "type": "boolean"
+        }
+      }
+    },
     "boot": {
       "type": "object",
       "properties": {
@@ -3180,18 +3201,6 @@ func init() {
         }
       }
     },
-    "connectivity_check_api_request": {
-      "type": "object",
-      "required": [
-        "url"
-      ],
-      "properties": {
-        "url": {
-          "description": "URL address of the API.",
-          "type": "string"
-        }
-      }
-    },
     "cpu": {
       "type": "object",
       "properties": {
@@ -3442,6 +3451,10 @@ func init() {
         "status_info"
       ],
       "properties": {
+        "api_vip_connectivity": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "bootstrap": {
           "type": "boolean"
         },
@@ -3720,7 +3733,8 @@ func init() {
         "hostname-unique",
         "hostname-valid",
         "belongs-to-machine-cidr",
-        "time-skew-exists"
+        "time-skew-exists",
+        "api-vip-connected"
       ]
     },
     "host_network": {
@@ -6770,6 +6784,27 @@ func init() {
         }
       }
     },
+    "api_vip_connectivity_request": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "description": "URL address of the API.",
+          "type": "string"
+        }
+      }
+    },
+    "api_vip_connectivity_response": {
+      "type": "object",
+      "properties": {
+        "is_success": {
+          "description": "API VIP connecitivty check result.",
+          "type": "boolean"
+        }
+      }
+    },
     "boot": {
       "type": "object",
       "properties": {
@@ -7274,18 +7309,6 @@ func init() {
         }
       }
     },
-    "connectivity_check_api_request": {
-      "type": "object",
-      "required": [
-        "url"
-      ],
-      "properties": {
-        "url": {
-          "description": "URL address of the API.",
-          "type": "string"
-        }
-      }
-    },
     "cpu": {
       "type": "object",
       "properties": {
@@ -7536,6 +7559,10 @@ func init() {
         "status_info"
       ],
       "properties": {
+        "api_vip_connectivity": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "bootstrap": {
           "type": "boolean"
         },
@@ -7814,7 +7841,8 @@ func init() {
         "hostname-unique",
         "hostname-valid",
         "belongs-to-machine-cidr",
-        "time-skew-exists"
+        "time-skew-exists",
+        "api-vip-connected"
       ]
     },
     "host_network": {

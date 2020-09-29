@@ -79,6 +79,7 @@ type API interface {
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
+	UpdateApiVipConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
@@ -327,6 +328,16 @@ func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, 
 		err := m.db.Model(h).Update("connectivity", connectivityReport).Error
 		if err != nil {
 			return errors.Wrapf(err, "failed to set connectivity to host %s", h.ID.String())
+		}
+	}
+	return nil
+}
+
+func (m *Manager) UpdateApiVipConnectivityReport(ctx context.Context, h *models.Host, apiVipConnectivityReport string) error {
+	logrus.Errorf("!!!! apiVipConnectivityReport: " + apiVipConnectivityReport)
+	if h.APIVipConnectivity != apiVipConnectivityReport {
+		if err := m.db.Model(h).Update("api_vip_connectivity", apiVipConnectivityReport).Error; err != nil {
+			return errors.Wrapf(err, "failed to set api_vip_connectivity to host %s", h.ID.String())
 		}
 	}
 	return nil

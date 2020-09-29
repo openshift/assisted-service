@@ -42,16 +42,17 @@ type InstructionManager struct {
 }
 
 type InstructionConfig struct {
-	ServiceBaseURL          string `envconfig:"SERVICE_BASE_URL"`
-	ServiceCACertPath       string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	InstallerImage          string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
-	ControllerImage         string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
-	ConnectivityCheckImage  string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	InventoryImage          string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	FreeAddressesImage      string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	DhcpLeaseAllocatorImage string `envconfig:"DHCP_LEASE_ALLOCATOR_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	SkipCertVerification    bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	InstallationTimeout     uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
+	ServiceBaseURL               string `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath            string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	InstallerImage               string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
+	ControllerImage              string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
+	ConnectivityCheckImage       string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	InventoryImage               string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	FreeAddressesImage           string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	DhcpLeaseAllocatorImage      string `envconfig:"DHCP_LEASE_ALLOCATOR_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	APIVIPConnectivityCheckImage string `envconfig:"API_VIP_CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	SkipCertVerification         bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	InstallationTimeout          uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator) *InstructionManager {
@@ -62,6 +63,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	resetCmd := NewResetInstallationCmd(log)
 	stopCmd := NewStopInstallationCmd(log)
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.DhcpLeaseAllocatorImage, db)
+	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.APIVIPConnectivityCheckImage)
 
 	return &InstructionManager{
 		log: log,
@@ -80,11 +82,11 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusError:                    {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
 		},
 		addHostsClusterToSteps: stateToStepsMap{
-			models.HostStatusKnown:                {[]CommandGetter{connectivityCmd}, defaultNextInstructionInSec},
-			models.HostStatusInsufficient:         {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusKnown:                {[]CommandGetter{connectivityCmd, apivipConnectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusInsufficient:         {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd}, defaultNextInstructionInSec},
 			models.HostStatusDisconnected:         {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusDiscovering:          {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec},
-			models.HostStatusPendingForInput:      {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusPendingForInput:      {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd}, defaultNextInstructionInSec},
 			models.HostStatusInstalling:           {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusInstallingInProgress: {[]CommandGetter{}, defaultNextInstructionInSec},
 			models.HostStatusDisabled:             {[]CommandGetter{}, defaultBackedOffInstructionInSec},
