@@ -56,12 +56,7 @@ import (
 )
 
 const kubeconfig = "kubeconfig"
-
-const (
-	ResourceKindHost    = "Host"
-	ResourceKindCluster = "Cluster"
-)
-
+const workerIgnition = "worker.ign"
 const DefaultUser = "kubeadmin"
 const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 
@@ -172,6 +167,17 @@ const ignitionConfigFormat = `{
 	  },
 	  "contents": { "source": "data:,{{.RH_ROOT_CA}}" }
 	}{{end}}]
+  }
+}`
+
+const nodeIgnitionFormat = `{
+  "ignition": {
+    "version": "3.1.0",
+    "config": {
+      "merge": [{
+        "source": "{{.SOURCE}}"
+      }]
+    }
   }
 }`
 
@@ -328,7 +334,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:                       &id,
 		Href:                     swag.String(url.String()),
-		Kind:                     swag.String(ResourceKindCluster),
+		Kind:                     swag.String(models.ClusterKindCluster),
 		BaseDNSDomain:            params.NewClusterParams.BaseDNSDomain,
 		ClusterNetworkCidr:       swag.StringValue(params.NewClusterParams.ClusterNetworkCidr),
 		ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
@@ -390,6 +396,67 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 
 	b.metricApi.ClusterRegistered(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
 	return installer.NewRegisterClusterCreated().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	id := params.NewAddHostsClusterParams.ID
+	url := installer.GetClusterURL{ClusterID: *id}
+	consoleURL := swag.StringValue(params.NewAddHostsClusterParams.APIVipDnsname)
+	clusterName := swag.StringValue(params.NewAddHostsClusterParams.Name)
+	openshiftVersion := swag.StringValue(params.NewAddHostsClusterParams.OpenshiftVersion)
+
+	log.Infof("Register add-hosts-cluster: %s with id %s", clusterName, id.String())
+
+	cluster := common.Cluster{Cluster: models.Cluster{
+		ID:               id,
+		Href:             swag.String(url.String()),
+		Kind:             swag.String(models.ClusterKindAddHostsCluster),
+		Name:             clusterName,
+		OpenshiftVersion: openshiftVersion,
+		UpdatedAt:        strfmt.DateTime{},
+	}}
+
+	err := validations.ValidateClusterNameFormat(clusterName)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	// Persist worker-ignition to s3 for cluster
+	ignitionConfig, err := b.formatNodeIgnitionFile(consoleURL)
+	if err != nil {
+		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
+	}
+	fileName := fmt.Sprintf("%s/%s", cluster.ID, workerIgnition)
+	err = b.objectHandler.Upload(ctx, ignitionConfig, fileName)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", fileName))
+	}
+
+	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
+	err = b.clusterApi.RegisterAddHostsCluster(ctx, &cluster)
+	if err != nil {
+		log.Errorf("failed to register cluster %s ", clusterName)
+		return installer.NewRegisterAddHostsClusterInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) formatNodeIgnitionFile(apiVipDnsname string) ([]byte, error) {
+	var ignitionParams = map[string]string{
+		"SOURCE": "http://" + apiVipDnsname + ":22624/config/worker",
+	}
+	tmpl, err := template.New("nodeIgnition").Parse(nodeIgnitionFormat)
+	if err != nil {
+		return nil, err
+	}
+	buf := &bytes.Buffer{}
+	if err = tmpl.Execute(buf, ignitionParams); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
@@ -1376,10 +1443,14 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	}
 
 	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
+	kind := swag.String(models.HostKindHost)
+	if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		kind = swag.String(models.HostKindAddToExistingClusterHost)
+	}
 	host = models.Host{
 		ID:                    params.NewHostParams.HostID,
 		Href:                  swag.String(url.String()),
-		Kind:                  swag.String(ResourceKindHost),
+		Kind:                  kind,
 		ClusterID:             params.ClusterID,
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,

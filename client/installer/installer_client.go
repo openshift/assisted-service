@@ -91,6 +91,9 @@ type API interface {
 	   PostStepReply posts the result of the operations from the host agent*/
 	PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error)
 	/*
+	   RegisterAddHostsCluster creates a new open shift bare metal cluster definition for adding nodes to and existing o c p cluster*/
+	RegisterAddHostsCluster(ctx context.Context, params *RegisterAddHostsClusterParams) (*RegisterAddHostsClusterCreated, error)
+	/*
 	   RegisterCluster creates a new open shift bare metal cluster definition*/
 	RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error)
 	/*
@@ -731,6 +734,31 @@ func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams)
 		return nil, err
 	}
 	return result.(*PostStepReplyNoContent), nil
+
+}
+
+/*
+RegisterAddHostsCluster creates a new open shift bare metal cluster definition for adding nodes to and existing o c p cluster
+*/
+func (a *Client) RegisterAddHostsCluster(ctx context.Context, params *RegisterAddHostsClusterParams) (*RegisterAddHostsClusterCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "RegisterAddHostsCluster",
+		Method:             "POST",
+		PathPattern:        "/add_hosts_clusters",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &RegisterAddHostsClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*RegisterAddHostsClusterCreated), nil
 
 }
 

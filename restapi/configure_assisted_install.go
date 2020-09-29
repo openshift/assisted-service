@@ -109,6 +109,9 @@ type InstallerAPI interface {
 	/* PostStepReply Posts the result of the operations from the host agent. */
 	PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder
 
+	/* RegisterAddHostsCluster Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster. */
+	RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder
+
 	/* RegisterCluster Creates a new OpenShift bare metal cluster definition. */
 	RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder
 
@@ -361,6 +364,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.PostStepReply(ctx, params)
+	})
+	api.InstallerRegisterAddHostsClusterHandler = installer.RegisterAddHostsClusterHandlerFunc(func(params installer.RegisterAddHostsClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.RegisterAddHostsCluster(ctx, params)
 	})
 	api.InstallerRegisterClusterHandler = installer.RegisterClusterHandlerFunc(func(params installer.RegisterClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

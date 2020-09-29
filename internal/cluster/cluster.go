@@ -35,6 +35,8 @@ const DhcpLeaseTimeoutMinutes = 2
 type RegistrationAPI interface {
 	// Register a new cluster
 	RegisterCluster(ctx context.Context, c *common.Cluster) error
+	// Register a new add-host cluster
+	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error
 	//deregister cluster
 	DeregisterCluster(ctx context.Context, c *common.Cluster) error
 }
@@ -122,6 +124,18 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error 
 	} else {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
 			fmt.Sprintf("Registered cluster \"%s\"", c.Name), time.Now())
+	}
+	return err
+}
+
+func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
+	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c)
+	if err != nil {
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
+			fmt.Sprintf("Failed to register add-hosts cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())
+	} else {
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
+			fmt.Sprintf("Registered add-hosts cluster \"%s\"", c.Name), time.Now())
 	}
 	return err
 }
