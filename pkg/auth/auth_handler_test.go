@@ -140,7 +140,7 @@ func TestAuth(t *testing.T) {
 				JwkCertURL: "",
 				JwkCert:    string(JwkCert),
 			}
-			AuthHandler := NewAuthHandler(fakeConfig, nil, log.WithField("pkg", "auth"))
+			AuthHandler := NewAuthHandler(fakeConfig, nil, log.WithField("pkg", "auth"), nil)
 
 			ocmAuthz := ocm.NewMockOCMAuthorization(ctrl)
 			ocmAuthz.EXPECT().CapabilityReview(

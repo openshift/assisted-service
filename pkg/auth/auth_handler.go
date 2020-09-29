@@ -13,7 +13,9 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
+	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	params "github.com/openshift/assisted-service/pkg/context"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/patrickmn/go-cache"
@@ -37,15 +39,17 @@ type AuthHandler struct {
 	utils      AUtilsInteface
 	log        logrus.FieldLogger
 	client     *ocm.Client
+	db         *gorm.DB
 }
 
-func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthHandler {
+func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) *AuthHandler {
 	a := &AuthHandler{
 		EnableAuth: cfg.EnableAuth,
 		AdminUsers: cfg.AdminUsers,
 		utils:      NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
 		client:     ocmCLient,
 		log:        log,
+		db:         db,
 	}
 	if a.EnableAuth {
 		err := a.populateKeyMap()
@@ -240,6 +244,31 @@ func (a *AuthHandler) isReadOnlyAdmin(username string) (bool, error) {
 		context.Background(), fmt.Sprint(username), CapabilityName, CapabilityType)
 }
 
+func (a *AuthHandler) isClusterOwnedByUser(clusterID string, payload *ocm.AuthPayload) (bool, error) {
+	roll, _ := a.getRole(payload)
+	if roll != ocm.UserRole {
+		return true, nil //admins has always access to the cluster
+	}
+
+	if clusterID == "" {
+		return true, nil //not an API of clusters, so grant permission to access
+	}
+
+	if a.db != nil {
+		err := a.db.First(&common.Cluster{}, "id = ? and user_name = ?", clusterID, payload.Username).Error
+		if err != nil {
+			//if user is not the owner of the cluster return false
+			if err == gorm.ErrRecordNotFound {
+				return false, nil
+			}
+			//in case of a real db error, indicate it to the caller
+			return false, err
+		}
+	}
+
+	return true, nil
+}
+
 func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate security.TokenAuthentication) runtime.Authenticator {
 	return func(name string, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
 		getToken := func(r *http.Request) string { return r.Header.Get(name) }
@@ -265,6 +294,19 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 				}
 				return true, nil, common.NewInfraError(http.StatusUnauthorized, err)
 			}
+			//this code is part of the authorization process and should move to authz_handler
+			//after https://github.com/go-openapi/runtime/issues/158 is resolved
+			clusterID := params.GetParam(r.Context(), params.ClusterId)
+			ownedBy, err := a.isClusterOwnedByUser(clusterID, p.(*ocm.AuthPayload))
+			if err != nil {
+				log.Errorf("Fail to verify access to cluster. Error %v", err)
+				return true, nil, common.NewApiError(http.StatusInternalServerError, err)
+			}
+			if !ownedBy {
+				log.Errorf("Unauthorized access to cluster %s by a user other than the owner\n", clusterID)
+				return true, nil, common.NewApiError(http.StatusNotFound, errors.New("Cluster Not Found"))
+			}
+
 			return true, p, nil
 		})
 	}

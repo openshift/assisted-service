@@ -65,7 +65,7 @@ func getTestAuthHandler() auth.AuthHandler {
 		JwkCertURL: "",
 		JwkCert:    "",
 	}
-	return *auth.NewAuthHandler(fakeConfigDisabled, nil, getTestLog().WithField("pkg", "auth"))
+	return *auth.NewAuthHandler(fakeConfigDisabled, nil, getTestLog().WithField("pkg", "auth"), nil)
 }
 
 func strToUUID(s string) *strfmt.UUID {
