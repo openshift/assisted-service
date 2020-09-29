@@ -7,7 +7,6 @@ import (
 
 	azv1 "github.com/openshift-online/ocm-sdk-go/authorizations/v1"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/pkg/errors"
 )
 
 type OCMAuthorization interface {
@@ -20,13 +19,7 @@ type authorization struct {
 }
 
 func (a authorization) AccessReview(ctx context.Context, username, action, resourceType string) (allowed bool, err error) {
-	connection, err := a.client.NewConnection()
-	if err != nil {
-		return false, err
-	}
-	defer connection.Close()
-
-	accessReview := connection.Authorizations().V1().AccessReview()
+	accessReview := a.client.connection.Authorizations().V1().AccessReview()
 
 	request, err := azv1.NewAccessReviewRequest().
 		AccountUsername(username).
@@ -53,14 +46,7 @@ func (a authorization) AccessReview(ctx context.Context, username, action, resou
 }
 
 func (a authorization) CapabilityReview(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error) {
-	connection, err := a.client.NewConnection()
-	if err != nil {
-		return false, common.NewApiError(http.StatusInternalServerError,
-			errors.Wrap(err, "Unable to build OCM connection"))
-	}
-	defer connection.Close()
-
-	capabilityReview := connection.Authorizations().V1().CapabilityReview()
+	capabilityReview := a.client.connection.Authorizations().V1().CapabilityReview()
 
 	request, err := azv1.NewCapabilityReviewRequest().
 		AccountUsername(username).

@@ -7,7 +7,6 @@ import (
 
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/pkg/errors"
 )
 
 //go:generate mockgen -source=pullsecret_auth.go -package=ocm -destination=mock_pullsecret_auth.go
@@ -20,14 +19,7 @@ type authentication struct {
 }
 
 func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret string) (user *AuthPayload, err error) {
-	connection, err := a.client.NewConnection()
-	if err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError,
-			errors.Wrap(err, "Unable to build OCM connection"))
-	}
-	defer connection.Close()
-
-	accessTokenAPI := connection.AccountsMgmt().V1()
+	accessTokenAPI := a.client.connection.AccountsMgmt().V1()
 	request, err := amgmtv1.NewTokenAuthorizationRequest().AuthorizationToken(pullSecret).Build()
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
