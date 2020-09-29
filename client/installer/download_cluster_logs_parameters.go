@@ -62,6 +62,10 @@ type DownloadClusterLogsParams struct {
 
 	/*ClusterID*/
 	ClusterID strfmt.UUID
+	/*HostID*/
+	HostID *strfmt.UUID
+	/*LogsType*/
+	LogsType *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -112,6 +116,28 @@ func (o *DownloadClusterLogsParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
+// WithHostID adds the hostID to the download cluster logs params
+func (o *DownloadClusterLogsParams) WithHostID(hostID *strfmt.UUID) *DownloadClusterLogsParams {
+	o.SetHostID(hostID)
+	return o
+}
+
+// SetHostID adds the hostId to the download cluster logs params
+func (o *DownloadClusterLogsParams) SetHostID(hostID *strfmt.UUID) {
+	o.HostID = hostID
+}
+
+// WithLogsType adds the logsType to the download cluster logs params
+func (o *DownloadClusterLogsParams) WithLogsType(logsType *string) *DownloadClusterLogsParams {
+	o.SetLogsType(logsType)
+	return o
+}
+
+// SetLogsType adds the logsType to the download cluster logs params
+func (o *DownloadClusterLogsParams) SetLogsType(logsType *string) {
+	o.LogsType = logsType
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *DownloadClusterLogsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -123,6 +149,38 @@ func (o *DownloadClusterLogsParams) WriteToRequest(r runtime.ClientRequest, reg 
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
+	}
+
+	if o.HostID != nil {
+
+		// query param host_id
+		var qrHostID strfmt.UUID
+		if o.HostID != nil {
+			qrHostID = *o.HostID
+		}
+		qHostID := qrHostID.String()
+		if qHostID != "" {
+			if err := r.SetQueryParam("host_id", qHostID); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.LogsType != nil {
+
+		// query param logs_type
+		var qrLogsType string
+		if o.LogsType != nil {
+			qrLogsType = *o.LogsType
+		}
+		qLogsType := qrLogsType
+		if qLogsType != "" {
+			if err := r.SetQueryParam("logs_type", qLogsType); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if len(res) > 0 {

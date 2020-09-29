@@ -132,6 +132,9 @@ type InstallerAPI interface {
 
 	/* UploadHostLogs Agent API to upload logs. */
 	UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder
+
+	/* UploadLogs Agent API to upload logs. */
+	UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder
 }
 
 //go:generate mockery -name ManagedDomainsAPI -inpkg
@@ -401,6 +404,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UploadHostLogs(ctx, params)
+	})
+	api.InstallerUploadLogsHandler = installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.UploadLogs(ctx, params)
 	})
 	api.ServerShutdown = func() {}
 	return api.Serve(c.InnerMiddleware), api, nil

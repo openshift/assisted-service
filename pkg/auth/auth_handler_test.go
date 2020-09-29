@@ -326,6 +326,10 @@ func (f fakeInventory) DownloadClusterLogs(ctx context.Context, params installer
 	panic("Implement Me!")
 }
 
+func (f fakeInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 var mockOcmAuthFailure = func(a *ocm.MockOCMAuthentication) {

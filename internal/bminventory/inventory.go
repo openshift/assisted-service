@@ -3,6 +3,8 @@ package bminventory
 import (
 	"bytes"
 	"context"
+	"io"
+	"path/filepath"
 
 	"github.com/openshift/assisted-service/internal/hostutil"
 
@@ -15,7 +17,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1884,7 +1885,10 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID, params.FileName)
 
 	if params.FileName == "logs" {
-		fullFileName, err = b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID)
+		if params.HostID != nil {
+			*params.LogsType = string(models.LogsTypeHost)
+		}
+		fullFileName, _, err = b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID, swag.StringValue(params.LogsType))
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
@@ -1928,22 +1932,40 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig, contentLength)
 }
 
-func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID) (string, error) {
+func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
 	var fileName string
-	if hostId != nil {
-		host, err := b.getHost(ctx, clusterId.String(), hostId.String())
-		if err != nil {
-			return "", err
+	var downloadFileName string
+	c, err := b.getCluster(ctx, clusterId.String())
+	if err != nil {
+		return "", "", err
+	}
+	switch logsType {
+	case string(models.LogsTypeHost):
+		if hostId == nil {
+			return "", "", common.NewApiError(http.StatusBadRequest, errors.Errorf("Host ID must be provided for downloading host logs"))
 		}
-		fileName = b.getLogsFullName(clusterId.String(), host.ID.String())
-	} else {
-		var err error
-		fileName, err = b.prepareClusterLogs(ctx, clusterId.String())
+		var hostObject *models.Host
+		hostObject, err = b.getHost(ctx, clusterId.String(), hostId.String())
 		if err != nil {
-			return "", err
+			return "", "", err
+		}
+		if hostObject.LogsCollectedAt == strfmt.DateTime(time.Time{}) {
+			return "", "", common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", hostId))
+		}
+		fileName = b.getLogsFullName(clusterId.String(), hostObject.ID.String())
+		downloadFileName = fmt.Sprintf("%s_%s", hostutil.GetHostnameForMsg(hostObject), filepath.Base(fileName))
+	case string(models.LogsTypeController):
+		fileName = b.getLogsFullName(clusterId.String(), logsType)
+		downloadFileName = fmt.Sprintf("%s_%s.tar.gz", clusterId, logsType)
+	default:
+		fileName, err = b.prepareClusterLogs(ctx, c)
+		downloadFileName = fmt.Sprintf("%s_%s", clusterId, filepath.Base(fileName))
+		if err != nil {
+			return "", "", common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
-	return fileName, nil
+
+	return fileName, downloadFileName, nil
 }
 
 func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID, fileName string) error {
@@ -2503,7 +2525,15 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 	return installer.NewGetFreeAddressesOK().WithPayload(results)
 }
 
-func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
+func (b *bareMetalInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
+	err := b.uploadLogs(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewUploadLogsNoContent()
+}
+
+func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.UploadLogsParams) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Uploading logs from host %s in cluster %s", params.HostID, params.ClusterID)
 
@@ -2517,13 +2547,19 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 		}
 	}()
 
-	currentHost, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		return common.GenerateErrorResponder(err)
+	if params.LogsType == string(models.LogsTypeHost) {
+		err := b.uploadHostLogs(ctx, params.ClusterID.String(), params.HostID.String(), params.Upfile)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
-	fileName := b.getLogsFullName(params.ClusterID.String(), params.HostID.String())
-
+	_, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		common.GenerateErrorResponder(err)
+	}
+	fileName := b.getLogsFullName(params.ClusterID.String(), params.LogsType)
 	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
 	err = b.objectHandler.UploadStream(ctx, params.Upfile, fileName)
 	if err != nil {
@@ -2531,30 +2567,70 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	err = b.hostApi.SetUploadLogsAt(ctx, currentHost, b.db)
+	log.Infof("Done uploading file %s", fileName)
+	return nil
+}
+
+func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, clusterId string, hostId string, upFile io.ReadCloser) error {
+	log := logutil.FromContext(ctx, b.log)
+	currentHost, err := b.getHost(ctx, clusterId, hostId)
 	if err != nil {
-		log.WithError(err).Errorf("Failed update host db")
+		return err
+	}
+
+	fileName := b.getLogsFullName(clusterId, hostId)
+
+	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
+	err = b.objectHandler.UploadStream(ctx, upFile, fileName)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to upload %s to s3 for host %s", fileName, hostId)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	log.Infof("Done uploading file %s", fileName)
+	err = b.hostApi.SetUploadLogsAt(ctx, currentHost, b.db)
+	if err != nil {
+		log.WithError(err).Errorf("Failed update host %s logs_collected_at flag", hostId)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Downloading logs from cluster %s", params.ClusterID)
+	fileName, downloadFileName, err := b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID, swag.StringValue(params.LogsType))
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
+	if err != nil {
+		if _, ok := err.(s3wrapper.NotFound); ok {
+			log.WithError(err).Warnf("File not found %s", fileName)
+			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs of type %s for cluster %s "+
+				"were not found", swag.StringValue(params.LogsType), params.ClusterID))
+		}
+		log.WithError(err).Errorf("failed to download file %s", fileName)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(respBody), downloadFileName, contentLength)
+}
+
+func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
+	err := b.uploadLogs(ctx, installer.UploadLogsParams{ClusterID: params.ClusterID, HostID: &params.HostID, HTTPRequest: params.HTTPRequest,
+		LogsType: string(models.LogsTypeHost), Upfile: params.Upfile})
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 	return installer.NewUploadHostLogsNoContent()
 }
 
 func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Downloading logs from host %s in cluster %s", params.HostID, params.ClusterID)
-	hostObject, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	fileName, downloadFileName, err := b.getLogFileForDownload(ctx, &params.ClusterID, &params.HostID, "host")
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-
-	if hostObject.LogsCollectedAt == strfmt.DateTime(time.Time{}) {
-		return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", params.HostID))
-	}
-
-	fileName := b.getLogsFullName(params.ClusterID.String(), params.HostID.String())
-	// TODO add validation after MGMT-1827
 
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
 	if err != nil {
@@ -2567,47 +2643,19 @@ func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params instal
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	downloadFileName := fmt.Sprintf("%s_%s", hostutil.GetHostnameForMsg(hostObject), filepath.Base(fileName))
 	return filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(respBody), downloadFileName, contentLength)
 }
 
-func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Downloading logs from cluster %s", params.ClusterID)
-	fileName, err := b.prepareClusterLogs(ctx, params.ClusterID.String())
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
-	if err != nil {
-		if _, ok := err.(s3wrapper.NotFound); ok {
-			log.WithError(err).Warnf("File not found %s", fileName)
-			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", params.ClusterID))
-		}
-
-		log.WithError(err).Errorf("failed to download file %s", fileName)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	return filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(respBody), fileName, contentLength)
-}
-
-func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, clusterId string) (string, error) {
-	c, err := b.getCluster(ctx, clusterId)
-	if err != nil {
-		return "", err
-	}
-
-	fileName, err := b.clusterApi.CreateTarredClusterLogs(ctx, c, b.objectHandler)
+func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, cluster *common.Cluster) (string, error) {
+	fileName, err := b.clusterApi.CreateTarredClusterLogs(ctx, cluster, b.objectHandler)
 	if err != nil {
 		return "", err
 	}
 	return fileName, nil
 }
 
-func (b *bareMetalInventory) getLogsFullName(clusterId string, hostId string) string {
-	return fmt.Sprintf("%s/logs/%s/logs.tar.gz", clusterId, hostId)
+func (b *bareMetalInventory) getLogsFullName(clusterId string, logId string) string {
+	return fmt.Sprintf("%s/logs/%s/logs.tar.gz", clusterId, logId)
 }
 
 func (b *bareMetalInventory) getHost(ctx context.Context, clusterId string, hostId string) (*models.Host, error) {

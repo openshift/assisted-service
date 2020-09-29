@@ -482,3 +482,17 @@ func (mr *MockInstallerAPIMockRecorder) UploadHostLogs(arg0, arg1 interface{}) *
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadHostLogs", reflect.TypeOf((*MockInstallerAPI)(nil).UploadHostLogs), arg0, arg1)
 }
+
+// UploadLogs mocks base method
+func (m *MockInstallerAPI) UploadLogs(arg0 context.Context, arg1 installer.UploadLogsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadLogs", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// UploadLogs indicates an expected call of UploadLogs
+func (mr *MockInstallerAPIMockRecorder) UploadLogs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadLogs", reflect.TypeOf((*MockInstallerAPI)(nil).UploadLogs), arg0, arg1)
+}
