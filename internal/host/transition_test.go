@@ -1019,6 +1019,48 @@ var _ = Describe("Refresh Host", func() {
 	})
 
 	Context("host installation timeout", func() {
+		var srcState = models.HostStatusInstalling
+		timePassedTypes := map[string]time.Duration{
+			"under_timeout": 5 * time.Minute,
+			"over_timeout":  90 * time.Minute,
+		}
+
+		for passedTimeKey, passedTimeValue := range timePassedTypes {
+			name := fmt.Sprintf("installing %s", passedTimeKey)
+			It(name, func() {
+				passedTimeKind := passedTimeKey
+				passedTime := passedTimeValue
+				hostCheckInAt := strfmt.DateTime(time.Now())
+				host = getTestHost(hostId, clusterId, srcState)
+				host.Inventory = masterInventory()
+				host.Role = models.HostRoleMaster
+				host.CheckedInAt = hostCheckInAt
+				host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-passedTime))
+
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				cluster = getTestCluster(clusterId, "1.2.3.0/24")
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+				if passedTimeKind == "over_timeout" {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+						gomock.Any(), gomock.Any())
+				}
+				err := hapi.RefreshStatus(ctx, &host, db)
+
+				Expect(err).ToNot(HaveOccurred())
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+				if passedTimeKind == "under_timeout" {
+					Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstalling))
+				} else {
+					Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
+					Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal("Host failed to install due to timeout while starting installation"))
+				}
+			})
+		}
+	})
+
+	Context("host installationInProgress timeout", func() {
 		var srcState string
 		var invalidStage models.HostStage = "not_mentioned_stage"
 
@@ -1038,8 +1080,10 @@ var _ = Describe("Refresh Host", func() {
 
 		for j := range installationStages {
 			stage := installationStages[j]
-			for passedTimeKind, passedTime := range timePassedTypes {
-				name := fmt.Sprintf("installation stage %s %s", stage, passedTimeKind)
+			for passedTimeKey, passedTimeValue := range timePassedTypes {
+				name := fmt.Sprintf("installationInProgress stage %s %s", stage, passedTimeKey)
+				passedTimeKind := passedTimeKey
+				passedTime := passedTimeValue
 				It(name, func() {
 					hostCheckInAt := strfmt.DateTime(time.Now())
 					srcState = models.HostStatusInstallingInProgress
@@ -1058,6 +1102,7 @@ var _ = Describe("Refresh Host", func() {
 					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 					cluster = getTestCluster(clusterId, "1.2.3.0/24")
 					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
 					if passedTimeKind == "over_timeout" {
 						mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
 							gomock.Any(), gomock.Any())
