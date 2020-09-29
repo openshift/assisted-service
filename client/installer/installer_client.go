@@ -117,6 +117,9 @@ type API interface {
 	/*
 	   UploadHostLogs agents API to upload logs*/
 	UploadHostLogs(ctx context.Context, params *UploadHostLogsParams) (*UploadHostLogsNoContent, error)
+	/*
+	   UploadLogs agents API to upload logs*/
+	UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error)
 }
 
 // New creates a new installer API client.
@@ -959,5 +962,30 @@ func (a *Client) UploadHostLogs(ctx context.Context, params *UploadHostLogsParam
 		return nil, err
 	}
 	return result.(*UploadHostLogsNoContent), nil
+
+}
+
+/*
+UploadLogs agents API to upload logs
+*/
+func (a *Client) UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UploadLogs",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/logs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"multipart/form-data"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UploadLogsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UploadLogsNoContent), nil
 
 }

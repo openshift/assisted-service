@@ -157,6 +157,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerUploadHostLogsHandler: installer.UploadHostLogsHandlerFunc(func(params installer.UploadHostLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UploadHostLogs has not yet been implemented")
 		}),
+		InstallerUploadLogsHandler: installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.UploadLogs has not yet been implemented")
+		}),
 
 		// Applies when the "X-Secret-Key" header is set
 		AgentAuthAuth: func(token string) (interface{}, error) {
@@ -291,6 +294,8 @@ type AssistedInstallAPI struct {
 	InstallerUploadClusterIngressCertHandler installer.UploadClusterIngressCertHandler
 	// InstallerUploadHostLogsHandler sets the operation handler for the upload host logs operation
 	InstallerUploadHostLogsHandler installer.UploadHostLogsHandler
+	// InstallerUploadLogsHandler sets the operation handler for the upload logs operation
+	InstallerUploadLogsHandler installer.UploadLogsHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -487,6 +492,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerUploadHostLogsHandler == nil {
 		unregistered = append(unregistered, "installer.UploadHostLogsHandler")
+	}
+	if o.InstallerUploadLogsHandler == nil {
+		unregistered = append(unregistered, "installer.UploadLogsHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -737,6 +745,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewUploadHostLogs(o.context, o.InstallerUploadHostLogsHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/logs"] = installer.NewUploadLogs(o.context, o.InstallerUploadLogsHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP
