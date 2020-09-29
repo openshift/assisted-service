@@ -23,6 +23,7 @@ endif # TARGET
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
+OPENSHIFT_INSTALL_RELEASE_IMAGE := $(or ${OPENSHIFT_INSTALL_RELEASE_IMAGE},quay.io/ocpmetal/ocp-release:4.6.0-0.nightly-2020-08-31-220837)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
@@ -195,7 +196,8 @@ deploy-inventory-service-file: deploy-namespace
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
-		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
+		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS) \
+		--ocp-release $(OPENSHIFT_INSTALL_RELEASE_IMAGE)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
