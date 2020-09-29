@@ -132,13 +132,13 @@ var _ = Describe("TestClusterMonitoring", func() {
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 				Expect(err).ShouldNot(HaveOccurred())
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 			})
 
 			It("installing -> installing", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
-
 				shouldHaveUpdated = false
 				expectedState = "installing"
 			})
@@ -148,7 +148,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing", db)
 				createWorkerHost(id, "installing", db)
 				createWorkerHost(id, "error", db)
-
 				shouldHaveUpdated = false
 				expectedState = "installing"
 			})
@@ -158,7 +157,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installed", db)
 				createWorkerHost(id, "installing", db)
 				createWorkerHost(id, "installing", db)
-
 				shouldHaveUpdated = false
 				expectedState = "installing"
 			})
@@ -166,7 +164,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
-
 				shouldHaveUpdated = false
 				expectedState = "installing"
 			})
@@ -260,7 +257,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
 				createWorkerHost(id, "error", db)
-
 				shouldHaveUpdated = true
 				expectedState = "error"
 			})

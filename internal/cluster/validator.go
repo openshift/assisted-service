@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -263,6 +265,13 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 // 3. have at least 2 workers or auto-assign hosts that can become workers, if workers configured
 // 4. having more then 3 known masters is illegal
 func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) validationStatus {
+	clusterInstallationStatuses := []string{
+		models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalling, models.ClusterStatusFinalizing,
+		models.ClusterStatusInstalled,
+	}
+	if funk.ContainsString(clusterInstallationStatuses, swag.StringValue(c.cluster.Status)) {
+		return boolValue(true)
+	}
 
 	knownHosts, ok := MapHostsByStatus(c.cluster)[models.HostStatusKnown]
 	if !ok { //if no known hosts exist, there is no sufficient master count
@@ -326,19 +335,30 @@ func (v *clusterValidator) printSufficientMastersCount(context *clusterPreproces
 }
 
 func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext) validationStatus {
+	clusterInstallationStatuses := []string{
+		models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalling, models.ClusterStatusFinalizing,
+		models.ClusterStatusInstalled,
+	}
+	if funk.ContainsString(clusterInstallationStatuses, swag.StringValue(c.cluster.Status)) {
+		return boolValue(true)
+	}
 	numberOfEnabledHosts := 0
 	foundNotKnownHost := false
+	notReadyStatuses := []string{
+		models.HostStatusDiscovering, models.HostStatusInsufficient, models.HostStatusPendingForInput,
+		models.HostStatusDisconnected, models.HostStatusResettingPendingUserAction,
+	}
+
 	for _, host := range c.cluster.Hosts {
 		if swag.StringValue(host.Status) != models.HostStatusDisabled {
 			numberOfEnabledHosts++
-			if swag.StringValue(host.Status) != models.HostStatusKnown {
+			if funk.ContainsString(notReadyStatuses, swag.StringValue(host.Status)) {
 				foundNotKnownHost = true
 			}
-
 		}
 	}
 	if numberOfEnabledHosts < common.MinMasterHostsNeededForInstallation {
-		return ValidationPending
+		return ValidationFailure
 	}
 
 	return boolValue(!foundNotKnownHost)
@@ -346,12 +366,10 @@ func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext
 
 func (v *clusterValidator) printAllHostsAreReadyToInstall(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
-	case ValidationPending:
-		return "Not enough discovered hosts"
 	case ValidationSuccess:
 		return "All hosts in the cluster are ready to install."
 	case ValidationFailure:
-		return "The cluster has hosts that are not ready to install."
+		return "The cluster has hosts that are not ready to install or there are not enough discovered hosts."
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
 	}
