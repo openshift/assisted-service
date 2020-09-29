@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/app"
 	"github.com/openshift/assisted-service/pkg/auth"
+	paramctx "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
@@ -256,6 +257,15 @@ func main() {
 	imageExpirationMonitor.Start()
 	defer imageExpirationMonitor.Stop()
 
+	//Set inner handler chain. Inner handlers requires access to the Route
+	innerHandler := func() func(http.Handler) http.Handler {
+		return func(h http.Handler) http.Handler {
+			wrapped := metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry)(h)
+			wrapped = paramctx.ContextHandler()(wrapped)
+			return wrapped
+		}
+	}
+
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:       authHandler.AuthAgentAuth,
 		AuthUserAuth:        authHandler.AuthUserAuth,
@@ -266,7 +276,7 @@ func main() {
 		Logger:              log.Printf,
 		VersionsAPI:         versionHandler,
 		ManagedDomainsAPI:   domainHandler,
-		InnerMiddleware:     metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry),
+		InnerMiddleware:     innerHandler(),
 	})
 	if err != nil {
 		log.Fatal("Failed to init rest handler,", err)
