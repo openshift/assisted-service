@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"io"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -15,18 +17,18 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// NewGetPresignedForClusterFilesParams creates a new GetPresignedForClusterFilesParams object
+// NewUploadLogsParams creates a new UploadLogsParams object
 // no default values defined in spec.
-func NewGetPresignedForClusterFilesParams() GetPresignedForClusterFilesParams {
+func NewUploadLogsParams() UploadLogsParams {
 
-	return GetPresignedForClusterFilesParams{}
+	return UploadLogsParams{}
 }
 
-// GetPresignedForClusterFilesParams contains all the bound params for the get presigned for cluster files operation
+// UploadLogsParams contains all the bound params for the upload logs operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters GetPresignedForClusterFiles
-type GetPresignedForClusterFilesParams struct {
+// swagger:parameters UploadLogs
+type UploadLogsParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -37,38 +39,42 @@ type GetPresignedForClusterFilesParams struct {
 	*/
 	ClusterID strfmt.UUID
 	/*
-	  Required: true
-	  In: query
-	*/
-	FileName string
-	/*
 	  In: query
 	*/
 	HostID *strfmt.UUID
 	/*
+	  Required: true
 	  In: query
 	*/
-	LogsType *string
+	LogsType string
+	/*The file to upload.
+	  Max Length: 20971520
+	  In: formData
+	*/
+	Upfile io.ReadCloser
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewGetPresignedForClusterFilesParams() beforehand.
-func (o *GetPresignedForClusterFilesParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewUploadLogsParams() beforehand.
+func (o *UploadLogsParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
 
 	qs := runtime.Values(r.URL.Query())
 
-	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
-	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
-		res = append(res, err)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		if err != http.ErrNotMultipart {
+			return errors.New(400, "%v", err)
+		} else if err := r.ParseForm(); err != nil {
+			return errors.New(400, "%v", err)
+		}
 	}
 
-	qFileName, qhkFileName, _ := qs.GetOK("file_name")
-	if err := o.bindFileName(qFileName, qhkFileName, route.Formats); err != nil {
+	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
+	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -82,6 +88,17 @@ func (o *GetPresignedForClusterFilesParams) BindRequest(r *http.Request, route *
 		res = append(res, err)
 	}
 
+	upfile, upfileHeader, err := r.FormFile("upfile")
+	if err != nil && err != http.ErrMissingFile {
+		res = append(res, errors.New(400, "reading file %q failed: %v", "upfile", err))
+	} else if err == http.ErrMissingFile {
+		// no-op for missing but optional file parameter
+	} else if err := o.bindUpfile(upfile, upfileHeader); err != nil {
+		res = append(res, err)
+	} else {
+		o.Upfile = &runtime.File{Data: upfile, Header: upfileHeader}
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -89,7 +106,7 @@ func (o *GetPresignedForClusterFilesParams) BindRequest(r *http.Request, route *
 }
 
 // bindClusterID binds and validates parameter ClusterID from path.
-func (o *GetPresignedForClusterFilesParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *UploadLogsParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -113,7 +130,7 @@ func (o *GetPresignedForClusterFilesParams) bindClusterID(rawData []string, hasK
 }
 
 // validateClusterID carries on validations for parameter ClusterID
-func (o *GetPresignedForClusterFilesParams) validateClusterID(formats strfmt.Registry) error {
+func (o *UploadLogsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err
@@ -121,43 +138,8 @@ func (o *GetPresignedForClusterFilesParams) validateClusterID(formats strfmt.Reg
 	return nil
 }
 
-// bindFileName binds and validates parameter FileName from query.
-func (o *GetPresignedForClusterFilesParams) bindFileName(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	if !hasKey {
-		return errors.Required("file_name", "query", rawData)
-	}
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: true
-	// AllowEmptyValue: false
-	if err := validate.RequiredString("file_name", "query", raw); err != nil {
-		return err
-	}
-
-	o.FileName = raw
-
-	if err := o.validateFileName(formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// validateFileName carries on validations for parameter FileName
-func (o *GetPresignedForClusterFilesParams) validateFileName(formats strfmt.Registry) error {
-
-	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"bootstrap.ign", "master.ign", "metadata.json", "worker.ign", "kubeadmin-password", "kubeconfig", "kubeconfig-noingress", "install-config.yaml", "logs"}, true); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // bindHostID binds and validates parameter HostID from query.
-func (o *GetPresignedForClusterFilesParams) bindHostID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *UploadLogsParams) bindHostID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -184,7 +166,7 @@ func (o *GetPresignedForClusterFilesParams) bindHostID(rawData []string, hasKey 
 }
 
 // validateHostID carries on validations for parameter HostID
-func (o *GetPresignedForClusterFilesParams) validateHostID(formats strfmt.Registry) error {
+func (o *UploadLogsParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "query", "uuid", o.HostID.String(), formats); err != nil {
 		return err
@@ -193,19 +175,22 @@ func (o *GetPresignedForClusterFilesParams) validateHostID(formats strfmt.Regist
 }
 
 // bindLogsType binds and validates parameter LogsType from query.
-func (o *GetPresignedForClusterFilesParams) bindLogsType(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *UploadLogsParams) bindLogsType(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	if !hasKey {
+		return errors.Required("logs_type", "query", rawData)
+	}
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
 	}
 
-	// Required: false
+	// Required: true
 	// AllowEmptyValue: false
-	if raw == "" { // empty values pass all other validations
-		return nil
+	if err := validate.RequiredString("logs_type", "query", raw); err != nil {
+		return err
 	}
 
-	o.LogsType = &raw
+	o.LogsType = raw
 
 	if err := o.validateLogsType(formats); err != nil {
 		return err
@@ -215,11 +200,23 @@ func (o *GetPresignedForClusterFilesParams) bindLogsType(rawData []string, hasKe
 }
 
 // validateLogsType carries on validations for parameter LogsType
-func (o *GetPresignedForClusterFilesParams) validateLogsType(formats strfmt.Registry) error {
+func (o *UploadLogsParams) validateLogsType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []interface{}{"host", "controller", "all"}, true); err != nil {
+	if err := validate.EnumCase("logs_type", "query", o.LogsType, []interface{}{"host", "controller"}, true); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// bindUpfile binds file parameter Upfile.
+//
+// The only supported validations on files are MinLength and MaxLength
+func (o *UploadLogsParams) bindUpfile(file multipart.File, header *multipart.FileHeader) error {
+	size, _ := file.Seek(0, io.SeekEnd)
+	file.Seek(0, io.SeekStart)
+	if size > 20971520 {
+		return errors.ExceedsMaximum("upfile", "formData", 20971520, false, size)
+	}
 	return nil
 }
