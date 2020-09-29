@@ -179,26 +179,35 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 		return nil, err
 	}
 
+	if payload.Username == "" {
+		a.log.Error("Missing username in token")
+		return nil, fmt.Errorf("Missing username in token")
+	}
+
 	err = a.storeAdminInPayload(payload)
 	if err != nil {
 		a.log.Errorf("Unable to fetch user's capabilities: %v", err)
 		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
 
-	if payload.Username == "" {
-		a.log.Error("Missing username in token")
-		return nil, fmt.Errorf("Missing username in token")
-	}
-
 	return payload, nil
 }
 
 func (a *AuthHandler) storeAdminInPayload(payload *ocm.AuthPayload) error {
+	payloadKey := payload.Username + "_is_admin"
+	payloadFromCache, found := a.client.Cache.Get(payloadKey)
+	if found {
+		payload.IsAdmin = payloadFromCache.(*ocm.AuthPayload).IsAdmin
+		return nil
+	}
+
 	admin, err := a.isAdmin(payload.Username)
 	if err != nil {
 		return err
 	}
 	payload.IsAdmin = admin
+	a.client.Cache.Set(payloadKey, payload, cache.DefaultExpiration)
+
 	return nil
 }
 
