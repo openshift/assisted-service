@@ -3295,7 +3295,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, 'AddToExistingClusterHost' for host being added to existing OCP cluster.",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or \n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
           "type": "string",
           "enum": [
             "Host",
@@ -7174,7 +7174,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, 'AddToExistingClusterHost' for host being added to existing OCP cluster.",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or \n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
           "type": "string",
           "enum": [
             "Host",

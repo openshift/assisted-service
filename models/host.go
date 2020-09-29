@@ -62,7 +62,9 @@ type Host struct {
 	// inventory
 	Inventory string `json:"inventory,omitempty" gorm:"type:text"`
 
-	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, 'AddToExistingClusterHost' for host being added to existing OCP cluster.
+	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or
+	// 'AddToExistingClusterHost' for host being added to existing OCP cluster.
+	//
 	// Required: true
 	// Enum: [Host AddToExistingClusterHost]
 	Kind *string `json:"kind"`

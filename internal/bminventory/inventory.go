@@ -430,8 +430,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	fileName := fmt.Sprintf("%s/%s", cluster.ID, workerIgnition)
 	err = b.objectHandler.Upload(ctx, ignitionConfig, fileName)
 	if err != nil {
-		return installer.NewRegisterAddHostsClusterInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", fileName)))
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", fileName))
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'

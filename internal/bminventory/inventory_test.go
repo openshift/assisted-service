@@ -2977,6 +2977,7 @@ var _ = Describe("Register Day2 cluster test", func() {
 		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("dummy")).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
-		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterInternalServerError()))
+		verifyApiError(res, http.StatusInternalServerError)
+		//Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterInternalServerError()))
 	})
 })

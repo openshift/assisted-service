@@ -1761,7 +1761,9 @@ definitions:
       kind:
         type: string
         enum: ['Host', 'AddToExistingClusterHost']
-        description: Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, 'AddToExistingClusterHost' for host being added to existing OCP cluster.
+        description: |
+          Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or 
+          'AddToExistingClusterHost' for host being added to existing OCP cluster.
       id:
         type: string
         format: uuid
