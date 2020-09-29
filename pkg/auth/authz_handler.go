@@ -7,7 +7,6 @@ import (
 
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
-	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,20 +51,12 @@ func (a *AuthzHandler) CreateAuthorizer() func(*http.Request) error {
 func (a *AuthzHandler) Authorizer(request *http.Request) error {
 	payload := PayloadFromContext(request.Context())
 	username := payload.Username
-	payloadFromCache, found := a.client.Cache.Get(username)
-	if found {
-		// Update payload with values from cache
-		payloadFromCache := payloadFromCache.(*ocm.AuthPayload)
-		payload.IsUser = payloadFromCache.IsUser
+	// Inquire AMS for user's role
+	allowed, err := a.allowedToUseAssistedInstaller(username)
+	if err != nil {
+		a.log.Errorf("Failed to authorize user: %v", err)
 	} else {
-		// Inquire AMS for user's role
-		allowed, err := a.allowedToUseAssistedInstaller(username)
-		if err != nil {
-			a.log.Errorf("Failed to authorize user: %v", err)
-		} else {
-			payload.IsUser = allowed
-			a.client.Cache.Set(username, payload, cache.DefaultExpiration)
-		}
+		payload.IsUser = allowed
 	}
 
 	if payload.IsUser {
