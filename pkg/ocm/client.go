@@ -76,7 +76,7 @@ func NewClient(config Config, log logrus.FieldLogger) (*Client, error) {
 	client := &Client{
 		config: &config,
 		logger: logger,
-		Cache:  cache.New(1*time.Minute, 30*time.Minute),
+		Cache:  cache.New(10*time.Minute, 30*time.Minute),
 	}
 	err := client.newConnection()
 	if err != nil {
