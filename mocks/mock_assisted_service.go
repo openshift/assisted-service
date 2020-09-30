@@ -245,6 +245,20 @@ func (mr *MockInstallerAPIMockRecorder) GetCredentials(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCredentials", reflect.TypeOf((*MockInstallerAPI)(nil).GetCredentials), arg0, arg1)
 }
 
+// GetDiscoveryIgnition mocks base method
+func (m *MockInstallerAPI) GetDiscoveryIgnition(arg0 context.Context, arg1 installer.GetDiscoveryIgnitionParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDiscoveryIgnition", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// GetDiscoveryIgnition indicates an expected call of GetDiscoveryIgnition
+func (mr *MockInstallerAPIMockRecorder) GetDiscoveryIgnition(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDiscoveryIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).GetDiscoveryIgnition), arg0, arg1)
+}
+
 // GetFreeAddresses mocks base method
 func (m *MockInstallerAPI) GetFreeAddresses(arg0 context.Context, arg1 installer.GetFreeAddressesParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -467,6 +481,20 @@ func (m *MockInstallerAPI) UpdateClusterInstallConfig(arg0 context.Context, arg1
 func (mr *MockInstallerAPIMockRecorder) UpdateClusterInstallConfig(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInstallConfig", reflect.TypeOf((*MockInstallerAPI)(nil).UpdateClusterInstallConfig), arg0, arg1)
+}
+
+// UpdateDiscoveryIgnition mocks base method
+func (m *MockInstallerAPI) UpdateDiscoveryIgnition(arg0 context.Context, arg1 installer.UpdateDiscoveryIgnitionParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDiscoveryIgnition", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// UpdateDiscoveryIgnition indicates an expected call of UpdateDiscoveryIgnition
+func (mr *MockInstallerAPIMockRecorder) UpdateDiscoveryIgnition(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDiscoveryIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).UpdateDiscoveryIgnition), arg0, arg1)
 }
 
 // UpdateHostInstallProgress mocks base method
