@@ -27,6 +27,7 @@ const (
 	clusterNameRegex  = "^([a-z]([-a-z0-9]*[a-z0-9])?)*$"
 	dnsNameRegex      = "^([a-z0-9]+(-[a-z0-9]+)*[.])+[a-z]{2,}$"
 	CloudOpenShiftCom = "cloud.openshift.com"
+	sshPublicKeyRegex = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
 )
 
 type imagePullSecret struct {
@@ -271,7 +272,15 @@ func ValidateNoProxyFormat(noProxy string) error {
 }
 
 func ValidateSSHPublicKey(sshPublicKey string) (err error) {
-	if _, _, _, _, err = ssh.ParseAuthorizedKey([]byte(sshPublicKey)); err != nil {
+	keyBytes := []byte(sshPublicKey)
+	isMatched, err := regexp.Match(sshPublicKeyRegex, keyBytes)
+	if err != nil {
+		err = errors.Wrapf(err, "Error parsing SSH key: %s", sshPublicKey)
+	} else if !isMatched {
+		err = errors.Errorf(
+			"SSH key: %s does not match any supported type: ssh-rsa, ssh-ed25519, ecdsa-[VARIANT]",
+			sshPublicKey)
+	} else if _, _, _, _, err = ssh.ParseAuthorizedKey(keyBytes); err != nil {
 		err = errors.Errorf("Malformed SSH key: %s", sshPublicKey)
 	}
 	return
