@@ -1082,6 +1082,13 @@ var _ = Describe("cluster install", func() {
 			s, err := file.Stat()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(s.Size()).ShouldNot(Equal(0))
+
+			By("Download install-config.yaml")
+			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "install-config.yaml"}, file)
+			Expect(err).NotTo(HaveOccurred())
+			s, err = file.Stat()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(s.Size()).ShouldNot(Equal(0))
 		})
 
 		It("[only_k8s]Get credentials", func() {
