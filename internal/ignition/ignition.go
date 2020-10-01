@@ -36,6 +36,7 @@ var fileNames = [...]string{
 	"worker.ign",
 	"kubeconfig-noingress",
 	"kubeadmin-password",
+	"install-config.yaml",
 }
 
 // Generator can generate ignition files and upload them to an S3-like service
@@ -128,6 +129,14 @@ func (g *installerGenerator) Generate(installConfig []byte) error {
 	if err != nil {
 		return err
 	}
+	// We want to save install-config.yaml
+	// Installer deletes it so we need to write it one more time
+	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
+	if err != nil {
+		g.log.Errorf("Failed to write file %s", installConfigPath)
+		return err
+	}
+
 	err = os.Remove(filepath.Join(g.workDir, "auth"))
 	if err != nil {
 		return err
