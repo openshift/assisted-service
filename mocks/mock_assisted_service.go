@@ -371,20 +371,6 @@ func (mr *MockInstallerAPIMockRecorder) PostStepReply(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostStepReply", reflect.TypeOf((*MockInstallerAPI)(nil).PostStepReply), arg0, arg1)
 }
 
-// RegisterAddHostsCluster mocks base method
-func (m *MockInstallerAPI) RegisterAddHostsCluster(arg0 context.Context, arg1 installer.RegisterAddHostsClusterParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// RegisterAddHostsCluster indicates an expected call of RegisterAddHostsCluster
-func (mr *MockInstallerAPIMockRecorder) RegisterAddHostsCluster(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsCluster", reflect.TypeOf((*MockInstallerAPI)(nil).RegisterAddHostsCluster), arg0, arg1)
-}
-
 // RegisterCluster mocks base method
 func (m *MockInstallerAPI) RegisterCluster(arg0 context.Context, arg1 installer.RegisterClusterParams) middleware.Responder {
 	m.ctrl.T.Helper()
