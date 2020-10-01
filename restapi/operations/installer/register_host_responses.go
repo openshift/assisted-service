@@ -25,7 +25,7 @@ type RegisterHostCreated struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Host `json:"body,omitempty"`
+	Payload *models.HostRegistrationResponse `json:"body,omitempty"`
 }
 
 // NewRegisterHostCreated creates RegisterHostCreated with default headers values
@@ -35,13 +35,13 @@ func NewRegisterHostCreated() *RegisterHostCreated {
 }
 
 // WithPayload adds the payload to the register host created response
-func (o *RegisterHostCreated) WithPayload(payload *models.Host) *RegisterHostCreated {
+func (o *RegisterHostCreated) WithPayload(payload *models.HostRegistrationResponse) *RegisterHostCreated {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the register host created response
-func (o *RegisterHostCreated) SetPayload(payload *models.Host) {
+func (o *RegisterHostCreated) SetPayload(payload *models.HostRegistrationResponse) {
 	o.Payload = payload
 }
 

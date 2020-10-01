@@ -87,20 +87,20 @@ func NewRegisterHostCreated() *RegisterHostCreated {
 Success.
 */
 type RegisterHostCreated struct {
-	Payload *models.Host
+	Payload *models.HostRegistrationResponse
 }
 
 func (o *RegisterHostCreated) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostCreated  %+v", 201, o.Payload)
 }
 
-func (o *RegisterHostCreated) GetPayload() *models.Host {
+func (o *RegisterHostCreated) GetPayload() *models.HostRegistrationResponse {
 	return o.Payload
 }
 
 func (o *RegisterHostCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Host)
+	o.Payload = new(models.HostRegistrationResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

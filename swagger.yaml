@@ -1023,7 +1023,7 @@ paths:
         201:
           description: Success.
           schema:
-            $ref: '#/definitions/host'
+            $ref: '#/definitions/host_registration_response'
         400:
           description: Error.
           schema:
@@ -1949,6 +1949,25 @@ definitions:
         format: uuid
       discovery_agent_version:
         type: string
+
+  host_registration_response:
+    allOf:
+        - $ref: '#/definitions/host'
+        - properties:
+            next_step_runner_command:
+              type: object
+              description: Command for starting the next step runner
+              properties:
+                command:
+                  type: string
+                args:
+                  type: array
+                  items:
+                    type: string
+                retry_seconds:
+                  type: integer
+                  description: How long in seconds to wait before retrying registration if the command fails
+
 
   host:
     type: object
