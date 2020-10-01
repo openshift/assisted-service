@@ -23,6 +23,13 @@ filters:
       - yevgeny-shnaidman
       - yuvigold
       - masayag
+      - erezalster
+      - nmagnezi
+      - carbonin
+      - rollandf
+      - danielerez
+      - ybettan
+      - slaviered
   Jenkinsfile:
     approvers:
       - yuvigold
