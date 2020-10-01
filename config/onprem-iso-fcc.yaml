@@ -43,7 +43,7 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db rhel8/postgresql-12:latest
+            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db quay.io/ocpmetal/postgresql-12-centos7
             TimeoutStartSec=300
           
             [Install]

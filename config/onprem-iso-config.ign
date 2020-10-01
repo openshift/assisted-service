@@ -63,7 +63,7 @@
         "name": "assisted-service-pod.service"
       },
       {
-        "contents": "[Unit]\nAfter=assisted-service-pod.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db rhel8/postgresql-12:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "contents": "[Unit]\nAfter=assisted-service-pod.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db quay.io/ocpmetal/postgresql-12-centos7\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
         "enabled": true,
         "name": "assisted-service-db.service"
       },
