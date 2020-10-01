@@ -303,6 +303,42 @@ var _ = Describe("IgnitionParameters", func() {
 
 	RunIgnitionConfigurationTests := func() {
 
+		It("ignition_file_fails_missing_Pull_Secret_token", func() {
+			clusterWithoutToken := common.Cluster{Cluster: models.Cluster{
+				ID:            strToUUID("a640ef36-dcb1-11ea-87d0-0242ac130003"),
+				PullSecretSet: false,
+			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+
+			bm.authHandler.EnableAuth = true
+
+			_, err := bm.formatIgnitionFile(&clusterWithoutToken, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			}, false)
+
+			Expect(err).ShouldNot(BeNil())
+		})
+
+		It("ignition_file_contains_pull_secret_token", func() {
+			bm.authHandler.EnableAuth = true
+
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			}, false)
+
+			Expect(err).Should(BeNil())
+			Expect(text).Should(ContainSubstring("PULL_SECRET_TOKEN"))
+		})
+
+		It("auth_disabled_no_pull_secret_token", func() {
+			bm.authHandler.EnableAuth = false
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			}, false)
+
+			Expect(err).Should(BeNil())
+			Expect(text).ShouldNot(ContainSubstring("PULL_SECRET_TOKEN"))
+		})
+
 		It("ignition_file_contains_url", func() {
 			bm.ServiceBaseURL = "file://10.56.20.70:7878"
 			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
