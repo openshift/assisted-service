@@ -154,6 +154,9 @@ publish:
 	$(call publish_image,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 	$(call publish_image,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${GIT_REVISION})
 
+upload-service-image:
+	$(call publish_image,${SERVICE},quay.io/ocpmetal/assisted-service:${GIT_REVISION})
+
 ##########
 # Deploy #
 ##########
