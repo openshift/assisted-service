@@ -284,6 +284,14 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 		_, err = updateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
+	case models.HostStageRebooting:
+		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+			_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfo,
+				h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
+			break
+		}
+		fallthrough
 	default:
 		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
@@ -513,6 +521,10 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		autoSelectedRole = models.HostRoleWorker
 		log              = logutil.FromContext(ctx, m.log)
 	)
+
+	if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+		return autoSelectedRole, nil
+	}
 
 	// count already existing masters
 	mastersCount := 0
