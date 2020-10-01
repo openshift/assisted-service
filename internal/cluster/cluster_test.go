@@ -312,7 +312,7 @@ var _ = Describe("cluster monitor", func() {
 					BaseDNSDomain:            "test.com",
 					PullSecretSet:            true,
 					StatusInfo:               swag.String(statusInfoInsufficient),
-					ClusterNetworkCidr:       "1.2.4.0/24",
+					ClusterNetworkCidr:       "1.3.0.0/16",
 					ServiceNetworkCidr:       "1.2.5.0/24",
 					ClusterNetworkHostPrefix: 24,
 				}}
@@ -392,7 +392,7 @@ var _ = Describe("cluster monitor", func() {
 					IngressVip:               "1.2.3.6",
 					BaseDNSDomain:            "test.com",
 					PullSecretSet:            true,
-					ClusterNetworkCidr:       "1.2.4.0/24",
+					ClusterNetworkCidr:       "1.3.0.0/16",
 					ServiceNetworkCidr:       "1.2.5.0/24",
 					ClusterNetworkHostPrefix: 24,
 				}}
@@ -557,7 +557,7 @@ var _ = Describe("lease timeout event", func() {
 				MachineNetworkCidr:       "1.2.3.0/24",
 				BaseDNSDomain:            "test.com",
 				PullSecretSet:            true,
-				ClusterNetworkCidr:       "1.2.4.0/24",
+				ClusterNetworkCidr:       "1.3.0.0/16",
 				ServiceNetworkCidr:       "1.2.5.0/24",
 				ClusterNetworkHostPrefix: 24,
 				VipDhcpAllocation:        swag.Bool(true),
@@ -572,6 +572,186 @@ var _ = Describe("lease timeout event", func() {
 				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(t.eventCalllsExpected)
 			}
 			clusterApi.ClusterMonitoring()
+			ctrl.Finish()
+		})
+	}
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("Auto assign machine CIDR", func() {
+	var (
+		db          *gorm.DB
+		c           common.Cluster
+		id          strfmt.UUID
+		clusterApi  *Manager
+		ctrl        *gomock.Controller
+		mockHostAPI *host.MockAPI
+		mockMetric  *metrics.MockAPI
+		dbName      = "cluster_monitor"
+		mockEvents  *events.MockHandler
+	)
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		id = strfmt.UUID(uuid.New().String())
+		ctrl = gomock.NewController(GinkgoT())
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
+		dummy := &leader.DummyElector{}
+		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
+			mockEvents, mockHostAPI, mockMetric, dummy)
+	})
+	tests := []struct {
+		name                    string
+		srcState                string
+		machineNetworkCIDR      string
+		expectedMachineCIDR     string
+		hosts                   []*models.Host
+		eventCallExpected       bool
+		userActionResetExpected bool
+		dhcpEnabled             bool
+	}{
+		{
+			name:     "No hosts",
+			srcState: models.ClusterStatusPendingForInput,
+		},
+		{
+			name:     "One discovering host",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusDiscovering),
+					Inventory: defaultInventory(),
+				},
+			},
+			dhcpEnabled: true,
+		},
+		{
+			name:     "One insufficient host, one network",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: defaultInventory(),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			expectedMachineCIDR:     "1.2.3.0/24",
+			dhcpEnabled:             true,
+		},
+		{
+			name:     "Host with two networks",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: twoNetworksInventory(),
+				},
+			},
+			dhcpEnabled: true,
+		},
+		{
+			name:     "Two hosts, one networks",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: defaultInventory(),
+				},
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: defaultInventory(),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			expectedMachineCIDR:     "1.2.3.0/24",
+			dhcpEnabled:             true,
+		},
+		{
+			name:     "Two hosts, two networks",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: defaultInventory(),
+				},
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: nonDefaultInventory(),
+				},
+			},
+			dhcpEnabled: true,
+		},
+		{
+			name:     "One insufficient host, one network, machine cidr already set",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: defaultInventory(),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			machineNetworkCIDR:      "192.168.0.0/16",
+			expectedMachineCIDR:     "192.168.0.0/16",
+			dhcpEnabled:             true,
+		},
+		{
+			name:     "Two hosts, one networks, dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: defaultInventory(),
+				},
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: defaultInventory(),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			dhcpEnabled:             false,
+		},
+	}
+	for _, t := range tests {
+		It(t.name, func() {
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:                       &id,
+				Status:                   swag.String(t.srcState),
+				BaseDNSDomain:            "test.com",
+				PullSecretSet:            true,
+				ClusterNetworkCidr:       "1.2.4.0/24",
+				ServiceNetworkCidr:       "1.2.5.0/24",
+				ClusterNetworkHostPrefix: 24,
+				MachineNetworkCidr:       t.machineNetworkCIDR,
+				VipDhcpAllocation:        swag.Bool(t.dhcpEnabled),
+			}}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+			for _, h := range t.hosts {
+				hostId := strfmt.UUID(uuid.New().String())
+				h.ID = &hostId
+				h.ClusterID = id
+				Expect(db.Create(h).Error).ShouldNot(HaveOccurred())
+			}
+			if t.eventCallExpected {
+				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			}
+			if len(t.hosts) > 0 {
+				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			}
+			if t.userActionResetExpected {
+				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).AnyTimes()
+			}
+			clusterApi.ClusterMonitoring()
+			var cluster common.Cluster
+			Expect(db.Take(&cluster, "id = ?", id.String()).Error).ToNot(HaveOccurred())
+			Expect(cluster.MachineNetworkCidr).To(Equal(t.expectedMachineCIDR))
 			ctrl.Finish()
 		})
 	}
@@ -908,6 +1088,39 @@ func defaultInventory() string {
 	return string(b)
 }
 
+func twoNetworksInventory() string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+					"10.0.0.100/24",
+				},
+			},
+		},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func nonDefaultInventory() string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"10.11.12.13/24",
+				},
+			},
+		},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 var _ = Describe("PrepareForInstallation", func() {
 	var (
 		ctx       = context.Background()
@@ -1120,6 +1333,17 @@ var _ = Describe("SetVips", func() {
 			eventExpected:      true,
 		},
 		{
+			name:               "success-empty, from pending-from-input",
+			srcState:           models.ClusterStatusPendingForInput,
+			apiVip:             "1.2.3.4",
+			ingressVip:         "1.2.3.5",
+			expectedApiVip:     "1.2.3.4",
+			expectedIngressVip: "1.2.3.5",
+			errorExpected:      false,
+			expectedState:      models.ClusterStatusPendingForInput,
+			eventExpected:      true,
+		},
+		{
 			name:               "success-empty from ready",
 			srcState:           models.ClusterStatusReady,
 			apiVip:             "1.2.3.4",
@@ -1232,8 +1456,8 @@ var _ = Describe("ready_state", func() {
 			MachineNetworkCidr:       "1.2.3.0/24",
 			BaseDNSDomain:            "test.com",
 			PullSecretSet:            true,
-			ClusterNetworkCidr:       "1.2.4.0/24",
-			ServiceNetworkCidr:       "1.2.5.0/24",
+			ServiceNetworkCidr:       "1.2.4.0/24",
+			ClusterNetworkCidr:       "1.3.0.0/16",
 			ClusterNetworkHostPrefix: 24,
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())

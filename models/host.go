@@ -62,9 +62,11 @@ type Host struct {
 	// inventory
 	Inventory string `json:"inventory,omitempty" gorm:"type:text"`
 
-	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.
+	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or
+	// 'AddToExistingClusterHost' for host being added to existing OCP cluster.
+	//
 	// Required: true
-	// Enum: [Host]
+	// Enum: [Host AddToExistingClusterHost]
 	Kind *string `json:"kind"`
 
 	// logs collected at
@@ -93,7 +95,7 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting]
+	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting added-to-existing-cluster]
 	Status *string `json:"status"`
 
 	// status info
@@ -254,7 +256,7 @@ var hostTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["Host"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Host","AddToExistingClusterHost"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -266,6 +268,9 @@ const (
 
 	// HostKindHost captures enum value "Host"
 	HostKindHost string = "Host"
+
+	// HostKindAddToExistingClusterHost captures enum value "AddToExistingClusterHost"
+	HostKindAddToExistingClusterHost string = "AddToExistingClusterHost"
 )
 
 // prop value enum
@@ -387,7 +392,7 @@ var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting","added-to-existing-cluster"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -438,6 +443,9 @@ const (
 
 	// HostStatusResetting captures enum value "resetting"
 	HostStatusResetting string = "resetting"
+
+	// HostStatusAddedToExistingCluster captures enum value "added-to-existing-cluster"
+	HostStatusAddedToExistingCluster string = "added-to-existing-cluster"
 )
 
 // prop value enum

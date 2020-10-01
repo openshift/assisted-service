@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
@@ -35,6 +36,14 @@ type DownloadClusterLogsParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
+	/*
+	  In: query
+	*/
+	HostID *strfmt.UUID
+	/*
+	  In: query
+	*/
+	LogsType *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -46,8 +55,20 @@ func (o *DownloadClusterLogsParams) BindRequest(r *http.Request, route *middlewa
 
 	o.HTTPRequest = r
 
+	qs := runtime.Values(r.URL.Query())
+
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qHostID, qhkHostID, _ := qs.GetOK("host_id")
+	if err := o.bindHostID(qHostID, qhkHostID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qLogsType, qhkLogsType, _ := qs.GetOK("logs_type")
+	if err := o.bindLogsType(qLogsType, qhkLogsType, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -87,5 +108,73 @@ func (o *DownloadClusterLogsParams) validateClusterID(formats strfmt.Registry) e
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err
 	}
+	return nil
+}
+
+// bindHostID binds and validates parameter HostID from query.
+func (o *DownloadClusterLogsParams) bindHostID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("host_id", "query", "strfmt.UUID", raw)
+	}
+	o.HostID = (value.(*strfmt.UUID))
+
+	if err := o.validateHostID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateHostID carries on validations for parameter HostID
+func (o *DownloadClusterLogsParams) validateHostID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("host_id", "query", "uuid", o.HostID.String(), formats); err != nil {
+		return err
+	}
+	return nil
+}
+
+// bindLogsType binds and validates parameter LogsType from query.
+func (o *DownloadClusterLogsParams) bindLogsType(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.LogsType = &raw
+
+	if err := o.validateLogsType(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateLogsType carries on validations for parameter LogsType
+func (o *DownloadClusterLogsParams) validateLogsType(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []interface{}{"host", "controller", "all"}, true); err != nil {
+		return err
+	}
+
 	return nil
 }

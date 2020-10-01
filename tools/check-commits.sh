@@ -6,7 +6,12 @@ set -o nounset
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-master_branch="origin/master"
+remote=$(git remote -v | (grep "github\.com.openshift/assisted-service.git" || true) | head -n 1 | awk '{ print $1 }')
+if [ -z $remote ]; then
+    echo "could not find remote for github.com/openshift/assisted-service"
+    exit 1
+fi
+master_branch="$remote/master"
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 
 revs=$(git rev-list "${master_branch}".."${current_branch}")

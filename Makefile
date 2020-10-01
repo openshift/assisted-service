@@ -23,7 +23,7 @@ endif # TARGET
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
-DUMMY_IGNITION := $(or ${DUMMY_IGNITION},minikube-local-registry/ignition-dummy-generator:minikube-test)
+DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -51,19 +51,18 @@ endif
 
 all: build
 
-_pre_commit_hooks:
-	@-cp ${ROOT_DIR}/tools/check-commit-message.sh ${ROOT_DIR}/.git/hooks/commit-msg
+ci-lint:
 	${ROOT_DIR}/tools/check-commits.sh
 
-lint: _pre_commit_hooks
+lint:
 	golangci-lint run -v
 
 $(BUILD_FOLDER):
 	mkdir -p $(BUILD_FOLDER)
 
 format:
-	goimports -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/ dummy-ignition/
-	gofmt -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/ dummy-ignition/
+	goimports -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/
+	gofmt -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/
 
 ############
 # Generate #
@@ -112,9 +111,6 @@ build-minimal: $(BUILD_FOLDER)
 build-iso-generator: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-iso-create assisted-iso-create/main.go
 
-build-dummy-ignition: $(BUILD_FOLDER)
-	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/dummy-ignition dummy-ignition/main.go
-
 build-onprem-dependencies: 
 	skipper make build-image build-assisted-iso-generator-image
 
@@ -134,9 +130,6 @@ build-minimal-assisted-iso-generator-image: build-iso-generator
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
-build-dummy-ignition-image: build-dummy-ignition
-	docker build --network=host --build-arg NAMESPACE=$(NAMESPACE) -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION}
-
 update: build-image
 	docker push $(SERVICE)
 
@@ -144,10 +137,10 @@ update-minimal: build-minimal
 	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
 		-f Dockerfile.assisted-service . -t $(SERVICE)
 
-update-minikube: build build-dummy-ignition
+update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
 		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
-		-f Dockerfile.assisted-service . -t $(SERVICE) && docker build --network=host -f Dockerfile.ignition-dummy . -t ${DUMMY_IGNITION} \
+		-f Dockerfile.assisted-service . -t $(SERVICE) \
 		&& docker build --network=host --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 define publish_image
@@ -216,19 +209,22 @@ deploy-role: deploy-namespace
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
-jenkins-deploy-for-subsystem: generate-keys build-dummy-ignition-image
+jenkins-deploy-for-subsystem: generate-keys
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && $(MAKE) deploy-wiremock deploy-all
 
 deploy-test: generate-keys
 	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
-	&& export DUMMY_IGNITION=${DUMMY_IGNITION} && ISO_CREATION=minikube-local-registry/assisted-iso-create:minikube-test \
+	&& export DUMMY_IGNITION="True" && ISO_CREATION=minikube-local-registry/assisted-iso-create:minikube-test \
 	$(MAKE) update-minikube deploy-wiremock deploy-all
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
 	podman run -dt --pod assisted-installer --env-file onprem-environment --name db quay.io/ocpmetal/postgresql-12-centos7
-	podman run -dt --pod assisted-installer --env-file onprem-environment --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
+	podman run -dt --pod assisted-installer --env-file onprem-environment --env DUMMY_IGNITION=$(DUMMY_IGNITION) --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
+
+deploy-onprem-for-subsystem:
+	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
 ########
 # Test #
@@ -245,7 +241,7 @@ test:
 		TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
 		TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
 		ENABLE_AUTH="true" \
-		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
+		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 120m
 
 deploy-wiremock: deploy-namespace
 	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
@@ -264,16 +260,18 @@ deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 unit-test:
 	docker kill postgres || true
 	sleep 3
-	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 postgres:12.3-alpine -c 'max_connections=10000'
-	until PGPASSWORD=admin pg_isready -U admin --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done
-	SKIP_UT_DB=1 go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) -cover || (docker kill postgres && /bin/false)
+	docker run -d --rm --name postgres -e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 \
+		-p 127.0.0.1:5432:5432 quay.io/ocpmetal/postgresql-12-centos7
+	until PGPASSWORD=admin pg_isready -U postgres --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done
+	SKIP_UT_DB=1 go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
+		-cover -timeout 20m -count=1 || (docker kill postgres && /bin/false)
 	docker kill postgres
 
 test-onprem:
 	INVENTORY=127.0.0.1:8090 \
-	INVENTORY=127.0.0.1:8090 \
 	DB_HOST=127.0.0.1 \
 	DB_PORT=5432 \
+	DEPLOY_TARGET=onprem \
 	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
 
 #########
@@ -286,15 +284,13 @@ clean:
 	-rm -rf $(BUILD_FOLDER)
 
 subsystem-clean:
-	-$(KUBECTL) get pod -o name | grep dummyimage | xargs -r $(KUBECTL) delete 1> /dev/null || true
 	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete 1> /dev/null || true
-	-$(KUBECTL) get pod -o name | grep ignition-generator | xargs -r $(KUBECTL) delete 1> /dev/null || true
 
 clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
 
 clean-onprem:
-	podman pod rm -f -i assisted-installer
+	podman pod rm -f assisted-installer | true
 
 delete-minikube-profile:
 	minikube delete -p $(PROFILE)

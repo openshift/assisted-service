@@ -75,24 +75,6 @@ func strToUUID(s string) *strfmt.UUID {
 	return &u
 }
 
-func mockGenerateISOSuccess(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
-	if mockKubeJob != nil {
-		mockKubeJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
-	}
-	if mockLocalJob != nil {
-		mockLocalJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
-	}
-}
-
-func mockGenerateISOFailure(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
-	if mockKubeJob != nil {
-		mockKubeJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).Times(times)
-	}
-	if mockLocalJob != nil {
-		mockLocalJob.EXPECT().GenerateISO(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).Times(times)
-	}
-}
-
 func mockGenerateInstallConfigSuccess(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
 	if mockKubeJob != nil {
 		mockKubeJob.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -156,9 +138,9 @@ var _ = Describe("GenerateClusterISO", func() {
 	RunGenerateClusterISOTests := func() {
 		It("success", func() {
 			clusterId := registerCluster(true).ID
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), fmt.Sprintf("discovery-image-%s", clusterId.String()))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
@@ -171,9 +153,9 @@ var _ = Describe("GenerateClusterISO", func() {
 
 		It("success with proxy", func() {
 			clusterId := registerClusterWithHTTPProxy(true, "http://1.1.1.1:1234").ID
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", SSH public key "+
 				"is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -218,8 +200,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			cluster.ImageInfo = &models.ImageInfo{GeneratorVersion: bm.Config.ImageBuilder}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(true)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
@@ -235,8 +217,8 @@ var _ = Describe("GenerateClusterISO", func() {
 
 		It("success with AWS S3", func() {
 			clusterId := registerCluster(true).ID
-			mockGenerateISOSuccess(mockKubeJob, mockLocalJob, 1)
 			mockS3Client.EXPECT().IsAwsS3().Return(true)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
@@ -257,20 +239,9 @@ var _ = Describe("GenerateClusterISO", func() {
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISONotFound()))
 		})
 
-		It("failed_to_create_job", func() {
+		It("failed_to_upload_iso", func() {
 			clusterId := registerCluster(true).ID
-			mockGenerateISOFailure(mockKubeJob, mockLocalJob, 1)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOInternalServerError()))
-		})
-
-		It("job_failed", func() {
-			clusterId := registerCluster(true).ID
-			mockGenerateISOFailure(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
@@ -292,7 +263,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			cluster := registerCluster(true)
 			cluster.PullSecret = "{\"auths\":{\"another.cloud.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"
 			clusterId := cluster.ID
-			mockGenerateISOFailure(mockKubeJob, mockLocalJob, 1)
+			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
@@ -1264,8 +1235,7 @@ var _ = Describe("cluster", func() {
 					"MAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqng" +
 					"qbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3f" +
 					"AC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAq" +
-					"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com gggggggg fdddddddddddddddddddddddd" +
-					"dddddddddddddddd"
+					"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
 				sshKeyWithNewLine := sshKey + " \n"
 
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
@@ -1556,7 +1526,7 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.ClusterUpdateParams{
 								APIVip:                   &apiVip,
 								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ClusterNetworkCidr:       swag.String("192.168.0.0/21"),
 								ServiceNetworkCidr:       swag.String("193.168.5.0/24"),
 								ClusterNetworkHostPrefix: swag.Int64(23),
 							},
@@ -1566,7 +1536,7 @@ var _ = Describe("cluster", func() {
 						Expect(actual.Payload.APIVip).To(Equal(apiVip))
 						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
 						Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
-						Expect(actual.Payload.ClusterNetworkCidr).To(Equal("192.168.5.0/24"))
+						Expect(actual.Payload.ClusterNetworkCidr).To(Equal("192.168.0.0/21"))
 						Expect(actual.Payload.ServiceNetworkCidr).To(Equal("193.168.5.0/24"))
 						expectedNetworks := sortedNetworks([]*models.HostNetwork{
 							{
@@ -1606,7 +1576,7 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.ClusterUpdateParams{
 								APIVip:                   &apiVip,
 								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ClusterNetworkCidr:       swag.String("192.168.0.0/21"),
 								ServiceNetworkCidr:       swag.String("192.168.4.0/23"),
 								ClusterNetworkHostPrefix: swag.Int64(23),
 							},
@@ -1638,7 +1608,7 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.ClusterUpdateParams{
 								APIVip:                   &apiVip,
 								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
 								ServiceNetworkCidr:       swag.String("193.168.4.0/27"),
 								ClusterNetworkHostPrefix: swag.Int64(25),
 							},
@@ -1657,7 +1627,7 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.ClusterUpdateParams{
 								APIVip:                   &apiVip,
 								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+								ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
 								ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
 								ClusterNetworkHostPrefix: swag.Int64(25),
 							},
@@ -1672,9 +1642,25 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.ClusterUpdateParams{
 								APIVip:                   &apiVip,
 								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("1.168.5.0/24"),
+								ClusterNetworkCidr:       swag.String("1.168.0.0/23"),
 								ServiceNetworkCidr:       swag.String("193.168.4.0/1"),
 								ClusterNetworkHostPrefix: swag.Int64(23),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					})
+					It("Not enough addresses", func() {
+						apiVip := "10.11.12.15"
+						ingressVip := "10.11.12.16"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								APIVip:                   &apiVip,
+								IngressVip:               &ingressVip,
+								ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
+								ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
+								ClusterNetworkHostPrefix: swag.Int64(24),
 							},
 						})
 						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -2484,6 +2470,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		request        *http.Request
 		mockHostApi    *host.MockAPI
 		host1          models.Host
+		hostLogsType   = string(models.LogsTypeHost)
 	)
 
 	BeforeEach(func() {
@@ -2575,6 +2562,31 @@ var _ = Describe("Upload and Download logs test", func() {
 		reply := bm.UploadHostLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadHostLogsNoContent()))
 	})
+	It("Upload Controller logs Happy flow", func() {
+		params := installer.UploadLogsParams{
+			ClusterID:   clusterID,
+			Upfile:      kubeconfigFile,
+			HTTPRequest: request,
+			LogsType:    string(models.LogsTypeController),
+		}
+		fileName := bm.getLogsFullName(clusterID.String(), string(models.LogsTypeController))
+		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
+		reply := bm.UploadLogs(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadLogsNoContent()))
+	})
+	It("Download controller log happy flow", func() {
+		logsType := string(models.LogsTypeController)
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+			LogsType:  &logsType,
+		}
+		fileName := bm.getLogsFullName(clusterID.String(), logsType)
+		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
+		generateReply := bm.DownloadClusterLogs(ctx, params)
+		downloadFileName := fmt.Sprintf("%s_%s.tar.gz", clusterID, logsType)
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(r), downloadFileName, 4)))
+	})
 	It("Download S3 logs where not uploaded yet", func() {
 		params := installer.DownloadHostLogsParams{
 			ClusterID: clusterID,
@@ -2629,6 +2641,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			ClusterID: clusterID,
 			FileName:  "logs",
 			HostID:    &hostID,
+			LogsType:  &hostLogsType,
 		})
 		verifyApiError(generateReply, http.StatusNotFound)
 	})
@@ -2636,26 +2649,44 @@ var _ = Describe("Upload and Download logs test", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		_ = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  "logs",
+			HostID:    &hostID,
+			LogsType:  &hostLogsType,
+		})
+		verifyApiError(generateReply, http.StatusNotFound)
+	})
+	It("Logs presigned s3 error", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		host1 = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
+		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&host1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("",
 			errors.Errorf("Dummy"))
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
 			FileName:  "logs",
 			HostID:    &hostID,
+			LogsType:  &hostLogsType,
 		})
 		verifyApiError(generateReply, http.StatusInternalServerError)
 	})
 	It("logs presigned happy flow", func() {
 		hostID := strfmt.UUID(uuid.New().String())
-		_ = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+		host1 = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
+		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&host1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("url", nil)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
 			FileName:  "logs",
 			HostID:    &hostID,
+			LogsType:  &hostLogsType,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
@@ -2691,12 +2722,13 @@ var _ = Describe("Upload and Download logs test", func() {
 		params := installer.DownloadClusterLogsParams{
 			ClusterID: clusterID,
 		}
-		fileName := fmt.Sprintf("%s_logs.zip", clusterID)
+		fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", clusterID)
 		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.DownloadClusterLogs(ctx, params)
-		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(r), fileName, 4)))
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(r),
+			fmt.Sprintf("%s_%s", clusterID, filepath.Base(fileName)), 4)))
 	})
 
 	It("Logs presigned cluster logs failed", func() {
@@ -2905,5 +2937,79 @@ var _ = Describe("proxySettingsForIgnition", func() {
 				Expect(s).To(Equal(p.res))
 			}
 		})
+	})
+})
+
+var _ = Describe("Register Day2 cluster test", func() {
+
+	var (
+		bm               *bareMetalInventory
+		cfg              Config
+		db               *gorm.DB
+		ctx              = context.Background()
+		ctrl             *gomock.Controller
+		clusterID        strfmt.UUID
+		clusterName      string
+		apiVIPDnsname    string
+		openshiftVersion string
+		mockClusterAPI   *cluster.MockAPI
+		mockHostApi      *host.MockAPI
+		mockJobApi       *job.MockAPI
+		mockS3Client     *s3wrapper.MockAPI
+		request          *http.Request
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		clusterID = strfmt.UUID(uuid.New().String())
+		clusterName = "add-hosts-cluster"
+		openshiftVersion = "4.6"
+		apiVIPDnsname = "api-vip.redhat.com"
+		mockClusterAPI = cluster.NewMockAPI(ctrl)
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockJobApi = job.NewMockAPI(ctrl)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, mockJobApi, nil, mockS3Client, nil, getTestAuthHandler())
+		body := &bytes.Buffer{}
+		request, _ = http.NewRequest("POST", "test", body)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("Create AddHosts cluster", func() {
+		params := installer.RegisterAddHostsClusterParams{
+			HTTPRequest: request,
+			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
+				APIVipDnsname:    &apiVIPDnsname,
+				ID:               &clusterID,
+				Name:             &clusterName,
+				OpenshiftVersion: &openshiftVersion,
+			},
+		}
+		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
+		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		res := bm.RegisterAddHostsCluster(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
+	})
+
+	It("Create AddHosts cluster fail upload", func() {
+		params := installer.RegisterAddHostsClusterParams{
+			HTTPRequest: request,
+			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
+				APIVipDnsname:    &apiVIPDnsname,
+				ID:               &clusterID,
+				Name:             &clusterName,
+				OpenshiftVersion: &openshiftVersion,
+			},
+		}
+		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("dummy")).Times(1)
+		res := bm.RegisterAddHostsCluster(ctx, params)
+		verifyApiError(res, http.StatusInternalServerError)
+		//Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterInternalServerError()))
 	})
 })

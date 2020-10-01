@@ -2,18 +2,19 @@ package ocm
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	sdkClient "github.com/openshift-online/ocm-sdk-go"
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 type Client struct {
-	config *Config
-	logger sdkClient.Logger
-	Cache  *cache.Cache
+	config     *Config
+	logger     sdkClient.Logger
+	connection *sdkClient.Connection
+	Cache      *cache.Cache
 
 	Authentication OCMAuthentication
 	Authorization  OCMAuthorization
@@ -75,7 +76,11 @@ func NewClient(config Config, log logrus.FieldLogger) (*Client, error) {
 	client := &Client{
 		config: &config,
 		logger: logger,
-		Cache:  cache.New(1*time.Minute, 30*time.Minute),
+		Cache:  cache.New(10*time.Minute, 30*time.Minute),
+	}
+	err := client.newConnection()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unable to build OCM connection")
 	}
 	client.Authentication = &authentication{
 		client: client,
@@ -86,8 +91,7 @@ func NewClient(config Config, log logrus.FieldLogger) (*Client, error) {
 	return client, nil
 }
 
-// NewConnection creates a new connection
-func (c *Client) NewConnection() (*sdkClient.Connection, error) {
+func (c *Client) newConnection() error {
 	builder := sdkClient.NewConnectionBuilder().
 		Logger(c.logger).
 		URL(c.config.BaseURL).
@@ -99,14 +103,16 @@ func (c *Client) NewConnection() (*sdkClient.Connection, error) {
 	} else if c.config.SelfToken != "" {
 		builder = builder.Tokens(c.config.SelfToken)
 	} else {
-		return nil, fmt.Errorf("Can't build OCM client connection. No Client/Secret or Token has been provided")
+		return errors.Errorf("Can't build OCM client connection. No Client/Secret or Token has been provided.")
 	}
 
 	connection, err := builder.Build()
+
 	if err != nil {
-		return nil, fmt.Errorf("Can't build OCM client connection: %s", err.Error())
+		return errors.Wrapf(err, "Can't build OCM client connection")
 	}
-	return connection, nil
+	c.connection = connection
+	return nil
 }
 
 // AuthPayload defines the structure of the User

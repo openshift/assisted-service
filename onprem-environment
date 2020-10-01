@@ -8,3 +8,5 @@ DB_PASS=admin
 DB_NAME=installer
 SERVICE_BASE_URL=http://127.0.0.1:8090
 DEPLOY_TARGET=onprem
+DUMMY_IGNITION=false
+OPENSHIFT_INSTALL_RELEASE_IMAGE=quay.io/ocpmetal/ocp-release:v1.0.9.1

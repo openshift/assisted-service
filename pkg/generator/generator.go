@@ -4,11 +4,10 @@ import (
 	"context"
 
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/events"
 )
 
 type ISOGenerator interface {
-	GenerateISO(ctx context.Context, cluster common.Cluster, jobName string, imageName string, ignitionConfig string, eventsHandler events.Handler) error
+	UploadBaseISO() error
 }
 
 type InstallConfigGenerator interface {

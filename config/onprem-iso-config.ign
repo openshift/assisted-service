@@ -1,6 +1,6 @@
 {
   "ignition": {
-    "version": "2.2.0"
+    "version": "3.0.0"
   },
   "passwd": {
     "users": [
@@ -19,15 +19,13 @@
     "files": [
       {
         "path": "/etc/assisted-service/environment",
-        "filesystem": "root",
         "contents": {
-          "source": "data:,POSTGRESQL_DATABASE%3Dinstaller%0APOSTGRESQL_PASSWORD%3Dadmin%0APOSTGRESQL_USER%3Dadmin%0ADB_HOST%3D127.0.0.1%0ADB_PORT%3D5432%0ADB_USER%3Dadmin%0ADB_PASS%3Dadmin%0ADB_NAME%3Dinstaller%0ASERVICE_BASE_URL%3Dhttp%3A%2F%2Fassisted-api.local.openshift.io%3A8080%0ADEPLOY_TARGET%3Donprem%0A"
+          "source": "data:,POSTGRESQL_DATABASE%3Dinstaller%0APOSTGRESQL_PASSWORD%3Dadmin%0APOSTGRESQL_USER%3Dadmin%0ADB_HOST%3D127.0.0.1%0ADB_PORT%3D5432%0ADB_USER%3Dadmin%0ADB_PASS%3Dadmin%0ADB_NAME%3Dinstaller%0ASERVICE_BASE_URL%3Dhttp%3A%2F%2Fassisted-api.local.openshift.io%3A8080%0ADEPLOY_TARGET%3Donprem%0AOPENSHIFT_INSTALL_RELEASE_IMAGE%3Dquay.io%2Focpmetal%2Focp-release%3Av1.0.9.1%0A"
         },
         "mode": 420
       },
       {
         "path": "/etc/assisted-service/nginx.conf",
-        "filesystem": "root",
         "contents": {
           "source": "data:,server%20%7B%0A%20%20%20%20listen%208080%3B%0A%20%20%20%20server_name%20_%3B%0A%20%20%20%20root%20%2Fapp%3B%0A%20%20%20%20index%20index.html%3B%0A%20%20%20%20location%20%2Fapi%20%7B%0A%20%20%20%20%20%20%20%20proxy_pass%20http%3A%2F%2Flocalhost%3A8090%3B%0A%20%20%20%20%20%20%20%20proxy_http_version%201.1%3B%0A%20%20%20%20%20%20%20%20proxy_set_header%20Upgrade%20%24http_upgrade%3B%0A%20%20%20%20%20%20%20%20proxy_set_header%20Connection%20'upgrade'%3B%0A%20%20%20%20%20%20%20%20proxy_set_header%20Host%20%24host%3B%0A%20%20%20%20%20%20%20%20proxy_cache_bypass%20%24http_upgrade%3B%0A%20%20%20%20%7D%0A%20%20%20%20location%20%2F%20%7B%0A%20%20%20%20%20%20%20%20try_files%20%24uri%20%2Findex.html%3B%0A%20%20%20%20%7D%0A%7D%0A"
         },
@@ -35,7 +33,6 @@
       },
       {
         "path": "/etc/assisted-service/auth.json",
-        "filesystem": "root",
         "contents": {
           "source": "data:,replace-with-your-urlencoded-pull-secret"
         },

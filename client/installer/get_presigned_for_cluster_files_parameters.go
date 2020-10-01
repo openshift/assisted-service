@@ -66,6 +66,8 @@ type GetPresignedForClusterFilesParams struct {
 	FileName string
 	/*HostID*/
 	HostID *strfmt.UUID
+	/*LogsType*/
+	LogsType *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -138,6 +140,17 @@ func (o *GetPresignedForClusterFilesParams) SetHostID(hostID *strfmt.UUID) {
 	o.HostID = hostID
 }
 
+// WithLogsType adds the logsType to the get presigned for cluster files params
+func (o *GetPresignedForClusterFilesParams) WithLogsType(logsType *string) *GetPresignedForClusterFilesParams {
+	o.SetLogsType(logsType)
+	return o
+}
+
+// SetLogsType adds the logsType to the get presigned for cluster files params
+func (o *GetPresignedForClusterFilesParams) SetLogsType(logsType *string) {
+	o.LogsType = logsType
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetPresignedForClusterFilesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -170,6 +183,22 @@ func (o *GetPresignedForClusterFilesParams) WriteToRequest(r runtime.ClientReque
 		qHostID := qrHostID.String()
 		if qHostID != "" {
 			if err := r.SetQueryParam("host_id", qHostID); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.LogsType != nil {
+
+		// query param logs_type
+		var qrLogsType string
+		if o.LogsType != nil {
+			qrLogsType = *o.LogsType
+		}
+		qLogsType := qrLogsType
+		if qLogsType != "" {
+			if err := r.SetQueryParam("logs_type", qLogsType); err != nil {
 				return err
 			}
 		}

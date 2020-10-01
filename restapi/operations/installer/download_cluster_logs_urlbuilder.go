@@ -18,6 +18,9 @@ import (
 type DownloadClusterLogsURL struct {
 	ClusterID strfmt.UUID
 
+	HostID   *strfmt.UUID
+	LogsType *string
+
 	_basePath string
 	// avoid unkeyed usage
 	_ struct{}
@@ -56,6 +59,26 @@ func (o *DownloadClusterLogsURL) Build() (*url.URL, error) {
 		_basePath = "/api/assisted-install/v1"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var hostIDQ string
+	if o.HostID != nil {
+		hostIDQ = o.HostID.String()
+	}
+	if hostIDQ != "" {
+		qs.Set("host_id", hostIDQ)
+	}
+
+	var logsTypeQ string
+	if o.LogsType != nil {
+		logsTypeQ = *o.LogsType
+	}
+	if logsTypeQ != "" {
+		qs.Set("logs_type", logsTypeQ)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }
