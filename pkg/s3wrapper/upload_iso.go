@@ -8,19 +8,21 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"sort"
+	"sync"
 
 	"github.com/cavaliercoder/go-cpio"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-
-	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-const minimumPartSizeBytes = 5 * 1024 * 1024 // 5MB
+const minimumPartSizeBytes = 5 * 1024 * 1024    // 5MB
+const copyPartChunkSizeBytes = 64 * 1024 * 1024 // 64MB
 const coreISOMagic = "coreiso+"
 
 type ISOUploaderAPI interface {
@@ -58,64 +60,21 @@ func (u *ISOUploader) UploadISO(ctx context.Context, ignitionConfig, objectName 
 		return err
 	}
 
-	log.Debugf("Creating multi-part upload of ISO %s", objectName)
-	multiOut, err := u.s3client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{Bucket: aws.String(u.bucket), Key: aws.String(objectName)})
+	upload := multiUpload{
+		ctx:             ctx,
+		log:             log,
+		uploader:        u,
+		isoInfo:         baseISOInfo,
+		origContents:    origContents,
+		sourceObjectKey: BaseObjectName,
+		destObjectKey:   objectName,
+	}
+	err = upload.Upload(ignitionConfig)
 	if err != nil {
-		err = errors.Wrapf(err, "Failed to start upload for %s", objectName)
+		err = errors.Wrapf(err, "Failed to create ISO %s", objectName)
 		log.Error(err)
 		return err
 	}
-	uploadID := multiOut.UploadId
-	var completedParts []*s3.CompletedPart
-
-	defer func() {
-		if err != nil {
-			_, abortErr := u.s3client.AbortMultipartUpload(&s3.AbortMultipartUploadInput{UploadId: uploadID, Bucket: aws.String(u.bucket), Key: aws.String(objectName)})
-			if abortErr != nil {
-				log.WithError(abortErr).Warnf("Failed to abort failed multipart upload with ID %s", *uploadID)
-			}
-		}
-	}()
-
-	// First part: copy the first part of the live ISO, until the embedded area
-	log.Debugf("Creating part 1 of multi-part upload of ISO %s", objectName)
-	completedPart, err := u.uploadPartCopy(log, 1, uploadID, BaseObjectName, objectName, 0, baseISOInfo.areaOffsetBytes-1)
-	if err != nil {
-		return err
-	}
-	completedParts = append(completedParts, completedPart)
-
-	// Second part: The embedded area containing the compressed ignition config.
-	log.Debugf("Uploading part 2 (ignition) of multi-part upload of ISO %s", objectName)
-	completedPart, err = u.uploadIgnition(log, 2, uploadID, objectName, ignitionConfig, *origContents, baseISOInfo.areaLengthBytes)
-	if err != nil {
-		return err
-	}
-	completedParts = append(completedParts, completedPart)
-
-	// Third part: copy the last part of the live ISO, after the embedded area
-	log.Debugf("Creating part 3 of multi-part upload of ISO %s", objectName)
-	completedPart, err = u.uploadPartCopy(log, 3, uploadID, BaseObjectName, objectName, baseISOInfo.areaOffsetBytes+minimumPartSizeBytes, baseISOInfo.baseObjectSize-1)
-	if err != nil {
-		return err
-	}
-	completedParts = append(completedParts, completedPart)
-
-	log.Debugf("Completing multi-part upload of ISO %s", objectName)
-	_, err = u.s3client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
-		Bucket:   aws.String(u.bucket),
-		Key:      aws.String(objectName),
-		UploadId: uploadID,
-		MultipartUpload: &s3.CompletedMultipartUpload{
-			Parts: completedParts,
-		},
-	})
-	if err != nil {
-		err = errors.Wrapf(err, "Failed to complete upload for %s", objectName)
-		log.Error(err)
-		return err
-	}
-	log.Debugf("Completed upload of ISO %s", objectName)
 	return nil
 }
 
@@ -235,42 +194,210 @@ func (u *ISOUploader) getISOHeaderInfo(log logrus.FieldLogger, baseObjectName st
 	return
 }
 
-func (u *ISOUploader) uploadPartCopy(log logrus.FieldLogger, partNum int64, uploadID *string, sourceObjectKey string, destObjectKey string,
-	sourceStartBytes int64, sourceEndBytes int64) (*s3.CompletedPart, error) {
-	completedPartCopy, err := u.s3client.UploadPartCopy(&s3.UploadPartCopyInput{
-		Bucket:          aws.String(u.bucket),
-		Key:             aws.String(destObjectKey),
-		CopySource:      aws.String(fmt.Sprintf("/%s/%s", u.bucket, sourceObjectKey)),
-		CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", sourceStartBytes, sourceEndBytes)),
-		PartNumber:      aws.Int64(partNum),
-		UploadId:        uploadID,
-	})
-	if err != nil {
-		err = errors.Wrapf(err, "Failed to copy part %d for file %s", partNum, destObjectKey)
-		log.Error(err)
-		return nil, err
-	}
-	return &s3.CompletedPart{ETag: completedPartCopy.CopyPartResult.ETag, PartNumber: aws.Int64(partNum)}, nil
+type multiUpload struct {
+	ctx             context.Context
+	log             logrus.FieldLogger
+	uploader        *ISOUploader
+	isoInfo         *isoInfo
+	origContents    *[]byte
+	wg              sync.WaitGroup
+	mutex           sync.Mutex
+	err             error
+	uploadID        string
+	sourceObjectKey string
+	destObjectKey   string
+	parts           completedParts
 }
 
-func (u *ISOUploader) uploadIgnition(log logrus.FieldLogger, partNum int64, uploadID *string, objectName,
-	ignitionConfig string, origContents []byte, areaLengthBytes int64) (*s3.CompletedPart, error) {
+type chunk struct {
+	partNum          int64
+	sourceStartBytes int64
+	sourceEndBytes   int64
+}
+
+// completedParts is a wrapper to make parts sortable by their part number,
+// since S3 required this list to be sent in sorted order.
+type completedParts []*s3.CompletedPart
+
+func (a completedParts) Len() int           { return len(a) }
+func (a completedParts) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a completedParts) Less(i, j int) bool { return *a[i].PartNumber < *a[j].PartNumber }
+
+func (m *multiUpload) Upload(ignitionConfig string) error {
+	m.log.Debugf("Creating multi-part upload of ISO %s", m.destObjectKey)
+	multiOut, err := m.uploader.s3client.CreateMultipartUploadWithContext(
+		m.ctx, &s3.CreateMultipartUploadInput{Bucket: aws.String(m.uploader.bucket), Key: aws.String(m.destObjectKey)})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to start upload for %s", m.destObjectKey)
+		m.log.Error(err)
+		return err
+	}
+	m.uploadID = *multiOut.UploadId
+
+	m.log.Debugf("Starting goroutines copying chunks for ISO %s", m.destObjectKey)
+	maxChunks := int(m.isoInfo.baseObjectSize/copyPartChunkSizeBytes) + 1
+	ch := make(chan chunk, maxChunks)
+	for i := 0; i < maxChunks; i++ {
+		m.wg.Add(1)
+		go m.copyChunk(ch)
+	}
+
+	m.log.Debugf("Providing work for goroutines copying chunks for ISO %s", m.destObjectKey)
+	embeddedAreaPartNum := m.generateWorkForRange(ch, int64(1), 0, m.isoInfo.areaOffsetBytes-1)
+	m.generateWorkForRange(ch, embeddedAreaPartNum+1, m.isoInfo.areaOffsetBytes+minimumPartSizeBytes, m.isoInfo.baseObjectSize-1)
+	close(ch)
+
+	m.log.Debugf("Uploading embedded area (compressed ignition config) for ISO %s", m.destObjectKey)
+	err = m.uploadIgnition(m.log, embeddedAreaPartNum, ignitionConfig)
+	if err != nil {
+		m.log.Error(err)
+		m.seterr(err)
+	} else {
+		m.log.Debugf("Completed upload of embedded area for ISO %s, waiting for async copies", m.destObjectKey)
+	}
+
+	// We now finished sending the chunks to copy as well as uploading the embedded area, wait for copies to finish
+	m.wg.Wait()
+	m.complete()
+
+	if err := m.geterr(); err != nil {
+		return err
+	}
+	m.log.Debugf("Completed upload of ISO %s", m.destObjectKey)
+	return nil
+}
+
+func (m *multiUpload) copyChunk(ch chan chunk) {
+	defer m.wg.Done()
+	for {
+		data, ok := <-ch
+
+		if !ok {
+			break
+		}
+
+		if m.geterr() == nil {
+			if err := m.uploadPartCopy(data); err != nil {
+				m.seterr(err)
+			}
+		}
+	}
+}
+
+func (m *multiUpload) generateWorkForRange(ch chan chunk, partNum int64, startOffsetBytes int64, endOffsetBytes int64) int64 {
+	var (
+		currentChunkEnd int64
+		nextChunkStart  int64
+		offsetCounter   = startOffsetBytes
+		partCounter     = partNum
+	)
+	for m.geterr() == nil && offsetCounter < endOffsetBytes {
+		currentChunkEnd = offsetCounter + copyPartChunkSizeBytes - 1
+		nextChunkStart = currentChunkEnd + 1
+		// We need to check two conditions which will cause this to be the last part:
+		// 1. If we're at the end of the specified range, we need to copy less than the chunk size
+		// 2. If the next chunk will be less than 5MB, we need to fold it into this one
+		if (currentChunkEnd > endOffsetBytes-1) || (nextChunkStart+minimumPartSizeBytes-1 > endOffsetBytes) {
+			currentChunkEnd = endOffsetBytes
+			nextChunkStart = endOffsetBytes
+		}
+
+		ch <- chunk{partNum: partCounter, sourceStartBytes: offsetCounter, sourceEndBytes: currentChunkEnd}
+		offsetCounter = nextChunkStart
+		partCounter++
+	}
+	return partCounter
+}
+
+func (m *multiUpload) geterr() error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.err
+}
+
+func (m *multiUpload) seterr(e error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.err = e
+}
+
+func (m *multiUpload) appendCompletedPart(completed *s3.CompletedPart) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.parts = append(m.parts, completed)
+}
+
+func (m *multiUpload) complete() {
+	err := m.geterr()
+	if err != nil {
+		m.fail()
+		return
+	}
+
+	// Parts must be sorted in PartNumber order.
+	sort.Sort(m.parts)
+
+	params := &s3.CompleteMultipartUploadInput{
+		Bucket:          aws.String(m.uploader.bucket),
+		Key:             aws.String(m.destObjectKey),
+		UploadId:        aws.String(m.uploadID),
+		MultipartUpload: &s3.CompletedMultipartUpload{Parts: m.parts},
+	}
+	_, err = m.uploader.s3client.CompleteMultipartUploadWithContext(m.ctx, params)
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to complete upload for %s", m.destObjectKey)
+		m.log.Error(err)
+		m.seterr(err)
+		m.fail()
+	}
+}
+
+func (m *multiUpload) fail() {
+	_, err := m.uploader.s3client.AbortMultipartUploadWithContext(m.ctx, &s3.AbortMultipartUploadInput{
+		Bucket:   aws.String(m.uploader.bucket),
+		Key:      aws.String(m.destObjectKey),
+		UploadId: aws.String(m.uploadID),
+	})
+	if err != nil {
+		m.log.WithError(err).Warnf("Failed to abort failed multipart upload with ID %s", m.uploadID)
+	}
+}
+
+func (m *multiUpload) uploadPartCopy(c chunk) error {
+	completedPartCopy, err := m.uploader.s3client.UploadPartCopyWithContext(m.ctx, &s3.UploadPartCopyInput{
+		Bucket:          aws.String(m.uploader.bucket),
+		Key:             aws.String(m.destObjectKey),
+		CopySource:      aws.String(fmt.Sprintf("/%s/%s", m.uploader.bucket, m.sourceObjectKey)),
+		CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", c.sourceStartBytes, c.sourceEndBytes)),
+		PartNumber:      aws.Int64(c.partNum),
+		UploadId:        aws.String(m.uploadID),
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to copy part %d for file %s", c.partNum, m.destObjectKey)
+		m.log.Error(err)
+		return err
+	}
+	m.appendCompletedPart(&s3.CompletedPart{ETag: completedPartCopy.CopyPartResult.ETag, PartNumber: aws.Int64(c.partNum)})
+	return nil
+}
+
+func (m *multiUpload) uploadIgnition(log logrus.FieldLogger, partNum int64, ignitionConfig string) error {
 	ignitionBytes := []byte(ignitionConfig)
 
 	// Create CPIO archive
 	archiveBuffer := new(bytes.Buffer)
 	cpioWriter := cpio.NewWriter(archiveBuffer)
 	if err := cpioWriter.WriteHeader(&cpio.Header{Name: "config.ign", Mode: 0o100_644, Size: int64(len(ignitionBytes))}); err != nil {
-		log.WithError(err).Errorf("Failed to write CPIO header")
-		return nil, err
+		m.log.WithError(err).Errorf("Failed to write CPIO header")
+		return err
 	}
 	if _, err := cpioWriter.Write(ignitionBytes); err != nil {
-		log.WithError(err).Errorf("Failed to write CPIO archive")
-		return nil, err
+		m.log.WithError(err).Errorf("Failed to write CPIO archive")
+		return err
 	}
 	if err := cpioWriter.Close(); err != nil {
-		log.WithError(err).Errorf("Failed to close CPIO archive")
-		return nil, err
+		m.log.WithError(err).Errorf("Failed to close CPIO archive")
+		return err
 	}
 
 	// Run gzip compression
@@ -278,37 +405,38 @@ func (u *ISOUploader) uploadIgnition(log logrus.FieldLogger, partNum int64, uplo
 	gzipWriter := gzip.NewWriter(compressedBuffer)
 	if _, err := gzipWriter.Write(archiveBuffer.Bytes()); err != nil {
 		err = errors.Wrapf(err, "Failed to gzip ignition config")
-		log.Error(err)
-		return nil, err
+		m.log.Error(err)
+		return err
 	}
 	if err := gzipWriter.Close(); err != nil {
 		err = errors.Wrapf(err, "Failed to gzip ignition config")
-		log.Error(err)
-		return nil, err
+		m.log.Error(err)
+		return err
 	}
 
-	if int64(len(compressedBuffer.Bytes())) > areaLengthBytes {
-		err := errors.New(fmt.Sprintf("Ignition is too long to be embedded (%d > %d)", len(compressedBuffer.Bytes()), areaLengthBytes))
-		log.Error(err)
-		return nil, err
+	if int64(len(compressedBuffer.Bytes())) > m.isoInfo.areaLengthBytes {
+		err := errors.New(fmt.Sprintf("Ignition is too long to be embedded (%d > %d)", len(compressedBuffer.Bytes()), m.isoInfo.areaLengthBytes))
+		m.log.Error(err)
+		return err
 	}
 
-	copy(origContents, compressedBuffer.Bytes())
+	copy(*m.origContents, compressedBuffer.Bytes())
 
-	contentLength := int64(len(origContents))
-	completedPartCopy, err := u.s3client.UploadPart(&s3.UploadPartInput{
-		Bucket:        aws.String(u.bucket),
-		Key:           aws.String(objectName),
+	contentLength := int64(len(*m.origContents))
+	completedPartCopy, err := m.uploader.s3client.UploadPart(&s3.UploadPartInput{
+		Bucket:        aws.String(m.uploader.bucket),
+		Key:           aws.String(m.destObjectKey),
 		PartNumber:    aws.Int64(partNum),
-		UploadId:      uploadID,
-		Body:          bytes.NewReader(origContents),
+		UploadId:      aws.String(m.uploadID),
+		Body:          bytes.NewReader(*m.origContents),
 		ContentLength: aws.Int64(contentLength),
 	})
 	if err != nil {
-		err = errors.Wrapf(err, "Failed to upload ignition for file %s", objectName)
-		log.Error(err)
-		return nil, err
+		err = errors.Wrapf(err, "Failed to upload ignition for file %s", m.destObjectKey)
+		m.log.Error(err)
+		return err
 	}
 
-	return &s3.CompletedPart{ETag: completedPartCopy.ETag, PartNumber: aws.Int64(partNum)}, nil
+	m.appendCompletedPart(&s3.CompletedPart{ETag: completedPartCopy.ETag, PartNumber: aws.Int64(partNum)})
+	return nil
 }
