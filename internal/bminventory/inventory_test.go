@@ -2574,6 +2574,16 @@ var _ = Describe("Upload and Download logs test", func() {
 		reply := bm.UploadLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadLogsNoContent()))
 	})
+	It("Upload Controller logs cluster not exists", func() {
+		clusterID := strToUUID(uuid.New().String())
+		params := installer.UploadLogsParams{
+			ClusterID:   *clusterID,
+			Upfile:      kubeconfigFile,
+			HTTPRequest: request,
+			LogsType:    string(models.LogsTypeController),
+		}
+		verifyApiError(bm.UploadLogs(ctx, params), http.StatusNotFound)
+	})
 	It("Download controller log happy flow", func() {
 		logsType := string(models.LogsTypeController)
 		params := installer.DownloadClusterLogsParams{
