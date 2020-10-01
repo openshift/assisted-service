@@ -15,6 +15,7 @@ import (
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -181,7 +182,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 
 	if payload.Username == "" {
 		a.log.Error("Missing username in token")
-		return nil, fmt.Errorf("Missing username in token")
+		return nil, errors.Errorf("Missing username in token")
 	}
 
 	err = a.storeAdminInPayload(payload)
