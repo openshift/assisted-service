@@ -2421,11 +2421,11 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	var err error
 	switch fileName {
 	case kubeconfig:
-		err = b.clusterApi.DownloadKubeconfig(&c)
+		err = cluster.CanDownloadKubeconfig(&c)
 	case manifests.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
-		err = b.clusterApi.DownloadFiles(&c)
+		err = cluster.CanDownloadFiles(&c)
 	}
 	if err != nil {
 		log.WithError(err).Errorf("failed to get file for cluster %s in current state", clusterID)
