@@ -485,7 +485,7 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) error {
 	toUpload := fileNames[:]
 	for _, host := range cluster.Hosts {
-		toUpload = append(toUpload, hostIgnitionName(host))
+		toUpload = append(toUpload, hostutil.IgnitionFileName(host))
 	}
 
 	for _, fileName := range toUpload {
@@ -586,10 +586,6 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 	return nil
 }
 
-func hostIgnitionName(host *models.Host) string {
-	return fmt.Sprintf("%s-%s.ign", host.Role, host.ID)
-}
-
 func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error {
 	for _, host := range hosts {
 		config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
@@ -604,7 +600,7 @@ func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error
 
 		setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420)
 
-		err = writeIgnitionFile(filepath.Join(workDir, hostIgnitionName(host)), config)
+		err = writeIgnitionFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), config)
 		if err != nil {
 			return errors.Wrapf(err, "failed to write ignition for host %s", host.ID)
 		}

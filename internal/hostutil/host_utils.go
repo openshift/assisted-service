@@ -2,6 +2,7 @@ package hostutil
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 
@@ -65,4 +66,8 @@ func ValidateHostname(hostname string) error {
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Hostname does not pass required regex validation: %s. Hostname: %s", pattern, hostname))
 	}
 	return nil
+}
+
+func IgnitionFileName(host *models.Host) string {
+	return fmt.Sprintf("%s-%s.ign", host.Role, host.ID)
 }
