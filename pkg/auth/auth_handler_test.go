@@ -267,6 +267,10 @@ func (f fakeInventory) InstallCluster(ctx context.Context, params installer.Inst
 	panic("Implement Me!")
 }
 
+func (f fakeInventory) InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
 func (f fakeInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
 	return installer.NewListClustersOK()
 }

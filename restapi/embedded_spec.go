@@ -600,6 +600,74 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/actions/install_hosts": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Installs the OpenShift bare metal cluster.",
+        "operationId": "InstallHosts",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/actions/reset": {
       "post": {
         "tags": [
@@ -4593,6 +4661,74 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/actions/install_hosts": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Installs the OpenShift bare metal cluster.",
+        "operationId": "InstallHosts",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/actions/reset": {
       "post": {
         "tags": [
@@ -6110,22 +6246,6 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
-          },
-          {
-            "enum": [
-              "host",
-              "controller",
-              "all"
-            ],
-            "type": "string",
-            "name": "logs_type",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "host_id",
-            "in": "query"
           }
         ],
         "responses": {
@@ -6255,6 +6375,22 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "name": "logs_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
           }
         ],
         "responses": {
