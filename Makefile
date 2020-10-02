@@ -25,6 +25,7 @@ SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onpre
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/46.82.202009222340-0/x86_64/rhcos-46.82.202009222340-0-live.x86_64.iso)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},minikube-local-registry/ignition-dummy-generator:minikube-test)
+OPENSHIFT_INSTALL_RELEASE_IMAGE := $(or ${OPENSHIFT_INSTALL_RELEASE_IMAGE},quay.io/ocpmetal/ocp-release:4.6.0-0.nightly-2020-08-31-220837)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
@@ -202,7 +203,8 @@ deploy-inventory-service-file: deploy-namespace
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
-		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
+		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS) \
+		--ocp-release $(OPENSHIFT_INSTALL_RELEASE_IMAGE)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \

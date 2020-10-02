@@ -15,6 +15,7 @@ ENVS = [
     ("HW_VALIDATOR_MIN_DISK_SIZE_GIB", "10"),
     ("INSTALLER_IMAGE", ""),
     ("CONTROLLER_IMAGE", ""),
+    ("OPENSHIFT_INSTALL_RELEASE_IMAGE", ""),
     ("SERVICE_URL", ""),
     ("SERVICE_PORT", ""),
     ("AGENT_DOCKER_IMAGE", ""),
