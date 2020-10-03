@@ -14,6 +14,7 @@ import (
 )
 
 const MinMasterHostsNeededForInstallation = 3
+const IllegalWorkerHostsCount = 1
 
 const HostCACertPath = "/etc/assisted-service/service-ca-cert.crt"
 
