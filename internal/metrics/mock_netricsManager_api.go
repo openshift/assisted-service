@@ -37,9 +37,9 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 }
 
 // ClusterRegistered mocks base method
-func (m *MockAPI) ClusterRegistered(clusterVersion string) {
+func (m *MockAPI) ClusterRegistered(clusterVersion string, clusterID strfmt.UUID) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ClusterRegistered", clusterVersion)
+	m.ctrl.Call(m, "ClusterRegistered", clusterVersion, clusterID)
 }
 
 // ClusterRegistered indicates an expected call of ClusterRegistered
@@ -49,9 +49,9 @@ func (mr *MockAPIMockRecorder) ClusterRegistered(clusterVersion interface{}) *go
 }
 
 // InstallationStarted mocks base method
-func (m *MockAPI) InstallationStarted(clusterVersion string) {
+func (m *MockAPI) InstallationStarted(clusterVersion string, clusterID strfmt.UUID) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "InstallationStarted", clusterVersion)
+	m.ctrl.Call(m, "InstallationStarted", clusterVersion, clusterID)
 }
 
 // InstallationStarted indicates an expected call of InstallationStarted
@@ -73,9 +73,9 @@ func (mr *MockAPIMockRecorder) Duration(operation, duration interface{}) *gomock
 }
 
 // ClusterInstallationFinished mocks base method
-func (m *MockAPI) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, installationStratedTime strfmt.DateTime) {
+func (m *MockAPI) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStratedTime strfmt.DateTime) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ClusterInstallationFinished", log, result, clusterVersion, installationStratedTime)
+	m.ctrl.Call(m, "ClusterInstallationFinished", log, result, clusterVersion, clusterID, installationStratedTime)
 }
 
 // ClusterInstallationFinished indicates an expected call of ClusterInstallationFinished
@@ -85,13 +85,13 @@ func (mr *MockAPIMockRecorder) ClusterInstallationFinished(log, result, clusterV
 }
 
 // ReportHostInstallationMetrics mocks base method
-func (m *MockAPI) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
+func (m *MockAPI) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ReportHostInstallationMetrics", log, clusterVersion, h, previousProgress, currentStage)
+	m.ctrl.Call(m, "ReportHostInstallationMetrics", log, clusterVersion, clusterID, h, previousProgress, currentStage)
 }
 
 // ReportHostInstallationMetrics indicates an expected call of ReportHostInstallationMetrics
-func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(log, clusterVersion, h, previousProgress, currentStage interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(log, clusterVersion,clusterId, h, previousProgress, currentStage interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportHostInstallationMetrics", reflect.TypeOf((*MockAPI)(nil).ReportHostInstallationMetrics), log, clusterVersion, h, previousProgress, currentStage)
 }
