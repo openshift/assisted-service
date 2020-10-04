@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -739,6 +741,36 @@ var _ = Describe("PostStepReply", func() {
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
 			reply := bm.PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+		})
+	})
+	Context("Timestamp check", func() {
+		var makeStepReply = func(clusterID, hostID strfmt.UUID) installer.PostStepReplyParams {
+			return installer.PostStepReplyParams{
+				ClusterID: clusterID,
+				HostID:    hostID,
+				Reply: &models.StepReply{
+					Output:   "1601849417\n",
+					StepType: models.StepTypeTimestamp,
+				},
+			}
+		}
+
+		It("Timestamp success", func() {
+			clusterId := strToUUID(uuid.New().String())
+			hostId := strToUUID(uuid.New().String())
+			host := models.Host{
+				ID:        hostId,
+				ClusterID: *clusterId,
+				Status:    swag.String("known"),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			params := makeStepReply(*clusterId, *hostId)
+			mockHostApi.EXPECT().UpdateTimestamp(gomock.Any(), gomock.Any(), int64(1601849417)).Return(nil).Times(1)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			var h models.Host
+			Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+			Expect(funk.Contains(h.Inventory, "1601849417")).ToNot(Equal(true))
 		})
 	})
 })
