@@ -320,7 +320,7 @@ func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.State
 	}
 
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		statusInfoResettingPendingUserAction)
+		statusInfoResettingPendingUserAction, "StatusUpdatedAt", strfmt.DateTime(time.Now()))
 }
 
 ////////////////////////////////////////////////////////////////////////////
