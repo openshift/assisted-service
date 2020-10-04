@@ -21,51 +21,9 @@ pipeline {
     stages {
         stage('Init') {
             steps {
-                sh 'make clear-all || true'
-                sh 'make ci-lint'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh "make build-image build-minimal-assisted-iso-generator-image"
-                sh "make jenkins-deploy-for-subsystem"
-                sh "kubectl get pods -A"
-            }
-        }
-
-        stage('Subsystem Test') {
-            steps {
-                sh "make subsystem-run"
-            }
-        }
-
-        stage('Publish') {
-            when { branch 'master'}
-            steps {
-                sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
-                sh "make publish"
-            }
-        }
-    }
-
-    post {
-        always {
-            script {
-                if ((env.BRANCH_NAME == 'master') && (currentBuild.currentResult == "ABORTED" || currentBuild.currentResult == "FAILURE")){
-                    script {
-                        def data = [text: "Attention! ${BUILD_TAG} job failed, see: ${BUILD_URL}"]
-                        writeJSON(file: 'data.txt', json: data, pretty: 4)
-                    }
-
-                    sh '''curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt" https://hooks.slack.com/services/${SLACK_TOKEN}'''
-                }
-
-                for (service in ["assisted-service","postgres","scality","createimage"]) {
-                    sh "kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep ${service} | xargs -r -I {} sh -c \"kubectl logs {} -n assisted-installer > {}.log\" || true"
-                }
-            archiveArtifacts artifacts: '*.log', fingerprint: true
+                sh 'echo $CHANGE_ID'
             }
         }
     }
 }
+
