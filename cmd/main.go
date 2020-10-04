@@ -132,10 +132,13 @@ func main() {
 		log.Fatal("failed to auto migrate, ", err)
 	}
 
+	prometheusRegistry := prometheus.DefaultRegisterer
+	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
+
 	var ocmClient *ocm.Client
 	if Options.Auth.EnableAuth {
 		ocmLog := logrus.New()
-		ocmClient, err = ocm.NewClient(Options.OCMConfig, ocmLog.WithField("pkg", "ocm"))
+		ocmClient, err = ocm.NewClient(Options.OCMConfig, ocmLog.WithField("pkg", "ocm"), metricsManager)
 		if err != nil {
 			log.Fatal("Failed to Create OCM Client, ", err)
 		}
@@ -151,8 +154,6 @@ func main() {
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, Options.InstructionConfig, connectivityValidator)
-	prometheusRegistry := prometheus.DefaultRegisterer
-	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
 

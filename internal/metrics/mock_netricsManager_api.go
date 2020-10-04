@@ -11,6 +11,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
+	time "time"
 )
 
 // MockAPI is a mock of API interface
@@ -58,6 +59,18 @@ func (m *MockAPI) InstallationStarted(clusterVersion string) {
 func (mr *MockAPIMockRecorder) InstallationStarted(clusterVersion interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallationStarted", reflect.TypeOf((*MockAPI)(nil).InstallationStarted), clusterVersion)
+}
+
+// Duration mocks base method
+func (m *MockAPI) Duration(operation string, duration time.Duration) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Duration", operation, duration)
+}
+
+// Duration indicates an expected call of Duration
+func (mr *MockAPIMockRecorder) Duration(operation, duration interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Duration", reflect.TypeOf((*MockAPI)(nil).Duration), operation, duration)
 }
 
 // ClusterInstallationFinished mocks base method
