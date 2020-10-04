@@ -3709,7 +3709,8 @@ func init() {
         "has-memory-for-role",
         "hostname-unique",
         "hostname-valid",
-        "belongs-to-machine-cidr"
+        "belongs-to-machine-cidr",
+        "time-skew-exists"
       ]
     },
     "host_network": {
@@ -3874,6 +3875,9 @@ func init() {
         },
         "system_vendor": {
           "$ref": "#/definitions/system_vendor"
+        },
+        "timestamp": {
+          "type": "integer"
         }
       }
     },
@@ -4023,7 +4027,8 @@ func init() {
         "free-network-addresses",
         "reset-installation",
         "dhcp-lease-allocate",
-        "api-vip-connectivity-check"
+        "api-vip-connectivity-check",
+        "timestamp"
       ]
     },
     "steps": {
@@ -7789,7 +7794,8 @@ func init() {
         "has-memory-for-role",
         "hostname-unique",
         "hostname-valid",
-        "belongs-to-machine-cidr"
+        "belongs-to-machine-cidr",
+        "time-skew-exists"
       ]
     },
     "host_network": {
@@ -7955,6 +7961,9 @@ func init() {
         },
         "system_vendor": {
           "$ref": "#/definitions/system_vendor"
+        },
+        "timestamp": {
+          "type": "integer"
         }
       }
     },
@@ -8104,7 +8113,8 @@ func init() {
         "free-network-addresses",
         "reset-installation",
         "dhcp-lease-allocate",
-        "api-vip-connectivity-check"
+        "api-vip-connectivity-check",
+        "timestamp"
       ]
     },
     "steps": {
