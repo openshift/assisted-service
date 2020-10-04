@@ -65,7 +65,8 @@ var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 var InstallationTimeout = 20 * time.Minute
 
 type Config struct {
-	ResetTimeout time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
+	EnableAutoReset bool          `envconfig:"ENABLE_AUTO_RESET" default:"false"`
+	ResetTimeout    time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 }
 
 //go:generate mockgen -source=host.go -package=host -aux_files=github.com/openshift/assisted-service/internal/host=instructionmanager.go -destination=mock_host_api.go
@@ -411,12 +412,25 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 		}
 	}()
 
-	err := m.sm.Run(TransitionTypeResetHost, newStateHost(h), &TransitionArgsResetHost{
-		ctx:    ctx,
-		reason: reason,
-		db:     db,
-	})
-	if err != nil {
+	var transitionType stateswitch.TransitionType
+	var transitionArgs stateswitch.TransitionArgs
+
+	if m.Config.EnableAutoReset {
+		transitionType = TransitionTypeResetHost
+		transitionArgs = &TransitionArgsResetHost{
+			ctx:    ctx,
+			reason: reason,
+			db:     db,
+		}
+	} else {
+		transitionType = TransitionTypeResettingPendingUserAction
+		transitionArgs = &TransitionResettingPendingUserAction{
+			ctx: ctx,
+			db:  db,
+		}
+	}
+
+	if err := m.sm.Run(transitionType, newStateHost(h), transitionArgs); err != nil {
 		eventSeverity = models.EventSeverityError
 		eventInfo = fmt.Sprintf("Failed to reset installation of host %s. Error: %s", hostutil.GetHostnameForMsg(h), err.Error())
 		return common.NewApiError(http.StatusConflict, err)
