@@ -741,7 +741,7 @@ func (c *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) er
 
 func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *common.Cluster) error {
 	for _, chost := range cluster.Hosts {
-		if swag.StringValue(chost.Status) != models.HostStatusKnown {
+		if swag.StringValue(chost.Status) != models.HostStatusKnown && swag.StringValue(chost.Kind) != models.HostKindAddToExistingClusterHost {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install",
 				hostutil.GetHostnameForMsg(chost), swag.StringValue(chost.Status)))
 		}
@@ -880,6 +880,74 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
 	return installer.NewInstallClusterAccepted().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster common.Cluster
+	var err error
+
+	if err = b.db.Preload("Hosts").First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	// auto select hosts roles if not selected yet.
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		for i := range cluster.Hosts {
+			if err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err = b.refreshAllHosts(ctx, &cluster); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("InstallHosts failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("InstallHosts failed")
+			tx.Rollback()
+		}
+	}()
+
+	// in case host monitor already updated the state we need to use FOR UPDATE option
+	tx = transaction.AddForUpdateQueryOption(tx)
+
+	if err = tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	// move hosts to installing
+	for i := range cluster.Hosts {
+		if swag.StringValue(cluster.Hosts[i].Status) != models.HostStatusKnown {
+			continue
+		}
+		if installErr := b.hostApi.Install(ctx, cluster.Hosts[i], tx); installErr != nil {
+			// we just logs the error, each host install is independent
+			log.Error("Failed to move host %s to installing", cluster.Hosts[i].RequestedHostname)
+		}
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		log.Error(err)
+		return common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
+	}
+	txSuccess = true
+
+	return installer.NewInstallHostsAccepted().WithPayload(&cluster.Cluster)
 }
 
 func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster common.Cluster, db *gorm.DB) error {

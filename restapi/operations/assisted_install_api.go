@@ -112,6 +112,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerInstallClusterHandler: installer.InstallClusterHandlerFunc(func(params installer.InstallClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.InstallCluster has not yet been implemented")
 		}),
+		InstallerInstallHostsHandler: installer.InstallHostsHandlerFunc(func(params installer.InstallHostsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.InstallHosts has not yet been implemented")
+		}),
 		InstallerListClustersHandler: installer.ListClustersHandlerFunc(func(params installer.ListClustersParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListClusters has not yet been implemented")
 		}),
@@ -264,6 +267,8 @@ type AssistedInstallAPI struct {
 	InstallerGetPresignedForClusterFilesHandler installer.GetPresignedForClusterFilesHandler
 	// InstallerInstallClusterHandler sets the operation handler for the install cluster operation
 	InstallerInstallClusterHandler installer.InstallClusterHandler
+	// InstallerInstallHostsHandler sets the operation handler for the install hosts operation
+	InstallerInstallHostsHandler installer.InstallHostsHandler
 	// InstallerListClustersHandler sets the operation handler for the list clusters operation
 	InstallerListClustersHandler installer.ListClustersHandler
 	// VersionsListComponentVersionsHandler sets the operation handler for the list component versions operation
@@ -447,6 +452,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerInstallClusterHandler == nil {
 		unregistered = append(unregistered, "installer.InstallClusterHandler")
+	}
+	if o.InstallerInstallHostsHandler == nil {
+		unregistered = append(unregistered, "installer.InstallHostsHandler")
 	}
 	if o.InstallerListClustersHandler == nil {
 		unregistered = append(unregistered, "installer.ListClustersHandler")
@@ -685,6 +693,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/actions/install"] = installer.NewInstallCluster(o.context, o.InstallerInstallClusterHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/actions/install_hosts"] = installer.NewInstallHosts(o.context, o.InstallerInstallHostsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

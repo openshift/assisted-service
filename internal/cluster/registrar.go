@@ -32,7 +32,7 @@ func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster
 }
 
 func (r *registrar) RegisterAddHostsCluster(ctx context.Context, cluster *common.Cluster) error {
-	return r.registerCluster(ctx, cluster, models.ClusterKindAddHostsCluster, statusInfoAddingHosts, time.Now())
+	return r.registerCluster(ctx, cluster, models.ClusterStatusAddingHosts, statusInfoAddingHosts, time.Now())
 }
 
 func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster, status, statusInfo string, registerTime time.Time) error {
