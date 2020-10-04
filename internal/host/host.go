@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -100,6 +101,7 @@ type API interface {
 	IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
+	UpdateTimestamp(ctx context.Context, h *models.Host, timestamp int64) error
 }
 
 type Manager struct {
@@ -181,6 +183,28 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 	}
 	h.Inventory = inventory
 	return m.db.Model(h).Update("inventory", inventory).Error
+}
+
+func (m *Manager) UpdateTimestamp(ctx context.Context, h *models.Host, timestamp int64) error {
+	hostStatus := swag.StringValue(h.Status)
+	allowedStatuses := []string{
+		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
+		models.HostStatusInsufficient, models.HostStatusPendingForInput,
+	}
+	if !funk.ContainsString(allowedStatuses, hostStatus) {
+		return common.NewApiError(http.StatusConflict,
+			errors.Errorf("Host is in %s state, host can be updated only in one of %s states",
+				hostStatus, allowedStatuses))
+	}
+	var inventory models.Inventory
+	if err := json.Unmarshal([]byte(h.Inventory), &inventory); err != nil {
+		m.log.WithError(err).Warnf("Illegal inventory for host %s", h.ID.String())
+		return err
+	}
+	inventory.Timestamp = timestamp
+	inventoryTmp, _ := json.Marshal(&inventory)
+	h.Inventory = string(inventoryTmp)
+	return m.db.Model(h).Update("inventory", h.Inventory).Error
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {

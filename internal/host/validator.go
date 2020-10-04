@@ -3,6 +3,7 @@ package host
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"time"
 
@@ -390,6 +391,42 @@ func (v *validator) printHostnameUnique(c *validationContext, status validationS
 		return fmt.Sprintf("Hostname %s is not unique in cluster", getRealHostname(c.host, c.inventory))
 	case ValidationPending:
 		return "Missing inventory"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func (v *validator) doesTimeSkewExists(c *validationContext) validationStatus {
+	if c.inventory == nil {
+		return ValidationPending
+	}
+	if c.inventory.Timestamp == 0 {
+		return ValidationPending
+	}
+	for _, h := range c.cluster.Hosts {
+		if h.ID.String() != c.host.ID.String() && h.Inventory != "" && *h.Status != models.HostStatusDisconnected {
+			var otherInventory models.Inventory
+			if err := json.Unmarshal([]byte(h.Inventory), &otherInventory); err != nil {
+				v.log.WithError(err).Warnf("Illegal inventory for host %s", h.ID.String())
+				continue
+			}
+
+			if math.Abs(float64(c.inventory.Timestamp-otherInventory.Timestamp))/60 > float64(v.hwValidatorCfg.MaximumAllowedTimeDiffMinutes) {
+				return ValidationFailure
+			}
+		}
+	}
+	return ValidationSuccess
+}
+
+func (v *validator) printTimeSkew(c *validationContext, status validationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "No time skew detected"
+	case ValidationFailure:
+		return fmt.Sprintf("Host has time skew more than %d minutes from any other host. Please sync all the times", v.hwValidatorCfg.MaximumAllowedTimeDiffMinutes)
+	case ValidationPending:
+		return "Missing host date"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}

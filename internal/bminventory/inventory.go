@@ -1798,6 +1798,9 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.updateFreeAddressesReport(ctx, &host, stepReply)
 	case models.StepTypeDhcpLeaseAllocate:
 		err = b.processDhcpAllocationResponse(ctx, &host, stepReply)
+	case models.StepTypeTimestamp:
+		timestamp, _ := strconv.ParseInt(stepReply, 10, 64)
+		err = b.hostApi.UpdateTimestamp(ctx, &host, timestamp)
 	}
 	return err
 }
@@ -1816,7 +1819,11 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.FreeNetworksAddresses{}, params.Reply.Output)
 	case models.StepTypeDhcpLeaseAllocate:
 		stepReply, err = filterReply(&models.DhcpAllocationResponse{}, params.Reply.Output)
+	case models.StepTypeTimestamp:
+		stepReply = strings.TrimSpace(params.Reply.Output)
+		_, err = strconv.ParseInt(stepReply, 10, 64)
 	}
+
 	return stepReply, err
 }
 

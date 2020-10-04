@@ -61,12 +61,13 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	resetCmd := NewResetInstallationCmd(log)
 	stopCmd := NewStopInstallationCmd(log)
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.DhcpLeaseAllocatorImage, db)
+	timestampCheckCmd := NewTimestampCheckCmd(log)
 
 	return &InstructionManager{
 		log: log,
 		db:  db,
 		installingClusterStateToSteps: stateToStepsMap{
-			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
+			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, timestampCheckCmd}, defaultNextInstructionInSec},
 			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
 			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec},
