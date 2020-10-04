@@ -76,7 +76,7 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
 
 	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !clusterExistsInDB(db, clusterId, updates)) {
-		return nil, errors.Errorf("failed to update cluster %s. nothing have changed", clusterId)
+		return nil, errors.Errorf("failed to update cluster %s. nothing has changed", clusterId)
 	}
 
 	var cluster common.Cluster

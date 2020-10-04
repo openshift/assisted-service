@@ -113,7 +113,7 @@ func UpdateHost(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, host
 		Updates(updates)
 
 	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !hostExistsInDB(db, hostId, clusterId, updates)) {
-		return nil, errors.Errorf("failed to update host %s from cluster %s. nothing have changed", hostId, clusterId)
+		return nil, errors.Errorf("failed to update host %s from cluster %s. nothing has changed", hostId, clusterId)
 	}
 
 	var host models.Host
