@@ -3170,6 +3170,18 @@ func init() {
         }
       }
     },
+    "connectivity_check_api_request": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "description": "URL address of the API.",
+          "type": "string"
+        }
+      }
+    },
     "cpu": {
       "type": "object",
       "properties": {
@@ -4010,7 +4022,8 @@ func init() {
         "install",
         "free-network-addresses",
         "reset-installation",
-        "dhcp-lease-allocate"
+        "dhcp-lease-allocate",
+        "api-vip-connectivity-check"
       ]
     },
     "steps": {
@@ -7237,6 +7250,18 @@ func init() {
         }
       }
     },
+    "connectivity_check_api_request": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "description": "URL address of the API.",
+          "type": "string"
+        }
+      }
+    },
     "cpu": {
       "type": "object",
       "properties": {
@@ -8078,7 +8103,8 @@ func init() {
         "install",
         "free-network-addresses",
         "reset-installation",
-        "dhcp-lease-allocate"
+        "dhcp-lease-allocate",
+        "api-vip-connectivity-check"
       ]
     },
     "steps": {
