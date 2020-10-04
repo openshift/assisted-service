@@ -2685,6 +2685,11 @@ func init() {
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
+        "api_vip_dns_name": {
+          "description": "Domain name used to reach the OpenShift cluster API.",
+          "type": "string",
+          "x-nullable": true
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
@@ -2956,6 +2961,11 @@ func init() {
           "description": "Virtual IP used to reach the OpenShift cluster API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
+          "x-nullable": true
+        },
+        "api_vip_dns_name": {
+          "description": "Domain name used to reach the OpenShift cluster API.",
+          "type": "string",
           "x-nullable": true
         },
         "base_dns_domain": {
@@ -6787,6 +6797,11 @@ func init() {
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
+        "api_vip_dns_name": {
+          "description": "Domain name used to reach the OpenShift cluster API.",
+          "type": "string",
+          "x-nullable": true
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
@@ -7058,6 +7073,11 @@ func init() {
           "description": "Virtual IP used to reach the OpenShift cluster API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
+          "x-nullable": true
+        },
+        "api_vip_dns_name": {
+          "description": "Domain name used to reach the OpenShift cluster API.",
+          "type": "string",
           "x-nullable": true
         },
         "base_dns_domain": {
