@@ -377,7 +377,8 @@ var _ = Describe("RegisterHost", func() {
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		hostID = strfmt.UUID(uuid.New().String())
 		db = common.PrepareTestDB(dbName)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostAPI, mockClusterAPI, cfg, nil, mockEventsHandler, nil, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostAPI, mockClusterAPI, cfg, nil, mockEventsHandler,
+			nil, nil, getTestAuthHandler())
 	})
 
 	AfterEach(func() {
@@ -429,6 +430,36 @@ var _ = Describe("RegisterHost", func() {
 		})
 		_, ok := reply.(*installer.RegisterHostCreated)
 		Expect(ok).Should(BeTrue())
+	})
+
+	It("host_api_failure", func() {
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:     &clusterID,
+				Status: swag.String(models.ClusterStatusInsufficient),
+			},
+		}
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+		expectedErrMsg := "some-internal-error"
+
+		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
+		mockEventsHandler.EXPECT().
+			AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityError, gomock.Any(), gomock.Any()).
+			Times(1)
+		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
+			ClusterID: clusterID,
+			NewHostParams: &models.HostCreateParams{
+				DiscoveryAgentVersion: "v1",
+				HostID:                &hostID,
+			},
+		})
+		err, ok := reply.(*common.ApiErrorResponse)
+		Expect(ok).Should(BeTrue())
+		Expect(err.StatusCode()).Should(Equal(int32(http.StatusBadRequest)))
+		Expect(err.Error()).Should(ContainSubstring(expectedErrMsg))
 	})
 })
 
