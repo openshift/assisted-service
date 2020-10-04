@@ -288,6 +288,31 @@ var _ = Describe("cluster monitor", func() {
 			expectedState = "error"
 		})
 	})
+	Context("from installed state", func() {
+
+		BeforeEach(func() {
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:                 &id,
+				Status:             swag.String(models.ClusterStatusInstalled),
+				StatusInfo:         swag.String(statusInfoInstalled),
+				MachineNetworkCidr: "1.1.0.0/16",
+				BaseDNSDomain:      "test.com",
+				PullSecretSet:      true,
+			}}
+
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+			Expect(err).ShouldNot(HaveOccurred())
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		})
+
+		It("installed -> installed", func() {
+			createHost(id, models.ClusterStatusInstalled, db)
+			createHost(id, models.ClusterStatusInstalled, db)
+			createHost(id, models.ClusterStatusInstalled, db)
+			shouldHaveUpdated = false
+			expectedState = models.ClusterStatusInstalled
+		})
+	})
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
