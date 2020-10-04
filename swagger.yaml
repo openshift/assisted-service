@@ -2535,7 +2535,10 @@ definitions:
         type: string
         description: Json formatted string containing the user overrides for the initial ignition config
         example: '{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}'
-
+      controller_logs_collected_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
   image_info:
     type: object
     properties:

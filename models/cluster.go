@@ -39,6 +39,10 @@ type Cluster struct {
 	// Minimum: 1
 	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
 
+	// controller logs collected at
+	// Format: date-time
+	ControllerLogsCollectedAt strfmt.DateTime `json:"controller_logs_collected_at,omitempty" gorm:"type:timestamp with time zone"`
+
 	// The time that this cluster was created.
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
@@ -168,6 +172,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateControllerLogsCollectedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateCreatedAt(formats); err != nil {
 		res = append(res, err)
 	}
@@ -279,6 +287,19 @@ func (m *Cluster) validateClusterNetworkHostPrefix(formats strfmt.Registry) erro
 	}
 
 	if err := validate.MaximumInt("cluster_network_host_prefix", "body", int64(m.ClusterNetworkHostPrefix), 32, false); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateControllerLogsCollectedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ControllerLogsCollectedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("controller_logs_collected_at", "body", "date-time", m.ControllerLogsCollectedAt.String(), formats); err != nil {
 		return err
 	}
 

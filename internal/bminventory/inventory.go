@@ -2285,7 +2285,7 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 			return "", "", err
 		}
 		if hostObject.LogsCollectedAt == strfmt.DateTime(time.Time{}) {
-			return "", "", common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", hostId))
+			return "", "", common.NewApiError(http.StatusConflict, errors.Errorf("Logs for host %s were not found", hostId))
 		}
 		fileName = b.getLogsFullName(clusterId.String(), hostObject.ID.String())
 		role := string(hostObject.Role)
@@ -2294,6 +2294,9 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 		}
 		downloadFileName = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, sanitize.Name(hostutil.GetHostnameForMsg(hostObject)))
 	case string(models.LogsTypeController):
+		if c.Cluster.ControllerLogsCollectedAt == strfmt.DateTime(time.Time{}) {
+			return "", "", common.NewApiError(http.StatusConflict, errors.Errorf("Controller Logs for cluster %s were not found", clusterId))
+		}
 		fileName = b.getLogsFullName(clusterId.String(), logsType)
 		downloadFileName = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), c.ID, logsType)
 	default:
@@ -2897,7 +2900,7 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 		return nil
 	}
 
-	_, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	currentCluster, err := b.getCluster(ctx, params.ClusterID.String(), false)
 	if err != nil {
 		return err
 	}
@@ -2907,6 +2910,13 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload %s to s3", fileName)
 		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if params.LogsType == string(models.LogsTypeController) {
+		err = b.clusterApi.SetUploadControllerLogsAt(ctx, currentCluster, b.db)
+		if err != nil {
+			log.WithError(err).Errorf("Failed update cluster %s controller_logs_collected_at flag", params.ClusterID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
 	}
 
 	log.Infof("Done uploading file %s", fileName)
