@@ -246,7 +246,7 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 	return pullSecret, nil
 }
 
-func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams) (string, error) {
+func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams, safeForLogs bool) (string, error) {
 	creds, err := validations.ParsePullSecret(cluster.PullSecret)
 	if err != nil {
 		return "", err
@@ -278,6 +278,11 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"NoProxy":              cluster.NoProxy,
 		"SkipCertVerification": strconv.FormatBool(b.SkipCertVerification),
 		"AgentTimeoutStartSec": strconv.FormatInt(int64(b.AgentTimeoutStart.Seconds()), 10),
+	}
+	if safeForLogs {
+		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {
+			ignitionParams[key] = "*****"
+		}
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
@@ -674,7 +679,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", time.Now())
 		return installer.NewGenerateClusterISOCreated().WithPayload(&cluster.Cluster)
 	}
-	ignitionConfig, formatErr := b.formatIgnitionFile(&cluster, params)
+	ignitionConfig, formatErr := b.formatIgnitionFile(&cluster, params, false)
 	if formatErr != nil {
 		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
 		msg := "Failed to generate image: error formatting ignition file"
@@ -694,7 +699,9 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfig)
+	ignitionConfigForLogging, _ := b.formatIgnitionFile(&cluster, params, true)
+	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
+
 	msg := fmt.Sprintf("Generated image (proxy URL is \"%s\", ", cluster.HTTPProxy)
 	if params.ImageCreateParams.SSHPublicKey != "" {
 		msg += "SSH public key is set)"

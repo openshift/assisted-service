@@ -307,17 +307,28 @@ var _ = Describe("IgnitionParameters", func() {
 			bm.ServiceBaseURL = "file://10.56.20.70:7878"
 			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
 				ImageCreateParams: &models.ImageCreateParams{},
-			})
+			}, false)
 
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring(fmt.Sprintf("--url %s", bm.ServiceBaseURL)))
+		})
+
+		It("ignition_file_safe_for_logging", func() {
+			bm.ServiceBaseURL = "file://10.56.20.70:7878"
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			}, true)
+
+			Expect(err).Should(BeNil())
+			Expect(text).ShouldNot(ContainSubstring("cloud.openshift.com"))
+			Expect(text).Should(ContainSubstring("data:,*****"))
 		})
 
 		It("enabled_cert_verification", func() {
 			bm.SkipCertVerification = false
 			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
 				ImageCreateParams: &models.ImageCreateParams{},
-			})
+			}, false)
 
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring("--insecure=false"))
@@ -327,7 +338,7 @@ var _ = Describe("IgnitionParameters", func() {
 			bm.SkipCertVerification = true
 			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
 				ImageCreateParams: &models.ImageCreateParams{},
-			})
+			}, false)
 
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring("--insecure=true"))
@@ -336,7 +347,7 @@ var _ = Describe("IgnitionParameters", func() {
 		It("cert_verification_enabled_by_default", func() {
 			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
 				ImageCreateParams: &models.ImageCreateParams{},
-			})
+			}, false)
 
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring("--insecure=false"))
@@ -349,7 +360,7 @@ var _ = Describe("IgnitionParameters", func() {
 			proxyCluster.NoProxy = "quay.io"
 			text, err := bm.formatIgnitionFile(&proxyCluster, installer.GenerateClusterISOParams{
 				ImageCreateParams: &models.ImageCreateParams{},
-			})
+			}, false)
 
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
