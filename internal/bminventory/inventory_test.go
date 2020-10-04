@@ -15,8 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/hostutil"
-
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -24,12 +22,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/pkg/errors"
-
+	"github.com/kelseyhightower/envconfig"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
@@ -38,10 +38,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/job"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
-
-	"github.com/kelseyhightower/envconfig"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -396,7 +393,8 @@ var _ = Describe("RegisterHost", func() {
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		hostID = strfmt.UUID(uuid.New().String())
 		db = common.PrepareTestDB(dbName)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostAPI, mockClusterAPI, cfg, nil, mockEventsHandler, nil, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostAPI, mockClusterAPI, cfg, nil, mockEventsHandler,
+			nil, nil, getTestAuthHandler())
 	})
 
 	AfterEach(func() {
@@ -448,6 +446,36 @@ var _ = Describe("RegisterHost", func() {
 		})
 		_, ok := reply.(*installer.RegisterHostCreated)
 		Expect(ok).Should(BeTrue())
+	})
+
+	It("host_api_failure", func() {
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:     &clusterID,
+				Status: swag.String(models.ClusterStatusInsufficient),
+			},
+		}
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+		expectedErrMsg := "some-internal-error"
+
+		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
+		mockEventsHandler.EXPECT().
+			AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityError, gomock.Any(), gomock.Any()).
+			Times(1)
+		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
+			ClusterID: clusterID,
+			NewHostParams: &models.HostCreateParams{
+				DiscoveryAgentVersion: "v1",
+				HostID:                &hostID,
+			},
+		})
+		err, ok := reply.(*common.ApiErrorResponse)
+		Expect(ok).Should(BeTrue())
+		Expect(err.StatusCode()).Should(Equal(int32(http.StatusBadRequest)))
+		Expect(err.Error()).Should(ContainSubstring(expectedErrMsg))
 	})
 })
 

@@ -6,8 +6,6 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/openshift/assisted-service/internal/hostutil"
-
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
@@ -24,8 +22,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/identity"
-
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -37,6 +33,8 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/hostutil"
+	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -1537,10 +1535,10 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	if err := b.hostApi.RegisterHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
 			params.NewHostParams.HostID.String(), params.ClusterID.String())
+		uerr := errors.Wrap(err, "Failed to register host: error creating host metadata")
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityError,
-			"Failed to register host: error creating host metadata", time.Now())
-		return installer.NewRegisterHostBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+			uerr.Error(), time.Now())
+		return common.NewApiError(http.StatusBadRequest, uerr)
 	}
 
 	if err := b.customizeHost(&host); err != nil {
