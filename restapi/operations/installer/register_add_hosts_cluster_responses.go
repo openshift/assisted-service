@@ -101,6 +101,94 @@ func (o *RegisterAddHostsClusterBadRequest) WriteResponse(rw http.ResponseWriter
 	}
 }
 
+// RegisterAddHostsClusterUnauthorizedCode is the HTTP code returned for type RegisterAddHostsClusterUnauthorized
+const RegisterAddHostsClusterUnauthorizedCode int = 401
+
+/*RegisterAddHostsClusterUnauthorized Unauthorized.
+
+swagger:response registerAddHostsClusterUnauthorized
+*/
+type RegisterAddHostsClusterUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.InfraError `json:"body,omitempty"`
+}
+
+// NewRegisterAddHostsClusterUnauthorized creates RegisterAddHostsClusterUnauthorized with default headers values
+func NewRegisterAddHostsClusterUnauthorized() *RegisterAddHostsClusterUnauthorized {
+
+	return &RegisterAddHostsClusterUnauthorized{}
+}
+
+// WithPayload adds the payload to the register add hosts cluster unauthorized response
+func (o *RegisterAddHostsClusterUnauthorized) WithPayload(payload *models.InfraError) *RegisterAddHostsClusterUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register add hosts cluster unauthorized response
+func (o *RegisterAddHostsClusterUnauthorized) SetPayload(payload *models.InfraError) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterAddHostsClusterUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// RegisterAddHostsClusterForbiddenCode is the HTTP code returned for type RegisterAddHostsClusterForbidden
+const RegisterAddHostsClusterForbiddenCode int = 403
+
+/*RegisterAddHostsClusterForbidden Forbidden.
+
+swagger:response registerAddHostsClusterForbidden
+*/
+type RegisterAddHostsClusterForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.InfraError `json:"body,omitempty"`
+}
+
+// NewRegisterAddHostsClusterForbidden creates RegisterAddHostsClusterForbidden with default headers values
+func NewRegisterAddHostsClusterForbidden() *RegisterAddHostsClusterForbidden {
+
+	return &RegisterAddHostsClusterForbidden{}
+}
+
+// WithPayload adds the payload to the register add hosts cluster forbidden response
+func (o *RegisterAddHostsClusterForbidden) WithPayload(payload *models.InfraError) *RegisterAddHostsClusterForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register add hosts cluster forbidden response
+func (o *RegisterAddHostsClusterForbidden) SetPayload(payload *models.InfraError) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterAddHostsClusterForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // RegisterAddHostsClusterInternalServerErrorCode is the HTTP code returned for type RegisterAddHostsClusterInternalServerError
 const RegisterAddHostsClusterInternalServerErrorCode int = 500
 
