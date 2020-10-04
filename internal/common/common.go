@@ -3,9 +3,7 @@ package common
 import (
 	"archive/tar"
 	"context"
-	"fmt"
 	"io"
-	"strings"
 	"sync"
 	"time"
 
@@ -19,7 +17,7 @@ const MinMasterHostsNeededForInstallation = 3
 
 // continueOnError is set when running as stream, error is doing nothing when it happens cause we in the middle of stream
 // and 200 was already returned
-func CreateTar(ctx context.Context, w io.Writer, files []string, client s3wrapper.API, continueOnError bool) error {
+func CreateTar(ctx context.Context, w io.Writer, files, tarredFilenames []string, client s3wrapper.API, continueOnError bool) error {
 	var rdr io.ReadCloser
 	tarWriter := tar.NewWriter(w)
 	defer func() {
@@ -33,7 +31,7 @@ func CreateTar(ctx context.Context, w io.Writer, files []string, client s3wrappe
 	var objectSize int64
 
 	// Create tar headers from s3 files
-	for _, file := range files {
+	for i, file := range files {
 		// Read file from S3, log any errors
 		rdr, objectSize, err = client.Download(ctx, file)
 		if err != nil {
@@ -43,16 +41,8 @@ func CreateTar(ctx context.Context, w io.Writer, files []string, client s3wrappe
 			return errors.Wrapf(err, "Failed to open reader for %s", file)
 		}
 
-		// removing folders
-		fileNameSplit := strings.Split(file, "/")
-		fileName := file
-		if len(fileNameSplit) > 1 {
-			fileName = fmt.Sprintf("%s_%s", fileNameSplit[len(fileNameSplit)-2],
-				fileNameSplit[len(fileNameSplit)-1])
-		}
-
 		header := tar.Header{
-			Name:    fileName,
+			Name:    tarredFilenames[i],
 			Size:    objectSize,
 			Mode:    0644,
 			ModTime: time.Now(),
@@ -74,7 +64,7 @@ func CreateTar(ctx context.Context, w io.Writer, files []string, client s3wrappe
 // Tar given files in s3 bucket.
 // We open pipe for reading from aws and writing archived back to it while archiving them.
 // It creates stream by using io.pipe
-func TarAwsFiles(ctx context.Context, tarName string, files []string, client s3wrapper.API, log logrus.FieldLogger) error {
+func TarAwsFiles(ctx context.Context, tarName string, files, tarredFilenames []string, client s3wrapper.API, log logrus.FieldLogger) error {
 	// Create pipe
 	var err error
 	pr, pw := io.Pipe()
@@ -88,7 +78,7 @@ func TarAwsFiles(ctx context.Context, tarName string, files []string, client s3w
 			// closing pipe will stop uploading
 			pw.Close()
 		}()
-		downloadError := CreateTar(ctx, pw, files, client, false)
+		downloadError := CreateTar(ctx, pw, files, tarredFilenames, client, false)
 		if downloadError != nil && err == nil {
 			err = errors.Wrapf(downloadError, "Failed to download files while creating archive %s", tarName)
 			log.Error(err)

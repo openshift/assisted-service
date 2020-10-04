@@ -44,7 +44,7 @@ type API interface {
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
 	DeleteObject(ctx context.Context, objectName string) error
 	GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error)
-	GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error)
+	GeneratePresignedDownloadURL(ctx context.Context, objectName string, downloadFilename string, duration time.Duration) (string, error)
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
@@ -284,11 +284,12 @@ func (c *S3Client) GetObjectSizeBytes(ctx context.Context, objectName string) (i
 	return *headResp.ContentLength, nil
 }
 
-func (c *S3Client) GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error) {
+func (c *S3Client) GeneratePresignedDownloadURL(ctx context.Context, objectName string, downloadFilename string, duration time.Duration) (string, error) {
 	log := logutil.FromContext(ctx, c.log)
 	req, _ := c.client.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(c.cfg.S3Bucket),
-		Key:    aws.String(objectName),
+		Bucket:                     aws.String(c.cfg.S3Bucket),
+		Key:                        aws.String(objectName),
+		ResponseContentDisposition: aws.String(fmt.Sprintf("attachment;filename=%s", downloadFilename)),
 	})
 	urlStr, err := req.Presign(duration)
 	if err != nil {
