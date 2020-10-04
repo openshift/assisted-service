@@ -15,8 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/hostutil"
-
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -24,24 +22,23 @@ import (
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/pkg/errors"
-
+	"github.com/kelseyhightower/envconfig"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
-	"github.com/openshift/assisted-service/pkg/job"
+	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
-
-	"github.com/kelseyhightower/envconfig"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -75,21 +72,15 @@ func strToUUID(s string) *strfmt.UUID {
 	return &u
 }
 
-func mockGenerateInstallConfigSuccess(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob, times int) {
-	if mockKubeJob != nil {
-		mockKubeJob.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	}
-	if mockLocalJob != nil {
-		mockLocalJob.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator) {
+	if mockGenerator != nil {
+		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 }
 
-func mockAbortInstallConfig(mockKubeJob *job.MockAPI, mockLocalJob *job.MockLocalJob) {
-	if mockKubeJob != nil {
-		mockKubeJob.EXPECT().AbortInstallConfig(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	}
-	if mockLocalJob != nil {
-		mockLocalJob.EXPECT().AbortInstallConfig(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+func mockAbortInstallConfig(mockGenerator *generator.MockISOInstallConfigGenerator) {
+	if mockGenerator != nil {
+		mockGenerator.EXPECT().AbortInstallConfig(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
 }
 
@@ -100,8 +91,6 @@ var _ = Describe("GenerateClusterISO", func() {
 		db           *gorm.DB
 		ctx          = context.Background()
 		ctrl         *gomock.Controller
-		mockKubeJob  *job.MockAPI
-		mockLocalJob *job.MockLocalJob
 		mockEvents   *events.MockHandler
 		mockS3Client *s3wrapper.MockAPI
 		dbName       = "generate_cluster_iso"
@@ -275,16 +264,8 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	Context("when kube job is used as generator", func() {
 		BeforeEach(func() {
-			mockKubeJob = job.NewMockAPI(ctrl)
-			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockKubeJob, mockEvents, mockS3Client, nil, getTestAuthHandler())
-		})
-		RunGenerateClusterISOTests()
-	})
-
-	Context("when local job is used as generator", func() {
-		BeforeEach(func() {
-			mockLocalJob = job.NewMockLocalJob(ctrl)
-			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockLocalJob, mockEvents, mockS3Client, nil, getTestAuthHandler())
+			mockGenerator := generator.NewMockISOInstallConfigGenerator(ctrl)
+			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler())
 		})
 		RunGenerateClusterISOTests()
 	})
@@ -459,7 +440,6 @@ var _ = Describe("GetNextSteps", func() {
 		ctx               = context.Background()
 		ctrl              *gomock.Controller
 		mockHostApi       *host.MockAPI
-		mockJob           *job.MockAPI
 		mockEvents        *events.MockHandler
 		defaultNextStepIn int64
 		dbName            = "get_next_steps"
@@ -472,8 +452,7 @@ var _ = Describe("GetNextSteps", func() {
 		db = common.PrepareTestDB(dbName)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		mockJob = job.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler())
 	})
 
 	AfterEach(func() {
@@ -547,7 +526,6 @@ var _ = Describe("PostStepReply", func() {
 		ctrl           *gomock.Controller
 		mockClusterApi *cluster.MockAPI
 		mockHostApi    *host.MockAPI
-		mockJob        *job.MockAPI
 		mockEvents     *events.MockHandler
 		dbName         = "post_step_reply"
 	)
@@ -558,9 +536,8 @@ var _ = Describe("PostStepReply", func() {
 		db = common.PrepareTestDB(dbName)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		mockJob = job.NewMockAPI(ctrl)
 		mockClusterApi = cluster.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJob, mockEvents, nil, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, mockEvents, nil, nil, getTestAuthHandler())
 	})
 
 	AfterEach(func() {
@@ -743,7 +720,6 @@ var _ = Describe("GetFreeAddresses", func() {
 		ctx         = context.Background()
 		ctrl        *gomock.Controller
 		mockHostApi *host.MockAPI
-		mockJob     *job.MockAPI
 		mockEvents  *events.MockHandler
 		dbName      = "get_free_addresses"
 	)
@@ -754,8 +730,7 @@ var _ = Describe("GetFreeAddresses", func() {
 		db = common.PrepareTestDB(dbName)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		mockJob = job.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler())
 	})
 
 	AfterEach(func() {
@@ -890,7 +865,6 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		db                   *gorm.DB
 		ctx                  = context.Background()
 		ctrl                 *gomock.Controller
-		mockJob              *job.MockAPI
 		mockHostApi          *host.MockAPI
 		mockEvents           *events.MockHandler
 		defaultProgressStage models.HostStage
@@ -903,8 +877,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		db = common.PrepareTestDB(dbName)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		mockJob = job.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, mockJob, mockEvents, nil, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler())
 		defaultProgressStage = "some progress"
 	})
 
@@ -983,8 +956,7 @@ var _ = Describe("cluster", func() {
 		mockHostApi    *host.MockAPI
 		mockClusterApi *cluster.MockAPI
 		mockS3Client   *s3wrapper.MockAPI
-		mockKubeJob    *job.MockAPI
-		mockLocalJob   *job.MockLocalJob
+		mockGenerator  *generator.MockISOInstallConfigGenerator
 		clusterID      strfmt.UUID
 		mockEvents     *events.MockHandler
 		mockMetric     *metrics.MockAPI
@@ -1087,18 +1059,18 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
 	}
 	setResetClusterSuccess := func() {
-		mockAbortInstallConfig(mockKubeJob, mockLocalJob)
+		mockAbortInstallConfig(mockGenerator)
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
 	setResetClusterConflict := func() {
-		mockAbortInstallConfig(mockKubeJob, mockLocalJob)
+		mockAbortInstallConfig(mockGenerator)
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusConflict, nil)).Times(1)
 	}
 	setResetClusterInternalServerError := func() {
-		mockAbortInstallConfig(mockKubeJob, mockLocalJob)
+		mockAbortInstallConfig(mockGenerator)
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
 	}
@@ -1821,7 +1793,7 @@ var _ = Describe("cluster", func() {
 				mockAutoAssignSuccess(3)
 				mockClusterRefreshStatusSuccess()
 				mockClusterIsReadyForInstallationSuccess()
-				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
+				mockGenerateInstallConfigSuccess(mockGenerator)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForRefresh(mockHostApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
@@ -1915,7 +1887,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatusSuccess()
 				mockClusterIsReadyForInstallationSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
-				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
+				mockGenerateInstallConfigSuccess(mockGenerator)
 				mockHostPrepareForRefresh(mockHostApi)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
@@ -1937,7 +1909,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatusSuccess()
 				mockClusterIsReadyForInstallationSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
-				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
+				mockGenerateInstallConfigSuccess(mockGenerator)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setDefaultInstall(mockClusterApi)
@@ -1964,7 +1936,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatusSuccess()
 				mockClusterIsReadyForInstallationSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
-				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
+				mockGenerateInstallConfigSuccess(mockGenerator)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setDefaultInstall(mockClusterApi)
@@ -1983,7 +1955,7 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("GetMasterNodesIds fails in the go routine", func() {
-				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
+				mockGenerateInstallConfigSuccess(mockGenerator)
 				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 				setDefaultInstall(mockClusterApi)
@@ -2007,7 +1979,7 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("GetMasterNodesIds returns empty list", func() {
-				mockGenerateInstallConfigSuccess(mockKubeJob, mockLocalJob, 1)
+				mockGenerateInstallConfigSuccess(mockGenerator)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setIgnitionGeneratorVersionSuccess(mockClusterApi)
@@ -2149,16 +2121,8 @@ var _ = Describe("cluster", func() {
 
 	Context("when kube job is used as generator", func() {
 		BeforeEach(func() {
-			mockKubeJob = job.NewMockAPI(ctrl)
-			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockKubeJob, mockEvents, mockS3Client, mockMetric, getTestAuthHandler())
-		})
-		RunClusterTests()
-	})
-
-	Context("when local job is used as generator", func() {
-		BeforeEach(func() {
-			mockLocalJob = job.NewMockLocalJob(ctrl)
-			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockLocalJob, mockEvents, mockS3Client, mockMetric, getTestAuthHandler())
+			mockGenerator = generator.NewMockISOInstallConfigGenerator(ctrl)
+			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockGenerator, mockEvents, mockS3Client, mockMetric, getTestAuthHandler())
 		})
 		RunClusterTests()
 	})
@@ -2175,7 +2139,6 @@ var _ = Describe("KubeConfig download", func() {
 		mockS3Client *s3wrapper.MockAPI
 		clusterID    strfmt.UUID
 		c            common.Cluster
-		mockJob      *job.MockAPI
 		clusterApi   cluster.API
 		dbName       = "kubeconfig_download"
 	)
@@ -2186,11 +2149,10 @@ var _ = Describe("KubeConfig download", func() {
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockJob = job.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil, nil)
 
-		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -2293,7 +2255,6 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		kubeconfigFile      *os.File
 		kubeconfigNoingress string
 		kubeconfigObject    string
-		mockJob             *job.MockAPI
 		clusterApi          cluster.API
 		dbName              = "upload_cluster_ingress_cert"
 	)
@@ -2315,10 +2276,9 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockJob = job.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil, nil)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -2490,10 +2450,9 @@ var _ = Describe("Upload and Download logs test", func() {
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockClusterAPI = cluster.NewMockAPI(ctrl)
-		mockJob := job.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, mockJob, nil, mockS3Client, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -2966,7 +2925,6 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		openshiftVersion string
 		mockClusterAPI   *cluster.MockAPI
 		mockHostApi      *host.MockAPI
-		mockJobApi       *job.MockAPI
 		mockS3Client     *s3wrapper.MockAPI
 		request          *http.Request
 	)
@@ -2980,9 +2938,8 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		apiVIPDnsname = "api-vip.redhat.com"
 		mockClusterAPI = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
-		mockJobApi = job.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, mockJobApi, nil, mockS3Client, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler())
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
 	})
@@ -3036,7 +2993,6 @@ var _ = Describe("Install Hosts test", func() {
 		clusterID      strfmt.UUID
 		mockClusterApi *cluster.MockAPI
 		mockHostApi    *host.MockAPI
-		mockJobApi     *job.MockAPI
 		mockS3Client   *s3wrapper.MockAPI
 		dbName         = "inventory_cluster"
 		request        *http.Request
@@ -3057,9 +3013,8 @@ var _ = Describe("Install Hosts test", func() {
 
 		mockClusterApi = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
-		mockJobApi = job.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockJobApi, nil, mockS3Client, nil, getTestAuthHandler())
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler())
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
 

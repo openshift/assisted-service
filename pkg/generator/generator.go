@@ -15,6 +15,7 @@ type InstallConfigGenerator interface {
 	AbortInstallConfig(ctx context.Context, cluster common.Cluster) error
 }
 
+//go:generate mockgen -package generator -destination mock_install_config.go . ISOInstallConfigGenerator
 type ISOInstallConfigGenerator interface {
 	ISOGenerator
 	InstallConfigGenerator
