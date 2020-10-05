@@ -265,7 +265,14 @@ func (m *Manager) ClusterMonitoring() {
 	defer func() {
 		m.prevMonitorInvokedAt = curMonitorInvokedAt
 	}()
-	if err = m.db.Find(&clusters).Error; err != nil {
+
+	//no need to refresh cluster status if the cluster is in the following statuses
+	noNeedToMonitorInStates := []string{
+		models.ClusterStatusInstalled,
+		models.ClusterStatusError,
+	}
+
+	if err = m.db.Where("status NOT IN (?)", noNeedToMonitorInStates).Find(&clusters).Error; err != nil {
 		log.WithError(err).Errorf("failed to get clusters")
 		return
 	}
