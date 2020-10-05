@@ -96,7 +96,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			},
 		}
 
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", log).(*installerGenerator)
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", log).(*installerGenerator)
 		err = g.updateBootstrap(examplePath)
 
 		bootstrapBytes, _ := ioutil.ReadFile(examplePath)
@@ -109,13 +109,109 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 
 	Describe("update bootstrap.ign", func() {
 		Context("with 1 master", func() {
-			It("got a tmp wodkDir", func() {
+			It("got a tmp workDir", func() {
 				Expect(workDir).NotTo(Equal(""))
 			})
 			It("adds annotation", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(bmh.Annotations).To(HaveKey(bmh_v1alpha1.StatusAnnotation))
 			})
+		})
+	})
+})
+
+var _ = Describe("Cluster Ignitions Update", func() {
+	const ignition = `{
+		"ignition": {
+		  "config": {},
+		  "version": "3.1.0"
+		},
+		"storage": {
+		  "files": []
+		}
+	  }`
+
+	const caCert = `
+-----BEGIN CERTIFICATE-----
+MIIDkDCCAnigAwIBAgIUNQRERAPbVOlJoLs2N76uLZN9S1gwDQYJKoZIhvcNAQEL
+BQAwTzELMAkGA1UEBhMCQ0ExCzAJBgNVBAgMAlFDMRswGQYDVQQKDBJBc3Npc3Rl
+ZCBJbnN0YWxsZXIxFjAUBgNVBAMMDTE5Mi4xNjguMTIyLjUwHhcNMjAxMDAxMTUz
+NDUyWhcNMjExMDAxMTUzNDUyWjBPMQswCQYDVQQGEwJDQTELMAkGA1UECAwCUUMx
+GzAZBgNVBAoMEkFzc2lzdGVkIEluc3RhbGxlcjEWMBQGA1UEAwwNMTkyLjE2OC4x
+MjIuNTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALF0Oj3awX//uMSn
+B7grPKSuSbLlBIIeRgHaOAvdVZFn86f2G8prG0RHA4u9anidQlhR3wCGx16bQIt0
+NC3n16RSn5x9LgsV0woFrXNUs535nkE0Zg5Yex10/yF8URauzlPierq10fe1N6kB
+OF1OfGBPpyUN+1zSeYcX4fyALpreLaTEhIGMnHjDqytccbupNYjrCWA5lE4uJ6a4
+BBAqiWPBV5KneD5pHNb7mVbMaFGdteUwqKQtfO8uM0T9loYbXNYqVt6irOYbIowo
+uHvsdGD3ryFnASGOZ4AJ0eQXSn3bFrMj5T9ojna1C82DYhK2Mbff1qrMYZG2rNE6
+y6Is8gkCAwEAAaNkMGIwHQYDVR0OBBYEFK4tVRjbPL3fuId5mdKOFALaGQw6MB8G
+A1UdIwQYMBaAFK4tVRjbPL3fuId5mdKOFALaGQw6MA8GA1UdEwEB/wQFMAMBAf8w
+DwYDVR0RBAgwBocEwKh6BTANBgkqhkiG9w0BAQsFAAOCAQEAoeJYGcAYdrkQcOum
+ph4LNyEBhnfqlcQ5gQLIGALf/tpuz66SEeR1Km9hRwsl4nqDf2IVLu9CY79VP4J3
+tgu2tPcz/jpqcMdp54Pw20AfzW/zJqPV/TEYZ1CYeaRbsnTRltx8KlnF0OVDNv8M
+Q6BVcoQmSTxlJeGp9hrxahCbGHjKIaLLxmEdwVt1HpEMcGXjv5E6dbil9U6Mx1Ce
+nghVxZEMX1Vrnlyu1LVknfcWQT1HTK0ccMp1RRewM21C87MADYwN1ale2C6jVEyk
+SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
+1XWdHQ==
+-----END CERTIFICATE-----`
+
+	var (
+		masterPath string
+		workerPath string
+		caCertPath string
+	)
+
+	BeforeEach(func() {
+		masterPath = filepath.Join(workDir, "master.ign")
+		workerPath = filepath.Join(workDir, "worker.ign")
+		err := ioutil.WriteFile(masterPath, []byte(ignition), 0600)
+		Expect(err).NotTo(HaveOccurred())
+		err = ioutil.WriteFile(workerPath, []byte(ignition), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		caCertPath = filepath.Join(workDir, "service-ca-cert.crt")
+		err = ioutil.WriteFile(caCertPath, []byte(caCert), 0600)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("update ignitions", func() {
+		It("with ca cert file", func() {
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", caCertPath, log).(*installerGenerator)
+			err := g.updateIgnitions()
+			Expect(err).NotTo(HaveOccurred())
+
+			masterBytes, err := ioutil.ReadFile(masterPath)
+			Expect(err).NotTo(HaveOccurred())
+			masterConfig, _, err := config_31.Parse(masterBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(masterConfig.Storage.Files).To(HaveLen(1))
+			file := &masterConfig.Storage.Files[0]
+			Expect(file.Path).To(Equal(common.HostCACertPath))
+
+			workerBytes, err := ioutil.ReadFile(workerPath)
+			Expect(err).NotTo(HaveOccurred())
+			workerConfig, _, err := config_31.Parse(workerBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(workerConfig.Storage.Files).To(HaveLen(1))
+			file = &masterConfig.Storage.Files[0]
+			Expect(file.Path).To(Equal(common.HostCACertPath))
+		})
+		It("with no ca cert file", func() {
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", log).(*installerGenerator)
+			err := g.updateIgnitions()
+			Expect(err).NotTo(HaveOccurred())
+
+			masterBytes, err := ioutil.ReadFile(masterPath)
+			Expect(err).NotTo(HaveOccurred())
+			masterConfig, _, err := config_31.Parse(masterBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(masterConfig.Storage.Files).To(HaveLen(0))
+
+			workerBytes, err := ioutil.ReadFile(workerPath)
+			Expect(err).NotTo(HaveOccurred())
+			workerConfig, _, err := config_31.Parse(workerBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(workerConfig.Storage.Files).To(HaveLen(0))
 		})
 	})
 })
