@@ -3114,7 +3114,8 @@ func init() {
         "all-hosts-are-ready-to-install",
         "sufficient-masters-count",
         "dns-domain-defined",
-        "pull-secret-set"
+        "pull-secret-set",
+        "ntp-server-configured"
       ]
     },
     "completion-params": {
@@ -3733,7 +3734,6 @@ func init() {
         "hostname-unique",
         "hostname-valid",
         "belongs-to-machine-cidr",
-        "time-skew-exists",
         "api-vip-connected"
       ]
     },
@@ -7222,7 +7222,8 @@ func init() {
         "all-hosts-are-ready-to-install",
         "sufficient-masters-count",
         "dns-domain-defined",
-        "pull-secret-set"
+        "pull-secret-set",
+        "ntp-server-configured"
       ]
     },
     "completion-params": {
@@ -7841,7 +7842,6 @@ func init() {
         "hostname-unique",
         "hostname-valid",
         "belongs-to-machine-cidr",
-        "time-skew-exists",
         "api-vip-connected"
       ]
     },

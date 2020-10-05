@@ -3,7 +3,6 @@ package host
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"net"
 	"time"
 
@@ -391,49 +390,6 @@ func (v *validator) printHostnameUnique(c *validationContext, status validationS
 		return fmt.Sprintf("Hostname %s is not unique in cluster", getRealHostname(c.host, c.inventory))
 	case ValidationPending:
 		return "Missing inventory"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *validator) doesTimeSkewExists(c *validationContext) validationStatus {
-	if c.inventory == nil {
-		return ValidationPending
-	}
-	if c.inventory.Timestamp == 0 {
-		return ValidationPending
-	}
-	failureCount := 0.0
-	countedHosts := 0.0
-	for _, h := range c.cluster.Hosts {
-		if h.ID.String() != c.host.ID.String() && h.Inventory != "" && *h.Status != models.HostStatusDisconnected {
-			countedHosts += 1
-			var otherInventory models.Inventory
-			if err := json.Unmarshal([]byte(h.Inventory), &otherInventory); err != nil {
-				v.log.WithError(err).Warnf("Illegal inventory for host %s", h.ID.String())
-				continue
-			}
-
-			if math.Abs(float64(c.inventory.Timestamp-otherInventory.Timestamp))/60 > float64(v.hwValidatorCfg.MaximumAllowedTimeDiffMinutes) {
-				failureCount += 1
-			}
-		}
-	}
-	// If more than 50% of checks failed we want to return failure
-	if countedHosts > 0 && failureCount/countedHosts > 0.5 {
-		return ValidationFailure
-	}
-	return ValidationSuccess
-}
-
-func (v *validator) printTimeSkew(c *validationContext, status validationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "No time skew detected"
-	case ValidationFailure:
-		return fmt.Sprintf("Host has time skew more than %d minutes from 50%% of other hosts. Please sync it's clock", v.hwValidatorCfg.MaximumAllowedTimeDiffMinutes)
-	case ValidationPending:
-		return "Missing host date"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}

@@ -26,12 +26,13 @@ const (
 	SufficientMastersCount              = validationID(models.ClusterValidationIDSufficientMastersCount)
 	IsDNSDomainDefined                  = validationID(models.ClusterValidationIDDNSDomainDefined)
 	IsPullSecretSet                     = validationID(models.ClusterValidationIDPullSecretSet)
+	IsNtpServerConfigured               = validationID(models.ClusterValidationIDNtpServerConfigured)
 )
 
 func (v validationID) category() (string, error) {
 	switch v {
 	case IsMachineCidrDefined, isMachineCidrEqualsToCalculatedCidr, isApiVipDefined, isApiVipValid, isIngressVipDefined, isIngressVipValid,
-		isClusterCidrDefined, isServiceCidrDefined, noCidrOverlapping, networkPrefixValid, IsDNSDomainDefined:
+		isClusterCidrDefined, isServiceCidrDefined, noCidrOverlapping, networkPrefixValid, IsDNSDomainDefined, IsNtpServerConfigured:
 		return "network", nil
 	case AllHostsAreReadyToInstall, SufficientMastersCount:
 		return "hosts-data", nil
