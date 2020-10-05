@@ -29,7 +29,7 @@ import (
 )
 
 const awsEndpointSuffix = ".amazonaws.com"
-const BaseObjectName = "livecd.iso"
+const BaseObjectName = "livecd-46.82.202009222340-0.iso"
 
 //go:generate mockgen -source=client.go -package=s3wrapper -destination=mock_s3wrapper.go
 //go:generate mockgen -package s3wrapper -destination mock_s3iface.go github.com/aws/aws-sdk-go/service/s3/s3iface S3API
