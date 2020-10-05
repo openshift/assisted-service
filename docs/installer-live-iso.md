@@ -62,7 +62,7 @@ The live ISO, **assisted-service.iso** (not livecd.iso), can then be used to dep
 After the live ISO boots, the UI should be accessible from the browser at
 
 ````
-http://<hostname-or-ip>:8080. 
+https://<hostname-or-ip>:8443.
 ````
 
 It may take a couple of minutes for the assisted-service and UI to become ready after you see the login prompt.

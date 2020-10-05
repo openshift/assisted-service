@@ -244,7 +244,7 @@ podman ps -a
 The UI will available at:
 
 ```
-http://<host-ip-address>:8080
+https://<host-ip-address>:8443
 ```
 
 To remove the containers:
