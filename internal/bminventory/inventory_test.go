@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"testing"
 	"time"
@@ -3144,5 +3145,64 @@ var _ = Describe("Install Hosts test", func() {
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		res := bm.InstallHosts(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostsAccepted()))
+	})
+})
+
+var _ = Describe("TestRegisterCluster", func() {
+	var (
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctrl           *gomock.Controller
+		mockClusterApi *cluster.MockAPI
+		mockEvents     *events.MockHandler
+		mockMetric     *metrics.MockAPI
+		dbName         = "register_cluster_api"
+		ctx            = context.Background()
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db = common.PrepareTestDB(dbName)
+		ctrl = gomock.NewController(GinkgoT())
+
+		mockClusterApi = cluster.NewMockAPI(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, mockClusterApi, cfg, nil, mockEvents,
+			nil, mockMetric, getTestAuthHandler())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("success", func() {
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockEvents.EXPECT().
+			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+			Times(1)
+		mockMetric.EXPECT().ClusterRegistered(gomock.Any()).Times(1)
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				OpenshiftVersion: swag.String("4.6"),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+	})
+
+	It("cluster api failed to register", func() {
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(errors.Errorf("error")).Times(1)
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				OpenshiftVersion: swag.String("4.6"),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterInternalServerError())))
 	})
 })
