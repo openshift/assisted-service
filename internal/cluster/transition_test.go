@@ -758,8 +758,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 						StatusInfo:               &t.srcStatusInfo,
 						BaseDNSDomain:            t.dnsDomain,
 						PullSecretSet:            t.pullSecretSet,
-						ClusterNetworkCidr:       "1.2.4.0/24",
-						ServiceNetworkCidr:       "1.2.5.0/24",
+						ClusterNetworkCidr:       "1.3.0.0/16",
+						ServiceNetworkCidr:       "1.4.0.0/16",
 						ClusterNetworkHostPrefix: 24,
 					},
 				}
@@ -798,16 +798,16 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 
 var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 	var (
-		ctx                               = context.Background()
-		db                                *gorm.DB
-		clusterId, hid1, hid2, hid3, hid4 strfmt.UUID
-		cluster                           common.Cluster
-		clusterApi                        *Manager
-		mockEvents                        *events.MockHandler
-		mockHostAPI                       *host.MockAPI
-		mockMetric                        *metrics.MockAPI
-		ctrl                              *gomock.Controller
-		dbName                            string = "cluster_transition_test_refresh_host_no_dhcp"
+		ctx                                     = context.Background()
+		db                                      *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
+		cluster                                 common.Cluster
+		clusterApi                              *Manager
+		mockEvents                              *events.MockHandler
+		mockHostAPI                             *host.MockAPI
+		mockMetric                              *metrics.MockAPI
+		ctrl                                    *gomock.Controller
+		dbName                                  string = "cluster_transition_test_refresh_host_no_dhcp"
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -826,6 +826,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
 		hid4 = strfmt.UUID(uuid.New().String())
+		hid5 = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 	Context("All transitions", func() {
@@ -872,7 +873,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					isClusterCidrDefined:                {status: ValidationFailure, messagePattern: "Cluster Network CIDR is undefined"},
 					isServiceCidrDefined:                {status: ValidationFailure, messagePattern: "Service Network CIDR is undefined"},
 					noCidrOverlapping:                   {status: ValidationPending, messagePattern: "At least one of the CIDRs .Machine Network, Cluster Network, Service Network. is undefined"},
-					networkPrefixValid:                  {status: ValidationFailure, messagePattern: "Invalid cluster network prefix: Network prefix 0 is out of the allowed range"},
+					networkPrefixValid:                  {status: ValidationPending, messagePattern: "Cluster Network CIDR is undefined"},
 				}),
 				errorExpected: false,
 			},
@@ -916,13 +917,114 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				apiVip:                   "1.2.3.4",
 				ingressVip:               "1.2.3.5",
 				serviceNetworkCidr:       "1.2.8.0/23",
-				clusterNetworkCidr:       "1.2.20.0/24",
+				clusterNetworkCidr:       "1.3.0.0/21",
 				clusterNetworkHostPrefix: 23,
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoReady),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
+					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
+					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
+					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS overlapping"},
+					networkPrefixValid:                  {status: ValidationSuccess, messagePattern: "Cluster Network Prefix valid"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:                     "pending-for-input to insufficient (1)",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusInsufficient,
+				machineNetworkCidr:       "1.2.3.0/24",
+				apiVip:                   "1.2.3.4",
+				ingressVip:               "1.2.3.5",
+				serviceNetworkCidr:       "1.2.8.0/23",
+				clusterNetworkCidr:       "1.3.0.0/22",
+				clusterNetworkHostPrefix: 23,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
+					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
+					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
+					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS overlapping"},
+					networkPrefixValid:                  {status: ValidationFailure, messagePattern: "does not contain enough addresses for"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:                     "pending-for-input to insufficient (2)",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusInsufficient,
+				machineNetworkCidr:       "1.2.3.0/24",
+				apiVip:                   "1.2.3.4",
+				ingressVip:               "1.2.3.5",
+				serviceNetworkCidr:       "1.2.8.0/23",
+				clusterNetworkCidr:       "1.3.0.0/22",
+				clusterNetworkHostPrefix: 24,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster machine CIDR equals to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API VIP is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress VIP is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to machine CIDR and not in use"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "Cluster has sufficient number of master candidates"},
+					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
+					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
+					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS overlapping"},
+					networkPrefixValid:                  {status: ValidationFailure, messagePattern: "does not contain enough addresses for"},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:                     "pending-for-input to insufficient (3)",
+				srcState:                 models.ClusterStatusPendingForInput,
+				dstState:                 models.ClusterStatusReady,
+				machineNetworkCidr:       "1.2.3.0/24",
+				apiVip:                   "1.2.3.4",
+				ingressVip:               "1.2.3.5",
+				serviceNetworkCidr:       "1.2.8.0/23",
+				clusterNetworkCidr:       "1.3.0.0/21",
+				clusterNetworkHostPrefix: 24,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoReady),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1392,8 +1494,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 						VipDhcpAllocation:        swag.Bool(true),
 						BaseDNSDomain:            t.dnsDomain,
 						PullSecretSet:            t.pullSecretSet,
-						ClusterNetworkCidr:       "1.2.4.0/24",
-						ServiceNetworkCidr:       "1.2.5.0/24",
+						ServiceNetworkCidr:       "1.2.4.0/24",
+						ClusterNetworkCidr:       "1.3.0.0/16",
 						ClusterNetworkHostPrefix: 24,
 					},
 				}

@@ -233,7 +233,7 @@ func (v *validator) printHasMinValidDisks(c *validationContext, status validatio
 }
 
 func (v *validator) isMachineCidrDefined(c *validationContext) validationStatus {
-	return boolValue(c.cluster.MachineNetworkCidr != "")
+	return boolValue(swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || c.cluster.MachineNetworkCidr != "")
 }
 
 func (v *validator) printIsMachineCidrDefined(context *validationContext, status validationStatus) string {
@@ -332,6 +332,9 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status validatio
 }
 
 func (v *validator) belongsToMachineCidr(c *validationContext) validationStatus {
+	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
+		return ValidationSuccess
+	}
 	if c.inventory == nil || c.cluster.MachineNetworkCidr == "" {
 		return ValidationPending
 	}

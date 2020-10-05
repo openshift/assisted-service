@@ -267,6 +267,10 @@ func (f fakeInventory) InstallCluster(ctx context.Context, params installer.Inst
 	panic("Implement Me!")
 }
 
+func (f fakeInventory) InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
 func (f fakeInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
 	return installer.NewListClustersOK()
 }
@@ -281,6 +285,10 @@ func (f fakeInventory) PostStepReply(ctx context.Context, params installer.PostS
 
 func (f fakeInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
 	return installer.NewRegisterClusterCreated()
+}
+
+func (f fakeInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
+	return installer.NewRegisterAddHostsClusterCreated()
 }
 
 func (f fakeInventory) RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder {
@@ -323,6 +331,10 @@ func (f fakeInventory) GetHostRequirements(ctx context.Context, params installer
 	panic("Implement Me!")
 }
 func (f fakeInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
+func (f fakeInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
 	panic("Implement Me!")
 }
 

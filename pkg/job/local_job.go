@@ -5,19 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/openshift/assisted-service/internal/ignition"
-
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/pkg/generator"
+	"github.com/openshift/assisted-service/internal/ignition"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/sirupsen/logrus"
 )
-
-//go:generate mockgen -package=job -destination=mock_local_job.go . LocalJob
-
-type LocalJob interface {
-	generator.ISOInstallConfigGenerator
-}
 
 type localJob struct {
 	Config

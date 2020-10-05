@@ -3,8 +3,8 @@ package bminventory
 import (
 	"bytes"
 	"context"
-
-	"github.com/openshift/assisted-service/internal/hostutil"
+	"io"
+	"path/filepath"
 
 	// #nosec
 	"crypto/md5"
@@ -15,15 +15,12 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"text/template"
 	"time"
-
-	"github.com/openshift/assisted-service/internal/identity"
 
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/go-openapi/runtime/middleware"
@@ -36,6 +33,8 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/hostutil"
+	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -56,12 +55,7 @@ import (
 )
 
 const kubeconfig = "kubeconfig"
-
-const (
-	ResourceKindHost    = "Host"
-	ResourceKindCluster = "Cluster"
-)
-
+const workerIgnition = "worker.ign"
 const DefaultUser = "kubeadmin"
 const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 
@@ -141,7 +135,7 @@ const ignitionConfigFormat = `{
     "units": [{
       "name": "agent.service",
       "enabled": true,
-      "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}\n\n[Install]\nWantedBy=multi-user.target"
+      "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}\n\n[Install]\nWantedBy=multi-user.target"
     }]
   },
   "storage": {
@@ -172,6 +166,17 @@ const ignitionConfigFormat = `{
 	  },
 	  "contents": { "source": "data:,{{.RH_ROOT_CA}}" }
 	}{{end}}]
+  }
+}`
+
+const nodeIgnitionFormat = `{
+  "ignition": {
+    "version": "3.1.0",
+    "config": {
+      "merge": [{
+        "source": "{{.SOURCE}}"
+      }]
+    }
   }
 }`
 
@@ -239,15 +244,20 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 	return pullSecret, nil
 }
 
-func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams) (string, error) {
+func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams, safeForLogs bool) (string, error) {
 	creds, err := validations.ParsePullSecret(cluster.PullSecret)
 	if err != nil {
 		return "", err
 	}
-	r, ok := creds["cloud.openshift.com"]
-	if !ok {
-		return "", fmt.Errorf("Pull secret does not contain auth for cloud.openshift.com")
+	pullSecretToken := ""
+	if b.authHandler.EnableAuth {
+		r, ok := creds["cloud.openshift.com"]
+		if !ok {
+			return "", errors.Errorf("Pull secret does not contain auth for cloud.openshift.com")
+		}
+		pullSecretToken = r.AuthRaw
 	}
+
 	proxySettings, err := proxySettingsForIgnition(cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
 	if err != nil {
 		return "", err
@@ -261,7 +271,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"AgentDockerImg":       b.AgentDockerImg,
 		"ServiceBaseURL":       strings.TrimSpace(b.ServiceBaseURL),
 		"clusterId":            cluster.ID.String(),
-		"PullSecretToken":      r.AuthRaw,
+		"PullSecretToken":      pullSecretToken,
 		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
 		"PULL_SECRET":          url.PathEscape(cluster.PullSecret),
 		"RH_ROOT_CA":           rhCa,
@@ -271,6 +281,11 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"NoProxy":              cluster.NoProxy,
 		"SkipCertVerification": strconv.FormatBool(b.SkipCertVerification),
 		"AgentTimeoutStartSec": strconv.FormatInt(int64(b.AgentTimeoutStart.Seconds()), 10),
+	}
+	if safeForLogs {
+		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {
+			ignitionParams[key] = "*****"
+		}
 	}
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
@@ -322,13 +337,13 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		params.NewClusterParams.ServiceNetworkCidr = &DefaultServiceNetworkCidr
 	}
 	if params.NewClusterParams.VipDhcpAllocation == nil {
-		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
+		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
 	}
 
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:                       &id,
 		Href:                     swag.String(url.String()),
-		Kind:                     swag.String(ResourceKindCluster),
+		Kind:                     swag.String(models.ClusterKindCluster),
 		BaseDNSDomain:            params.NewClusterParams.BaseDNSDomain,
 		ClusterNetworkCidr:       swag.StringValue(params.NewClusterParams.ClusterNetworkCidr),
 		ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
@@ -390,6 +405,67 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 
 	b.metricApi.ClusterRegistered(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
 	return installer.NewRegisterClusterCreated().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	id := params.NewAddHostsClusterParams.ID
+	url := installer.GetClusterURL{ClusterID: *id}
+	consoleURL := swag.StringValue(params.NewAddHostsClusterParams.APIVipDnsname)
+	clusterName := swag.StringValue(params.NewAddHostsClusterParams.Name)
+	openshiftVersion := swag.StringValue(params.NewAddHostsClusterParams.OpenshiftVersion)
+
+	log.Infof("Register add-hosts-cluster: %s with id %s", clusterName, id.String())
+
+	cluster := common.Cluster{Cluster: models.Cluster{
+		ID:               id,
+		Href:             swag.String(url.String()),
+		Kind:             swag.String(models.ClusterKindAddHostsCluster),
+		Name:             clusterName,
+		OpenshiftVersion: openshiftVersion,
+		UpdatedAt:        strfmt.DateTime{},
+	}}
+
+	err := validations.ValidateClusterNameFormat(clusterName)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	// Persist worker-ignition to s3 for cluster
+	ignitionConfig, err := b.formatNodeIgnitionFile(consoleURL)
+	if err != nil {
+		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
+	}
+	fileName := fmt.Sprintf("%s/%s", cluster.ID, workerIgnition)
+	err = b.objectHandler.Upload(ctx, ignitionConfig, fileName)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", fileName))
+	}
+
+	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
+	err = b.clusterApi.RegisterAddHostsCluster(ctx, &cluster)
+	if err != nil {
+		log.Errorf("failed to register cluster %s ", clusterName)
+		return installer.NewRegisterAddHostsClusterInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) formatNodeIgnitionFile(apiVipDnsname string) ([]byte, error) {
+	var ignitionParams = map[string]string{
+		"SOURCE": "http://" + apiVipDnsname + ":22624/config/worker",
+	}
+	tmpl, err := template.New("nodeIgnition").Parse(nodeIgnitionFormat)
+	if err != nil {
+		return nil, err
+	}
+	buf := &bytes.Buffer{}
+	if err = tmpl.Execute(buf, ignitionParams); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
@@ -606,7 +682,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", time.Now())
 		return installer.NewGenerateClusterISOCreated().WithPayload(&cluster.Cluster)
 	}
-	ignitionConfig, formatErr := b.formatIgnitionFile(&cluster, params)
+	ignitionConfig, formatErr := b.formatIgnitionFile(&cluster, params, false)
 	if formatErr != nil {
 		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
 		msg := "Failed to generate image: error formatting ignition file"
@@ -626,7 +702,9 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfig)
+	ignitionConfigForLogging, _ := b.formatIgnitionFile(&cluster, params, true)
+	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
+
 	msg := fmt.Sprintf("Generated image (proxy URL is \"%s\", ", cluster.HTTPProxy)
 	if params.ImageCreateParams.SSHPublicKey != "" {
 		msg += "SSH public key is set)"
@@ -666,7 +744,7 @@ func (c *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) er
 
 func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *common.Cluster) error {
 	for _, chost := range cluster.Hosts {
-		if swag.StringValue(chost.Status) != models.HostStatusKnown {
+		if swag.StringValue(chost.Status) != models.HostStatusKnown && swag.StringValue(chost.Kind) != models.HostKindAddToExistingClusterHost {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install",
 				hostutil.GetHostnameForMsg(chost), swag.StringValue(chost.Status)))
 		}
@@ -805,6 +883,74 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
 	return installer.NewInstallClusterAccepted().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster common.Cluster
+	var err error
+
+	if err = b.db.Preload("Hosts").First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	// auto select hosts roles if not selected yet.
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		for i := range cluster.Hosts {
+			if err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err = b.refreshAllHosts(ctx, &cluster); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("InstallHosts failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("InstallHosts failed")
+			tx.Rollback()
+		}
+	}()
+
+	// in case host monitor already updated the state we need to use FOR UPDATE option
+	tx = transaction.AddForUpdateQueryOption(tx)
+
+	if err = tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	// move hosts to installing
+	for i := range cluster.Hosts {
+		if swag.StringValue(cluster.Hosts[i].Status) != models.HostStatusKnown {
+			continue
+		}
+		if installErr := b.hostApi.Install(ctx, cluster.Hosts[i], tx); installErr != nil {
+			// we just logs the error, each host install is independent
+			log.Error("Failed to move host %s to installing", cluster.Hosts[i].RequestedHostname)
+		}
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		log.Error(err)
+		return common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
+	}
+	txSuccess = true
+
+	return installer.NewInstallHostsAccepted().WithPayload(&cluster.Cluster)
 }
 
 func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster common.Cluster, db *gorm.DB) error {
@@ -994,8 +1140,8 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		return installer.NewUpdateClusterConflict().WithPayload(common.GenerateError(http.StatusConflict, err))
 	}
 
-	if updateClusterConflict := b.validateDNSDomain(params, log); updateClusterConflict != nil {
-		return updateClusterConflict
+	if err = b.validateDNSDomain(params, log); err != nil {
+		return common.GenerateErrorResponder(err)
 	}
 
 	err = b.updateClusterData(ctx, &cluster, params, tx, log)
@@ -1107,6 +1253,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	machineCidr := cluster.MachineNetworkCidr
 	serviceCidr := cluster.ServiceNetworkCidr
 	clusterCidr := cluster.ClusterNetworkCidr
+	hostNetworkPrefix := cluster.ClusterNetworkHostPrefix
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
 	if params.ClusterUpdateParams.Name != nil {
 		updates["name"] = *params.ClusterUpdateParams.Name
@@ -1125,7 +1272,14 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		if err = network.VerifyNetworkHostPrefix(*params.ClusterUpdateParams.ClusterNetworkHostPrefix); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-		updates["cluster_network_host_prefix"] = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
+		hostNetworkPrefix = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
+		updates["cluster_network_host_prefix"] = hostNetworkPrefix
+	}
+	if clusterCidr != "" {
+		err = network.VerifyClusterCidrSize(int(hostNetworkPrefix), clusterCidr, len(cluster.Hosts))
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
 		if err = network.VerifySubnetCIDR(*params.ClusterUpdateParams.ServiceNetworkCidr); err != nil {
@@ -1368,10 +1522,14 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	}
 
 	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
+	kind := swag.String(models.HostKindHost)
+	if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		kind = swag.String(models.HostKindAddToExistingClusterHost)
+	}
 	host = models.Host{
 		ID:                    params.NewHostParams.HostID,
 		Href:                  swag.String(url.String()),
-		Kind:                  swag.String(ResourceKindHost),
+		Kind:                  kind,
 		ClusterID:             params.ClusterID,
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
@@ -1382,10 +1540,10 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	if err := b.hostApi.RegisterHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
 			params.NewHostParams.HostID.String(), params.ClusterID.String())
+		uerr := errors.Wrap(err, "Failed to register host: error creating host metadata")
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityError,
-			"Failed to register host: error creating host metadata", time.Now())
-		return installer.NewRegisterHostBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+			uerr.Error(), time.Now())
+		return common.NewApiError(http.StatusBadRequest, uerr)
 	}
 
 	if err := b.customizeHost(&host); err != nil {
@@ -1687,6 +1845,8 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 
 	txSuccess := false
 	tx := b.db.Begin()
+	tx = transaction.AddForUpdateQueryOption(tx)
+
 	defer func() {
 		if !txSuccess {
 			log.Error("update cluster failed")
@@ -1741,6 +1901,8 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 
 	txSuccess := false
 	tx := b.db.Begin()
+	tx = transaction.AddForUpdateQueryOption(tx)
+
 	defer func() {
 		if !txSuccess {
 			log.Error("update cluster failed")
@@ -1873,7 +2035,10 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID, params.FileName)
 
 	if params.FileName == "logs" {
-		fullFileName, err = b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID)
+		if params.HostID != nil {
+			*params.LogsType = string(models.LogsTypeHost)
+		}
+		fullFileName, _, err = b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID, swag.StringValue(params.LogsType))
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
@@ -1917,22 +2082,40 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig, contentLength)
 }
 
-func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID) (string, error) {
+func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
 	var fileName string
-	if hostId != nil {
-		host, err := b.getHost(ctx, clusterId.String(), hostId.String())
-		if err != nil {
-			return "", err
+	var downloadFileName string
+	c, err := b.getCluster(ctx, clusterId.String())
+	if err != nil {
+		return "", "", err
+	}
+	switch logsType {
+	case string(models.LogsTypeHost):
+		if hostId == nil {
+			return "", "", common.NewApiError(http.StatusBadRequest, errors.Errorf("Host ID must be provided for downloading host logs"))
 		}
-		fileName = b.getLogsFullName(clusterId.String(), host.ID.String())
-	} else {
-		var err error
-		fileName, err = b.prepareClusterLogs(ctx, clusterId.String())
+		var hostObject *models.Host
+		hostObject, err = b.getHost(ctx, clusterId.String(), hostId.String())
 		if err != nil {
-			return "", err
+			return "", "", err
+		}
+		if hostObject.LogsCollectedAt == strfmt.DateTime(time.Time{}) {
+			return "", "", common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", hostId))
+		}
+		fileName = b.getLogsFullName(clusterId.String(), hostObject.ID.String())
+		downloadFileName = fmt.Sprintf("%s_%s", hostutil.GetHostnameForMsg(hostObject), filepath.Base(fileName))
+	case string(models.LogsTypeController):
+		fileName = b.getLogsFullName(clusterId.String(), logsType)
+		downloadFileName = fmt.Sprintf("%s_%s.tar.gz", clusterId, logsType)
+	default:
+		fileName, err = b.prepareClusterLogs(ctx, c)
+		downloadFileName = fmt.Sprintf("%s_%s", clusterId, filepath.Base(fileName))
+		if err != nil {
+			return "", "", common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
-	return fileName, nil
+
+	return fileName, downloadFileName, nil
 }
 
 func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID, fileName string) error {
@@ -2398,23 +2581,25 @@ func (b *bareMetalInventory) getDNSDomain(clusterName, baseDNSDomainName string)
 	}, nil
 }
 
-func (b *bareMetalInventory) validateDNSDomain(params installer.UpdateClusterParams, log logrus.FieldLogger) *installer.UpdateClusterConflict {
+func (b *bareMetalInventory) validateDNSDomain(params installer.UpdateClusterParams, log logrus.FieldLogger) error {
 	clusterName := swag.StringValue(params.ClusterUpdateParams.Name)
 	clusterBaseDomain := swag.StringValue(params.ClusterUpdateParams.BaseDNSDomain)
+	if clusterBaseDomain != "" {
+		if err := validations.ValidateDomainNameFormat(clusterBaseDomain); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
 	dnsDomain, err := b.getDNSDomain(clusterName, clusterBaseDomain)
 	if err == nil && dnsDomain != nil {
 		// Cluster's baseDNSDomain is defined in config (BaseDNSDomains map)
 		if err = b.validateBaseDNS(dnsDomain); err != nil {
 			log.WithError(err).Errorf("Invalid base DNS domain: %s", clusterBaseDomain)
-			return installer.NewUpdateClusterConflict().
-				WithPayload(common.GenerateError(http.StatusConflict,
-					errors.New("Base DNS domain isn't configured properly")))
+			return common.NewApiError(http.StatusConflict, errors.New("Base DNS domain isn't configured properly"))
 		}
 		if err = b.validateDNSRecords(dnsDomain); err != nil {
 			log.WithError(err).Errorf("DNS records already exist for cluster: %s", params.ClusterID)
-			return installer.NewUpdateClusterConflict().
-				WithPayload(common.GenerateError(http.StatusConflict,
-					errors.New("DNS records already exist for cluster - please change 'Cluster Name'")))
+			return common.NewApiError(http.StatusConflict,
+				errors.New("DNS records already exist for cluster - please change 'Cluster Name'"))
 		}
 	}
 	return nil
@@ -2492,7 +2677,15 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 	return installer.NewGetFreeAddressesOK().WithPayload(results)
 }
 
-func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
+func (b *bareMetalInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
+	err := b.uploadLogs(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewUploadLogsNoContent()
+}
+
+func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.UploadLogsParams) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Uploading logs from host %s in cluster %s", params.HostID, params.ClusterID)
 
@@ -2506,13 +2699,19 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 		}
 	}()
 
-	currentHost, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
-	if err != nil {
-		return common.GenerateErrorResponder(err)
+	if params.LogsType == string(models.LogsTypeHost) {
+		err := b.uploadHostLogs(ctx, params.ClusterID.String(), params.HostID.String(), params.Upfile)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
-	fileName := b.getLogsFullName(params.ClusterID.String(), params.HostID.String())
-
+	_, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		common.GenerateErrorResponder(err)
+	}
+	fileName := b.getLogsFullName(params.ClusterID.String(), params.LogsType)
 	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
 	err = b.objectHandler.UploadStream(ctx, params.Upfile, fileName)
 	if err != nil {
@@ -2520,30 +2719,70 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	err = b.hostApi.SetUploadLogsAt(ctx, currentHost, b.db)
+	log.Infof("Done uploading file %s", fileName)
+	return nil
+}
+
+func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, clusterId string, hostId string, upFile io.ReadCloser) error {
+	log := logutil.FromContext(ctx, b.log)
+	currentHost, err := b.getHost(ctx, clusterId, hostId)
 	if err != nil {
-		log.WithError(err).Errorf("Failed update host db")
+		return err
+	}
+
+	fileName := b.getLogsFullName(clusterId, hostId)
+
+	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
+	err = b.objectHandler.UploadStream(ctx, upFile, fileName)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to upload %s to s3 for host %s", fileName, hostId)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	log.Infof("Done uploading file %s", fileName)
+	err = b.hostApi.SetUploadLogsAt(ctx, currentHost, b.db)
+	if err != nil {
+		log.WithError(err).Errorf("Failed update host %s logs_collected_at flag", hostId)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Downloading logs from cluster %s", params.ClusterID)
+	fileName, downloadFileName, err := b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID, swag.StringValue(params.LogsType))
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
+	if err != nil {
+		if _, ok := err.(s3wrapper.NotFound); ok {
+			log.WithError(err).Warnf("File not found %s", fileName)
+			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs of type %s for cluster %s "+
+				"were not found", swag.StringValue(params.LogsType), params.ClusterID))
+		}
+		log.WithError(err).Errorf("failed to download file %s", fileName)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(respBody), downloadFileName, contentLength)
+}
+
+func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
+	err := b.uploadLogs(ctx, installer.UploadLogsParams{ClusterID: params.ClusterID, HostID: &params.HostID, HTTPRequest: params.HTTPRequest,
+		LogsType: string(models.LogsTypeHost), Upfile: params.Upfile})
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 	return installer.NewUploadHostLogsNoContent()
 }
 
 func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Downloading logs from host %s in cluster %s", params.HostID, params.ClusterID)
-	hostObject, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	fileName, downloadFileName, err := b.getLogFileForDownload(ctx, &params.ClusterID, &params.HostID, "host")
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-
-	if hostObject.LogsCollectedAt == strfmt.DateTime(time.Time{}) {
-		return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", params.HostID))
-	}
-
-	fileName := b.getLogsFullName(params.ClusterID.String(), params.HostID.String())
-	// TODO add validation after MGMT-1827
 
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
 	if err != nil {
@@ -2556,47 +2795,19 @@ func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params instal
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	downloadFileName := fmt.Sprintf("%s_%s", hostutil.GetHostnameForMsg(hostObject), filepath.Base(fileName))
 	return filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(respBody), downloadFileName, contentLength)
 }
 
-func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Downloading logs from cluster %s", params.ClusterID)
-	fileName, err := b.prepareClusterLogs(ctx, params.ClusterID.String())
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
-	if err != nil {
-		if _, ok := err.(s3wrapper.NotFound); ok {
-			log.WithError(err).Warnf("File not found %s", fileName)
-			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", params.ClusterID))
-		}
-
-		log.WithError(err).Errorf("failed to download file %s", fileName)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	return filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(respBody), fileName, contentLength)
-}
-
-func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, clusterId string) (string, error) {
-	c, err := b.getCluster(ctx, clusterId)
-	if err != nil {
-		return "", err
-	}
-
-	fileName, err := b.clusterApi.CreateTarredClusterLogs(ctx, c, b.objectHandler)
+func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, cluster *common.Cluster) (string, error) {
+	fileName, err := b.clusterApi.CreateTarredClusterLogs(ctx, cluster, b.objectHandler)
 	if err != nil {
 		return "", err
 	}
 	return fileName, nil
 }
 
-func (b *bareMetalInventory) getLogsFullName(clusterId string, hostId string) string {
-	return fmt.Sprintf("%s/logs/%s/logs.tar.gz", clusterId, hostId)
+func (b *bareMetalInventory) getLogsFullName(clusterId string, logId string) string {
+	return fmt.Sprintf("%s/logs/%s/logs.tar.gz", clusterId, logId)
 }
 
 func (b *bareMetalInventory) getHost(ctx context.Context, clusterId string, hostId string) (*models.Host, error) {

@@ -11,7 +11,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
-	"github.com/openshift/assisted-service/pkg/generator"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
@@ -26,18 +25,7 @@ import (
 )
 
 const ignitionGeneratorPrefix = "ignition-generator"
-const UploadBaseISOJobName = s3wrapper.BaseObjectName
-
-//go:generate mockgen -source=job.go -package=job -destination=mock_job.go
-type API interface {
-	// Create k8s job
-	Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error
-	// Monitor k8s job return error in case job fails
-	Monitor(ctx context.Context, name, namespace string) error
-	// Delete k8s job
-	Delete(ctx context.Context, name, namespace string, force bool) error
-	generator.ISOInstallConfigGenerator
-}
+const UploadBaseISOJobName = s3wrapper.BaseObjectName + "-"
 
 type Config struct {
 	MonitorLoopInterval time.Duration `envconfig:"JOB_MONITOR_INTERVAL" default:"500ms"`
@@ -80,7 +68,7 @@ type kubeJob struct {
 	s3Client s3wrapper.API
 }
 
-func (k *kubeJob) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+func (k *kubeJob) create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
 	return k.kube.Create(ctx, obj, opts...)
 }
 
@@ -111,7 +99,7 @@ func (k *kubeJob) getJob(ctx context.Context, job *batch.Job, name, namespace st
 }
 
 // Monitor k8s job
-func (k *kubeJob) Monitor(ctx context.Context, name, namespace string) error {
+func (k *kubeJob) monitor(ctx context.Context, name, namespace string) error {
 	log := logutil.FromContext(ctx, k.log)
 	var job batch.Job
 
@@ -141,7 +129,7 @@ func (k *kubeJob) Monitor(ctx context.Context, name, namespace string) error {
 }
 
 // Delete k8s job
-func (k *kubeJob) Delete(ctx context.Context, name, namespace string, force bool) error {
+func (k *kubeJob) delete(ctx context.Context, name, namespace string, force bool) error {
 	log := logutil.FromContext(ctx, k.log)
 	var job batch.Job
 
@@ -170,7 +158,7 @@ func (k *kubeJob) Delete(ctx context.Context, name, namespace string, force bool
 	}
 
 	// delete is async, wait for the job to not be found
-	if err := k.Monitor(ctx, name, namespace); err != nil {
+	if err := k.monitor(ctx, name, namespace); err != nil {
 		if !apierrors.IsNotFound(err) {
 			log.WithError(err).Errorf("Failed to delete job <%s>", name)
 		}
@@ -196,8 +184,8 @@ func (k *kubeJob) uploadImageJob(jobName, imageName string) *batch.Job {
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: meta.ObjectMeta{
-			Name:      jobName,
-			Namespace: k.Config.Namespace,
+			GenerateName: jobName,
+			Namespace:    k.Config.Namespace,
 		},
 		Spec: batch.JobSpec{
 			BackoffLimit: swag.Int32(2),
@@ -290,12 +278,13 @@ func (k *kubeJob) UploadBaseISO() error {
 	log := logutil.FromContext(ctx, k.log)
 
 	log.Infof("Creating job %s", UploadBaseISOJobName)
-	if err := k.Create(ctx, k.uploadImageJob(UploadBaseISOJobName, s3wrapper.BaseObjectName)); err != nil {
+	uploadJob := k.uploadImageJob(UploadBaseISOJobName, s3wrapper.BaseObjectName)
+	if err := k.create(ctx, uploadJob); err != nil {
 		log.WithError(err).Error("failed to create image job")
 		return err
 	}
 
-	if err := k.Monitor(ctx, UploadBaseISOJobName, k.Namespace); err != nil {
+	if err := k.monitor(ctx, uploadJob.Name, k.Namespace); err != nil {
 		log.WithError(err).Error("image creation failed")
 		return err
 	}
@@ -362,7 +351,7 @@ func (k *kubeJob) AbortInstallConfig(ctx context.Context, cluster common.Cluster
 	ctime := time.Time(cluster.CreatedAt)
 	cTimestamp := strconv.FormatInt(ctime.Unix(), 10)
 	jobName := fmt.Sprintf("%s-%s-%s", ignitionGeneratorPrefix, cluster.ID.String(), cTimestamp)[:63]
-	if err := k.Delete(ctx, jobName, k.Namespace, true); err != nil {
+	if err := k.delete(ctx, jobName, k.Namespace, true); err != nil {
 		log.WithError(err).Errorf("Failed to abort kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
 		return errors.Wrapf(err, "Failed to abort kubeconfig generation job %s for cluster %s", jobName, cluster.ID)
 	}

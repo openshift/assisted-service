@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -356,13 +357,6 @@ var _ = Describe("cluster install - DHCP", func() {
 		Expect(err).NotTo(HaveOccurred())
 		cluster = registerClusterReply.GetPayload()
 		log.Infof("Register cluster %s", cluster.ID.String())
-		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
-				VipDhcpAllocation: swag.Bool(true),
-			},
-			ClusterID: *cluster.ID,
-		})
-		Expect(err).ToNot(HaveOccurred())
 	})
 	Context("install cluster cases", func() {
 		var clusterID strfmt.UUID
@@ -445,6 +439,70 @@ var _ = Describe("cluster install - DHCP", func() {
 	})
 })
 
+var _ = Describe("cluster update - BaseDNS", func() {
+	var (
+		ctx         = context.Background()
+		cluster     *models.Cluster
+		clusterID   strfmt.UUID
+		clusterCIDR = "10.128.0.0/14"
+		serviceCIDR = "172.30.0.0/16"
+		err         error
+	)
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	BeforeEach(func() {
+		var registerClusterReply *installer.RegisterClusterCreated
+		registerClusterReply, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				BaseDNSDomain:            "example.com",
+				ClusterNetworkCidr:       &clusterCIDR,
+				ClusterNetworkHostPrefix: 23,
+				Name:                     swag.String("test-cluster"),
+				OpenshiftVersion:         swag.String("4.5"),
+				PullSecret:               pullSecret,
+				ServiceNetworkCidr:       &serviceCIDR,
+				SSHPublicKey:             "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC50TuHS7aYci+U+5PLe/aW/I6maBi9PBDucLje6C6gtArfjy7udWA1DCSIQd+DkHhi57/s+PmvEjzfAfzqo+L+/8/O2l2seR1pPhHDxMR/rSyo/6rZP6KIL8HwFqXHHpDUM4tLXdgwKAe1LxBevLt/yNl8kOiHJESUSl+2QSf8z4SIbo/frDD8OwOvtfKBEG4WCb8zEsEuIPNF/Vo/UxPtS9pPTecEsWKDHR67yFjjamoyLvAzMAJotYgyMoxm8PTyCgEzHk3s3S4iO956d6KVOEJVXnTVhAxrtLuubjskd7N4hVN7h2s4Z584wYLKYhrIBL0EViihOMzY4mH3YE4KZusfIx6oMcggKX9b3NHm0la7cj2zg0r6zjUn6ZCP4gXM99e5q4auc0OEfoSfQwofGi3WmxkG3tEozCB8Zz0wGbi2CzR8zlcF+BNV5I2LESlLzjPY5B4dvv5zjxsYoz94p3rUhKnnPM2zTx1kkilDK5C5fC1k9l/I/r5Qk4ebLQU= oscohen@localhost.localdomain",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		cluster = registerClusterReply.GetPayload()
+		clusterID = *cluster.ID
+		log.Infof("Register cluster %s", cluster.ID.String())
+	})
+	Context("Update BaseDNS", func() {
+		It("OK", func() {
+			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					BaseDNSDomain: swag.String("abc.com"),
+				},
+				ClusterID: clusterID,
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+	It("Fail - 1", func() {
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				BaseDNSDomain: swag.String("abc.com.c"),
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).To(HaveOccurred())
+	})
+	It("Fail - 2", func() {
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				BaseDNSDomain: swag.String("-abc.com"),
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).To(HaveOccurred())
+	})
+})
+
 var _ = Describe("cluster install", func() {
 	var (
 		ctx           = context.Background()
@@ -522,8 +580,9 @@ var _ = Describe("cluster install", func() {
 		ingressVip := "1.2.3.6"
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
-				APIVip:     &apiVip,
-				IngressVip: &ingressVip,
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
 			},
 			ClusterID: clusterID,
 		})
@@ -545,8 +604,9 @@ var _ = Describe("cluster install", func() {
 		ingressVip := "1.2.3.6"
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
-				APIVip:     &apiVip,
-				IngressVip: &ingressVip,
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
 			},
 			ClusterID: clusterID,
 		})
@@ -1023,6 +1083,13 @@ var _ = Describe("cluster install", func() {
 			s, err := file.Stat()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(s.Size()).ShouldNot(Equal(0))
+
+			By("Download install-config.yaml")
+			_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "install-config.yaml"}, file)
+			Expect(err).NotTo(HaveOccurred())
+			s, err = file.Stat()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(s.Size()).ShouldNot(Equal(0))
 		})
 
 		It("[only_k8s]Get credentials", func() {
@@ -1056,7 +1123,7 @@ var _ = Describe("cluster install", func() {
 				nodes := register3nodes(clusterID)
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.DownloadHostLogs(ctx, &installer.DownloadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID}, file)
+				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID, HostID: nodes[1].ID}, file)
 				Expect(err).To(HaveOccurred())
 
 			}
@@ -1065,13 +1132,30 @@ var _ = Describe("cluster install", func() {
 			{
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
-				nodes := register3nodes(clusterID)
-				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
+				_ = register3nodes(clusterID)
+				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID, LogsType: string(models.LogsTypeController), Upfile: kubeconfigFile})
+				Expect(err).NotTo(HaveOccurred())
+				logsType := string(models.LogsTypeController)
+				file, err := ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID, LogsType: &logsType}, file)
+				Expect(err).NotTo(HaveOccurred())
+				s, err := file.Stat()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(s.Size()).ShouldNot(Equal(0))
+			}
+
+			By("Test happy flow host logs file")
+			{
+				kubeconfigFile, err := os.Open("test_kubeconfig")
+				Expect(err).NotTo(HaveOccurred())
+				hosts := register3nodes(clusterID)
+				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *hosts[0].ID, Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.DownloadHostLogs(ctx, &installer.DownloadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID}, file)
+				_, err = userBMClient.Installer.DownloadHostLogs(ctx, &installer.DownloadHostLogsParams{ClusterID: clusterID, HostID: *hosts[0].ID}, file)
 				Expect(err).NotTo(HaveOccurred())
 				s, err := file.Stat()
 				Expect(err).NotTo(HaveOccurred())
@@ -1091,14 +1175,16 @@ var _ = Describe("cluster install", func() {
 				kubeconfigFile, err := os.Open(filePath)
 				Expect(err).NotTo(HaveOccurred())
 				nodes := register3nodes(clusterID)
-				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
+				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID, HostID: nodes[1].ID,
+					Upfile: kubeconfigFile, LogsType: string(models.LogsTypeHost)})
 				Expect(err).NotTo(HaveOccurred())
 				h := getHost(clusterID, *nodes[1].ID)
 				Expect(h.LogsCollectedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
-
+				logsType := string(models.LogsTypeHost)
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.DownloadHostLogs(ctx, &installer.DownloadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID}, file)
+				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID,
+					HostID: nodes[1].ID, LogsType: &logsType}, file)
 				Expect(err).NotTo(HaveOccurred())
 				s, err := file.Stat()
 				Expect(err).NotTo(HaveOccurred())
@@ -1111,7 +1197,8 @@ var _ = Describe("cluster install", func() {
 			for _, host := range nodes {
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *host.ID, Upfile: kubeconfigFile})
+				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID,
+					HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 				kubeconfigFile.Close()
 			}
@@ -1119,7 +1206,8 @@ var _ = Describe("cluster install", func() {
 			file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			Expect(err).NotTo(HaveOccurred())
 			defer file.Close()
-			_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID}, file)
+			logsType := string(models.LogsTypeAll)
+			_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID, LogsType: &logsType}, file)
 			Expect(err).NotTo(HaveOccurred())
 			s, err := file.Stat()
 			Expect(err).NotTo(HaveOccurred())
@@ -1367,6 +1455,8 @@ var _ = Describe("cluster install", func() {
 			})
 		})
 		Context("reset installation", func() {
+			enableReset, _ := strconv.ParseBool(os.Getenv("ENABLE_RESET"))
+
 			It("[only_k8s]reset cluster and register hosts", func() {
 				By("verify reset success")
 				installCluster(clusterID)
@@ -1385,9 +1475,14 @@ var _ = Describe("cluster install", func() {
 
 				By("verify hosts state")
 				for i, host := range c.Hosts {
-					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
-					_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
-					Expect(ok).Should(Equal(true))
+					if enableReset {
+						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+						_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
+						Expect(ok).Should(Equal(true))
+					} else {
+						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
+							defaultWaitForHostStateTimeout)
+					}
 					_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
 						ClusterID: clusterID,
 						NewHostParams: &models.HostCreateParams{
@@ -1407,77 +1502,79 @@ var _ = Describe("cluster install", func() {
 				}
 			})
 			It("[only_k8s]reset cluster and disable bootstrap", func() {
-				var bootstrapID *strfmt.UUID
+				if enableReset {
+					var bootstrapID *strfmt.UUID
 
-				By("verify reset success")
-				installCluster(clusterID)
-				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
-				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
-				Expect(err).NotTo(HaveOccurred())
-				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-				Expect(err).NotTo(HaveOccurred())
-				c := rep.GetPayload()
-				for _, h := range c.Hosts {
-					if h.Bootstrap {
-						bootstrapID = h.ID
-						break
+					By("verify reset success")
+					installCluster(clusterID)
+					_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+					Expect(err).NotTo(HaveOccurred())
+					_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+					Expect(err).NotTo(HaveOccurred())
+					rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+					Expect(err).NotTo(HaveOccurred())
+					c := rep.GetPayload()
+					for _, h := range c.Hosts {
+						if h.Bootstrap {
+							bootstrapID = h.ID
+							break
+						}
 					}
-				}
-				Expect(bootstrapID).ShouldNot(Equal(nil))
+					Expect(bootstrapID).ShouldNot(Equal(nil))
 
-				By("verify cluster state")
-				rep, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-				Expect(err).NotTo(HaveOccurred())
-				c = rep.GetPayload()
-				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
+					By("verify cluster state")
+					rep, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+					Expect(err).NotTo(HaveOccurred())
+					c = rep.GetPayload()
+					Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 
-				By("register hosts and disable bootstrap")
-				for i, host := range c.Hosts {
-					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
-					_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
-					Expect(ok).Should(Equal(true))
-					_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
-						ClusterID: clusterID,
-						NewHostParams: &models.HostCreateParams{
-							HostID: host.ID,
-						},
-					})
-					Expect(err).ShouldNot(HaveOccurred())
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
-						defaultWaitForHostStateTimeout)
-					generateHWPostStepReply(host, validHwInfo, fmt.Sprintf("host-after-reset-%d", i))
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown,
-						defaultWaitForHostStateTimeout)
-
-					if host.Bootstrap {
-						_, err = userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
+					By("register hosts and disable bootstrap")
+					for i, host := range c.Hosts {
+						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+						_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
+						Expect(ok).Should(Equal(true))
+						_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
 							ClusterID: clusterID,
-							HostID:    *host.ID,
+							NewHostParams: &models.HostCreateParams{
+								HostID: host.ID,
+							},
 						})
-						Expect(err).NotTo(HaveOccurred())
-					}
-				}
-				h := registerHost(clusterID)
-				generateHWPostStepReply(h, validHwInfo, "hostname")
-				generateFAPostStepReply(h, validFreeAddresses)
-				_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
-						{ID: *h.ID, Role: models.HostRoleUpdateParamsMaster},
-					},
-					},
-					ClusterID: clusterID,
-				})
-				Expect(err).NotTo(HaveOccurred())
+						Expect(err).ShouldNot(HaveOccurred())
+						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
+							defaultWaitForHostStateTimeout)
+						generateHWPostStepReply(host, validHwInfo, fmt.Sprintf("host-after-reset-%d", i))
+						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown,
+							defaultWaitForHostStateTimeout)
 
-				By("check for a new bootstrap")
-				waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
-					clusterReadyStateInfo)
-				c = installCluster(clusterID)
-				for _, h := range c.Hosts {
-					if h.Bootstrap {
-						Expect(h.ID).ShouldNot(Equal(bootstrapID))
-						break
+						if host.Bootstrap {
+							_, err = userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
+								ClusterID: clusterID,
+								HostID:    *host.ID,
+							})
+							Expect(err).NotTo(HaveOccurred())
+						}
+					}
+					h := registerHost(clusterID)
+					generateHWPostStepReply(h, validHwInfo, "hostname")
+					generateFAPostStepReply(h, validFreeAddresses)
+					_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+						ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
+							{ID: *h.ID, Role: models.HostRoleUpdateParamsMaster},
+						},
+						},
+						ClusterID: clusterID,
+					})
+					Expect(err).NotTo(HaveOccurred())
+
+					By("check for a new bootstrap")
+					waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+						clusterReadyStateInfo)
+					c = installCluster(clusterID)
+					for _, h := range c.Hosts {
+						if h.Bootstrap {
+							Expect(h.ID).ShouldNot(Equal(bootstrapID))
+							break
+						}
 					}
 				}
 			})
@@ -1495,7 +1592,12 @@ var _ = Describe("cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				c = rep.GetPayload()
 				for _, host := range c.Hosts {
-					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+					if enableReset {
+						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+					} else {
+						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
+							defaultWaitForHostStateTimeout)
+					}
 				}
 			})
 			It("[only_k8s]reset cluster with various hosts states", func() {
@@ -1594,7 +1696,12 @@ var _ = Describe("cluster install", func() {
 						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))
 						continue
 					}
-					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+					if enableReset {
+						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
+					} else {
+						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
+							defaultWaitForHostStateTimeout)
+					}
 				}
 			})
 
@@ -1726,8 +1833,9 @@ var _ = Describe("cluster install", func() {
 				{ID: *wh2.ID, Role: models.HostRoleUpdateParamsWorker},
 				{ID: *wh3.ID, Role: models.HostRoleUpdateParamsWorker},
 			},
-				APIVip:     &apiVip,
-				IngressVip: &ingressVip,
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
 			},
 			ClusterID: clusterID,
 		})
@@ -1855,8 +1963,9 @@ var _ = Describe("cluster install", func() {
 		ingressVip := "1.2.3.9"
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
-				APIVip:     &apiVip,
-				IngressVip: &ingressVip,
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
 			},
 			ClusterID: clusterID,
 		})
@@ -2259,8 +2368,9 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 	ingressVip := ""
 	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 		ClusterUpdateParams: &models.ClusterUpdateParams{
-			APIVip:     &apiVip,
-			IngressVip: &ingressVip,
+			VipDhcpAllocation: swag.Bool(false),
+			APIVip:            &apiVip,
+			IngressVip:        &ingressVip,
 		},
 		ClusterID: clusterID,
 	})

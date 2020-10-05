@@ -35,9 +35,10 @@ type StepsStruct struct {
 type stateToStepsMap map[string]StepsStruct
 
 type InstructionManager struct {
-	log          logrus.FieldLogger
-	db           *gorm.DB
-	stateToSteps stateToStepsMap
+	log                           logrus.FieldLogger
+	db                            *gorm.DB
+	installingClusterStateToSteps stateToStepsMap
+	addHostsClusterToSteps        stateToStepsMap
 }
 
 type InstructionConfig struct {
@@ -64,7 +65,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	return &InstructionManager{
 		log: log,
 		db:  db,
-		stateToSteps: stateToStepsMap{
+		installingClusterStateToSteps: stateToStepsMap{
 			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
 			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
 			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
@@ -76,6 +77,18 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusDisabled:                 {[]CommandGetter{}, defaultBackedOffInstructionInSec},
 			models.HostStatusResetting:                {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusError:                    {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
+		},
+		addHostsClusterToSteps: stateToStepsMap{
+			models.HostStatusKnown:                {[]CommandGetter{connectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusInsufficient:         {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusDisconnected:         {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusDiscovering:          {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec},
+			models.HostStatusPendingForInput:      {[]CommandGetter{inventoryCmd, connectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusInstalling:           {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusInstallingInProgress: {[]CommandGetter{}, defaultNextInstructionInSec},
+			models.HostStatusDisabled:             {[]CommandGetter{}, defaultBackedOffInstructionInSec},
+			models.HostStatusResetting:            {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusError:                {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
 		},
 	}
 }
@@ -89,8 +102,12 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 	log.Infof("GetNextSteps cluster: ,<%s> host: <%s>, host status: <%s>", ClusterID, hostID, hostStatus)
 
 	returnSteps := models.Steps{}
+	stateToSteps := i.installingClusterStateToSteps
+	if swag.StringValue(host.Kind) == models.HostKindAddToExistingClusterHost {
+		stateToSteps = i.addHostsClusterToSteps
+	}
 
-	if cmdsMap, ok := i.stateToSteps[hostStatus]; ok {
+	if cmdsMap, ok := stateToSteps[hostStatus]; ok {
 		//need to add the step id
 		returnSteps.NextInstructionSeconds = cmdsMap.NextStepInSec
 		for _, cmd := range cmdsMap.Commands {

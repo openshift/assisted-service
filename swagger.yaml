@@ -416,9 +416,15 @@ paths:
           enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, logs]
           required: true
         - in: query
+          name: logs_type
+          type: string
+          enum: ["host", "controller", "all"]
+          required: false
+        - in: query
           name: host_id
           type: string
           format: uuid
+          required: false
       responses:
         200:
           description: Success.
@@ -739,6 +745,52 @@ paths:
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /clusters/{cluster_id}/actions/install_hosts:
+    post:
+      tags:
+        - installer
+      summary: Installs the OpenShift bare metal cluster.
+      operationId: InstallHosts
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+      responses:
+        202:
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        400:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
         401:
           description: Unauthorized.
           schema:
@@ -1321,6 +1373,7 @@ paths:
       security:
         - agentAuth: []
       summary: Agent API to upload logs.
+      deprecated: true
       operationId: UploadHostLogs
       consumes:
         - multipart/form-data
@@ -1376,6 +1429,7 @@ paths:
       tags:
         - installer
       summary: Download host logs
+      deprecated: true
       security:
         - userAuth: []
       operationId: DownloadHostLogs
@@ -1423,6 +1477,62 @@ paths:
             $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/logs:
+    post:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      summary: Agent API to upload logs.
+      operationId: UploadLogs
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: formData
+          name: upfile
+          type: file
+          required: false
+          maxLength: 20971520  #20MB
+          description: The file to upload.
+          x-mimetype: application/zip
+        - in: query
+          name: logs_type
+          type: string
+          enum: ['host', 'controller']
+          required: true
+        - in: query
+          name: host_id
+          type: string
+          format: uuid
+          required: false
+      responses:
+        204:
+          description: Success.
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
     get:
       tags:
         - installer
@@ -1438,6 +1548,16 @@ paths:
           type: string
           format: uuid
           required: true
+        - in: query
+          name: logs_type
+          type: string
+          enum: ['host', 'controller', 'all']
+          required: false
+        - in: query
+          name: host_id
+          type: string
+          format: uuid
+          required: false
       responses:
         200:
           description: Success.
@@ -1622,6 +1742,31 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /add_hosts_clusters:
+    post:
+      tags:
+        - installer
+      summary: Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster.
+      operationId: RegisterAddHostsCluster
+      parameters:
+        - in: body
+          name: new-add-hosts-cluster-params
+          required: true
+          schema:
+            $ref: '#/definitions/add-hosts-cluster-create-params'
+      responses:
+        201:
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        400:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
 
 definitions:
   list-managed-domains:
@@ -1735,8 +1880,10 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Host']
-        description: Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.
+        enum: ['Host', 'AddToExistingClusterHost']
+        description: |
+          Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or 
+          'AddToExistingClusterHost' for host being added to existing OCP cluster.
       id:
         type: string
         format: uuid
@@ -1767,6 +1914,7 @@ definitions:
           - installed
           - error
           - resetting
+          - added-to-existing-cluster
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
@@ -1861,6 +2009,7 @@ definitions:
       - free-network-addresses
       - reset-installation
       - dhcp-lease-allocate
+      - api-vip-connectivity-check
 
   step:
     type: object
@@ -1974,7 +2123,7 @@ definitions:
         type: boolean
         description: Indicate if VIP DHCP allocation mode is enabled.
         x-nullable: true
-        default: false
+        default: true
       http_proxy:
         type: string
         description: |
@@ -2089,6 +2238,29 @@ definitions:
             hostname:
               type: string
 
+  add-hosts-cluster-create-params:
+    type: object
+    required:
+      - id
+      - name
+      - api_vip_dnsname
+      - openshift_version
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier of the object.
+      name:
+        type: string
+        description: Name of the OpenShift cluster.
+      api_vip_dnsname:
+        type: string
+        description: api vip domain.
+      openshift_version:
+        type: string
+        enum: ['4.6']
+        description: Version of the OpenShift cluster.
+
   cluster:
     type: object
     required:
@@ -2101,8 +2273,8 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Cluster']
-        description: Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link.
+        enum: ['Cluster', 'AddHostsCluster']
+        description: Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'AddHostCluster' for cluster that add hosts to existing OCP cluster
       id:
         type: string
         format: uuid
@@ -2183,6 +2355,7 @@ definitions:
           - installing
           - finalizing
           - installed
+          - adding-hosts
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
@@ -2595,6 +2768,15 @@ definitions:
       type: string
       pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
 
+  connectivity_check_api_request:
+    type: object
+    required:
+      - url
+    properties:
+      url:
+        type: string
+        description: URL address of the API.
+
   credentials:
     type: object
     properties:
@@ -2695,3 +2877,11 @@ definitions:
       - 'sufficient-masters-count'
       - 'dns-domain-defined'
       - 'pull-secret-set'
+
+  logs_type:
+    type: string
+    enum:
+      - 'host'
+      - 'controller'
+      - 'all'
+      - ''

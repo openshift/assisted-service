@@ -24,6 +24,7 @@ SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
 BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/46.82.202008260918-0/x86_64/rhcos-46.82.202008260918-0-live.x86_64.iso)
+OPENSHIFT_INSTALL_RELEASE_IMAGE := $(or ${OPENSHIFT_INSTALL_RELEASE_IMAGE},quay.io/ocpmetal/ocp-release:4.6.0-0.nightly-2020-08-31-220837)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
@@ -196,7 +197,8 @@ deploy-inventory-service-file: deploy-namespace
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
-		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
+		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS) \
+		--ocp-release $(OPENSHIFT_INSTALL_RELEASE_IMAGE)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
@@ -221,8 +223,11 @@ deploy-test: generate-keys
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
 	podman run -dt --pod assisted-installer --env-file onprem-environment --name db quay.io/ocpmetal/postgresql-12-centos7
-	podman run -dt --pod assisted-installer --env-file onprem-environment --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
+	podman run -dt --pod assisted-installer --env-file onprem-environment --env DUMMY_IGNITION=$(DUMMY_IGNITION) --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
+
+deploy-onprem-for-subsystem:
+	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
 ########
 # Test #
@@ -258,16 +263,18 @@ deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 unit-test:
 	docker kill postgres || true
 	sleep 3
-	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 postgres:12.3-alpine -c 'max_connections=10000'
-	until PGPASSWORD=admin pg_isready -U admin --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done
-	SKIP_UT_DB=1 go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) -cover -timeout 20m || (docker kill postgres && /bin/false)
+	docker run -d --rm --name postgres -e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 \
+		-p 127.0.0.1:5432:5432 quay.io/ocpmetal/postgresql-12-centos7
+	until PGPASSWORD=admin pg_isready -U postgres --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done
+	SKIP_UT_DB=1 go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
+		-cover -timeout 20m -count=1 || (docker kill postgres && /bin/false)
 	docker kill postgres
 
 test-onprem:
 	INVENTORY=127.0.0.1:8090 \
-	INVENTORY=127.0.0.1:8090 \
 	DB_HOST=127.0.0.1 \
 	DB_PORT=5432 \
+	DEPLOY_TARGET=onprem \
 	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
 
 #########
@@ -286,7 +293,7 @@ clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
 
 clean-onprem:
-	podman pod rm -f -i assisted-installer
+	podman pod rm -f assisted-installer | true
 
 delete-minikube-profile:
 	minikube delete -p $(PROFILE)

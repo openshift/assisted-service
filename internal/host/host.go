@@ -50,20 +50,23 @@ var manualRebootStages = [...]models.HostStage{
 }
 
 var InstallationProgressTimeout = map[models.HostStage]time.Duration{
-	models.HostStageStartingInstallation:        10 * time.Minute,
-	models.HostStageWaitingForControlPlane:      30 * time.Minute,
-	models.HostStageStartWaitingForControlPlane: 30 * time.Minute,
-	models.HostStageInstalling:                  20 * time.Minute,
-	models.HostStageJoined:                      20 * time.Minute,
-	models.HostStageWritingImageToDisk:          20 * time.Minute,
+	models.HostStageStartingInstallation:        30 * time.Minute,
+	models.HostStageWaitingForControlPlane:      60 * time.Minute,
+	models.HostStageStartWaitingForControlPlane: 60 * time.Minute,
+	models.HostStageInstalling:                  60 * time.Minute,
+	models.HostStageJoined:                      60 * time.Minute,
+	models.HostStageWritingImageToDisk:          60 * time.Minute,
 	models.HostStageRebooting:                   70 * time.Minute,
-	models.HostStageConfiguring:                 30 * time.Minute,
+	models.HostStageConfiguring:                 60 * time.Minute,
 	models.HostStageWaitingForIgnition:          60 * time.Minute,
 	"DEFAULT":                                   60 * time.Minute,
 }
 
+var InstallationTimeout = 20 * time.Minute
+
 type Config struct {
-	ResetTimeout time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
+	EnableAutoReset bool          `envconfig:"ENABLE_AUTO_RESET" default:"false"`
+	ResetTimeout    time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 }
 
 //go:generate mockgen -source=host.go -package=host -aux_files=github.com/openshift/assisted-service/internal/host=instructionmanager.go -destination=mock_host_api.go
@@ -284,6 +287,14 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 		_, err = updateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
+	case models.HostStageRebooting:
+		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+			_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfo,
+				h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
+			break
+		}
+		fallthrough
 	default:
 		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
@@ -401,12 +412,25 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 		}
 	}()
 
-	err := m.sm.Run(TransitionTypeResetHost, newStateHost(h), &TransitionArgsResetHost{
-		ctx:    ctx,
-		reason: reason,
-		db:     db,
-	})
-	if err != nil {
+	var transitionType stateswitch.TransitionType
+	var transitionArgs stateswitch.TransitionArgs
+
+	if m.Config.EnableAutoReset {
+		transitionType = TransitionTypeResetHost
+		transitionArgs = &TransitionArgsResetHost{
+			ctx:    ctx,
+			reason: reason,
+			db:     db,
+		}
+	} else {
+		transitionType = TransitionTypeResettingPendingUserAction
+		transitionArgs = &TransitionResettingPendingUserAction{
+			ctx: ctx,
+			db:  db,
+		}
+	}
+
+	if err := m.sm.Run(transitionType, newStateHost(h), transitionArgs); err != nil {
 		eventSeverity = models.EventSeverityError
 		eventInfo = fmt.Sprintf("Failed to reset installation of host %s. Error: %s", hostutil.GetHostnameForMsg(h), err.Error())
 		return common.NewApiError(http.StatusConflict, err)
@@ -513,6 +537,10 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		autoSelectedRole = models.HostRoleWorker
 		log              = logutil.FromContext(ctx, m.log)
 	)
+
+	if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+		return autoSelectedRole, nil
+	}
 
 	// count already existing masters
 	mastersCount := 0
