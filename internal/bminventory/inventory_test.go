@@ -3183,7 +3183,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 			Times(1)
-		mockMetric.EXPECT().ClusterRegistered(gomock.Any()).Times(1)
+		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any()).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{

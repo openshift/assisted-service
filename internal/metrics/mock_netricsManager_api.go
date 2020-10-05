@@ -86,13 +86,13 @@ func (mr *MockAPIMockRecorder) ClusterInstallationFinished(log, result, clusterV
 }
 
 // ReportHostInstallationMetrics mocks base method
-func (m *MockAPI) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
+func (m *MockAPI) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ReportHostInstallationMetrics", log, clusterVersion, clusterID, h, previousProgress, currentStage)
+	m.ctrl.Call(m, "ReportHostInstallationMetrics", log, clusterVersion, h, previousProgress, currentStage)
 }
 
 // ReportHostInstallationMetrics indicates an expected call of ReportHostInstallationMetrics
-func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(log, clusterVersion, clusterID, h, previousProgress, currentStage interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(log, clusterVersion, h, previousProgress, currentStage interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportHostInstallationMetrics", reflect.TypeOf((*MockAPI)(nil).ReportHostInstallationMetrics), log, clusterVersion, clusterID, h, previousProgress, currentStage)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportHostInstallationMetrics", reflect.TypeOf((*MockAPI)(nil).ReportHostInstallationMetrics), log, clusterVersion, h, previousProgress, currentStage)
 }
