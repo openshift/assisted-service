@@ -26,13 +26,14 @@ import (
 
 func createValidatorCfg() *hardware.ValidatorCfg {
 	return &hardware.ValidatorCfg{
-		MinCPUCores:       2,
-		MinCPUCoresWorker: 2,
-		MinCPUCoresMaster: 4,
-		MinDiskSizeGb:     120,
-		MinRamGib:         8,
-		MinRamGibWorker:   8,
-		MinRamGibMaster:   16,
+		MinCPUCores:                   2,
+		MinCPUCoresWorker:             2,
+		MinCPUCoresMaster:             4,
+		MinDiskSizeGb:                 120,
+		MinRamGib:                     8,
+		MinRamGibWorker:               8,
+		MinRamGibMaster:               16,
+		MaximumAllowedTimeDiffMinutes: 4,
 	}
 }
 
@@ -1783,6 +1784,7 @@ var _ = Describe("Refresh Host", func() {
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
@@ -1808,6 +1810,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
@@ -1832,6 +1835,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				otherState:             models.HostStatusInsufficient,
@@ -1857,6 +1861,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:         masterInventoryWithHostname("first"),
 				requestedHostname: "second",
@@ -1882,6 +1887,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
@@ -1908,6 +1914,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
@@ -1935,6 +1942,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
@@ -1959,6 +1967,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
@@ -1983,6 +1992,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				otherState:             models.HostStatusInsufficient,
@@ -2008,6 +2018,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:         masterInventoryWithHostname("first"),
 				requestedHostname: "second",
@@ -2033,6 +2044,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
@@ -2057,6 +2069,7 @@ var _ = Describe("Refresh Host", func() {
 					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
@@ -2064,6 +2077,218 @@ var _ = Describe("Refresh Host", func() {
 				otherInventory:         masterInventoryWithHostname("first"),
 				otherRequestedHostname: "forth",
 				errorExpected:          false,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				srcState = t.srcState
+				host = getTestHost(hostId, clusterId, srcState)
+				host.Inventory = t.inventory
+				host.Role = t.role
+				host.CheckedInAt = strfmt.DateTime(time.Now())
+				host.RequestedHostname = t.requestedHostname
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				otherHost := getTestHost(otherHostID, clusterId, t.otherState)
+				otherHost.RequestedHostname = t.otherRequestedHostname
+				otherHost.Inventory = t.otherInventory
+				Expect(db.Create(&otherHost).Error).ShouldNot(HaveOccurred())
+				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+				expectedSeverity := models.EventSeverityInfo
+				if t.dstState == models.HostStatusInsufficient {
+					expectedSeverity = models.EventSeverityWarning
+				}
+				if !t.errorExpected && srcState != t.dstState {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, expectedSeverity,
+						gomock.Any(), gomock.Any())
+				}
+
+				err := hapi.RefreshStatus(ctx, &host, db)
+				if t.errorExpected {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+				Expect(resultHost.Role).To(Equal(t.role))
+				Expect(resultHost.Status).To(Equal(&t.dstState))
+				t.statusInfoChecker.check(resultHost.StatusInfo)
+				if t.validationsChecker != nil {
+					t.validationsChecker.check(resultHost.ValidationsInfo)
+				}
+			})
+		}
+	})
+	Context("Time skew", func() {
+		var srcState string
+		var otherHostID strfmt.UUID
+
+		BeforeEach(func() {
+			otherHostID = strfmt.UUID(uuid.New().String())
+		})
+
+		tests := []struct {
+			name                   string
+			srcState               string
+			inventory              string
+			role                   models.HostRole
+			machineNetworkCidr     string
+			dstState               string
+			requestedHostname      string
+			otherState             string
+			otherRequestedHostname string
+			otherInventory         string
+			statusInfoChecker      statusInfoChecker
+			validationsChecker     *validationsChecker
+			errorExpected          bool
+		}{
+			{
+				name:               "insufficient to known",
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusKnown,
+				machineNetworkCidr: "1.2.3.0/24",
+				role:               models.HostRoleWorker,
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
+					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+				}),
+
+				inventory:      masterInventoryWithTimestamp("first", 1601828643),
+				otherState:     models.HostStatusInsufficient,
+				otherInventory: masterInventoryWithTimestamp("second", 1601828643-20),
+				errorExpected:  false,
+			},
+			{
+				name:               "insufficient to insufficient time skew",
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				role:               models.HostRoleWorker,
+				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationFailure, messagePattern: " minutes from any other host. Please sync all the times"},
+				}),
+				inventory:      masterInventoryWithTimestamp("first", 1601828643),
+				otherState:     models.HostStatusInsufficient,
+				otherInventory: masterInventoryWithTimestamp("second", 1601828643-400),
+				errorExpected:  false,
+			},
+			{
+				name:               "known to known",
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusKnown,
+				machineNetworkCidr: "1.2.3.0/24",
+				role:               models.HostRoleWorker,
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
+				}),
+				inventory:      masterInventoryWithTimestamp("first", 1601828643),
+				otherState:     models.HostStatusInsufficient,
+				otherInventory: masterInventoryWithTimestamp("second", 1601828643-100),
+				errorExpected:  false,
+			},
+			{
+				name:               "known to insufficient",
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				role:               models.HostRoleWorker,
+				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationFailure, messagePattern: " minutes from any other host. Please sync all the times"},
+				}),
+				inventory:      masterInventoryWithTimestamp("first", 1601828643),
+				otherState:     models.HostStatusInsufficient,
+				otherInventory: masterInventoryWithTimestamp("second", 1601828643-400),
+				errorExpected:  false,
+			},
+			{
+				name:               "known to known with disconnected",
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusKnown,
+				machineNetworkCidr: "1.2.3.0/24",
+				role:               models.HostRoleWorker,
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
+				}),
+				inventory:      masterInventoryWithTimestamp("first", 1601828643),
+				otherState:     models.HostStatusDisconnected,
+				otherInventory: masterInventoryWithTimestamp("second", 1601828643-1000),
+				errorExpected:  false,
+			},
+			{
+				name:               "known to known with disabled",
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusKnown,
+				machineNetworkCidr: "1.2.3.0/24",
+				role:               models.HostRoleWorker,
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine network CIDR is defined"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					DoesTimeSkewExists:   {status: ValidationSuccess, messagePattern: "No time skew detected"},
+				}),
+				inventory:      masterInventoryWithTimestamp("first", 1601828643),
+				otherState:     models.HostStatusDisabled,
+				otherInventory: masterInventoryWithTimestamp("second", 1601828643-1000),
+				errorExpected:  false,
 			},
 		}
 
