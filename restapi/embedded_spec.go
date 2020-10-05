@@ -2943,7 +2943,8 @@ func init() {
         "all-hosts-are-ready-to-install",
         "sufficient-masters-count",
         "dns-domain-defined",
-        "pull-secret-set"
+        "pull-secret-set",
+        "ntp-server-configured"
       ]
     },
     "completion-params": {
@@ -3555,8 +3556,7 @@ func init() {
         "has-memory-for-role",
         "hostname-unique",
         "hostname-valid",
-        "belongs-to-machine-cidr",
-        "time-skew-exists"
+        "belongs-to-machine-cidr"
       ]
     },
     "host_network": {
@@ -6001,22 +6001,6 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
-          },
-          {
-            "enum": [
-              "host",
-              "controller",
-              "all"
-            ],
-            "type": "string",
-            "name": "logs_type",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "host_id",
-            "in": "query"
           }
         ],
         "responses": {
@@ -6146,6 +6130,22 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "name": "logs_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6872,7 +6872,8 @@ func init() {
         "all-hosts-are-ready-to-install",
         "sufficient-masters-count",
         "dns-domain-defined",
-        "pull-secret-set"
+        "pull-secret-set",
+        "ntp-server-configured"
       ]
     },
     "completion-params": {
@@ -7484,8 +7485,7 @@ func init() {
         "has-memory-for-role",
         "hostname-unique",
         "hostname-valid",
-        "belongs-to-machine-cidr",
-        "time-skew-exists"
+        "belongs-to-machine-cidr"
       ]
     },
     "host_network": {
