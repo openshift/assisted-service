@@ -2658,6 +2658,27 @@ func init() {
         }
       }
     },
+    "api_vip_connectivity_request": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "description": "URL address of the API.",
+          "type": "string"
+        }
+      }
+    },
+    "api_vip_connectivity_response": {
+      "type": "object",
+      "properties": {
+        "is_success": {
+          "description": "API VIP connecitivty check result.",
+          "type": "boolean"
+        }
+      }
+    },
     "boot": {
       "type": "object",
       "properties": {
@@ -2684,6 +2705,11 @@ func init() {
           "description": "Virtual IP used to reach the OpenShift cluster API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
+        },
+        "api_vip_dns_name": {
+          "description": "Domain name used to reach the OpenShift cluster API.",
+          "type": "string",
+          "x-nullable": true
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
@@ -2958,6 +2984,11 @@ func init() {
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
         },
+        "api_vip_dns_name": {
+          "description": "Domain name used to reach the OpenShift cluster API.",
+          "type": "string",
+          "x-nullable": true
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string",
@@ -3167,18 +3198,6 @@ func init() {
           "items": {
             "$ref": "#/definitions/connectivity-remote-host"
           }
-        }
-      }
-    },
-    "connectivity_check_api_request": {
-      "type": "object",
-      "required": [
-        "url"
-      ],
-      "properties": {
-        "url": {
-          "description": "URL address of the API.",
-          "type": "string"
         }
       }
     },
@@ -3432,6 +3451,10 @@ func init() {
         "status_info"
       ],
       "properties": {
+        "api_vip_connectivity": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "bootstrap": {
           "type": "boolean"
         },
@@ -3710,7 +3733,8 @@ func init() {
         "hostname-unique",
         "hostname-valid",
         "belongs-to-machine-cidr",
-        "time-skew-exists"
+        "time-skew-exists",
+        "api-vip-connected"
       ]
     },
     "host_network": {
@@ -6760,6 +6784,27 @@ func init() {
         }
       }
     },
+    "api_vip_connectivity_request": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "description": "URL address of the API.",
+          "type": "string"
+        }
+      }
+    },
+    "api_vip_connectivity_response": {
+      "type": "object",
+      "properties": {
+        "is_success": {
+          "description": "API VIP connecitivty check result.",
+          "type": "boolean"
+        }
+      }
+    },
     "boot": {
       "type": "object",
       "properties": {
@@ -6786,6 +6831,11 @@ func init() {
           "description": "Virtual IP used to reach the OpenShift cluster API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
+        },
+        "api_vip_dns_name": {
+          "description": "Domain name used to reach the OpenShift cluster API.",
+          "type": "string",
+          "x-nullable": true
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
@@ -7060,6 +7110,11 @@ func init() {
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
         },
+        "api_vip_dns_name": {
+          "description": "Domain name used to reach the OpenShift cluster API.",
+          "type": "string",
+          "x-nullable": true
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string",
@@ -7251,18 +7306,6 @@ func init() {
           "items": {
             "$ref": "#/definitions/connectivity-remote-host"
           }
-        }
-      }
-    },
-    "connectivity_check_api_request": {
-      "type": "object",
-      "required": [
-        "url"
-      ],
-      "properties": {
-        "url": {
-          "description": "URL address of the API.",
-          "type": "string"
         }
       }
     },
@@ -7516,6 +7559,10 @@ func init() {
         "status_info"
       ],
       "properties": {
+        "api_vip_connectivity": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "bootstrap": {
           "type": "boolean"
         },
@@ -7794,7 +7841,8 @@ func init() {
         "hostname-unique",
         "hostname-valid",
         "belongs-to-machine-cidr",
-        "time-skew-exists"
+        "time-skew-exists",
+        "api-vip-connected"
       ]
     },
     "host_network": {

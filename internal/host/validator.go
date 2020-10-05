@@ -458,3 +458,30 @@ func (v *validator) printHostnameValid(c *validationContext, status validationSt
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
+
+func (v *validator) isAPIVipConnected(c *validationContext) validationStatus {
+	if c.inventory == nil {
+		return ValidationPending
+	}
+	if swag.StringValue(c.host.Kind) != models.HostKindAddToExistingClusterHost {
+		return ValidationSuccess
+	}
+	var response models.APIVipConnectivityResponse
+	if err := json.Unmarshal([]byte(c.host.APIVipConnectivity), &response); err != nil {
+		return ValidationFailure
+	}
+	return boolValue(response.IsSuccess)
+}
+
+func (v *validator) printAPIVipConnected(c *validationContext, status validationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "API VIP connectivity success"
+	case ValidationFailure:
+		return "API VIP connectivity failure"
+	case ValidationPending:
+		return "Missing inventory"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}

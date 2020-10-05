@@ -706,14 +706,23 @@ func getTestLog() logrus.FieldLogger {
 }
 
 func getTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
+	return getTestHostByKind(hostID, clusterID, state, models.HostKindHost)
+}
+
+func getTestHostAddedToCluster(hostID, clusterID strfmt.UUID, state string) models.Host {
+	return getTestHostByKind(hostID, clusterID, state, models.HostKindAddToExistingClusterHost)
+}
+
+func getTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string) models.Host {
 	return models.Host{
-		ID:          &hostID,
-		ClusterID:   clusterID,
-		Status:      swag.String(state),
-		Inventory:   defaultInventory(),
-		Role:        models.HostRoleWorker,
-		Kind:        swag.String(models.HostKindHost),
-		CheckedInAt: strfmt.DateTime(time.Now()),
+		ID:                 &hostID,
+		ClusterID:          clusterID,
+		Status:             swag.String(state),
+		Inventory:          defaultInventory(),
+		Role:               models.HostRoleWorker,
+		Kind:               swag.String(kind),
+		CheckedInAt:        strfmt.DateTime(time.Now()),
+		APIVipConnectivity: getTestAPIVIpConnectivity(),
 	}
 }
 
@@ -724,6 +733,17 @@ func getTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) common.Clu
 			MachineNetworkCidr: machineNetworkCidr,
 		},
 	}
+}
+
+func getTestAPIVIpConnectivity() string {
+	checkAPIResponse := models.APIVipConnectivityResponse{
+		IsSuccess: true,
+	}
+	bytes, err := json.Marshal(checkAPIResponse)
+	if err != nil {
+		return ""
+	}
+	return string(bytes)
 }
 
 func defaultInventory() string {

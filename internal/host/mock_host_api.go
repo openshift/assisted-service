@@ -136,6 +136,20 @@ func (mr *MockAPIMockRecorder) UpdateConnectivityReport(ctx, h, connectivityRepo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConnectivityReport", reflect.TypeOf((*MockAPI)(nil).UpdateConnectivityReport), ctx, h, connectivityReport)
 }
 
+// UpdateApiVipConnectivityReport mocks base method
+func (m *MockAPI) UpdateApiVipConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateApiVipConnectivityReport", ctx, h, connectivityReport)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateApiVipConnectivityReport indicates an expected call of UpdateApiVipConnectivityReport
+func (mr *MockAPIMockRecorder) UpdateApiVipConnectivityReport(ctx, h, connectivityReport interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateApiVipConnectivityReport", reflect.TypeOf((*MockAPI)(nil).UpdateApiVipConnectivityReport), ctx, h, connectivityReport)
+}
+
 // HostMonitoring mocks base method
 func (m *MockAPI) HostMonitoring() {
 	m.ctrl.T.Helper()

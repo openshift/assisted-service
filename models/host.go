@@ -20,6 +20,9 @@ import (
 // swagger:model host
 type Host struct {
 
+	// api vip connectivity
+	APIVipConnectivity string `json:"api_vip_connectivity,omitempty" gorm:"type:text"`
+
 	// bootstrap
 	Bootstrap bool `json:"bootstrap,omitempty"`
 

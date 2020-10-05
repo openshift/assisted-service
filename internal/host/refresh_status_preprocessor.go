@@ -110,6 +110,11 @@ func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCf
 			condition: v.doesTimeSkewExists,
 			formatter: v.printTimeSkew,
 		},
+		{
+			id:        IsAPIVipConnected,
+			condition: v.isAPIVipConnected,
+			formatter: v.printAPIVipConnected,
+		},
 	}
 	return ret
 }

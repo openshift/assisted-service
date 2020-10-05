@@ -444,7 +444,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	log := logutil.FromContext(ctx, b.log)
 	id := params.NewAddHostsClusterParams.ID
 	url := installer.GetClusterURL{ClusterID: *id}
-	consoleURL := swag.StringValue(params.NewAddHostsClusterParams.APIVipDnsname)
+	apivipDnsname := swag.StringValue(params.NewAddHostsClusterParams.APIVipDnsname)
 	clusterName := swag.StringValue(params.NewAddHostsClusterParams.Name)
 	openshiftVersion := swag.StringValue(params.NewAddHostsClusterParams.OpenshiftVersion)
 
@@ -457,6 +457,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 		Name:             clusterName,
 		OpenshiftVersion: openshiftVersion,
 		UpdatedAt:        strfmt.DateTime{},
+		APIVipDNSName:    swag.String(apivipDnsname),
 	}}
 
 	err := validations.ValidateClusterNameFormat(clusterName)
@@ -465,7 +466,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	}
 
 	// Persist worker-ignition to s3 for cluster
-	ignitionConfig, err := b.formatNodeIgnitionFile(consoleURL)
+	ignitionConfig, err := b.formatNodeIgnitionFile(apivipDnsname)
 	if err != nil {
 		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
 	}
@@ -1832,6 +1833,8 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.hostApi.UpdateInventory(ctx, &host, stepReply)
 	case models.StepTypeConnectivityCheck:
 		err = b.hostApi.UpdateConnectivityReport(ctx, &host, stepReply)
+	case models.StepTypeAPIVipConnectivityCheck:
+		err = b.hostApi.UpdateApiVipConnectivityReport(ctx, &host, stepReply)
 	case models.StepTypeFreeNetworkAddresses:
 		err = b.updateFreeAddressesReport(ctx, &host, stepReply)
 	case models.StepTypeDhcpLeaseAllocate:
@@ -1850,6 +1853,8 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.Inventory{}, params.Reply.Output)
 	case models.StepTypeConnectivityCheck:
 		stepReply, err = filterReply(&models.ConnectivityReport{}, params.Reply.Output)
+	case models.StepTypeAPIVipConnectivityCheck:
+		stepReply, err = filterReply(&models.APIVipConnectivityResponse{}, params.Reply.Output)
 	case models.StepTypeFreeNetworkAddresses:
 		stepReply, err = filterReply(&models.FreeNetworksAddresses{}, params.Reply.Output)
 	case models.StepTypeDhcpLeaseAllocate:
