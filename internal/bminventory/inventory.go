@@ -135,7 +135,7 @@ const ignitionConfigFormat = `{
     "units": [{
       "name": "agent.service",
       "enabled": true,
-      "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}\n\n[Install]\nWantedBy=multi-user.target"
+      "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitIntervalSec=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}\n\n[Install]\nWantedBy=multi-user.target"
     }]
   },
   "storage": {
@@ -249,10 +249,15 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	if err != nil {
 		return "", err
 	}
-	r, ok := creds["cloud.openshift.com"]
-	if !ok {
-		return "", fmt.Errorf("Pull secret does not contain auth for cloud.openshift.com")
+	pullSecretToken := ""
+	if b.authHandler.EnableAuth {
+		r, ok := creds["cloud.openshift.com"]
+		if !ok {
+			return "", errors.Errorf("Pull secret does not contain auth for cloud.openshift.com")
+		}
+		pullSecretToken = r.AuthRaw
 	}
+
 	proxySettings, err := proxySettingsForIgnition(cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
 	if err != nil {
 		return "", err
@@ -266,7 +271,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"AgentDockerImg":       b.AgentDockerImg,
 		"ServiceBaseURL":       strings.TrimSpace(b.ServiceBaseURL),
 		"clusterId":            cluster.ID.String(),
-		"PullSecretToken":      r.AuthRaw,
+		"PullSecretToken":      pullSecretToken,
 		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
 		"PULL_SECRET":          url.PathEscape(cluster.PullSecret),
 		"RH_ROOT_CA":           rhCa,
