@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -17,9 +18,10 @@ import (
 type validationStatus string
 
 const (
-	ValidationSuccess validationStatus = "success"
-	ValidationFailure validationStatus = "failure"
-	ValidationPending validationStatus = "pending"
+	ValidationSuccess             validationStatus = "success"
+	ValidationFailure             validationStatus = "failure"
+	ValidationPending             validationStatus = "pending"
+	MaximumAllowedTimeDiffMinutes                  = 4
 )
 
 const (
@@ -390,6 +392,43 @@ func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, 
 		return ""
 	case ValidationPending:
 		return "Cluster Network CIDR is undefined"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) validationStatus {
+	var min int64
+	var max int64
+	for _, h := range c.cluster.Hosts {
+		var inventory models.Inventory
+		if err := json.Unmarshal([]byte(h.Inventory), &inventory); err != nil {
+			v.log.WithError(err).Warnf("Illegal inventory for host %s", h.ID.String())
+			continue
+		}
+		if inventory.Timestamp == 0 || *h.Status == models.HostStatusDisconnected || *h.Status == models.HostStatusDisabled {
+			continue
+		}
+
+		if inventory.Timestamp < min || min == 0 {
+			min = inventory.Timestamp
+		}
+		if inventory.Timestamp > max {
+			max = inventory.Timestamp
+		}
+	}
+	if (max-min)/60 > MaximumAllowedTimeDiffMinutes {
+		return ValidationFailure
+	}
+	return ValidationSuccess
+}
+
+func (v *clusterValidator) printNtpServerConfigured(c *clusterPreprocessContext, status validationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "No ntp problems found"
+	case ValidationFailure:
+		return "Host clocks are not synchronized, please configure an NTP server via DHCP."
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}

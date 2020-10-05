@@ -2838,7 +2838,6 @@ definitions:
       - 'hostname-unique'
       - 'hostname-valid'
       - 'belongs-to-machine-cidr'
-      - 'time-skew-exists'
       - 'api-vip-connected'
 
   dhcp_allocation_request:
@@ -2900,6 +2899,7 @@ definitions:
       - 'sufficient-masters-count'
       - 'dns-domain-defined'
       - 'pull-secret-set'
+      - 'ntp-server-configured'
 
   logs_type:
     type: string
