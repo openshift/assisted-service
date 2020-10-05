@@ -44,6 +44,9 @@ type Inventory struct {
 
 	// system vendor
 	SystemVendor *SystemVendor `json:"system_vendor,omitempty"`
+
+	// timestamp
+	Timestamp int64 `json:"timestamp,omitempty"`
 }
 
 // Validate validates this inventory
