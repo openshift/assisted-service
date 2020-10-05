@@ -2,13 +2,13 @@ package ocm
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/openshift/assisted-service/pkg/commonutils"
 
 	azv1 "github.com/openshift-online/ocm-sdk-go/authorizations/v1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/pkg/errors"
 )
 
 type OCMAuthorization interface {
@@ -42,7 +42,7 @@ func (a authorization) AccessReview(ctx context.Context, username, action, resou
 
 	response, ok := postResp.GetResponse()
 	if !ok {
-		return false, fmt.Errorf("Empty response from authorization post request")
+		return false, errors.Errorf("Empty response from authorization post request")
 	}
 
 	return response.Allowed(), nil
@@ -81,12 +81,12 @@ func (a authorization) CapabilityReview(ctx context.Context, username, capabilit
 
 	response, ok := postResp.GetResponse()
 	if !ok {
-		return false, fmt.Errorf("Empty response from authorization CapabilityReview post request")
+		return false, errors.Errorf("Empty response from authorization CapabilityReview post request")
 	}
 
 	result, ok := response.GetResult()
 	if !ok {
-		return false, fmt.Errorf("Failed to fetch result from the response CapabilityReview")
+		return false, errors.Errorf("Failed to fetch result from the response CapabilityReview")
 	}
 
 	return result == "true", nil

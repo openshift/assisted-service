@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -21,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -343,21 +343,21 @@ var _ restapi.InstallerAPI = fakeInventory{}
 var mockOcmAuthFailure = func(a *ocm.MockOCMAuthentication) {
 	a.EXPECT().AuthenticatePullSecret(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
-			return nil, fmt.Errorf("error")
+			return nil, errors.Errorf("error")
 		}).Times(1)
 }
 
 var mockOcmAuthInternalError = func(a *ocm.MockOCMAuthentication) {
 	a.EXPECT().AuthenticatePullSecret(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
-			return nil, common.NewApiError(http.StatusInternalServerError, fmt.Errorf("error"))
+			return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("error"))
 		}).Times(1)
 }
 
 var mockOcmAuthSendRequestFailure = func(a *ocm.MockOCMAuthentication) {
 	a.EXPECT().AuthenticatePullSecret(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, pullSecret string) (user *ocm.AuthPayload, err error) {
-			return nil, common.NewApiError(http.StatusServiceUnavailable, fmt.Errorf("error"))
+			return nil, common.NewApiError(http.StatusServiceUnavailable, errors.Errorf("error"))
 		}).Times(1)
 }
 

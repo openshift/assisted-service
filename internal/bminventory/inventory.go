@@ -237,7 +237,7 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 		ps, err := validations.AddRHRegPullSecret(pullSecret, b.Config.RhQaRegCred)
 		if err != nil {
 			log.Errorf("Failed to add RH QA Credentials to Pull Secret: %s", err.Error())
-			return "", fmt.Errorf("Failed to add RH QA Credentials to Pull Secret: %s", err.Error())
+			return "", errors.Errorf("Failed to add RH QA Credentials to Pull Secret: %s", err.Error())
 		}
 		return ps, nil
 	}
@@ -439,7 +439,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	fileName := fmt.Sprintf("%s/%s", cluster.ID, workerIgnition)
 	err = b.objectHandler.Upload(ctx, ignitionConfig, fileName)
 	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", fileName))
+		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("failed to upload %s to s3", fileName))
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
@@ -1162,7 +1162,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 
 	if err := tx.Commit().Error; err != nil {
 		log.Error(err)
-		return common.GenerateErrorResponder(fmt.Errorf("DB error, failed to commit"))
+		return common.GenerateErrorResponder(errors.Errorf("DB error, failed to commit"))
 	}
 	txSuccess = true
 
@@ -1679,7 +1679,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 
 	//check the output exit code
 	if params.Reply.ExitCode != 0 {
-		err = fmt.Errorf(msg)
+		err = errors.Errorf(msg)
 		log.WithError(err).Errorf("Exit code is <%d> ", params.Reply.ExitCode)
 		handlingError := b.handleReplyError(params, ctx, &host)
 		if handlingError != nil {
@@ -1736,7 +1736,7 @@ func (b *bareMetalInventory) updateFreeAddressesReport(ctx context.Context, host
 		return err
 	}
 	if len(freeAddresses) == 0 {
-		err = fmt.Errorf("Free addresses for host %s is empty", host.ID.String())
+		err = errors.Errorf("Free addresses for host %s is empty", host.ID.String())
 		log.WithError(err).Warn("Update free addresses")
 		return err
 	}
@@ -2124,7 +2124,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	log.Infof("Checking cluster cluster file for download: %s for cluster %s", fileName, clusterID)
 
 	if !funk.Contains(clusterFileNames, fileName) {
-		err := fmt.Errorf("invalid cluster file %s", fileName)
+		err := errors.Errorf("invalid cluster file %s", fileName)
 		log.WithError(err).Errorf("failed download file: %s from cluster: %s", fileName, clusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -2176,7 +2176,7 @@ func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installe
 	defer r.Close()
 	password, err := ioutil.ReadAll(r)
 	if err != nil {
-		log.WithError(fmt.Errorf("%s", password)).Errorf("Failed to get clusters %s", objectName)
+		log.WithError(errors.Errorf("%s", password)).Errorf("Failed to get clusters %s", objectName)
 		return common.NewApiError(http.StatusConflict, errors.New(string(password)))
 	}
 	return installer.NewGetCredentialsOK().WithPayload(
@@ -2269,7 +2269,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 
 	if err := b.objectHandler.Upload(ctx, mergedKubeConfig, objectName); err != nil {
 		return installer.NewUploadClusterIngressCertInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, fmt.Errorf("failed to upload %s to s3", objectName)))
+			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.Errorf("failed to upload %s to s3", objectName)))
 	}
 	return installer.NewUploadClusterIngressCertCreated()
 }
@@ -2884,12 +2884,12 @@ func computeClusterProxyHash(httpProxy, httpsProxy, noProxy *string) (string, er
 func validateProxySettings(httpProxy, httpsProxy, noProxy *string) error {
 	if httpProxy != nil && *httpProxy != "" {
 		if err := validations.ValidateHTTPProxyFormat(*httpProxy); err != nil {
-			return fmt.Errorf("Failed to validate HTTP Proxy: %s", err)
+			return errors.Errorf("Failed to validate HTTP Proxy: %s", err)
 		}
 	}
 	if httpsProxy != nil && *httpsProxy != "" {
 		if err := validations.ValidateHTTPProxyFormat(*httpsProxy); err != nil {
-			return fmt.Errorf("Failed to validate HTTPS Proxy: %s", err)
+			return errors.Errorf("Failed to validate HTTPS Proxy: %s", err)
 		}
 	}
 	if noProxy != nil && *noProxy != "" {

@@ -2,12 +2,12 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -73,7 +73,7 @@ func (a *AuthzHandler) Authorizer(request *http.Request) error {
 		return nil
 	}
 
-	return fmt.Errorf("method is not allowed")
+	return errors.Errorf("method is not allowed")
 }
 
 // Ensure that the user has authorization to use the bare metal installer service.

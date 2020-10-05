@@ -2,9 +2,9 @@ package connectivity
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ func (v *validator) GetHostValidInterfaces(host *models.Host) ([]*models.Interfa
 		return nil, err
 	}
 	if len(inventory.Interfaces) == 0 {
-		return nil, fmt.Errorf("host %s doesn't have interfaces", host.ID)
+		return nil, errors.Errorf("host %s doesn't have interfaces", host.ID)
 	}
 	return inventory.Interfaces, nil
 }
