@@ -3,41 +3,18 @@
 filters:
   .*:
     approvers:
-      - eranco74
-      - filanov
-      - gamli75
-      - romfreiman
-      - ronniel1
+      - code-reviewers
     reviewers:
-      - avishayt
-      - empovit
-      - eranco74
-      - filanov
-      - gamli75
-      - ori-amizur
-      - oshercc
-      - razregev
-      - romfreiman
-      - ronniel1
-      - tsorya
-      - yevgeny-shnaidman
-      - yuvigold
-      - masayag
-      - erezalster
-      - nmagnezi
-      - carbonin
-      - rollandf
-      - danielerez
-      - ybettan
-      - slaviered
+      - code-reviewers
   Jenkinsfile:
     approvers:
-      - yuvigold
-      - oshercc
+      - ci-approvers
     labels:
       - do-not-merge/hold
-      - ci-update
   ^Dockerfile\..*:
     labels:
       - do-not-merge/hold
-      - deployment-update
+      - kind/dependency-change
+  swagger.yaml:
+    labels:
+      - api-review

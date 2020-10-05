@@ -1,0 +1,35 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+aliases:
+  approvers:
+    - eranco74
+    - erezalster
+    - filanov
+    - gamli75
+    - romfreiman
+    - ronniel1
+  code-reviewers:
+    - avishayt
+    - empovit
+    - eranco74
+    - filanov
+    - gamli75
+    - ori-amizur
+    - oshercc
+    - razregev
+    - romfreiman
+    - ronniel1
+    - tsorya
+    - yevgeny-shnaidman
+    - yuvigold
+    - masayag
+    - erezalster
+    - nmagnezi
+    - carbonin
+    - rollandf
+    - danielerez
+    - ybettan
+    - slaviered
+  ci-approvers:
+    - yuvigold
+    - oshercc
