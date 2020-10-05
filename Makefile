@@ -48,6 +48,8 @@ endif
 ifdef FOCUS
         GINKGO_FOCUS_FLAG = -ginkgo.focus=${FOCUS}
 endif
+REPORTS = $(ROOT_DIR)/reports
+TEST_PUBLISH_FLAGS = --junitfile-testsuite-name=relative --junitfile-testcase-classname=relative --junitfile $(REPORTS)/unittest.xml
 
 
 all: build
@@ -259,15 +261,18 @@ deploy-grafana: $(BUILD_FOLDER)
 
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
-unit-test:
-	docker kill postgres || true
-	sleep 3
+unit-test: $(REPORTS)
+	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
 	docker run -d --rm --name postgres -e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 \
 		-p 127.0.0.1:5432:5432 quay.io/ocpmetal/postgresql-12-centos7
-	until PGPASSWORD=admin pg_isready -U postgres --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done
-	SKIP_UT_DB=1 go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
-		-cover -timeout 20m -count=1 || (docker kill postgres && /bin/false)
+	timeout 1m bash -c "until PGPASSWORD=admin pg_isready -U postgres --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done"
+	SKIP_UT_DB=1 gotestsum --format=pkgname $(TEST_PUBLISH_FLAGS) -- -cover -coverprofile=$(REPORTS)/coverage.out $(or ${TEST},${TEST},$(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
+		-ginkgo.v -timeout 20m -count=1 || (docker kill postgres && /bin/false)
+	gocov convert $(REPORTS)/coverage.out | gocov-xml > $(REPORTS)/coverage.xml
 	docker kill postgres
+
+$(REPORTS):
+	-mkdir -p $(REPORTS)
 
 test-onprem:
 	INVENTORY=127.0.0.1:8090 \
@@ -283,7 +288,7 @@ test-onprem:
 clear-all: clean subsystem-clean clear-deployment
 
 clean:
-	-rm -rf $(BUILD_FOLDER)
+	-rm -rf $(BUILD_FOLDER) $(REPORTS)
 
 subsystem-clean:
 	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete 1> /dev/null || true

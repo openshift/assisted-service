@@ -10,6 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -20,6 +22,14 @@ type mockTransport struct {
 func (m *mockTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	m.Called(r)
 	return nil, nil
+}
+
+// This is an old package test. While all of our testing infrastructure was switched to use ginkgo -
+// this test remains until it would get converted.
+// This ginkgo wrapper was added to allow running this packge with ginkgo flags.
+func TestRequestID(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Request id tests")
 }
 
 func TestTransport(t *testing.T) {

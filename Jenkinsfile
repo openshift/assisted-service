@@ -29,9 +29,15 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "make build-image build-minimal-assisted-iso-generator-image"
+                sh "skipper make build-image build-minimal-assisted-iso-generator-image"
                 sh "make jenkins-deploy-for-subsystem"
                 sh "kubectl get pods -A"
+            }
+            post {
+                always {
+                    junit '**/reports/*test.xml'
+                    cobertura coberturaReportFile: '**/reports/*coverage.xml', onlyStable: false, enableNewApi: true
+                }
             }
         }
 

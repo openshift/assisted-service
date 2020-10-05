@@ -98,7 +98,7 @@ func waitForServer(bmclient *client.AssistedInstall, mockInstallApi *mocks.MockI
 	}
 }
 
-func TestTestLogContext(t *testing.T) {
+func TestLogContext(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Log Context Suite")
 }
