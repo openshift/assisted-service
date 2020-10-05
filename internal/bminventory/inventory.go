@@ -316,6 +316,18 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
+	success := false
+	defer func() {
+		if success {
+			msg := fmt.Sprintf("Successfully registered cluster %s with id %s",
+				swag.StringValue(params.NewClusterParams.Name), id)
+			log.Info(msg)
+			b.eventsHandler.AddEvent(ctx, id, nil, models.EventSeverityInfo, msg, time.Now())
+		} else {
+			log.Errorf("Failed to registered cluster %s with id %s",
+				swag.StringValue(params.NewClusterParams.Name), id)
+		}
+	}()
 
 	if params.NewClusterParams.HTTPProxy != nil &&
 		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
@@ -403,6 +415,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
+	success = true
 	b.metricApi.ClusterRegistered(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
 	return installer.NewRegisterClusterCreated().WithPayload(&cluster.Cluster)
 }
