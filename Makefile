@@ -23,6 +23,7 @@ endif # TARGET
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
+BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/46.82.202009222340-0/x86_64/rhcos-46.82.202009222340-0-live.x86_64.iso)
 OPENSHIFT_INSTALL_RELEASE_IMAGE := $(or ${OPENSHIFT_INSTALL_RELEASE_IMAGE},quay.io/ocpmetal/ocp-release:4.6.0-0.nightly-2020-08-31-220837)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
@@ -130,7 +131,7 @@ build-image: build
 build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
 
 build-minimal-assisted-iso-generator-image: build-iso-generator
-	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) \
+	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 update: build-image
@@ -144,7 +145,7 @@ _update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
 		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
 		-f Dockerfile.assisted-service . -t $(SERVICE) \
-		&& docker build --network=host --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+		&& docker build --network=host --build-arg GIT_REVISION --build-arg OS_IMAGE=$(BASE_OS_IMAGE) -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 define publish_image
 	docker tag ${1} ${2}
