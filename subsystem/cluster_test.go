@@ -54,6 +54,7 @@ var (
 			{IPV4Addresses: []string{"1.2.3.4/24"}},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
+		Timestamp:    1601853088,
 	}
 	validMasterHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 16},
@@ -65,6 +66,7 @@ var (
 			{IPV4Addresses: []string{"1.2.3.4/24"}},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
+		Timestamp:    1601853088,
 	}
 	validHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 16},
@@ -80,6 +82,7 @@ var (
 			},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
+		Timestamp:    1601853088,
 	}
 	validFreeAddresses = models.FreeNetworksAddresses{
 		{
@@ -1885,6 +1888,7 @@ var _ = Describe("cluster install", func() {
 					},
 				},
 			},
+			Timestamp: 1601853088,
 		}
 		h1 := registerHost(clusterID)
 		generateHWPostStepReply(h1, hwInfo, "h1")

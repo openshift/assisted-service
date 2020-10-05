@@ -65,7 +65,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 		log: log,
 		db:  db,
 		stateToSteps: stateToStepsMap{
-			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
+			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd}, defaultNextInstructionInSec},
 			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
 			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec},

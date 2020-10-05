@@ -2645,6 +2645,9 @@ definitions:
         $ref: '#/definitions/memory'
       cpu:
         $ref: '#/definitions/cpu'
+      timestamp:
+        type: integer
+
 
   free_network_addresses:
     type: object
@@ -2709,6 +2712,7 @@ definitions:
       - 'hostname-unique'
       - 'hostname-valid'
       - 'belongs-to-machine-cidr'
+      - 'time-skew-exists'
 
   dhcp_allocation_request:
     type: object

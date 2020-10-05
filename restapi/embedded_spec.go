@@ -3555,7 +3555,8 @@ func init() {
         "has-memory-for-role",
         "hostname-unique",
         "hostname-valid",
-        "belongs-to-machine-cidr"
+        "belongs-to-machine-cidr",
+        "time-skew-exists"
       ]
     },
     "host_network": {
@@ -3720,6 +3721,9 @@ func init() {
         },
         "system_vendor": {
           "$ref": "#/definitions/system_vendor"
+        },
+        "timestamp": {
+          "type": "integer"
         }
       }
     },
@@ -7480,7 +7484,8 @@ func init() {
         "has-memory-for-role",
         "hostname-unique",
         "hostname-valid",
-        "belongs-to-machine-cidr"
+        "belongs-to-machine-cidr",
+        "time-skew-exists"
       ]
     },
     "host_network": {
@@ -7646,6 +7651,9 @@ func init() {
         },
         "system_vendor": {
           "$ref": "#/definitions/system_vendor"
+        },
+        "timestamp": {
+          "type": "integer"
         }
       }
     },
