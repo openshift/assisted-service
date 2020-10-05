@@ -1822,6 +1822,7 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 	case models.StepTypeDhcpLeaseAllocate:
 		stepReply, err = filterReply(&models.DhcpAllocationResponse{}, params.Reply.Output)
 	}
+
 	return stepReply, err
 }
 

@@ -6,9 +6,8 @@ package leader
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // MockLeader is a mock of Leader interface

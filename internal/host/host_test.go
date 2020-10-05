@@ -814,8 +814,35 @@ func masterInventoryWithHostname(hostname string) string {
 				},
 			},
 		},
-		Memory:   &models.Memory{PhysicalBytes: gibToBytes(16)},
-		Hostname: hostname,
+		Memory:    &models.Memory{PhysicalBytes: gibToBytes(16)},
+		Hostname:  hostname,
+		Timestamp: 1601835002,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func masterInventoryWithTimestamp(hostname string, timestamp int64) string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: 8},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+			},
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Memory:    &models.Memory{PhysicalBytes: gibToBytes(16)},
+		Hostname:  hostname,
+		Timestamp: timestamp,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
