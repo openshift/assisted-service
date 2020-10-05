@@ -2,7 +2,6 @@ package hardware
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
@@ -49,7 +49,7 @@ func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	}
 	disks := ListValidDisks(&inventory, gbToBytes(v.MinDiskSizeGb))
 	if len(disks) == 0 {
-		return nil, fmt.Errorf("host %s doesn't have valid disks", host.ID)
+		return nil, errors.Errorf("host %s doesn't have valid disks", host.ID)
 	}
 	return disks, nil
 }

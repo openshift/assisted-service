@@ -252,7 +252,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		models.HostStatusInstalling, models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction,
 	}
 	if !funk.ContainsString(validStatuses, swag.StringValue(h.Status)) {
-		return fmt.Errorf("Can't set progress <%s> to host in status <%s>", progress.CurrentStage, swag.StringValue(h.Status))
+		return errors.Errorf("Can't set progress <%s> to host in status <%s>", progress.CurrentStage, swag.StringValue(h.Status))
 	}
 
 	if previousProgress.CurrentStage != "" && progress.CurrentStage != models.HostStageFailed {

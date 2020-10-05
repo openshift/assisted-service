@@ -8,12 +8,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -62,7 +62,7 @@ func (au *aUtils) proccessPublicKeys(cas *x509.CertPool) (keyMap map[string]*rsa
 		logrus.Infof("Using locally provided Cert %s", au.JwkCert)
 		err = json.Unmarshal([]byte(au.JwkCert), &certs)
 		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling local JwkCert: %e", err)
+			return nil, errors.Errorf("error unmarshaling local JwkCert: %e", err)
 		}
 	} else {
 		// Download the JSON token signing certificates:
@@ -76,19 +76,19 @@ func (au *aUtils) proccessPublicKeys(cas *x509.CertPool) (keyMap map[string]*rsa
 		logrus.Infof("Getting JWK public key from %s", au.JwkCertURL)
 		res, err = client.Get(au.JwkCertURL)
 		if err != nil {
-			return nil, fmt.Errorf("unable to download JwkCert: %e", err)
+			return nil, errors.Errorf("unable to download JwkCert: %e", err)
 		}
 
 		// Try to read the response body.
 		body, err = ioutil.ReadAll(res.Body)
 		if err != nil {
-			return nil, fmt.Errorf("unable to read response body: %e", err)
+			return nil, errors.Errorf("unable to read response body: %e", err)
 		}
 
 		// Try to parse the response body.
 		err = json.Unmarshal(body, &certs)
 		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling response body: %e", err)
+			return nil, errors.Errorf("error unmarshaling response body: %e", err)
 		}
 	}
 	// Convert cert list to map.
@@ -98,12 +98,12 @@ func (au *aUtils) proccessPublicKeys(cas *x509.CertPool) (keyMap map[string]*rsa
 		// Try to convert cert to string.
 		pemStr, err = au.certToPEM(c)
 		if err != nil {
-			return nil, fmt.Errorf("error converting cert to string: %e", err)
+			return nil, errors.Errorf("error converting cert to string: %e", err)
 		}
 
 		pubKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(pemStr))
 		if err != nil {
-			return nil, fmt.Errorf("error parsing PEM: %e", err)
+			return nil, errors.Errorf("error parsing PEM: %e", err)
 		}
 		keyMap[c.KID] = pubKey
 	}
@@ -116,7 +116,7 @@ func (au *aUtils) certToPEM(c jwtCert) (string, error) {
 
 	// Check key type.
 	if c.Kty != "RSA" {
-		return "", fmt.Errorf("invalid key type: %s", c.Kty)
+		return "", errors.Errorf("invalid key type: %s", c.Kty)
 	}
 
 	// Decode the base64 bytes for e and n.

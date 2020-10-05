@@ -3,7 +3,6 @@ package log
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -27,6 +26,7 @@ import (
 	clientInstaller "github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
+	"github.com/pkg/errors"
 )
 
 func serv(server *http.Server) {
@@ -81,7 +81,7 @@ func createClient() *client.AssistedInstall {
 }
 
 func waitForServer(bmclient *client.AssistedInstall, mockInstallApi *mocks.MockInstallerAPI) {
-	var err error = fmt.Errorf("start polling server...")
+	var err error = errors.Errorf("start polling server...")
 	//loop up to a second to wait for the server to go up
 	mockInstallApi.EXPECT().ListClusters(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(ctx context.Context, params installer.ListClustersParams) middleware.Responder {

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -180,12 +179,12 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 			var host *models.Host
 			if bmhIsMaster(bmh) {
 				if len(masters) == 0 {
-					return fmt.Errorf("Not enough registered masters to match with BareMetalHosts")
+					return errors.Errorf("Not enough registered masters to match with BareMetalHosts")
 				}
 				host, masters = masters[0], masters[1:]
 			} else {
 				if len(workers) == 0 {
-					return fmt.Errorf("Not enough registered workers to match with BareMetalHosts")
+					return errors.Errorf("Not enough registered workers to match with BareMetalHosts")
 				}
 				host, workers = workers[0], workers[1:]
 			}
@@ -227,7 +226,7 @@ func isBaremetalProvisioningConfig(file *config_31_types.File) bool {
 func fileToBMH(file *config_31_types.File) (*bmh_v1alpha1.BareMetalHost, error) {
 	parts := strings.Split(*file.Contents.Source, "base64,")
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("could not parse source for file %s", file.Node.Path)
+		return nil, errors.Errorf("could not parse source for file %s", file.Node.Path)
 	}
 	decoded, err := base64.StdEncoding.DecodeString(parts[1])
 	if err != nil {

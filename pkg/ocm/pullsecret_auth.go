@@ -2,13 +2,13 @@ package ocm
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/openshift/assisted-service/pkg/commonutils"
 
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/pkg/errors"
 )
 
 //go:generate mockgen -source=pullsecret_auth.go -package=ocm -destination=mock_pullsecret_auth.go
@@ -45,7 +45,7 @@ func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret s
 
 	responseVal, ok := response.GetResponse()
 	if !ok {
-		return nil, fmt.Errorf("Failed to validate Pull Secret Token")
+		return nil, errors.Errorf("Failed to validate Pull Secret Token")
 	}
 
 	payload := &AuthPayload{}

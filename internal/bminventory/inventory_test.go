@@ -987,7 +987,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		})
 
 		It("update_failed", func() {
-			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error"))
+			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("some error"))
 			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 				ClusterID:    clusterID,
 				HostProgress: progressParams,

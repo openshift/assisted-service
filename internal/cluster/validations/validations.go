@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -46,25 +45,25 @@ func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 	var s imagePullSecret
 	err := json.Unmarshal([]byte(secret), &s)
 	if err != nil {
-		return nil, fmt.Errorf("invalid pull secret: %v", err)
+		return nil, errors.Errorf("invalid pull secret: %v", err)
 	}
 	if len(s.Auths) == 0 {
-		return nil, fmt.Errorf("invalid pull secret: missing 'auths' JSON-object field")
+		return nil, errors.Errorf("invalid pull secret: missing 'auths' JSON-object field")
 	}
 
 	for d, a := range s.Auths {
 		_, authPresent := a["auth"]
 		_, credsStorePresent := a["credsStore"]
 		if !authPresent && !credsStorePresent {
-			return nil, fmt.Errorf("invalid pull secret, '%q' JSON-object requires either 'auth' or 'credsStore' field", d)
+			return nil, errors.Errorf("invalid pull secret, '%q' JSON-object requires either 'auth' or 'credsStore' field", d)
 		}
 		data, err := base64.StdEncoding.DecodeString(a["auth"].(string))
 		if err != nil {
-			return nil, fmt.Errorf("invalid pull secret, 'auth' fiels of '%q' is not base64 decodable", d)
+			return nil, errors.Errorf("invalid pull secret, 'auth' fiels of '%q' is not base64 decodable", d)
 		}
 		res := bytes.Split(data, []byte(":"))
 		if len(res) != 2 {
-			return nil, fmt.Errorf("auth for %s has invalid format", d)
+			return nil, errors.Errorf("auth for %s has invalid format", d)
 		}
 		result[d] = PullSecretCreds{
 			Password: string(res[1]),
@@ -79,12 +78,12 @@ func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 
 func AddRHRegPullSecret(secret, rhCred string) (string, error) {
 	if rhCred == "" {
-		return "", fmt.Errorf("invalid pull secret")
+		return "", errors.Errorf("invalid pull secret")
 	}
 	var s imagePullSecret
 	err := json.Unmarshal([]byte(secret), &s)
 	if err != nil {
-		return secret, fmt.Errorf("invalid pull secret: %v", err)
+		return secret, errors.Errorf("invalid pull secret: %v", err)
 	}
 	s.Auths["registry.stage.redhat.io"] = make(map[string]interface{})
 	s.Auths["registry.stage.redhat.io"]["auth"] = base64.StdEncoding.EncodeToString([]byte(rhCred))
@@ -172,7 +171,7 @@ func ValidateBaseDNS(dnsDomainName, dnsDomainID, dnsProviderType string) error {
 func validateBaseDNS(dnsDomainName, dnsDomainID string, dnsProvider dnsproviders.Provider) error {
 	dnsNameFromService, err := dnsProvider.GetDomainName()
 	if err != nil {
-		return fmt.Errorf("Can't validate base DNS domain: %v", err)
+		return errors.Errorf("Can't validate base DNS domain: %v", err)
 	}
 
 	dnsNameFromCluster := strings.TrimSuffix(dnsDomainName, ".")
@@ -181,7 +180,7 @@ func validateBaseDNS(dnsDomainName, dnsDomainID string, dnsProvider dnsproviders
 		return nil
 	}
 	if matched, _ := regexp.MatchString(".*\\."+dnsNameFromService, dnsNameFromCluster); !matched {
-		return fmt.Errorf("Domain name isn't correlated properly to DNS service")
+		return errors.Errorf("Domain name isn't correlated properly to DNS service")
 	}
 
 	return nil
@@ -209,10 +208,10 @@ func checkDNSRecordsExistence(names []string, dnsProvider dnsproviders.Provider)
 	for _, name := range names {
 		res, err := dnsProvider.GetRecordSet(name)
 		if err != nil {
-			return fmt.Errorf("Can't verify DNS record set existence: %v", err)
+			return errors.Errorf("Can't verify DNS record set existence: %v", err)
 		}
 		if res != "" {
-			return fmt.Errorf("DNS domain already exists")
+			return errors.Errorf("DNS domain already exists")
 		}
 	}
 	return nil
@@ -221,7 +220,7 @@ func checkDNSRecordsExistence(names []string, dnsProvider dnsproviders.Provider)
 // ValidateClusterNameFormat validates specified cluster name format
 func ValidateClusterNameFormat(name string) error {
 	if matched, _ := regexp.MatchString(clusterNameRegex, name); !matched {
-		return fmt.Errorf("Cluster name format is not valid: '%s'. "+
+		return errors.Errorf("Cluster name format is not valid: '%s'. "+
 			"Name must consist of lower-case letters, numbers and hyphens. "+
 			"It must start with a letter and end with a letter or number.", name)
 	}
@@ -231,17 +230,17 @@ func ValidateClusterNameFormat(name string) error {
 // ValidateHTTPProxyFormat validates the HTTP Proxy and HTTPS Proxy format
 func ValidateHTTPProxyFormat(proxyURL string) error {
 	if !govalidator.IsURL(proxyURL) {
-		return fmt.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
+		return errors.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
 	}
 	u, err := url.Parse(proxyURL)
 	if err != nil {
-		return fmt.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
+		return errors.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
 	}
 	if u.Scheme == "https" {
-		return fmt.Errorf("The URL scheme must be http; https is currently not supported: '%s'", proxyURL)
+		return errors.Errorf("The URL scheme must be http; https is currently not supported: '%s'", proxyURL)
 	}
 	if u.Scheme != "http" {
-		return fmt.Errorf("The URL scheme must be http and specified in the URL: '%s'", proxyURL)
+		return errors.Errorf("The URL scheme must be http and specified in the URL: '%s'", proxyURL)
 	}
 	return nil
 }
@@ -264,7 +263,7 @@ func ValidateNoProxyFormat(noProxy string) error {
 		if govalidator.IsDNSName(s) {
 			continue
 		}
-		return fmt.Errorf("NO Proxy format is not valid: '%s'. "+
+		return errors.Errorf("NO Proxy format is not valid: '%s'. "+
 			"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
 			"A domain can be prefaced with '.' to include all subdomains of that domain.", noProxy)
 	}

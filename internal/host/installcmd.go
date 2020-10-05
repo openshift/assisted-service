@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -133,7 +134,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 func getBootDevice(log logrus.FieldLogger, hwValidator hardware.Validator, host models.Host) (string, error) {
 	disks, err := hwValidator.GetHostValidDisks(&host)
 	if err != nil || len(disks) == 0 {
-		err := fmt.Errorf("Failed to get valid disks on host with id %s", host.ID)
+		err := errors.Errorf("Failed to get valid disks on host with id %s", host.ID)
 		log.Errorf("Failed to get valid disks on host with id %s", host.ID)
 		return "", err
 	}

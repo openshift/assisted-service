@@ -2,7 +2,6 @@ package network
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -35,7 +34,7 @@ func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*mode
 	}
 	parsedVipAddr := net.ParseIP(ip)
 	if parsedVipAddr == nil {
-		return "", fmt.Errorf("Could not parse VIP ip %s", ip)
+		return "", errors.Errorf("Could not parse VIP ip %s", ip)
 	}
 	for _, h := range hosts {
 		if swag.StringValue(h.Status) == models.HostStatusDisabled {
@@ -58,7 +57,7 @@ func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*mode
 			}
 		}
 	}
-	return "", fmt.Errorf("No suitable matching CIDR found for VIP %s", ip)
+	return "", errors.Errorf("No suitable matching CIDR found for VIP %s", ip)
 }
 
 func ipInCidr(ipStr, cidrStr string) bool {
@@ -78,17 +77,17 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 		return nil
 	}
 	if !ipInCidr(vip, machineNetworkCidr) {
-		return fmt.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
+		return errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
 	}
 	if !IpInFreeList(hosts, vip, machineNetworkCidr, log) {
-		return fmt.Errorf("%s <%s> is already in use in cidr %s", vipName, vip, machineNetworkCidr)
+		return errors.Errorf("%s <%s> is already in use in cidr %s", vipName, vip, machineNetworkCidr)
 	}
 	return nil
 }
 
 func verifyDifferentVipAddresses(apiVip string, ingressVip string) error {
 	if apiVip == ingressVip && apiVip != "" {
-		return fmt.Errorf("api-vip and ingress-vip cannot have the same value: %s", apiVip)
+		return errors.Errorf("api-vip and ingress-vip cannot have the same value: %s", apiVip)
 	}
 	return nil
 }
