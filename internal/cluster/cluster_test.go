@@ -1113,6 +1113,23 @@ func defaultInventory() string {
 	return string(b)
 }
 
+func defaultInventoryWithTimestamp(timestamp int64) string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Timestamp: timestamp,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func twoNetworksInventory() string {
 	inventory := models.Inventory{
 		Interfaces: []*models.Interface{
