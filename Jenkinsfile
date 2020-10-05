@@ -7,8 +7,8 @@ pipeline {
         PATH = "${PATH}:/usr/local/go/bin"
 
         // Images
-        SERVICE = "quay.io/ocpmetal/assisted-service:${BUILD_TAG}"
-        ISO_CREATION = "quay.io/ocpmetal/assisted-iso-create:${BUILD_TAG}"
+        ASSISTED_ORG = "quay.io/ocpmetal"
+        ASSISTED_TAG = "${BUILD_TAG}"
 
         // Credentials
         SLACK_TOKEN = credentials('slack-token')
@@ -29,7 +29,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "skipper make build-image build-minimal-assisted-iso-generator-image"
+                sh "skipper make build-all"
                 sh "make jenkins-deploy-for-subsystem"
                 sh "kubectl get pods -A"
             }
