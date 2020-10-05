@@ -426,6 +426,14 @@ func (th *transitionHandler) HasInstallationTimedOut(sw stateswitch.StateSwitch,
 	if !ok {
 		return false, errors.New("HasInstallationTimedOut incompatible type of StateSwitch")
 	}
+	return time.Since(time.Time(sHost.host.StatusUpdatedAt)) > InstallationTimeout, nil
+}
+
+func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("HasInstallationTimedOut incompatible type of StateSwitch")
+	}
 	maxDuration, ok := InstallationProgressTimeout[sHost.host.Progress.CurrentStage]
 	if !ok {
 		maxDuration = InstallationProgressTimeout["DEFAULT"]

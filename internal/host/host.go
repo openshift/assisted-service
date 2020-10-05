@@ -62,6 +62,8 @@ var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 	"DEFAULT":                                   60 * time.Minute,
 }
 
+var InstallationTimeout = 20 * time.Minute
+
 type Config struct {
 	EnableAutoReset bool          `envconfig:"ENABLE_AUTO_RESET" default:"false"`
 	ResetTimeout    time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
