@@ -1114,7 +1114,7 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().SetGeneratorVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 	setDefaultMetricInstallatioStarted := func(mockMetricApi *metrics.MockAPI) {
-		mockMetricApi.EXPECT().InstallationStarted(gomock.Any()).AnyTimes()
+		mockMetricApi.EXPECT().InstallationStarted(gomock.Any(), gomock.Any()).AnyTimes()
 	}
 	mockHandlePreInstallationError := func(mockClusterApi *cluster.MockAPI, done chan int) {
 		mockClusterApi.EXPECT().HandlePreInstallError(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).
@@ -3183,7 +3183,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 			Times(1)
-		mockMetric.EXPECT().ClusterRegistered(gomock.Any()).Times(1)
+		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any()).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{

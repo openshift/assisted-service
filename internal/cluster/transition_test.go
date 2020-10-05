@@ -50,7 +50,7 @@ var _ = Describe("Transition tests", func() {
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusInstalling)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
@@ -62,7 +62,7 @@ var _ = Describe("Transition tests", func() {
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusInsufficient)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 			replay := capi.CancelInstallation(ctx, &c, "", db)
 			Expect(replay).Should(HaveOccurred())
 			Expect(int(replay.StatusCode())).Should(Equal(http.StatusConflict))
@@ -79,7 +79,7 @@ var _ = Describe("Transition tests", func() {
 					Status:     swag.String(models.ClusterStatusError)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
@@ -93,7 +93,7 @@ var _ = Describe("Transition tests", func() {
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusFinalizing)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, c.OpenshiftVersion, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 			Expect(capi.CompleteInstallation(ctx, &c, true, models.ClusterStatusInstalled)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
@@ -105,7 +105,7 @@ var _ = Describe("Transition tests", func() {
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusFinalizing)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, c.OpenshiftVersion, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 			Expect(capi.CompleteInstallation(ctx, &c, false, "aaaa")).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
@@ -119,7 +119,7 @@ var _ = Describe("Transition tests", func() {
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusInstalling)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, c.OpenshiftVersion, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 			replay := capi.CompleteInstallation(ctx, &c, true, "")
 			Expect(replay).Should(HaveOccurred())
 			Expect(int(replay.StatusCode())).Should(Equal(http.StatusConflict))
@@ -133,7 +133,7 @@ var _ = Describe("Transition tests", func() {
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusInstalling)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, c.OpenshiftVersion, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 			replay := capi.CompleteInstallation(ctx, &c, false, "")
 			Expect(replay).Should(HaveOccurred())
 			Expect(int(replay.StatusCode())).Should(Equal(http.StatusConflict))
@@ -171,7 +171,7 @@ var _ = Describe("Cancel cluster installation", func() {
 	}
 
 	acceptClusterInstallationFinished := func(times int) {
-		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
 	}
 
 	tests := []struct {

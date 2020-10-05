@@ -6,12 +6,13 @@ package host
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
-	reflect "reflect"
 )
 
 // MockAPI is a mock of API interface
@@ -399,18 +400,4 @@ func (m *MockAPI) GetHostRequirements(role models.HostRole) models.HostRequireme
 func (mr *MockAPIMockRecorder) GetHostRequirements(role interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockAPI)(nil).GetHostRequirements), role)
-}
-
-// UpdateTimestamp mocks base method
-func (m *MockAPI) UpdateTimestamp(ctx context.Context, h *models.Host, timestamp int64) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateTimestamp", ctx, h, timestamp)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateTimestamp indicates an expected call of UpdateTimestamp
-func (mr *MockAPIMockRecorder) UpdateTimestamp(ctx, h, timestamp interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTimestamp", reflect.TypeOf((*MockAPI)(nil).UpdateTimestamp), ctx, h, timestamp)
 }
