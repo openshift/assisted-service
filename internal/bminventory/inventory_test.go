@@ -1087,7 +1087,7 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().SetGeneratorVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 	setDefaultMetricInstallatioStarted := func(mockMetricApi *metrics.MockAPI) {
-		mockMetricApi.EXPECT().InstallationStarted(gomock.Any()).AnyTimes()
+		mockMetricApi.EXPECT().InstallationStarted(gomock.Any(), gomock.Any()).AnyTimes()
 	}
 	mockHandlePreInstallationError := func(mockClusterApi *cluster.MockAPI, done chan int) {
 		mockClusterApi.EXPECT().HandlePreInstallError(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).
