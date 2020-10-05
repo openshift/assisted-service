@@ -23,7 +23,7 @@ endif # TARGET
 SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
 SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
 ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
-BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/46.82.202008260918-0/x86_64/rhcos-46.82.202008260918-0-live.x86_64.iso)
+BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/46.82.202009222340-0/x86_64/rhcos-46.82.202009222340-0-live.x86_64.iso)
 OPENSHIFT_INSTALL_RELEASE_IMAGE := $(or ${OPENSHIFT_INSTALL_RELEASE_IMAGE},quay.io/ocpmetal/ocp-release:4.6.0-0.nightly-2020-08-31-220837)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
