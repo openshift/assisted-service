@@ -36,8 +36,7 @@ var defaultDisk = models.Disk{        // invalid disk used only for tests
 var defaultProgressStage = models.HostStage("default progress stage") // invalid progress stage used only for tests
 
 var defaultConfig = &Config{
-	ResetTimeout:    3 * time.Minute,
-	EnableAutoReset: true,
+	ResetTimeout: 3 * time.Minute,
 }
 
 var _ = Describe("update_role", func() {
@@ -580,7 +579,6 @@ var _ = Describe("reset host", func() {
 		dbName        = "reset_host"
 		config        Config
 	)
-
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
@@ -683,6 +681,20 @@ var _ = Describe("reset host", func() {
 			h = getTestHost(id, clusterId, models.HostStatusDiscovering)
 			reply := state.ResetHost(ctx, &h, "some reason", db)
 			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
+			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(len(events)).ShouldNot(Equal(0))
+			resetEvent := events[len(events)-1]
+			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityError))
+		})
+
+		It("reset pending user action failure", func() {
+			id := strfmt.UUID(uuid.New().String())
+			clusterId := strfmt.UUID(uuid.New().String())
+			h = getTestHost(id, clusterId, models.HostStatusInstalling)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			Expect(state.IsRequireUserActionReset(&h)).Should(Equal(false))
+			Expect(state.ResetPendingUserAction(ctx, &h, db)).Should(HaveOccurred())
 			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
