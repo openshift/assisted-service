@@ -105,11 +105,6 @@ func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCf
 			condition: v.isHostnameValid,
 			formatter: v.printHostnameValid,
 		},
-		{
-			id:        DoesTimeSkewExists,
-			condition: v.doesTimeSkewExists,
-			formatter: v.printTimeSkew,
-		},
 	}
 	return ret
 }

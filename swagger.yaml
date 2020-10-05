@@ -2712,7 +2712,6 @@ definitions:
       - 'hostname-unique'
       - 'hostname-valid'
       - 'belongs-to-machine-cidr'
-      - 'time-skew-exists'
 
   dhcp_allocation_request:
     type: object
@@ -2773,6 +2772,7 @@ definitions:
       - 'sufficient-masters-count'
       - 'dns-domain-defined'
       - 'pull-secret-set'
+      - 'ntp-server-configured'
 
   logs_type:
     type: string
