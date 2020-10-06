@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -70,7 +69,7 @@ var _ = Describe("RegisterHost", func() {
 			progressStage         models.HostStage
 			srcState              string
 			dstState              string
-			expectedError         error
+			errorCode             int32
 			expectedEventInfo     string
 			expectedEventStatus   string
 			expectedNilStatusInfo bool
@@ -94,7 +93,7 @@ var _ = Describe("RegisterHost", func() {
 				progressStage:         models.HostStageRebooting,
 				srcState:              models.HostStatusInstallingPendingUserAction,
 				dstState:              models.HostStatusInstallingPendingUserAction,
-				expectedError:         installer.NewRegisterHostForbidden(),
+				errorCode:             http.StatusForbidden,
 				expectedEventInfo:     "",
 				expectedNilStatusInfo: true,
 			},
@@ -124,11 +123,13 @@ var _ = Describe("RegisterHost", func() {
 					Status:    swag.String(t.srcState),
 				})
 
-				if t.expectedError == nil {
+				if t.errorCode == 0 {
 					Expect(err).ShouldNot(HaveOccurred())
 				} else {
 					Expect(err).Should(HaveOccurred())
-					Expect(err).Should(Equal(t.expectedError))
+					serr, ok := err.(*common.ApiErrorResponse)
+					Expect(ok).Should(Equal(true))
+					Expect(serr.StatusCode()).Should(Equal(t.errorCode))
 				}
 				h := getHost(hostId, clusterId, db)
 				Expect(swag.StringValue(h.Status)).Should(Equal(t.dstState))
