@@ -12,10 +12,10 @@ func (m *Manager) HostMonitoring() {
 		m.log.Debugf("Not a leader, exiting HostMonitoring")
 		return
 	}
-
 	m.log.Debugf("Running HostMonitoring")
 	var (
-		hosts     []*models.Host
+		offset    int
+		limit     = m.Config.MonitorBatchSize
 		requestID = requestid.NewID()
 		ctx       = requestid.ToContext(context.Background(), requestID)
 		log       = requestid.RequestIDLogger(m.log, requestID)
@@ -32,18 +32,26 @@ func (m *Manager) HostMonitoring() {
 		models.HostStatusInstallingInProgress,
 		models.HostStatusInstalled,
 	}
-
-	if err := m.db.Where("status IN (?)", monitorStates).Find(&hosts).Error; err != nil {
-		log.WithError(err).Errorf("failed to get hosts")
-		return
-	}
-	for _, host := range hosts {
-		if !m.leaderElector.IsLeader() {
-			m.log.Debugf("Not a leader, exiting HostMonitoring")
+	for {
+		//for offset = 0; offset < count; offset += limit {
+		hosts := make([]*models.Host, 0, limit)
+		if err := m.db.Where("status IN (?)", monitorStates).Offset(offset).Limit(limit).
+			Order("cluster_id, id").Find(&hosts).Error; err != nil {
+			log.WithError(err).Errorf("failed to get hosts")
 			return
 		}
-		if err := m.RefreshStatus(ctx, host, m.db); err != nil {
-			log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
+		if len(hosts) == 0 {
+			break
 		}
+		for _, host := range hosts {
+			if !m.leaderElector.IsLeader() {
+				m.log.Debugf("Not a leader, exiting HostMonitoring")
+				return
+			}
+			if err := m.RefreshStatus(ctx, host, m.db); err != nil {
+				log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
+			}
+		}
+		offset += limit
 	}
 }
