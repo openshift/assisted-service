@@ -334,7 +334,6 @@ func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, 
 }
 
 func (m *Manager) UpdateApiVipConnectivityReport(ctx context.Context, h *models.Host, apiVipConnectivityReport string) error {
-	logrus.Errorf("!!!! apiVipConnectivityReport: " + apiVipConnectivityReport)
 	if h.APIVipConnectivity != apiVipConnectivityReport {
 		if err := m.db.Model(h).Update("api_vip_connectivity", apiVipConnectivityReport).Error; err != nil {
 			return errors.Wrapf(err, "failed to set api_vip_connectivity to host %s", h.ID.String())
