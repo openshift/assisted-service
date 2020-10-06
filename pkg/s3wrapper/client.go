@@ -29,6 +29,9 @@ import (
 )
 
 const awsEndpointSuffix = ".amazonaws.com"
+
+// TODO: Can we use RHCOS_VERSION or BASE_OS_IMAGE in the Makefile to set the value for
+// BaseObjectName?
 const BaseObjectName = "livecd-46.82.202009222340-0.iso"
 
 //go:generate mockgen -source=client.go -package=s3wrapper -destination=mock_s3wrapper.go

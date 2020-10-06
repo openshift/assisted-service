@@ -17,8 +17,9 @@ RUN useradd $USER
 RUN chown $USER:$USER $WORK_DIR
 
 # ISO
+ARG RHCOS_VERSION
 COPY --from=assisted-iso-create $WORK_DIR/coreos-installer $WORK_DIR
-COPY --from=assisted-iso-create $WORK_DIR/livecd.iso $WORK_DIR/livecd.iso
+COPY --from=assisted-iso-create $WORK_DIR/livecd.iso $WORK_DIR/livecd-$RHCOS_VERSION.iso
 COPY --from=assisted-iso-create $WORK_DIR/assisted-iso-create $WORK_DIR
 ENV COREOS_IMAGE=$WORK_DIR/livecd.iso
 

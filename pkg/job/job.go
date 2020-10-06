@@ -25,7 +25,9 @@ import (
 )
 
 const ignitionGeneratorPrefix = "ignition-generator"
-const UploadBaseISOJobName = s3wrapper.BaseObjectName + "-"
+
+// UploadBaseISOJobName is a prefix used to form the job name
+var UploadBaseISOJobName = s3wrapper.BaseObjectName + "-"
 
 type Config struct {
 	MonitorLoopInterval time.Duration `envconfig:"JOB_MONITOR_INTERVAL" default:"500ms"`
