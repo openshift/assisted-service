@@ -33,7 +33,7 @@ const (
 	statusInfoAddingHosts = "cluster is adding hosts to existing OCP cluster"
 )
 
-var _ = FDescribe("Day2 cluster tests", func() {
+var _ = Describe("Day2 cluster tests", func() {
 	ctx := context.Background()
 	var cluster *installer.RegisterAddHostsClusterCreated
 	var clusterID strfmt.UUID
@@ -297,7 +297,7 @@ var _ = FDescribe("Day2 cluster tests", func() {
 		Expect(*c.Status).Should(Equal("adding-hosts"))
 	})
 
-	FIt("check installation - node registers after reboot", func() {
+	It("check installation - node registers after reboot", func() {
 		host := registerHost(clusterID)
 		h := getHost(clusterID, *host.ID)
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
