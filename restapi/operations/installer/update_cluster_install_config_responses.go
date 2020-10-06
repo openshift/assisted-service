@@ -93,7 +93,7 @@ type UpdateClusterInstallConfigUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewUpdateClusterInstallConfigUnauthorized creates UpdateClusterInstallConfigUnauthorized with default headers values
@@ -103,13 +103,13 @@ func NewUpdateClusterInstallConfigUnauthorized() *UpdateClusterInstallConfigUnau
 }
 
 // WithPayload adds the payload to the update cluster install config unauthorized response
-func (o *UpdateClusterInstallConfigUnauthorized) WithPayload(payload *models.Error) *UpdateClusterInstallConfigUnauthorized {
+func (o *UpdateClusterInstallConfigUnauthorized) WithPayload(payload *models.InfraError) *UpdateClusterInstallConfigUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the update cluster install config unauthorized response
-func (o *UpdateClusterInstallConfigUnauthorized) SetPayload(payload *models.Error) {
+func (o *UpdateClusterInstallConfigUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -137,7 +137,7 @@ type UpdateClusterInstallConfigForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewUpdateClusterInstallConfigForbidden creates UpdateClusterInstallConfigForbidden with default headers values
@@ -147,13 +147,13 @@ func NewUpdateClusterInstallConfigForbidden() *UpdateClusterInstallConfigForbidd
 }
 
 // WithPayload adds the payload to the update cluster install config forbidden response
-func (o *UpdateClusterInstallConfigForbidden) WithPayload(payload *models.Error) *UpdateClusterInstallConfigForbidden {
+func (o *UpdateClusterInstallConfigForbidden) WithPayload(payload *models.InfraError) *UpdateClusterInstallConfigForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the update cluster install config forbidden response
-func (o *UpdateClusterInstallConfigForbidden) SetPayload(payload *models.Error) {
+func (o *UpdateClusterInstallConfigForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

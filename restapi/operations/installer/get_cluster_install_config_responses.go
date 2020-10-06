@@ -67,7 +67,7 @@ type GetClusterInstallConfigUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetClusterInstallConfigUnauthorized creates GetClusterInstallConfigUnauthorized with default headers values
@@ -77,13 +77,13 @@ func NewGetClusterInstallConfigUnauthorized() *GetClusterInstallConfigUnauthoriz
 }
 
 // WithPayload adds the payload to the get cluster install config unauthorized response
-func (o *GetClusterInstallConfigUnauthorized) WithPayload(payload *models.Error) *GetClusterInstallConfigUnauthorized {
+func (o *GetClusterInstallConfigUnauthorized) WithPayload(payload *models.InfraError) *GetClusterInstallConfigUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get cluster install config unauthorized response
-func (o *GetClusterInstallConfigUnauthorized) SetPayload(payload *models.Error) {
+func (o *GetClusterInstallConfigUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -111,7 +111,7 @@ type GetClusterInstallConfigForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetClusterInstallConfigForbidden creates GetClusterInstallConfigForbidden with default headers values
@@ -121,13 +121,13 @@ func NewGetClusterInstallConfigForbidden() *GetClusterInstallConfigForbidden {
 }
 
 // WithPayload adds the payload to the get cluster install config forbidden response
-func (o *GetClusterInstallConfigForbidden) WithPayload(payload *models.Error) *GetClusterInstallConfigForbidden {
+func (o *GetClusterInstallConfigForbidden) WithPayload(payload *models.InfraError) *GetClusterInstallConfigForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get cluster install config forbidden response
-func (o *GetClusterInstallConfigForbidden) SetPayload(payload *models.Error) {
+func (o *GetClusterInstallConfigForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

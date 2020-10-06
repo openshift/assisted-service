@@ -135,20 +135,20 @@ func NewUpdateClusterInstallConfigUnauthorized() *UpdateClusterInstallConfigUnau
 Unauthorized.
 */
 type UpdateClusterInstallConfigUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *UpdateClusterInstallConfigUnauthorized) Error() string {
 	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *UpdateClusterInstallConfigUnauthorized) GetPayload() *models.Error {
+func (o *UpdateClusterInstallConfigUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *UpdateClusterInstallConfigUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -168,20 +168,20 @@ func NewUpdateClusterInstallConfigForbidden() *UpdateClusterInstallConfigForbidd
 Forbidden.
 */
 type UpdateClusterInstallConfigForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *UpdateClusterInstallConfigForbidden) Error() string {
 	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigForbidden  %+v", 403, o.Payload)
 }
 
-func (o *UpdateClusterInstallConfigForbidden) GetPayload() *models.Error {
+func (o *UpdateClusterInstallConfigForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *UpdateClusterInstallConfigForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
