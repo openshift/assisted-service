@@ -20,9 +20,14 @@ kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}'
 endef # get_service
 endif # TARGET
 
-SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
-SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
-ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
+ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
+ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
+
+export SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
+export SERVICE_ONPREM := $(or ${SERVICE_ONPREM},${ASSISTED_ORG}/assisted-service-onprem:${ASSISTED_TAG})
+export ISO_CREATION := $(or ${ISO_CREATION},${ASSISTED_ORG}/assisted-iso-create:${ASSISTED_TAG})
+CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
+
 BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/46.82.202009222340-0/x86_64/rhcos-46.82.202009222340-0-live.x86_64.iso)
 OPENSHIFT_INSTALL_RELEASE_IMAGE := $(or ${OPENSHIFT_INSTALL_RELEASE_IMAGE},quay.io/openshift-release-dev/ocp-release:4.6.0-fc.9-x86_64)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
@@ -109,6 +114,8 @@ generate-keys: $(BUILD_FOLDER)
 .PHONY: build
 build: lint unit-test build-minimal build-iso-generator
 
+build-all: build-image build-minimal-assisted-iso-generator-image
+
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
@@ -116,36 +123,33 @@ build-iso-generator: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-iso-create assisted-iso-create/main.go
 
 build-onprem-dependencies: 
-	skipper make build-image build-assisted-iso-generator-image
+	skipper make build-all
 
 build-onprem: build-onprem-dependencies
 	podman pull $(ISO_CREATION_DOCKER_DAEMON_PULL_STRING)
 	podman pull $(ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING)
-	GIT_REVISION=${GIT_REVISION} podman build --network=host --build-arg GIT_REVISION \
- 		-f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
+	podman build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
 
 build-image: build
-	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
- 		-f Dockerfile.assisted-service . -t $(SERVICE)
+	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
 
 build-minimal-assisted-iso-generator-image: build-iso-generator
-	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
+	docker build $(CONTAINER_BUILD_PARAMS) --build-arg NAMESPACE=$(NAMESPACE) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
-update: build-image
+update: build-all
 	docker push $(SERVICE)
+	docker push $(ISO_CREATION)
 
 update-minimal: build-minimal
-	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
-		-f Dockerfile.assisted-service . -t $(SERVICE)
+	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 _update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
-		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
-		-f Dockerfile.assisted-service . -t $(SERVICE) \
-		&& docker build --network=host --build-arg GIT_REVISION --build-arg OS_IMAGE=$(BASE_OS_IMAGE) -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE) && \
+		docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 define publish_image
 	docker tag ${1} ${2}
@@ -222,8 +226,8 @@ jenkins-deploy-for-subsystem: _verify_minikube generate-keys
 	$(MAKE) deploy-wiremock deploy-all
 
 deploy-test: _verify_minikube generate-keys
-	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
-	&& export DUMMY_IGNITION="True" && ISO_CREATION=minikube-local-registry/assisted-iso-create:minikube-test \
+	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
+	export ENABLE_AUTH="True" && export DUMMY_IGNITION="True" && \
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
 
 deploy-onprem:

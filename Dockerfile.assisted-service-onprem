@@ -3,14 +3,11 @@ FROM quay.io/ocpmetal/assisted-iso-create:latest AS assisted-iso-create
 
 FROM centos:8
 
-ARG GIT_REVISION
 ARG WORK_DIR=/data
 ARG USER=assisted-installer
 ARG NAMESPACE=assisted-installer
 # downstream this can be installed as an RPM
 ARG OC_URL=https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
-
-LABEL "git_revision"=${GIT_REVISION}
 
 # openshift-install requires this
 RUN dnf install -y libvirt-libs && yum clean all
