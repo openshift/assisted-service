@@ -117,62 +117,63 @@ var _ = Describe("s3client", func() {
 		Expect(called).To(Equal(false))
 	})
 	Context("upload iso", func() {
-		success := func(hexBytes []byte, baseISOSize int64, firstCopyRange, secondCopyRange, thirdCopyRange string) {
+		success := func(hexBytes []byte, baseISOSize, areaOffset, areaLength int64, cached bool) {
 			uploadID := "12345"
 			destObjName := "object-prefix.iso"
 			copySource := fmt.Sprintf("/%s/%s", bucket, BaseObjectName)
-			etag1 := "etag1"
-			etag2 := "etag2"
-			etag3 := "etag3"
 
 			mockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName)}).
 				Return(&s3.HeadObjectOutput{ETag: aws.String("abcdefg"), ContentLength: aws.Int64(baseISOSize)}, nil)
-			mockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName), Range: aws.String("bytes=32744-32767")}).
-				Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader(hexBytes))}, nil)
-			mockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName), Range: aws.String(secondCopyRange)}).
-				Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader(make([]byte, 100)))}, nil)
-			mockAPI.EXPECT().CreateMultipartUpload(&s3.CreateMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName)}).
+			if !cached {
+				mockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName),
+					Range: aws.String("bytes=32744-32767")}).
+					Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader(hexBytes))}, nil)
+				mockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName),
+					Range: aws.String(fmt.Sprintf("bytes=%d-%d", areaOffset, areaOffset+minimumPartSizeBytes-1))}).
+					Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader(make([]byte, 100)))}, nil)
+			}
+			mockAPI.EXPECT().CreateMultipartUploadWithContext(gomock.Any(), &s3.CreateMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName)}).
 				Return(&s3.CreateMultipartUploadOutput{UploadId: aws.String(uploadID)}, nil)
-			mockAPI.EXPECT().UploadPartCopy(&s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(1),
-				CopySource: aws.String(copySource), CopySourceRange: aws.String(firstCopyRange), UploadId: aws.String(uploadID)}).
-				Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String(etag1)}}, nil)
-			mockAPI.EXPECT().UploadPart(gomock.Any()).Return(&s3.UploadPartOutput{ETag: aws.String(etag2)}, nil)
-			mockAPI.EXPECT().UploadPartCopy(&s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(3),
-				CopySource: aws.String(copySource), CopySourceRange: aws.String(thirdCopyRange), UploadId: aws.String(uploadID)}).
-				Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String(etag3)}}, nil)
-			mockAPI.EXPECT().CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName),
-				UploadId: aws.String(uploadID), MultipartUpload: &s3.CompletedMultipartUpload{Parts: []*s3.CompletedPart{
-					{ETag: aws.String(etag1), PartNumber: aws.Int64(1)},
-					{ETag: aws.String(etag2), PartNumber: aws.Int64(2)},
-					{ETag: aws.String(etag3), PartNumber: aws.Int64(3)}}}}).Return(nil, nil)
+			partCounter := int64(1)
+			byteCounter := int64(0)
+			var byteRange string
+			for byteCounter < areaOffset {
+				if (byteCounter+copyPartChunkSizeBytes > areaOffset-1) || (byteCounter+copyPartChunkSizeBytes+minimumPartSizeBytes > areaOffset-1) {
+					byteRange = fmt.Sprintf("bytes=%d-%d", byteCounter, areaOffset-1)
+					byteCounter = areaOffset
+				} else {
+					byteRange = fmt.Sprintf("bytes=%d-%d", byteCounter, byteCounter+copyPartChunkSizeBytes-1)
+					byteCounter += copyPartChunkSizeBytes
+				}
+				mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), &s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(partCounter),
+					CopySource: aws.String(copySource), CopySourceRange: aws.String(byteRange), UploadId: aws.String(uploadID)}).
+					Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String(fmt.Sprintf("etag%d", partCounter))}}, nil)
+				partCounter++
+			}
+			mockAPI.EXPECT().UploadPart(gomock.Any()).Return(&s3.UploadPartOutput{ETag: aws.String(fmt.Sprintf("etag%d", partCounter))}, nil)
+			partCounter++
+			byteCounter = areaOffset + minimumPartSizeBytes
+			for byteCounter < baseISOSize {
+				if (byteCounter+copyPartChunkSizeBytes > baseISOSize-1) || (byteCounter+copyPartChunkSizeBytes+minimumPartSizeBytes > baseISOSize-1) {
+					byteRange = fmt.Sprintf("bytes=%d-%d", byteCounter, baseISOSize-1)
+					byteCounter = baseISOSize
+				} else {
+					byteRange = fmt.Sprintf("bytes=%d-%d", byteCounter, byteCounter+copyPartChunkSizeBytes-1)
+					byteCounter += copyPartChunkSizeBytes
+				}
+				mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), &s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(partCounter),
+					CopySource: aws.String(copySource), CopySourceRange: aws.String(byteRange), UploadId: aws.String(uploadID)}).
+					Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String(fmt.Sprintf("etag%d", partCounter))}}, nil)
+				partCounter++
+			}
 
-			err := client.UploadISO(ctx, "ignition", "object-prefix")
-			Expect(err).To(BeNil())
-		}
-		cached := func(firstCopyRange, secondCopyRange, thirdCopyRange string) {
-			uploadID := "12345"
-			destObjName := "object-prefix.iso"
-			copySource := fmt.Sprintf("/%s/%s", bucket, BaseObjectName)
-			etag1 := "etag1"
-			etag2 := "etag2"
-			etag3 := "etag3"
-
-			mockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName)}).
-				Return(&s3.HeadObjectOutput{ETag: aws.String("abcdefg")}, nil)
-			mockAPI.EXPECT().CreateMultipartUpload(&s3.CreateMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName)}).
-				Return(&s3.CreateMultipartUploadOutput{UploadId: aws.String(uploadID)}, nil)
-			mockAPI.EXPECT().UploadPartCopy(&s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(1),
-				CopySource: aws.String(copySource), CopySourceRange: aws.String(firstCopyRange), UploadId: aws.String(uploadID)}).
-				Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String(etag1)}}, nil)
-			mockAPI.EXPECT().UploadPart(gomock.Any()).Return(&s3.UploadPartOutput{ETag: aws.String(etag2)}, nil)
-			mockAPI.EXPECT().UploadPartCopy(&s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(3),
-				CopySource: aws.String(copySource), CopySourceRange: aws.String(thirdCopyRange), UploadId: aws.String(uploadID)}).
-				Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String(etag3)}}, nil)
-			mockAPI.EXPECT().CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName),
-				UploadId: aws.String(uploadID), MultipartUpload: &s3.CompletedMultipartUpload{Parts: []*s3.CompletedPart{
-					{ETag: aws.String(etag1), PartNumber: aws.Int64(1)},
-					{ETag: aws.String(etag2), PartNumber: aws.Int64(2)},
-					{ETag: aws.String(etag3), PartNumber: aws.Int64(3)}}}}).Return(nil, nil)
+			var comp []*s3.CompletedPart
+			for i := int64(1); i < partCounter; i++ {
+				comp = append(comp, &s3.CompletedPart{ETag: aws.String(fmt.Sprintf("etag%d", i)), PartNumber: aws.Int64(i)})
+			}
+			mockAPI.EXPECT().CompleteMultipartUploadWithContext(gomock.Any(), &s3.CompleteMultipartUploadInput{
+				Bucket: &bucket, Key: aws.String(destObjName), UploadId: &uploadID, MultipartUpload: &s3.CompletedMultipartUpload{Parts: comp},
+			}).Return(nil, nil)
 
 			err := client.UploadISO(ctx, "ignition", "object-prefix")
 			Expect(err).To(BeNil())
@@ -182,22 +183,16 @@ var _ = Describe("s3client", func() {
 			hexBytes := []byte{0x63, 0x6f, 0x72, 0x65, 0x69, 0x73, 0x6f, 0x2b, // coreiso+
 				0x15, 0x9b, 0xac, 0x37, 0x00, 0x00, 0x00, 0x00, // offset = 934058773
 				0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00} // length = 262144
-			first := "bytes=0-934058772"
-			second := "bytes=934058773-939301652"
-			third := "bytes=939301653-944766975"
-			success(hexBytes, int64(944766976), first, second, third)
-			cached(first, second, third)
+			success(hexBytes, int64(944766976), int64(934058773), int64(262144), false)
+			success(hexBytes, int64(944766976), int64(934058773), int64(262144), true)
 		})
 		It("upload_iso_good_flow_v2", func() {
 			// Taken from hex dump of ISO
 			hexBytes := []byte{0x63, 0x6f, 0x72, 0x65, 0x69, 0x73, 0x6f, 0x2b, // coreiso+
 				0x00, 0xb0, 0x7e, 0x00, 0x00, 0x00, 0x00, 0x00, // offset = 8302592
 				0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00} // length = 262144
-			first := "bytes=0-8302591"
-			second := "bytes=8302592-13545471"
-			third := "bytes=13545472-962592767"
-			success(hexBytes, int64(962592768), first, second, third)
-			cached(first, second, third)
+			success(hexBytes, int64(962592768), int64(8302592), int64(262144), false)
+			success(hexBytes, int64(962592768), int64(8302592), int64(262144), true)
 		})
 		It("upload_iso_upload_failure", func() {
 			// Taken from hex dump of ISO
@@ -208,7 +203,6 @@ var _ = Describe("s3client", func() {
 			uploadID := "12345"
 			destObjName := "object-prefix.iso"
 			copySource := fmt.Sprintf("/%s/%s", bucket, BaseObjectName)
-			etag1 := "etag1"
 
 			mockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName)}).
 				Return(&s3.HeadObjectOutput{ETag: aws.String("abcdefg"), ContentLength: aws.Int64(baseISOSize)}, nil)
@@ -216,12 +210,41 @@ var _ = Describe("s3client", func() {
 				Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader(hexBytes))}, nil)
 			mockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName), Range: aws.String("bytes=8302592-13545471")}).
 				Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader(make([]byte, 100)))}, nil)
-			mockAPI.EXPECT().CreateMultipartUpload(&s3.CreateMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName)}).
+			mockAPI.EXPECT().CreateMultipartUploadWithContext(gomock.Any(), &s3.CreateMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName)}).
 				Return(&s3.CreateMultipartUploadOutput{UploadId: aws.String(uploadID)}, nil)
-			mockAPI.EXPECT().UploadPartCopy(&s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(1),
+			mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), &s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(1),
 				CopySource: aws.String(copySource), CopySourceRange: aws.String("bytes=0-8302591"), UploadId: aws.String(uploadID)}).
-				Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String(etag1)}}, errors.New("failed"))
-			mockAPI.EXPECT().AbortMultipartUpload(&s3.AbortMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName), UploadId: aws.String(uploadID)})
+				Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String("etag")}}, errors.New("failed"))
+			mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), gomock.Any()).
+				Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String("etagfoo")}}, nil).AnyTimes()
+			mockAPI.EXPECT().UploadPart(gomock.Any()).Return(&s3.UploadPartOutput{ETag: aws.String("etagbar")}, nil).AnyTimes()
+			mockAPI.EXPECT().AbortMultipartUploadWithContext(gomock.Any(), &s3.AbortMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName), UploadId: aws.String(uploadID)})
+
+			err := client.UploadISO(ctx, "ignition", "object-prefix")
+			Expect(err).To(HaveOccurred())
+		})
+		It("upload_iso_ignition_generate_failure", func() {
+			// Taken from hex dump of ISO
+			hexBytes := []byte{0x63, 0x6f, 0x72, 0x65, 0x69, 0x73, 0x6f, 0x2b, // coreiso+
+				0x00, 0xb0, 0x7e, 0x00, 0x00, 0x00, 0x00, 0x00, // offset = 8302592
+				0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00} // length = 262144
+			baseISOSize := int64(962592768)
+			uploadID := "12345"
+			destObjName := "object-prefix.iso"
+
+			mockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName)}).
+				Return(&s3.HeadObjectOutput{ETag: aws.String("abcdefg"), ContentLength: aws.Int64(baseISOSize)}, nil)
+			mockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName), Range: aws.String("bytes=32744-32767")}).
+				Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader(hexBytes))}, nil)
+			mockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName), Range: aws.String("bytes=8302592-13545471")}).
+				Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader(make([]byte, 100)))}, nil)
+			mockAPI.EXPECT().CreateMultipartUploadWithContext(gomock.Any(), &s3.CreateMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName)}).
+				Return(&s3.CreateMultipartUploadOutput{UploadId: aws.String(uploadID)}, nil)
+			mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), gomock.Any()).
+				Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String("etagfoo")}}, nil).AnyTimes()
+			mockAPI.EXPECT().UploadPart(gomock.Any()).Return(&s3.UploadPartOutput{ETag: aws.String("etagbar")}, nil).
+				Return(&s3.UploadPartOutput{ETag: aws.String("etag")}, errors.New("failed"))
+			mockAPI.EXPECT().AbortMultipartUploadWithContext(gomock.Any(), &s3.AbortMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName), UploadId: aws.String(uploadID)})
 
 			err := client.UploadISO(ctx, "ignition", "object-prefix")
 			Expect(err).To(HaveOccurred())
