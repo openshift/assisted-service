@@ -182,18 +182,18 @@ func (mr *MockAPIMockRecorder) GetObjectSizeBytes(ctx, objectName interface{}) *
 }
 
 // GeneratePresignedDownloadURL mocks base method
-func (m *MockAPI) GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error) {
+func (m *MockAPI) GeneratePresignedDownloadURL(ctx context.Context, objectName, downloadFilename string, duration time.Duration) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GeneratePresignedDownloadURL", ctx, objectName, duration)
+	ret := m.ctrl.Call(m, "GeneratePresignedDownloadURL", ctx, objectName, downloadFilename, duration)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GeneratePresignedDownloadURL indicates an expected call of GeneratePresignedDownloadURL
-func (mr *MockAPIMockRecorder) GeneratePresignedDownloadURL(ctx, objectName, duration interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GeneratePresignedDownloadURL(ctx, objectName, downloadFilename, duration interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GeneratePresignedDownloadURL", reflect.TypeOf((*MockAPI)(nil).GeneratePresignedDownloadURL), ctx, objectName, duration)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GeneratePresignedDownloadURL", reflect.TypeOf((*MockAPI)(nil).GeneratePresignedDownloadURL), ctx, objectName, downloadFilename, duration)
 }
 
 // UpdateObjectTimestamp mocks base method

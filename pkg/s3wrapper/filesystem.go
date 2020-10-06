@@ -192,7 +192,7 @@ func (f *FSClient) GetObjectSizeBytes(ctx context.Context, objectName string) (i
 	return info.Size(), nil
 }
 
-func (f *FSClient) GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error) {
+func (f *FSClient) GeneratePresignedDownloadURL(ctx context.Context, objectName string, downloadFilename string, duration time.Duration) (string, error) {
 	return "", nil
 }
 

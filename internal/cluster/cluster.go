@@ -4,7 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/kennygrant/sanitize"
+	"github.com/openshift/assisted-service/internal/hostutil"
 
 	"github.com/openshift/assisted-service/internal/network"
 
@@ -504,13 +510,38 @@ func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster
 		return x != fileName
 	}).([]string)
 
+	var tarredFilenames []string
+	var tarredFilename string
+	for _, file := range files {
+		fileNameSplit := strings.Split(file, "/")
+		tarredFilename = file
+		if len(fileNameSplit) > 1 {
+			if _, err = uuid.Parse(fileNameSplit[len(fileNameSplit)-2]); err == nil {
+				hostId := fileNameSplit[len(fileNameSplit)-2]
+				for _, hostObject := range c.Hosts {
+					if hostObject.ID.String() != hostId {
+						continue
+					}
+					role := string(hostObject.Role)
+					if hostObject.Bootstrap {
+						role = string(models.HostRoleBootstrap)
+					}
+					tarredFilename = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, sanitize.Name(hostutil.GetHostnameForMsg(hostObject)))
+				}
+			} else {
+				tarredFilename = fmt.Sprintf("%s_%s", fileNameSplit[len(fileNameSplit)-2], fileNameSplit[len(fileNameSplit)-1])
+			}
+		}
+		tarredFilenames = append(tarredFilenames, tarredFilename)
+	}
+
 	if len(files) < 1 {
 		return "", common.NewApiError(http.StatusNotFound,
 			errors.Errorf("No log files were found"))
 	}
 
 	log.Debugf("List of files to include into %s is %s", fileName, files)
-	err = common.TarAwsFiles(ctx, fileName, files, objectHandler, log)
+	err = common.TarAwsFiles(ctx, fileName, files, tarredFilenames, objectHandler, log)
 	if err != nil {
 		log.WithError(err).Errorf("failed to download file %s", fileName)
 		return "", common.NewApiError(http.StatusInternalServerError, err)
