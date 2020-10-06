@@ -3218,6 +3218,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("some-cluster-name"),
 				OpenshiftVersion: swag.String("4.6"),
+				PullSecret:       "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 			},
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
@@ -3230,8 +3231,20 @@ var _ = Describe("TestRegisterCluster", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("some-cluster-name"),
 				OpenshiftVersion: swag.String("4.6"),
+				PullSecret:       "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 			},
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterInternalServerError())))
+	})
+
+	It("cluster api failed to register without pull secret", func() {
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				OpenshiftVersion: swag.String("4.6"),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterBadRequest())))
 	})
 })

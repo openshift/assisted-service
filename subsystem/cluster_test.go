@@ -111,6 +111,7 @@ var _ = Describe("Cluster tests", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
+				PullSecret:       pullSecret,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

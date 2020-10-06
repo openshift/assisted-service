@@ -32,6 +32,7 @@ var _ = Describe("Host tests", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
+				PullSecret:       pullSecret,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -423,6 +424,7 @@ var _ = Describe("Host tests", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("another-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
+				PullSecret:       pullSecret,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

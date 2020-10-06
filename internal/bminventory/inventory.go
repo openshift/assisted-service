@@ -415,7 +415,12 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to update Pull-secret with additional credentials")))
 		}
 		setPullSecret(&cluster, ps)
+	} else {
+		log.Warn("Pull-secret for new cluster must be provided")
+		return installer.NewRegisterClusterBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Pull-secret must be provided")))
 	}
+
 	if err := validations.ValidateClusterNameFormat(swag.StringValue(params.NewClusterParams.Name)); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
