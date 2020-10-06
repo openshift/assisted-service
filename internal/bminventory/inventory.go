@@ -1577,7 +1577,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		uerr := errors.Wrap(err, "Failed to register host: error creating host metadata")
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityError,
 			uerr.Error(), time.Now())
-		return common.NewApiError(http.StatusBadRequest, uerr)
+		return returnRegisterHostTransitionError(http.StatusBadRequest, err)
 	}
 
 	if err := b.customizeHost(&host); err != nil {
@@ -1589,6 +1589,26 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s: registered to cluster", hostutil.GetHostnameForMsg(&host)), time.Now())
 	return installer.NewRegisterHostCreated().WithPayload(&host)
+}
+
+func returnRegisterHostTransitionError(
+	defaultCode int32,
+	err error) middleware.Responder {
+	if isRegisterHostForbiddenDueWrongBootOrder(err) {
+		return installer.NewRegisterHostForbidden().WithPayload(
+			&models.InfraError{
+				Code:    swag.Int32(http.StatusForbidden),
+				Message: swag.String(err.Error()),
+			})
+	}
+	return common.NewApiError(defaultCode, err)
+}
+
+func isRegisterHostForbiddenDueWrongBootOrder(err error) bool {
+	if serr, ok := err.(*common.ApiErrorResponse); ok {
+		return serr.StatusCode() == http.StatusForbidden
+	}
+	return false
 }
 
 func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder {

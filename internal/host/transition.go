@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/assisted-service/client/installer"
-
 	"encoding/json"
 
 	"github.com/openshift/assisted-service/internal/events"
@@ -112,7 +110,7 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 		return errors.New("PostRegisterDuringReboot incompatible type of StateSwitch")
 	}
 	if swag.StringValue(&sHost.srcState) == models.HostStatusInstallingPendingUserAction {
-		return installer.NewRegisterHostForbidden()
+		return common.NewApiError(http.StatusForbidden, errors.New("Host is required to be booted from disk"))
 	}
 	params, ok := args.(*TransitionArgsRegisterHost)
 	if !ok {
