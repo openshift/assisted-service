@@ -2753,7 +2753,7 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 
 	_, err := b.getCluster(ctx, params.ClusterID.String(), false)
 	if err != nil {
-		common.GenerateErrorResponder(err)
+		return err
 	}
 	fileName := b.getLogsFullName(params.ClusterID.String(), params.LogsType)
 	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
