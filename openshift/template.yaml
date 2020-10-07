@@ -121,10 +121,10 @@ objects:
             imagePullPolicy: Always
             resources:
               limits:
-                cpu: 200m
+                cpu: 500m
                 memory: 2000Mi
               requests:
-                cpu: 100m
+                cpu: 300m
                 memory: 400Mi
             ports:
               - name: assisted-svc
