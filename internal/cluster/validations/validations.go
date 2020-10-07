@@ -43,7 +43,7 @@ type PullSecretCreds struct {
 func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 	result := make(map[string]PullSecretCreds)
 	var s imagePullSecret
-	err := json.Unmarshal([]byte(secret), &s)
+	err := json.Unmarshal([]byte(strings.TrimSpace(secret)), &s)
 	if err != nil {
 		return nil, errors.Errorf("invalid pull secret: %v", err)
 	}
@@ -81,7 +81,7 @@ func AddRHRegPullSecret(secret, rhCred string) (string, error) {
 		return "", errors.Errorf("invalid pull secret")
 	}
 	var s imagePullSecret
-	err := json.Unmarshal([]byte(secret), &s)
+	err := json.Unmarshal([]byte(strings.TrimSpace(secret)), &s)
 	if err != nil {
 		return secret, errors.Errorf("invalid pull secret: %v", err)
 	}
