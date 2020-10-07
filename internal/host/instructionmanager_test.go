@@ -89,6 +89,10 @@ var _ = Describe("instructionmanager", func() {
 				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
 					[]models.StepType{models.StepTypeExecute})
 			})
+			It("cancelled", func() {
+				checkStepsByState(models.HostStatusCancelled, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+					[]models.StepType{models.StepTypeExecute})
+			})
 			It("installing", func() {
 				checkStepsByState(models.HostStatusInstalling, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
 					[]models.StepType{models.StepTypeInstall})
@@ -133,6 +137,10 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("error", func() {
 				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+					[]models.StepType{models.StepTypeExecute})
+			})
+			It("cancelled", func() {
+				checkStepsByState(models.HostStatusCancelled, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
 					[]models.StepType{models.StepTypeExecute})
 			})
 			It("installing", func() {
