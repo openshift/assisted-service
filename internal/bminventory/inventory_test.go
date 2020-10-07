@@ -3050,6 +3050,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		mockClusterAPI   *cluster.MockAPI
 		mockHostApi      *host.MockAPI
 		mockS3Client     *s3wrapper.MockAPI
+		mockMetric       *metrics.MockAPI
 		request          *http.Request
 	)
 
@@ -3063,7 +3064,8 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		mockClusterAPI = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler())
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
 	})
@@ -3085,11 +3087,12 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockMetric.EXPECT().ClusterRegistered(openshiftVersion, clusterID).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
 	})
 
-	It("Create AddHosts cluster fail upload", func() {
+	It("Create AddHost cluster fail upload", func() {
 		params := installer.RegisterAddHostsClusterParams{
 			HTTPRequest: request,
 			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
@@ -3172,7 +3175,7 @@ var _ = Describe("Install Hosts test", func() {
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalling, models.HostKindAddToExistingClusterHost, clusterID, "", db)
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, "", db)
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, "", db)
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		res := bm.InstallHosts(ctx, params)
@@ -3187,7 +3190,7 @@ var _ = Describe("Install Hosts test", func() {
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalling, models.HostKindAddToExistingClusterHost, clusterID, "", db)
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, "", db)
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusDisconnected, models.HostKindAddToExistingClusterHost, clusterID, "", db)
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(0)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		res := bm.InstallHosts(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostsAccepted()))

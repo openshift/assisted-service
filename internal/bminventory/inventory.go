@@ -461,6 +461,8 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 		Kind:             swag.String(models.ClusterKindAddHostsCluster),
 		Name:             clusterName,
 		OpenshiftVersion: openshiftVersion,
+		UserName:         auth.UserNameFromContext(ctx),
+		OrgID:            auth.OrgIDFromContext(ctx),
 		UpdatedAt:        strfmt.DateTime{},
 		APIVipDNSName:    swag.String(apivipDnsname),
 	}}
@@ -489,6 +491,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
+	b.metricApi.ClusterRegistered(openshiftVersion, *cluster.ID)
 	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&cluster.Cluster)
 }
 
@@ -936,6 +939,9 @@ func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.
 	// auto select hosts roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
 		for i := range cluster.Hosts {
+			if swag.StringValue(cluster.Hosts[i].Status) != models.HostStatusKnown {
+				continue
+			}
 			if err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx); err != nil {
 				return err
 			}
@@ -1144,6 +1150,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
 		params.ClusterUpdateParams.HTTPSProxy,
 		params.ClusterUpdateParams.NoProxy); err != nil {
+		log.WithError(err).Errorf("Failed to validate Proxy settings")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -1409,6 +1416,7 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		if err = hostutil.ValidateHostname(params.ClusterUpdateParams.HostsNames[i].Hostname); err != nil {
+			log.WithError(err).Errorf("invalid hostname format: %s", err)
 			return err
 		}
 		err = b.hostApi.UpdateHostname(ctx, &host, params.ClusterUpdateParams.HostsNames[i].Hostname, db)
@@ -2656,6 +2664,7 @@ func (b *bareMetalInventory) validateDNSDomain(params installer.UpdateClusterPar
 	clusterBaseDomain := swag.StringValue(params.ClusterUpdateParams.BaseDNSDomain)
 	if clusterBaseDomain != "" {
 		if err := validations.ValidateDomainNameFormat(clusterBaseDomain); err != nil {
+			log.WithError(err).Errorf("Invalid cluster base domain: %s", clusterBaseDomain)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
