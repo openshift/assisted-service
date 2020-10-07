@@ -4,7 +4,7 @@ set -o nounset
 
 commit_file=${1}
 commit_message="$(cat ${commit_file})"
-valid_commit_regex='([A-Z]+-[0-9]+|#[0-9]+|no-issue)'
+valid_commit_regex='([A-Z]+-[0-9]+|#[0-9]+|merge|no-issue)'
 
 error_msg="""Aborting commit.
 Your commit message is missing either a JIRA issue ('JIRA-1111'), a GitHub issue ('#39').
