@@ -278,7 +278,7 @@ unit-test: $(REPORTS)
 		-p 127.0.0.1:5432:5432 quay.io/ocpmetal/postgresql-12-centos7
 	timeout 1m bash -c "until PGPASSWORD=admin pg_isready -U postgres --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done"
 	SKIP_UT_DB=1 gotestsum --format=pkgname $(TEST_PUBLISH_FLAGS) -- -cover -coverprofile=$(REPORTS)/coverage.out $(or ${TEST},${TEST},$(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
-		-ginkgo.v -timeout 20m -count=1 || (docker kill postgres && /bin/false)
+		-ginkgo.v -timeout 30m -count=1 || (docker kill postgres && /bin/false)
 	gocov convert $(REPORTS)/coverage.out | gocov-xml > $(REPORTS)/coverage.xml
 	docker kill postgres
 
