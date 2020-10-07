@@ -510,7 +510,7 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 	if err != nil {
 		log.WithError(err).Errorf("not reporting installation metrics - failed to find cluster %s", h.ClusterID)
 	} else {
-		m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h, previousProgress, CurrentStage)
+		m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, *cluster.ID, h, previousProgress, CurrentStage)
 	}
 }
 
