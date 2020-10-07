@@ -47,8 +47,8 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	AfterEach(func() {
-                clearDB()
-        })
+		clearDB()
+	})
 
 	generateApiVipPostStepReply := func(h *models.Host, success bool) {
 		checkVipApiResponse := models.APIVipConnectivityResponse{
