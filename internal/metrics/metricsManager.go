@@ -62,7 +62,7 @@ type API interface {
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID)
 	Duration(operation string, duration time.Duration)
 	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStratedTime strfmt.DateTime)
-	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
+	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
 }
 
 type MetricsManager struct {
@@ -126,7 +126,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Help:      counterDescriptionHostInstallationPhaseSeconds,
 			Buckets: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210, 240, 270, 300, 360, 420, 480, 540,
 				600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600},
-		}, []string{phaseLabel, resultLabel, openshiftVersionLabel, discoveryAgentVersionLabel}),
+		}, []string{phaseLabel, resultLabel, openshiftVersionLabel, clusterIdLabel, discoveryAgentVersionLabel}),
 
 		serviceLogicClusterHosts: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -134,7 +134,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 				Subsystem: subsystem,
 				Name:      counterClusterHosts,
 				Help:      counterDescriptionClusterHosts,
-			}, []string{roleLabel, resultLabel, openshiftVersionLabel}),
+			}, []string{roleLabel, resultLabel, openshiftVersionLabel, clusterIdLabel}),
 
 		serviceLogicClusterHostCores: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -142,7 +142,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Name:      counterClusterHostCores,
 			Help:      counterDescriptionClusterHostCores,
 			Buckets:   []float64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512},
-		}, []string{roleLabel, resultLabel, openshiftVersionLabel}),
+		}, []string{roleLabel, resultLabel, openshiftVersionLabel, clusterIdLabel}),
 
 		serviceLogicClusterHostRAMGb: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -150,7 +150,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Name:      counterClusterHostRAMGb,
 			Help:      counterDescriptionClusterHostRAMGb,
 			Buckets:   []float64{8, 16, 32, 64, 128, 256, 512, 1024, 2048},
-		}, []string{roleLabel, resultLabel, openshiftVersionLabel}),
+		}, []string{roleLabel, resultLabel, openshiftVersionLabel, clusterIdLabel}),
 
 		serviceLogicClusterHostDiskGb: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -158,7 +158,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Name:      counterClusterHostDiskGb,
 			Help:      counterDescriptionClusterHostDiskGb,
 			Buckets:   []float64{250, 500, 1000, 2000, 4000, 8000, 16000},
-		}, []string{diskTypeLabel, roleLabel, resultLabel, openshiftVersionLabel}),
+		}, []string{diskTypeLabel, roleLabel, resultLabel, openshiftVersionLabel, clusterIdLabel}),
 
 		serviceLogicClusterHostNicGb: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -166,7 +166,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Name:      counterClusterHostNicGb,
 			Help:      counterDescriptionClusterHostNicGb,
 			Buckets:   []float64{1, 10, 20, 40, 100},
-		}, []string{roleLabel, resultLabel, openshiftVersionLabel}),
+		}, []string{roleLabel, resultLabel, openshiftVersionLabel, clusterIdLabel}),
 	}
 
 	registry.MustRegister(
@@ -201,8 +201,8 @@ func (m *MetricsManager) Duration(operation string, duration time.Duration) {
 	m.serviceLogicOperationDurationMiliSeconds.WithLabelValues(operation).Observe(float64(duration.Milliseconds()))
 }
 
-func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host,
-	previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
+func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string,
+	clusterID strfmt.UUID, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 
 	if previousProgress != nil && previousProgress.CurrentStage != currentStage {
 
@@ -213,7 +213,7 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 		installationStageStr := string(currentStage)
 		switch currentStage {
 		case models.HostStageDone, models.HostStageFailed:
-			m.handleHostInstallationComplete(log, clusterVersion, roleStr, installationStageStr, h)
+			m.handleHostInstallationComplete(log, clusterVersion, clusterID, roleStr, installationStageStr, h)
 		}
 		//report the installation phase duration
 		if previousProgress.CurrentStage != "" {
@@ -225,15 +225,15 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 			log.Infof("service Logic Host Installation Phase Seconds phase %s, result %s, duration %f",
 				string(previousProgress.CurrentStage), string(phaseResult), duration)
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
-				string(phaseResult), clusterVersion, h.DiscoveryAgentVersion).Observe(duration)
+				string(phaseResult), clusterVersion, clusterID.String(), h.DiscoveryAgentVersion).Observe(duration)
 		}
 	}
 }
 
-func (m *MetricsManager) handleHostInstallationComplete(log logrus.FieldLogger, clusterVersion string, roleStr string, installationStageStr string, h *models.Host) {
+func (m *MetricsManager) handleHostInstallationComplete(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, roleStr string, installationStageStr string, h *models.Host) {
 	log.Infof("service Logic Cluster Hosts clusterVersion %s, roleStr %s, result %s",
 		clusterVersion, roleStr, installationStageStr)
-	m.serviceLogicClusterHosts.WithLabelValues(roleStr, installationStageStr, clusterVersion).Inc()
+	m.serviceLogicClusterHosts.WithLabelValues(roleStr, installationStageStr, clusterVersion, clusterID.String()).Inc()
 	var hwInfo models.Inventory
 
 	err := json.Unmarshal([]byte(h.Inventory), &hwInfo)
@@ -243,11 +243,11 @@ func (m *MetricsManager) handleHostInstallationComplete(log logrus.FieldLogger, 
 		log.Infof("service Logic Cluster Host Cores role %s, result %s cpu %d",
 			roleStr, installationStageStr, hwInfo.CPU.Count)
 		m.serviceLogicClusterHostCores.WithLabelValues(roleStr, installationStageStr,
-			clusterVersion).Observe(float64(hwInfo.CPU.Count))
+			clusterVersion, clusterID.String()).Observe(float64(hwInfo.CPU.Count))
 		log.Infof("service Logic Cluster Host RAMGb role %s, result %s ram %d",
 			roleStr, installationStageStr, bytesToGib(hwInfo.Memory.PhysicalBytes))
 		m.serviceLogicClusterHostRAMGb.WithLabelValues(roleStr, installationStageStr,
-			clusterVersion).Observe(float64(bytesToGib(hwInfo.Memory.PhysicalBytes)))
+			clusterVersion, clusterID.String()).Observe(float64(bytesToGib(hwInfo.Memory.PhysicalBytes)))
 		for _, disk := range hwInfo.Disks {
 			//TODO change the code after adding storage controller to disk model
 			diskTypeStr := disk.DriveType //+ "-" + disk.StorageController
@@ -255,13 +255,13 @@ func (m *MetricsManager) handleHostInstallationComplete(log logrus.FieldLogger, 
 				roleStr, installationStageStr, diskTypeStr, bytesToGib(disk.SizeBytes))
 			//TODO missing raid data
 			m.serviceLogicClusterHostDiskGb.WithLabelValues(diskTypeStr, roleStr, installationStageStr,
-				clusterVersion).Observe(float64(bytesToGib(disk.SizeBytes)))
+				clusterVersion, clusterID.String()).Observe(float64(bytesToGib(disk.SizeBytes)))
 		}
 		for _, inter := range hwInfo.Interfaces {
 			log.Infof("service Logic Cluster Host NicGb role %s, result %s SpeedMbps %f",
 				roleStr, installationStageStr, float64(inter.SpeedMbps))
 			m.serviceLogicClusterHostNicGb.WithLabelValues(roleStr, installationStageStr,
-				clusterVersion).Observe(float64(inter.SpeedMbps))
+				clusterVersion, clusterID.String()).Observe(float64(inter.SpeedMbps))
 		}
 	}
 }
