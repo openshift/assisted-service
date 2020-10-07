@@ -2667,6 +2667,10 @@ func init() {
         "url": {
           "description": "URL address of the API.",
           "type": "string"
+        },
+        "verify_cidr": {
+          "description": "Whether to verify if the API VIP belongs to one of the interfaces.",
+          "type": "boolean"
         }
       }
     },
@@ -6793,6 +6797,10 @@ func init() {
         "url": {
           "description": "URL address of the API.",
           "type": "string"
+        },
+        "verify_cidr": {
+          "description": "Whether to verify if the API VIP belongs to one of the interfaces.",
+          "type": "boolean"
         }
       }
     },

@@ -20,6 +20,9 @@ type APIVipConnectivityRequest struct {
 	// URL address of the API.
 	// Required: true
 	URL *string `json:"url"`
+
+	// Whether to verify if the API VIP belongs to one of the interfaces.
+	VerifyCidr bool `json:"verify_cidr,omitempty"`
 }
 
 // Validate validates this api vip connectivity request
