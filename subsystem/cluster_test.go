@@ -33,9 +33,11 @@ const (
 	clusterReadyStateInfo           = "Cluster ready to be installed"
 	pullSecret                      = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
 	IgnoreStateInfo                 = "IgnoreStateInfo"
+	clusterCanceledInfo             = "Canceled cluster installation"
 	clusterErrorInfo                = "cluster has hosts in error"
 	clusterResetStateInfo           = "cluster was reset by user"
 	clusterPendingForInputStateInfo = "User input required"
+	clusterFinalizingStateInfo      = "Finalizing cluster installation"
 )
 
 const (
@@ -298,7 +300,7 @@ func installClusterAndComplete(clusterID strfmt.UUID) {
 		updateProgress(*host.ID, clusterID, models.HostStageDone)
 	}
 
-	waitForClusterState(context.Background(), clusterID, "finalizing", defaultWaitForClusterStateTimeout, "Finalizing cluster installation")
+	waitForClusterState(context.Background(), clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 
 	success := true
 	_, err := agentBMClient.Installer.CompleteInstallation(context.Background(),
@@ -432,7 +434,7 @@ var _ = Describe("cluster install - DHCP", func() {
 			})
 			Expect(err).To(HaveOccurred())
 			generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", false)
-			waitForClusterState(ctx, clusterID, "ready", 60*time.Second, clusterReadyStateInfo)
+			waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
 			getReply, err := userBMClient.Installer.GetCluster(ctx, installer.NewGetClusterParams().WithClusterID(clusterID))
 			Expect(err).ToNot(HaveOccurred())
 			c := getReply.Payload
@@ -795,7 +797,7 @@ var _ = Describe("cluster install", func() {
 				updateProgress(*host.ID, clusterID, models.HostStageDone)
 			}
 
-			waitForClusterState(ctx, clusterID, "finalizing", defaultWaitForClusterStateTimeout, "Finalizing cluster installation")
+			waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 			By("Completing installation installation")
 			success := true
 			_, err := agentBMClient.Installer.CompleteInstallation(ctx,
@@ -803,7 +805,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying installation successfully completed")
-			waitForClusterState(ctx, clusterID, "installed", defaultWaitForClusterStateTimeout, "installed")
+			waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, "installed")
 		})
 
 		It("[only_k8s]install_cluster fail", func() {
@@ -820,15 +822,19 @@ var _ = Describe("cluster install", func() {
 				updateProgress(*host.ID, clusterID, models.HostStageDone)
 			}
 
-			waitForClusterState(ctx, clusterID, "finalizing", defaultWaitForClusterStateTimeout, "Finalizing cluster installation")
+			waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 			By("Failing installation")
 			success := false
 			_, err := agentBMClient.Installer.CompleteInstallation(ctx,
 				&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: "failed"}})
 			Expect(err).NotTo(HaveOccurred())
-			By("Verifying installation failed")
-			waitForClusterState(ctx, clusterID, "error", defaultWaitForClusterStateTimeout, "failed")
 
+			By("Verifying installation failed")
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, clusterErrorInfo)
+
+			By("Verifying completion date field")
+			resp, _ := agentBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(resp.GetPayload().InstallCompletedAt).Should(Equal(resp.GetPayload().StatusUpdatedAt))
 		})
 
 		It("[only_k8s]install_cluster install command failed", func() {
@@ -1310,8 +1316,7 @@ var _ = Describe("cluster install", func() {
 
 		It("[only_k8s]on cluster error - verify all hosts are aborted", func() {
 			FailCluster(ctx, clusterID)
-			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
-				clusterErrorInfo)
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, clusterErrorInfo)
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := rep.GetPayload()
@@ -1329,6 +1334,7 @@ var _ = Describe("cluster install", func() {
 				}
 				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
+				waitForClusterState(ctx, clusterID, models.ClusterStatusCancelled, defaultWaitForClusterStateTimeout, clusterCanceledInfo)
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c = rep.GetPayload()
@@ -1336,6 +1342,8 @@ var _ = Describe("cluster install", func() {
 				for _, host := range c.Hosts {
 					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusCancelled))
 				}
+
+				Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
 			})
 			It("[only_k8s]cancel installation conflicts", func() {
 				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
@@ -2319,6 +2327,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		c = rep.GetPayload()
 		Expect(swag.StringValue(c.Status)).Should(Equal("installed"))
 		Expect(c.InstallCompletedAt).ShouldNot(Equal(startTimeInstalled))
+		Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
 	})
 })
 
@@ -2382,7 +2391,7 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 	})
 
 	Expect(err).NotTo(HaveOccurred())
-	waitForClusterState(ctx, clusterID, "ready", 60*time.Second, clusterReadyStateInfo)
+	waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
 
 	return hosts
 }
@@ -2443,7 +2452,7 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 	for _, h := range hosts {
 		generateDhcpStepReply(h, apiVip, ingressVip)
 	}
-	waitForClusterState(ctx, clusterID, "ready", 60*time.Second, clusterReadyStateInfo)
+	waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
 
 	return hosts
 }
