@@ -1886,8 +1886,9 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID, params.FileName)
 
 	if params.FileName == "logs" {
-		if params.HostID != nil {
-			*params.LogsType = string(models.LogsTypeHost)
+		if params.HostID != nil && swag.StringValue(params.LogsType) == "" {
+			logsType := string(models.LogsTypeHost)
+			params.LogsType = &logsType
 		}
 		fullFileName, _, err = b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID, swag.StringValue(params.LogsType))
 		if err != nil {
