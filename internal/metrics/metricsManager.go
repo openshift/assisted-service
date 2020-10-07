@@ -55,6 +55,8 @@ const (
 	roleLabel                  = "role"
 	diskTypeLabel              = "diskType"
 	discoveryAgentVersionLabel = "discoveryAgentVersion"
+	hwVendorLabel              = "vendor"
+	hwProductLabel             = "product"
 )
 
 type API interface {
@@ -62,7 +64,7 @@ type API interface {
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID)
 	Duration(operation string, duration time.Duration)
 	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStratedTime strfmt.DateTime)
-	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
+	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
 }
 
 type MetricsManager struct {
@@ -106,8 +108,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Subsystem: subsystem,
 			Name:      counterClusterInstallationSeconds,
 			Help:      counterDescriptionClusterInstallationSeconds,
-			Buckets: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210, 240, 270, 300, 360, 420, 480, 540,
-				600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600},
+			Buckets:   []float64{1, 5, 10, 30, 60, 120, 300, 600, 900, 1200, 1800},
 		}, []string{resultLabel, openshiftVersionLabel, clusterIdLabel}),
 
 		serviceLogicOperationDurationMiliSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -124,9 +125,8 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Subsystem: subsystem,
 			Name:      counterHostInstallationPhaseSeconds,
 			Help:      counterDescriptionHostInstallationPhaseSeconds,
-			Buckets: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210, 240, 270, 300, 360, 420, 480, 540,
-				600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600},
-		}, []string{phaseLabel, resultLabel, openshiftVersionLabel, clusterIdLabel, discoveryAgentVersionLabel}),
+			Buckets:   []float64{1, 5, 10, 30, 60, 120, 300, 600, 900, 1200, 1800},
+		}, []string{phaseLabel, resultLabel, openshiftVersionLabel, clusterIdLabel, discoveryAgentVersionLabel, hwVendorLabel, hwProductLabel, diskTypeLabel}),
 
 		serviceLogicClusterHosts: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -201,11 +201,9 @@ func (m *MetricsManager) Duration(operation string, duration time.Duration) {
 	m.serviceLogicOperationDurationMiliSeconds.WithLabelValues(operation).Observe(float64(duration.Milliseconds()))
 }
 
-func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string,
-	clusterID strfmt.UUID, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
-
+func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, boot *models.Disk, h *models.Host,
+	previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 	if previousProgress != nil && previousProgress.CurrentStage != currentStage {
-
 		roleStr := string(h.Role)
 		if h.Bootstrap {
 			roleStr = "bootstrap"
@@ -222,10 +220,24 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 			if currentStage == models.HostStageFailed {
 				phaseResult = models.HostStageFailed
 			}
-			log.Infof("service Logic Host Installation Phase Seconds phase %s, result %s, duration %f",
-				string(previousProgress.CurrentStage), string(phaseResult), duration)
+
+			var hwInfo models.Inventory
+			var hwVendor, hwProduct string = "Unknown", "Unknown"
+			if err := json.Unmarshal([]byte(h.Inventory), &hwInfo); err == nil {
+				if hwInfo.SystemVendor != nil {
+					hwVendor = hwInfo.SystemVendor.Manufacturer
+					hwProduct = hwInfo.SystemVendor.ProductName
+				}
+			}
+
+			var diskType string = "Unknown"
+			if boot != nil {
+				diskType = boot.DriveType
+			}
+			log.Infof("service Logic Host Installation Phase Seconds phase %s, vendor %s product %s disk %s result %s, duration %f",
+				string(previousProgress.CurrentStage), hwVendor, hwProduct, diskType, string(phaseResult), duration)
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
-				string(phaseResult), clusterVersion, clusterID.String(), h.DiscoveryAgentVersion).Observe(duration)
+				string(phaseResult), clusterVersion, clusterID.String(), h.DiscoveryAgentVersion, hwVendor, hwProduct, diskType).Observe(duration)
 		}
 	}
 }
