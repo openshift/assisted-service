@@ -50,20 +50,23 @@ var manualRebootStages = [...]models.HostStage{
 }
 
 var InstallationProgressTimeout = map[models.HostStage]time.Duration{
-	models.HostStageStartingInstallation:        10 * time.Minute,
-	models.HostStageWaitingForControlPlane:      30 * time.Minute,
-	models.HostStageStartWaitingForControlPlane: 30 * time.Minute,
-	models.HostStageInstalling:                  20 * time.Minute,
-	models.HostStageJoined:                      20 * time.Minute,
-	models.HostStageWritingImageToDisk:          20 * time.Minute,
+	models.HostStageStartingInstallation:        30 * time.Minute,
+	models.HostStageWaitingForControlPlane:      60 * time.Minute,
+	models.HostStageStartWaitingForControlPlane: 60 * time.Minute,
+	models.HostStageInstalling:                  60 * time.Minute,
+	models.HostStageJoined:                      60 * time.Minute,
+	models.HostStageWritingImageToDisk:          60 * time.Minute,
 	models.HostStageRebooting:                   70 * time.Minute,
-	models.HostStageConfiguring:                 30 * time.Minute,
+	models.HostStageConfiguring:                 60 * time.Minute,
 	models.HostStageWaitingForIgnition:          60 * time.Minute,
 	"DEFAULT":                                   60 * time.Minute,
 }
 
+var InstallationTimeout = 20 * time.Minute
+
 type Config struct {
-	ResetTimeout time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
+	EnableAutoReset bool          `envconfig:"ENABLE_AUTO_RESET" default:"false"`
+	ResetTimeout    time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 }
 
 //go:generate mockgen -source=host.go -package=host -aux_files=github.com/openshift/assisted-service/internal/host=instructionmanager.go -destination=mock_host_api.go
@@ -76,6 +79,7 @@ type API interface {
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
+	UpdateApiVipConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
@@ -249,7 +253,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		models.HostStatusInstalling, models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction,
 	}
 	if !funk.ContainsString(validStatuses, swag.StringValue(h.Status)) {
-		return fmt.Errorf("Can't set progress <%s> to host in status <%s>", progress.CurrentStage, swag.StringValue(h.Status))
+		return errors.Errorf("Can't set progress <%s> to host in status <%s>", progress.CurrentStage, swag.StringValue(h.Status))
 	}
 
 	if previousProgress.CurrentStage != "" && progress.CurrentStage != models.HostStageFailed {
@@ -284,6 +288,14 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 		_, err = updateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
+	case models.HostStageRebooting:
+		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+			_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfo,
+				h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
+			break
+		}
+		fallthrough
 	default:
 		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
@@ -316,6 +328,16 @@ func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, 
 		err := m.db.Model(h).Update("connectivity", connectivityReport).Error
 		if err != nil {
 			return errors.Wrapf(err, "failed to set connectivity to host %s", h.ID.String())
+		}
+	}
+	return nil
+}
+
+func (m *Manager) UpdateApiVipConnectivityReport(ctx context.Context, h *models.Host, apiVipConnectivityReport string) error {
+	logrus.Errorf("!!!! apiVipConnectivityReport: " + apiVipConnectivityReport)
+	if h.APIVipConnectivity != apiVipConnectivityReport {
+		if err := m.db.Model(h).Update("api_vip_connectivity", apiVipConnectivityReport).Error; err != nil {
+			return errors.Wrapf(err, "failed to set api_vip_connectivity to host %s", h.ID.String())
 		}
 	}
 	return nil
@@ -401,12 +423,25 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 		}
 	}()
 
-	err := m.sm.Run(TransitionTypeResetHost, newStateHost(h), &TransitionArgsResetHost{
-		ctx:    ctx,
-		reason: reason,
-		db:     db,
-	})
-	if err != nil {
+	var transitionType stateswitch.TransitionType
+	var transitionArgs stateswitch.TransitionArgs
+
+	if m.Config.EnableAutoReset {
+		transitionType = TransitionTypeResetHost
+		transitionArgs = &TransitionArgsResetHost{
+			ctx:    ctx,
+			reason: reason,
+			db:     db,
+		}
+	} else {
+		transitionType = TransitionTypeResettingPendingUserAction
+		transitionArgs = &TransitionResettingPendingUserAction{
+			ctx: ctx,
+			db:  db,
+		}
+	}
+
+	if err := m.sm.Run(transitionType, newStateHost(h), transitionArgs); err != nil {
 		eventSeverity = models.EventSeverityError
 		eventInfo = fmt.Sprintf("Failed to reset installation of host %s. Error: %s", hostutil.GetHostnameForMsg(h), err.Error())
 		return common.NewApiError(http.StatusConflict, err)
@@ -513,6 +548,10 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		autoSelectedRole = models.HostRoleWorker
 		log              = logutil.FromContext(ctx, m.log)
 	)
+
+	if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+		return autoSelectedRole, nil
+	}
 
 	// count already existing masters
 	mastersCount := 0

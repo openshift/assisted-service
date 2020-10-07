@@ -22,6 +22,7 @@ const (
 	counterClusterCreation              = "assisted_installer_cluster_creations"
 	counterClusterInstallationStarted   = "assisted_installer_cluster_installation_started"
 	counterClusterInstallationSeconds   = "assisted_installer_cluster_installation_seconds"
+	counterOperationDurationMiliSeconds = "assisted_installer_operation_duration_miliseconds"
 	counterHostInstallationPhaseSeconds = "assisted_installer_host_installation_phase_seconds"
 	counterClusterHosts                 = "assisted_installer_cluster_hosts"
 	counterClusterHostCores             = "assisted_installer_cluster_host_cores"
@@ -34,6 +35,7 @@ const (
 	counterDescriptionClusterCreation              = "Number of cluster resources created, by version"
 	counterDescriptionClusterInstallationStarted   = "Number of clusters that entered installing state, by version"
 	counterDescriptionClusterInstallationSeconds   = "Histogram/sum/count of installation time for completed clusters, by result and OCP version"
+	counterDescriptionOperationDurationMiliSeconds = "Histogram/sum/count of operation time for specific operation, by name"
 	counterDescriptionHostInstallationPhaseSeconds = "Histogram/sum/count of time for each phase, by phase, final install result, and OCP version"
 	counterDescriptionClusterHosts                 = "Number of hosts for completed clusters, by role, result, and OCP version"
 	counterDescriptionClusterHostCores             = "Histogram/sum/count of CPU cores in hosts of completed clusters, by role, result, and OCP version"
@@ -46,7 +48,9 @@ const (
 	namespace                  = ""
 	subsystem                  = "service"
 	openshiftVersionLabel      = "openshiftVersion"
+	clusterIdLabel             = "clusterId"
 	resultLabel                = "result"
+	operation                  = "operation"
 	phaseLabel                 = "phase"
 	roleLabel                  = "role"
 	diskTypeLabel              = "diskType"
@@ -54,9 +58,10 @@ const (
 )
 
 type API interface {
-	ClusterRegistered(clusterVersion string)
-	InstallationStarted(clusterVersion string)
-	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, installationStratedTime strfmt.DateTime)
+	ClusterRegistered(clusterVersion string, clusterID strfmt.UUID)
+	InstallationStarted(clusterVersion string, clusterID strfmt.UUID)
+	Duration(operation string, duration time.Duration)
+	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStratedTime strfmt.DateTime)
 	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
 }
 
@@ -66,6 +71,7 @@ type MetricsManager struct {
 	serviceLogicClusterCreation              *prometheus.CounterVec
 	serviceLogicClusterInstallationStarted   *prometheus.CounterVec
 	serviceLogicClusterInstallationSeconds   *prometheus.HistogramVec
+	serviceLogicOperationDurationMiliSeconds *prometheus.HistogramVec
 	serviceLogicHostInstallationPhaseSeconds *prometheus.HistogramVec
 	serviceLogicClusterHosts                 *prometheus.CounterVec
 	serviceLogicClusterHostCores             *prometheus.HistogramVec
@@ -85,7 +91,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 				Subsystem: subsystem,
 				Name:      counterClusterCreation,
 				Help:      counterDescriptionClusterCreation,
-			}, []string{openshiftVersionLabel}),
+			}, []string{openshiftVersionLabel, clusterIdLabel}),
 
 		serviceLogicClusterInstallationStarted: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -93,7 +99,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 				Subsystem: subsystem,
 				Name:      counterClusterInstallationStarted,
 				Help:      counterDescriptionClusterInstallationStarted,
-			}, []string{openshiftVersionLabel}),
+			}, []string{openshiftVersionLabel, clusterIdLabel}),
 
 		serviceLogicClusterInstallationSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -102,7 +108,16 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Help:      counterDescriptionClusterInstallationSeconds,
 			Buckets: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 20, 30, 40, 50, 60, 90, 120, 150, 180, 210, 240, 270, 300, 360, 420, 480, 540,
 				600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600},
-		}, []string{resultLabel, openshiftVersionLabel}),
+		}, []string{resultLabel, openshiftVersionLabel, clusterIdLabel}),
+
+		serviceLogicOperationDurationMiliSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      counterOperationDurationMiliSeconds,
+			Help:      counterDescriptionOperationDurationMiliSeconds,
+			Buckets: []float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1200,
+				1400, 1600, 1800, 2000, 2400, 2800, 3200, 3600, 4000, 5000},
+		}, []string{operation}),
 
 		serviceLogicHostInstallationPhaseSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -158,6 +173,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 		m.serviceLogicClusterCreation,
 		m.serviceLogicClusterInstallationStarted,
 		m.serviceLogicClusterInstallationSeconds,
+		m.serviceLogicOperationDurationMiliSeconds,
 		m.serviceLogicHostInstallationPhaseSeconds,
 		m.serviceLogicClusterHosts,
 		m.serviceLogicClusterHostCores,
@@ -168,17 +184,21 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 	return m
 }
 
-func (m *MetricsManager) ClusterRegistered(clusterVersion string) {
-	m.serviceLogicClusterCreation.WithLabelValues(clusterVersion).Inc()
+func (m *MetricsManager) ClusterRegistered(clusterVersion string, clusterID strfmt.UUID) {
+	m.serviceLogicClusterCreation.WithLabelValues(clusterVersion, clusterID.String()).Inc()
 }
-func (m *MetricsManager) InstallationStarted(clusterVersion string) {
-	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion).Inc()
+func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID strfmt.UUID) {
+	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion, clusterID.String()).Inc()
 }
 
-func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, installationStratedTime strfmt.DateTime) {
+func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStratedTime strfmt.DateTime) {
 	duration := time.Since(time.Time(installationStratedTime)).Seconds()
-	log.Infof("Cluster Installation Finished result %s clusterVersion %s duration %f", result, clusterVersion, duration)
-	m.serviceLogicClusterInstallationSeconds.WithLabelValues(result, clusterVersion).Observe(duration)
+	log.Infof("Cluster %s Installation Finished result %s clusterVersion %s duration %f", clusterID.String(), result, clusterVersion, duration)
+	m.serviceLogicClusterInstallationSeconds.WithLabelValues(result, clusterVersion, clusterID.String()).Observe(duration)
+}
+
+func (m *MetricsManager) Duration(operation string, duration time.Duration) {
+	m.serviceLogicOperationDurationMiliSeconds.WithLabelValues(operation).Observe(float64(duration.Milliseconds()))
 }
 
 func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host,

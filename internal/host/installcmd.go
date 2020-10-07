@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -52,7 +53,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		role = models.HostRoleBootstrap
 	}
 
-	cmdArgsTmpl := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket --privileged --pid=host --net=host " +
+	cmdArgsTmpl := "podman run -v /dev:/dev:rw -v /opt:/opt:rw {{if .HOST_CA_CERT_PATH}}-v {{.HOST_CA_CERT_PATH}}:{{.HOST_CA_CERT_PATH}}:rw {{end}}-v /run/systemd/journal/socket:/run/systemd/journal/socket --privileged --pid=host --net=host " +
 		"-v /var/log:/var/log:rw --env PULL_SECRET_TOKEN --name assisted-installer {{.INSTALLER}} --role {{.ROLE}} --cluster-id {{.CLUSTER_ID}} " +
 		"--boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}} " +
 		"--controller-image {{.CONTROLLER_IMAGE}} --url {{.BASE_URL}} --insecure={{.SKIP_CERT_VERIFICATION}} --agent-image {{.AGENT_IMAGE}}"
@@ -95,6 +96,11 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		}
 	}
 
+	if i.hasCACert() {
+		cmdArgsTmpl = cmdArgsTmpl + " --cacert {{.HOST_CA_CERT_PATH}}"
+		data["HOST_CA_CERT_PATH"] = common.HostCACertPath
+	}
+
 	// added to run upload logs if install command fails
 	// will return same exit code as installer command
 	logsCommand, err := CreateUploadLogsCmd(host, i.instructionConfig.ServiceBaseURL,
@@ -130,10 +136,14 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 	return step, nil
 }
 
+func (i *installCmd) hasCACert() bool {
+	return i.instructionConfig.ServiceCACertPath != ""
+}
+
 func getBootDevice(log logrus.FieldLogger, hwValidator hardware.Validator, host models.Host) (string, error) {
 	disks, err := hwValidator.GetHostValidDisks(&host)
 	if err != nil || len(disks) == 0 {
-		err := fmt.Errorf("Failed to get valid disks on host with id %s", host.ID)
+		err := errors.Errorf("Failed to get valid disks on host with id %s", host.ID)
 		log.Errorf("Failed to get valid disks on host with id %s", host.ID)
 		return "", err
 	}

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -26,13 +25,14 @@ import (
 
 func createValidatorCfg() *hardware.ValidatorCfg {
 	return &hardware.ValidatorCfg{
-		MinCPUCores:       2,
-		MinCPUCoresWorker: 2,
-		MinCPUCoresMaster: 4,
-		MinDiskSizeGb:     120,
-		MinRamGib:         8,
-		MinRamGibWorker:   8,
-		MinRamGibMaster:   16,
+		MinCPUCores:                   2,
+		MinCPUCoresWorker:             2,
+		MinCPUCoresMaster:             4,
+		MinDiskSizeGb:                 120,
+		MinRamGib:                     8,
+		MinRamGibWorker:               8,
+		MinRamGibMaster:               16,
+		MaximumAllowedTimeDiffMinutes: 4,
 	}
 }
 
@@ -69,7 +69,7 @@ var _ = Describe("RegisterHost", func() {
 			progressStage         models.HostStage
 			srcState              string
 			dstState              string
-			expectedError         error
+			errorCode             int32
 			expectedEventInfo     string
 			expectedEventStatus   string
 			expectedNilStatusInfo bool
@@ -93,7 +93,7 @@ var _ = Describe("RegisterHost", func() {
 				progressStage:         models.HostStageRebooting,
 				srcState:              models.HostStatusInstallingPendingUserAction,
 				dstState:              models.HostStatusInstallingPendingUserAction,
-				expectedError:         installer.NewRegisterHostForbidden(),
+				errorCode:             http.StatusForbidden,
 				expectedEventInfo:     "",
 				expectedNilStatusInfo: true,
 			},
@@ -123,11 +123,13 @@ var _ = Describe("RegisterHost", func() {
 					Status:    swag.String(t.srcState),
 				})
 
-				if t.expectedError == nil {
+				if t.errorCode == 0 {
 					Expect(err).ShouldNot(HaveOccurred())
 				} else {
 					Expect(err).Should(HaveOccurred())
-					Expect(err).Should(Equal(t.expectedError))
+					serr, ok := err.(*common.ApiErrorResponse)
+					Expect(ok).Should(Equal(true))
+					Expect(serr.StatusCode()).Should(Equal(t.errorCode))
 				}
 				h := getHost(hostId, clusterId, db)
 				Expect(swag.StringValue(h.Status)).Should(Equal(t.dstState))
@@ -255,9 +257,11 @@ var _ = Describe("RegisterHost", func() {
 			dstState           string
 			eventSeverity      string
 			eventMessage       string
+			origRole           models.HostRole
 			expectedRole       models.HostRole
 			expectedStatusInfo string
 			expectedInventory  string
+			hostKind           string
 		}{
 			{
 				srcState: models.HostStatusInstallingInProgress,
@@ -273,6 +277,8 @@ var _ = Describe("RegisterHost", func() {
 					"please reboot and fix boot order to boot from disk /dev/test-disk (test-serial)",
 				expectedRole:      models.HostRoleMaster,
 				expectedInventory: defaultInventory(),
+				hostKind:          models.HostKindHost,
+				origRole:          models.HostRoleMaster,
 			},
 			{
 				srcState: models.HostStatusResetting,
@@ -282,6 +288,8 @@ var _ = Describe("RegisterHost", func() {
 				dstState:          models.HostStatusResetting,
 				expectedRole:      models.HostRoleMaster,
 				expectedInventory: defaultInventory(),
+				hostKind:          models.HostKindHost,
+				origRole:          models.HostRoleMaster,
 			},
 			{
 				srcState: models.HostStatusResettingPendingUserAction,
@@ -294,6 +302,25 @@ var _ = Describe("RegisterHost", func() {
 					"(Waiting for host to send hardware details)",
 				expectedStatusInfo: statusInfoDiscovering,
 				expectedRole:       models.HostRoleMaster,
+				hostKind:           models.HostKindHost,
+				origRole:           models.HostRoleMaster,
+			},
+			{
+				srcState: models.HostStatusAddedToExistingCluster,
+				progress: models.HostProgressInfo{
+					CurrentStage: models.HostStageRebooting,
+				},
+				dstState:      models.HostStatusInstallingPendingUserAction,
+				eventSeverity: models.EventSeverityWarning,
+				eventMessage: "Host %s: updated status from \"added-to-existing-cluster\" to \"installing-pending-user-action\" " +
+					"(Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot " +
+					"order to boot from disk /dev/test-disk (test-serial))",
+				expectedStatusInfo: "Expected the host to boot from disk, but it booted the installation image - " +
+					"please reboot and fix boot order to boot from disk /dev/test-disk (test-serial)",
+				expectedRole:      models.HostRoleWorker,
+				expectedInventory: defaultInventory(),
+				hostKind:          models.HostKindAddToExistingClusterHost,
+				origRole:          models.HostRoleWorker,
 			},
 		}
 
@@ -304,11 +331,12 @@ var _ = Describe("RegisterHost", func() {
 				Expect(db.Create(&models.Host{
 					ID:                   &hostId,
 					ClusterID:            clusterId,
-					Role:                 models.HostRoleMaster,
+					Role:                 t.origRole,
 					Inventory:            defaultInventory(),
 					Status:               swag.String(t.srcState),
 					Progress:             &t.progress,
 					InstallationDiskPath: GetDeviceFullName(defaultDisk.Name),
+					Kind:                 &t.hostKind,
 				}).Error).ShouldNot(HaveOccurred())
 
 				if t.eventSeverity != "" && t.eventMessage != "" {
@@ -1019,6 +1047,48 @@ var _ = Describe("Refresh Host", func() {
 	})
 
 	Context("host installation timeout", func() {
+		var srcState = models.HostStatusInstalling
+		timePassedTypes := map[string]time.Duration{
+			"under_timeout": 5 * time.Minute,
+			"over_timeout":  90 * time.Minute,
+		}
+
+		for passedTimeKey, passedTimeValue := range timePassedTypes {
+			name := fmt.Sprintf("installing %s", passedTimeKey)
+			It(name, func() {
+				passedTimeKind := passedTimeKey
+				passedTime := passedTimeValue
+				hostCheckInAt := strfmt.DateTime(time.Now())
+				host = getTestHost(hostId, clusterId, srcState)
+				host.Inventory = masterInventory()
+				host.Role = models.HostRoleMaster
+				host.CheckedInAt = hostCheckInAt
+				host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-passedTime))
+
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				cluster = getTestCluster(clusterId, "1.2.3.0/24")
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+				if passedTimeKind == "over_timeout" {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+						gomock.Any(), gomock.Any())
+				}
+				err := hapi.RefreshStatus(ctx, &host, db)
+
+				Expect(err).ToNot(HaveOccurred())
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+				if passedTimeKind == "under_timeout" {
+					Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstalling))
+				} else {
+					Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
+					Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal("Host failed to install due to timeout while starting installation"))
+				}
+			})
+		}
+	})
+
+	Context("host installationInProgress timeout", func() {
 		var srcState string
 		var invalidStage models.HostStage = "not_mentioned_stage"
 
@@ -1038,8 +1108,10 @@ var _ = Describe("Refresh Host", func() {
 
 		for j := range installationStages {
 			stage := installationStages[j]
-			for passedTimeKind, passedTime := range timePassedTypes {
-				name := fmt.Sprintf("installation stage %s %s", stage, passedTimeKind)
+			for passedTimeKey, passedTimeValue := range timePassedTypes {
+				name := fmt.Sprintf("installationInProgress stage %s %s", stage, passedTimeKey)
+				passedTimeKind := passedTimeKey
+				passedTime := passedTimeValue
 				It(name, func() {
 					hostCheckInAt := strfmt.DateTime(time.Now())
 					srcState = models.HostStatusInstallingInProgress
@@ -1058,6 +1130,7 @@ var _ = Describe("Refresh Host", func() {
 					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 					cluster = getTestCluster(clusterId, "1.2.3.0/24")
 					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
 					if passedTimeKind == "over_timeout" {
 						mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
 							gomock.Any(), gomock.Any())
@@ -1543,6 +1616,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsAPIVipConnected:    {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
 				}),
 				inventory:     masterInventory(),
 				errorExpected: false,
@@ -1758,6 +1832,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsAPIVipConnected:    {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
@@ -1882,6 +1957,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsAPIVipConnected:    {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",

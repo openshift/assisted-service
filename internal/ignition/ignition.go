@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,6 +37,7 @@ var fileNames = [...]string{
 	"worker.ign",
 	"kubeconfig-noingress",
 	"kubeadmin-password",
+	"install-config.yaml",
 }
 
 // Generator can generate ignition files and upload them to an S3-like service
@@ -45,21 +47,23 @@ type Generator interface {
 }
 
 type installerGenerator struct {
-	log          logrus.FieldLogger
-	workDir      string
-	cluster      *common.Cluster
-	releaseImage string
-	installerDir string
+	log           logrus.FieldLogger
+	workDir       string
+	cluster       *common.Cluster
+	releaseImage  string
+	installerDir  string
+	serviceCACert string
 }
 
 // NewGenerator returns a generator that can generate ignition files
-func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, log logrus.FieldLogger) Generator {
+func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, serviceCACert string, log logrus.FieldLogger) Generator {
 	return &installerGenerator{
-		cluster:      cluster,
-		log:          log,
-		releaseImage: releaseImage,
-		workDir:      workDir,
-		installerDir: installerDir,
+		cluster:       cluster,
+		log:           log,
+		releaseImage:  releaseImage,
+		workDir:       workDir,
+		installerDir:  installerDir,
+		serviceCACert: serviceCACert,
 	}
 }
 
@@ -117,6 +121,12 @@ func (g *installerGenerator) Generate(installConfig []byte) error {
 		return err
 	}
 
+	err = g.updateIgnitions()
+	if err != nil {
+		g.log.Error(err)
+		return err
+	}
+
 	// move all files into the working directory
 	err = os.Rename(filepath.Join(g.workDir, "auth/kubeadmin-password"), filepath.Join(g.workDir, "kubeadmin-password"))
 	if err != nil {
@@ -128,6 +138,14 @@ func (g *installerGenerator) Generate(installConfig []byte) error {
 	if err != nil {
 		return err
 	}
+	// We want to save install-config.yaml
+	// Installer deletes it so we need to write it one more time
+	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
+	if err != nil {
+		g.log.Errorf("Failed to write file %s", installConfigPath)
+		return err
+	}
+
 	err = os.Remove(filepath.Join(g.workDir, "auth"))
 	if err != nil {
 		return err
@@ -142,15 +160,9 @@ func bmhIsMaster(bmh *bmh_v1alpha1.BareMetalHost) bool {
 // updateBootstrap adds a status annotation to each BareMetalHost defined in the
 // bootstrap ignition file
 func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
-	bootstrapBytes, err := ioutil.ReadFile(bootstrapPath)
+	config, err := parseIgnitionFile(bootstrapPath)
 	if err != nil {
-		g.log.Errorf("error reading file %s: %v", bootstrapPath, err)
-		return err
-	}
-
-	config, _, err := config_31.Parse(bootstrapBytes)
-	if err != nil {
-		g.log.Errorf("error parsing bootstrap ignition: %v", err)
+		g.log.Error(err)
 		return err
 	}
 
@@ -177,12 +189,12 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 			var host *models.Host
 			if bmhIsMaster(bmh) {
 				if len(masters) == 0 {
-					return fmt.Errorf("Not enough registered masters to match with BareMetalHosts")
+					return errors.Errorf("Not enough registered masters to match with BareMetalHosts")
 				}
 				host, masters = masters[0], masters[1:]
 			} else {
 				if len(workers) == 0 {
-					return fmt.Errorf("Not enough registered workers to match with BareMetalHosts")
+					return errors.Errorf("Not enough registered workers to match with BareMetalHosts")
 				}
 				host, workers = workers[0], workers[1:]
 			}
@@ -199,15 +211,9 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 
 	config.Storage.Files = newFiles
 
-	// write ignition back to disk
-	updatedBytes, err := json.Marshal(config)
+	err = writeIgnitionFile(bootstrapPath, config)
 	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(bootstrapPath, updatedBytes, 0600)
-	if err != nil {
-		g.log.Errorf("error writing file %s: %v", bootstrapPath, err)
+		g.log.Error(err)
 		return err
 	}
 	g.log.Infof("Updated file %s", bootstrapPath)
@@ -230,7 +236,7 @@ func isBaremetalProvisioningConfig(file *config_31_types.File) bool {
 func fileToBMH(file *config_31_types.File) (*bmh_v1alpha1.BareMetalHost, error) {
 	parts := strings.Split(*file.Contents.Source, "base64,")
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("could not parse source for file %s", file.Node.Path)
+		return nil, errors.Errorf("could not parse source for file %s", file.Node.Path)
 	}
 	decoded, err := base64.StdEncoding.DecodeString(parts[1])
 	if err != nil {
@@ -354,6 +360,28 @@ func (g *installerGenerator) modifyBMHFile(file *config_31_types.File, bmh *bmh_
 	return nil
 }
 
+func (g *installerGenerator) updateIgnitions() error {
+	masterPath := filepath.Join(g.workDir, "master.ign")
+	caCertFile := g.serviceCACert
+
+	if caCertFile != "" {
+		err := setCACertInIgnition(models.HostRoleMaster, masterPath, g.workDir, caCertFile)
+		if err != nil {
+			return errors.Wrapf(err, "error adding CA cert to ignition %s", masterPath)
+		}
+	}
+
+	workerPath := filepath.Join(g.workDir, "worker.ign")
+	if caCertFile != "" {
+		err := setCACertInIgnition(models.HostRoleWorker, workerPath, g.workDir, caCertFile)
+		if err != nil {
+			return errors.Wrapf(err, "error adding CA cert to ignition %s", workerPath)
+		}
+	}
+
+	return nil
+}
+
 // sortHosts sorts hosts into masters and workers, excluding disabled hosts
 func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 	masters := []*models.Host{}
@@ -392,5 +420,76 @@ func uploadToS3(ctx context.Context, workDir string, clusterID string, s3Client 
 		log.Infof("Uploaded file %s as object %s", fullPath, key)
 	}
 
+	return nil
+}
+
+func parseIgnitionFile(path string) (*config_31_types.Config, error) {
+	configBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, errors.Errorf("error reading file %s: %v", path, err)
+	}
+
+	config, _, err := config_31.Parse(configBytes)
+	if err != nil {
+		return nil, errors.Errorf("error parsing ignition: %v", err)
+	}
+
+	return &config, nil
+}
+
+// writeIgnitionFile writes an ignition config to a given path on disk
+func writeIgnitionFile(path string, config *config_31_types.Config) error {
+	updatedBytes, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(path, updatedBytes, 0600)
+	if err != nil {
+		return errors.Wrapf(err, "error writing file %s", path)
+	}
+
+	return nil
+}
+
+func setFileInIgnition(config *config_31_types.Config, filePath string, fileContents string, mode int) {
+	rootUser := "root"
+	file := config_31_types.File{
+		Node: config_31_types.Node{
+			Path:      filePath,
+			Overwrite: nil,
+			Group:     config_31_types.NodeGroup{},
+			User:      config_31_types.NodeUser{Name: &rootUser},
+		},
+		FileEmbedded1: config_31_types.FileEmbedded1{
+			Append: []config_31_types.Resource{},
+			Contents: config_31_types.Resource{
+				Source: &fileContents,
+			},
+			Mode: &mode,
+		},
+	}
+	config.Storage.Files = append(config.Storage.Files, file)
+}
+
+func setCACertInIgnition(role models.HostRole, path string, workDir string, caCertFile string) error {
+	config, err := parseIgnitionFile(path)
+	if err != nil {
+		return err
+	}
+
+	var caCertData []byte
+	caCertData, err = ioutil.ReadFile(caCertFile)
+	if err != nil {
+		return err
+	}
+
+	setFileInIgnition(config, common.HostCACertPath, fmt.Sprintf("data:,%s", url.PathEscape(string(caCertData))), 420)
+
+	fileName := fmt.Sprintf("%s.ign", role)
+	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
+	if err != nil {
+		return err
+	}
 	return nil
 }

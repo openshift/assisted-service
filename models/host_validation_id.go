@@ -55,6 +55,9 @@ const (
 
 	// HostValidationIDBelongsToMachineCidr captures enum value "belongs-to-machine-cidr"
 	HostValidationIDBelongsToMachineCidr HostValidationID = "belongs-to-machine-cidr"
+
+	// HostValidationIDAPIVipConnected captures enum value "api-vip-connected"
+	HostValidationIDAPIVipConnected HostValidationID = "api-vip-connected"
 )
 
 // for schema
@@ -62,7 +65,7 @@ var hostValidationIdEnum []interface{}
 
 func init() {
 	var res []HostValidationID
-	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","role-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","role-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","api-vip-connected"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

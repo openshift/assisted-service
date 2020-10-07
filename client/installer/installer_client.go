@@ -82,6 +82,9 @@ type API interface {
 	   InstallCluster installs the open shift bare metal cluster*/
 	InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterAccepted, error)
 	/*
+	   InstallHosts installs the open shift bare metal cluster*/
+	InstallHosts(ctx context.Context, params *InstallHostsParams) (*InstallHostsAccepted, error)
+	/*
 	   ListClusters retrieves the list of open shift bare metal clusters*/
 	ListClusters(ctx context.Context, params *ListClustersParams) (*ListClustersOK, error)
 	/*
@@ -90,6 +93,9 @@ type API interface {
 	/*
 	   PostStepReply posts the result of the operations from the host agent*/
 	PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error)
+	/*
+	   RegisterAddHostsCluster creates a new open shift bare metal cluster definition for adding nodes to and existing o c p cluster*/
+	RegisterAddHostsCluster(ctx context.Context, params *RegisterAddHostsClusterParams) (*RegisterAddHostsClusterCreated, error)
 	/*
 	   RegisterCluster creates a new open shift bare metal cluster definition*/
 	RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error)
@@ -114,6 +120,9 @@ type API interface {
 	/*
 	   UploadHostLogs agents API to upload logs*/
 	UploadHostLogs(ctx context.Context, params *UploadHostLogsParams) (*UploadHostLogsNoContent, error)
+	/*
+	   UploadLogs agents API to upload logs*/
+	UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error)
 }
 
 // New creates a new installer API client.
@@ -660,6 +669,31 @@ func (a *Client) InstallCluster(ctx context.Context, params *InstallClusterParam
 }
 
 /*
+InstallHosts installs the open shift bare metal cluster
+*/
+func (a *Client) InstallHosts(ctx context.Context, params *InstallHostsParams) (*InstallHostsAccepted, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "InstallHosts",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/actions/install_hosts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &InstallHostsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*InstallHostsAccepted), nil
+
+}
+
+/*
 ListClusters retrieves the list of open shift bare metal clusters
 */
 func (a *Client) ListClusters(ctx context.Context, params *ListClustersParams) (*ListClustersOK, error) {
@@ -731,6 +765,31 @@ func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams)
 		return nil, err
 	}
 	return result.(*PostStepReplyNoContent), nil
+
+}
+
+/*
+RegisterAddHostsCluster creates a new open shift bare metal cluster definition for adding nodes to and existing o c p cluster
+*/
+func (a *Client) RegisterAddHostsCluster(ctx context.Context, params *RegisterAddHostsClusterParams) (*RegisterAddHostsClusterCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "RegisterAddHostsCluster",
+		Method:             "POST",
+		PathPattern:        "/add_hosts_clusters",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &RegisterAddHostsClusterReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*RegisterAddHostsClusterCreated), nil
 
 }
 
@@ -931,5 +990,30 @@ func (a *Client) UploadHostLogs(ctx context.Context, params *UploadHostLogsParam
 		return nil, err
 	}
 	return result.(*UploadHostLogsNoContent), nil
+
+}
+
+/*
+UploadLogs agents API to upload logs
+*/
+func (a *Client) UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UploadLogs",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/logs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"multipart/form-data"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UploadLogsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UploadLogsNoContent), nil
 
 }

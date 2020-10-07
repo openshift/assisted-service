@@ -35,21 +35,24 @@ type StepsStruct struct {
 type stateToStepsMap map[string]StepsStruct
 
 type InstructionManager struct {
-	log          logrus.FieldLogger
-	db           *gorm.DB
-	stateToSteps stateToStepsMap
+	log                           logrus.FieldLogger
+	db                            *gorm.DB
+	installingClusterStateToSteps stateToStepsMap
+	addHostsClusterToSteps        stateToStepsMap
 }
 
 type InstructionConfig struct {
-	ServiceBaseURL          string `envconfig:"SERVICE_BASE_URL"`
-	InstallerImage          string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
-	ControllerImage         string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
-	ConnectivityCheckImage  string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	InventoryImage          string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	FreeAddressesImage      string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	DhcpLeaseAllocatorImage string `envconfig:"DHCP_LEASE_ALLOCATOR_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	SkipCertVerification    bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	InstallationTimeout     uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
+	ServiceBaseURL               string `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath            string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	InstallerImage               string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
+	ControllerImage              string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
+	ConnectivityCheckImage       string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	InventoryImage               string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	FreeAddressesImage           string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	DhcpLeaseAllocatorImage      string `envconfig:"DHCP_LEASE_ALLOCATOR_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	APIVIPConnectivityCheckImage string `envconfig:"API_VIP_CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	SkipCertVerification         bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	InstallationTimeout          uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator) *InstructionManager {
@@ -60,12 +63,13 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	resetCmd := NewResetInstallationCmd(log)
 	stopCmd := NewStopInstallationCmd(log)
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.DhcpLeaseAllocatorImage, db)
+	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.APIVIPConnectivityCheckImage)
 
 	return &InstructionManager{
 		log: log,
 		db:  db,
-		stateToSteps: stateToStepsMap{
-			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
+		installingClusterStateToSteps: stateToStepsMap{
+			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd}, defaultNextInstructionInSec},
 			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
 			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec},
@@ -76,6 +80,18 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusDisabled:                 {[]CommandGetter{}, defaultBackedOffInstructionInSec},
 			models.HostStatusResetting:                {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusError:                    {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
+		},
+		addHostsClusterToSteps: stateToStepsMap{
+			models.HostStatusKnown:                {[]CommandGetter{connectivityCmd, apivipConnectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusInsufficient:         {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusDisconnected:         {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusDiscovering:          {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec},
+			models.HostStatusPendingForInput:      {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusInstalling:           {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusInstallingInProgress: {[]CommandGetter{}, defaultNextInstructionInSec},
+			models.HostStatusDisabled:             {[]CommandGetter{}, defaultBackedOffInstructionInSec},
+			models.HostStatusResetting:            {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusError:                {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
 		},
 	}
 }
@@ -89,8 +105,12 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 	log.Infof("GetNextSteps cluster: ,<%s> host: <%s>, host status: <%s>", ClusterID, hostID, hostStatus)
 
 	returnSteps := models.Steps{}
+	stateToSteps := i.installingClusterStateToSteps
+	if swag.StringValue(host.Kind) == models.HostKindAddToExistingClusterHost {
+		stateToSteps = i.addHostsClusterToSteps
+	}
 
-	if cmdsMap, ok := i.stateToSteps[hostStatus]; ok {
+	if cmdsMap, ok := stateToSteps[hostStatus]; ok {
 		//need to add the step id
 		returnSteps.NextInstructionSeconds = cmdsMap.NextStepInSec
 		for _, cmd := range cmdsMap.Commands {

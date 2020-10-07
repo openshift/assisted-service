@@ -12,6 +12,7 @@ def handle_arguments():
     parser.add_argument("--subsystem-test", action='store_true')
     parser.add_argument("--jwks-url", default="https://api.openshift.com/.well-known/jwks.json")
     parser.add_argument("--ocm-url", default="https://api-integration.6943.hive-integration.openshiftapps.com")
+    parser.add_argument("--ocp-release")
     parser.add_argument("--installation-timeout", type=int)
 
     return deployment_options.load_deployment_options(parser)
@@ -50,6 +51,7 @@ def main():
             data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
             data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
             data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))
+            data = data.replace('REPLACE_OPENSHIFT_INSTALL_RELEASE_IMAGE', '"{}"'.format(deploy_options.ocp_release))
 
             subsystem_versions = {"IMAGE_BUILDER": "ISO_CREATION",
                                   "IGNITION_GENERATE_IMAGE": "DUMMY_IGNITION"}
@@ -60,7 +62,8 @@ def main():
                         "CONTROLLER_IMAGE": "assisted-installer-controller",
                         "AGENT_DOCKER_IMAGE": "assisted-installer-agent",
                         "CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent",
-                        "INVENTORY_IMAGE": "assisted-installer-agent"}
+                        "INVENTORY_IMAGE": "assisted-installer-agent",
+                        "API_VIP_CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
                 if deploy_options.subsystem_test and env_var_name in subsystem_versions.keys():
                     image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, subsystem_versions[env_var_name])

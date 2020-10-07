@@ -105,6 +105,7 @@ var _ = Describe("Host tests", func() {
 			Memory: &models.Memory{
 				PhysicalBytes: int64(16) * (int64(1) << 30),
 			},
+			Timestamp: 1601845851,
 		}
 		b, err := json.Marshal(&inventory)
 		Expect(err).To(Not(HaveOccurred()))

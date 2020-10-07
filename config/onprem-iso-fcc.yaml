@@ -8,6 +8,19 @@ passwd:
       groups: [ sudo ]
 systemd:
     units:
+        - name: assisted-service-certs.service
+          enabled: true
+          contents: |
+            [Unit]
+            After=network-online.target
+
+            [Service]
+            Type=oneshot
+            Restart=no
+            ExecStart=/bin/bash /etc/assisted-service/create_certs.sh
+
+            [Install]
+            WantedBy=multi-user.target
         - name: assisted-service-pod.service
           enabled: true
           contents: |
@@ -17,7 +30,7 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStart=podman pod create --name assisted-installer -p 5432,8000,8090,8080
+            ExecStart=podman pod create --name assisted-installer -p 8443
           
             [Install]
             WantedBy=multi-user.target
@@ -46,7 +59,7 @@ systemd:
             Type=forking
             Restart=no
             ExecStartPre=podman pull quay.io/ocpmetal/assisted-service:latest
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --restart always --name installer quay.io/ocpmetal/assisted-service:latest
+            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs/nginx-selfsigned.crt:/data/nginx-selfsigned.crt:z --restart always --name installer quay.io/ocpmetal/assisted-service:latest
             TimeoutStartSec=300
           
             [Install]
@@ -61,13 +74,21 @@ systemd:
             Type=forking
             Restart=no
             ExecStartPre=podman pull quay.io/ocpmetal/ocp-metal-ui:latest
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
+            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs:/certs:z -v /etc/assisted-service/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
             TimeoutStartSec=300
           
             [Install]
             WantedBy=multi-user.target
 storage:
     files:
+        - path: /etc/assisted-service/create_certs.sh
+          mode: 0644
+          contents:
+            inline: |
+              #!/bin/bash
+              mkdir -p /etc/assisted-service/nginx-certs
+              openssl req -x509 -nodes -days 365 -subj "/C=CA/ST=QC/O=Assisted Installer/CN=192.168.122.5" -addext "subjectAltName=IP:192.168.122.5" -newkey rsa:2048 -keyout /etc/assisted-service/nginx-certs/nginx-selfsigned.key -out /etc/assisted-service/nginx-certs/nginx-selfsigned.crt;
+              chmod 644 /etc/assisted-service/nginx-certs/nginx-selfsigned.key
         - path: /etc/assisted-service/environment
           mode: 0644
           contents:
@@ -80,15 +101,18 @@ storage:
                 DB_USER=admin
                 DB_PASS=admin
                 DB_NAME=installer
-                SERVICE_BASE_URL=http://assisted-api.local.openshift.io:8080
+                SERVICE_BASE_URL=https://192.168.122.5:8443
                 DEPLOY_TARGET=onprem
+                SERVICE_CA_CERT_PATH=/data/nginx-selfsigned.crt
                 OPENSHIFT_INSTALL_RELEASE_IMAGE=quay.io/ocpmetal/ocp-release:v1.0.9.1
         - path: /etc/assisted-service/nginx.conf
           mode: 0644
           contents:
             inline: |
                 server {
-                    listen 8080;
+                    listen 8443 ssl;
+                    ssl_certificate /certs/nginx-selfsigned.crt;
+                    ssl_certificate_key /certs/nginx-selfsigned.key;
                     server_name _;
                     root /app;
                     index index.html;

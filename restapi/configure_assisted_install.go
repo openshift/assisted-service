@@ -100,6 +100,9 @@ type InstallerAPI interface {
 	/* InstallCluster Installs the OpenShift bare metal cluster. */
 	InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder
 
+	/* InstallHosts Installs the OpenShift bare metal cluster. */
+	InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder
+
 	/* ListClusters Retrieves the list of OpenShift bare metal clusters. */
 	ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder
 
@@ -108,6 +111,9 @@ type InstallerAPI interface {
 
 	/* PostStepReply Posts the result of the operations from the host agent. */
 	PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder
+
+	/* RegisterAddHostsCluster Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster. */
+	RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder
 
 	/* RegisterCluster Creates a new OpenShift bare metal cluster definition. */
 	RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder
@@ -132,6 +138,9 @@ type InstallerAPI interface {
 
 	/* UploadHostLogs Agent API to upload logs. */
 	UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder
+
+	/* UploadLogs Agent API to upload logs. */
+	UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder
 }
 
 //go:generate mockery -name ManagedDomainsAPI -inpkg
@@ -332,6 +341,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.InstallCluster(ctx, params)
 	})
+	api.InstallerInstallHostsHandler = installer.InstallHostsHandlerFunc(func(params installer.InstallHostsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.InstallHosts(ctx, params)
+	})
 	api.InstallerListClustersHandler = installer.ListClustersHandlerFunc(func(params installer.ListClustersParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -361,6 +375,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.PostStepReply(ctx, params)
+	})
+	api.InstallerRegisterAddHostsClusterHandler = installer.RegisterAddHostsClusterHandlerFunc(func(params installer.RegisterAddHostsClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.RegisterAddHostsCluster(ctx, params)
 	})
 	api.InstallerRegisterClusterHandler = installer.RegisterClusterHandlerFunc(func(params installer.RegisterClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -401,6 +420,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UploadHostLogs(ctx, params)
+	})
+	api.InstallerUploadLogsHandler = installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.UploadLogs(ctx, params)
 	})
 	api.ServerShutdown = func() {}
 	return api.Serve(c.InnerMiddleware), api, nil

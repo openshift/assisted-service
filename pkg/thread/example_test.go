@@ -3,10 +3,14 @@ package thread_test
 import (
 	"fmt"
 	"io/ioutil"
+	"testing"
 	"time"
 
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/sirupsen/logrus"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var counter uint64
@@ -27,12 +31,18 @@ func useThread() {
 }
 
 // ExampleThread is a testable example for the thread package.
-// when executed with 'go test', the test will fail, if the 'output' remark, at the end of the function is not
-// correct.
+// The test will fail if the 'output' remark, at the end of the function, is not printed.
 func ExampleThread() {
 	useThread()
 	passed := counter <= 9 || counter <= 11
 	fmt.Println(passed)
 	// Output: true
+}
 
+// This is an old package test. While all of our testing infrastructure was switched to use ginkgo
+// This test remains until it would get converted.
+// This ginkgo wrapper was added to allow running this packge with ginkgo flags.
+func TestThread(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Request id tests")
 }

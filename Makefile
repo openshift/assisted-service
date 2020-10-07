@@ -20,9 +20,18 @@ kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}'
 endef # get_service
 endif # TARGET
 
-SERVICE := $(or ${SERVICE},quay.io/ocpmetal/assisted-service:latest)
-SERVICE_ONPREM := $(or ${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
-ISO_CREATION := $(or ${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
+ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
+ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
+
+export SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
+export SERVICE_ONPREM := $(or ${SERVICE_ONPREM},${ASSISTED_ORG}/assisted-service-onprem:${ASSISTED_TAG})
+export ISO_CREATION := $(or ${ISO_CREATION},${ASSISTED_ORG}/assisted-iso-create:${ASSISTED_TAG})
+CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
+
+# RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
+RHCOS_VERSION := $(or ${RHCOS_VERSION},46.82.202009222340-0)
+BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/${RHCOS_VERSION}/x86_64/rhcos-${RHCOS_VERSION}-live.x86_64.iso)
+OPENSHIFT_INSTALL_RELEASE_IMAGE := $(or ${OPENSHIFT_INSTALL_RELEASE_IMAGE},quay.io/openshift-release-dev/ocp-release:4.6.0-fc.9-x86_64)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
@@ -47,6 +56,8 @@ endif
 ifdef FOCUS
         GINKGO_FOCUS_FLAG = -ginkgo.focus=${FOCUS}
 endif
+REPORTS = $(ROOT_DIR)/reports
+TEST_PUBLISH_FLAGS = --junitfile-testsuite-name=relative --junitfile-testcase-classname=relative --junitfile $(REPORTS)/unittest.xml
 
 
 all: build
@@ -105,6 +116,8 @@ generate-keys: $(BUILD_FOLDER)
 .PHONY: build docs
 build: lint unit-test build-minimal build-iso-generator
 
+build-all: build-image build-minimal-assisted-iso-generator-image
+
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
@@ -112,36 +125,33 @@ build-iso-generator: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-iso-create assisted-iso-create/main.go
 
 build-onprem-dependencies: 
-	skipper make build-image build-assisted-iso-generator-image
+	skipper make build-all
 
 build-onprem: build-onprem-dependencies
 	podman pull $(ISO_CREATION_DOCKER_DAEMON_PULL_STRING)
 	podman pull $(ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING)
-	GIT_REVISION=${GIT_REVISION} podman build --network=host --build-arg GIT_REVISION \
- 		-f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
+	podman build $(CONTAINER_BUILD_PARAMS) --build-arg RHCOS_VERSION=${RHCOS_VERSION} -f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
 
 build-image: build
-	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
- 		-f Dockerfile.assisted-service . -t $(SERVICE)
+	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
 
 build-minimal-assisted-iso-generator-image: build-iso-generator
-	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) \
+	docker build $(CONTAINER_BUILD_PARAMS) --build-arg NAMESPACE=$(NAMESPACE) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
-update: build-image
+update: build-all
 	docker push $(SERVICE)
+	docker push $(ISO_CREATION)
 
 update-minimal: build-minimal
-	GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
-		-f Dockerfile.assisted-service . -t $(SERVICE)
+	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
-update-minikube: build
+_update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
-		GIT_REVISION=${GIT_REVISION} docker build --network=host --build-arg GIT_REVISION \
-		-f Dockerfile.assisted-service . -t $(SERVICE) \
-		&& docker build --network=host --build-arg GIT_REVISION -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE) && \
+		docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 define publish_image
 	docker tag ${1} ${2}
@@ -164,6 +174,9 @@ else ifdef DEPLOY_MANIFEST_PATH
 else ifdef DEPLOY_MANIFEST_TAG
   DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
 endif
+
+_verify_minikube:
+	minikube status
 
 deploy-all: $(BUILD_FOLDER) deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
 	echo "Deployment done"
@@ -195,7 +208,8 @@ deploy-inventory-service-file: deploy-namespace
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
-		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS)
+		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS) \
+		--ocp-release $(OPENSHIFT_INSTALL_RELEASE_IMAGE)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
@@ -209,13 +223,14 @@ deploy-role: deploy-namespace
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
-jenkins-deploy-for-subsystem: generate-keys
-	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && $(MAKE) deploy-wiremock deploy-all
+jenkins-deploy-for-subsystem: _verify_minikube generate-keys
+	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
+	$(MAKE) deploy-wiremock deploy-all
 
-deploy-test: generate-keys
-	export SERVICE=minikube-local-registry/assisted-service:minikube-test && export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" \
-	&& export DUMMY_IGNITION="True" && ISO_CREATION=minikube-local-registry/assisted-iso-create:minikube-test \
-	$(MAKE) update-minikube deploy-wiremock deploy-all
+deploy-test: _verify_minikube generate-keys
+	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
+	export ENABLE_AUTH="True" && export DUMMY_IGNITION="True" && \
+	$(MAKE) _update-minikube deploy-wiremock deploy-all
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
@@ -263,13 +278,18 @@ deploy-grafana: $(BUILD_FOLDER)
 
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
-unit-test:
-	docker kill postgres || true
-	sleep 3
-	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 postgres:12.3-alpine -c 'max_connections=10000'
-	until PGPASSWORD=admin pg_isready -U admin --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done
-	SKIP_UT_DB=1 go test -v $(or ${TEST}, ${TEST}, $(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) -cover -timeout 20m || (docker kill postgres && /bin/false)
+unit-test: $(REPORTS)
+	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
+	docker run -d --rm --name postgres -e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 \
+		-p 127.0.0.1:5432:5432 quay.io/ocpmetal/postgresql-12-centos7
+	timeout 1m bash -c "until PGPASSWORD=admin pg_isready -U postgres --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done"
+	SKIP_UT_DB=1 gotestsum --format=pkgname $(TEST_PUBLISH_FLAGS) -- -cover -coverprofile=$(REPORTS)/coverage.out $(or ${TEST},${TEST},$(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
+		-ginkgo.v -timeout 20m -count=1 || (docker kill postgres && /bin/false)
+	gocov convert $(REPORTS)/coverage.out | gocov-xml > $(REPORTS)/coverage.xml
 	docker kill postgres
+
+$(REPORTS):
+	-mkdir -p $(REPORTS)
 
 test-onprem:
 	INVENTORY=127.0.0.1:8090 \
@@ -285,7 +305,7 @@ test-onprem:
 clear-all: clean subsystem-clean clear-deployment
 
 clean:
-	-rm -rf $(BUILD_FOLDER)
+	-rm -rf $(BUILD_FOLDER) $(REPORTS)
 
 subsystem-clean:
 	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete 1> /dev/null || true

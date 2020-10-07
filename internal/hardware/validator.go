@@ -2,7 +2,6 @@ package hardware
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
@@ -28,13 +28,14 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg) Validator {
 }
 
 type ValidatorCfg struct {
-	MinCPUCores       int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES" default:"2"`
-	MinCPUCoresWorker int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_WORKER" default:"2"`
-	MinCPUCoresMaster int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_MASTER" default:"4"`
-	MinRamGib         int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
-	MinRamGibWorker   int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_WORKER" default:"8"`
-	MinRamGibMaster   int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_MASTER" default:"16"`
-	MinDiskSizeGb     int64 `envconfig:"HW_VALIDATOR_MIN_DISK_SIZE_GIB" default:"120"` // Env variable is GIB to not break infra
+	MinCPUCores                   int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES" default:"2"`
+	MinCPUCoresWorker             int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_WORKER" default:"2"`
+	MinCPUCoresMaster             int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_MASTER" default:"4"`
+	MinRamGib                     int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
+	MinRamGibWorker               int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_WORKER" default:"8"`
+	MinRamGibMaster               int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_MASTER" default:"16"`
+	MinDiskSizeGb                 int64 `envconfig:"HW_VALIDATOR_MIN_DISK_SIZE_GIB" default:"120"` // Env variable is GIB to not break infra
+	MaximumAllowedTimeDiffMinutes int64 `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
 }
 
 type validator struct {
@@ -49,7 +50,7 @@ func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	}
 	disks := ListValidDisks(&inventory, gbToBytes(v.MinDiskSizeGb))
 	if len(disks) == 0 {
-		return nil, fmt.Errorf("host %s doesn't have valid disks", host.ID)
+		return nil, errors.Errorf("host %s doesn't have valid disks", host.ID)
 	}
 	return disks, nil
 }

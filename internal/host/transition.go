@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/assisted-service/client/installer"
-
 	"encoding/json"
 
 	"github.com/openshift/assisted-service/internal/events"
@@ -97,13 +95,22 @@ func (th *transitionHandler) IsHostInReboot(sw stateswitch.StateSwitch, _ states
 	return sHost.host.Progress.CurrentStage == models.HostStageRebooting, nil
 }
 
+func (th *transitionHandler) IsHostAddingToExistingCluster(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("IsHostAddingToExistingCluster incompatible type of StateSwitch")
+	}
+
+	return swag.StringValue(sHost.host.Kind) == models.HostKindAddToExistingClusterHost, nil
+}
+
 func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
 		return errors.New("PostRegisterDuringReboot incompatible type of StateSwitch")
 	}
 	if swag.StringValue(&sHost.srcState) == models.HostStatusInstallingPendingUserAction {
-		return installer.NewRegisterHostForbidden()
+		return common.NewApiError(http.StatusForbidden, errors.New("Host is required to be booted from disk"))
 	}
 	params, ok := args.(*TransitionArgsRegisterHost)
 	if !ok {
@@ -320,7 +327,7 @@ func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.State
 	}
 
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		statusInfoResettingPendingUserAction)
+		statusInfoResettingPendingUserAction, "StatusUpdatedAt", strfmt.DateTime(time.Now()))
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -413,6 +420,14 @@ func (th *transitionHandler) HasClusterError(sw stateswitch.StateSwitch, args st
 }
 
 func (th *transitionHandler) HasInstallationTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("HasInstallationTimedOut incompatible type of StateSwitch")
+	}
+	return time.Since(time.Time(sHost.host.StatusUpdatedAt)) > InstallationTimeout, nil
+}
+
+func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
 		return false, errors.New("HasInstallationTimedOut incompatible type of StateSwitch")

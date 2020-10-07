@@ -129,6 +129,11 @@ func newValidations(log logrus.FieldLogger, api host.API) []validation {
 			condition: v.networkPrefixValid,
 			formatter: v.printNetworkPrefixValid,
 		},
+		{
+			id:        IsNtpServerConfigured,
+			condition: v.isNtpServerConfigured,
+			formatter: v.printNtpServerConfigured,
+		},
 	}
 	return ret
 }

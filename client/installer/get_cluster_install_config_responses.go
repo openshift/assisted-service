@@ -106,20 +106,20 @@ func NewGetClusterInstallConfigUnauthorized() *GetClusterInstallConfigUnauthoriz
 Unauthorized.
 */
 type GetClusterInstallConfigUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetClusterInstallConfigUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/install-config][%d] getClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *GetClusterInstallConfigUnauthorized) GetPayload() *models.Error {
+func (o *GetClusterInstallConfigUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetClusterInstallConfigUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -139,20 +139,20 @@ func NewGetClusterInstallConfigForbidden() *GetClusterInstallConfigForbidden {
 Forbidden.
 */
 type GetClusterInstallConfigForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetClusterInstallConfigForbidden) Error() string {
 	return fmt.Sprintf("[GET /clusters/{cluster_id}/install-config][%d] getClusterInstallConfigForbidden  %+v", 403, o.Payload)
 }
 
-func (o *GetClusterInstallConfigForbidden) GetPayload() *models.Error {
+func (o *GetClusterInstallConfigForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetClusterInstallConfigForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

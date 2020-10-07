@@ -69,7 +69,7 @@ type GetHostRequirementsUnauthorized struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetHostRequirementsUnauthorized creates GetHostRequirementsUnauthorized with default headers values
@@ -79,13 +79,13 @@ func NewGetHostRequirementsUnauthorized() *GetHostRequirementsUnauthorized {
 }
 
 // WithPayload adds the payload to the get host requirements unauthorized response
-func (o *GetHostRequirementsUnauthorized) WithPayload(payload *models.Error) *GetHostRequirementsUnauthorized {
+func (o *GetHostRequirementsUnauthorized) WithPayload(payload *models.InfraError) *GetHostRequirementsUnauthorized {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get host requirements unauthorized response
-func (o *GetHostRequirementsUnauthorized) SetPayload(payload *models.Error) {
+func (o *GetHostRequirementsUnauthorized) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 
@@ -113,7 +113,7 @@ type GetHostRequirementsForbidden struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Error `json:"body,omitempty"`
+	Payload *models.InfraError `json:"body,omitempty"`
 }
 
 // NewGetHostRequirementsForbidden creates GetHostRequirementsForbidden with default headers values
@@ -123,13 +123,13 @@ func NewGetHostRequirementsForbidden() *GetHostRequirementsForbidden {
 }
 
 // WithPayload adds the payload to the get host requirements forbidden response
-func (o *GetHostRequirementsForbidden) WithPayload(payload *models.Error) *GetHostRequirementsForbidden {
+func (o *GetHostRequirementsForbidden) WithPayload(payload *models.InfraError) *GetHostRequirementsForbidden {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get host requirements forbidden response
-func (o *GetHostRequirementsForbidden) SetPayload(payload *models.Error) {
+func (o *GetHostRequirementsForbidden) SetPayload(payload *models.InfraError) {
 	o.Payload = payload
 }
 

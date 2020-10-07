@@ -2,8 +2,9 @@ package ocm
 
 import (
 	"context"
-	"fmt"
 	"net/http"
+
+	"github.com/openshift/assisted-service/pkg/commonutils"
 
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	"github.com/openshift/assisted-service/internal/common"
@@ -20,14 +21,8 @@ type authentication struct {
 }
 
 func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret string) (user *AuthPayload, err error) {
-	connection, err := a.client.NewConnection()
-	if err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError,
-			errors.Wrap(err, "Unable to build OCM connection"))
-	}
-	defer connection.Close()
-
-	accessTokenAPI := connection.AccountsMgmt().V1()
+	defer commonutils.MeasureOperation("OCM-AuthenticatePullSecret", a.client.log, a.client.metricsApi)()
+	accessTokenAPI := a.client.connection.AccountsMgmt().V1()
 	request, err := amgmtv1.NewTokenAuthorizationRequest().AuthorizationToken(pullSecret).Build()
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -50,7 +45,7 @@ func (a authentication) AuthenticatePullSecret(ctx context.Context, pullSecret s
 
 	responseVal, ok := response.GetResponse()
 	if !ok {
-		return nil, fmt.Errorf("Failed to validate Pull Secret Token")
+		return nil, errors.Errorf("Failed to validate Pull Secret Token")
 	}
 
 	payload := &AuthPayload{}

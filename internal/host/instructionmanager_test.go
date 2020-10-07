@@ -71,7 +71,7 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("known", func() {
 				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
+					[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeInventory})
 			})
 			It("disconnected", func() {
 				checkStepsByState(models.HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
@@ -117,7 +117,7 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("known", func() {
 				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate})
+					[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate, models.StepTypeInventory})
 			})
 			It("disconnected", func() {
 				checkStepsByState(models.HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
@@ -188,7 +188,7 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 	}
 	stepsReply, stepsErr := instMng.GetNextSteps(ctx, h)
 	ExpectWithOffset(1, stepsReply.Instructions).To(HaveLen(len(expectedStepTypes)))
-	if stateValues, ok := instMng.stateToSteps[state]; ok {
+	if stateValues, ok := instMng.installingClusterStateToSteps[state]; ok {
 		Expect(stepsReply.NextInstructionSeconds).Should(Equal(stateValues.NextStepInSec))
 	} else {
 		Expect(stepsReply.NextInstructionSeconds).Should(Equal(defaultNextInstructionInSec))

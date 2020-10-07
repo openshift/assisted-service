@@ -23,11 +23,12 @@ const (
 	HasMemoryForRole     = validationID(models.HostValidationIDHasMemoryForRole)
 	IsHostnameUnique     = validationID(models.HostValidationIDHostnameUnique)
 	IsHostnameValid      = validationID(models.HostValidationIDHostnameValid)
+	IsAPIVipConnected    = validationID(models.HostValidationIDAPIVipConnected)
 )
 
 func (v validationID) category() (string, error) {
 	switch v {
-	case IsConnected, IsMachineCidrDefined, BelongsToMachineCidr:
+	case IsConnected, IsMachineCidrDefined, BelongsToMachineCidr, IsAPIVipConnected:
 		return "network", nil
 	case HasInventory, HasMinCPUCores, HasMinValidDisks, HasMinMemory,
 		HasCPUCoresForRole, HasMemoryForRole, IsHostnameUnique, IsHostnameValid:
