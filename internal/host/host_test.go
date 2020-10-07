@@ -541,7 +541,7 @@ var _ = Describe("cancel installation", func() {
 
 		AfterEach(func() {
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
-			Expect(*h.Status).Should(Equal(models.HostStatusError))
+			Expect(*h.Status).Should(Equal(models.HostStatusCancelled))
 		})
 	})
 

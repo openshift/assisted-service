@@ -2856,7 +2856,8 @@ func init() {
             "installing",
             "finalizing",
             "installed",
-            "adding-hosts"
+            "adding-hosts",
+            "cancelled"
           ]
         },
         "status_info": {
@@ -3568,7 +3569,8 @@ func init() {
             "installed",
             "error",
             "resetting",
-            "added-to-existing-cluster"
+            "added-to-existing-cluster",
+            "cancelled"
           ]
         },
         "status_info": {
@@ -6982,7 +6984,8 @@ func init() {
             "installing",
             "finalizing",
             "installed",
-            "adding-hosts"
+            "adding-hosts",
+            "cancelled"
           ]
         },
         "status_info": {
@@ -7676,7 +7679,8 @@ func init() {
             "installed",
             "error",
             "resetting",
-            "added-to-existing-cluster"
+            "added-to-existing-cluster",
+            "cancelled"
           ]
         },
         "status_info": {

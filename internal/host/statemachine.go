@@ -114,7 +114,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),
 		},
-		DestinationState: stateswitch.State(models.HostStatusError),
+		DestinationState: stateswitch.State(models.HostStatusCancelled),
 		PostTransition:   th.PostCancelInstallation,
 	})
 
@@ -137,6 +137,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),
+			stateswitch.State(models.HostStatusCancelled),
 		},
 		DestinationState: stateswitch.State(models.HostStatusResetting),
 		PostTransition:   th.PostResetHost,
@@ -209,6 +210,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),
+			stateswitch.State(models.HostStatusCancelled),
 		},
 		DestinationState: stateswitch.State(models.HostStatusResettingPendingUserAction),
 		PostTransition:   th.PostResettingPendingUserAction,

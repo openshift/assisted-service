@@ -1307,9 +1307,9 @@ var _ = Describe("cluster install", func() {
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c = rep.GetPayload()
-				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
 				for _, host := range c.Hosts {
-					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusError))
+					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusCancelled))
 				}
 			})
 			It("[only_k8s]cancel installation conflicts", func() {
@@ -1321,6 +1321,7 @@ var _ = Describe("cluster install", func() {
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusReady))
 			})
 			It("[only_k8s]cancel failed cluster", func() {
+				By("verify cluster is in error")
 				FailCluster(ctx, clusterID)
 				waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
 					clusterErrorInfo)
@@ -1328,22 +1329,20 @@ var _ = Describe("cluster install", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				c := rep.GetPayload()
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError,
+						defaultWaitForHostStateTimeout)
+				}
+				By("cancel installation, check cluster and hosts statuses")
+				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).ShouldNot(HaveOccurred())
 				rep, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				c = rep.GetPayload()
-
-				verifyErrorStates := func() {
-					Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
-					for _, host := range c.Hosts {
-						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError,
-							defaultWaitForHostStateTimeout)
-					}
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
+				for _, host := range c.Hosts {
+					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusCancelled))
 				}
-
-				verifyErrorStates()
-				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
-				Expect(err).ShouldNot(HaveOccurred())
-				verifyErrorStates()
 			})
 			It("[only_k8s]cancel cluster with various hosts states", func() {
 				c := installCluster(clusterID)
@@ -1360,7 +1359,7 @@ var _ = Describe("cluster install", func() {
 				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError,
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusCancelled,
 						defaultWaitForClusterStateTimeout)
 				}
 			})
@@ -1408,13 +1407,13 @@ var _ = Describe("cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				c = rep.GetPayload()
 				Expect(len(c.Hosts)).Should(Equal(5))
-				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
 				for _, host := range c.Hosts {
 					if host.ID.String() == disabledHost.ID.String() {
 						Expect(*host.Status).Should(Equal(models.HostStatusDisabled))
 						continue
 					}
-					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusError))
+					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusCancelled))
 				}
 			})
 			It("cancel host - wrong boot order", func() {
@@ -1436,7 +1435,7 @@ var _ = Describe("cluster install", func() {
 				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				for _, host := range c.Hosts {
-					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusError,
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusCancelled,
 						defaultWaitForHostStateTimeout)
 				}
 			})
