@@ -1,27 +1,14 @@
 package subsystem
 
 import (
-	//"archive/tar"
 	"context"
 	"encoding/json"
 	"fmt"
-
-	//"io"
-	//"io/ioutil"
-	//"os"
-	//"os/exec"
-	//"reflect"
 	"time"
 
-	//"github.com/openshift/assisted-service/internal/bminventory"
-	//"github.com/openshift/assisted-service/internal/host"
-
-	//"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-
-	//"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -38,12 +25,8 @@ var _ = Describe("Day2 cluster tests", func() {
 	var cluster *installer.RegisterAddHostsClusterCreated
 	var clusterID strfmt.UUID
 	var err error
-	AfterEach(func() {
-		clearDB()
-	})
 
 	BeforeEach(func() {
-
 		cluster, err = userBMClient.Installer.RegisterAddHostsCluster(ctx, &installer.RegisterAddHostsClusterParams{
 			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
 				Name:             swag.String("test-cluster"),
@@ -62,6 +45,10 @@ var _ = Describe("Day2 cluster tests", func() {
 	JustBeforeEach(func() {
 		clusterID = *cluster.GetPayload().ID
 	})
+
+	AfterEach(func() {
+                clearDB()
+        })
 
 	generateApiVipPostStepReply := func(h *models.Host, success bool) {
 		checkVipApiResponse := models.APIVipConnectivityResponse{
