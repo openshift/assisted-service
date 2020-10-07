@@ -2100,8 +2100,9 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 	downloadFilename := params.FileName
 
 	if params.FileName == "logs" {
-		if params.HostID != nil {
-			*params.LogsType = string(models.LogsTypeHost)
+		if params.HostID != nil && swag.StringValue(params.LogsType) == "" {
+			logsType := string(models.LogsTypeHost)
+			params.LogsType = &logsType
 		}
 		fullFileName, downloadFilename, err = b.getLogFileForDownload(ctx, &params.ClusterID, params.HostID, swag.StringValue(params.LogsType))
 		if err != nil {
