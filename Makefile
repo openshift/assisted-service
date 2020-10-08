@@ -113,7 +113,7 @@ generate-keys: $(BUILD_FOLDER)
 # Build & Update #
 ##################
 
-.PHONY: build
+.PHONY: build docs
 build: lint unit-test build-minimal build-iso-generator
 
 build-all: build-image build-minimal-assisted-iso-generator-image
@@ -240,6 +240,12 @@ deploy-onprem:
 
 deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
+
+docs:
+	mkdocs build
+
+docs_serve:
+	mkdocs serve
 
 ########
 # Test #
