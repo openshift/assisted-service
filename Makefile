@@ -116,7 +116,10 @@ generate-keys: $(BUILD_FOLDER)
 .PHONY: build docs
 build: lint unit-test build-minimal build-iso-generator
 
-build-all: build-image build-minimal-assisted-iso-generator-image
+build-all: build-in-docker build-onprem
+
+build-in-docker:
+	skipper make build-image build-minimal-assisted-iso-generator-image
 
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
@@ -124,10 +127,7 @@ build-minimal: $(BUILD_FOLDER)
 build-iso-generator: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-iso-create assisted-iso-create/main.go
 
-build-onprem-dependencies: 
-	skipper make build-all
-
-build-onprem: build-onprem-dependencies
+build-onprem: build-in-docker
 	podman pull $(ISO_CREATION_DOCKER_DAEMON_PULL_STRING)
 	podman pull $(ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING)
 	podman build $(CONTAINER_BUILD_PARAMS) --build-arg RHCOS_VERSION=${RHCOS_VERSION} -f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
@@ -137,13 +137,14 @@ build-image: build
 
 build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
 
-build-minimal-assisted-iso-generator-image: build-iso-generator
-	docker build $(CONTAINER_BUILD_PARAMS) --build-arg NAMESPACE=$(NAMESPACE) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
+build-minimal-assisted-iso-generator-image:
+	docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 update: build-all
 	docker push $(SERVICE)
 	docker push $(ISO_CREATION)
+	podman push $(SERVICE_ONPREM)
 
 update-minimal: build-minimal
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
@@ -154,15 +155,17 @@ _update-minikube: build
 		docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 define publish_image
-	docker tag ${1} ${2}
-	docker push ${2}
+	${1} tag ${2} ${3}
+	${1} push ${3}
 endef # publish_image
 
 publish:
-	$(call publish_image,${SERVICE},quay.io/ocpmetal/assisted-service:latest)
-	$(call publish_image,${SERVICE},quay.io/ocpmetal/assisted-service:${GIT_REVISION})
-	$(call publish_image,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
-	$(call publish_image,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${GIT_REVISION})
+	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:latest)
+	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${GIT_REVISION})
+	$(call publish_image,docker,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
+	$(call publish_image,docker,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${GIT_REVISION})
+	$(call publish_image,podman,${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
+	$(call publish_image,podman,${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:${GIT_REVISION})
 
 ##########
 # Deploy #

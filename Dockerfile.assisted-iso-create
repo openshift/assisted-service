@@ -1,9 +1,13 @@
 FROM quay.io/coreos/coreos-installer:release AS installer-image
 
+# Build binaries
+FROM registry.svc.ci.openshift.org/openshift/release:golang-1.14 as builder
+COPY . .
+RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-iso-create assisted-iso-create/main.go
+
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 ARG WORK_DIR=/data
-ARG NAMESPACE=assisted-installer
 ARG OS_IMAGE
 ENV COREOS_IMAGE=$WORK_DIR/livecd.iso
 
@@ -18,7 +22,7 @@ RUN chmod 644 $WORK_DIR/livecd.iso
 
 COPY --from=installer-image /usr/sbin/coreos-installer $WORK_DIR
 
-COPY build/$NAMESPACE/assisted-iso-create $WORK_DIR
+COPY --from=builder /build/assisted-iso-create $WORK_DIR
 
 ENV COMMMAND_LINE=$WORK_DIR/assisted-iso-create
 ENTRYPOINT exec $COMMMAND_LINE
