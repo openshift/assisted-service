@@ -242,7 +242,7 @@ paths:
     post:
       tags:
         - installer
-      summary: Creates a new OpenShift per-cluster discovery ISO.
+      summary: Creates a new OpenShift per-cluster Discovery ISO.
       operationId: GenerateClusterISO
       parameters:
         - in: path
@@ -292,7 +292,7 @@ paths:
     get:
       tags:
         - installer
-      summary: Downloads the OpenShift per-cluster discovery ISO.
+      summary: Downloads the OpenShift per-cluster Discovery ISO.
       operationId: DownloadClusterISO
       produces:
         # application/vnd.efi.iso is not supported
@@ -402,7 +402,7 @@ paths:
         - installer
       security:
         - userAuth: []
-      summary: Retrieves a presigned S3 URL for downloading cluster files.
+      summary: Retrieves a pre-signed S3 URL for downloading cluster files.
       operationId: GetPresignedForClusterFiles
       parameters:
         - in: path
@@ -463,7 +463,7 @@ paths:
     get:
       tags:
         - installer
-      summary: Get the the cluster admin credentials.
+      summary: Get the cluster admin credentials.
       operationId: GetCredentials
       parameters:
         - in: path
@@ -550,7 +550,7 @@ paths:
     get:
       tags:
         - installer
-      summary: Get the cluster install config yaml
+      summary: Get the cluster's install config YAML.
       operationId: GetClusterInstallConfig
       parameters:
         - in: path
@@ -586,7 +586,7 @@ paths:
     patch:
       tags:
         - installer
-      summary: Override values in the install config
+      summary: Override values in the install config.
       operationId: UpdateClusterInstallConfig
       parameters:
         - in: path
@@ -1109,7 +1109,7 @@ paths:
         - installer
       security:
         - agentAuth: []
-      summary: Update installation progress
+      summary: Update installation progress.
       operationId: UpdateHostInstallProgress
       parameters:
         - in: header
@@ -1118,25 +1118,25 @@ paths:
           required: false
         - in: path
           name: cluster_id
-          description: The ID of the cluster to retrieve
+          description: The ID of the cluster to retrieve.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
-          description: The ID of the host to retrieve
+          description: The ID of the host to retrieve.
           type: string
           format: uuid
           required: true
         - in: body
           name: host-progress
-          description: New progress value
+          description: New progress value.
           required: true
           schema:
             $ref: '#/definitions/host-progress'
       responses:
         200:
-          description: Update install progress
+          description: Update install progress.
         401:
           description: Unauthorized.
           schema:
@@ -1428,7 +1428,7 @@ paths:
     get:
       tags:
         - installer
-      summary: Download host logs
+      summary: Download host logs.
       deprecated: true
       security:
         - userAuth: []
@@ -1536,7 +1536,7 @@ paths:
     get:
       tags:
         - installer
-      summary: Download cluster logs
+      summary: Download cluster logs.
       security:
         - userAuth: []
       operationId: DownloadClusterLogs
@@ -1619,7 +1619,7 @@ paths:
           required: false
       responses:
         200:
-          description: Success
+          description: Success.
           schema:
             $ref: '#/definitions/free-addresses-list'
         401:
@@ -1647,7 +1647,7 @@ paths:
     get:
       tags:
         - events
-      summary: Lists events for a cluster
+      summary: Lists events for a cluster.
       operationId: ListEvents
       parameters:
         - in: path
@@ -1690,7 +1690,7 @@ paths:
     get:
       tags:
         - managed_domains
-      summary: List of managed DNS domains
+      summary: List of managed DNS domains.
       operationId: ListManagedDomains
       responses:
         200:
@@ -1706,7 +1706,7 @@ paths:
     get:
       tags:
         - versions
-      summary: List of componenets versions
+      summary: List of component versions.
       operationId: ListComponentVersions
       responses:
         200:
@@ -1718,7 +1718,7 @@ paths:
     get:
       tags:
         - installer
-      summary: Get minimum host requirements
+      summary: Get minimum host requirements.
       operationId: GetHostRequirements
       responses:
         200:
@@ -1849,7 +1849,7 @@ definitions:
       request_id:
         type: string
         format: uuid
-        description: Unique identifier for the request that caused this event to occure
+        description: Unique identifier of the request that caused this event to occur.
 
   image-create-params:
     type: object
@@ -1921,13 +1921,13 @@ definitions:
         x-go-custom-tag: gorm:"type:varchar(2048)"
       validations_info:
         type: string
-        description: Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)
+        description: JSON-formatted string containing the validation results for each validation id grouped by category (network, hardware, etc.)
         x-go-custom-tag: gorm:"type:varchar(2048)"
       status_updated_at:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
-        description: The last time that the host status has been updated
+        description: The last time that the host status was updated.
       progress:
         $ref: '#/definitions/host-progress-info'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:progress_"
@@ -1935,12 +1935,12 @@ definitions:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
-        description: Time at which the current progress stage started
+        description: Time at which the current progress stage started.
       stage_updated_at:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
-        description: Time at which the current progress stage was last updated
+        description: Time at which the current progress stage was last updated.
       progress_stages:
         type: array
         items:
@@ -1968,10 +1968,10 @@ definitions:
         x-go-custom-tag: gorm:"type:timestamp with time zone"
       installer_version:
         type: string
-        description: Installer version
+        description: Installer version.
       installation_disk_path:
         type: string
-        description: Host installation path
+        description: Host installation path.
       updated_at:
         type: string
         format: date-time
@@ -2099,7 +2099,7 @@ definitions:
         description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
       cluster_network_cidr:
         type: string
-        description: IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
+        description: IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
         pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
         default: "10.128.0.0/14"
       cluster_network_host_prefix:
@@ -2116,16 +2116,16 @@ definitions:
       ingress_vip:
         type: string
         pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
-        description: Virtual IP used for cluster ingress traffic.
+        description: The virtual IP used for cluster ingress traffic.
       pull_secret:
         type: string
-        description: The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
       ssh_public_key:
         type: string
         description: SSH public key for debugging OpenShift nodes.
       vip_dhcp_allocation:
         type: boolean
-        description: Indicate if VIP DHCP allocation mode is enabled.
+        description: Indicate if virtual IP DHCP allocation mode is enabled.
         x-nullable: true
         default: true
       http_proxy:
@@ -2142,7 +2142,7 @@ definitions:
         x-nullable: true
       no_proxy:
         type: string
-        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
+        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
         x-nullable: true
 
   cluster-update-params:
@@ -2150,7 +2150,7 @@ definitions:
     properties:
       name:
         type: string
-        description: OpenShift cluster name
+        description: OpenShift cluster name.
         x-nullable: true
       base_dns_domain:
         type: string
@@ -2158,7 +2158,7 @@ definitions:
         x-nullable: true
       cluster_network_cidr:
         type: string
-        description: IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
+        description: IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
         pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
         x-nullable: true
       cluster_network_host_prefix:
@@ -2175,16 +2175,16 @@ definitions:
       api_vip:
         type: string
         pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
-        description: Virtual IP used to reach the OpenShift cluster API.
+        description: The virtual IP used to reach the OpenShift cluster's API.
         x-nullable: true
       ingress_vip:
         type: string
         pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
-        description: Virtual IP used for cluster ingress traffic.
+        description: The virtual IP used for cluster ingress traffic.
         x-nullable: true
       api_vip_dns_name:
         type: string
-        description: Domain name used to reach the OpenShift cluster API.
+        description: The domain name used to reach the OpenShift cluster API.
         x-nullable: true
       machine_network_cidr:
         type: string
@@ -2193,7 +2193,7 @@ definitions:
         x-nullable: true
       pull_secret:
         type: string
-        description: The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
         x-nullable: true
       ssh_public_key:
         type: string
@@ -2201,7 +2201,7 @@ definitions:
         x-nullable: true
       vip_dhcp_allocation:
         type: boolean
-        description: Indicate if VIP DHCP allocation mode is enabled.
+        description: Indicate if virtual IP DHCP allocation mode is enabled.
         x-nullable: true
       http_proxy:
         type: string
@@ -2217,7 +2217,7 @@ definitions:
         x-nullable: true
       no_proxy:
         type: string
-        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
+        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
         x-nullable: true
       hosts_roles:
         type: array
@@ -2310,7 +2310,7 @@ definitions:
         description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
       cluster_network_cidr:
         type: string
-        description: IP address block from which Pod IPs are allocated This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
+        description: IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
         pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
       cluster_network_host_prefix:
         type: integer
@@ -2324,10 +2324,10 @@ definitions:
       api_vip:
         type: string
         pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
-        description: Virtual IP used to reach the OpenShift cluster API.
+        description: The virtual IP used to reach the OpenShift cluster's API.
       api_vip_dns_name:
         type: string
-        description: Domain name used to reach the OpenShift cluster API.
+        description: The domain name used to reach the OpenShift cluster API.
         x-nullable: true
       machine_network_cidr:
         type: string
@@ -2336,7 +2336,7 @@ definitions:
       ingress_vip:
         type: string
         pattern: '^(([0-9]{1,3}\.){3}[0-9]{1,3})?$'
-        description: Virtual IP used for cluster ingress traffic.
+        description: The virtual IP used for cluster ingress traffic.
       ssh_public_key:
         type: string
         x-go-custom-tag: gorm:"type:varchar(1024)"
@@ -2354,7 +2354,7 @@ definitions:
         x-go-custom-tag: gorm:"column:https_proxy"
       no_proxy:
         type: string
-        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude proxying.
+        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
       status:
         type: string
         description: Status of the OpenShift cluster.
@@ -2377,7 +2377,7 @@ definitions:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
-        description: The last time that the cluster status has been updated
+        description: The last time that the cluster status was updated.
       hosts:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;association_foreignkey:ID"
         type: array
@@ -2399,7 +2399,7 @@ definitions:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"
-        description: The time that this cluster began installation.
+        description: The time that this cluster started installation.
       install_completed_at:
         type: string
         format: date-time
@@ -2413,20 +2413,20 @@ definitions:
         description: List of host networks to be filled during query.
       pull_secret_set:
         type: boolean
-        description: True if the pull-secret has been added to the cluster
+        description: True if the pull secret has been added to the cluster.
       ignition_generator_version:
         type: string
       vip_dhcp_allocation:
         type: boolean
-        description: Indicate if VIP DHCP allocation mode is enabled.
+        description: Indicate if virtual IP DHCP allocation mode is enabled.
         x-nullable: true
       validations_info:
         type: string
-        description: Json formatted string containing the validations results for each validation id grouped by category (network, hosts-data, etc.)
+        description: JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
         x-go-custom-tag: gorm:"type:varchar(2048)"
       install_config_overrides:
         type: string
-        description: Json formatted string containing the user overrides for the install-config.yaml file
+        description: JSON-formatted string containing the user overrides for the install-config.yaml file.
         example: '{"networking":{"networkType": "OVN-Kubernetes"},"fips":true}'
         x-go-custom-tag: gorm:"type:varchar(2048)"
 
@@ -2437,7 +2437,7 @@ definitions:
       ssh_public_key:
         type: string
         x-go-custom-tag: gorm:"type:varchar(1024)"
-        description: SSH public key for debugging the installation
+        description: SSH public key for debugging the installation.
       size_bytes:
         type: integer
         minimum: 0
@@ -2445,7 +2445,7 @@ definitions:
         type: string
       generator_version:
         type: string
-        description: Image generator version
+        description: Image generator version.
       created_at:
         type: string
         format: date-time
@@ -2565,19 +2565,19 @@ definitions:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
-        description: Time at which the current progress stage started
+        description: Time at which the current progress stage started.
       stage_updated_at:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
-        description: Time at which the current progress stage was last updated
+        description: Time at which the current progress stage was last updated.
 
   host-stage:
     type: string
     enum:
       - Starting installation
       - Waiting for control plane
-      - Start Waiting for control plane
+      - Start waiting for control plane
       - Installing
       - Writing image to disk
       - Rebooting
@@ -2611,10 +2611,10 @@ definitions:
         description: Self link.
       code:
         type: string
-        description: Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, for if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.
+        description: Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.
       reason:
         type: string
-        description: Human readable description of the error.
+        description: Human-readable description of the error.
 
   infra_error:
     type: object
@@ -2630,7 +2630,7 @@ definitions:
         maximum: 403
       message:
         type: string
-        description: Human readable description of the error.
+        description: Human-readable description of the error.
 
   interface:
     type: object
@@ -2851,15 +2851,15 @@ definitions:
     properties:
       interface:
         type: string
-        description: The interface (NIC) to run the DHCP requests on.
+        description: The network interface (NIC) to run the DHCP requests on.
       api_vip_mac:
         type: string
         format: mac
-        description: MAC address for API VIP.
+        description: MAC address for the API virtual IP.
       ingress_vip_mac:
         type: string
         format: mac
-        description: MAC address for Ingress VIP.
+        description: MAC address for the Ingress virtual IP.
 
   dhcp_allocation_response:
     type: object
@@ -2870,11 +2870,11 @@ definitions:
       api_vip_address:
         type: string
         format: ipv4
-        description: The IPv4 address that was allocated by DHCP for API VIP.
+        description: The IPv4 address that was allocated by DHCP for the API virtual IP.
       ingress_vip_address:
         type: string
         format: ipv4
-        description: The IPv4 address that was allocated by DHCP for Ingress VIP.
+        description: The IPv4 address that was allocated by DHCP for the Ingress virtual IP.
 
   presigned:
     type: object

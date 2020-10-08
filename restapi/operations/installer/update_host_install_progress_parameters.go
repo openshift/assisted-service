@@ -34,7 +34,7 @@ type UpdateHostInstallProgressParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The ID of the cluster to retrieve
+	/*The ID of the cluster to retrieve.
 	  Required: true
 	  In: path
 	*/

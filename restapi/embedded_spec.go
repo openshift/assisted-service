@@ -735,7 +735,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Get the the cluster admin credentials.",
+        "summary": "Get the cluster admin credentials.",
         "operationId": "GetCredentials",
         "parameters": [
           {
@@ -902,7 +902,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves a presigned S3 URL for downloading cluster files.",
+        "summary": "Retrieves a pre-signed S3 URL for downloading cluster files.",
         "operationId": "GetPresignedForClusterFiles",
         "parameters": [
           {
@@ -1006,7 +1006,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Downloads the OpenShift per-cluster discovery ISO.",
+        "summary": "Downloads the OpenShift per-cluster Discovery ISO.",
         "operationId": "DownloadClusterISO",
         "parameters": [
           {
@@ -1070,7 +1070,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Creates a new OpenShift per-cluster discovery ISO.",
+        "summary": "Creates a new OpenShift per-cluster Discovery ISO.",
         "operationId": "GenerateClusterISO",
         "parameters": [
           {
@@ -2094,7 +2094,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Update installation progress",
+        "summary": "Update installation progress.",
         "operationId": "UpdateHostInstallProgress",
         "parameters": [
           {
@@ -2105,7 +2105,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The ID of the cluster to retrieve",
+            "description": "The ID of the cluster to retrieve.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2176,7 +2176,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Get the cluster install config yaml",
+        "summary": "Get the cluster's install config YAML.",
         "operationId": "GetClusterInstallConfig",
         "parameters": [
           {
@@ -2230,7 +2230,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Override values in the install config",
+        "summary": "Override values in the install config.",
         "operationId": "UpdateClusterInstallConfig",
         "parameters": [
           {
@@ -2702,12 +2702,12 @@ func init() {
       ],
       "properties": {
         "api_vip": {
-          "description": "Virtual IP used to reach the OpenShift cluster API.",
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
         "api_vip_dns_name": {
-          "description": "Domain name used to reach the OpenShift cluster API.",
+          "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
           "x-nullable": true
         },
@@ -2980,13 +2980,13 @@ func init() {
       "type": "object",
       "properties": {
         "api_vip": {
-          "description": "Virtual IP used to reach the OpenShift cluster API.",
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
         },
         "api_vip_dns_name": {
-          "description": "Domain name used to reach the OpenShift cluster API.",
+          "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
           "x-nullable": true
         },
@@ -4839,7 +4839,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Get the the cluster admin credentials.",
+        "summary": "Get the cluster admin credentials.",
         "operationId": "GetCredentials",
         "parameters": [
           {
@@ -5006,7 +5006,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves a presigned S3 URL for downloading cluster files.",
+        "summary": "Retrieves a pre-signed S3 URL for downloading cluster files.",
         "operationId": "GetPresignedForClusterFiles",
         "parameters": [
           {
@@ -5110,7 +5110,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Downloads the OpenShift per-cluster discovery ISO.",
+        "summary": "Downloads the OpenShift per-cluster Discovery ISO.",
         "operationId": "DownloadClusterISO",
         "parameters": [
           {
@@ -5174,7 +5174,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Creates a new OpenShift per-cluster discovery ISO.",
+        "summary": "Creates a new OpenShift per-cluster Discovery ISO.",
         "operationId": "GenerateClusterISO",
         "parameters": [
           {
@@ -6198,7 +6198,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Update installation progress",
+        "summary": "Update installation progress.",
         "operationId": "UpdateHostInstallProgress",
         "parameters": [
           {
@@ -6209,7 +6209,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The ID of the cluster to retrieve",
+            "description": "The ID of the cluster to retrieve.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -6280,7 +6280,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Get the cluster install config yaml",
+        "summary": "Get the cluster's install config YAML.",
         "operationId": "GetClusterInstallConfig",
         "parameters": [
           {
@@ -6334,7 +6334,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Override values in the install config",
+        "summary": "Override values in the install config.",
         "operationId": "UpdateClusterInstallConfig",
         "parameters": [
           {
@@ -6830,12 +6830,12 @@ func init() {
       ],
       "properties": {
         "api_vip": {
-          "description": "Virtual IP used to reach the OpenShift cluster API.",
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
         "api_vip_dns_name": {
-          "description": "Domain name used to reach the OpenShift cluster API.",
+          "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
           "x-nullable": true
         },
@@ -7108,13 +7108,13 @@ func init() {
       "type": "object",
       "properties": {
         "api_vip": {
-          "description": "Virtual IP used to reach the OpenShift cluster API.",
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
           "x-nullable": true
         },
         "api_vip_dns_name": {
-          "description": "Domain name used to reach the OpenShift cluster API.",
+          "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
           "x-nullable": true
         },

@@ -239,12 +239,12 @@ func (v *validator) isMachineCidrDefined(c *validationContext) validationStatus 
 func (v *validator) printIsMachineCidrDefined(context *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "Machine network CIDR is defined"
+		return "Machine Network CIDR is defined"
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
-			return "Machine network CIDR is undefined"
+			return "Machine Network CIDR is undefined"
 		} else {
-			return "Machine network CIDR is undefined; the machine network CIDR can be defined by setting either the API VIP or the Ingress VIP"
+			return "Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs"
 		}
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
