@@ -22,7 +22,7 @@ This type of deployment requires a different container image that combines compo
 
 ```
 export SERVICE_ONPREM=quay.io/<your-org>/assisted-service:latest
-make build-onprem
+make image-onprem
 ```
 
 To deploy, update SERVICE_BASE_URL in the onprem-environment file to match the hostname or IP address of your host. For example if your IP address is 192.168.122.2, then the SERVICE_BASE_URL would be set to http://192.168.122.2:8090. Port 8090 is the assisted-service API.

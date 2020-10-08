@@ -27,7 +27,7 @@ need to build a custom container image and push it to quay.io.
 
 ````
 export SERVICE=quay.io/<your-org>/assisted-service:latest
-make build-onprem
+make image-onprem
 podman push ${SERVICE}
 ````
 

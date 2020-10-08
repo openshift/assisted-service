@@ -61,7 +61,7 @@ REPORTS = $(ROOT_DIR)/reports
 TEST_PUBLISH_FLAGS = --junitfile-testsuite-name=relative --junitfile-testcase-classname=relative --junitfile $(REPORTS)/unittest.xml
 
 
-all: build
+all: images
 
 ci-lint:
 	${ROOT_DIR}/tools/check-commits.sh
@@ -110,49 +110,47 @@ generate-python-client: $(BUILD_FOLDER)
 generate-keys: $(BUILD_FOLDER)
 	cd tools && go run auth_keys_generator.go -keys-dir=$(BUILD_FOLDER)
 
-##################
-# Build & Update #
-##################
+###########
+# Compile #
+###########
 
-.PHONY: build docs
-build: lint unit-test build-minimal build-iso-generator
-
-build-all: build-in-docker build-onprem
-
-build-in-docker:
-	skipper make build-image build-minimal-assisted-iso-generator-image
-
-build-minimal: $(BUILD_FOLDER)
+compile-service: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
-build-iso-generator: $(BUILD_FOLDER)
+compile-iso-generator: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-iso-create assisted-iso-create/main.go
 
-build-onprem: build-in-docker
+###################
+# Images & Update #
+###################
+
+build images: images-in-docker image-onprem
+
+images-in-docker:
+	skipper make image-service image-iso-generator
+
+image-service: lint unit-test
+	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+
+image-iso-generator: lint unit-test
+	docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
+ 		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+
+image-onprem: images-in-docker
 	podman pull $(ISO_CREATION_DOCKER_DAEMON_PULL_STRING)
 	podman pull $(ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING)
 	podman build $(CONTAINER_BUILD_PARAMS) --build-arg RHCOS_VERSION=${RHCOS_VERSION} -f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
 
-build-image: build
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
-
-build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
-
-build-minimal-assisted-iso-generator-image:
-	docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
- 		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
-
 update-service:
-	skipper make build-image
 	docker push $(SERVICE)
 
-update: build-all
-	docker push $(SERVICE)
+update-iso-generator:
 	docker push $(ISO_CREATION)
+
+update-onprem:
 	podman push $(SERVICE_ONPREM)
 
-update-minimal: build-minimal
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+update: update-service update-iso-generator udpate-onprem
 
 _update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
@@ -172,6 +170,7 @@ publish:
 ##########
 # Deploy #
 ##########
+
 ifdef DEPLOY_TAG
   DEPLOY_TAG_OPTION = --deploy-tag "$(DEPLOY_TAG)"
 else ifdef DEPLOY_MANIFEST_PATH
@@ -246,29 +245,6 @@ deploy-onprem:
 deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
-docs:
-	mkdocs build
-
-docs_serve:
-	mkdocs serve
-
-########
-# Test #
-########
-
-subsystem-run: test subsystem-clean
-
-test:
-	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
-		DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
-		DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
-		OCM_HOST=$(shell $(call get_service,wiremock) | sed 's/http:\/\///g') \
-		TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
-		TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
-		TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
-		ENABLE_AUTH="true" \
-		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 120m
-
 deploy-wiremock: deploy-namespace
 	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
 
@@ -283,6 +259,33 @@ deploy-grafana: $(BUILD_FOLDER)
 
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
+.PHONY: docs
+docs:
+	mkdocs build
+
+docs_serve:
+	mkdocs serve
+
+########
+# Test #
+########
+
+$(REPORTS):
+	-mkdir -p $(REPORTS)
+
+subsystem-run: test subsystem-clean
+
+test:
+	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
+		DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
+		DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
+		OCM_HOST=$(shell $(call get_service,wiremock) | sed 's/http:\/\///g') \
+		TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
+		TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
+		TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
+		ENABLE_AUTH="true" \
+		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 120m
+
 unit-test: $(REPORTS)
 	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
 	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
@@ -292,9 +295,6 @@ unit-test: $(REPORTS)
 		-ginkgo.v -timeout 30m -count=1 || (docker kill postgres && /bin/false)
 	gocov convert $(REPORTS)/coverage.out | gocov-xml > $(REPORTS)/coverage.xml
 	docker kill postgres
-
-$(REPORTS):
-	-mkdir -p $(REPORTS)
 
 test-onprem:
 	INVENTORY=127.0.0.1:8090 \

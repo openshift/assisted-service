@@ -22,7 +22,6 @@ pipeline {
         stage('Init') {
             steps {
                 sh 'make clear-all || true'
-                sh 'docker system prune -a'
                 sh 'make ci-lint'
 
                 // Login to quay.io
@@ -33,15 +32,20 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "make build-all"
-                sh "make jenkins-deploy-for-subsystem"
-                sh "kubectl get pods -A"
+                sh "make build"
             }
             post {
                 always {
                     junit '**/reports/*test.xml'
                     cobertura coberturaReportFile: '**/reports/*coverage.xml', onlyStable: false, enableNewApi: true
                 }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh "make jenkins-deploy-for-subsystem"
+                sh "kubectl get pods -A"
             }
         }
 
