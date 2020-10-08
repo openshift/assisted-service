@@ -47,7 +47,7 @@ def main():
                                                                           profile=deploy_options.profile,
                                                                           disable_tls=deploy_options.disable_tls))
 
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
             data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
             data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
             data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))

@@ -78,7 +78,7 @@ def deploy_oauth_reqs():
             with open(dst_file, "w+") as dst:
                 data = src.read()
                 data = data.replace("BASE64_CERT", ca_cert)
-                data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+                data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
                 print("Deploying {}: {}".format(topic, dst_file))
                 dst.write(data)
         utils.apply(
@@ -94,7 +94,7 @@ def deployer(src_file, topic):
     dst_file = os.path.join(os.getcwd(), 'build', os.path.basename(src_file))
     with open(src_file) as fp:
         data = fp.read()
-    data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+    data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
     with open(dst_file, 'w') as fp:
         fp.write(data)
     print("Deploying {}: {}".format(topic ,dst_file))
@@ -135,7 +135,7 @@ def deploy_grafana_route():
         with open(dst_file, "w+") as dst:
             data = src.read()
             data = data.replace("INGRESS_DOMAIN", ingress_domain)
-            data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
             print("Deploying {}: {}".format(topic, dst_file))
             dst.write(data)
     utils.apply(
@@ -152,7 +152,7 @@ def deploy_grafana_ds():
     dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'prometheus.json')
     with open(src_file) as fp:
         data = fp.read()
-    data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+    data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
     with open(dst_file, 'w') as fp:
         fp.write(data)
     if not utils.check_if_exists(
@@ -174,7 +174,7 @@ def deploy_grafana_config(conf_file):
     dst_file = os.path.join(os.getcwd(), conf_file)
     with open(src_file) as fp:
         data = fp.read()
-    data = data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+    data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
     with open(dst_file, 'w') as fp:
         fp.write(data)
     if not utils.check_if_exists(
