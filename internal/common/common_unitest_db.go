@@ -13,8 +13,6 @@ import (
 )
 
 const (
-	dbUser        = "postgres"
-	dbPassword    = "admin"
 	dbDockerName  = "ut-postgres"
 	dbDefaultPort = "5432"
 )
@@ -49,13 +47,10 @@ func InitializeDBTest() {
 		oldResource.Close()
 	}
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: "quay.io/ocpmetal/postgresql-12-centos7",
-		Tag:        "latest",
-		Env: []string{
-			fmt.Sprintf("POSTGRESQL_ADMIN_PASSWORD=%s", dbPassword),
-			"POSTGRESQL_MAX_CONNECTION=10000",
-		},
-		Name: dbDockerName,
+		Repository: "postgres",
+		Tag:        "12.3",
+		Env:        []string{"POSTGRES_PASSWORD=admin", "POSTGRES_USER=admin"},
+		Name:       dbDockerName,
 	})
 	Expect(err).ShouldNot(HaveOccurred())
 
@@ -65,7 +60,8 @@ func InitializeDBTest() {
 	var dbTemp *gorm.DB
 	err = gDbCtx.pool.Retry(func() error {
 		var er error
-		dbTemp, er = dbConnect()
+
+		dbTemp, er = gorm.Open("postgres", fmt.Sprintf("host=127.0.0.1 port=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort()))
 		return er
 	})
 	Expect(err).ShouldNot(HaveOccurred())
@@ -83,14 +79,15 @@ func TerminateDBTest() {
 }
 
 func PrepareTestDB(dbName string, extrasSchemas ...interface{}) *gorm.DB {
-	dbTemp, err := dbConnect()
+	dbTemp, err := gorm.Open("postgres", fmt.Sprintf("host=127.0.0.1 port=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort()))
 	Expect(err).ShouldNot(HaveOccurred())
 	defer dbTemp.Close()
 
 	dbTemp = dbTemp.Exec(fmt.Sprintf("CREATE DATABASE %s;", strings.ToLower(dbName)))
 	Expect(dbTemp.Error).ShouldNot(HaveOccurred())
 
-	db, err := dbConnectWithDB(dbName)
+	db, err := gorm.Open("postgres",
+		fmt.Sprintf("host=127.0.0.1 port=%s dbname=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort(), strings.ToLower(dbName)))
 	Expect(err).ShouldNot(HaveOccurred())
 	// db = db.Debug()
 	db.AutoMigrate(&models.Host{}, &Cluster{})
@@ -105,22 +102,12 @@ func PrepareTestDB(dbName string, extrasSchemas ...interface{}) *gorm.DB {
 
 func DeleteTestDB(db *gorm.DB, dbName string) {
 	db.Close()
-	db, err := dbConnect()
+
+	db, err := gorm.Open("postgres",
+		fmt.Sprintf("host=127.0.0.1 port=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort()))
 	Expect(err).ShouldNot(HaveOccurred())
 	defer db.Close()
 	db = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s;", strings.ToLower(dbName)))
 
 	Expect(db.Error).ShouldNot(HaveOccurred())
-}
-
-func dbConnect() (*gorm.DB, error) {
-	return gorm.Open("postgres",
-		fmt.Sprintf("host=127.0.0.1 port=%s user=%s password=%s sslmode=disable",
-			gDbCtx.GetPort(), dbUser, dbPassword))
-}
-
-func dbConnectWithDB(dbName string) (*gorm.DB, error) {
-	return gorm.Open("postgres",
-		fmt.Sprintf("host=127.0.0.1 port=%s dbname=%s user=%s password=%s sslmode=disable",
-			gDbCtx.GetPort(), strings.ToLower(dbName), dbUser, dbPassword))
 }
