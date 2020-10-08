@@ -31,7 +31,7 @@ func NewGetHostRequirements(ctx *middleware.Context, handler GetHostRequirements
 
 /*GetHostRequirements swagger:route GET /host_requirements installer getHostRequirements
 
-Get minimum host requirements
+Get minimum host requirements.
 
 */
 type GetHostRequirements struct {

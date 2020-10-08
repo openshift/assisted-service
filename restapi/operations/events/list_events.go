@@ -31,7 +31,7 @@ func NewListEvents(ctx *middleware.Context, handler ListEventsHandler) *ListEven
 
 /*ListEvents swagger:route GET /clusters/{cluster_id}/events events listEvents
 
-Lists events for a cluster
+Lists events for a cluster.
 
 */
 type ListEvents struct {

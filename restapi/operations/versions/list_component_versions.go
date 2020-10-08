@@ -31,7 +31,7 @@ func NewListComponentVersions(ctx *middleware.Context, handler ListComponentVers
 
 /*ListComponentVersions swagger:route GET /component_versions versions listComponentVersions
 
-List of componenets versions
+List of component versions.
 
 */
 type ListComponentVersions struct {

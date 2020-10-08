@@ -26,8 +26,8 @@ const (
 	// HostStageWaitingForControlPlane captures enum value "Waiting for control plane"
 	HostStageWaitingForControlPlane HostStage = "Waiting for control plane"
 
-	// HostStageStartWaitingForControlPlane captures enum value "Start Waiting for control plane"
-	HostStageStartWaitingForControlPlane HostStage = "Start Waiting for control plane"
+	// HostStageStartWaitingForControlPlane captures enum value "Start waiting for control plane"
+	HostStageStartWaitingForControlPlane HostStage = "Start waiting for control plane"
 
 	// HostStageInstalling captures enum value "Installing"
 	HostStageInstalling HostStage = "Installing"
@@ -59,7 +59,7 @@ var hostStageEnum []interface{}
 
 func init() {
 	var res []HostStage
-	if err := json.Unmarshal([]byte(`["Starting installation","Waiting for control plane","Start Waiting for control plane","Installing","Writing image to disk","Rebooting","Waiting for ignition","Configuring","Joined","Done","Failed"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Starting installation","Waiting for control plane","Start waiting for control plane","Installing","Writing image to disk","Rebooting","Waiting for ignition","Configuring","Joined","Done","Failed"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

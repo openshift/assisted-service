@@ -23,7 +23,7 @@ type InfraError struct {
 	// Minimum: 401
 	Code *int32 `json:"code"`
 
-	// Human readable description of the error.
+	// Human-readable description of the error.
 	// Required: true
 	Message *string `json:"message"`
 }

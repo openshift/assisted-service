@@ -19,7 +19,7 @@ import (
 // swagger:model error
 type Error struct {
 
-	// Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, for if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.
+	// Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.
 	// Required: true
 	Code *string `json:"code"`
 
@@ -38,7 +38,7 @@ type Error struct {
 	// Enum: [Error]
 	Kind *string `json:"kind"`
 
-	// Human readable description of the error.
+	// Human-readable description of the error.
 	// Required: true
 	Reason *string `json:"reason"`
 }

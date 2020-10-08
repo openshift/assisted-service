@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
+	ign_3_1_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -273,13 +275,16 @@ var _ = Describe("GenerateClusterISO", func() {
 var _ = Describe("IgnitionParameters", func() {
 
 	var (
-		bm *bareMetalInventory
+		bm      *bareMetalInventory
+		cluster common.Cluster
 	)
 
-	cluster := common.Cluster{Cluster: models.Cluster{
-		ID:            strToUUID("a640ef36-dcb1-11ea-87d0-0242ac130003"),
-		PullSecretSet: false,
-	}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+	BeforeEach(func() {
+		cluster = common.Cluster{Cluster: models.Cluster{
+			ID:            strToUUID("a640ef36-dcb1-11ea-87d0-0242ac130003"),
+			PullSecretSet: false,
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+	})
 
 	RunIgnitionConfigurationTests := func() {
 
@@ -371,21 +376,62 @@ var _ = Describe("IgnitionParameters", func() {
 
 		It("ignition_file_contains_http_proxy", func() {
 			bm.ServiceBaseURL = "file://10.56.20.70:7878"
-			proxyCluster := cluster
-			proxyCluster.HTTPProxy = "http://10.10.1.1:3128"
-			proxyCluster.NoProxy = "quay.io"
-			text, err := bm.formatIgnitionFile(&proxyCluster, installer.GenerateClusterISOParams{
+			cluster.HTTPProxy = "http://10.10.1.1:3128"
+			cluster.NoProxy = "quay.io"
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
 				ImageCreateParams: &models.ImageCreateParams{},
 			}, false)
 
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
 		})
+
+		It("produces a valid ignition v3.1 spec by default", func() {
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			}, false)
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := ign_3_1.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			Expect(config.Ignition.Version).To(Equal("3.1.0"))
+		})
+
+		It("produces a valid ignition v3.1 spec with overrides", func() {
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			}, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			config, report, err := ign_3_1.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			orig_files := len(config.Storage.Files)
+
+			cluster.IgnitionConfigOverrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+			text, err = bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			}, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			config, report, err = ign_3_1.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			Expect(len(config.Storage.Files)).To(Equal(orig_files + 1))
+		})
+
+		It("fails when given overrides with an incompatible version", func() {
+			cluster.IgnitionConfigOverrides = `{"ignition": {"version": "2.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+			_, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{},
+			}, false)
+			Expect(err).To(HaveOccurred())
+		})
 	}
 
 	Context("start with clean configuration", func() {
 		BeforeEach(func() {
-			bm = &bareMetalInventory{}
+			bm = &bareMetalInventory{log: getTestLog()}
 		})
 		RunIgnitionConfigurationTests()
 	})
@@ -2958,6 +3004,160 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		}
 		response := bm.UpdateClusterInstallConfig(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigBadRequest{}))
+	})
+})
+
+var _ = Describe("GetDiscoveryIgnition", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    = "get_discovery_ignition"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler())
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:            &clusterID,
+			PullSecretSet: true,
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("returns successfully without overrides", func() {
+		params := installer.GetDiscoveryIgnitionParams{ClusterID: clusterID}
+		response := bm.GetDiscoveryIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.GetDiscoveryIgnitionOK{}))
+		actual, ok := response.(*installer.GetDiscoveryIgnitionOK)
+		Expect(ok).To(BeTrue())
+
+		config, report, err := ign_3_1.Parse([]byte(actual.Payload.Config))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		Expect(config.Ignition.Version).To(Equal("3.1.0"))
+	})
+
+	It("returns not found with a non-existant cluster", func() {
+		params := installer.GetDiscoveryIgnitionParams{ClusterID: strfmt.UUID(uuid.New().String())}
+		response := bm.GetDiscoveryIgnition(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns successfully with overrides", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("ignition_config_overrides", override)
+
+		params := installer.GetDiscoveryIgnitionParams{ClusterID: clusterID}
+		response := bm.GetDiscoveryIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.GetDiscoveryIgnitionOK{}))
+		actual, ok := response.(*installer.GetDiscoveryIgnitionOK)
+		Expect(ok).To(BeTrue())
+
+		config, report, err := ign_3_1.Parse([]byte(actual.Payload.Config))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+
+		var file *ign_3_1_types.File
+		for i, f := range config.Storage.Files {
+			if f.Path == "/tmp/example" {
+				file = &config.Storage.Files[i]
+			}
+		}
+		Expect(file).NotTo(BeNil())
+		Expect(*file.Contents.Source).To(Equal("data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"))
+	})
+
+})
+
+var _ = Describe("UpdateDiscoveryIgnition", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    = "update_discovery_ignition"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler())
+		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("saves the given string to the cluster", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateDiscoveryIgnitionParams{
+			ClusterID:               clusterID,
+			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		}
+		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
+
+		var updated common.Cluster
+		err := db.First(&updated, "id = ?", clusterID).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(updated.IgnitionConfigOverrides).To(Equal(override))
+	})
+
+	It("returns not found with a non-existant cluster", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateDiscoveryIgnitionParams{
+			ClusterID:               strfmt.UUID(uuid.New().String()),
+			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		}
+		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns bad request when provided invalid json", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}}}`
+		params := installer.UpdateDiscoveryIgnitionParams{
+			ClusterID:               clusterID,
+			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		}
+		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionBadRequest{}))
+	})
+
+	It("returns bad request when provided invalid options", func() {
+		// Missing the version
+		override := `{"storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateDiscoveryIgnitionParams{
+			ClusterID:               clusterID,
+			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		}
+		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionBadRequest{}))
+	})
+
+	It("returns bad request when provided an old version", func() {
+		// Wrong version
+		override := `{"ignition": {"version": "3.0.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateDiscoveryIgnitionParams{
+			ClusterID:               clusterID,
+			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		}
+		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionBadRequest{}))
 	})
 })
 

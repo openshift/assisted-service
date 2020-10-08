@@ -16,6 +16,7 @@ import (
 
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_31_types "github.com/coreos/ignition/v2/config/v3_1/types"
+	"github.com/coreos/ignition/v2/config/validate"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -492,4 +493,35 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 		return err
 	}
 	return nil
+}
+
+func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
+	baseConfig, report, err := config_31.Parse(base)
+	if err != nil {
+		return "", err
+	}
+	if report.IsFatal() {
+		return "", errors.Errorf("base ignition config is invalid: %s", report.String())
+	}
+
+	overrideConfig, report, err := config_31.Parse(overrides)
+	if err != nil {
+		return "", err
+	}
+	if report.IsFatal() {
+		return "", errors.Errorf("override ignition config is invalid: %s", report.String())
+	}
+
+	config := config_31.Merge(baseConfig, overrideConfig)
+	report = validate.ValidateWithContext(config, nil)
+	if report.IsFatal() {
+		return "", errors.Errorf("merged ignition config is invalid: %s", report.String())
+	}
+
+	res, err := json.Marshal(config)
+	if err != nil {
+		return "", err
+	}
+
+	return string(res), nil
 }

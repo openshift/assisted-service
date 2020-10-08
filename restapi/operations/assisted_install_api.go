@@ -94,6 +94,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetCredentialsHandler: installer.GetCredentialsHandlerFunc(func(params installer.GetCredentialsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetCredentials has not yet been implemented")
 		}),
+		InstallerGetDiscoveryIgnitionHandler: installer.GetDiscoveryIgnitionHandlerFunc(func(params installer.GetDiscoveryIgnitionParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetDiscoveryIgnition has not yet been implemented")
+		}),
 		InstallerGetFreeAddressesHandler: installer.GetFreeAddressesHandlerFunc(func(params installer.GetFreeAddressesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetFreeAddresses has not yet been implemented")
 		}),
@@ -150,6 +153,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerUpdateClusterInstallConfigHandler: installer.UpdateClusterInstallConfigHandlerFunc(func(params installer.UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateClusterInstallConfig has not yet been implemented")
+		}),
+		InstallerUpdateDiscoveryIgnitionHandler: installer.UpdateDiscoveryIgnitionHandlerFunc(func(params installer.UpdateDiscoveryIgnitionParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.UpdateDiscoveryIgnition has not yet been implemented")
 		}),
 		InstallerUpdateHostInstallProgressHandler: installer.UpdateHostInstallProgressHandlerFunc(func(params installer.UpdateHostInstallProgressParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateHostInstallProgress has not yet been implemented")
@@ -255,6 +261,8 @@ type AssistedInstallAPI struct {
 	InstallerGetClusterInstallConfigHandler installer.GetClusterInstallConfigHandler
 	// InstallerGetCredentialsHandler sets the operation handler for the get credentials operation
 	InstallerGetCredentialsHandler installer.GetCredentialsHandler
+	// InstallerGetDiscoveryIgnitionHandler sets the operation handler for the get discovery ignition operation
+	InstallerGetDiscoveryIgnitionHandler installer.GetDiscoveryIgnitionHandler
 	// InstallerGetFreeAddressesHandler sets the operation handler for the get free addresses operation
 	InstallerGetFreeAddressesHandler installer.GetFreeAddressesHandler
 	// InstallerGetHostHandler sets the operation handler for the get host operation
@@ -293,6 +301,8 @@ type AssistedInstallAPI struct {
 	InstallerUpdateClusterHandler installer.UpdateClusterHandler
 	// InstallerUpdateClusterInstallConfigHandler sets the operation handler for the update cluster install config operation
 	InstallerUpdateClusterInstallConfigHandler installer.UpdateClusterInstallConfigHandler
+	// InstallerUpdateDiscoveryIgnitionHandler sets the operation handler for the update discovery ignition operation
+	InstallerUpdateDiscoveryIgnitionHandler installer.UpdateDiscoveryIgnitionHandler
 	// InstallerUpdateHostInstallProgressHandler sets the operation handler for the update host install progress operation
 	InstallerUpdateHostInstallProgressHandler installer.UpdateHostInstallProgressHandler
 	// InstallerUploadClusterIngressCertHandler sets the operation handler for the upload cluster ingress cert operation
@@ -435,6 +445,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerGetCredentialsHandler == nil {
 		unregistered = append(unregistered, "installer.GetCredentialsHandler")
 	}
+	if o.InstallerGetDiscoveryIgnitionHandler == nil {
+		unregistered = append(unregistered, "installer.GetDiscoveryIgnitionHandler")
+	}
 	if o.InstallerGetFreeAddressesHandler == nil {
 		unregistered = append(unregistered, "installer.GetFreeAddressesHandler")
 	}
@@ -491,6 +504,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerUpdateClusterInstallConfigHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateClusterInstallConfigHandler")
+	}
+	if o.InstallerUpdateDiscoveryIgnitionHandler == nil {
+		unregistered = append(unregistered, "installer.UpdateDiscoveryIgnitionHandler")
 	}
 	if o.InstallerUpdateHostInstallProgressHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateHostInstallProgressHandler")
@@ -672,6 +688,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/clusters/{cluster_id}/discovery-ignition"] = installer.NewGetDiscoveryIgnition(o.context, o.InstallerGetDiscoveryIgnitionHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/clusters/{cluster_id}/free_addresses"] = installer.NewGetFreeAddresses(o.context, o.InstallerGetFreeAddressesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -745,6 +765,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/clusters/{cluster_id}/install-config"] = installer.NewUpdateClusterInstallConfig(o.context, o.InstallerUpdateClusterInstallConfigHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/clusters/{cluster_id}/discovery-ignition"] = installer.NewUpdateDiscoveryIgnition(o.context, o.InstallerUpdateDiscoveryIgnitionHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}

@@ -627,6 +627,87 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/discovery-ignition:
+    get:
+      tags:
+        - installer
+      summary: Get the cluster discovery ignition config
+      operationId: GetDiscoveryIgnition
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/discovery-ignition-params'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+    patch:
+      tags:
+        - installer
+      summary: Override values in the discovery ignition config
+      operationId: UpdateDiscoveryIgnition
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: discovery-ignition-params
+          required: true
+          schema:
+            $ref: '#/definitions/discovery-ignition-params'
+      responses:
+        201:
+          description: Success.
+        400:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /clusters/{cluster_id}/uploads/ingress-cert:
     post:
       tags:
@@ -2429,7 +2510,10 @@ definitions:
         description: JSON-formatted string containing the user overrides for the install-config.yaml file.
         example: '{"networking":{"networkType": "OVN-Kubernetes"},"fips":true}'
         x-go-custom-tag: gorm:"type:varchar(2048)"
-
+      ignition_config_overrides:
+        type: string
+        description: Json formatted string containing the user overrides for the initial ignition config
+        example: '{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}'
 
   image_info:
     type: object
@@ -2524,6 +2608,11 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/connectivity-remote-host'
+
+  discovery-ignition-params:
+    properties:
+      config:
+        type: string
 
   ingress-cert-params:
     type: string

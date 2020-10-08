@@ -43,12 +43,12 @@ type UpdateHostInstallProgressParams struct {
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-	/*New progress value
+	/*New progress value.
 	  Required: true
 	  In: body
 	*/
 	HostProgress *models.HostProgress
-	/*The ID of the host to retrieve
+	/*The ID of the host to retrieve.
 	  Required: true
 	  In: path
 	*/

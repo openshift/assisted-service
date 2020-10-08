@@ -37,7 +37,7 @@ type Event struct {
 	// Required: true
 	Message *string `json:"message" gorm:"type:varchar(4096)"`
 
-	// Unique identifier for the request that caused this event to occure
+	// Unique identifier of the request that caused this event to occur.
 	// Format: uuid
 	RequestID strfmt.UUID `json:"request_id,omitempty"`
 

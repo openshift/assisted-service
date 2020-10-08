@@ -56,10 +56,10 @@ type Host struct {
 	// Format: uuid
 	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
 
-	// Host installation path
+	// Host installation path.
 	InstallationDiskPath string `json:"installation_disk_path,omitempty"`
 
-	// Installer version
+	// Installer version.
 	InstallerVersion string `json:"installer_version,omitempty"`
 
 	// inventory
@@ -88,11 +88,11 @@ type Host struct {
 	// role
 	Role HostRole `json:"role,omitempty"`
 
-	// Time at which the current progress stage started
+	// Time at which the current progress stage started.
 	// Format: date-time
 	StageStartedAt strfmt.DateTime `json:"stage_started_at,omitempty" gorm:"type:timestamp with time zone"`
 
-	// Time at which the current progress stage was last updated
+	// Time at which the current progress stage was last updated.
 	// Format: date-time
 	StageUpdatedAt strfmt.DateTime `json:"stage_updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
@@ -105,7 +105,7 @@ type Host struct {
 	// Required: true
 	StatusInfo *string `json:"status_info" gorm:"type:varchar(2048)"`
 
-	// The last time that the host status has been updated
+	// The last time that the host status was updated.
 	// Format: date-time
 	StatusUpdatedAt strfmt.DateTime `json:"status_updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
@@ -116,7 +116,7 @@ type Host struct {
 	// user name
 	UserName string `json:"user_name,omitempty"`
 
-	// Json formatted string containing the validations results for each validation id grouped by category (network, hardware, etc.)
+	// JSON-formatted string containing the validation results for each validation id grouped by category (network, hardware, etc.)
 	ValidationsInfo string `json:"validations_info,omitempty" gorm:"type:varchar(2048)"`
 }
 

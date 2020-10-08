@@ -70,12 +70,12 @@ type UpdateHostInstallProgressParams struct {
 	/*DiscoveryAgentVersion*/
 	DiscoveryAgentVersion *string
 	/*HostProgress
-	  New progress value
+	  New progress value.
 
 	*/
 	HostProgress *models.HostProgress
 	/*HostID
-	  The ID of the host to retrieve
+	  The ID of the host to retrieve.
 
 	*/
 	HostID strfmt.UUID

@@ -17,12 +17,12 @@ import (
 // swagger:model dhcp_allocation_response
 type DhcpAllocationResponse struct {
 
-	// The IPv4 address that was allocated by DHCP for API VIP.
+	// The IPv4 address that was allocated by DHCP for the API virtual IP.
 	// Required: true
 	// Format: ipv4
 	APIVipAddress *strfmt.IPv4 `json:"api_vip_address"`
 
-	// The IPv4 address that was allocated by DHCP for Ingress VIP.
+	// The IPv4 address that was allocated by DHCP for the Ingress virtual IP.
 	// Required: true
 	// Format: ipv4
 	IngressVipAddress *strfmt.IPv4 `json:"ingress_vip_address"`

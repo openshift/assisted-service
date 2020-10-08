@@ -29,7 +29,7 @@ const AuthKey contextKey = "Auth"
 
 /* EventsAPI  */
 type EventsAPI interface {
-	/* ListEvents Lists events for a cluster */
+	/* ListEvents Lists events for a cluster. */
 	ListEvents(ctx context.Context, params events.ListEventsParams) middleware.Responder
 }
 
@@ -61,10 +61,10 @@ type InstallerAPI interface {
 	/* DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster. */
 	DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder
 
-	/* DownloadClusterLogs Download cluster logs */
+	/* DownloadClusterLogs Download cluster logs. */
 	DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder
 
-	/* DownloadHostLogs Download host logs */
+	/* DownloadHostLogs Download host logs. */
 	DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder
 
 	/* EnableHost Enables a host for inclusion in the cluster. */
@@ -82,13 +82,16 @@ type InstallerAPI interface {
 	/* GetCredentials Get the cluster admin credentials. */
 	GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder
 
+	/* GetDiscoveryIgnition Get the cluster discovery ignition config */
+	GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder
+
 	/* GetFreeAddresses Retrieves the free address list for a network. */
 	GetFreeAddresses(ctx context.Context, params installer.GetFreeAddressesParams) middleware.Responder
 
 	/* GetHost Retrieves the details of the OpenShift bare metal host. */
 	GetHost(ctx context.Context, params installer.GetHostParams) middleware.Responder
 
-	/* GetHostRequirements Get minimum host requirements */
+	/* GetHostRequirements Get minimum host requirements. */
 	GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder
 
 	/* GetNextSteps Retrieves the next operations that the host agent needs to perform. */
@@ -130,6 +133,9 @@ type InstallerAPI interface {
 	/* UpdateClusterInstallConfig Override values in the install config. */
 	UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder
 
+	/* UpdateDiscoveryIgnition Override values in the discovery ignition config */
+	UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder
+
 	/* UpdateHostInstallProgress Update installation progress. */
 	UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder
 
@@ -147,7 +153,7 @@ type InstallerAPI interface {
 
 /* ManagedDomainsAPI  */
 type ManagedDomainsAPI interface {
-	/* ListManagedDomains List of managed DNS domains */
+	/* ListManagedDomains List of managed DNS domains. */
 	ListManagedDomains(ctx context.Context, params managed_domains.ListManagedDomainsParams) middleware.Responder
 }
 
@@ -155,7 +161,7 @@ type ManagedDomainsAPI interface {
 
 /* VersionsAPI  */
 type VersionsAPI interface {
-	/* ListComponentVersions List of componenets versions */
+	/* ListComponentVersions List of component versions. */
 	ListComponentVersions(ctx context.Context, params versions.ListComponentVersionsParams) middleware.Responder
 }
 
@@ -311,6 +317,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetCredentials(ctx, params)
 	})
+	api.InstallerGetDiscoveryIgnitionHandler = installer.GetDiscoveryIgnitionHandlerFunc(func(params installer.GetDiscoveryIgnitionParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetDiscoveryIgnition(ctx, params)
+	})
 	api.InstallerGetFreeAddressesHandler = installer.GetFreeAddressesHandlerFunc(func(params installer.GetFreeAddressesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -405,6 +416,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UpdateClusterInstallConfig(ctx, params)
+	})
+	api.InstallerUpdateDiscoveryIgnitionHandler = installer.UpdateDiscoveryIgnitionHandlerFunc(func(params installer.UpdateDiscoveryIgnitionParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.UpdateDiscoveryIgnition(ctx, params)
 	})
 	api.InstallerUpdateHostInstallProgressHandler = installer.UpdateHostInstallProgressHandlerFunc(func(params installer.UpdateHostInstallProgressParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

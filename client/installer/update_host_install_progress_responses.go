@@ -78,7 +78,7 @@ func NewUpdateHostInstallProgressOK() *UpdateHostInstallProgressOK {
 
 /*UpdateHostInstallProgressOK handles this case with default header values.
 
-Update install progress
+Update install progress.
 */
 type UpdateHostInstallProgressOK struct {
 }

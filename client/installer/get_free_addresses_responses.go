@@ -72,7 +72,7 @@ func NewGetFreeAddressesOK() *GetFreeAddressesOK {
 
 /*GetFreeAddressesOK handles this case with default header values.
 
-Success
+Success.
 */
 type GetFreeAddressesOK struct {
 	Payload models.FreeAddressesList
