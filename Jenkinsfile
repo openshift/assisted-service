@@ -46,12 +46,6 @@ pipeline {
             steps {
                 sh "make build-all"
             }
-            post {
-                always {
-                    junit '**/reports/*test.xml'
-                    cobertura coberturaReportFile: '**/reports/*coverage.xml', onlyStable: false, enableNewApi: true
-                }
-            }
         }
 
         stage('Publish') {
@@ -91,9 +85,11 @@ pipeline {
                     sh '''curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt" https://hooks.slack.com/services/${SLACK_TOKEN}'''
                 }
 
-                sh "make clear-all"
-
                 archiveArtifacts artifacts: '*.log', fingerprint: true, allowEmptyArchive: true
+                junit '**/reports/junit*.xml'
+                cobertura coberturaReportFile: '**/reports/*coverage.xml', onlyStable: false, enableNewApi: true
+
+                sh "make clear-all"
             }
         }
     }
