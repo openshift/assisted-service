@@ -504,13 +504,18 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 	log := logutil.FromContext(ctx, m.log)
 	//get openshift version from cluster
 	var cluster common.Cluster
-
 	err := m.db.First(&cluster, "id = ?", h.ClusterID).Error
 	if err != nil {
 		log.WithError(err).Errorf("not reporting installation metrics - failed to find cluster %s", h.ClusterID)
-	} else {
-		m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, *cluster.ID, h, previousProgress, CurrentStage)
+		return
 	}
+	//get the boot disk
+	var boot *models.Disk
+	disks, err := m.hwValidator.GetHostValidDisks(h)
+	if err == nil && len(disks) > 0 {
+		boot = disks[0]
+	}
+	m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h.ClusterID, boot, h, previousProgress, CurrentStage)
 }
 
 func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {
