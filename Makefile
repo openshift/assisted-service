@@ -1,11 +1,10 @@
 NAMESPACE := $(or ${NAMESPACE},assisted-installer)
-RT_CMD ?= docker
 
 PWD = $(shell pwd)
 UID = $(shell id -u)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-CONTAINER_COMMAND = $(shell if [ ! -z "${RT_CMD}" ] && [ -x "$(shell command -v ${RT_CMD})" ] ;then echo "${RT_CMD}"; elif [ -x "$(shell command -v docker)" ];then echo "docker" ; else echo "podman"; fi)
+CONTAINER_COMMAND = $(shell if [ -x "$(shell command -v podman)" ] ;then echo "podman"; else echo "podman";fi)
 
 TARGET := $(or ${TARGET},minikube)
 PROFILE := $(or $(PROFILE),minikube)
@@ -88,35 +87,19 @@ generate-from-swagger: generate-go-client generate-go-server
 
 generate-go-server:
 	rm -rf restapi
-ifeq ($(CONTAINER_COMMAND),docker)
-	$(CONTAINER_COMMAND) run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
+	podman run -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
 		quay.io/goswagger/swagger:v0.25.0 generate server --template=stratoscale -f swagger.yaml \
 		--template-dir=/templates/contrib
-else ifeq ($(CONTAINER_COMMAND),podman)
-	$(CONTAINER_COMMAND) run -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
-		quay.io/goswagger/swagger:v0.25.0 generate server --template=stratoscale -f swagger.yaml \
-		--template-dir=/templates/contrib
-else
-	@echo "Runtime not implemented"
-endif
 
 generate-go-client:
 	rm -rf client models
-ifeq ($(CONTAINER_COMMAND),docker)
-	$(CONTAINER_COMMAND) run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
+	podman run -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
 		quay.io/goswagger/swagger:v0.25.0 generate client --template=stratoscale -f swagger.yaml \
 		--template-dir=/templates/contrib
-else ifeq ($(CONTAINER_COMMAND),podman)
-	$(CONTAINER_COMMAND) run -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
-		quay.io/goswagger/swagger:v0.25.0 generate client --template=stratoscale -f swagger.yaml \
-		--template-dir=/templates/contrib
-else
-	@echo "Runtime not implemented"
-endif
 
 generate-python-client: $(BUILD_FOLDER)
 	rm -rf $(BUILD_FOLDER)/assisted-service-client*
-	$(CONTAINER_COMMAND) run --rm -u ${UID} --entrypoint /bin/sh \
+	podman run --rm -u ${UID} --entrypoint /bin/sh \
 		-v $(BUILD_FOLDER):/local:Z \
 		-v $(ROOT_DIR)/swagger.yaml:/swagger.yaml:ro,Z \
 		-v $(ROOT_DIR)/tools/generate_python_client.sh:/script.sh:ro,Z \
@@ -151,7 +134,7 @@ build-onprem: build-in-docker
 	podman build $(CONTAINER_BUILD_PARAMS) --build-arg RHCOS_VERSION=${RHCOS_VERSION} -f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
 
 build-image: build
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+	podman build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
 
@@ -161,9 +144,6 @@ build-minimal-assisted-iso-generator-image:
 else ifeq ($(CONTAINER_COMMAND),podman)
 	GIT_REVISION=${GIT_REVISION} $(CONTAINER_COMMAND) build --net=host --build-arg GIT_REVISION --build-arg NAMESPACE=$(NAMESPACE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
-else
-	@echo "Runtime not implemented"
-endif
 
 
 update: build-all
@@ -172,12 +152,12 @@ update: build-all
 	podman push $(SERVICE_ONPREM)
 
 update-minimal: build-minimal
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+	podman build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 _update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
-		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE) && \
-		docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+		podman build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE) && \
+		podman build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 define publish_image
 	${1} tag ${2} ${3}
@@ -307,14 +287,14 @@ deploy-grafana: $(BUILD_FOLDER)
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
 unit-test: $(REPORTS)
-	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
-	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
+	podman ps -q --filter "name=postgres" | xargs -r podman kill && sleep 3
+	podman run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
 		postgres:12.3-alpine -c 'max_connections=10000'
 	timeout 1m bash -c "until PGPASSWORD=admin pg_isready -U admin --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done"
 	SKIP_UT_DB=1 gotestsum --format=pkgname $(TEST_PUBLISH_FLAGS) -- -cover -coverprofile=$(REPORTS)/coverage.out $(or ${TEST},${TEST},$(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
-		-ginkgo.v -timeout 30m -count=1 || (docker kill postgres && /bin/false)
+		-ginkgo.v -timeout 30m -count=1 || (podman kill postgres && /bin/false)
 	gocov convert $(REPORTS)/coverage.out | gocov-xml > $(REPORTS)/coverage.xml
-	docker kill postgres
+	podman kill postgres
 
 $(REPORTS):
 	-mkdir -p $(REPORTS)
