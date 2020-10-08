@@ -1,0 +1,15 @@
+# Mocks generated
+*mock_*.go -diff -merge
+*mock_*.go linguist-generated=true
+
+# Swagger generated
+restapi/** -diff -merge
+restapi/** linguist-generated=true
+models/** -diff -merge
+models/** linguist-generated=true
+client/** -diff -merge
+client/** linguist-generated=true
+
+# Docs generated
+site/** -diff -merge
+site/** linguist-generated=true
