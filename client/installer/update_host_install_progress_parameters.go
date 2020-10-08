@@ -63,7 +63,7 @@ for the update host install progress operation typically these are written to a 
 type UpdateHostInstallProgressParams struct {
 
 	/*ClusterID
-	  The ID of the cluster to retrieve.
+	  The ID of the cluster to retrieve
 
 	*/
 	ClusterID strfmt.UUID

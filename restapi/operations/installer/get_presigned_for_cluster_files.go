@@ -31,7 +31,7 @@ func NewGetPresignedForClusterFiles(ctx *middleware.Context, handler GetPresigne
 
 /*GetPresignedForClusterFiles swagger:route GET /clusters/{cluster_id}/downloads/files-presigned installer getPresignedForClusterFiles
 
-Retrieves a pre-signed S3 URL for downloading cluster files.
+Retrieves a presigned S3 URL for downloading cluster files.
 
 */
 type GetPresignedForClusterFiles struct {

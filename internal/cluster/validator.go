@@ -95,14 +95,14 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 	switch status {
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
-			return "The Machine Network CIDR is undefined; setting the Machine Network CIDR initiates the VIPs DHCP lease allocation."
+			return "Machine network CIDR is undefined; setting the machine network CIDR initiates the VIPs DHCP lease allocation"
 		} else {
-			return "The Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs."
+			return "Machine network CIDR is undefined; the machine network CIDR can be defined by setting either the API VIP or the Ingress VIP"
 		}
 	case ValidationSuccess:
-		return "The Machine Network CIDR is defined."
+		return "Machine network CIDR is defined"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -113,11 +113,11 @@ func (v *clusterValidator) isClusterCidrDefined(c *clusterPreprocessContext) val
 func (v *clusterValidator) printIsClusterCidrDefined(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationFailure:
-		return "The Cluster Network CIDR is undefined."
+		return "Cluster Network CIDR is undefined"
 	case ValidationSuccess:
-		return "The Cluster Network CIDR is defined."
+		return "Cluster Network CIDR is defined"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -128,11 +128,11 @@ func (v *clusterValidator) isServiceCidr(c *clusterPreprocessContext) validation
 func (v *clusterValidator) printIsServiceCidrDefined(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationFailure:
-		return "The Service Network CIDR is undefined."
+		return "Service Network CIDR is undefined"
 	case ValidationSuccess:
-		return "The Service Network CIDR is defined."
+		return "Service Network CIDR is defined"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -148,13 +148,13 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "The Machine Network CIDR, API virtual IP, or Ingress virtual IP is undefined."
+		return "Machine network CIDR or API VIP or Ingress VIP is undefined"
 	case ValidationSuccess:
-		return "The Cluster Machine CIDR is equivalent to the calculated CIDR."
+		return "Cluster machine CIDR equals to the calculated CIDR "
 	case ValidationFailure:
-		return fmt.Sprintf("The Cluster Machine CIDR %s is different than the calculated CIDR %s.", context.cluster.MachineNetworkCidr, context.calculateCidr)
+		return fmt.Sprintf("Cluster machine CIDR %s is different than the calculated CIDR %s", context.cluster.MachineNetworkCidr, context.calculateCidr)
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -168,21 +168,21 @@ func (v *clusterValidator) isApiVipDefined(c *clusterPreprocessContext) validati
 func (v *clusterValidator) printIsApiVipDefined(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "The Machine Network CIDR is undefined"
+		return "Machine network CIDR is undefined"
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
 			if isDhcpLeaseAllocationTimedOut(context) {
-				return "The API virtual IP is undefined; IP allocation from the DHCP server timed out."
+				return "API VIP is undefined; API VIP IP allocation from DHCP server has been timed out"
 			} else {
-				return "The API virtual IP is undefined; after the Machine Network CIDR has been defined, the API virtual IP is received from a DHCP lease allocation task which may take up to 2 minutes."
+				return "API VIP is undefined; after the machine network CIDR has been defined, the API VIP is received from DHCP lease allocation task which may take up to 2 minutes"
 			}
 		} else {
-			return "The API virtual IP is undefined and must be provided."
+			return "API VIP is undefined and must be provided"
 		}
 	case ValidationSuccess:
-		return "The API virtual IP is defined."
+		return "API VIP is defined"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -198,13 +198,13 @@ func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) validation
 func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "The API virtual IP is undefined."
+		return "API VIP is undefined"
 	case ValidationSuccess:
-		return fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", ApiVipName, context.cluster.APIVip)
+		return fmt.Sprintf("%s %s belongs to machine CIDR and not in use ", ApiVipName, context.cluster.APIVip)
 	case ValidationFailure:
-		return fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", ApiVipName, context.cluster.APIVip)
+		return fmt.Sprintf("%s %s does not belong to machine CIDR or already in use ", ApiVipName, context.cluster.APIVip)
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -218,21 +218,21 @@ func (v *clusterValidator) isIngressVipDefined(c *clusterPreprocessContext) vali
 func (v *clusterValidator) printIsIngressVipDefined(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "The Machine Network CIDR is undefined"
+		return "Machine network CIDR is undefined"
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
 			if isDhcpLeaseAllocationTimedOut(context) {
-				return "The Ingress virtual IP is undefined; IP allocation from the DHCP server timed out."
+				return "Ingress VIP is undefined; Ingress VIP IP allocation from DHCP server has been timed out"
 			} else {
-				return "The Ingress virtual IP is undefined; after the Machine Network CIDR has been defined, the Ingress virtual IP is received from a DHCP lease allocation task which may take up to 2 minutes."
+				return "Ingress VIP is undefined; after the machine network CIDR has been defined, the Ingress VIP is received from DHCP lease allocation task which may take up to 2 minutes"
 			}
 		} else {
-			return "The Ingress virtual IP is undefined and must be provided."
+			return "Ingress VIP is undefined and must be provided"
 		}
 	case ValidationSuccess:
-		return "The Ingress virtual IP is defined."
+		return "Ingress VIP is defined"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) validationStatus {
@@ -247,11 +247,11 @@ func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) valida
 func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "The Ingress virtual IP is undefined."
+		return "Ingress VIP is undefined"
 	case ValidationSuccess:
-		return fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", IngressVipName, context.cluster.IngressVip)
+		return fmt.Sprintf("%s %s belongs to machine CIDR and not in use ", IngressVipName, context.cluster.IngressVip)
 	case ValidationFailure:
-		return fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", IngressVipName, context.cluster.IngressVip)
+		return fmt.Sprintf("%s %s does not belong to machine CIDR or already in use ", IngressVipName, context.cluster.IngressVip)
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
@@ -259,7 +259,7 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 
 // conditions to have a valid number of masters
 // 1. have exactly three masters
-// 2. have less then 3 masters but enough to auto-assign hosts that can become masters
+// 2. have less then 3 master but enough auto-assign hosts that can become masters
 // having more then 3 known masters is failure
 func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) validationStatus {
 	mappedMastersByRole := MapMasterHostsByStatus(c.cluster)
@@ -286,12 +286,12 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) v
 func (v *clusterValidator) printSufficientMastersCount(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "The cluster has a sufficient number of master candidates."
+		return "Cluster has sufficient number of master candidates"
 	case ValidationFailure:
-		return fmt.Sprintf("Insufficient number of master host candidates: expected %d.",
+		return fmt.Sprintf("no sufficient count of master hosts candidates expected %d",
 			common.MinMasterHostsNeededForInstallation)
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -309,11 +309,11 @@ func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext
 func (v *clusterValidator) printAllHostsAreReadyToInstall(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "All hosts in the cluster are ready to install."
+		return "All hosts in the cluster are ready to install"
 	case ValidationFailure:
-		return "The cluster has hosts that are not ready to install."
+		return "Cluster has hosts that are not ready to install"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -324,11 +324,11 @@ func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) valid
 func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationFailure:
-		return "The base domain is undefined and must be provided and must be provided."
+		return "Base DNS Domain is undefined"
 	case ValidationSuccess:
-		return "The base domain is defined."
+		return "Base DNS Domain is defined"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -342,16 +342,16 @@ func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) valid
 func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "No CIDRS are overlapping."
+		return "No CIDRS overlapping"
 	case ValidationFailure:
 		if err := network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr); err != nil {
-			return fmt.Sprintf("CIDRS Overlapping: %s.", err.Error())
+			return fmt.Sprintf("CIDRS Overlapping: %s", err.Error())
 		}
 		return ""
 	case ValidationPending:
-		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
+		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -362,11 +362,11 @@ func (v *clusterValidator) isPullSecretSet(c *clusterPreprocessContext) validati
 func (v *clusterValidator) printIsPullSecretSet(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationFailure:
-		return "The pull secret is not set."
+		return "Pull secret is not set"
 	case ValidationSuccess:
-		return "The pull secret is set."
+		return "Pull secret is set"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -381,19 +381,19 @@ func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) valid
 func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "The Cluster Network prefix is valid."
+		return "Cluster Network Prefix valid"
 	case ValidationFailure:
 		var err error
 		if err = network.VerifyNetworkHostPrefix(c.cluster.ClusterNetworkHostPrefix); err != nil {
-			return fmt.Sprintf("Invalid Cluster Network prefix: %s.", err.Error())
+			return fmt.Sprintf("Invalid cluster network prefix: %s", err.Error())
 		} else if err = network.VerifyClusterCidrSize(int(c.cluster.ClusterNetworkHostPrefix), c.cluster.ClusterNetworkCidr, len(c.cluster.Hosts)); err != nil {
 			return err.Error()
 		}
 		return ""
 	case ValidationPending:
-		return "The Cluster Network CIDR is undefined."
+		return "Cluster Network CIDR is undefined"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 

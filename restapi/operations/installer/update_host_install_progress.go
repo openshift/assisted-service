@@ -31,7 +31,7 @@ func NewUpdateHostInstallProgress(ctx *middleware.Context, handler UpdateHostIns
 
 /*UpdateHostInstallProgress swagger:route PUT /clusters/{cluster_id}/hosts/{host_id}/progress installer updateHostInstallProgress
 
-Update installation progress.
+Update installation progress
 
 */
 type UpdateHostInstallProgress struct {
