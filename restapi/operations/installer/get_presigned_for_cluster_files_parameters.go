@@ -45,6 +45,10 @@ type GetPresignedForClusterFilesParams struct {
 	  In: query
 	*/
 	HostID *strfmt.UUID
+	/*
+	  In: query
+	*/
+	LogsType *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -70,6 +74,11 @@ func (o *GetPresignedForClusterFilesParams) BindRequest(r *http.Request, route *
 
 	qHostID, qhkHostID, _ := qs.GetOK("host_id")
 	if err := o.bindHostID(qHostID, qhkHostID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qLogsType, qhkLogsType, _ := qs.GetOK("logs_type")
+	if err := o.bindLogsType(qLogsType, qhkLogsType, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -180,5 +189,37 @@ func (o *GetPresignedForClusterFilesParams) validateHostID(formats strfmt.Regist
 	if err := validate.FormatOf("host_id", "query", "uuid", o.HostID.String(), formats); err != nil {
 		return err
 	}
+	return nil
+}
+
+// bindLogsType binds and validates parameter LogsType from query.
+func (o *GetPresignedForClusterFilesParams) bindLogsType(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.LogsType = &raw
+
+	if err := o.validateLogsType(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateLogsType carries on validations for parameter LogsType
+func (o *GetPresignedForClusterFilesParams) validateLogsType(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []interface{}{"host", "controller", "all"}, true); err != nil {
+		return err
+	}
+
 	return nil
 }

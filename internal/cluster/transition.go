@@ -46,9 +46,6 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 	if !ok {
 		return errors.New("PostCancelInstallation invalid argument")
 	}
-	if sCluster.srcState == models.ClusterStatusError {
-		return nil
-	}
 
 	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), params.db, sCluster,
 		params.reason)
@@ -287,7 +284,7 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			if sCluster.srcState == models.ClusterStatusInstalling &&
 				funk.ContainsString(reportInstallationCompleteStatuses, swag.StringValue(updatedCluster.Status)) {
 				params.metricApi.ClusterInstallationFinished(logutil.FromContext(params.ctx, th.log), swag.StringValue(updatedCluster.Status),
-					updatedCluster.OpenshiftVersion, updatedCluster.InstallStartedAt)
+					updatedCluster.OpenshiftVersion, *updatedCluster.ID, updatedCluster.InstallStartedAt)
 			}
 			return nil
 		}

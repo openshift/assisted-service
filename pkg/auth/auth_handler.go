@@ -15,6 +15,7 @@ import (
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,7 +55,7 @@ func (a *AuthHandler) populateKeyMap() error {
 	// Load the trusted CA certificates:
 	trustedCAs, err := x509.SystemCertPool()
 	if err != nil {
-		return fmt.Errorf("can't load system trusted CAs: %v", err)
+		return errors.Errorf("can't load system trusted CAs: %v", err)
 	}
 
 	// Try to read the JWT public key object file.
@@ -66,13 +67,13 @@ func (a *AuthHandler) getValidationToken(token *jwt.Token) (interface{}, error) 
 	// Try to get the token kid.
 	kid, ok := token.Header["kid"]
 	if !ok {
-		return nil, fmt.Errorf("no kid found in jwt token")
+		return nil, errors.Errorf("no kid found in jwt token")
 	}
 
 	// Try to get correct cert from certs map.
 	key, ok := a.KeyMap[kid.(string)]
 	if !ok {
-		return nil, fmt.Errorf("No matching key in auth keymap for key id [%v]", kid)
+		return nil, errors.Errorf("No matching key in auth keymap for key id [%v]", kid)
 	}
 
 	return key, nil
@@ -81,7 +82,7 @@ func (a *AuthHandler) getValidationToken(token *jwt.Token) (interface{}, error) 
 func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 	if a.client == nil {
 		a.log.Error("OCM client unavailable")
-		return nil, fmt.Errorf("OCM client unavailable")
+		return nil, errors.Errorf("OCM client unavailable")
 	}
 	authUser, found := a.client.Cache.Get(token)
 	if found {
@@ -104,7 +105,7 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 func parsePayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
 	claims, ok := userToken.Claims.(jwt.MapClaims)
 	if !ok {
-		err := fmt.Errorf("Unable to parse JWT token claims")
+		err := errors.Errorf("Unable to parse JWT token claims")
 		return nil, err
 	}
 
@@ -148,7 +149,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 	// Handle Bearer
 	authHeaderParts := strings.Fields(token)
 	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
-		return nil, fmt.Errorf("Authorization header format must be Bearer {token}")
+		return nil, errors.Errorf("Authorization header format must be Bearer {token}")
 	}
 	// Now parse the token
 	parsedToken, err := jwt.Parse(authHeaderParts[1], a.getValidationToken)
@@ -156,7 +157,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 	// Check if there was an error in parsing...
 	if err != nil {
 		a.log.Errorf("Error parsing token: %s", err.Error())
-		return nil, fmt.Errorf("Error parsing token: %v", err)
+		return nil, errors.Errorf("Error parsing token: %v", err)
 	}
 
 	if jwt.SigningMethodRS256 != nil && jwt.SigningMethodRS256.Alg() != parsedToken.Header["alg"] {
@@ -164,13 +165,13 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 			jwt.SigningMethodRS256.Alg(),
 			parsedToken.Header["alg"])
 		a.log.Errorf("Error validating token algorithm: %s", message)
-		return nil, fmt.Errorf("Error validating token algorithm: %s", message)
+		return nil, errors.Errorf("Error validating token algorithm: %s", message)
 	}
 
 	// Check if the parsed token is valid...
 	if !parsedToken.Valid {
 		a.log.Error("Token is invalid: %s", parsedToken.Raw)
-		return nil, fmt.Errorf("Token is invalid: %s", parsedToken.Raw)
+		return nil, errors.Errorf("Token is invalid: %s", parsedToken.Raw)
 	}
 
 	payload, err := parsePayload(parsedToken)
@@ -179,26 +180,35 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 		return nil, err
 	}
 
+	if payload.Username == "" {
+		a.log.Error("Missing username in token")
+		return nil, errors.Errorf("Missing username in token")
+	}
+
 	err = a.storeAdminInPayload(payload)
 	if err != nil {
 		a.log.Errorf("Unable to fetch user's capabilities: %v", err)
 		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
 
-	if payload.Username == "" {
-		a.log.Error("Missing username in token")
-		return nil, fmt.Errorf("Missing username in token")
-	}
-
 	return payload, nil
 }
 
 func (a *AuthHandler) storeAdminInPayload(payload *ocm.AuthPayload) error {
+	payloadKey := payload.Username + "_is_admin"
+	payloadFromCache, found := a.client.Cache.Get(payloadKey)
+	if found {
+		payload.IsAdmin = payloadFromCache.(*ocm.AuthPayload).IsAdmin
+		return nil
+	}
+
 	admin, err := a.isAdmin(payload.Username)
 	if err != nil {
 		return err
 	}
 	payload.IsAdmin = admin
+	a.client.Cache.Set(payloadKey, payload, cache.DefaultExpiration)
+
 	return nil
 }
 

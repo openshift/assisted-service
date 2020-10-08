@@ -143,7 +143,7 @@ var _ = Describe("cluster monitor", func() {
 
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			Expect(err).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		})
 
 		It("installing -> installing", func() {
@@ -231,7 +231,7 @@ var _ = Describe("cluster monitor", func() {
 		})
 
 		It("installing -> error", func() {
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "error", db)
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
@@ -241,7 +241,7 @@ var _ = Describe("cluster monitor", func() {
 			expectedState = "error"
 		})
 		It("installing -> error", func() {
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "installed", db)
 			createHost(id, "installed", db)
 			mockHostAPIIsValidMasterCandidateTrue(2)
@@ -250,7 +250,7 @@ var _ = Describe("cluster monitor", func() {
 			expectedState = "error"
 		})
 		It("installing -> error insufficient hosts", func() {
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any()).AnyTimes()
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			createHost(id, "installing", db)
 			createHost(id, "installed", db)
 			createWorkerHost(id, "installed", db)
@@ -286,6 +286,31 @@ var _ = Describe("cluster monitor", func() {
 			mockHostAPIIsValidMasterCandidateTrue(4)
 			shouldHaveUpdated = true
 			expectedState = "error"
+		})
+	})
+	Context("from installed state", func() {
+
+		BeforeEach(func() {
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:                 &id,
+				Status:             swag.String(models.ClusterStatusInstalled),
+				StatusInfo:         swag.String(statusInfoInstalled),
+				MachineNetworkCidr: "1.1.0.0/16",
+				BaseDNSDomain:      "test.com",
+				PullSecretSet:      true,
+			}}
+
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+			Expect(err).ShouldNot(HaveOccurred())
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		})
+
+		It("installed -> installed", func() {
+			createHost(id, models.ClusterStatusInstalled, db)
+			createHost(id, models.ClusterStatusInstalled, db)
+			createHost(id, models.ClusterStatusInstalled, db)
+			shouldHaveUpdated = false
+			expectedState = models.ClusterStatusInstalled
 		})
 	})
 
@@ -765,7 +790,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 		db          *gorm.DB
 		id          strfmt.UUID
 		clusterApi  *Manager
-		errTemplate = "Cluster %s is in %s state, host can register only in one of [insufficient ready pending-for-input]"
+		errTemplate = "Cluster %s is in %s state, host can register only in one of [insufficient ready pending-for-input adding-hosts]"
 		dbName      = "verify_register_host"
 	)
 
@@ -817,7 +842,7 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 		db          *gorm.DB
 		id          strfmt.UUID
 		clusterApi  *Manager
-		errTemplate = "Cluster %s is in %s state, cluster can be updated only in one of [insufficient ready pending-for-input]"
+		errTemplate = "Cluster %s is in %s state, cluster can be updated only in one of [insufficient ready pending-for-input adding-hosts]"
 		dbName      = "verify_cluster_updatability"
 	)
 
@@ -918,7 +943,7 @@ var _ = Describe("CancelInstallation", func() {
 			c.Status = swag.String(models.ClusterStatusInstalling)
 			c.InstallStartedAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
 			events, err := eventsHandler.GetEvents(*c.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -931,7 +956,7 @@ var _ = Describe("CancelInstallation", func() {
 			c.Status = swag.String(models.ClusterStatusError)
 			c.InstallStartedAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
 			events, err := eventsHandler.GetEvents(*c.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -943,7 +968,7 @@ var _ = Describe("CancelInstallation", func() {
 
 		AfterEach(func() {
 			db.First(&c, "id = ?", c.ID)
-			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusError))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
 		})
 	})
 
@@ -1082,6 +1107,23 @@ func defaultInventory() string {
 				},
 			},
 		},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func defaultInventoryWithTimestamp(timestamp int64) string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Timestamp: timestamp,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -1698,7 +1740,7 @@ var _ = Describe("CompleteInstallation", func() {
 	})
 
 	It("complete installation successfully", func() {
-		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, gomock.Any(), gomock.Any()).Times(1)
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		apiErr := state.CompleteInstallation(ctx, &c, true, "")
 		Expect(apiErr).ShouldNot(HaveOccurred())
 		events, err := eventsHandler.GetEvents(*c.ID, nil)
@@ -1708,7 +1750,7 @@ var _ = Describe("CompleteInstallation", func() {
 		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
 	})
 	It("complete installation failure", func() {
-		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, gomock.Any(), gomock.Any()).Times(1)
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		apiErr := state.CompleteInstallation(ctx, &c, false, "dummy error")
 		Expect(apiErr).ShouldNot(HaveOccurred())
 		events, err := eventsHandler.GetEvents(*c.ID, nil)

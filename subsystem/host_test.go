@@ -32,6 +32,7 @@ var _ = Describe("Host tests", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
+				PullSecret:       pullSecret,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -105,6 +106,8 @@ var _ = Describe("Host tests", func() {
 			Memory: &models.Memory{
 				PhysicalBytes: int64(16) * (int64(1) << 30),
 			},
+			SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+			Timestamp:    1601845851,
 		}
 		b, err := json.Marshal(&inventory)
 		Expect(err).To(Not(HaveOccurred()))
@@ -422,6 +425,7 @@ var _ = Describe("Host tests", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("another-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
+				PullSecret:       pullSecret,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

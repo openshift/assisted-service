@@ -20,6 +20,7 @@ type GetPresignedForClusterFilesURL struct {
 
 	FileName string
 	HostID   *strfmt.UUID
+	LogsType *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -73,6 +74,14 @@ func (o *GetPresignedForClusterFilesURL) Build() (*url.URL, error) {
 	}
 	if hostIDQ != "" {
 		qs.Set("host_id", hostIDQ)
+	}
+
+	var logsTypeQ string
+	if o.LogsType != nil {
+		logsTypeQ = *o.LogsType
+	}
+	if logsTypeQ != "" {
+		qs.Set("logs_type", logsTypeQ)
 	}
 
 	_result.RawQuery = qs.Encode()

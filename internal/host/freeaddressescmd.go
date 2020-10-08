@@ -3,12 +3,12 @@ package host
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 )
 
 type freeAddressesCmd struct {
@@ -43,7 +43,7 @@ func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
 		}
 	}
 	if len(m) == 0 {
-		err = fmt.Errorf("No networks found for host %s", host.ID.String())
+		err = errors.Errorf("No networks found for host %s", host.ID.String())
 		f.log.WithError(err).Warn("Missing networks")
 		return "", err
 	}

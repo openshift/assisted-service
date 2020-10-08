@@ -2,8 +2,9 @@ package ocm
 
 import (
 	"context"
-	"fmt"
 	"net/http"
+
+	"github.com/openshift/assisted-service/pkg/commonutils"
 
 	azv1 "github.com/openshift-online/ocm-sdk-go/authorizations/v1"
 	"github.com/openshift/assisted-service/internal/common"
@@ -20,13 +21,8 @@ type authorization struct {
 }
 
 func (a authorization) AccessReview(ctx context.Context, username, action, resourceType string) (allowed bool, err error) {
-	connection, err := a.client.NewConnection()
-	if err != nil {
-		return false, err
-	}
-	defer connection.Close()
-
-	accessReview := connection.Authorizations().V1().AccessReview()
+	defer commonutils.MeasureOperation("OCM-AccessReview", a.client.log, a.client.metricsApi)()
+	accessReview := a.client.connection.Authorizations().V1().AccessReview()
 
 	request, err := azv1.NewAccessReviewRequest().
 		AccountUsername(username).
@@ -46,21 +42,15 @@ func (a authorization) AccessReview(ctx context.Context, username, action, resou
 
 	response, ok := postResp.GetResponse()
 	if !ok {
-		return false, fmt.Errorf("Empty response from authorization post request")
+		return false, errors.Errorf("Empty response from authorization post request")
 	}
 
 	return response.Allowed(), nil
 }
 
 func (a authorization) CapabilityReview(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error) {
-	connection, err := a.client.NewConnection()
-	if err != nil {
-		return false, common.NewApiError(http.StatusInternalServerError,
-			errors.Wrap(err, "Unable to build OCM connection"))
-	}
-	defer connection.Close()
-
-	capabilityReview := connection.Authorizations().V1().CapabilityReview()
+	defer commonutils.MeasureOperation("OCM-CapabilityReview", a.client.log, a.client.metricsApi)()
+	capabilityReview := a.client.connection.Authorizations().V1().CapabilityReview()
 
 	request, err := azv1.NewCapabilityReviewRequest().
 		AccountUsername(username).
@@ -91,12 +81,12 @@ func (a authorization) CapabilityReview(ctx context.Context, username, capabilit
 
 	response, ok := postResp.GetResponse()
 	if !ok {
-		return false, fmt.Errorf("Empty response from authorization CapabilityReview post request")
+		return false, errors.Errorf("Empty response from authorization CapabilityReview post request")
 	}
 
 	result, ok := response.GetResult()
 	if !ok {
-		return false, fmt.Errorf("Failed to fetch result from the response CapabilityReview")
+		return false, errors.Errorf("Failed to fetch result from the response CapabilityReview")
 	}
 
 	return result == "true", nil

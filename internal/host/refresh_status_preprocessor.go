@@ -105,6 +105,11 @@ func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCf
 			condition: v.isHostnameValid,
 			formatter: v.printHostnameValid,
 		},
+		{
+			id:        IsAPIVipConnected,
+			condition: v.isAPIVipConnected,
+			formatter: v.printAPIVipConnected,
+		},
 	}
 	return ret
 }

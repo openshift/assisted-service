@@ -112,6 +112,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerInstallClusterHandler: installer.InstallClusterHandlerFunc(func(params installer.InstallClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.InstallCluster has not yet been implemented")
 		}),
+		InstallerInstallHostsHandler: installer.InstallHostsHandlerFunc(func(params installer.InstallHostsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.InstallHosts has not yet been implemented")
+		}),
 		InstallerListClustersHandler: installer.ListClustersHandlerFunc(func(params installer.ListClustersParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListClusters has not yet been implemented")
 		}),
@@ -129,6 +132,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerPostStepReplyHandler: installer.PostStepReplyHandlerFunc(func(params installer.PostStepReplyParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.PostStepReply has not yet been implemented")
+		}),
+		InstallerRegisterAddHostsClusterHandler: installer.RegisterAddHostsClusterHandlerFunc(func(params installer.RegisterAddHostsClusterParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.RegisterAddHostsCluster has not yet been implemented")
 		}),
 		InstallerRegisterClusterHandler: installer.RegisterClusterHandlerFunc(func(params installer.RegisterClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterCluster has not yet been implemented")
@@ -153,6 +159,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerUploadHostLogsHandler: installer.UploadHostLogsHandlerFunc(func(params installer.UploadHostLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UploadHostLogs has not yet been implemented")
+		}),
+		InstallerUploadLogsHandler: installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.UploadLogs has not yet been implemented")
 		}),
 
 		// Applies when the "X-Secret-Key" header is set
@@ -258,6 +267,8 @@ type AssistedInstallAPI struct {
 	InstallerGetPresignedForClusterFilesHandler installer.GetPresignedForClusterFilesHandler
 	// InstallerInstallClusterHandler sets the operation handler for the install cluster operation
 	InstallerInstallClusterHandler installer.InstallClusterHandler
+	// InstallerInstallHostsHandler sets the operation handler for the install hosts operation
+	InstallerInstallHostsHandler installer.InstallHostsHandler
 	// InstallerListClustersHandler sets the operation handler for the list clusters operation
 	InstallerListClustersHandler installer.ListClustersHandler
 	// VersionsListComponentVersionsHandler sets the operation handler for the list component versions operation
@@ -270,6 +281,8 @@ type AssistedInstallAPI struct {
 	ManagedDomainsListManagedDomainsHandler managed_domains.ListManagedDomainsHandler
 	// InstallerPostStepReplyHandler sets the operation handler for the post step reply operation
 	InstallerPostStepReplyHandler installer.PostStepReplyHandler
+	// InstallerRegisterAddHostsClusterHandler sets the operation handler for the register add hosts cluster operation
+	InstallerRegisterAddHostsClusterHandler installer.RegisterAddHostsClusterHandler
 	// InstallerRegisterClusterHandler sets the operation handler for the register cluster operation
 	InstallerRegisterClusterHandler installer.RegisterClusterHandler
 	// InstallerRegisterHostHandler sets the operation handler for the register host operation
@@ -286,6 +299,8 @@ type AssistedInstallAPI struct {
 	InstallerUploadClusterIngressCertHandler installer.UploadClusterIngressCertHandler
 	// InstallerUploadHostLogsHandler sets the operation handler for the upload host logs operation
 	InstallerUploadHostLogsHandler installer.UploadHostLogsHandler
+	// InstallerUploadLogsHandler sets the operation handler for the upload logs operation
+	InstallerUploadLogsHandler installer.UploadLogsHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -438,6 +453,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerInstallClusterHandler == nil {
 		unregistered = append(unregistered, "installer.InstallClusterHandler")
 	}
+	if o.InstallerInstallHostsHandler == nil {
+		unregistered = append(unregistered, "installer.InstallHostsHandler")
+	}
 	if o.InstallerListClustersHandler == nil {
 		unregistered = append(unregistered, "installer.ListClustersHandler")
 	}
@@ -455,6 +473,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerPostStepReplyHandler == nil {
 		unregistered = append(unregistered, "installer.PostStepReplyHandler")
+	}
+	if o.InstallerRegisterAddHostsClusterHandler == nil {
+		unregistered = append(unregistered, "installer.RegisterAddHostsClusterHandler")
 	}
 	if o.InstallerRegisterClusterHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterClusterHandler")
@@ -479,6 +500,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerUploadHostLogsHandler == nil {
 		unregistered = append(unregistered, "installer.UploadHostLogsHandler")
+	}
+	if o.InstallerUploadLogsHandler == nil {
+		unregistered = append(unregistered, "installer.UploadLogsHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -669,6 +693,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/actions/install"] = installer.NewInstallCluster(o.context, o.InstallerInstallClusterHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/actions/install_hosts"] = installer.NewInstallHosts(o.context, o.InstallerInstallHostsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -693,6 +721,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewPostStepReply(o.context, o.InstallerPostStepReplyHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/add_hosts_clusters"] = installer.NewRegisterAddHostsCluster(o.context, o.InstallerRegisterAddHostsClusterHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -725,6 +757,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewUploadHostLogs(o.context, o.InstallerUploadHostLogsHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/clusters/{cluster_id}/logs"] = installer.NewUploadLogs(o.context, o.InstallerUploadLogsHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

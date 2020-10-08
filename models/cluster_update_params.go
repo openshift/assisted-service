@@ -19,9 +19,12 @@ import (
 // swagger:model cluster-update-params
 type ClusterUpdateParams struct {
 
-	// Virtual IP used to reach the OpenShift cluster API.
+	// The virtual IP used to reach the OpenShift cluster's API.
 	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
 	APIVip *string `json:"api_vip,omitempty"`
+
+	// The domain name used to reach the OpenShift cluster API.
+	APIVipDNSName *string `json:"api_vip_dns_name,omitempty"`
 
 	// Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
 	BaseDNSDomain *string `json:"base_dns_domain,omitempty"`

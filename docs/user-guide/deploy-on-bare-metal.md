@@ -1,5 +1,4 @@
 # Openshift deployment with OAS - On Bare Metal
-
 This guide contains all the sections regarding Bare Metal deployment method, like iPXE/PXE, VirtualMedia, etc... let's get started
 
 ## General
@@ -152,4 +151,5 @@ curl http://$(hostname):8080/ipxe/ipxe
 ![img](img/ai_vips.png)
 
 - Now you just need to click on _Install Cluster_ button and wait for the installation to finish.
+
 

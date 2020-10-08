@@ -55,7 +55,7 @@ type InstallerAPI interface {
 	/* DownloadClusterFiles Downloads files relating to the installed/installing cluster. */
 	DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder
 
-	/* DownloadClusterISO Downloads the OpenShift per-cluster discovery ISO. */
+	/* DownloadClusterISO Downloads the OpenShift per-cluster Discovery ISO. */
 	DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder
 
 	/* DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster. */
@@ -70,16 +70,16 @@ type InstallerAPI interface {
 	/* EnableHost Enables a host for inclusion in the cluster. */
 	EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder
 
-	/* GenerateClusterISO Creates a new OpenShift per-cluster discovery ISO. */
+	/* GenerateClusterISO Creates a new OpenShift per-cluster Discovery ISO. */
 	GenerateClusterISO(ctx context.Context, params installer.GenerateClusterISOParams) middleware.Responder
 
 	/* GetCluster Retrieves the details of the OpenShift bare metal cluster. */
 	GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder
 
-	/* GetClusterInstallConfig Get the cluster install config yaml */
+	/* GetClusterInstallConfig Get the cluster's install config YAML. */
 	GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder
 
-	/* GetCredentials Get the the cluster admin credentials. */
+	/* GetCredentials Get the cluster admin credentials. */
 	GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder
 
 	/* GetFreeAddresses Retrieves the free address list for a network. */
@@ -94,11 +94,14 @@ type InstallerAPI interface {
 	/* GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder
 
-	/* GetPresignedForClusterFiles Retrieves a presigned S3 URL for downloading cluster files. */
+	/* GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files. */
 	GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder
 
 	/* InstallCluster Installs the OpenShift bare metal cluster. */
 	InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder
+
+	/* InstallHosts Installs the OpenShift bare metal cluster. */
+	InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder
 
 	/* ListClusters Retrieves the list of OpenShift bare metal clusters. */
 	ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder
@@ -108,6 +111,9 @@ type InstallerAPI interface {
 
 	/* PostStepReply Posts the result of the operations from the host agent. */
 	PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder
+
+	/* RegisterAddHostsCluster Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster. */
+	RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder
 
 	/* RegisterCluster Creates a new OpenShift bare metal cluster definition. */
 	RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder
@@ -121,10 +127,10 @@ type InstallerAPI interface {
 	/* UpdateCluster Updates an OpenShift bare metal cluster definition. */
 	UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder
 
-	/* UpdateClusterInstallConfig Override values in the install config */
+	/* UpdateClusterInstallConfig Override values in the install config. */
 	UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder
 
-	/* UpdateHostInstallProgress Update installation progress */
+	/* UpdateHostInstallProgress Update installation progress. */
 	UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder
 
 	/* UploadClusterIngressCert Transfer the ingress certificate for the cluster. */
@@ -132,6 +138,9 @@ type InstallerAPI interface {
 
 	/* UploadHostLogs Agent API to upload logs. */
 	UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder
+
+	/* UploadLogs Agent API to upload logs. */
+	UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder
 }
 
 //go:generate mockery -name ManagedDomainsAPI -inpkg
@@ -332,6 +341,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.InstallCluster(ctx, params)
 	})
+	api.InstallerInstallHostsHandler = installer.InstallHostsHandlerFunc(func(params installer.InstallHostsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.InstallHosts(ctx, params)
+	})
 	api.InstallerListClustersHandler = installer.ListClustersHandlerFunc(func(params installer.ListClustersParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -361,6 +375,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.PostStepReply(ctx, params)
+	})
+	api.InstallerRegisterAddHostsClusterHandler = installer.RegisterAddHostsClusterHandlerFunc(func(params installer.RegisterAddHostsClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.RegisterAddHostsCluster(ctx, params)
 	})
 	api.InstallerRegisterClusterHandler = installer.RegisterClusterHandlerFunc(func(params installer.RegisterClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -401,6 +420,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UploadHostLogs(ctx, params)
+	})
+	api.InstallerUploadLogsHandler = installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.UploadLogs(ctx, params)
 	})
 	api.ServerShutdown = func() {}
 	return api.Serve(c.InnerMiddleware), api, nil

@@ -31,7 +31,7 @@ func NewDownloadClusterISO(ctx *middleware.Context, handler DownloadClusterISOHa
 
 /*DownloadClusterISO swagger:route GET /clusters/{cluster_id}/downloads/image installer downloadClusterISO
 
-Downloads the OpenShift per-cluster discovery ISO.
+Downloads the OpenShift per-cluster Discovery ISO.
 
 */
 type DownloadClusterISO struct {

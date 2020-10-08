@@ -26,6 +26,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/jinzhu/gorm v1.9.12
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/kennygrant/sanitize v1.2.4
 	github.com/metal3-io/baremetal-operator v0.0.0-00010101000000-000000000000
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/moby/moby v1.13.1
@@ -38,14 +39,13 @@ require (
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.6.0
-	github.com/prometheus/common v0.9.1
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/slok/go-http-metrics v0.8.0
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/thoas/go-funk v0.6.0
-	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50 // indirect
+	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009 // indirect
 	golang.org/x/tools v0.0.0-20200914190812-8f9ed77dd8e5 // indirect

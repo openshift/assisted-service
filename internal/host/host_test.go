@@ -36,7 +36,8 @@ var defaultDisk = models.Disk{        // invalid disk used only for tests
 var defaultProgressStage = models.HostStage("default progress stage") // invalid progress stage used only for tests
 
 var defaultConfig = &Config{
-	ResetTimeout: 3 * time.Minute,
+	ResetTimeout:    3 * time.Minute,
+	EnableAutoReset: true,
 }
 
 var _ = Describe("update_role", func() {
@@ -184,7 +185,7 @@ var _ = Describe("update_progress", func() {
 	)
 
 	setDefaultReportHostInstallationMetrics := func(mockMetricApi *metrics.MockAPI) {
-		mockMetricApi.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockMetricApi.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	}
 
 	BeforeEach(func() {
@@ -215,7 +216,7 @@ var _ = Describe("update_progress", func() {
 			setDefaultReportHostInstallationMetrics(mockMetric)
 			host.Status = swag.String(models.HostStatusInstalling)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		})
 
 		Context("positive stages", func() {
@@ -353,7 +354,7 @@ var _ = Describe("update_progress", func() {
 				By("Some stage", func() {
 					progress.CurrentStage = models.HostStageWritingImageToDisk
 					progress.ProgressInfo = "20%"
-					mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+					mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
 						fmt.Sprintf("Host %s: updated status from \"installing\" to \"installing-in-progress\" "+
 							"(Writing image to disk)", host.ID.String()),
@@ -540,7 +541,7 @@ var _ = Describe("cancel installation", func() {
 
 		AfterEach(func() {
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
-			Expect(*h.Status).Should(Equal(models.HostStatusError))
+			Expect(*h.Status).Should(Equal(models.HostStatusCancelled))
 		})
 	})
 
@@ -579,6 +580,7 @@ var _ = Describe("reset host", func() {
 		dbName        = "reset_host"
 		config        Config
 	)
+
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
@@ -687,20 +689,6 @@ var _ = Describe("reset host", func() {
 			resetEvent := events[len(events)-1]
 			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityError))
 		})
-
-		It("reset pending user action failure", func() {
-			id := strfmt.UUID(uuid.New().String())
-			clusterId := strfmt.UUID(uuid.New().String())
-			h = getTestHost(id, clusterId, models.HostStatusInstalling)
-			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-			Expect(state.IsRequireUserActionReset(&h)).Should(Equal(false))
-			Expect(state.ResetPendingUserAction(ctx, &h, db)).Should(HaveOccurred())
-			events, err := eventsHandler.GetEvents(h.ClusterID, h.ID)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(len(events)).ShouldNot(Equal(0))
-			resetEvent := events[len(events)-1]
-			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityError))
-		})
 	})
 
 })
@@ -718,13 +706,23 @@ func getTestLog() logrus.FieldLogger {
 }
 
 func getTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
+	return getTestHostByKind(hostID, clusterID, state, models.HostKindHost)
+}
+
+func getTestHostAddedToCluster(hostID, clusterID strfmt.UUID, state string) models.Host {
+	return getTestHostByKind(hostID, clusterID, state, models.HostKindAddToExistingClusterHost)
+}
+
+func getTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string) models.Host {
 	return models.Host{
-		ID:          &hostID,
-		ClusterID:   clusterID,
-		Status:      swag.String(state),
-		Inventory:   defaultInventory(),
-		Role:        models.HostRoleWorker,
-		CheckedInAt: strfmt.DateTime(time.Now()),
+		ID:                 &hostID,
+		ClusterID:          clusterID,
+		Status:             swag.String(state),
+		Inventory:          defaultInventory(),
+		Role:               models.HostRoleWorker,
+		Kind:               swag.String(kind),
+		CheckedInAt:        strfmt.DateTime(time.Now()),
+		APIVipConnectivity: getTestAPIVIpConnectivity(),
 	}
 }
 
@@ -735,6 +733,17 @@ func getTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) common.Clu
 			MachineNetworkCidr: machineNetworkCidr,
 		},
 	}
+}
+
+func getTestAPIVIpConnectivity() string {
+	checkAPIResponse := models.APIVipConnectivityResponse{
+		IsSuccess: true,
+	}
+	bytes, err := json.Marshal(checkAPIResponse)
+	if err != nil {
+		return ""
+	}
+	return string(bytes)
 }
 
 func defaultInventory() string {
@@ -825,8 +834,9 @@ func masterInventoryWithHostname(hostname string) string {
 				},
 			},
 		},
-		Memory:   &models.Memory{PhysicalBytes: gibToBytes(16)},
-		Hostname: hostname,
+		Memory:    &models.Memory{PhysicalBytes: gibToBytes(16)},
+		Hostname:  hostname,
+		Timestamp: 1601835002,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))

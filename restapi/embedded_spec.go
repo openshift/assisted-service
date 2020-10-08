@@ -37,6 +37,45 @@ func init() {
   "host": "api.openshift.com",
   "basePath": "/api/assisted-install/v1",
   "paths": {
+    "/add_hosts_clusters": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster.",
+        "operationId": "RegisterAddHostsCluster",
+        "parameters": [
+          {
+            "name": "new-add-hosts-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/add-hosts-cluster-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters": {
       "get": {
         "tags": [
@@ -561,6 +600,74 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/actions/install_hosts": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Installs the OpenShift bare metal cluster.",
+        "operationId": "InstallHosts",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/actions/reset": {
       "post": {
         "tags": [
@@ -628,7 +735,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Get the the cluster admin credentials.",
+        "summary": "Get the cluster admin credentials.",
         "operationId": "GetCredentials",
         "parameters": [
           {
@@ -795,7 +902,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves a presigned S3 URL for downloading cluster files.",
+        "summary": "Retrieves a pre-signed S3 URL for downloading cluster files.",
         "operationId": "GetPresignedForClusterFiles",
         "parameters": [
           {
@@ -821,6 +928,16 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "name": "logs_type",
+            "in": "query"
           },
           {
             "type": "string",
@@ -889,7 +1006,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Downloads the OpenShift per-cluster discovery ISO.",
+        "summary": "Downloads the OpenShift per-cluster Discovery ISO.",
         "operationId": "DownloadClusterISO",
         "parameters": [
           {
@@ -953,7 +1070,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Creates a new OpenShift per-cluster discovery ISO.",
+        "summary": "Creates a new OpenShift per-cluster Discovery ISO.",
         "operationId": "GenerateClusterISO",
         "parameters": [
           {
@@ -1825,6 +1942,7 @@ func init() {
         ],
         "summary": "Download host logs",
         "operationId": "DownloadHostLogs",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1900,6 +2018,7 @@ func init() {
         ],
         "summary": "Agent API to upload logs.",
         "operationId": "UploadHostLogs",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1975,7 +2094,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Update installation progress",
+        "summary": "Update installation progress.",
         "operationId": "UpdateHostInstallProgress",
         "parameters": [
           {
@@ -1986,7 +2105,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The ID of the cluster to retrieve",
+            "description": "The ID of the cluster to retrieve.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2057,7 +2176,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Get the cluster install config yaml",
+        "summary": "Get the cluster's install config YAML.",
         "operationId": "GetClusterInstallConfig",
         "parameters": [
           {
@@ -2078,13 +2197,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -2111,7 +2230,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Override values in the install config",
+        "summary": "Override values in the install config.",
         "operationId": "UpdateClusterInstallConfig",
         "parameters": [
           {
@@ -2143,13 +2262,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -2195,6 +2314,22 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "name": "logs_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2236,6 +2371,89 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Agent API to upload logs.",
+        "operationId": "UploadLogs",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "maxLength": 20971520,
+            "type": "file",
+            "x-mimetype": "application/zip",
+            "description": "The file to upload.",
+            "name": "upfile",
+            "in": "formData"
+          },
+          {
+            "enum": [
+              "host",
+              "controller"
+            ],
+            "type": "string",
+            "name": "logs_type",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -2383,13 +2601,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "405": {
@@ -2409,6 +2627,58 @@ func init() {
     }
   },
   "definitions": {
+    "add-hosts-cluster-create-params": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "api_vip_dnsname",
+        "openshift_version"
+      ],
+      "properties": {
+        "api_vip_dnsname": {
+          "description": "api vip domain.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the object.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "description": "Name of the OpenShift cluster.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string",
+          "enum": [
+            "4.6"
+          ]
+        }
+      }
+    },
+    "api_vip_connectivity_request": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "description": "URL address of the API.",
+          "type": "string"
+        }
+      }
+    },
+    "api_vip_connectivity_response": {
+      "type": "object",
+      "properties": {
+        "is_success": {
+          "description": "API VIP connecitivty check result.",
+          "type": "boolean"
+        }
+      }
+    },
     "boot": {
       "type": "object",
       "properties": {
@@ -2432,9 +2702,14 @@ func init() {
       ],
       "properties": {
         "api_vip": {
-          "description": "Virtual IP used to reach the OpenShift cluster API.",
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
+        },
+        "api_vip_dns_name": {
+          "description": "The domain name used to reach the OpenShift cluster API.",
+          "type": "string",
+          "x-nullable": true
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
@@ -2524,10 +2799,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link.",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'AddHostCluster' for cluster that add hosts to existing OCP cluster",
           "type": "string",
           "enum": [
-            "Cluster"
+            "Cluster",
+            "AddHostsCluster"
           ]
         },
         "machine_network_cidr": {
@@ -2579,7 +2855,9 @@ func init() {
             "pending-for-input",
             "installing",
             "finalizing",
-            "installed"
+            "installed",
+            "adding-hosts",
+            "cancelled"
           ]
         },
         "status_info": {
@@ -2702,9 +2980,14 @@ func init() {
       "type": "object",
       "properties": {
         "api_vip": {
-          "description": "Virtual IP used to reach the OpenShift cluster API.",
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
+          "x-nullable": true
+        },
+        "api_vip_dns_name": {
+          "description": "The domain name used to reach the OpenShift cluster API.",
+          "type": "string",
           "x-nullable": true
         },
         "base_dns_domain": {
@@ -2832,7 +3115,8 @@ func init() {
         "all-hosts-are-ready-to-install",
         "sufficient-masters-count",
         "dns-domain-defined",
-        "pull-secret-set"
+        "pull-secret-set",
+        "ntp-server-configured"
       ]
     },
     "completion-params": {
@@ -3169,6 +3453,10 @@ func init() {
         "status_info"
       ],
       "properties": {
+        "api_vip_connectivity": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "bootstrap": {
           "type": "boolean"
         },
@@ -3223,10 +3511,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or \n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
           "type": "string",
           "enum": [
-            "Host"
+            "Host",
+            "AddToExistingClusterHost"
           ]
         },
         "logs_collected_at": {
@@ -3279,7 +3568,9 @@ func init() {
             "resetting-pending-user-action",
             "installed",
             "error",
-            "resetting"
+            "resetting",
+            "added-to-existing-cluster",
+            "cancelled"
           ]
         },
         "status_info": {
@@ -3444,7 +3735,8 @@ func init() {
         "has-memory-for-role",
         "hostname-unique",
         "hostname-valid",
-        "belongs-to-machine-cidr"
+        "belongs-to-machine-cidr",
+        "api-vip-connected"
       ]
     },
     "host_network": {
@@ -3609,6 +3901,9 @@ func init() {
         },
         "system_vendor": {
           "$ref": "#/definitions/system_vendor"
+        },
+        "timestamp": {
+          "type": "integer"
         }
       }
     },
@@ -3662,6 +3957,15 @@ func init() {
           "$ref": "#/definitions/versions"
         }
       }
+    },
+    "logs_type": {
+      "type": "string",
+      "enum": [
+        "host",
+        "controller",
+        "all",
+        ""
+      ]
     },
     "managed-domain": {
       "type": "object",
@@ -3748,7 +4052,8 @@ func init() {
         "install",
         "free-network-addresses",
         "reset-installation",
-        "dhcp-lease-allocate"
+        "dhcp-lease-allocate",
+        "api-vip-connectivity-check"
       ]
     },
     "steps": {
@@ -3836,6 +4141,45 @@ func init() {
   "host": "api.openshift.com",
   "basePath": "/api/assisted-install/v1",
   "paths": {
+    "/add_hosts_clusters": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster.",
+        "operationId": "RegisterAddHostsCluster",
+        "parameters": [
+          {
+            "name": "new-add-hosts-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/add-hosts-cluster-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters": {
       "get": {
         "tags": [
@@ -4360,6 +4704,74 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/actions/install_hosts": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Installs the OpenShift bare metal cluster.",
+        "operationId": "InstallHosts",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/actions/reset": {
       "post": {
         "tags": [
@@ -4427,7 +4839,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Get the the cluster admin credentials.",
+        "summary": "Get the cluster admin credentials.",
         "operationId": "GetCredentials",
         "parameters": [
           {
@@ -4594,7 +5006,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves a presigned S3 URL for downloading cluster files.",
+        "summary": "Retrieves a pre-signed S3 URL for downloading cluster files.",
         "operationId": "GetPresignedForClusterFiles",
         "parameters": [
           {
@@ -4620,6 +5032,16 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "name": "logs_type",
+            "in": "query"
           },
           {
             "type": "string",
@@ -4688,7 +5110,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Downloads the OpenShift per-cluster discovery ISO.",
+        "summary": "Downloads the OpenShift per-cluster Discovery ISO.",
         "operationId": "DownloadClusterISO",
         "parameters": [
           {
@@ -4752,7 +5174,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Creates a new OpenShift per-cluster discovery ISO.",
+        "summary": "Creates a new OpenShift per-cluster Discovery ISO.",
         "operationId": "GenerateClusterISO",
         "parameters": [
           {
@@ -5624,6 +6046,7 @@ func init() {
         ],
         "summary": "Download host logs",
         "operationId": "DownloadHostLogs",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -5699,6 +6122,7 @@ func init() {
         ],
         "summary": "Agent API to upload logs.",
         "operationId": "UploadHostLogs",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -5774,7 +6198,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Update installation progress",
+        "summary": "Update installation progress.",
         "operationId": "UpdateHostInstallProgress",
         "parameters": [
           {
@@ -5785,7 +6209,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The ID of the cluster to retrieve",
+            "description": "The ID of the cluster to retrieve.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -5856,7 +6280,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Get the cluster install config yaml",
+        "summary": "Get the cluster's install config YAML.",
         "operationId": "GetClusterInstallConfig",
         "parameters": [
           {
@@ -5877,13 +6301,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5910,7 +6334,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "summary": "Override values in the install config",
+        "summary": "Override values in the install config.",
         "operationId": "UpdateClusterInstallConfig",
         "parameters": [
           {
@@ -5942,13 +6366,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "404": {
@@ -5994,6 +6418,22 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "name": "logs_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6035,6 +6475,89 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Agent API to upload logs.",
+        "operationId": "UploadLogs",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "maxLength": 20971520,
+            "type": "file",
+            "x-mimetype": "application/zip",
+            "description": "The file to upload.",
+            "name": "upfile",
+            "in": "formData"
+          },
+          {
+            "enum": [
+              "host",
+              "controller"
+            ],
+            "type": "string",
+            "name": "logs_type",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -6182,13 +6705,13 @@ func init() {
           "401": {
             "description": "Unauthorized.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "403": {
             "description": "Forbidden.",
             "schema": {
-              "$ref": "#/definitions/error"
+              "$ref": "#/definitions/infra_error"
             }
           },
           "405": {
@@ -6232,6 +6755,58 @@ func init() {
         }
       }
     },
+    "add-hosts-cluster-create-params": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "api_vip_dnsname",
+        "openshift_version"
+      ],
+      "properties": {
+        "api_vip_dnsname": {
+          "description": "api vip domain.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the object.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "description": "Name of the OpenShift cluster.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string",
+          "enum": [
+            "4.6"
+          ]
+        }
+      }
+    },
+    "api_vip_connectivity_request": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "description": "URL address of the API.",
+          "type": "string"
+        }
+      }
+    },
+    "api_vip_connectivity_response": {
+      "type": "object",
+      "properties": {
+        "is_success": {
+          "description": "API VIP connecitivty check result.",
+          "type": "boolean"
+        }
+      }
+    },
     "boot": {
       "type": "object",
       "properties": {
@@ -6255,9 +6830,14 @@ func init() {
       ],
       "properties": {
         "api_vip": {
-          "description": "Virtual IP used to reach the OpenShift cluster API.",
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
+        },
+        "api_vip_dns_name": {
+          "description": "The domain name used to reach the OpenShift cluster API.",
+          "type": "string",
+          "x-nullable": true
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
@@ -6347,10 +6927,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link.",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'AddHostCluster' for cluster that add hosts to existing OCP cluster",
           "type": "string",
           "enum": [
-            "Cluster"
+            "Cluster",
+            "AddHostsCluster"
           ]
         },
         "machine_network_cidr": {
@@ -6402,7 +6983,9 @@ func init() {
             "pending-for-input",
             "installing",
             "finalizing",
-            "installed"
+            "installed",
+            "adding-hosts",
+            "cancelled"
           ]
         },
         "status_info": {
@@ -6525,9 +7108,14 @@ func init() {
       "type": "object",
       "properties": {
         "api_vip": {
-          "description": "Virtual IP used to reach the OpenShift cluster API.",
+          "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
+          "x-nullable": true
+        },
+        "api_vip_dns_name": {
+          "description": "The domain name used to reach the OpenShift cluster API.",
+          "type": "string",
           "x-nullable": true
         },
         "base_dns_domain": {
@@ -6637,7 +7225,8 @@ func init() {
         "all-hosts-are-ready-to-install",
         "sufficient-masters-count",
         "dns-domain-defined",
-        "pull-secret-set"
+        "pull-secret-set",
+        "ntp-server-configured"
       ]
     },
     "completion-params": {
@@ -6974,6 +7563,10 @@ func init() {
         "status_info"
       ],
       "properties": {
+        "api_vip_connectivity": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "bootstrap": {
           "type": "boolean"
         },
@@ -7028,10 +7621,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link.",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or \n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
           "type": "string",
           "enum": [
-            "Host"
+            "Host",
+            "AddToExistingClusterHost"
           ]
         },
         "logs_collected_at": {
@@ -7084,7 +7678,9 @@ func init() {
             "resetting-pending-user-action",
             "installed",
             "error",
-            "resetting"
+            "resetting",
+            "added-to-existing-cluster",
+            "cancelled"
           ]
         },
         "status_info": {
@@ -7249,7 +7845,8 @@ func init() {
         "has-memory-for-role",
         "hostname-unique",
         "hostname-valid",
-        "belongs-to-machine-cidr"
+        "belongs-to-machine-cidr",
+        "api-vip-connected"
       ]
     },
     "host_network": {
@@ -7415,6 +8012,9 @@ func init() {
         },
         "system_vendor": {
           "$ref": "#/definitions/system_vendor"
+        },
+        "timestamp": {
+          "type": "integer"
         }
       }
     },
@@ -7468,6 +8068,15 @@ func init() {
           "$ref": "#/definitions/versions"
         }
       }
+    },
+    "logs_type": {
+      "type": "string",
+      "enum": [
+        "host",
+        "controller",
+        "all",
+        ""
+      ]
     },
     "managed-domain": {
       "type": "object",
@@ -7554,7 +8163,8 @@ func init() {
         "install",
         "free-network-addresses",
         "reset-installation",
-        "dhcp-lease-allocate"
+        "dhcp-lease-allocate",
+        "api-vip-connectivity-check"
       ]
     },
     "steps": {

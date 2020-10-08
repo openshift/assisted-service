@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"strings"
 
+	params "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +24,24 @@ type Config struct {
 // FromContext equip a given logger with values from the given context
 func FromContext(ctx context.Context, inner logrus.FieldLogger) logrus.FieldLogger {
 	requestID := requestid.FromContext(ctx)
-	return requestid.RequestIDLogger(inner, requestID).WithField("go-id", goid())
+	return requestid.RequestIDLogger(inner, requestID).WithFields(getFields(ctx))
+}
+
+//values to be added to the decorated log
+func getFields(ctx context.Context) logrus.Fields {
+	var fields = make(map[string]interface{})
+	fields["go-id"] = goid()
+
+	cluster_id := params.GetParam(ctx, params.ClusterId)
+	if cluster_id != "" {
+		fields[params.ClusterId] = cluster_id
+	}
+
+	host_id := params.GetParam(ctx, params.HostId)
+	if host_id != "" {
+		fields[params.HostId] = host_id
+	}
+	return fields
 }
 
 // get the low-level gorouting id

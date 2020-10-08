@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/app"
 	"github.com/openshift/assisted-service/pkg/auth"
+	paramctx "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
@@ -131,10 +132,13 @@ func main() {
 		log.Fatal("failed to auto migrate, ", err)
 	}
 
+	prometheusRegistry := prometheus.DefaultRegisterer
+	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
+
 	var ocmClient *ocm.Client
 	if Options.Auth.EnableAuth {
 		ocmLog := logrus.New()
-		ocmClient, err = ocm.NewClient(Options.OCMConfig, ocmLog.WithField("pkg", "ocm"))
+		ocmClient, err = ocm.NewClient(Options.OCMConfig, ocmLog.WithField("pkg", "ocm"), metricsManager)
 		if err != nil {
 			log.Fatal("Failed to Create OCM Client, ", err)
 		}
@@ -150,8 +154,6 @@ func main() {
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, Options.InstructionConfig, connectivityValidator)
-	prometheusRegistry := prometheus.DefaultRegisterer
-	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
 
@@ -256,6 +258,15 @@ func main() {
 	imageExpirationMonitor.Start()
 	defer imageExpirationMonitor.Stop()
 
+	//Set inner handler chain. Inner handlers requires access to the Route
+	innerHandler := func() func(http.Handler) http.Handler {
+		return func(h http.Handler) http.Handler {
+			wrapped := metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry)(h)
+			wrapped = paramctx.ContextHandler()(wrapped)
+			return wrapped
+		}
+	}
+
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:       authHandler.AuthAgentAuth,
 		AuthUserAuth:        authHandler.AuthUserAuth,
@@ -266,7 +277,7 @@ func main() {
 		Logger:              log.Printf,
 		VersionsAPI:         versionHandler,
 		ManagedDomainsAPI:   domainHandler,
-		InnerMiddleware:     metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry),
+		InnerMiddleware:     innerHandler(),
 	})
 	if err != nil {
 		log.Fatal("Failed to init rest handler,", err)

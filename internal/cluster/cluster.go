@@ -4,7 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/kennygrant/sanitize"
+	"github.com/openshift/assisted-service/internal/hostutil"
 
 	"github.com/openshift/assisted-service/internal/network"
 
@@ -35,6 +41,8 @@ const DhcpLeaseTimeoutMinutes = 2
 type RegistrationAPI interface {
 	// Register a new cluster
 	RegisterCluster(ctx context.Context, c *common.Cluster) error
+	// Register a new add-host cluster
+	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error
 	//deregister cluster
 	DeregisterCluster(ctx context.Context, c *common.Cluster) error
 }
@@ -122,6 +130,18 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error 
 	} else {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
 			fmt.Sprintf("Registered cluster \"%s\"", c.Name), time.Now())
+	}
+	return err
+}
+
+func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
+	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c)
+	if err != nil {
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
+			fmt.Sprintf("Failed to register add-hosts cluster with name \"%s\". Error: %s", c.Name, err.Error()), time.Now())
+	} else {
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
+			fmt.Sprintf("Registered add-hosts cluster \"%s\"", c.Name), time.Now())
 	}
 	return err
 }
@@ -251,7 +271,14 @@ func (m *Manager) ClusterMonitoring() {
 	defer func() {
 		m.prevMonitorInvokedAt = curMonitorInvokedAt
 	}()
-	if err = m.db.Find(&clusters).Error; err != nil {
+
+	//no need to refresh cluster status if the cluster is in the following statuses
+	noNeedToMonitorInStates := []string{
+		models.ClusterStatusInstalled,
+		models.ClusterStatusError,
+	}
+
+	if err = m.db.Where("status NOT IN (?)", noNeedToMonitorInStates).Find(&clusters).Error; err != nil {
 		log.WithError(err).Errorf("failed to get clusters")
 		return
 	}
@@ -283,6 +310,8 @@ func (m *Manager) DownloadFiles(c *common.Cluster) (err error) {
 		models.ClusterStatusFinalizing,
 		models.ClusterStatusInstalled,
 		models.ClusterStatusError,
+		models.ClusterStatusAddingHosts,
+		models.ClusterStatusCancelled,
 	}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, files can be downloaded only when status is one of: %s",
@@ -320,7 +349,7 @@ func (m *Manager) UploadIngressCert(c *common.Cluster) (err error) {
 
 func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput}
+	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput, models.ClusterStatusAddingHosts}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("Cluster %s is in %s state, host can register only in one of %s", c.ID, clusterStatus, allowedStatuses)
 	}
@@ -329,7 +358,7 @@ func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 
 func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput}
+	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput, models.ClusterStatusAddingHosts}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("Cluster %s is in %s state, cluster can be updated only in one of %s", c.ID, clusterStatus, allowedStatuses)
 	}
@@ -361,7 +390,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	//report installation finished metric
-	m.metricAPI.ClusterInstallationFinished(log, "canceled", c.OpenshiftVersion, c.InstallStartedAt)
+	m.metricAPI.ClusterInstallationFinished(log, "canceled", c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 	return nil
 }
 
@@ -404,7 +433,7 @@ func (m *Manager) CompleteInstallation(ctx context.Context, c *common.Cluster, s
 		severity = models.EventSeverityCritical
 		eventMsg = fmt.Sprintf("Failed installing cluster %s. Reason: %s", c.Name, reason)
 	}
-	m.metricAPI.ClusterInstallationFinished(log, result, c.OpenshiftVersion, c.InstallStartedAt)
+	m.metricAPI.ClusterInstallationFinished(log, result, c.OpenshiftVersion, *c.ID, c.InstallStartedAt)
 	m.eventsHandler.AddEvent(ctx, *c.ID, nil, severity, eventMsg, time.Now())
 	return nil
 }
@@ -482,13 +511,38 @@ func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster
 		return x != fileName
 	}).([]string)
 
+	var tarredFilenames []string
+	var tarredFilename string
+	for _, file := range files {
+		fileNameSplit := strings.Split(file, "/")
+		tarredFilename = file
+		if len(fileNameSplit) > 1 {
+			if _, err = uuid.Parse(fileNameSplit[len(fileNameSplit)-2]); err == nil {
+				hostId := fileNameSplit[len(fileNameSplit)-2]
+				for _, hostObject := range c.Hosts {
+					if hostObject.ID.String() != hostId {
+						continue
+					}
+					role := string(hostObject.Role)
+					if hostObject.Bootstrap {
+						role = string(models.HostRoleBootstrap)
+					}
+					tarredFilename = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, sanitize.Name(hostutil.GetHostnameForMsg(hostObject)))
+				}
+			} else {
+				tarredFilename = fmt.Sprintf("%s_%s", fileNameSplit[len(fileNameSplit)-2], fileNameSplit[len(fileNameSplit)-1])
+			}
+		}
+		tarredFilenames = append(tarredFilenames, tarredFilename)
+	}
+
 	if len(files) < 1 {
 		return "", common.NewApiError(http.StatusNotFound,
 			errors.Errorf("No log files were found"))
 	}
 
 	log.Debugf("List of files to include into %s is %s", fileName, files)
-	err = common.TarAwsFiles(ctx, fileName, files, objectHandler, log)
+	err = common.TarAwsFiles(ctx, fileName, files, tarredFilenames, objectHandler, log)
 	if err != nil {
 		log.WithError(err).Errorf("failed to download file %s", fileName)
 		return "", common.NewApiError(http.StatusInternalServerError, err)

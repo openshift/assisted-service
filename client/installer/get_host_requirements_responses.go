@@ -102,20 +102,20 @@ func NewGetHostRequirementsUnauthorized() *GetHostRequirementsUnauthorized {
 Unauthorized.
 */
 type GetHostRequirementsUnauthorized struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetHostRequirementsUnauthorized) Error() string {
 	return fmt.Sprintf("[GET /host_requirements][%d] getHostRequirementsUnauthorized  %+v", 401, o.Payload)
 }
 
-func (o *GetHostRequirementsUnauthorized) GetPayload() *models.Error {
+func (o *GetHostRequirementsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetHostRequirementsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -135,20 +135,20 @@ func NewGetHostRequirementsForbidden() *GetHostRequirementsForbidden {
 Forbidden.
 */
 type GetHostRequirementsForbidden struct {
-	Payload *models.Error
+	Payload *models.InfraError
 }
 
 func (o *GetHostRequirementsForbidden) Error() string {
 	return fmt.Sprintf("[GET /host_requirements][%d] getHostRequirementsForbidden  %+v", 403, o.Payload)
 }
 
-func (o *GetHostRequirementsForbidden) GetPayload() *models.Error {
+func (o *GetHostRequirementsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
 
 func (o *GetHostRequirementsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Error)
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

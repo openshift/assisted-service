@@ -92,6 +92,22 @@ skipper make update && kubectl get pod --namespace assisted-installer -o name | 
 
 It will build and push a new image of the service to your Docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.
 
+## Update Discovery Image base OS
+
+If you want to update the underlying operating system image used by the discovery iso, follow these steps:
+
+1. Choose the base os image you want to use
+
+   1. RHCOS: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/
+   2. Fedora CoreOS: https://getfedora.org/en/coreos/download?tab=metal_virtualized&stream=stable
+
+2. Build the new iso generator image
+
+   ```sh
+   # Example with RHCOS
+   BASE_OS_IMAGE=https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/latest/rhcos-4.6.0-0.nightly-2020-08-26-093617-x86_64-live.x86_64.iso make build-assisted-iso-generator-image
+   ```
+
 ## Deployment
 
 ### Deploy to minikube
@@ -115,7 +131,7 @@ This deployment option have multiple optional parameters that should be used in 
 1. `APPLY_NAMESPACE` - True by default. Will try to deploy "assisted-installer" namespace, if you are not the Admin of the cluster or maybe you don't have permissions for this operation you may skip namespace deployment.
 1. `INGRESS_DOMAIN` - By default deployment script will try to get the domain prefix from OpenShift ingress controller. If you don't have access to it then you may specify the domain yourself. For example: `apps.ocp.prod.psi.redhat.com`
 
-To set the parameters simply add them in the end of the command, for example
+To set the parameters simply add them in the end of the command, for example:
 ```shell
 skipper make deploy-all TARGET=oc-ingress APPLY_NAMESPACE=False INGRESS_DOMAIN=apps.ocp.prod.psi.redhat.com
 ```
@@ -261,6 +277,24 @@ allowing it to be effective most of the time.
 ## Troubleshooting
 
 A document that can assist troubleshooting: [link](https://docs.google.com/document/d/1WDc5LQjNnqpznM9YFTGb9Bg1kqPVckgGepS4KBxGSqw)
+
+## Documentation
+
+To rebuild the site after adding some documentation to the Markdown files, you just need to execute this Make target before the push
+
+```shell
+make docs
+```
+
+To validate the documentation generated, go to the root of the repo and execute
+
+```shell
+make docs_serve
+```
+
+After that, you just need to access to [127.0.0.1:8000](http://127.0.0.1:8000/) on your browser and check the new content.
+
+_NOTE: To use these features, you need to have mkdocs installed in your system, to do that you just need to execute this command `pip3 install --user mkdocs`_
 
 ##  Linked repositories
 * #### coreos_installation_iso:
