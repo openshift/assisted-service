@@ -2724,12 +2724,12 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 	It("host logs presigned happy flow without log type", func() {
 		hostID := strfmt.UUID(uuid.New().String())
-		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		host1 = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
-		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, fmt.Sprintf("mycluster_master_%s.tar.gz", hostID.String()), gomock.Any()).Return("url", nil)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("url", nil)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
 			FileName:  "logs",
