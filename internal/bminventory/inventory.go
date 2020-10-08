@@ -72,7 +72,6 @@ var (
 type Config struct {
 	ImageBuilder         string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
 	AgentDockerImg       string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	IgnitionGenerator    string            `envconfig:"IGNITION_GENERATE_IMAGE" default:"quay.io/ocpmetal/assisted-ignition-generator:latest"` // TODO: update the latest once the repository has git workflow
 	ServiceBaseURL       string            `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath    string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	S3EndpointURL        string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
@@ -1088,7 +1087,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		return err
 	}
 
-	return b.clusterApi.SetGeneratorVersion(&cluster, b.Config.IgnitionGenerator, b.db)
+	return nil
 }
 
 func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) error {

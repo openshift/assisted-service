@@ -1108,10 +1108,7 @@ var _ = Describe("cluster", func() {
 	setDefaultHostSetBootstrap := func(mockClusterApi *cluster.MockAPI) {
 		mockHostApi.EXPECT().SetBootstrap(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
-	setIgnitionGeneratorVersionSuccess := func(mockClusterApi *cluster.MockAPI) {
-		mockClusterApi.EXPECT().SetGeneratorVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	}
-	setDefaultMetricInstallatioStarted := func(mockMetricApi *metrics.MockAPI) {
+	setDefaultMetricInstallationStarted := func(mockMetricApi *metrics.MockAPI) {
 		mockMetricApi.EXPECT().InstallationStarted(gomock.Any(), gomock.Any()).AnyTimes()
 	}
 	mockHandlePreInstallationError := func(mockClusterApi *cluster.MockAPI, done chan int) {
@@ -1892,12 +1889,11 @@ var _ = Describe("cluster", func() {
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForRefresh(mockHostApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				setDefaultInstall(mockClusterApi)
 				setDefaultGetMasterNodesIds(mockClusterApi)
 				setDefaultHostSetBootstrap(mockClusterApi)
 				setDefaultHostInstall(mockClusterApi, DoneChannel)
-				setDefaultMetricInstallatioStarted(mockMetric)
+				setDefaultMetricInstallationStarted(mockMetric)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
@@ -1986,7 +1982,6 @@ var _ = Describe("cluster", func() {
 				mockHostPrepareForRefresh(mockHostApi)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 				setDefaultGetMasterNodesIds(mockClusterApi)
 				mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("cluster has a error"))
@@ -2009,7 +2004,6 @@ var _ = Describe("cluster", func() {
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setDefaultInstall(mockClusterApi)
 				setDefaultGetMasterNodesIds(mockClusterApi)
-				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 
 				mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -2035,7 +2029,6 @@ var _ = Describe("cluster", func() {
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setDefaultInstall(mockClusterApi)
-				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return([]*strfmt.UUID{}, nil).Times(1)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
@@ -2051,7 +2044,6 @@ var _ = Describe("cluster", func() {
 
 			It("GetMasterNodesIds fails in the go routine", func() {
 				mockGenerateInstallConfigSuccess(mockGenerator)
-				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 				setDefaultInstall(mockClusterApi)
 				mockAutoAssignSuccess(3)
@@ -2077,7 +2069,6 @@ var _ = Describe("cluster", func() {
 				mockGenerateInstallConfigSuccess(mockGenerator)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				setIgnitionGeneratorVersionSuccess(mockClusterApi)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 				setDefaultInstall(mockClusterApi)
 				mockAutoAssignSuccess(3)

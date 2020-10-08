@@ -19,7 +19,6 @@ ENVS = [
     ("SERVICE_URL", ""),
     ("SERVICE_PORT", ""),
     ("AGENT_DOCKER_IMAGE", ""),
-    ("IGNITION_GENERATE_IMAGE", ""),
     ("BASE_DNS_DOMAINS", ""),
 ]
 

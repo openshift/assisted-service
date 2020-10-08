@@ -886,32 +886,6 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 	})
 })
 
-var _ = Describe("SetGeneratorVersion", func() {
-	var (
-		db         *gorm.DB
-		id         strfmt.UUID
-		clusterApi *Manager
-		dbName     = "set_generator_version"
-	)
-
-	It("set generator version", func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
-		id = strfmt.UUID(uuid.New().String())
-		dummy := &leader.DummyElector{}
-		clusterApi = NewManager(defaultTestConfig, getTestLog().WithField("pkg", "cluster-monitor"), db,
-			nil, nil, nil, dummy)
-		cluster := common.Cluster{Cluster: models.Cluster{ID: &id, Status: swag.String(models.ClusterStatusReady)}}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		cluster = geCluster(id, db)
-		Expect(clusterApi.SetGeneratorVersion(&cluster, "v1", db)).ShouldNot(HaveOccurred())
-		cluster = geCluster(id, db)
-		Expect(cluster.IgnitionGeneratorVersion).To(Equal("v1"))
-	})
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-})
-
 var _ = Describe("CancelInstallation", func() {
 	var (
 		ctx           = context.Background()

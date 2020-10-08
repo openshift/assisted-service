@@ -348,6 +348,7 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 }
 
 // abort installation files generation job
+// TODO check if this is needed
 func (k *kubeJob) AbortInstallConfig(ctx context.Context, cluster common.Cluster) error {
 	log := logutil.FromContext(ctx, k.log)
 

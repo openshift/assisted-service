@@ -53,11 +53,9 @@ def main():
             data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))
             data = data.replace('REPLACE_OPENSHIFT_INSTALL_RELEASE_IMAGE', '"{}"'.format(deploy_options.ocp_release))
 
-            subsystem_versions = {"IMAGE_BUILDER": "ISO_CREATION",
-                                  "IGNITION_GENERATE_IMAGE": "DUMMY_IGNITION"}
+            subsystem_versions = {"IMAGE_BUILDER": "ISO_CREATION"}
 
             versions = {"IMAGE_BUILDER": "assisted-iso-create",
-                        "IGNITION_GENERATE_IMAGE": "assisted-ignition-generator",
                         "INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",
                         "AGENT_DOCKER_IMAGE": "assisted-installer-agent",

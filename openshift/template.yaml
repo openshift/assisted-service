@@ -56,7 +56,7 @@ parameters:
   required: true
 - name: IGNITION_GENERATE_IMAGE
   value: ''
-  required: true
+  required: false
 - name: INSTALLER_IMAGE
   value: ''
   required: true
@@ -237,8 +237,6 @@ objects:
                 value: ${HW_VALIDATOR_MIN_RAM_GIB}
               - name: HW_VALIDATOR_MIN_DISK_SIZE_GIB
                 value: ${HW_VALIDATOR_MIN_DISK_SIZE_GIB}
-              - name: IGNITION_GENERATE_IMAGE
-                value: ${IGNITION_GENERATE_IMAGE}
               - name: INSTALLER_IMAGE
                 value: ${INSTALLER_IMAGE}
               - name: SELF_VERSION
