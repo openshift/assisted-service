@@ -66,7 +66,6 @@ type API interface {
 	UploadIngressCert(c *common.Cluster) (err error)
 	VerifyClusterUpdatability(c *common.Cluster) (err error)
 	AcceptRegistration(c *common.Cluster) (err error)
-	SetGeneratorVersion(c *common.Cluster, version string, db *gorm.DB) error
 	CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
 	ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
 	PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error
@@ -363,11 +362,6 @@ func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
 		err = errors.Errorf("Cluster %s is in %s state, cluster can be updated only in one of %s", c.ID, clusterStatus, allowedStatuses)
 	}
 	return err
-}
-
-func (m *Manager) SetGeneratorVersion(c *common.Cluster, version string, db *gorm.DB) error {
-	return db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
-		Update("ignition_generator_version", version).Error
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {

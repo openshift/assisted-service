@@ -10,13 +10,12 @@ import (
 )
 
 type Versions struct {
-	SelfVersion       string `envconfig:"SELF_VERSION" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
-	ImageBuilder      string `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
-	AgentDockerImg    string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/agent:latest"`
-	IgnitionGenerator string `envconfig:"IGNITION_GENERATE_IMAGE" default:"quay.io/ocpmetal/assisted-ignition-generator:latest"`
-	InstallerImage    string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
-	ControllerImage   string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
-	ReleaseTag        string `envconfig:"RELEASE_TAG" default:""`
+	SelfVersion     string `envconfig:"SELF_VERSION" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
+	ImageBuilder    string `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
+	AgentDockerImg  string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/agent:latest"`
+	InstallerImage  string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
+	ControllerImage string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
+	ReleaseTag      string `envconfig:"RELEASE_TAG" default:""`
 }
 
 func NewHandler(versions Versions) *handler {
@@ -36,7 +35,7 @@ func (h *handler) ListComponentVersions(ctx context.Context, params operations.L
 				"assisted-installer-service":    h.versions.SelfVersion,
 				"image-builder":                 h.versions.ImageBuilder,
 				"discovery-agent":               h.versions.AgentDockerImg,
-				"assisted-ignition-generator":   h.versions.IgnitionGenerator,
+				"assisted-ignition-generator":   "",
 				"assisted-installer":            h.versions.InstallerImage,
 				"assisted-installer-controller": h.versions.ControllerImage,
 			},
