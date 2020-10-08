@@ -3,18 +3,7 @@
 filters:
   .*:
     approvers:
-      - code-reviewers
-    reviewers:
-      - code-reviewers
-  Jenkinsfile:
-    approvers:
-      - ci-approvers
-    labels:
-      - do-not-merge/hold
-  ^Dockerfile\..*:
-    labels:
-      - do-not-merge/hold
-      - kind/dependency-change
-  swagger.yaml:
-    labels:
-      - api-review
+      - ronniel1
+      - filanov
+      - gamli75
+      - yuvigold
