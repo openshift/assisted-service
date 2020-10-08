@@ -406,7 +406,9 @@ func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) va
 			v.log.WithError(err).Warnf("Illegal inventory for host %s", h.ID.String())
 			continue
 		}
-		if inventory.Timestamp == 0 || *h.Status == models.HostStatusDisconnected || *h.Status == models.HostStatusDisabled {
+		if inventory.Timestamp == 0 || *h.Status == models.HostStatusDisconnected ||
+			*h.Status == models.HostStatusDisabled || *h.Status == models.HostStatusResettingPendingUserAction ||
+			*h.Status == models.HostStatusDiscovering {
 			continue
 		}
 
