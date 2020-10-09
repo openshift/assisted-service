@@ -2,10 +2,6 @@ package host
 
 import (
 	"context"
-	"strings"
-	"time"
-
-	"github.com/go-openapi/strfmt"
 
 	"github.com/sirupsen/logrus"
 
@@ -14,33 +10,24 @@ import (
 
 type stopInstallationCmd struct {
 	baseCmd
-	instructionConfig InstructionConfig
 }
 
-func NewStopInstallationCmd(log logrus.FieldLogger, instructionConfig InstructionConfig) *stopInstallationCmd {
+func NewStopInstallationCmd(log logrus.FieldLogger) *stopInstallationCmd {
 	return &stopInstallationCmd{
-		baseCmd:           baseCmd{log: log},
-		instructionConfig: instructionConfig,
+		baseCmd: baseCmd{log: log},
 	}
 }
 
 func (h *stopInstallationCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	step := &models.Step{}
-	step.StepType = models.StepTypeExecute
-	step.Command = "/usr/bin/podman"
-	cmdArgs := []string{"stop", "-i", "-t", "5", "assisted-installer"}
+	command := "/usr/bin/podman"
 
-	// added to run upload logs if we are in error or cancelled state. Stop all and gather logs
-	// will return same exit code as stop command command
-	if host.LogsCollectedAt == strfmt.DateTime(time.Time{}) {
-		logsCommand, err := CreateUploadLogsCmd(host, h.instructionConfig.ServiceBaseURL,
-			h.instructionConfig.InventoryImage, h.instructionConfig.SkipCertVerification, false, true)
-		if err != nil {
-			h.log.WithError(err).Error("Failed to create logs upload command")
-		}
-		step.Command = "bash"
-		cmdArgs = []string{"-c", "podman " + strings.Join(cmdArgs, " ") + "; " + logsCommand}
+	step := &models.Step{
+		StepType: models.StepTypeExecute,
+		Command:  command,
+		Args: []string{
+			"stop", "-i", "-t", "5", "assisted-installer",
+		},
 	}
-	step.Args = cmdArgs
+
 	return []*models.Step{step}, nil
 }
