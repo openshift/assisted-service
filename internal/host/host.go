@@ -312,6 +312,8 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
+		m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo,
+			fmt.Sprintf("Host %s: set as bootstrap", hostutil.GetHostnameForMsg(h)), time.Now())
 	}
 	return nil
 }
