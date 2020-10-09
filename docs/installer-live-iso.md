@@ -43,7 +43,7 @@ The base live ISO is extracted from a container image. Run the container
 image containing the ISO, copy the ISO, and then stop and remove the container. 
 
 ````
-podman run -dt --name livecdsrc quay.io/ocpmetal/livecd-iso:rhcos-livecd
+podman run -dt --name livecdsrc quay.io/ocpmetal/livecd-iso:v4.6
 podman cp livecdsrc:/root/image/livecd.iso ./livecd.iso
 podman rm -f livecdsrc
 ````
@@ -62,7 +62,7 @@ The live ISO, **assisted-service.iso** (not livecd.iso), can then be used to dep
 After the live ISO boots, the UI should be accessible from the browser at
 
 ````
-http://<hostname-or-ip>:8080. 
+https://<hostname-or-ip>:8443.
 ````
 
 It may take a couple of minutes for the assisted-service and UI to become ready after you see the login prompt.
@@ -102,15 +102,4 @@ The FCC file transpiles to an ignition config using:
 podman run --rm -v ./config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > onprem-iso-config.ign
 ````
 
-The transpiled ignition config is version 3.0.0. The RHCOS live ISO we are currently using is able to read v2.2.0. To change the ignition file to v2.2.0:
-
-* Change version: from 3.0.0 to 2.2.0
-* For each file in the storage -> files section add 
-
-````
-"filesystem": "root",
-````
-
-These two edits will not be necessary once we move to a RHCOS image that supports
-ignition v3.0.0.
 

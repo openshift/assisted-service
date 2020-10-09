@@ -20,21 +20,24 @@
       {
         "path": "/etc/assisted-service/create_certs.sh",
         "contents": {
-          "source": "data:,%23!%2Fbin%2Fbash%0Amkdir%20-p%20%2Fetc%2Fassisted-service%2Fnginx-certs%0Aopenssl%20req%20-x509%20-nodes%20-days%20365%20-subj%20%22%2FC%3DCA%2FST%3DQC%2FO%3DAssisted%20Installer%2FCN%3D192.168.122.5%22%20-addext%20%22subjectAltName%3DIP%3A192.168.122.5%22%20-newkey%20rsa%3A2048%20-keyout%20%2Fetc%2Fassisted-service%2Fnginx-certs%2Fnginx-selfsigned.key%20-out%20%2Fetc%2Fassisted-service%2Fnginx-certs%2Fnginx-selfsigned.crt%3B%0Achmod%20644%20%2Fetc%2Fassisted-service%2Fnginx-certs%2Fnginx-selfsigned.key%0A"
+          "compression": "gzip",
+          "source": "data:;base64,H4sIAAAAAAAC/5zPsW6DMBAG4J2nuNL5cKCAklQMiClL2qp9AWNfExdjUt+lhbevImXqEinbDfd/v/7HB9W7oHrNx2QcrIuAJ1AkRmlmx0IWmeKPM6TCwYUZDUXhZDpRYPYQ6RtwrlYbwDBZYkCrF4anugLkc/8FqeqarlXvH81bp16a9orCLrBo7ymqbt/kmyLL63WWF0VWpYDaWpoF0otARlovez1Ss3vd/v8M9DvQApH1tliVa8CBlukstxdcbyb/ye4QyGYXB+/MmijPiTmOk4W6LO9sT/4CAAD//9U0UEGMAQAA"
         },
         "mode": 420
       },
       {
         "path": "/etc/assisted-service/environment",
         "contents": {
-          "source": "data:,POSTGRESQL_DATABASE%3Dinstaller%0APOSTGRESQL_PASSWORD%3Dadmin%0APOSTGRESQL_USER%3Dadmin%0ADB_HOST%3D127.0.0.1%0ADB_PORT%3D5432%0ADB_USER%3Dadmin%0ADB_PASS%3Dadmin%0ADB_NAME%3Dinstaller%0ASERVICE_BASE_URL%3Dhttps%3A%2F%2F192.168.122.5%3A8443%0ADEPLOY_TARGET%3Donprem%0ASERVICE_CA_CERT_PATH%3D%2Fdata%2Fnginx-selfsigned.crt%0AOPENSHIFT_INSTALL_RELEASE_IMAGE%3Dquay.io%2Focpmetal%2Focp-release%3Av1.0.9.1%0A"
+          "compression": "gzip",
+          "source": "data:;base64,H4sIAAAAAAAC/1SOwU7zMBCE73mXOnXa/n9byQe3WZpIbmxsF8TJshpTIiVOSAyCt0eWEITbzsxqvhFc6ZMEdc9MTjU9UAWk8VOwbevGZJYKqtQjlzmxddf4eXJRIL/d/GAKrjTB2X+0REuEoyO41GSzXmVR/H2Opb+qouc5XIF8KI9g4iZzkYy8hDBM+zTFuwzhf1uEswxt9tv1epXkIBh/MprKE2jS+2F03U/BkZojSG0E1QVJaxts6m+N/1hMrn2empt3NbqOIeECKlWUd9qUldKUMSOBQaSXZ3oC8vpmP1HTp/116FywbTwWo2udndz+HaMl2iGcfAUAAP//jwJhOVIBAAA="
         },
         "mode": 420
       },
       {
         "path": "/etc/assisted-service/nginx.conf",
         "contents": {
-          "source": "data:,server%20%7B%0A%20%20%20%20listen%208443%20ssl%3B%0A%20%20%20%20ssl_certificate%20%2Fcerts%2Fnginx-selfsigned.crt%3B%0A%20%20%20%20ssl_certificate_key%20%2Fcerts%2Fnginx-selfsigned.key%3B%0A%20%20%20%20server_name%20_%3B%0A%20%20%20%20root%20%2Fapp%3B%0A%20%20%20%20index%20index.html%3B%0A%20%20%20%20location%20%2Fapi%20%7B%0A%20%20%20%20%20%20%20%20proxy_pass%20http%3A%2F%2Flocalhost%3A8090%3B%0A%20%20%20%20%20%20%20%20proxy_http_version%201.1%3B%0A%20%20%20%20%20%20%20%20proxy_set_header%20Upgrade%20%24http_upgrade%3B%0A%20%20%20%20%20%20%20%20proxy_set_header%20Connection%20'upgrade'%3B%0A%20%20%20%20%20%20%20%20proxy_set_header%20Host%20%24host%3B%0A%20%20%20%20%20%20%20%20proxy_cache_bypass%20%24http_upgrade%3B%0A%20%20%20%20%7D%0A%20%20%20%20location%20%2F%20%7B%0A%20%20%20%20%20%20%20%20try_files%20%24uri%20%2Findex.html%3B%0A%20%20%20%20%7D%0A%7D%0A"
+          "compression": "gzip",
+          "source": "data:;base64,H4sIAAAAAAAC/3yQsW7zMAyEdz8FBwOZfivBnyFNxi59gc6CKtO2EEUSSCawUfjdC9keCiGNBwNHfScdj5EeSPBdAQB4x4IBTsfjf2D2l2XI7LVFEtc5awRBZcEq9C6M/xh9x64P2DaW5KlBX3H603TFaTMtOXQwNwS9jihGAWVSWqULLY7rvxnktqXz0RpxMWTQbWvkL1EcJ50MMwwi6axUJv0QWc6n/dv+UpAZ0g8kzncdmkN5zih6QNMiwWfqybQI9eK5r+oF/x5DQLuE3G307gX+EVmgzkFLyBo7oP6alq2evD4XjfyqQ2jSnfPIUN/JgSprnKu5+gkAAP//yEhoiwsCAAA="
         },
         "mode": 420
       },
@@ -60,17 +63,17 @@
         "name": "assisted-service-pod.service"
       },
       {
-        "contents": "[Unit]\nAfter=assisted-service-pod.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull --authfile /etc/assisted-service/auth.json rhel8/postgresql-12:latest\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --name db rhel8/postgresql-12:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "contents": "[Unit]\nAfter=assisted-service-pod.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db quay.io/ocpmetal/postgresql-12-centos7\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
         "enabled": true,
         "name": "assisted-service-db.service"
       },
       {
-        "contents": "[Unit]\nAfter=assisted-service-db.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull quay.io/ocpmetal/assisted-service:latest\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs/nginx-selfsigned.crt:/data/nginx-selfsigned.crt:z --restart always --name installer quay.io/ocpmetal/assisted-service:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "contents": "[Unit]\nAfter=assisted-service-db.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs/nginx-selfsigned.crt:/data/nginx-selfsigned.crt:z --restart always --name installer quay.io/ocpmetal/assisted-service:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
         "enabled": true,
         "name": "assisted-service-installer.service"
       },
       {
-        "contents": "[Unit]\nAfter=assisted-service-installer.service\n\n[Service]\nType=forking\nRestart=no\nExecStartPre=podman pull quay.io/ocpmetal/ocp-metal-ui:latest\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs:/certs:z -v /etc/assisted-service/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
+        "contents": "[Unit]\nAfter=assisted-service-installer.service\n\n[Service]\nType=forking\nRestart=no\nExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs:/certs:z -v /etc/assisted-service/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest\nTimeoutStartSec=300\n\n[Install]\nWantedBy=multi-user.target\n",
         "enabled": true,
         "name": "assisted-service-ui.service"
       }
