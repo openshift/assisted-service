@@ -1453,6 +1453,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		}
 	}
 	if params.ClusterUpdateParams.APIVipDNSName != nil && swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		log.Infof("Updating api vip to %s for day2 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
 		err = b.createAndUploadNodeIgnition(ctx, cluster.ID, *params.ClusterUpdateParams.APIVipDNSName)
 		if err != nil {
 			return err
