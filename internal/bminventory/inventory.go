@@ -535,17 +535,6 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 		log.Errorf("Failed to create and upload worker ignition for cluster %s", *id)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	/*
-		ignitionConfig, err := b.formatNodeIgnitionFile(apivipDnsname)
-		if err != nil {
-			log.WithError(err).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
-		}
-		fileName := fmt.Sprintf("%s/%s", cluster.ID, workerIgnition)
-		err = b.objectHandler.Upload(ctx, ignitionConfig, fileName)
-		if err != nil {
-			return common.NewApiError(http.StatusInternalServerError, errors.Errorf("failed to upload %s to s3", fileName))
-		}
-	*/
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
 	err = b.clusterApi.RegisterAddHostsCluster(ctx, &cluster)
