@@ -95,6 +95,7 @@ var _ = Describe("Events library", func() {
 			Expect(evs[0]).Should(WithTime(t1))
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
 
+			time.Sleep(1 * time.Second)
 			t2 := time.Now()
 			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "event1", t2)
 			Expect(numOfEvents(cluster1, nil)).Should(Equal(2))
@@ -102,7 +103,7 @@ var _ = Describe("Events library", func() {
 			evs, err = theEvents.GetEvents(cluster1, nil)
 			Expect(err).Should(BeNil())
 			Expect(evs[0]).Should(WithMessage(swag.String("event1")))
-			Expect(evs[0]).Should(WithTime(t2))
+			Expect(evs[0]).Should(WithTime(t1))
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
 
 			Expect(numOfEvents(cluster2, nil)).Should(Equal(0))
