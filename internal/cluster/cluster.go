@@ -81,7 +81,8 @@ type PrepareConfig struct {
 }
 
 type Config struct {
-	PrepareConfig PrepareConfig
+	PrepareConfig    PrepareConfig
+	MonitorBatchSize int `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
 }
 
 type Manager struct {
@@ -107,6 +108,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		prepareConfig: cfg.PrepareConfig,
 	}
 	return &Manager{
+		Config:               cfg,
 		log:                  log,
 		db:                   db,
 		registrationAPI:      NewRegistrar(log, db),
@@ -257,6 +259,8 @@ func (m *Manager) ClusterMonitoring() {
 	}
 	m.log.Debugf("Running ClusterMonitoring")
 	var (
+		offset              int
+		limit               = m.MonitorBatchSize
 		clusters            []*common.Cluster
 		clusterAfterRefresh *common.Cluster
 		requestID           = requestid.NewID()
@@ -277,28 +281,36 @@ func (m *Manager) ClusterMonitoring() {
 		models.ClusterStatusError,
 	}
 
-	if err = m.db.Where("status NOT IN (?)", noNeedToMonitorInStates).Find(&clusters).Error; err != nil {
-		log.WithError(err).Errorf("failed to get clusters")
-		return
-	}
-	for _, cluster := range clusters {
-		if !m.leaderElector.IsLeader() {
-			m.log.Debugf("Not a leader, exiting ClusterMonitoring")
+	for {
+		clusters = make([]*common.Cluster, 0, limit)
+		if err = m.db.Where("status NOT IN (?)", noNeedToMonitorInStates).
+			Offset(offset).Limit(limit).Order("id").Find(&clusters).Error; err != nil {
+			log.WithError(err).Errorf("failed to get clusters")
 			return
 		}
-		if clusterAfterRefresh, err = m.RefreshStatus(ctx, cluster, m.db); err != nil {
-			log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
-			continue
+		if len(clusters) == 0 {
+			break
 		}
+		for _, cluster := range clusters {
+			if !m.leaderElector.IsLeader() {
+				m.log.Debugf("Not a leader, exiting ClusterMonitoring")
+				return
+			}
+			if clusterAfterRefresh, err = m.RefreshStatus(ctx, cluster, m.db); err != nil {
+				log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
+				continue
+			}
 
-		if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
-			log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
-				swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
-		}
+			if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
+				log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
+					swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
+			}
 
-		if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
-			m.triggerLeaseTimeoutEvent(ctx, cluster)
+			if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
+				m.triggerLeaseTimeoutEvent(ctx, cluster)
+			}
 		}
+		offset += limit
 	}
 }
 

@@ -65,8 +65,9 @@ var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 var InstallationTimeout = 20 * time.Minute
 
 type Config struct {
-	EnableAutoReset bool          `envconfig:"ENABLE_AUTO_RESET" default:"false"`
-	ResetTimeout    time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
+	EnableAutoReset  bool          `envconfig:"ENABLE_AUTO_RESET" default:"false"`
+	ResetTimeout     time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
+	MonitorBatchSize int           `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
 }
 
 //go:generate mockgen -source=host.go -package=host -aux_files=github.com/openshift/assisted-service/internal/host=instructionmanager.go -destination=mock_host_api.go

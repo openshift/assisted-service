@@ -9,10 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/openshift/assisted-service/pkg/leader"
-
-	"github.com/openshift/assisted-service/internal/hostutil"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -23,8 +19,10 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,8 +34,9 @@ var defaultDisk = models.Disk{        // invalid disk used only for tests
 var defaultProgressStage = models.HostStage("default progress stage") // invalid progress stage used only for tests
 
 var defaultConfig = &Config{
-	ResetTimeout:    3 * time.Minute,
-	EnableAutoReset: true,
+	ResetTimeout:     3 * time.Minute,
+	EnableAutoReset:  true,
+	MonitorBatchSize: 100,
 }
 
 var _ = Describe("update_role", func() {
@@ -400,91 +399,6 @@ var _ = Describe("update_progress", func() {
 	It("invalid stage", func() {
 		Expect(state.UpdateInstallProgress(ctx, &host,
 			&models.HostProgress{CurrentStage: defaultProgressStage})).Should(HaveOccurred())
-	})
-})
-
-var _ = Describe("monitor_disconnection", func() {
-	var (
-		ctx        = context.Background()
-		db         *gorm.DB
-		state      API
-		host       models.Host
-		ctrl       *gomock.Controller
-		mockEvents *events.MockHandler
-		dbName     = "monitor_disconnection"
-	)
-
-	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
-		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
-		dummy := &leader.DummyElector{}
-		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy)
-		clusterID := strfmt.UUID(uuid.New().String())
-		host = getTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
-		cluster := getTestCluster(clusterID, "1.1.0.0/16")
-		Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
-		host.Inventory = workerInventory()
-		err := state.RegisterHost(ctx, &host)
-		Expect(err).ShouldNot(HaveOccurred())
-		db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
-	Context("host_disconnecting", func() {
-		It("known_host_disconnects", func() {
-			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
-			host.Status = swag.String(models.HostStatusKnown)
-			db.Save(&host)
-		})
-
-		It("discovering_host_disconnects", func() {
-			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
-			host.Status = swag.String(models.HostStatusDiscovering)
-			db.Save(&host)
-		})
-
-		It("known_host_insufficient", func() {
-			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
-			host.Status = swag.String(models.HostStatusInsufficient)
-			db.Save(&host)
-		})
-
-		AfterEach(func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityWarning,
-				fmt.Sprintf("Host %s: updated status from \"%s\" to \"disconnected\" (Host has stopped communicating with the installation service)",
-					host.ID.String(), *host.Status),
-				gomock.Any())
-			state.HostMonitoring()
-			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
-			Expect(*host.Status).Should(Equal(models.HostStatusDisconnected))
-		})
-	})
-
-	Context("host_reconnecting", func() {
-		It("host_connects", func() {
-			host.CheckedInAt = strfmt.DateTime(time.Now())
-			host.Inventory = ""
-			host.Status = swag.String(models.HostStatusDisconnected)
-			db.Save(&host)
-		})
-
-		AfterEach(func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
-				fmt.Sprintf("Host %s: updated status from \"disconnected\" to \"discovering\" (Waiting for host to send hardware details)", host.ID.String()),
-				gomock.Any())
-			state.HostMonitoring()
-			db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
-			Expect(*host.Status).Should(Equal(models.HostStatusDiscovering))
-		})
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		db.Close()
 	})
 })
 
