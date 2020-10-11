@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"time"
 
 	"github.com/openshift/assisted-service/internal/common"
 
@@ -25,7 +26,7 @@ var _ = Describe("stop-podman", func() {
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
-		stopCmd = NewStopInstallationCmd(getTestLog())
+		stopCmd = NewStopInstallationCmd(getTestLog(), DefaultInstructionConfig)
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -33,10 +34,19 @@ var _ = Describe("stop-podman", func() {
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 
-	It("get_step", func() {
+	It("get_step with logs", func() {
 		stepReply, stepErr = stopCmd.GetStep(ctx, &host)
 		Expect(stepReply.StepType).To(Equal(models.StepTypeExecute))
 		Expect(stepErr).ShouldNot(HaveOccurred())
+		Expect(stepReply.Command).Should(Equal("bash"))
+	})
+	It("get_step without logs", func() {
+		host.LogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&host)
+		stepReply, stepErr = stopCmd.GetStep(ctx, &host)
+		Expect(stepReply.StepType).To(Equal(models.StepTypeExecute))
+		Expect(stepErr).ShouldNot(HaveOccurred())
+		Expect(stepReply.Command).Should(Equal("/usr/bin/podman"))
 	})
 
 	AfterEach(func() {
