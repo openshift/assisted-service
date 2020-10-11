@@ -167,7 +167,7 @@ def check_k8s_rollout(
         profile='minikube'
         ):
     kubectl_cmd = get_kubectl_command(target, namespace, profile)
-    cmd = f'{kubectl_cmd} rollout status {k8s_object_name}/{k8s_object}'
+    cmd = f'{kubectl_cmd} rollout status {k8s_object}/{k8s_object_name}'
     return check_output(cmd)
 
 
