@@ -1524,10 +1524,6 @@ var _ = Describe("cluster", func() {
 						Kind: swag.String(models.ClusterKindAddHostsCluster),
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
-					//addHost(masterHostId1, models.HostRoleMaster, "known", clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-					//err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
-					//        makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
-					//Expect(err).ToNot(HaveOccurred())
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 				})
 				It("update api vip dnsname success", func() {
