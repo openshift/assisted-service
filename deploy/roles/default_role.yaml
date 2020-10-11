@@ -44,7 +44,7 @@ rules:
       - ''
     resources:
       - configmaps
-    resourceNames: ["assisted-service-leader-election-helper", "assisted-service-migration-helper"]
+    resourceNames: ["assisted-service-leader-election-helper", "assisted-service-migration-helper", "assisted-service-baseiso-helper"]
 
 ---
 kind: RoleBinding
