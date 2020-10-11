@@ -1571,7 +1571,7 @@ func init() {
           "201": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/host"
+              "$ref": "#/definitions/host_registration_response"
             }
           },
           "400": {
@@ -3891,6 +3891,36 @@ func init() {
         }
       }
     },
+    "host_registration_response": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/host"
+        },
+        {
+          "properties": {
+            "next_step_runner_command": {
+              "description": "Command for starting the next step runner",
+              "type": "object",
+              "properties": {
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "command": {
+                  "type": "string"
+                },
+                "retry_seconds": {
+                  "description": "How long in seconds to wait before retrying registration if the command fails",
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "image-create-params": {
       "type": "object",
       "properties": {
@@ -5812,7 +5842,7 @@ func init() {
           "201": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/host"
+              "$ref": "#/definitions/host_registration_response"
             }
           },
           "400": {
@@ -7013,6 +7043,25 @@ func init() {
         }
       }
     },
+    "HostRegistrationResponseAO1NextStepRunnerCommand": {
+      "description": "Command for starting the next step runner",
+      "type": "object",
+      "properties": {
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "command": {
+          "type": "string"
+        },
+        "retry_seconds": {
+          "description": "How long in seconds to wait before retrying registration if the command fails",
+          "type": "integer"
+        }
+      }
+    },
     "add-hosts-cluster-create-params": {
       "type": "object",
       "required": [
@@ -8137,6 +8186,36 @@ func init() {
           }
         }
       }
+    },
+    "host_registration_response": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/host"
+        },
+        {
+          "properties": {
+            "next_step_runner_command": {
+              "description": "Command for starting the next step runner",
+              "type": "object",
+              "properties": {
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "command": {
+                  "type": "string"
+                },
+                "retry_seconds": {
+                  "description": "How long in seconds to wait before retrying registration if the command fails",
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "image-create-params": {
       "type": "object",

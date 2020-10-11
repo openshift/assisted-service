@@ -40,7 +40,7 @@ func registerHostByUUID(clusterID, hostID strfmt.UUID) *models.Host {
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())
-	return host.GetPayload()
+	return &host.GetPayload().Host
 }
 
 func getHost(clusterID, hostID strfmt.UUID) *models.Host {

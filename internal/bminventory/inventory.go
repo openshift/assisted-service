@@ -329,6 +329,32 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	return res, nil
 }
 
+func (b *bareMetalInventory) formatNextStepRunnerCommand(clusterID string, hostID string) (string, *[]string) {
+
+	arguments := []string{"run", "--rm", "-ti", "--privileged", "--pid=host", "--net=host",
+		"-v", "/dev:/dev:rw", "-v", "/opt:/opt:rw",
+		"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
+		"-v", "/var/log:/var/log:rw"}
+
+	if b.ServiceCACertPath != "" {
+		arguments = append(arguments, "-v", fmt.Sprintf("%s:%s", common.HostCACertPath, common.HostCACertPath))
+	}
+
+	arguments = append(arguments,
+		"--env", "PULL_SECRET_TOKEN",
+		"--env", "HTTP_PROXY", "--env", "HTTPS_PROXY", "--env", "NO_PROXY",
+		"--env", "http_proxy", "--env", "https_proxy", "--env", "no_proxy",
+		"--name", "next-step-runner", b.AgentDockerImg, "next_step_runner",
+		"--url", strings.TrimSpace(b.ServiceBaseURL), "--cluster-id", clusterID, "--host-id", hostID,
+		"--agent-version", b.AgentDockerImg, fmt.Sprintf("--insecure=%s", strconv.FormatBool(b.SkipCertVerification)))
+
+	if b.ServiceCACertPath != "" {
+		arguments = append(arguments, "--cacert", common.HostCACertPath)
+	}
+
+	return "podman", &arguments
+}
+
 func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOParams) string {
 	sshKey := params.ImageCreateParams.SSHPublicKey
 	if sshKey == "" {
@@ -1629,7 +1655,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	// In case host doesn't exists check if the cluster accept new hosts registration
 	if err != nil && gorm.IsRecordNotFoundError(err) {
-		if err := b.clusterApi.AcceptRegistration(&cluster); err != nil {
+		if err = b.clusterApi.AcceptRegistration(&cluster); err != nil {
 			log.WithError(err).Errorf("failed to register host <%s> to cluster %s due to: %s",
 				params.NewHostParams.HostID, params.ClusterID.String(), err.Error())
 			b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityError,
@@ -1658,7 +1684,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		Role:                  models.HostRoleAutoAssign,
 	}
 
-	if err := b.hostApi.RegisterHost(ctx, &host); err != nil {
+	if err = b.hostApi.RegisterHost(ctx, &host); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
 			params.NewHostParams.HostID.String(), params.ClusterID.String())
 		uerr := errors.Wrap(err, "Failed to register host: error creating host metadata")
@@ -1667,7 +1693,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		return returnRegisterHostTransitionError(http.StatusBadRequest, err)
 	}
 
-	if err := b.customizeHost(&host); err != nil {
+	if err = b.customizeHost(&host); err != nil {
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityError,
 			"Failed to register host: error setting host properties", time.Now())
 		return common.GenerateErrorResponder(err)
@@ -1675,7 +1701,18 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s: registered to cluster", hostutil.GetHostnameForMsg(&host)), time.Now())
-	return installer.NewRegisterHostCreated().WithPayload(&host)
+
+	nextStepCommand, nextStepArgs := b.formatNextStepRunnerCommand(params.ClusterID.String(), params.NewHostParams.HostID.String())
+
+	hostRegistration := models.HostRegistrationResponse{
+		Host: host,
+		NextStepRunnerCommand: &models.HostRegistrationResponseAO1NextStepRunnerCommand{
+			Command: nextStepCommand,
+			Args:    *nextStepArgs,
+		},
+	}
+
+	return installer.NewRegisterHostCreated().WithPayload(&hostRegistration)
 }
 
 func returnRegisterHostTransitionError(
