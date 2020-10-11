@@ -1125,6 +1125,7 @@ var _ = Describe("Refresh Host", func() {
 					progress := models.HostProgressInfo{
 						CurrentStage:   stage,
 						StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+						StageUpdatedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
 					}
 
 					host.Progress = &progress
