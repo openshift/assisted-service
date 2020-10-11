@@ -1516,6 +1516,29 @@ var _ = Describe("cluster", func() {
 				})
 			})
 
+			Context("Day2 api vip dnsname/ip", func() {
+				BeforeEach(func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID:   &clusterID,
+						Kind: swag.String(models.ClusterKindAddHostsCluster),
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				})
+				It("update api vip dnsname success", func() {
+					fileName := fmt.Sprintf("%s/worker.ign", clusterID)
+					mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVipDNSName: swag.String("some dns name"),
+						}})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				})
+			})
+
 			Context("Update Network", func() {
 				BeforeEach(func() {
 					clusterID = strfmt.UUID(uuid.New().String())

@@ -530,14 +530,10 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	}
 
 	// Persist worker-ignition to s3 for cluster
-	ignitionConfig, err := b.formatNodeIgnitionFile(apivipDnsname)
+	err = b.createAndUploadNodeIgnition(ctx, id, apivipDnsname)
 	if err != nil {
-		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
-	}
-	fileName := fmt.Sprintf("%s/%s", cluster.ID, workerIgnition)
-	err = b.objectHandler.Upload(ctx, ignitionConfig, fileName)
-	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("failed to upload %s to s3", fileName))
+		log.Errorf("Failed to create and upload worker ignition for cluster %s", *id)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
@@ -565,6 +561,19 @@ func (b *bareMetalInventory) formatNodeIgnitionFile(apiVipDnsname string) ([]byt
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, clusterID *strfmt.UUID, apiVipDnsname string) error {
+	ignitionString, err := b.formatNodeIgnitionFile(apiVipDnsname)
+	if err != nil {
+		return errors.Errorf("Failed to create ignition string for cluster %s", clusterID)
+	}
+	fileName := fmt.Sprintf("%s/%s", clusterID, workerIgnition)
+	err = b.objectHandler.Upload(ctx, ignitionString, fileName)
+	if err != nil {
+		return errors.Errorf("Failed to upload worker ignition for cluster %s", clusterID)
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
@@ -1431,6 +1440,14 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		} else {
 			updates["pull_secret_set"] = false
 		}
+	}
+	if params.ClusterUpdateParams.APIVipDNSName != nil && swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		log.Infof("Updating api vip to %s for day2 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
+		err = b.createAndUploadNodeIgnition(ctx, cluster.ID, *params.ClusterUpdateParams.APIVipDNSName)
+		if err != nil {
+			return err
+		}
+		updates["api_vip_dns_name"] = *params.ClusterUpdateParams.APIVipDNSName
 	}
 	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
