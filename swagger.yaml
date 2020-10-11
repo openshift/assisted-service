@@ -2097,6 +2097,8 @@ definitions:
     properties:
       next_instruction_seconds:
         type: integer
+      exit_on_completion:
+        type: boolean
       instructions:
         type: array
         items:
