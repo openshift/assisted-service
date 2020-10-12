@@ -52,7 +52,7 @@ type InstructionConfig struct {
 	DhcpLeaseAllocatorImage      string `envconfig:"DHCP_LEASE_ALLOCATOR_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	APIVIPConnectivityCheckImage string `envconfig:"API_VIP_CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	SkipCertVerification         bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	VerifyAPIVipCidr             bool   `envconfig:"VERIFY_API_VIP_CIDR" default:"true"`
+	SupportL2                    bool   `envconfig:"SUPPORT_L2" default:"true"`
 	InstallationTimeout          uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 }
 
@@ -64,7 +64,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	resetCmd := NewResetInstallationCmd(log)
 	stopCmd := NewStopInstallationCmd(log, instructionConfig)
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.DhcpLeaseAllocatorImage, db)
-	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.APIVIPConnectivityCheckImage, instructionConfig.VerifyAPIVipCidr)
+	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.APIVIPConnectivityCheckImage, instructionConfig.SupportL2)
 
 	return &InstructionManager{
 		log: log,
