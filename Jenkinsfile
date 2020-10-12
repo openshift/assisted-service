@@ -68,6 +68,8 @@ pipeline {
                     sh '''curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt" https://hooks.slack.com/services/${SLACK_TOKEN}'''
                 }
 
+                sh "kubectl get all -A"
+
                 for (service in ["assisted-service","postgres","scality","createimage"]) {
                     sh "kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep ${service} | xargs -r -I {} sh -c \"kubectl logs {} -n assisted-installer > {}.log\" || true"
                 }
