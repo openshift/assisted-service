@@ -67,7 +67,7 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("discovering", func() {
 				checkStepsByState(models.HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeInventory})
+					[]models.StepType{models.StepTypeInventory, models.StepTypeExecute})
 			})
 			It("known", func() {
 				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
@@ -117,7 +117,7 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("discovering", func() {
 				checkStepsByState(models.HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeInventory})
+					[]models.StepType{models.StepTypeInventory, models.StepTypeExecute})
 			})
 			It("known", func() {
 				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
@@ -168,8 +168,10 @@ var _ = Describe("instructionmanager", func() {
 
 })
 
-func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents *events.MockHandler, instMng *InstructionManager, mockValidator *hardware.MockValidator, mockConnecitvity *connectivity.MockValidator, ctx context.Context,
-	expectedStepTypes []models.StepType) {
+func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents *events.MockHandler,
+	instMng *InstructionManager, mockValidator *hardware.MockValidator, mockConnectivity *connectivity.MockValidator,
+	ctx context.Context, expectedStepTypes []models.StepType) {
+
 	mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, hostutil.GetEventSeverityFromHostStatus(state), gomock.Any(), gomock.Any())
 	updateReply, updateErr := updateHostStatus(ctx, getTestLog(), db, mockEvents, host.ClusterID, *host.ID, *host.Status, state, "")
 	ExpectWithOffset(1, updateErr).ShouldNot(HaveOccurred())
@@ -184,7 +186,7 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 	}
 	mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
 	if funk.Contains(expectedStepTypes, models.StepTypeConnectivityCheck) {
-		mockConnecitvity.EXPECT().GetHostValidInterfaces(gomock.Any()).Return([]*models.Interface{
+		mockConnectivity.EXPECT().GetHostValidInterfaces(gomock.Any()).Return([]*models.Interface{
 			{
 				Name: "eth0",
 				IPV4Addresses: []string{
