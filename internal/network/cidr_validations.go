@@ -43,7 +43,7 @@ func VerifySubnetCIDR(cidrStr string) error {
 		return errors.New("address must not be unspecified.  Unspecified address is the zero address (0.0.0.0)")
 	}
 	if ip.To4().String() != cidr.IP.To4().String() {
-		return errors.Errorf("invalid network address. got %s, expecting %s", (&net.IPNet{IP: ip, Mask: cidr.Mask}).String(), cidr.String())
+		return errors.Errorf("%s is not a valid network CIDR", (&net.IPNet{IP: ip, Mask: cidr.Mask}).String())
 	}
 	return nil
 }
