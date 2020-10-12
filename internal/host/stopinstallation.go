@@ -23,7 +23,7 @@ func (h *stopInstallationCmd) GetStep(ctx context.Context, host *models.Host) (*
 		StepType: models.StepTypeExecute,
 		Command:  "/usr/bin/podman",
 		Args: []string{
-			"kill", "--all",
+			"stop", "--all",
 		},
 	}
 	return step, nil
