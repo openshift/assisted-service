@@ -1577,24 +1577,30 @@ func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*m
 
 func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	var clusters []*common.Cluster
-	if err := b.db.Preload("Hosts").Where(identity.AddUserFilter(ctx, "")).Find(&clusters).Error; err != nil {
-		log.WithError(err).Error("failed to list clusters")
-		return installer.NewListClustersInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	db := b.db
+	if swag.BoolValue(params.GetUnregisteredClusters) {
+		db = db.Unscoped()
 	}
-	var mClusters []*models.Cluster = make([]*models.Cluster, len(clusters))
-	for i, c := range clusters {
-		mClusters[i] = &c.Cluster
-	}
-	for _, c := range mClusters {
-		for _, host := range c.Hosts {
-			// Clear this field as it is not needed to be sent via API
-			host.FreeAddresses = ""
+	var dbClusters []*common.Cluster
+	var clusters []*models.Cluster
+	userFilter := identity.AddUserFilter(ctx, "")
+	if err := db.Preload("Hosts", func(db *gorm.DB) *gorm.DB {
+		if swag.BoolValue(params.GetUnregisteredClusters) {
+			return db.Unscoped()
 		}
+		return db
+	}).Where(userFilter).Find(&dbClusters).Error; err != nil {
+		log.WithError(err).Error("Failed to list clusters in db")
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-
-	return installer.NewListClustersOK().WithPayload(mClusters)
+	for _, c := range dbClusters {
+		for _, h := range c.Hosts {
+			// Clear this field as it is not needed to be sent via API
+			h.FreeAddresses = ""
+		}
+		clusters = append(clusters, &c.Cluster)
+	}
+	return installer.NewListClustersOK().WithPayload(clusters)
 }
 
 func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
