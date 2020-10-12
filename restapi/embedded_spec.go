@@ -104,6 +104,13 @@ func init() {
         ],
         "summary": "Retrieves the list of OpenShift bare metal clusters.",
         "operationId": "ListClusters",
+        "parameters": [
+          {
+            "type": "boolean",
+            "name": "get_unregistered_clusters",
+            "in": "header"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
@@ -3332,6 +3339,13 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "deleted_at": {
+          "description": "The time that the cluster was deleted.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-nullable": true
+        },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
           "type": "array",
@@ -4121,6 +4135,13 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "deleted_at": {
+          "description": "The time that the host was deleted.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-nullable": true
         },
         "discovery_agent_version": {
           "type": "string"
@@ -4915,6 +4936,13 @@ func init() {
         ],
         "summary": "Retrieves the list of OpenShift bare metal clusters.",
         "operationId": "ListClusters",
+        "parameters": [
+          {
+            "type": "boolean",
+            "name": "get_unregistered_clusters",
+            "in": "header"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
@@ -8186,6 +8214,13 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "deleted_at": {
+          "description": "The time that the cluster was deleted.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-nullable": true
+        },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
           "type": "array",
@@ -8957,6 +8992,13 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "deleted_at": {
+          "description": "The time that the host was deleted.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-nullable": true
         },
         "discovery_agent_version": {
           "type": "string"

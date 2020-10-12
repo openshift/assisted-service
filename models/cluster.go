@@ -50,6 +50,10 @@ type Cluster struct {
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// The time that the cluster was deleted.
+	// Format: date-time
+	DeletedAt *strfmt.DateTime `json:"deleted_at,omitempty" gorm:"type:timestamp with time zone"`
+
 	// List of host networks to be filled during query.
 	HostNetworks []*HostNetwork `json:"host_networks" gorm:"-"`
 
@@ -180,6 +184,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateDeletedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -316,6 +324,19 @@ func (m *Cluster) validateCreatedAt(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateDeletedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.DeletedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("deleted_at", "body", "date-time", m.DeletedAt.String(), formats); err != nil {
 		return err
 	}
 

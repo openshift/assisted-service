@@ -41,6 +41,10 @@ type Host struct {
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// The time that the host was deleted.
+	// Format: date-time
+	DeletedAt *strfmt.DateTime `json:"deleted_at,omitempty" gorm:"type:timestamp with time zone"`
+
 	// discovery agent version
 	DiscoveryAgentVersion string `json:"discovery_agent_version,omitempty"`
 
@@ -136,6 +140,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateDeletedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateHref(formats); err != nil {
 		res = append(res, err)
 	}
@@ -227,6 +235,19 @@ func (m *Host) validateCreatedAt(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateDeletedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.DeletedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("deleted_at", "body", "date-time", m.DeletedAt.String(), formats); err != nil {
 		return err
 	}
 
