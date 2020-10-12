@@ -48,7 +48,7 @@ func InitializeDBTest() {
 	}
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "postgres",
-		Tag:        "12.3",
+		Tag:        "12.3-alpine",
 		Env:        []string{"POSTGRES_PASSWORD=admin", "POSTGRES_USER=admin"},
 		Name:       dbDockerName,
 	})
