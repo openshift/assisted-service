@@ -27,12 +27,12 @@ func strToUUID(s string) *strfmt.UUID {
 	return &u
 }
 
-func registerHost(clusterID strfmt.UUID) *models.Host {
+func registerHost(clusterID strfmt.UUID) *models.HostRegistrationResponse {
 	uuid := strToUUID(uuid.New().String())
 	return registerHostByUUID(clusterID, *uuid)
 }
 
-func registerHostByUUID(clusterID, hostID strfmt.UUID) *models.Host {
+func registerHostByUUID(clusterID, hostID strfmt.UUID) *models.HostRegistrationResponse {
 	host, err := agentBMClient.Installer.RegisterHost(context.Background(), &installer.RegisterHostParams{
 		ClusterID: clusterID,
 		NewHostParams: &models.HostCreateParams{
@@ -40,7 +40,7 @@ func registerHostByUUID(clusterID, hostID strfmt.UUID) *models.Host {
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())
-	return &host.GetPayload().Host
+	return host.GetPayload()
 }
 
 func getHost(clusterID, hostID strfmt.UUID) *models.Host {

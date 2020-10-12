@@ -43,7 +43,7 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("host CRUD", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		host = getHost(clusterID, *host.ID)
 		Expect(*host.Status).Should(Equal("discovering"))
 		Expect(host.StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
@@ -122,8 +122,8 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).ToNot(HaveOccurred())
-		host := registerHost(clusterID)
-		host2 := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
+		host2 := &registerHost(clusterID).Host
 		Expect(db.Model(host2).UpdateColumns(&models.Host{Inventory: defaultInventory(),
 			Status: swag.String(models.HostStatusInsufficient)}).Error).NotTo(HaveOccurred())
 		steps := getNextSteps(clusterID, *host.ID)
@@ -163,8 +163,8 @@ var _ = Describe("Host tests", func() {
 
 	It("next step - DHCP", func() {
 		Expect(db.Table("clusters").Where("id = ?", clusterID.String()).UpdateColumn("machine_network_cidr", "1.2.3.0/24").Error).ToNot(HaveOccurred())
-		host := registerHost(clusterID)
-		host2 := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
+		host2 := &registerHost(clusterID).Host
 		Expect(db.Model(host2).UpdateColumns(&models.Host{Inventory: defaultInventory(),
 			Status: swag.String(models.HostStatusInsufficient)}).Error).NotTo(HaveOccurred())
 		steps := getNextSteps(clusterID, *host.ID)
@@ -215,7 +215,7 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("host installation progress", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		Expect(db.Model(host).Update("status", "installing").Error).NotTo(HaveOccurred())
 		Expect(db.Model(host).Update("role", "master").Error).NotTo(HaveOccurred())
 		Expect(db.Model(host).Update("bootstrap", "true").Error).NotTo(HaveOccurred())
@@ -248,7 +248,7 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("installation_error_reply", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		Expect(db.Model(host).Update("status", "installing").Error).NotTo(HaveOccurred())
 		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
 		Expect(db.Model(host).Update("role", "worker").Error).NotTo(HaveOccurred())
@@ -271,7 +271,7 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("connectivity_report_store_only_relevant_reply", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 
 		connectivity := "{\"remote_hosts\":[{\"host_id\":\"b8a1228d-1091-4e79-be66-738a160f9ff7\",\"l2_connectivity\":null,\"l3_connectivity\":null}]}"
 		extraConnectivity := "{\"extra\":\"data\",\"remote_hosts\":[{\"host_id\":\"b8a1228d-1091-4e79-be66-738a160f9ff7\",\"l2_connectivity\":null,\"l3_connectivity\":null}]}"
@@ -322,7 +322,7 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("free addresses report", func() {
-		h := registerHost(clusterID)
+		h := &registerHost(clusterID).Host
 
 		free_addresses_report := "[{\"free_addresses\":[\"10.0.0.0\",\"10.0.0.1\"],\"network\":\"10.0.0.0/24\"},{\"free_addresses\":[\"10.0.1.0\"],\"network\":\"10.0.1.0/24\"}]"
 
@@ -390,7 +390,7 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("disable enable", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		_, err := userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
 			ClusterID: clusterID,
 			HostID:    *host.ID,
@@ -484,5 +484,13 @@ var _ = Describe("Host tests", func() {
 
 		err = wiremock.DeleteStub(wrongTokenStubID)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("next_step_runner_command", func() {
+		registration := registerHost(clusterID)
+		Expect(registration.NextStepRunnerCommand).ShouldNot(BeNil())
+		Expect(registration.NextStepRunnerCommand.Command).ShouldNot(BeEmpty())
+		Expect(registration.NextStepRunnerCommand.Args).ShouldNot(BeEmpty())
+		Expect(registration.NextStepRunnerCommand.RetrySeconds).Should(Equal(int64(0))) //default, just to have in the API
 	})
 })

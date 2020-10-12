@@ -70,7 +70,7 @@ var _ = Describe("Day2 cluster tests", func() {
 	}
 
 	It("cluster CRUD", func() {
-		_ = registerHost(clusterID)
+		_ = &registerHost(clusterID).Host
 		Expect(err).NotTo(HaveOccurred())
 		getReply, err1 := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err1).NotTo(HaveOccurred())
@@ -96,8 +96,8 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	It("cluster update hostname", func() {
-		host1 := registerHost(clusterID)
-		host2 := registerHost(clusterID)
+		host1 := &registerHost(clusterID).Host
+		host2 := &registerHost(clusterID).Host
 
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -116,7 +116,7 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	It("check host states - one node", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 
 		By("checking discovery state")
@@ -138,9 +138,9 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	It("check host states - two nodes", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		h1 := getHost(clusterID, *host.ID)
-		host = registerHost(clusterID)
+		host = &registerHost(clusterID).Host
 		h2 := getHost(clusterID, *host.ID)
 
 		By("checking discovery state")
@@ -173,7 +173,7 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	It("check installation - one node", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
@@ -193,7 +193,7 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	It("check installation - one node", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
@@ -215,9 +215,9 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	It("check installation - 2 nodes", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		h1 := getHost(clusterID, *host.ID)
-		host = registerHost(clusterID)
+		host = &registerHost(clusterID).Host
 		h2 := getHost(clusterID, *host.ID)
 
 		generateHWPostStepReply(ctx, h1, validHwInfo, "hostname1")
@@ -259,9 +259,9 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	It("check installation - 0 nodes", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		h1 := getHost(clusterID, *host.ID)
-		host = registerHost(clusterID)
+		host = &registerHost(clusterID).Host
 		h2 := getHost(clusterID, *host.ID)
 
 		generateHWPostStepReply(ctx, h1, validHwInfo, "hostname1")
@@ -285,7 +285,7 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	It("check installation - node registers after reboot", func() {
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
