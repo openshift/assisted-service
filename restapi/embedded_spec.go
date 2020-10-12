@@ -4226,6 +4226,9 @@ func init() {
     "steps": {
       "type": "object",
       "properties": {
+        "exit_on_completion": {
+          "type": "boolean"
+        },
         "instructions": {
           "type": "array",
           "items": {
@@ -8523,6 +8526,9 @@ func init() {
     "steps": {
       "type": "object",
       "properties": {
+        "exit_on_completion": {
+          "type": "boolean"
+        },
         "instructions": {
           "type": "array",
           "items": {

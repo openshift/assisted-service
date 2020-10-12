@@ -18,6 +18,9 @@ import (
 // swagger:model steps
 type Steps struct {
 
+	// exit on completion
+	ExitOnCompletion bool `json:"exit_on_completion,omitempty"`
+
 	// instructions
 	Instructions []*Step `json:"instructions"`
 
