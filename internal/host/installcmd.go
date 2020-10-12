@@ -101,16 +101,6 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		data["HOST_CA_CERT_PATH"] = common.HostCACertPath
 	}
 
-	// added to run upload logs if install command fails
-	// will return same exit code as installer command
-	logsCommand, err := CreateUploadLogsCmd(host, i.instructionConfig.ServiceBaseURL,
-		i.instructionConfig.InventoryImage, i.instructionConfig.SkipCertVerification, true)
-	if err != nil {
-		return nil, err
-	}
-
-	cmdArgsTmpl = cmdArgsTmpl + " || " + logsCommand
-
 	bootdevice, err := getBootDevice(i.log, i.hwValidator, *host)
 	if err != nil {
 		return nil, err
