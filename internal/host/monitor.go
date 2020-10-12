@@ -43,13 +43,13 @@ func (m *Manager) HostMonitoring() {
 		if len(hosts) == 0 {
 			break
 		}
-		for _, host := range hosts {
+		for i := range hosts {
 			if !m.leaderElector.IsLeader() {
 				m.log.Debugf("Not a leader, exiting HostMonitoring")
 				return
 			}
-			if err := m.RefreshStatus(ctx, host, m.db); err != nil {
-				log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
+			if err := m.RefreshStatus(ctx, hosts[i], m.db); err != nil {
+				log.WithError(err).Errorf("failed to refresh host %s state", *hosts[i].ID)
 			}
 		}
 		offset += limit
