@@ -86,7 +86,7 @@ var _ = Describe("Events library", func() {
 		})
 
 		It("Adding same event multiple times", func() {
-			t1 := time.Now()
+			t1 := time.Now().Add(-1 * time.Second) // 1 second ago
 			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "event1", t1)
 			Expect(numOfEvents(cluster1, nil)).Should(Equal(1))
 			evs, err := theEvents.GetEvents(cluster1, nil)
@@ -95,7 +95,6 @@ var _ = Describe("Events library", func() {
 			Expect(evs[0]).Should(WithTime(t1))
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
 
-			time.Sleep(1 * time.Second)
 			t2 := time.Now()
 			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "event1", t2)
 			Expect(numOfEvents(cluster1, nil)).Should(Equal(2))
