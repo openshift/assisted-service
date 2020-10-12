@@ -182,7 +182,7 @@ func (v *validator) printHasMinCpuCores(c *validationContext, status validationS
 	case ValidationSuccess:
 		return "Sufficient CPU cores"
 	case ValidationFailure:
-		return fmt.Sprintf("Require at least %d CPU cores, found only %d", v.hwValidatorCfg.MinCPUCores, c.inventory.CPU.Count)
+		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required CPU cores for any role is %d, found only %d", v.hwValidatorCfg.MinCPUCores, c.inventory.CPU.Count)
 	case ValidationPending:
 		return "Missing inventory"
 	default:
@@ -202,7 +202,7 @@ func (v *validator) printHasMinMemory(c *validationContext, status validationSta
 	case ValidationSuccess:
 		return "Sufficient minimum RAM"
 	case ValidationFailure:
-		return fmt.Sprintf("Require at least %d GiB RAM, found only %d GiB", v.hwValidatorCfg.MinRamGib,
+		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %d GiB, found only %d GiB", v.hwValidatorCfg.MinRamGib,
 			bytesToGiB(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory"
