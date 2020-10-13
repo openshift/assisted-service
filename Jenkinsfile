@@ -48,7 +48,9 @@ pipeline {
         }
 
         stage('Publish') {
-            when { branch 'master'}
+            when {
+                expression {env.BRANCH_NAME == 'master' || env.CHANGE_ID}
+            }
             steps {
                 sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
                 sh "make publish"
