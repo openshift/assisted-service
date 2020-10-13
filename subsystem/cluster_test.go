@@ -1159,9 +1159,10 @@ var _ = Describe("cluster install", func() {
 				cmd := exec.Command("head", "-c", "200MB", "/dev/urandom")
 				err = cmd.Run()
 				Expect(err).NotTo(HaveOccurred())
+				nodes := register3nodes(clusterID)
+				// test hosts logs
 				kubeconfigFile, err := os.Open(filePath)
 				Expect(err).NotTo(HaveOccurred())
-				nodes := register3nodes(clusterID)
 				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID, HostID: nodes[1].ID,
 					Upfile: kubeconfigFile, LogsType: string(models.LogsTypeHost)})
 				Expect(err).NotTo(HaveOccurred())
@@ -1174,6 +1175,23 @@ var _ = Describe("cluster install", func() {
 					HostID: nodes[1].ID, LogsType: &logsType}, file)
 				Expect(err).NotTo(HaveOccurred())
 				s, err := file.Stat()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(s.Size()).ShouldNot(Equal(0))
+				// test controller logs
+				kubeconfigFile, err = os.Open(filePath)
+				Expect(err).NotTo(HaveOccurred())
+				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID,
+					Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
+				Expect(err).NotTo(HaveOccurred())
+				c := getCluster(clusterID)
+				Expect(c.ControllerLogsCollectedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
+				logsType = string(models.LogsTypeController)
+				file, err = ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID,
+					LogsType: &logsType}, file)
+				Expect(err).NotTo(HaveOccurred())
+				s, err = file.Stat()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(s.Size()).ShouldNot(Equal(0))
 			}
@@ -1189,6 +1207,13 @@ var _ = Describe("cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				kubeconfigFile.Close()
 			}
+			kubeconfigFile, err := os.Open("test_kubeconfig")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID,
+				LogsType: string(models.LogsTypeController), Upfile: kubeconfigFile})
+			Expect(err).NotTo(HaveOccurred())
+			kubeconfigFile.Close()
+
 			filePath := "../build/test_logs.tar"
 			file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			Expect(err).NotTo(HaveOccurred())
@@ -1211,9 +1236,9 @@ var _ = Describe("cluster install", func() {
 				}
 				Expect(err).NotTo(HaveOccurred())
 				numOfarchivedFiles += 1
-				Expect(numOfarchivedFiles < len(nodes)+1).Should(Equal(true))
+				Expect(numOfarchivedFiles <= len(nodes)+1).Should(Equal(true))
 			}
-			Expect(numOfarchivedFiles).Should(Equal(len(nodes)))
+			Expect(numOfarchivedFiles).Should(Equal(len(nodes) + 1))
 
 		})
 

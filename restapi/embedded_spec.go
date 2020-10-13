@@ -2851,6 +2851,11 @@ func init() {
           "maximum": 32,
           "minimum": 1
         },
+        "controller_logs_collected_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
         "created_at": {
           "description": "The time that this cluster was created.",
           "type": "string",
@@ -7167,6 +7172,11 @@ func init() {
           "type": "integer",
           "maximum": 32,
           "minimum": 1
+        },
+        "controller_logs_collected_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "created_at": {
           "description": "The time that this cluster was created.",

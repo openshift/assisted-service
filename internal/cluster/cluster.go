@@ -74,6 +74,7 @@ type API interface {
 	SetVips(ctx context.Context, c *common.Cluster, apiVip, ingressVip string, db *gorm.DB) error
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
 	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
+	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 }
 
 type PrepareConfig struct {
@@ -191,6 +192,14 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	}
 	return &clusterAfterRefresh, nil
 
+}
+
+func (m *Manager) SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+	err := db.Model(c).Update("controller_logs_collected_at", strfmt.DateTime(time.Now())).Error
+	if err != nil {
+		return errors.Wrapf(err, "failed to set controller_logs_collected_at to cluster %s", c.ID.String())
+	}
+	return nil
 }
 
 func (m *Manager) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
