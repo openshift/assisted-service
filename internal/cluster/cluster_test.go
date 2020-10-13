@@ -89,19 +89,18 @@ insufficient -> known
 
 var _ = Describe("TestClusterMonitoring", func() {
 	var (
-		db                         *gorm.DB
-		c                          common.Cluster
-		id                         strfmt.UUID
-		err                        error
-		clusterApi                 *Manager
-		shouldHaveUpdated          bool
-		shouldUpdateCompletionTime bool
-		expectedState              string
-		ctrl                       *gomock.Controller
-		mockHostAPI                *host.MockAPI
-		mockMetric                 *metrics.MockAPI
-		dbName                     = "cluster_monitor"
-		mockEvents                 *events.MockHandler
+		db                *gorm.DB
+		c                 common.Cluster
+		id                strfmt.UUID
+		err               error
+		clusterApi        *Manager
+		shouldHaveUpdated bool
+		expectedState     string
+		ctrl              *gomock.Controller
+		mockHostAPI       *host.MockAPI
+		mockMetric        *metrics.MockAPI
+		dbName            = "cluster_monitor"
+		mockEvents        *events.MockHandler
 	)
 
 	mockHostAPIIsValidMasterCandidateTrue := func(times int) {
@@ -121,7 +120,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 			mockEvents, mockHostAPI, mockMetric, dummy)
 		expectedState = ""
 		shouldHaveUpdated = false
-		shouldUpdateCompletionTime = false
 	})
 	Context("single cluster monitoring", func() {
 		Context("from installing state", func() {
@@ -233,7 +231,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				mockHostAPIIsValidMasterCandidateTrue(3)
 
 				shouldHaveUpdated = true
-				shouldUpdateCompletionTime = true
 				expectedState = "error"
 			})
 			It("installing -> error", func() {
@@ -243,7 +240,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				mockHostAPIIsValidMasterCandidateTrue(2)
 
 				shouldHaveUpdated = true
-				shouldUpdateCompletionTime = true
 				expectedState = "error"
 			})
 			It("installing -> error insufficient hosts", func() {
@@ -253,7 +249,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createWorkerHost(id, "installed", db)
 				mockHostAPIIsValidMasterCandidateTrue(3)
 				shouldHaveUpdated = true
-				shouldUpdateCompletionTime = true
 				expectedState = "error"
 
 			})
@@ -265,7 +260,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createWorkerHost(id, "error", db)
 				mockHostAPIIsValidMasterCandidateTrue(5)
 				shouldHaveUpdated = true
-				shouldUpdateCompletionTime = true
 				expectedState = "error"
 			})
 			It("with single worker in error, installing -> error", func() {
@@ -275,7 +269,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createWorkerHost(id, "error", db)
 				mockHostAPIIsValidMasterCandidateTrue(4)
 				shouldHaveUpdated = true
-				shouldUpdateCompletionTime = true
 				expectedState = "error"
 			})
 			It("with single worker in error, installing -> error", func() {
@@ -285,7 +278,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createWorkerHost(id, "error", db)
 				mockHostAPIIsValidMasterCandidateTrue(4)
 				shouldHaveUpdated = true
-				shouldUpdateCompletionTime = true
 				expectedState = "error"
 			})
 		})
@@ -491,13 +483,14 @@ var _ = Describe("TestClusterMonitoring", func() {
 				updateTime := time.Time(c.StatusUpdatedAt).Truncate(10 * time.Millisecond)
 				Expect(updateTime).Should(BeTemporally(">=", before))
 				Expect(updateTime).Should(BeTemporally("<=", after))
+
+				installationCompletedStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCancelled}
+				if funk.ContainsString(installationCompletedStatuses, expectedState) {
+					Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
+				}
 			} else {
 				Expect(c.StatusUpdatedAt).Should(Equal(saveUpdatedTime))
 				Expect(c.StatusInfo).Should(Equal(saveStatusInfo))
-			}
-
-			if shouldUpdateCompletionTime {
-				Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
 			}
 		})
 	})
