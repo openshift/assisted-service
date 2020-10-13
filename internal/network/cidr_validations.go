@@ -87,8 +87,11 @@ func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, servic
 }
 
 func VerifyNetworkHostPrefix(prefix int64) error {
-	if prefix < 1 || prefix > 25 {
-		return errors.Errorf("Network prefix %d is out of the allowed range (1 , 25)", prefix)
+	if prefix > 25 {
+		return errors.Errorf("Host prefix, now %d, must be less than or equal to 25 to allow at least 128 addresses", prefix)
+	}
+	if prefix < 1 {
+		return errors.Errorf("Host prefix, now %d, must be a positive integer", prefix)
 	}
 	return nil
 }
