@@ -145,6 +145,7 @@ func main() {
 	}
 
 	var lead leader.ElectorInterface
+	var k8sClient *kubernetes.Clientset
 	var autoMigrationLeader leader.ElectorInterface
 	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"))
 	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
@@ -192,7 +193,7 @@ func main() {
 		if cerr != nil {
 			log.WithError(cerr).Fatalf("Failed to create kubernetes cluster config")
 		}
-		k8sClient := kubernetes.NewForConfigOrDie(cfg)
+		k8sClient = kubernetes.NewForConfigOrDie(cfg)
 
 		autoMigrationLeader = leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
 			RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
@@ -298,10 +299,15 @@ func main() {
 	if Options.DeployTarget == deploymet_type_k8s {
 		go func() {
 			defer apiEnabler.Enable()
-			// Upload the live image which will serve as a basis for user-generated images.
-			if err = generator.UploadBaseISO(); err != nil {
-				log.Fatal("Failed to upload base image", err)
+			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
+				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
+				"assisted-service-baseiso-helper",
+				log.WithField("pkg", "baseISOUploadLeader"))
+			err = uploadBaseISOWithLeader(baseISOUploadLeader, objectHandler, generator, log)
+			if err != nil {
+				log.WithError(err).Fatal("Failed uploading base ISO")
 			}
+
 		}()
 	} else {
 		apiEnabler.Enable()
@@ -352,6 +358,24 @@ func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.D
 		log.Infof("Start automigration")
 		err := db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{}).Error
 		log.Infof("Finish automigration")
+		return err
+	})
+}
+
+func uploadBaseISOWithLeader(uploadLeader leader.ElectorInterface, objectHandler s3wrapper.API, generator generator.ISOInstallConfigGenerator, log logrus.FieldLogger) error {
+	ctx := context.Background()
+	exists, err := objectHandler.DoesObjectExist(ctx, s3wrapper.BaseObjectName)
+	if err != nil {
+		return err
+	}
+	if exists {
+		log.Info("Base ISO exists, skipping upload job")
+		return nil
+	}
+	return uploadLeader.RunWithLeader(ctx, func() error {
+		log.Info("Starting base ISO upload")
+		err = generator.UploadBaseISO()
+		log.Info("Finished base ISO upload")
 		return err
 	})
 }
