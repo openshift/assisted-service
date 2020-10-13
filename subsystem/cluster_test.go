@@ -127,6 +127,13 @@ var _ = Describe("Cluster tests", func() {
 		clusterID = *cluster.GetPayload().ID
 	})
 
+	It("get cluster - get unregistered cluster", func() {
+		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+		Expect(err1).ShouldNot(HaveOccurred())
+		_, err2 := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{})
+		Expect(err2).ShouldNot(HaveOccurred())
+	})
+
 	It("list clusters - get unregistered cluster", func() {
 		h := registerHost(clusterID)
 		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
@@ -165,8 +172,9 @@ var _ = Describe("Cluster tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(0))
 
-		_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-		Expect(err).Should(HaveOccurred())
+		getReply, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(getReply.GetPayload().DeletedAt).ShouldNot(Equal(strfmt.DateTime{}))
 	})
 
 	It("cluster update", func() {
@@ -1998,7 +2006,7 @@ var _ = Describe("cluster install", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-		Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewGetClusterNotFound())))
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("install_cluster_insufficient_master", func() {

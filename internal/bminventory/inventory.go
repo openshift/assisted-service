@@ -1606,7 +1606,7 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
-	if err := b.db.Preload("Hosts").First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
+	if err := b.db.Unscoped().Preload("Hosts").First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
 		// TODO: check for the right error
 		return installer.NewGetClusterNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))

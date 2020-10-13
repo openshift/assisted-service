@@ -92,7 +92,8 @@ var _ = Describe("Day2 cluster tests", func() {
 		Expect(len(list.GetPayload())).Should(Equal(0))
 
 		_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-		Expect(err).Should(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(getReply.GetPayload().DeletedAt).ShouldNot(Equal(strfmt.DateTime{}))
 	})
 
 	It("cluster update hostname", func() {
