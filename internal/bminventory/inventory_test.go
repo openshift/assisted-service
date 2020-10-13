@@ -502,6 +502,11 @@ var _ = Describe("RegisterHost", func() {
 			AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 			Times(1)
 
+		bm.ServiceBaseURL = uuid.New().String()
+		bm.ServiceCACertPath = uuid.New().String()
+		bm.AgentDockerImg = uuid.New().String()
+		bm.SkipCertVerification = true
+
 		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
 			ClusterID: clusterID,
 			NewHostParams: &models.HostCreateParams{
@@ -511,6 +516,14 @@ var _ = Describe("RegisterHost", func() {
 		})
 		_, ok := reply.(*installer.RegisterHostCreated)
 		Expect(ok).Should(BeTrue())
+
+		By("register_returns_next_step_runner_command")
+		payload := reply.(*installer.RegisterHostCreated).Payload
+		Expect(payload).ShouldNot(BeNil())
+		command := payload.NextStepRunnerCommand
+		Expect(command).ShouldNot(BeNil())
+		Expect(command.Command).ShouldNot(BeEmpty())
+		Expect(command.Args).ShouldNot(BeEmpty())
 	})
 
 	It("host_api_failure", func() {
@@ -3481,5 +3494,27 @@ var _ = Describe("TestRegisterCluster", func() {
 			},
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterBadRequest())))
+	})
+})
+
+var _ = Describe("extract image version", func() {
+
+	tag := uuid.New().String()
+	image := "quay.io/ocpmetal/image"
+
+	It("image contains name and tag", func() {
+		Expect(extractImageTag(fmt.Sprintf("%s:%s", image, tag))).Should(Equal(tag))
+	})
+
+	It("image does not contain tag", func() {
+		Expect(extractImageTag(image)).Should(Equal(image))
+	})
+
+	It("image contains multiple colons", func() {
+		Expect(extractImageTag(fmt.Sprintf("%s:%s:last_element", image, tag))).Should(Equal("last_element"))
+	})
+
+	It("image is an empty string", func() {
+		Expect(extractImageTag("")).Should(Equal(""))
 	})
 })

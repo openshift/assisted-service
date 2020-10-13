@@ -329,32 +329,6 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	return res, nil
 }
 
-func (b *bareMetalInventory) formatNextStepRunnerCommand(clusterID string, hostID string) (string, *[]string) {
-
-	arguments := []string{"run", "--rm", "-ti", "--privileged", "--pid=host", "--net=host",
-		"-v", "/dev:/dev:rw", "-v", "/opt:/opt:rw",
-		"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-		"-v", "/var/log:/var/log:rw"}
-
-	if b.ServiceCACertPath != "" {
-		arguments = append(arguments, "-v", fmt.Sprintf("%s:%s", common.HostCACertPath, common.HostCACertPath))
-	}
-
-	arguments = append(arguments,
-		"--env", "PULL_SECRET_TOKEN",
-		"--env", "HTTP_PROXY", "--env", "HTTPS_PROXY", "--env", "NO_PROXY",
-		"--env", "http_proxy", "--env", "https_proxy", "--env", "no_proxy",
-		"--name", "next-step-runner", b.AgentDockerImg, "next_step_runner",
-		"--url", strings.TrimSpace(b.ServiceBaseURL), "--cluster-id", clusterID, "--host-id", hostID,
-		"--agent-version", b.AgentDockerImg, fmt.Sprintf("--insecure=%s", strconv.FormatBool(b.SkipCertVerification)))
-
-	if b.ServiceCACertPath != "" {
-		arguments = append(arguments, "--cacert", common.HostCACertPath)
-	}
-
-	return "podman", &arguments
-}
-
 func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOParams) string {
 	sshKey := params.ImageCreateParams.SSHPublicKey
 	if sshKey == "" {
@@ -1702,17 +1676,41 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s: registered to cluster", hostutil.GetHostnameForMsg(&host)), time.Now())
 
-	nextStepCommand, nextStepArgs := b.formatNextStepRunnerCommand(params.ClusterID.String(), params.NewHostParams.HostID.String())
-
 	hostRegistration := models.HostRegistrationResponse{
-		Host: host,
-		NextStepRunnerCommand: &models.HostRegistrationResponseAO1NextStepRunnerCommand{
-			Command: nextStepCommand,
-			Args:    *nextStepArgs,
-		},
+		Host:                  host,
+		NextStepRunnerCommand: b.generateNextStepRunnerCommand(ctx, &params),
 	}
 
 	return installer.NewRegisterHostCreated().WithPayload(&hostRegistration)
+}
+
+func (b *bareMetalInventory) generateNextStepRunnerCommand(ctx context.Context, params *installer.RegisterHostParams) *models.HostRegistrationResponseAO1NextStepRunnerCommand {
+
+	currentImageTag := extractImageTag(b.AgentDockerImg)
+	if params.NewHostParams.DiscoveryAgentVersion != currentImageTag {
+		log := logutil.FromContext(ctx, b.log)
+		log.Infof("Host %s in cluster %s has outdated agent image %s, updating to %s",
+			params.NewHostParams.HostID.String(), params.ClusterID.String(), params.NewHostParams.DiscoveryAgentVersion, currentImageTag)
+	}
+
+	config := host.NextStepRunnerConfig{
+		ServiceBaseURL:       b.ServiceBaseURL,
+		ClusterID:            params.ClusterID.String(),
+		HostID:               params.NewHostParams.HostID.String(),
+		UseCustomCACert:      b.ServiceCACertPath != "",
+		NextStepRunnerImage:  b.AgentDockerImg,
+		SkipCertVerification: b.SkipCertVerification,
+	}
+	command, args := host.GetNextStepRunnerCommand(&config)
+	return &models.HostRegistrationResponseAO1NextStepRunnerCommand{
+		Command: command,
+		Args:    *args,
+	}
+}
+
+func extractImageTag(fullName string) string {
+	suffix := strings.Split(fullName, ":")
+	return suffix[len(suffix)-1]
 }
 
 func returnRegisterHostTransitionError(

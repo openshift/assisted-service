@@ -557,12 +557,12 @@ var _ = Describe("cluster install", func() {
 	}
 
 	register3nodes := func(clusterID strfmt.UUID) []*models.Host {
-		h1 := registerHost(clusterID)
+		h1 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h1, validHwInfo, "h1")
 		generateFAPostStepReply(h1, validFreeAddresses)
-		h2 := registerHost(clusterID)
+		h2 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h2, validHwInfo, "h2")
-		h3 := registerHost(clusterID)
+		h3 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h3, validHwInfo, "h3")
 
 		apiVip := "1.2.3.5"
@@ -582,12 +582,12 @@ var _ = Describe("cluster install", func() {
 	It("auto-assign", func() {
 		By("register 3 hosts all with master hw information cluster expected to be ready")
 		clusterID := *cluster.ID
-		h1 := registerHost(clusterID)
+		h1 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h1, validMasterHwInfo, "h1")
 		generateFAPostStepReply(h1, validFreeAddresses)
-		h2 := registerHost(clusterID)
+		h2 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h2, validMasterHwInfo, "h2")
-		h3 := registerHost(clusterID)
+		h3 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h3, validMasterHwInfo, "h3")
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
@@ -609,9 +609,9 @@ var _ = Describe("cluster install", func() {
 			IgnoreStateInfo)
 
 		By("add two more hosts with master inventory expect the cluster to be ready")
-		h4 := registerHost(clusterID)
+		h4 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h4, validMasterHwInfo, "h4")
-		h5 := registerHost(clusterID)
+		h5 := &registerHost(clusterID).Host
 
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
@@ -623,7 +623,7 @@ var _ = Describe("cluster install", func() {
 			IgnoreStateInfo)
 
 		By("add hosts with worker inventory expect the cluster to be ready")
-		h6 := registerHost(clusterID)
+		h6 := &registerHost(clusterID).Host
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
@@ -900,7 +900,7 @@ var _ = Describe("cluster install", func() {
 		// will not be ready of all the hosts are not ready.
 		//It("installation_conflicts", func() {
 		//	By("try to install host with host without a role")
-		//	host := registerHost(clusterID)
+		//	host := &registerHost(clusterID).Host
 		//	generateHWPostStepReply(host, validHwInfo, "host")
 		//	_, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 		//	Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewInstallClusterConflict())))
@@ -1398,7 +1398,7 @@ var _ = Describe("cluster install", func() {
 			})
 			It("[only_k8s]cancel installation with a disabled host", func() {
 				By("register a new worker")
-				disabledHost := registerHost(clusterID)
+				disabledHost := &registerHost(clusterID).Host
 				generateHWPostStepReply(ctx, disabledHost, validHwInfo, "hostname")
 				generateFAPostStepReply(disabledHost, validFreeAddresses)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -1573,7 +1573,7 @@ var _ = Describe("cluster install", func() {
 							Expect(err).NotTo(HaveOccurred())
 						}
 					}
-					h := registerHost(clusterID)
+					h := &registerHost(clusterID).Host
 					generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 					generateFAPostStepReply(h, validFreeAddresses)
 					_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -1665,7 +1665,7 @@ var _ = Describe("cluster install", func() {
 			})
 			It("[only_k8s]reset cluster with a disabled host", func() {
 				By("register a new worker")
-				disabledHost := registerHost(clusterID)
+				disabledHost := &registerHost(clusterID).Host
 				generateHWPostStepReply(ctx, disabledHost, validHwInfo, "hostname")
 				generateFAPostStepReply(disabledHost, validFreeAddresses)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -1726,7 +1726,7 @@ var _ = Describe("cluster install", func() {
 
 			It("[only_k8s]reset cluster with hosts after reboot and one disabled host", func() {
 				By("register a new worker")
-				disabledHost := registerHost(clusterID)
+				disabledHost := &registerHost(clusterID).Host
 				generateHWPostStepReply(ctx, disabledHost, validHwInfo, "hostname")
 				generateFAPostStepReply(disabledHost, validFreeAddresses)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -1791,7 +1791,7 @@ var _ = Describe("cluster install", func() {
 
 		hosts := register3nodes(clusterID)
 
-		h4 := registerHost(clusterID)
+		h4 := &registerHost(clusterID).Host
 
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
@@ -1835,11 +1835,11 @@ var _ = Describe("cluster install", func() {
 		clusterID := *cluster.ID
 		waitForClusterState(ctx, clusterID, models.ClusterStatusPendingForInput, 60*time.Second, clusterPendingForInputStateInfo)
 
-		wh1 := registerHost(clusterID)
+		wh1 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, wh1, validHwInfo, "wh1")
-		wh2 := registerHost(clusterID)
+		wh2 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, wh2, validHwInfo, "wh2")
-		wh3 := registerHost(clusterID)
+		wh3 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, wh3, validHwInfo, "wh3")
 
 		apiVip := "1.2.3.5"
@@ -1869,12 +1869,12 @@ var _ = Describe("cluster install", func() {
 		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
 		Expect(clusterReply.Payload.HostNetworks[0].Cidr).To(Equal("1.2.3.0/24"))
 
-		mh1 := registerHost(clusterID)
+		mh1 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, mh1, validHwInfo, "mh1")
 		generateFAPostStepReply(mh1, validFreeAddresses)
-		mh2 := registerHost(clusterID)
+		mh2 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, mh2, validHwInfo, "mh2")
-		mh3 := registerHost(clusterID)
+		mh3 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, mh3, validHwInfo, "mh3")
 		clusterReply, _ = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
 			ClusterID: clusterID,
@@ -1976,7 +1976,7 @@ var _ = Describe("cluster install", func() {
 			},
 			Timestamp: 1601853088,
 		}
-		h1 := registerHost(clusterID)
+		h1 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h1, hwInfo, "h1")
 		generateFAPostStepReply(h1, validFreeAddresses)
 		apiVip := "1.2.3.8"
@@ -1993,11 +1993,11 @@ var _ = Describe("cluster install", func() {
 		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, defaultWaitForClusterStateTimeout)
 
 		By("Register 3 more hosts with valid hw info")
-		h2 := registerHost(clusterID)
+		h2 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h2, validHwInfo, "h2")
-		h3 := registerHost(clusterID)
+		h3 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h3, validHwInfo, "h3")
-		h4 := registerHost(clusterID)
+		h4 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h4, validHwInfo, "h4")
 
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -2030,7 +2030,7 @@ var _ = Describe("cluster install", func() {
 		Expect(h1.RequestedHostname).Should(Equal("h1"))
 
 		By("Registering host with same hostname")
-		h4 := registerHost(clusterID)
+		h4 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h4, validHwInfo, "h1")
 		h4 = getHost(clusterID, *h4.ID)
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
@@ -2053,7 +2053,7 @@ var _ = Describe("cluster install", func() {
 		Expect(err).Should(HaveOccurred())
 
 		By("Registering one more host with same hostname")
-		disabledHost := registerHost(clusterID)
+		disabledHost := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, disabledHost, validHwInfo, "h1")
 		disabledHost = getHost(clusterID, *disabledHost.ID)
 		waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusInsufficient,
@@ -2200,7 +2200,7 @@ var _ = Describe("cluster install", func() {
 
 		// register new host with the same name in inventory
 		By("Registering new host with same hostname as in node's inventory")
-		h4 := registerHost(clusterID)
+		h4 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h4, validHwInfo, "h3")
 		h4 = getHost(clusterID, *h4.ID)
 		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusInsufficient, time.Minute)
@@ -2211,7 +2211,7 @@ var _ = Describe("cluster install", func() {
 		Expect(err).Should(HaveOccurred())
 
 		By("Registering new host with same hostname as in node's requested_hostname")
-		h5 := registerHost(clusterID)
+		h5 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h5, validHwInfo, "reqh0")
 		h5 = getHost(clusterID, *h5.ID)
 		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusInsufficient, time.Minute)
@@ -2352,7 +2352,7 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 	}
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, host, validHwInfo, hostname)
 		generateFAPostStepReply(host, validFreeAddresses)
 		var role models.HostRoleUpdateParams
@@ -2425,7 +2425,7 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 	}
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
-		host := registerHost(clusterID)
+		host := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, host, validHwInfo, hostname)
 		var role models.HostRoleUpdateParams
 		if i < 3 {
