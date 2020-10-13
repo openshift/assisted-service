@@ -79,7 +79,7 @@ func Get(releaseID, cacheDir, pullSecret string, log logrus.FieldLogger) (string
 		cmd.Stderr = &out
 		err = cmd.Run()
 		if err != nil {
-			log.Error("error running \"oc adm release extract\" for release %s", releaseID)
+			log.Errorf("error running \"oc adm release extract\" for release %s", releaseID)
 			log.Error(out.String())
 			return "", err
 		}
