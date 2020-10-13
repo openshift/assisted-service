@@ -336,16 +336,16 @@ func makeJsonChecker(expected map[validationID]validationCheckResult) *validatio
 
 var _ = Describe("Refresh Cluster - No DHCP", func() {
 	var (
-		ctx                               = context.Background()
-		db                                *gorm.DB
-		clusterId, hid1, hid2, hid3, hid4 strfmt.UUID
-		cluster                           common.Cluster
-		clusterApi                        *Manager
-		mockEvents                        *events.MockHandler
-		mockHostAPI                       *host.MockAPI
-		mockMetric                        *metrics.MockAPI
-		ctrl                              *gomock.Controller
-		dbName                            string = "cluster_transition_test_refresh_host_no_dhcp"
+		ctx                                     = context.Background()
+		db                                      *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
+		cluster                                 common.Cluster
+		clusterApi                              *Manager
+		mockEvents                              *events.MockHandler
+		mockHostAPI                             *host.MockAPI
+		mockMetric                              *metrics.MockAPI
+		ctrl                                    *gomock.Controller
+		dbName                                  string = "cluster_transition_test_refresh_host_no_dhcp"
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -364,6 +364,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
 		hid4 = strfmt.UUID(uuid.New().String())
+		hid5 = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 	Context("All transitions", func() {
@@ -410,8 +411,40 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
 					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Insufficient number of master host candidates: expected %d",
+						messagePattern: fmt.Sprintf("Clusters with less than %d dedicated masters or a single worker are not supported",
 							common.MinMasterHostsNeededForInstallation)},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "pending-for-input to pending-for-input with 2 workers",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusPendingForInput,
+				machineNetworkCidr: "",
+				apiVip:             "",
+				ingressVip:         "",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationFailure, messagePattern: "The Machine Network CIDR is undefined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationPending, messagePattern: "The Machine Network CIDR, API virtual IP, or Ingress virtual IP is undefined."},
+					isApiVipDefined:                     {status: ValidationFailure, messagePattern: "The API virtual IP is undefined"},
+					isApiVipValid:                       {status: ValidationPending, messagePattern: "The API virtual IP is undefined"},
+					isIngressVipDefined:                 {status: ValidationFailure, messagePattern: "The Ingress virtual IP is undefined"},
+					isIngressVipValid:                   {status: ValidationPending, messagePattern: "The Ingress virtual IP is undefined"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
+					SufficientMastersCount: {status: ValidationSuccess,
+						messagePattern: "The cluster has a sufficient number of master candidates."},
 				}),
 				errorExpected: false,
 			},
@@ -435,14 +468,46 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster Machine CIDR is equivalent to the calculated CIDR"},
 					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API virtual IP is defined"},
-					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use"},
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IP is defined"},
-					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
-					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Insufficient number of master host candidates: expected %d",
+						messagePattern: fmt.Sprintf("Clusters with less than %d dedicated masters or a single worker are not supported",
+							common.MinMasterHostsNeededForInstallation)},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:               "pending-for-input to insufficient - worker = 1",
+				srcState:           models.ClusterStatusPendingForInput,
+				dstState:           models.ClusterStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use"},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+					SufficientMastersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters with less than %d dedicated masters or a single worker are not supported",
 							common.MinMasterHostsNeededForInstallation)},
 				}),
 				errorExpected: false,
@@ -491,6 +556,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -521,6 +587,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -551,6 +618,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -580,6 +648,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoReady),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -640,6 +709,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoReady),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -670,6 +740,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoReady),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -699,6 +770,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker:  makeValueChecker(statusInfoFinalizing),
 				validationsChecker: nil,
@@ -718,6 +790,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker:  makeValueChecker(""),
 				validationsChecker: nil,
@@ -738,6 +811,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker:  makeValueChecker(statusInfoInstalled),
 				validationsChecker: nil,
@@ -859,6 +933,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -891,6 +966,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -924,6 +1000,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -938,7 +1015,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationFailure, messagePattern: "MachineNetworkCIDR and ServiceNetworkCIDR: CIDRS .* and .* overlap"},
-					networkPrefixValid:                  {status: ValidationFailure, messagePattern: "Cluster network CIDR prefix 24 does not contain enough addresses for 4 hosts each one with 1 prefix"},
+					networkPrefixValid:                  {status: ValidationFailure, messagePattern: "Cluster network CIDR prefix 24 does not contain enough addresses for 5 hosts each one with 1 prefix"},
 				}),
 				errorExpected: false,
 			},
@@ -957,6 +1034,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -989,7 +1067,6 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoReady),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1023,6 +1100,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1164,16 +1242,16 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 
 var _ = Describe("Refresh Cluster - With DHCP", func() {
 	var (
-		ctx                               = context.Background()
-		db                                *gorm.DB
-		clusterId, hid1, hid2, hid3, hid4 strfmt.UUID
-		cluster                           common.Cluster
-		clusterApi                        *Manager
-		mockEvents                        *events.MockHandler
-		mockHostAPI                       *host.MockAPI
-		mockMetric                        *metrics.MockAPI
-		ctrl                              *gomock.Controller
-		dbName                            string = "cluster_transition_test_refresh_host_with_dhcp"
+		ctx                                     = context.Background()
+		db                                      *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
+		cluster                                 common.Cluster
+		clusterApi                              *Manager
+		mockEvents                              *events.MockHandler
+		mockHostAPI                             *host.MockAPI
+		mockMetric                              *metrics.MockAPI
+		ctrl                                    *gomock.Controller
+		dbName                                  string = "cluster_transition_test_refresh_host_with_dhcp"
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -1192,6 +1270,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
 		hid4 = strfmt.UUID(uuid.New().String())
+		hid5 = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 	Context("All transitions", func() {
@@ -1239,7 +1318,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
 					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Insufficient number of master host candidates: expected %d",
+						messagePattern: fmt.Sprintf("Clusters with less than %d dedicated masters or a single worker are not supported",
 							common.MinMasterHostsNeededForInstallation)},
 				}),
 				errorExpected: false,
@@ -1271,7 +1350,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
 					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Insufficient number of master host candidates: expected %d",
+						messagePattern: fmt.Sprintf("Clusters with less than %d dedicated masters or a single worker are not supported",
 							common.MinMasterHostsNeededForInstallation)},
 				}),
 				errorExpected: false,
@@ -1320,6 +1399,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1350,6 +1430,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1381,6 +1462,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoReady),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1411,6 +1493,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoReady),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1441,6 +1524,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoReady),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1471,6 +1555,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoReady),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1502,6 +1587,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker:  makeValueChecker(statusInfoFinalizing),
 				validationsChecker: nil,
@@ -1521,6 +1607,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker:  makeValueChecker(""),
 				validationsChecker: nil,
@@ -1539,6 +1626,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker:  makeValueChecker(statusInfoInstalled),
 				validationsChecker: nil,

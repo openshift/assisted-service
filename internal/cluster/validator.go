@@ -260,17 +260,25 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 // conditions to have a valid number of masters
 // 1. have exactly three masters
 // 2. have less then 3 masters but enough to auto-assign hosts that can become masters
+// 3. have at least 2 workers, if workers configured
 // having more then 3 known masters is failure
 func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) validationStatus {
 	mappedMastersByRole := MapMasterHostsByStatus(c.cluster)
 	mastersInKnown, ok := mappedMastersByRole[models.HostStatusKnown]
 
-	if ok && len(mastersInKnown) == common.MinMasterHostsNeededForInstallation {
-		return boolValue(true)
-	}
+	mappedWorkersByRole := MapWorkersHostsByStatus(c.cluster)
+	workerInKnown, worker_ok := mappedWorkersByRole[models.HostStatusKnown]
 
 	if ok && len(mastersInKnown) > common.MinMasterHostsNeededForInstallation {
 		return boolValue(false)
+	}
+
+	if worker_ok && len(workerInKnown) == common.IllegalWorkerHostsCount {
+		return boolValue(false)
+	}
+
+	if ok && len(mastersInKnown) == common.MinMasterHostsNeededForInstallation {
+		return boolValue(true)
 	}
 
 	candidates := 0
@@ -279,7 +287,6 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) v
 			candidates++
 		}
 	}
-
 	return boolValue(candidates >= common.MinMasterHostsNeededForInstallation)
 }
 
@@ -288,7 +295,7 @@ func (v *clusterValidator) printSufficientMastersCount(context *clusterPreproces
 	case ValidationSuccess:
 		return "The cluster has a sufficient number of master candidates."
 	case ValidationFailure:
-		return fmt.Sprintf("Insufficient number of master host candidates: expected %d.",
+		return fmt.Sprintf("Clusters with less than %d dedicated masters or a single worker are not supported. Please either add hosts, or disable the worker host",
 			common.MinMasterHostsNeededForInstallation)
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
