@@ -717,7 +717,7 @@ var _ = Describe("cluster install", func() {
 					HostID: strToUUID(uuid.New().String()),
 				},
 			})
-			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostForbidden()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostConflict()))
 		})
 
 		It("[only_k8s]register host while cluster in error state", func() {
@@ -731,7 +731,7 @@ var _ = Describe("cluster install", func() {
 					HostID: strToUUID(uuid.New().String()),
 				},
 			})
-			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostForbidden()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostConflict()))
 		})
 
 		It("[only_k8s]register existing host while cluster in installing state", func() {

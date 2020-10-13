@@ -277,6 +277,50 @@ func (o *RegisterHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, pro
 	}
 }
 
+// RegisterHostConflictCode is the HTTP code returned for type RegisterHostConflict
+const RegisterHostConflictCode int = 409
+
+/*RegisterHostConflict Cluster cannot accept new hosts due to its current state.
+
+swagger:response registerHostConflict
+*/
+type RegisterHostConflict struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.InfraError `json:"body,omitempty"`
+}
+
+// NewRegisterHostConflict creates RegisterHostConflict with default headers values
+func NewRegisterHostConflict() *RegisterHostConflict {
+
+	return &RegisterHostConflict{}
+}
+
+// WithPayload adds the payload to the register host conflict response
+func (o *RegisterHostConflict) WithPayload(payload *models.InfraError) *RegisterHostConflict {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the register host conflict response
+func (o *RegisterHostConflict) SetPayload(payload *models.InfraError) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *RegisterHostConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(409)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // RegisterHostInternalServerErrorCode is the HTTP code returned for type RegisterHostInternalServerError
 const RegisterHostInternalServerErrorCode int = 500
 

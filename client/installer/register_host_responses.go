@@ -59,6 +59,12 @@ func (o *RegisterHostReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
+	case 409:
+		result := NewRegisterHostConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewRegisterHostInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -266,6 +272,39 @@ func (o *RegisterHostMethodNotAllowed) GetPayload() *models.Error {
 func (o *RegisterHostMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewRegisterHostConflict creates a RegisterHostConflict with default headers values
+func NewRegisterHostConflict() *RegisterHostConflict {
+	return &RegisterHostConflict{}
+}
+
+/*RegisterHostConflict handles this case with default header values.
+
+Cluster cannot accept new hosts due to its current state.
+*/
+type RegisterHostConflict struct {
+	Payload *models.InfraError
+}
+
+func (o *RegisterHostConflict) Error() string {
+	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostConflict  %+v", 409, o.Payload)
+}
+
+func (o *RegisterHostConflict) GetPayload() *models.InfraError {
+	return o.Payload
+}
+
+func (o *RegisterHostConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
