@@ -118,8 +118,7 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 		return errors.New("PostCompleteInstallation invalid argument")
 	}
 
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
-		params.reason, "install_completed_at", strfmt.DateTime(time.Now()))
+	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster, params.reason)
 }
 
 func (th *transitionHandler) isSuccess(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) (b bool, err error) {
@@ -275,8 +274,13 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			cluster = updatedCluster
 		}
 		setPendingUserResetIfNeeded(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, params.hostApi, cluster)
+
+		if err != nil {
+			return err
+		}
+
 		//if status was changed - we need to send event and metrics
-		if err == nil && updatedCluster != nil && sCluster.srcState != swag.StringValue(updatedCluster.Status) {
+		if updatedCluster != nil && sCluster.srcState != swag.StringValue(updatedCluster.Status) {
 			msg := fmt.Sprintf("Updated status of cluster %s to %s", updatedCluster.Name, *updatedCluster.Status)
 			params.eventHandler.AddEvent(params.ctx, *updatedCluster.ID, nil, models.EventSeverityInfo, msg, time.Now())
 			//report installation finished metric if needed
@@ -286,9 +290,9 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 				params.metricApi.ClusterInstallationFinished(logutil.FromContext(params.ctx, th.log), swag.StringValue(updatedCluster.Status),
 					updatedCluster.OpenshiftVersion, *updatedCluster.ID, updatedCluster.InstallStartedAt)
 			}
-			return nil
 		}
-		return err
+
+		return nil
 	}
 	return ret
 }

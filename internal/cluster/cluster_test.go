@@ -483,6 +483,11 @@ var _ = Describe("TestClusterMonitoring", func() {
 				updateTime := time.Time(c.StatusUpdatedAt).Truncate(10 * time.Millisecond)
 				Expect(updateTime).Should(BeTemporally(">=", before))
 				Expect(updateTime).Should(BeTemporally("<=", after))
+
+				installationCompletedStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCancelled}
+				if funk.ContainsString(installationCompletedStatuses, expectedState) {
+					Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
+				}
 			} else {
 				Expect(c.StatusUpdatedAt).Should(Equal(saveUpdatedTime))
 				Expect(c.StatusInfo).Should(Equal(saveStatusInfo))
@@ -1763,6 +1768,11 @@ var _ = Describe("CompleteInstallation", func() {
 		Expect(len(events)).ShouldNot(Equal(0))
 		resetEvent := events[len(events)-1]
 		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
+
+		var clusterInfo common.Cluster
+		db.First(&clusterInfo)
+		completionTime := time.Time(clusterInfo.InstallCompletedAt).In(time.UTC)
+		Expect(time.Until(completionTime)).Should(BeNumerically("<", 1*time.Second))
 	})
 	It("complete installation failure", func() {
 		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
@@ -1774,6 +1784,11 @@ var _ = Describe("CompleteInstallation", func() {
 		resetEvent := events[len(events)-1]
 		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityCritical))
 		Expect(funk.Contains(*resetEvent.Message, "dummy error")).Should(Equal(true))
+
+		var clusterInfo common.Cluster
+		db.First(&clusterInfo)
+		completionTime := time.Time(clusterInfo.InstallCompletedAt).In(time.UTC)
+		Expect(time.Until(completionTime)).Should(BeNumerically("<", 1*time.Second))
 	})
 
 	AfterEach(func() {

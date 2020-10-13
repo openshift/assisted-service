@@ -54,7 +54,7 @@ endif
 
 # define focus flag for test so users can run individual tests or suites
 ifdef FOCUS
-        GINKGO_FOCUS_FLAG = -ginkgo.focus=${FOCUS}
+		GINKGO_FOCUS_FLAG = -ginkgo.focus="$(FOCUS)"
 endif
 REPORTS = $(ROOT_DIR)/reports
 TEST_PUBLISH_FLAGS = --junitfile-testsuite-name=relative --junitfile-testcase-classname=relative --junitfile $(REPORTS)/unittest.xml
