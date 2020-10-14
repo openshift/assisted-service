@@ -21,7 +21,7 @@ systemd:
 
             [Install]
             WantedBy=multi-user.target
-        - name: assisted-service-pod.service
+        - name: assisted-service-ip-configuration.service
           enabled: true
           contents: |
             [Unit]
@@ -30,8 +30,21 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStart=podman pod create --name assisted-installer -p 8443
+            ExecStart=/bin/bash /etc/assisted-service/startup_script.sh
           
+            [Install]
+            WantedBy=multi-user.target
+        - name: assisted-service-pod.service
+          enabled: true
+          contents: |
+            [Unit]
+            After=assisted-service-ip-configuration.service
+            
+            [Service]
+            Type=forking
+            Restart=no
+            ExecStart=podman pod create --name assisted-installer -p 8443
+
             [Install]
             WantedBy=multi-user.target
         - name: assisted-service-db.service
@@ -84,7 +97,7 @@ storage:
             inline: |
               #!/bin/bash
               mkdir -p /etc/assisted-service/nginx-certs
-              openssl req -x509 -nodes -days 365 -subj "/C=CA/ST=QC/O=Assisted Installer/CN=192.168.122.5" -addext "subjectAltName=IP:192.168.122.5" -newkey rsa:2048 -keyout /etc/assisted-service/nginx-certs/nginx-selfsigned.key -out /etc/assisted-service/nginx-certs/nginx-selfsigned.crt;
+              openssl req -x509 -nodes -days 365 -subj "/C=CA/ST=QC/O=Assisted Installer/CN=assisted-api.local.openshift.io" -addext "subjectAltName=DNS:assisted-api.local.openshift.io" -newkey rsa:2048 -keyout /etc/assisted-service/nginx-certs/nginx-selfsigned.key -out /etc/assisted-service/nginx-certs/nginx-selfsigned.crt;
               chmod 644 /etc/assisted-service/nginx-certs/nginx-selfsigned.key
         - path: /etc/assisted-service/environment
           mode: 0644
@@ -98,7 +111,7 @@ storage:
                 DB_USER=admin
                 DB_PASS=admin
                 DB_NAME=installer
-                SERVICE_BASE_URL=https://192.168.122.5:8443
+                SERVICE_BASE_URL=https://assisted-api.local.openshift.io:8443
                 DEPLOY_TARGET=onprem
                 SERVICE_CA_CERT_PATH=/data/nginx-selfsigned.crt
                 OPENSHIFT_INSTALL_RELEASE_IMAGE=quay.io/ocpmetal/ocp-release:v1.0.9.1
@@ -129,3 +142,16 @@ storage:
           mode: 0644
           contents:
             inline: replace-with-your-urlencoded-pull-secret
+        - path: /etc/assisted-service/startup_script.sh
+          mode: 0644
+          contents:
+            inline: |
+              #!/bin/bash
+              ips=$(hostname -I)
+              read -r -a ipArr <<< "$ips"
+              for ip in "${ipArr[@]}"
+                  do 
+                      printf "\n%s assisted-api.local.openshift.io\n" "$ip" >> /etc/hosts
+                  done
+              ips_cs=`echo $ips | xargs | sed -e 's/ /,/g'`
+              printf "\nSERVICE_IPS=%s" "$ips_cs" >> /etc/assisted-service/environment

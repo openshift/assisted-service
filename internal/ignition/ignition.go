@@ -20,6 +20,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/vincent-petithory/dataurl"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -45,6 +46,7 @@ var fileNames = [...]string{
 type Generator interface {
 	Generate([]byte) error
 	UploadToS3(ctx context.Context, s3Client s3wrapper.API) error
+	UpdateEtcHosts(string) error
 }
 
 type installerGenerator struct {
@@ -383,6 +385,26 @@ func (g *installerGenerator) updateIgnitions() error {
 	return nil
 }
 
+func (g *installerGenerator) UpdateEtcHosts(serviceIPs string) error {
+	masterPath := filepath.Join(g.workDir, "master.ign")
+
+	if serviceIPs != "" {
+		err := setEtcHostsInIgnition(models.HostRoleMaster, masterPath, g.workDir, GetServiceIPHostnames(serviceIPs))
+		if err != nil {
+			return errors.Wrapf(err, "error adding Etc Hosts to ignition %s", masterPath)
+		}
+	}
+
+	workerPath := filepath.Join(g.workDir, "worker.ign")
+	if serviceIPs != "" {
+		err := setEtcHostsInIgnition(models.HostRoleWorker, workerPath, g.workDir, GetServiceIPHostnames(serviceIPs))
+		if err != nil {
+			return errors.Wrapf(err, "error adding Etc Hosts to ignition %s", workerPath)
+		}
+	}
+	return nil
+}
+
 // sortHosts sorts hosts into masters and workers, excluding disabled hosts
 func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 	masters := []*models.Host{}
@@ -453,7 +475,7 @@ func writeIgnitionFile(path string, config *config_31_types.Config) error {
 	return nil
 }
 
-func setFileInIgnition(config *config_31_types.Config, filePath string, fileContents string, mode int) {
+func setFileInIgnition(config *config_31_types.Config, filePath string, fileContents string, appendContent bool, mode int) {
 	rootUser := "root"
 	file := config_31_types.File{
 		Node: config_31_types.Node{
@@ -470,6 +492,14 @@ func setFileInIgnition(config *config_31_types.Config, filePath string, fileCont
 			Mode: &mode,
 		},
 	}
+	if appendContent {
+		file.FileEmbedded1.Append = []config_31_types.Resource{
+			{
+				Source: &fileContents,
+			},
+		}
+		file.FileEmbedded1.Contents = config_31_types.Resource{}
+	}
 	config.Storage.Files = append(config.Storage.Files, file)
 }
 
@@ -485,7 +515,7 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 		return err
 	}
 
-	setFileInIgnition(config, common.HostCACertPath, fmt.Sprintf("data:,%s", url.PathEscape(string(caCertData))), 420)
+	setFileInIgnition(config, common.HostCACertPath, fmt.Sprintf("data:,%s", url.PathEscape(string(caCertData))), false, 420)
 
 	fileName := fmt.Sprintf("%s.ign", role)
 	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
@@ -524,4 +554,31 @@ func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
 	}
 
 	return string(res), nil
+}
+
+func setEtcHostsInIgnition(role models.HostRole, path string, workDir string, content string) error {
+	config, err := parseIgnitionFile(path)
+	if err != nil {
+		return err
+	}
+
+	setFileInIgnition(config, "/etc/hosts", dataurl.EncodeBytes([]byte(content)), true, 420)
+
+	fileName := fmt.Sprintf("%s.ign", role)
+	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetServiceIPHostnames(serviceIPs string) string {
+	ips := strings.Split(strings.TrimSpace(serviceIPs), ",")
+	content := ""
+	for _, ip := range ips {
+		if ip != "" {
+			content = content + fmt.Sprintf(ip+" assisted-api.local.openshift.io\n")
+		}
+	}
+	return content
 }

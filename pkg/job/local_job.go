@@ -44,6 +44,12 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 	if err != nil {
 		return err
 	}
+	if j.Config.ServiceIPs != "" {
+		err = generator.UpdateEtcHosts(j.Config.ServiceIPs)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

@@ -47,6 +47,7 @@ type Config struct {
 	JobMemoryRequests   string        `envconfig:"JOB_MEMORY_REQUESTS" default:"400Mi"`
 	ServiceBaseURL      string        `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath   string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	ServiceIPs          string        `envconfig:"SERVICE_IPS" default:""`
 	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
 	SubsystemRun         bool   `envconfig:"SUBSYSTEM_RUN"`
 	ReleaseImage         string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
