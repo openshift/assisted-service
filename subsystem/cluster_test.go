@@ -860,7 +860,7 @@ var _ = Describe("cluster install", func() {
 				ClusterID: clusterID,
 				HostID:    *c.Hosts[0].ID,
 				Reply: &models.StepReply{
-					ExitCode: bminventory.ContainerAlreadyRunningExitCode,
+					ExitCode: 137,
 					StepType: models.StepTypeInstall,
 					Output:   "blabla",
 					Error:    "Some random error",
