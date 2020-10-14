@@ -2158,6 +2158,78 @@ func init() {
             }
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Patch the ignition file for this host",
+        "operationId": "UpdateHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "host-ignition-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-ignition-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
@@ -4339,6 +4411,12 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "ignition_config_overrides": {
+          "description": "Json formatted string containing the user overrides for the host's pointer ignition",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\"",
+          "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
         "installation_disk_path": {
           "description": "Host installation path.",
@@ -7179,6 +7257,78 @@ func init() {
             }
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Patch the ignition file for this host",
+        "operationId": "UpdateHostIgnition",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "host-ignition-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-ignition-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
@@ -9385,6 +9535,12 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "ignition_config_overrides": {
+          "description": "Json formatted string containing the user overrides for the host's pointer ignition",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\"",
+          "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
         "installation_disk_path": {
           "description": "Host installation path.",

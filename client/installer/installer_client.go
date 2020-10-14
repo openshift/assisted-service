@@ -124,6 +124,9 @@ type API interface {
 	   UpdateDiscoveryIgnition overrides values in the discovery ignition config*/
 	UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error)
 	/*
+	   UpdateHostIgnition patches the ignition file for this host*/
+	UpdateHostIgnition(ctx context.Context, params *UpdateHostIgnitionParams) (*UpdateHostIgnitionCreated, error)
+	/*
 	   UpdateHostInstallProgress updates installation progress*/
 	UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error)
 	/*
@@ -1027,6 +1030,31 @@ func (a *Client) UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDisc
 		return nil, err
 	}
 	return result.(*UpdateDiscoveryIgnitionCreated), nil
+
+}
+
+/*
+UpdateHostIgnition patches the ignition file for this host
+*/
+func (a *Client) UpdateHostIgnition(ctx context.Context, params *UpdateHostIgnitionParams) (*UpdateHostIgnitionCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateHostIgnition",
+		Method:             "PATCH",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/ignition",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateHostIgnitionReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateHostIgnitionCreated), nil
 
 }
 
