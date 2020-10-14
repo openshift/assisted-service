@@ -91,7 +91,7 @@ var _ = Describe("Authorizer", func() {
 
 			payload := &ocm.AuthPayload{}
 			payload.Username = "admin@user"
-			payload.IsAdmin = true
+			payload.Role = ocm.AdminRole
 			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 			req := getRequestWithContext(ctx, clustersAPI)

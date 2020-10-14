@@ -26,7 +26,7 @@ var _ = Describe("Identity", func() {
 	Context("IsAdmin", func() {
 		It("admin user", func() {
 			payload := &ocm.AuthPayload{}
-			payload.IsAdmin = true
+			payload.Role = ocm.AdminRole
 			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 			isAdmin := IsAdmin(ctx)
 
@@ -44,7 +44,7 @@ var _ = Describe("Identity", func() {
 	Context("AddUserFilter", func() {
 		It("admin user - empty query", func() {
 			payload := &ocm.AuthPayload{}
-			payload.IsAdmin = true
+			payload.Role = ocm.AdminRole
 			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 			query := AddUserFilter(ctx, "")
 
@@ -52,7 +52,7 @@ var _ = Describe("Identity", func() {
 		})
 		It("admin user - non-empty query", func() {
 			payload := &ocm.AuthPayload{}
-			payload.IsAdmin = true
+			payload.Role = ocm.AdminRole
 			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 			query := AddUserFilter(ctx, "id = ?")
 

@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 const (
@@ -22,4 +23,14 @@ func AgentAuthHeaderWriter(token string) runtime.ClientAuthInfoWriter {
 
 func UserAuthHeaderWriter(token string) runtime.ClientAuthInfoWriter {
 	return AuthHeaderWriter(token, userAuthHeader)
+}
+
+func shouldStorePayloadInCache(err error) bool {
+	if err == nil {
+		return true
+	}
+	if serr, ok := err.(*common.ApiErrorResponse); ok {
+		return serr.StatusCode() < 500
+	}
+	return false
 }

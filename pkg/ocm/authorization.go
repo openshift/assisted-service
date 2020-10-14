@@ -37,7 +37,16 @@ func (a authorization) AccessReview(ctx context.Context, username, action, resou
 		Request(request).
 		SendContext(ctx)
 	if err != nil {
-		return false, err
+		if postResp != nil {
+			a.client.logger.Error(context.Background(), "Fail to send AccessReview. Response: %v", postResp)
+			if postResp.Status() >= 400 && postResp.Status() < 500 {
+				return false, common.NewInfraError(http.StatusUnauthorized, err)
+			}
+			if postResp.Status() >= 500 {
+				return false, common.NewApiError(http.StatusServiceUnavailable, err)
+			}
+		}
+		return false, common.NewApiError(http.StatusServiceUnavailable, err)
 	}
 
 	response, ok := postResp.GetResponse()
