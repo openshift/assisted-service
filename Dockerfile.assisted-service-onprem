@@ -1,7 +1,7 @@
 FROM quay.io/ocpmetal/assisted-service:latest AS assisted-service
 FROM quay.io/ocpmetal/assisted-iso-create:latest AS assisted-iso-create
 
-FROM centos:8
+FROM quay.io/generic/centos8
 
 ARG WORK_DIR=/data
 ARG USER=assisted-installer

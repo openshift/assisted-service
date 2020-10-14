@@ -237,7 +237,7 @@ deploy-test: _verify_minikube generate-keys
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
-	podman run -dt --pod assisted-installer --env-file onprem-environment --name db quay.io/ocpmetal/postgresql-12-centos7
+	podman run -dt --pod assisted-installer --env-file onprem-environment --name db quay.io/ocpmetal/postgres:12.3-alpine
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
 	podman run -dt --pod assisted-installer --env-file onprem-environment --env DUMMY_IGNITION=$(DUMMY_IGNITION) --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
 
@@ -284,7 +284,7 @@ deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 unit-test: $(REPORTS)
 	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
 	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
-		postgres:12.3-alpine -c 'max_connections=10000'
+		quay.io/ocpmetal/postgres:12.3-alpine -c 'max_connections=10000'
 	timeout 1m bash -c "until PGPASSWORD=admin pg_isready -U admin --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done"
 	SKIP_UT_DB=1 gotestsum --format=pkgname $(TEST_PUBLISH_FLAGS) -- -cover -coverprofile=$(REPORTS)/coverage.out $(or ${TEST},${TEST},$(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
 		-ginkgo.v -timeout 30m -count=1 || (docker kill postgres && /bin/false)

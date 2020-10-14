@@ -15,22 +15,22 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: quay.io/ocpmetal/postgresql-12-centos7
+          image: quay.io/ocpmetal/postgres:12.3-alpine
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 5432
           env:
-            - name: POSTGRESQL_DATABASE
+            - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
                   name: assisted-installer-rds
                   key: db.name
-            - name: POSTGRESQL_USER
+            - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   name: assisted-installer-rds
                   key: db.user
-            - name: POSTGRESQL_PASSWORD
+            - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: assisted-installer-rds

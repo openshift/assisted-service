@@ -1,5 +1,5 @@
 # Generate python client
-FROM swaggerapi/swagger-codegen-cli:2.4.15 as swagger_py
+FROM quay.io/ocpmetal/swagger-codegen-cli:2.4.15 as swagger_py
 
 COPY swagger.yaml .
 COPY tools/generate_python_client.sh .
@@ -25,7 +25,7 @@ RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service 
 RUN cd build && python3 setup.py sdist --dist-dir /assisted-service-client
 
 # Create final image
-FROM centos:8
+FROM quay.io/generic/centos8
 
 # openshift-install requires this
 RUN yum install -y libvirt-libs && yum clean all
