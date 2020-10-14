@@ -2,116 +2,941 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
 
+	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/runtime/security"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
+	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
+	"github.com/openshift/assisted-service/client"
+	"github.com/openshift/assisted-service/client/events"
+	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/client/managed_domains"
+	"github.com/openshift/assisted-service/client/versions"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
+
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 )
 
-type mockOCMAuthorization struct {
-	ocm.OCMAuthorization
-}
+func TestAuthz(t *testing.T) {
+	t.Parallel()
 
-var accessReviewMock func(ctx context.Context, username, action, resourceType string) (allowed bool, err error)
+	ctx := context.TODO()
+	log := logrus.New()
 
-var capabilityReviewMock = func(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error) {
-	return true, nil
-}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-func (m *mockOCMAuthorization) AccessReview(ctx context.Context, username, action, resourceType string) (allowed bool, err error) {
-	return accessReviewMock(ctx, username, action, resourceType)
-}
+	mockOcmAuthz := ocm.NewMockOCMAuthorization(ctrl)
+	var adminUsers []string
 
-func (m *mockOCMAuthorization) CapabilityReview(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error) {
-	return capabilityReviewMock(ctx, username, capabilityName, capabilityType)
-}
-
-func TestValidator(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "authorizer_test")
-}
-
-var _ = Describe("Authorizer", func() {
-	var (
-		ctx          = context.Background()
-		authzHandler *AuthzHandler
-		allowedUser  bool
-		clustersAPI  = "/api/assisted-install/v1/clusters/"
-	)
-
-	BeforeEach(func() {
-		authzHandler = &AuthzHandler{
-			EnableAuth: true,
-			log:        logrus.New().WithField("pkg", "authz"),
-		}
-		accessReviewMock = func(ctx context.Context, username, action, resourceType string) (allowed bool, err error) {
-			return allowedUser, nil
-		}
-	})
-
-	Context("Unauthorized User", func() {
-		It("User unallowed to access installer", func() {
-			mockOCMClient(authzHandler)
-			allowedUser = false
-
-			payload := &ocm.AuthPayload{}
-			payload.Username = "unallowed@user"
-			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
-			err := authzHandler.Authorizer(getRequestWithContext(ctx, ""))
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(Equal("method is not allowed"))
-		})
-	})
-
-	Context("Authorized User", func() {
-		It("User allowed to access API", func() {
-			mockOCMClient(authzHandler)
-			allowedUser = true
-
-			payload := &ocm.AuthPayload{}
-			payload.Username = "allowed@user"
-			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
-
-			req := getRequestWithContext(ctx, clustersAPI)
-			err := authzHandler.Authorizer(req)
-
-			Expect(err).ToNot(HaveOccurred())
-		})
-		It("Admin allowed to access API", func() {
-			mockOCMClient(authzHandler)
-			allowedUser = true
-
-			payload := &ocm.AuthPayload{}
-			payload.Username = "admin@user"
-			payload.Role = ocm.AdminRole
-			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
-
-			req := getRequestWithContext(ctx, clustersAPI)
-			err := authzHandler.Authorizer(req)
-
-			Expect(err).ToNot(HaveOccurred())
-		})
-	})
-})
-
-func getRequestWithContext(ctx context.Context, urlPath string) *http.Request {
-	req := &http.Request{}
-	req.URL = &url.URL{}
-	req.URL.Path = urlPath
-	return req.WithContext(ctx)
-}
-
-func mockOCMClient(authzHandler *AuthzHandler) {
-	authzHandler.client = &ocm.Client{
-		Authorization: &mockOCMAuthorization{},
-		Cache:         cache.New(1*time.Hour, 30*time.Minute),
+	passAccessReview := func(times int) {
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any()).Return(true, nil).Times(times)
 	}
+	failAccessReview := func(times int) {
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any()).Return(false, nil).Times(times)
+	}
+
+	passCapabilityReview := func(times int) {
+		mockOcmAuthz.EXPECT().CapabilityReview(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any()).Return(true, nil).Times(times)
+	}
+
+	failCapabilityReview := func(times int) {
+		mockOcmAuthz.EXPECT().CapabilityReview(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any()).Return(false, nil).Times(times)
+	}
+
+	mockUserAuth := func(token string) (interface{}, error) {
+		payload := &ocm.AuthPayload{}
+		payload.Username = "test@user"
+		payload.FirstName = "jon"
+		payload.LastName = "doe"
+		payload.Email = "test@user"
+		if funk.Contains(adminUsers, "test@user") {
+			payload.Role = ocm.AdminRole
+			return payload, nil
+		}
+		isReadOnlyAdmin, err := mockOcmAuthz.CapabilityReview(
+			ctx,
+			"",
+			"",
+			"")
+		if err != nil {
+			return nil, err
+		}
+		if isReadOnlyAdmin {
+			payload.Role = ocm.ReadOnlyAdminRole
+		} else {
+			payload.Role = ocm.UserRole
+		}
+		return payload, nil
+	}
+
+	mockAgentAuth := func(token string) (interface{}, error) {
+		payload := &ocm.AuthPayload{}
+		payload.Username = ""
+		payload.FirstName = ""
+		payload.LastName = ""
+		payload.Email = ""
+		payload.Role = ocm.UserRole
+		return payload, nil
+	}
+
+	mockCreateAuthenticator := func(
+		name,
+		in string,
+		authenticate security.TokenAuthentication) runtime.Authenticator {
+
+		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
+			log := logutil.FromContext(r.Context(), log)
+			token := r.Header.Get(name)
+			if token == "" {
+				return false, nil, nil
+			}
+			p, err := authenticate(token)
+			if err != nil {
+				log.Errorf("Fail to authenticate. Error %v", err)
+				if common.IsKnownError(err) {
+					return true, nil, err
+				}
+				return true, nil, common.NewInfraError(http.StatusUnauthorized, err)
+			}
+			return true, p, nil
+		})
+	}
+
+	userToken, JwkCert := GetTokenAndCert()
+
+	authzCache := cache.New(time.Hour, 30*time.Minute)
+	h, err := restapi.Handler(
+		restapi.Config{
+			AuthAgentAuth:       mockAgentAuth,
+			AuthUserAuth:        mockUserAuth,
+			APIKeyAuthenticator: mockCreateAuthenticator,
+			Authorizer: NewAuthzHandler(
+				Config{
+					EnableAuth: true,
+					JwkCertURL: "",
+					JwkCert:    string(JwkCert),
+				},
+				&ocm.Client{
+					Authorization: mockOcmAuthz,
+					Cache:         authzCache,
+				},
+				log.WithField("pkg", "auth")).CreateAuthorizer(),
+			InstallerAPI:      fakeInventory{},
+			EventsAPI:         &fakeEventsAPI{},
+			Logger:            logrus.Printf,
+			VersionsAPI:       fakeVersionsAPI{},
+			ManagedDomainsAPI: fakeManagedDomainsAPI{},
+			InnerMiddleware:   nil,
+		})
+	if err != nil {
+		panic(err)
+	}
+	srvAddr := "localhost:8082"
+	server := &http.Server{
+		Addr:    srvAddr,
+		Handler: h,
+	}
+	go serv(server)
+	defer func() {
+		if err := server.Close(); err != nil {
+			panic(err)
+		}
+	}()
+
+	srvUrl := &url.URL{
+		Scheme: client.DefaultSchemes[0],
+		Host:   srvAddr,
+		Path:   client.DefaultBasePath,
+	}
+	userClient := client.New(
+		client.Config{
+			URL:      srvUrl,
+			AuthInfo: UserAuthHeaderWriter("bearer " + userToken),
+		})
+	agentClient := client.New(
+		client.Config{
+			URL:      srvUrl,
+			AuthInfo: AgentAuthHeaderWriter("fake_pull_secret"),
+		})
+
+	verifyResponseErrorCode := func(err error, expectUnauthorizedCode bool) {
+		expectedCode := "403"
+		if expectUnauthorizedCode {
+			expectedCode = "401"
+		}
+		assert.Contains(t, err.Error(), expectedCode)
+	}
+
+	t.Run("should store payload in cache", func(t *testing.T) {
+		assert.Equal(t, shouldStorePayloadInCache(nil), true)
+		err := common.NewApiError(http.StatusUnauthorized, errors.New(""))
+		assert.Equal(t, shouldStorePayloadInCache(err), true)
+	})
+
+	t.Run("should not store payload in cache", func(t *testing.T) {
+		err1 := common.NewApiError(http.StatusInternalServerError, errors.New(""))
+		assert.Equal(t, shouldStorePayloadInCache(err1), false)
+		err2 := errors.New("internal error")
+		assert.Equal(t, shouldStorePayloadInCache(err2), false)
+	})
+
+	t.Run("pass access review from cache", func(t *testing.T) {
+		By("get cluster first attempt, store user in cache", func() {
+			passAccessReview(1)
+			passCapabilityReview(1)
+			err := getCluster(ctx, userClient)
+			assert.Equal(t, err, nil)
+		})
+		By("get cluster second attempt, get user from cache", func() {
+			passCapabilityReview(1)
+			defer authzCache.Flush()
+			err := getCluster(ctx, userClient)
+			assert.Equal(t, err, nil)
+		})
+	})
+
+	t.Run("access review failure", func(t *testing.T) {
+		failAccessReview(1)
+		passCapabilityReview(1)
+		defer authzCache.Flush()
+		err := getCluster(ctx, userClient)
+		verifyResponseErrorCode(err, false)
+	})
+
+	tests := []struct {
+		name             string
+		allowedRoles     []ocm.RoleType
+		apiCall          func(ctx context.Context, cli *client.AssistedInstall) error
+		agentAuthSupport bool
+	}{
+		{
+			name:         "register cluster",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      registerCluster,
+		},
+		{
+			name:         "list clusters",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      listClusters,
+		},
+		{
+			name:             "get cluster",
+			allowedRoles:     []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:          getCluster,
+			agentAuthSupport: true,
+		},
+		{
+			name:         "update cluster",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      updateCluster,
+		},
+		{
+			name:         "deregister cluster",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      deregisterCluster,
+		},
+		{
+			name:         "generate cluster iso",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      generateClusterISO,
+		},
+		{
+			name:         "download cluster iso",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      downloadClusterISO,
+		},
+		{
+			name:             "download cluster files",
+			allowedRoles:     []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:          downloadClusterFiles,
+			agentAuthSupport: true,
+		},
+		{
+			name:         "get presigned for cluster files",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      getPresignedForClusterFiles,
+		},
+		{
+			name:         "get credentials",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      getCredentials,
+		},
+		{
+			name:         "download cluster kubeconfig",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      downloadClusterKubeconfig,
+		},
+		{
+			name:         "get cluster install config",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      getClusterInstallConfig,
+		},
+		{
+			name:         "update cluster install config",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      updateClusterInstallConfig,
+		},
+		{
+			name:             "upload cluster ingress cert",
+			apiCall:          uploadClusterIngressCert,
+			agentAuthSupport: true,
+		},
+		{
+			name:         "install cluster",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      installCluster,
+		},
+		{
+			name:         "cancel installation",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      cancelInstallation,
+		},
+		{
+			name:         "reset cluster",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      resetCluster,
+		},
+		{
+			name:             "complete installation",
+			apiCall:          completeInstallation,
+			agentAuthSupport: true,
+		},
+		{
+			name:             "register host",
+			apiCall:          registerHost,
+			agentAuthSupport: true,
+		},
+		{
+			name:             "lists hosts",
+			allowedRoles:     []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:          listHosts,
+			agentAuthSupport: true,
+		},
+		{
+			name:         "get host",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      getHost,
+		},
+		{
+			name:         "deregister host",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      deregisterHost,
+		},
+		{
+			name:             "update host install progress",
+			apiCall:          updateHostInstallProgress,
+			agentAuthSupport: true,
+		},
+		{
+			name:         "enable host",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      enableHost,
+		},
+		{
+			name:         "disable host",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      disableHost,
+		},
+		{
+			name:             "get next steps",
+			apiCall:          getNextSteps,
+			agentAuthSupport: true,
+		},
+		{
+			name:             "post step reply",
+			apiCall:          postStepReply,
+			agentAuthSupport: true,
+		},
+		{
+			name:             "upload host logs",
+			apiCall:          uploadHostLogs,
+			agentAuthSupport: true,
+		},
+		{
+			name:         "download host logs",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      downloadHostLogs,
+		},
+		{
+			name:             "upload logs",
+			apiCall:          uploadLogs,
+			agentAuthSupport: true,
+		},
+		{
+			name:         "download cluster logs",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      downloadClusterLogs,
+		},
+		{
+			name:         "get free addresses",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      getFreeAddresses,
+		},
+		{
+			name:         "list events",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      listEvents,
+		},
+		{
+			name:         "list managed domains",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      listManagedDomains,
+		},
+		{
+			name:         "list component versions",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      listComponentVersions,
+		},
+		{
+			name:         "get host requirements",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      getHostRequirements,
+		},
+		{
+			name:         "register add hosts cluster",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      registerAddHostsCluster,
+		},
+		{
+			name:         "get discovery ignition",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      getDiscoveryIgnition,
+		},
+		{
+			name:         "Update discovery ignition",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
+			apiCall:      updateDiscoveryIgnition,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("test %s", tt.name), func(t *testing.T) {
+			userAuthSupport := len(tt.allowedRoles) > 0
+			By(fmt.Sprintf("%s: with user scope", tt.name), func() {
+				userRoleSupport := funk.Contains(tt.allowedRoles, ocm.UserRole)
+				if userAuthSupport {
+					failCapabilityReview(1)
+					if userRoleSupport {
+						passAccessReview(1)
+					}
+				}
+				defer authzCache.Flush()
+				err := tt.apiCall(ctx, userClient)
+				if userRoleSupport {
+					assert.Equal(t, err, nil)
+				} else {
+					assert.NotEqual(t, err, nil)
+					verifyResponseErrorCode(err, tt.agentAuthSupport)
+				}
+			})
+			By(fmt.Sprintf("%s: with read-only-adimn scope", tt.name), func() {
+				readOnlyAdminRoleSupport := funk.Contains(tt.allowedRoles, ocm.ReadOnlyAdminRole)
+				if userAuthSupport {
+					passCapabilityReview(1)
+					if readOnlyAdminRoleSupport {
+						passAccessReview(1)
+					}
+				}
+				defer authzCache.Flush()
+				err := tt.apiCall(ctx, userClient)
+				if readOnlyAdminRoleSupport {
+					assert.Equal(t, err, nil)
+				} else {
+					assert.NotEqual(t, err, nil)
+					verifyResponseErrorCode(err, tt.agentAuthSupport)
+				}
+			})
+			By(fmt.Sprintf("%s: with admin scope", tt.name), func() {
+				adminUsers = []string{"test@user"}
+				defer func() {
+					adminUsers = []string{}
+				}()
+				adminRoleSupport := funk.Contains(tt.allowedRoles, ocm.AdminRole)
+				if userAuthSupport {
+					if adminRoleSupport {
+						passAccessReview(1)
+					}
+				}
+				defer authzCache.Flush()
+				err := tt.apiCall(ctx, userClient)
+				if adminRoleSupport {
+					assert.Equal(t, err, nil)
+				} else {
+					assert.NotEqual(t, err, nil)
+					verifyResponseErrorCode(err, tt.agentAuthSupport)
+				}
+			})
+			By(fmt.Sprintf("%s: with agent auth", tt.name), func() {
+				if tt.agentAuthSupport {
+					passAccessReview(1)
+				}
+				defer authzCache.Flush()
+				err := tt.apiCall(ctx, agentClient)
+				if tt.agentAuthSupport {
+					assert.Equal(t, err, nil)
+				} else {
+					assert.NotEqual(t, err, nil)
+					verifyResponseErrorCode(err, true)
+				}
+			})
+		})
+	}
+}
+
+func registerCluster(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.RegisterCluster(
+		ctx,
+		&installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("test"),
+				OpenshiftVersion: swag.String("4.5"),
+			},
+		})
+	return err
+}
+
+func listClusters(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+	return err
+}
+
+func getCluster(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetCluster(
+		ctx,
+		&installer.GetClusterParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func updateCluster(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.UpdateCluster(
+		ctx,
+		&installer.UpdateClusterParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+					{
+						Hostname: "test",
+						ID:       strfmt.UUID(uuid.New().String()),
+					},
+				},
+			}})
+	return err
+}
+
+func deregisterCluster(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.DeregisterCluster(
+		ctx,
+		&installer.DeregisterClusterParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func generateClusterISO(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GenerateClusterISO(
+		ctx,
+		&installer.GenerateClusterISOParams{
+			ClusterID:         strfmt.UUID(uuid.New().String()),
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+	return err
+}
+
+func downloadClusterISO(ctx context.Context, cli *client.AssistedInstall) error {
+	file, err := ioutil.TempFile("/tmp", "test")
+	if err != nil {
+		return err
+	}
+	_, err = cli.Installer.DownloadClusterISO(
+		ctx,
+		&installer.DownloadClusterISOParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		},
+		file)
+	return err
+}
+
+func downloadClusterFiles(ctx context.Context, cli *client.AssistedInstall) error {
+	file, err := ioutil.TempFile("/tmp", "test")
+	if err != nil {
+		return err
+	}
+	_, err = cli.Installer.DownloadClusterFiles(
+		ctx,
+		&installer.DownloadClusterFilesParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			FileName:  "bootstrap.ign",
+		},
+		file)
+	return err
+}
+
+func getPresignedForClusterFiles(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetPresignedForClusterFiles(
+		ctx,
+		&installer.GetPresignedForClusterFilesParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			FileName:  "bootstrap.ign",
+		})
+	return err
+}
+
+func getCredentials(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetCredentials(
+		ctx,
+		&installer.GetCredentialsParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func downloadClusterKubeconfig(ctx context.Context, cli *client.AssistedInstall) error {
+	file, err := ioutil.TempFile("/tmp", "test")
+	if err != nil {
+		return err
+	}
+	_, err = cli.Installer.DownloadClusterKubeconfig(
+		ctx,
+		&installer.DownloadClusterKubeconfigParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		},
+		file)
+	return err
+}
+
+func getClusterInstallConfig(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetClusterInstallConfig(
+		ctx,
+		&installer.GetClusterInstallConfigParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func updateClusterInstallConfig(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.UpdateClusterInstallConfig(
+		ctx,
+		&installer.UpdateClusterInstallConfigParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func uploadClusterIngressCert(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.UploadClusterIngressCert(
+		ctx,
+		&installer.UploadClusterIngressCertParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func installCluster(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.InstallCluster(
+		ctx,
+		&installer.InstallClusterParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func cancelInstallation(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.CancelInstallation(
+		ctx,
+		&installer.CancelInstallationParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func resetCluster(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.ResetCluster(
+		ctx,
+		&installer.ResetClusterParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func completeInstallation(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.CompleteInstallation(
+		ctx,
+		&installer.CompleteInstallationParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			CompletionParams: &models.CompletionParams{
+				IsSuccess: swag.Bool(true),
+				ErrorInfo: "",
+			},
+		})
+	return err
+}
+
+func registerHost(ctx context.Context, cli *client.AssistedInstall) error {
+	hostId := strfmt.UUID(uuid.New().String())
+	_, err := cli.Installer.RegisterHost(
+		ctx,
+		&installer.RegisterHostParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			NewHostParams: &models.HostCreateParams{
+				HostID: &hostId,
+			},
+		})
+	return err
+}
+
+func listHosts(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.ListHosts(
+		ctx,
+		&installer.ListHostsParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func getHost(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetHost(
+		ctx,
+		&installer.GetHostParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func deregisterHost(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.DeregisterHost(
+		ctx,
+		&installer.DeregisterHostParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func updateHostInstallProgress(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.UpdateHostInstallProgress(
+		ctx,
+		&installer.UpdateHostInstallProgressParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    strfmt.UUID(uuid.New().String()),
+			HostProgress: &models.HostProgress{
+				CurrentStage: models.HostStageStartingInstallation,
+			},
+		})
+	return err
+}
+
+func enableHost(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.EnableHost(
+		ctx,
+		&installer.EnableHostParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func disableHost(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.DisableHost(
+		ctx,
+		&installer.DisableHostParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func getNextSteps(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetNextSteps(
+		ctx,
+		&installer.GetNextStepsParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func postStepReply(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.PostStepReply(
+		ctx,
+		&installer.PostStepReplyParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func uploadHostLogs(ctx context.Context, cli *client.AssistedInstall) error {
+	file, err := ioutil.TempFile("/tmp", "test.log")
+	if err != nil {
+		return err
+	}
+	_, err = cli.Installer.UploadHostLogs(
+		ctx,
+		&installer.UploadHostLogsParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    strfmt.UUID(uuid.New().String()),
+			Upfile:    file,
+		})
+	return err
+}
+
+func downloadHostLogs(ctx context.Context, cli *client.AssistedInstall) error {
+	file, err := ioutil.TempFile("/tmp", "test")
+	if err != nil {
+		return err
+	}
+	_, err = cli.Installer.DownloadHostLogs(
+		ctx,
+		&installer.DownloadHostLogsParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    strfmt.UUID(uuid.New().String()),
+		},
+		file)
+	return err
+}
+
+func uploadLogs(ctx context.Context, cli *client.AssistedInstall) error {
+	file, err := ioutil.TempFile("/tmp", "test.log")
+	if err != nil {
+		return err
+	}
+	hostId := strfmt.UUID(uuid.New().String())
+	_, err = cli.Installer.UploadLogs(
+		ctx,
+		&installer.UploadLogsParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    &hostId,
+			LogsType:  string(models.LogsTypeController),
+			Upfile:    file,
+		})
+	return err
+}
+
+func downloadClusterLogs(ctx context.Context, cli *client.AssistedInstall) error {
+	file, err := ioutil.TempFile("/tmp", "test")
+	if err != nil {
+		return err
+	}
+	_, err = cli.Installer.DownloadClusterLogs(
+		ctx,
+		&installer.DownloadClusterLogsParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		},
+		file)
+	return err
+}
+
+func getFreeAddresses(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetFreeAddresses(
+		ctx,
+		&installer.GetFreeAddressesParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			Network:   "10.0.1.0/24",
+		})
+	return err
+}
+
+func listEvents(ctx context.Context, cli *client.AssistedInstall) error {
+	hostId := strfmt.UUID(uuid.New().String())
+	_, err := cli.Events.ListEvents(
+		ctx,
+		&events.ListEventsParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			HostID:    &hostId,
+		})
+	return err
+}
+
+func listManagedDomains(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.ManagedDomains.ListManagedDomains(
+		ctx,
+		&managed_domains.ListManagedDomainsParams{})
+	return err
+}
+
+func listComponentVersions(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Versions.ListComponentVersions(
+		ctx,
+		&versions.ListComponentVersionsParams{})
+	return err
+}
+
+func getHostRequirements(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetHostRequirements(
+		ctx,
+		&installer.GetHostRequirementsParams{})
+	return err
+}
+
+func registerAddHostsCluster(ctx context.Context, cli *client.AssistedInstall) error {
+	id := strfmt.UUID(uuid.New().String())
+	_, err := cli.Installer.RegisterAddHostsCluster(
+		ctx,
+		&installer.RegisterAddHostsClusterParams{
+			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
+				APIVipDnsname:    swag.String("api-vip.redhat.com"),
+				ID:               &id,
+				Name:             swag.String("test"),
+				OpenshiftVersion: swag.String("4.6"),
+			},
+		})
+	return err
+}
+
+func getDiscoveryIgnition(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetDiscoveryIgnition(
+		ctx,
+		&installer.GetDiscoveryIgnitionParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
+	return err
+}
+
+func updateDiscoveryIgnition(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.UpdateDiscoveryIgnition(
+		ctx,
+		&installer.UpdateDiscoveryIgnitionParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{
+				Config: "",
+			},
+		})
+	return err
 }
