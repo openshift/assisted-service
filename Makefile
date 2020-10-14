@@ -159,12 +159,14 @@ define publish_image
 	${1} push ${3}
 endef # publish_image
 
-publish:
+publish_latest:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:latest)
-	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${GIT_REVISION})
 	$(call publish_image,docker,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
-	$(call publish_image,docker,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${GIT_REVISION})
 	$(call publish_image,podman,${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
+
+publish:
+	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${GIT_REVISION})
+	$(call publish_image,docker,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${GIT_REVISION})
 	$(call publish_image,podman,${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:${GIT_REVISION})
 
 ##########

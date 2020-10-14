@@ -48,11 +48,22 @@ pipeline {
         }
 
         stage('Publish') {
-            when { branch 'master'}
+            when {
+                expression {!env.BRANCH_NAME.startsWith('PR')}
+            }
             steps {
                 sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
                 sh "podman login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
                 sh "make publish"
+            }
+        }
+
+        stage('Publish master') {
+            when { branch 'master'}
+            steps {
+                sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
+                sh "podman login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
+                sh "make publish_latest"
             }
         }
     }
