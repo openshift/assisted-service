@@ -18,7 +18,7 @@ import (
 )
 
 var db *gorm.DB
-var agentBMClient, badAgentBMClient, userBMClient, adminUserBMClient, unallowedUserBMClient *client.AssistedInstall
+var agentBMClient, badAgentBMClient, userBMClient, readOnlyAdminUserBMClient, unallowedUserBMClient *client.AssistedInstall
 var log *logrus.Logger
 var wiremock *WireMock
 
@@ -63,7 +63,7 @@ func init() {
 	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(FakePS))
 	badAgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(WrongPullSecret))
 	userBMClient = client.New(userClientCfg)
-	adminUserBMClient = client.New(adminUserClientCfg)
+	readOnlyAdminUserBMClient = client.New(adminUserClientCfg)
 	unallowedUserBMClient = client.New(unallowedUserClientCfg)
 	agentBMClient = client.New(agentClientCfg)
 	badAgentBMClient = client.New(badAgentClientCfg)

@@ -2,13 +2,17 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
+	"github.com/patrickmn/go-cache"
+
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
-	"github.com/patrickmn/go-cache"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 const (
@@ -49,36 +53,44 @@ func (a *AuthzHandler) CreateAuthorizer() func(*http.Request) error {
 
 // Authorizer is used to authorize a request after the Auth function was called using the "Auth*" functions
 // and the principal was stored in the context in the "AuthKey" context value.
-func (a *AuthzHandler) Authorizer(request *http.Request) error {
+func (a *AuthzHandler) Authorizer(request *http.Request) (err error) {
 	payload := PayloadFromContext(request.Context())
 	username := payload.Username
-	payloadFromCache, found := a.client.Cache.Get(username)
-	if found {
-		// Update payload with values from cache
-		payloadFromCache := payloadFromCache.(*ocm.AuthPayload)
-		payload.IsUser = payloadFromCache.IsUser
-	} else {
-		// Inquire AMS for user's role
-		allowed, err := a.allowedToUseAssistedInstaller(username)
-		if err != nil {
-			a.log.Errorf("Failed to authorize user: %v", err)
-		} else {
-			payload.IsUser = allowed
+
+	if ok := a.hasSufficientRole(request, payload); !ok {
+		return common.NewInfraError(
+			http.StatusUnauthorized,
+			fmt.Errorf(
+				"%s: Unauthorized to access route (insufficient role %s)",
+				username, payload.Role))
+	}
+
+	var isAuthorized, existInCache bool
+	defer func() {
+		payload.IsAuthorized = isAuthorized
+		if !existInCache && shouldStorePayloadInCache(err) {
 			a.client.Cache.Set(username, payload, cache.DefaultExpiration)
+		}
+	}()
+
+	if payload, existInCache := a.client.Cache.Get(username); existInCache {
+		isAuthorized = payload.(*ocm.AuthPayload).IsAuthorized
+	} else {
+		if isAuthorized, err = a.allowedToUseAssistedInstaller(username); err != nil {
+			return common.NewInfraError(http.StatusInternalServerError, err)
 		}
 	}
 
-	if payload.IsUser {
-		// authorized user
-		return nil
+	if !isAuthorized {
+		return common.NewInfraError(
+			http.StatusUnauthorized,
+			fmt.Errorf(
+				"%s: Unauthorized to access route (access review failed)",
+				username))
 	}
-
-	return errors.Errorf("method is not allowed")
+	return
 }
 
-// Ensure that the user has authorization to use the bare metal installer service.
-// For now the indication is simply "create BareMetalCluster" permission,
-// which is allowed for users with BareMetalInstallerUser role.
 func (a *AuthzHandler) allowedToUseAssistedInstaller(username string) (bool, error) {
 	return a.client.Authorization.AccessReview(
 		context.Background(), username, AMSActionCreate, BareMetalClusterResource)
@@ -89,7 +101,7 @@ func PayloadFromContext(ctx context.Context) *ocm.AuthPayload {
 	payload := ctx.Value(restapi.AuthKey)
 	if payload == nil {
 		// fallback to system-admin
-		return &ocm.AuthPayload{IsAdmin: true, Username: AdminUsername}
+		return &ocm.AuthPayload{Role: ocm.AdminRole, Username: AdminUsername}
 	}
 	return payload.(*ocm.AuthPayload)
 }
@@ -104,4 +116,45 @@ func UserNameFromContext(ctx context.Context) string {
 func OrgIDFromContext(ctx context.Context) string {
 	payload := PayloadFromContext(ctx)
 	return payload.Organization
+}
+
+func (a *AuthzHandler) hasSufficientRole(
+	request *http.Request,
+	payload *ocm.AuthPayload) bool {
+
+	route := middleware.MatchedRouteFrom(request)
+
+	allScopesAreAllowedResponse := func() bool {
+		a.log.Debugf(
+			"%s: Authorized user: %s all roles are allowed",
+			route.PathPattern, payload.Username)
+		return true
+	}
+
+	if route.Authenticators == nil {
+		return allScopesAreAllowedResponse()
+	}
+
+	authScheme := route.Authenticator.Schemes[0]
+	for _, policy := range route.Authenticators {
+		policyScopes, exist := policy.Scopes[authScheme]
+		if !exist {
+			continue
+		}
+		if len(policyScopes) == 0 {
+			return allScopesAreAllowedResponse()
+		}
+		if funk.Contains(policyScopes, string(payload.Role)) {
+			a.log.Debugf(
+				"%s: Authorized user: %s for role: %s",
+				route.PathPattern, payload.Username, payload.Role)
+			return true
+		}
+	}
+	a.log.Warnf(
+		"Unauthorized user %s: insufficient role: %s allowed roles: %q",
+		payload.Username,
+		payload.Role,
+		route.Authenticator.Scopes)
+	return false
 }

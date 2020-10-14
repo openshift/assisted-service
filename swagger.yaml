@@ -28,7 +28,7 @@ securityDefinitions:
     name: Authorization
 
 security:
-  - userAuth: []
+  - userAuth: [admin, user]
 
 paths:
   /clusters:
@@ -72,6 +72,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: Retrieves the list of OpenShift bare metal clusters.
       operationId: ListClusters
       responses:
@@ -105,7 +107,7 @@ paths:
       tags:
         - installer
       security:
-        - userAuth: []
+        - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
       summary: Retrieves the details of the OpenShift bare metal cluster.
       operationId: GetCluster
@@ -293,6 +295,8 @@ paths:
       tags:
         - installer
       summary: Downloads the OpenShift per-cluster Discovery ISO.
+      security:
+        - userAuth: [admin, read-only-admin, user]
       operationId: DownloadClusterISO
       produces:
         # application/vnd.efi.iso is not supported
@@ -341,7 +345,7 @@ paths:
       tags:
         - installer
       security:
-        - userAuth: []
+        - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
       summary: Downloads files relating to the installed/installing cluster.
       operationId: DownloadClusterFiles
@@ -401,7 +405,7 @@ paths:
       tags:
         - installer
       security:
-        - userAuth: []
+        - userAuth: [admin, read-only-admin, user]
       summary: Retrieves a pre-signed S3 URL for downloading cluster files.
       operationId: GetPresignedForClusterFiles
       parameters:
@@ -463,6 +467,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: Get the cluster admin credentials.
       operationId: GetCredentials
       parameters:
@@ -505,6 +511,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: Downloads the kubeconfig file for this cluster.
       operationId: DownloadClusterKubeconfig
       produces:
@@ -550,6 +558,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: Get the cluster's install config YAML.
       operationId: GetClusterInstallConfig
       parameters:
@@ -631,6 +641,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: Get the cluster discovery ignition config
       operationId: GetDiscoveryIgnition
       parameters:
@@ -1057,7 +1069,7 @@ paths:
       tags:
         - installer
       security:
-        - userAuth: []
+        - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
       summary: Retrieves the list of OpenShift bare metal hosts.
       operationId: ListHosts
@@ -1101,6 +1113,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: Retrieves the details of the OpenShift bare metal host.
       operationId: GetHost
       parameters:
@@ -1512,7 +1526,7 @@ paths:
       summary: Download host logs.
       deprecated: true
       security:
-        - userAuth: []
+        - userAuth: [admin, read-only-admin, user]
       operationId: DownloadHostLogs
       produces:
         - application/octet-stream
@@ -1619,7 +1633,7 @@ paths:
         - installer
       summary: Download cluster logs.
       security:
-        - userAuth: []
+        - userAuth: [admin, read-only-admin, user]
       operationId: DownloadClusterLogs
       produces:
         - 'application/octet-stream'
@@ -1674,6 +1688,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: Retrieves the free address list for a network.
       operationId: GetFreeAddresses
       parameters:
@@ -1728,6 +1744,8 @@ paths:
     get:
       tags:
         - events
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: Lists events for a cluster.
       operationId: ListEvents
       parameters:
@@ -1771,6 +1789,8 @@ paths:
     get:
       tags:
         - managed_domains
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: List of managed DNS domains.
       operationId: ListManagedDomains
       responses:
@@ -1787,6 +1807,8 @@ paths:
     get:
       tags:
         - versions
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: List of component versions.
       operationId: ListComponentVersions
       responses:
@@ -1799,6 +1821,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: Get minimum host requirements.
       operationId: GetHostRequirements
       responses:
@@ -1844,6 +1868,14 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
         500:
           description: Error.
           schema:

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
@@ -24,12 +26,14 @@ type Config struct {
 	JwkCert    string `envconfig:"JWKS_CERT"`
 	JwkCertURL string `envconfig:"JWKS_URL" default:"https://api.openshift.com/.well-known/jwks.json"`
 	// Will be split with "," as separator
-	AllowedDomains string `envconfig:"ALLOWED_DOMAINS" default:""`
+	AllowedDomains string   `envconfig:"ALLOWED_DOMAINS" default:""`
+	AdminUsers     []string `envconfig:"ADMIN_USERS" default:""`
 }
 
 type AuthHandler struct {
 	EnableAuth bool
 	KeyMap     map[string]*rsa.PublicKey
+	AdminUsers []string
 	utils      AUtilsInteface
 	log        logrus.FieldLogger
 	client     *ocm.Client
@@ -38,6 +42,7 @@ type AuthHandler struct {
 func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthHandler {
 	a := &AuthHandler{
 		EnableAuth: cfg.EnableAuth,
+		AdminUsers: cfg.AdminUsers,
 		utils:      NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
 		client:     ocmCLient,
 		log:        log,
@@ -93,12 +98,16 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 		a.log.Errorf("Error Authenticating PullSecret token: %v", err)
 		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
-	err = a.storeAdminInPayload(user)
+	err = a.storeRoleInPayload(user)
+
+	if shouldStorePayloadInCache(err) {
+		a.client.Cache.Set(token, user, cache.DefaultExpiration)
+	}
+
 	if err != nil {
 		a.log.Errorf("Unable to fetch user's capabilities: %v", err)
 		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
-	a.client.Cache.Set(token, user, cache.DefaultExpiration)
 	return user, nil
 }
 
@@ -185,34 +194,48 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 		return nil, errors.Errorf("Missing username in token")
 	}
 
-	err = a.storeAdminInPayload(payload)
-	if err != nil {
-		a.log.Errorf("Unable to fetch user's capabilities: %v", err)
-		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
-	}
+	payloadKey := payload.Username + "_is_admin"
+	if payloadFromCache, existInCache := a.client.Cache.Get(payloadKey); existInCache {
+		payload.Role = payloadFromCache.(*ocm.AuthPayload).Role
+	} else {
+		err := a.storeRoleInPayload(payload)
 
+		if shouldStorePayloadInCache(err) {
+			a.client.Cache.Set(payloadKey, payload, cache.DefaultExpiration)
+		}
+
+		if err != nil {
+			a.log.Errorf("Unable to fetch user's role: %v", err)
+			return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
+		}
+	}
 	return payload, nil
 }
 
-func (a *AuthHandler) storeAdminInPayload(payload *ocm.AuthPayload) error {
-	payloadKey := payload.Username + "_is_admin"
-	payloadFromCache, found := a.client.Cache.Get(payloadKey)
-	if found {
-		payload.IsAdmin = payloadFromCache.(*ocm.AuthPayload).IsAdmin
-		return nil
-	}
-
-	admin, err := a.isAdmin(payload.Username)
+func (a AuthHandler) storeRoleInPayload(payload *ocm.AuthPayload) error {
+	role, err := a.getRole(payload)
 	if err != nil {
 		return err
 	}
-	payload.IsAdmin = admin
-	a.client.Cache.Set(payloadKey, payload, cache.DefaultExpiration)
-
+	payload.Role = role
 	return nil
 }
 
-func (a *AuthHandler) isAdmin(username string) (bool, error) {
+func (a AuthHandler) getRole(payload *ocm.AuthPayload) (ocm.RoleType, error) {
+	if funk.Contains(a.AdminUsers, payload.Username) {
+		return ocm.AdminRole, nil
+	}
+	isReadOnly, err := a.isReadOnlyAdmin(payload.Username)
+	if err != nil {
+		return ocm.UserRole, err
+	}
+	if isReadOnly {
+		return ocm.ReadOnlyAdminRole, nil
+	}
+	return ocm.UserRole, nil
+}
+
+func (a *AuthHandler) isReadOnlyAdmin(username string) (bool, error) {
 	return a.client.Authorization.CapabilityReview(
 		context.Background(), fmt.Sprint(username), CapabilityName, CapabilityType)
 }
@@ -226,7 +249,7 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 			if !a.EnableAuth {
 				a.log.Debug("API Key Authentication Disabled")
 				return true, &ocm.AuthPayload{
-					IsAdmin:  true, // auth disabled - behave as system-admin
+					Role:     ocm.AdminRole, // auth disabled - behave as system-admin
 					Username: AdminUsername,
 				}, nil
 			}

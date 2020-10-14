@@ -121,15 +121,23 @@ func (c *Client) newConnection() error {
 	return nil
 }
 
+type RoleType string
+
+const (
+	UserRole          RoleType = "user"
+	ReadOnlyAdminRole RoleType = "read-only-admin"
+	AdminRole         RoleType = "admin"
+)
+
 // AuthPayload defines the structure of the User
 type AuthPayload struct {
-	Username     string `json:"username"`
-	FirstName    string `json:"first_name"`
-	LastName     string `json:"last_name"`
-	Organization string `json:"org_id"`
-	Email        string `json:"email"`
-	Issuer       string `json:"iss"`
-	ClientID     string `json:"clientId"`
-	IsAdmin      bool   `json:"is_admin"`
-	IsUser       bool   `json:"is_user"`
+	Username     string   `json:"username"`
+	FirstName    string   `json:"first_name"`
+	LastName     string   `json:"last_name"`
+	Organization string   `json:"org_id"`
+	Email        string   `json:"email"`
+	Issuer       string   `json:"iss"`
+	ClientID     string   `json:"clientId"`
+	Role         RoleType `json:"scope"`
+	IsAuthorized bool     `json:"is_authorized"`
 }

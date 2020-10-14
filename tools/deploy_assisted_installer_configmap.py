@@ -85,6 +85,10 @@ def main():
             if deploy_options.installation_timeout:
                 y['data']['INSTALLATION_TIMEOUT'] = str(deploy_options.installation_timeout)
 
+            admins = get_admin_users()
+            if admins:
+                y['data']['ADMIN_USERS'] = admins
+
             data = yaml.dump(y)
             dst.write(data)
 
@@ -95,6 +99,15 @@ def main():
         profile=deploy_options.profile,
         file=DST_FILE
     )
+
+
+def get_admin_users():
+    admins_file = os.path.join(os.getcwd(), 'ADMINS')
+    if not os.path.isfile(admins_file):
+        return
+
+    with open(admins_file) as fp:
+        return ','.join([x.strip() for x in fp.readlines()])
 
 
 if __name__ == "__main__":

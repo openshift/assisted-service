@@ -67,6 +67,18 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -78,6 +90,15 @@ func init() {
     },
     "/clusters": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -182,7 +203,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           },
           {
             "agentAuth": []
@@ -732,6 +757,15 @@ func init() {
     },
     "/clusters/{cluster_id}/credentials": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -794,6 +828,15 @@ func init() {
     },
     "/clusters/{cluster_id}/discovery-ignition": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -917,7 +960,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           },
           {
             "agentAuth": []
@@ -1017,7 +1064,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           }
         ],
         "tags": [
@@ -1121,6 +1172,15 @@ func init() {
     },
     "/clusters/{cluster_id}/downloads/image": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "produces": [
           "application/octet-stream"
         ],
@@ -1264,6 +1324,15 @@ func init() {
     },
     "/clusters/{cluster_id}/downloads/kubeconfig": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "produces": [
           "application/octet-stream"
         ],
@@ -1330,6 +1399,15 @@ func init() {
     },
     "/clusters/{cluster_id}/events": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "events"
         ],
@@ -1392,6 +1470,15 @@ func init() {
     },
     "/clusters/{cluster_id}/free_addresses": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -1470,7 +1557,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           },
           {
             "agentAuth": []
@@ -1621,6 +1712,15 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -2052,7 +2152,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           }
         ],
         "produces": [
@@ -2294,6 +2398,15 @@ func init() {
     },
     "/clusters/{cluster_id}/install-config": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -2417,7 +2530,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           }
         ],
         "produces": [
@@ -2667,6 +2784,15 @@ func init() {
     },
     "/component_versions": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "versions"
         ],
@@ -2684,6 +2810,15 @@ func init() {
     },
     "/domains": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "managed_domains"
         ],
@@ -2707,6 +2842,15 @@ func init() {
     },
     "/host_requirements": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -4289,7 +4433,10 @@ func init() {
   },
   "security": [
     {
-      "userAuth": []
+      "userAuth": [
+        "admin",
+        "user"
+      ]
     }
   ],
   "tags": [
@@ -4349,6 +4496,18 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -4360,6 +4519,15 @@ func init() {
     },
     "/clusters": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -4464,7 +4632,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           },
           {
             "agentAuth": []
@@ -5014,6 +5186,15 @@ func init() {
     },
     "/clusters/{cluster_id}/credentials": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -5076,6 +5257,15 @@ func init() {
     },
     "/clusters/{cluster_id}/discovery-ignition": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -5199,7 +5389,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           },
           {
             "agentAuth": []
@@ -5299,7 +5493,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           }
         ],
         "tags": [
@@ -5403,6 +5601,15 @@ func init() {
     },
     "/clusters/{cluster_id}/downloads/image": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "produces": [
           "application/octet-stream"
         ],
@@ -5546,6 +5753,15 @@ func init() {
     },
     "/clusters/{cluster_id}/downloads/kubeconfig": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "produces": [
           "application/octet-stream"
         ],
@@ -5612,6 +5828,15 @@ func init() {
     },
     "/clusters/{cluster_id}/events": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "events"
         ],
@@ -5674,6 +5899,15 @@ func init() {
     },
     "/clusters/{cluster_id}/free_addresses": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -5752,7 +5986,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           },
           {
             "agentAuth": []
@@ -5903,6 +6141,15 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -6334,7 +6581,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           }
         ],
         "produces": [
@@ -6576,6 +6827,15 @@ func init() {
     },
     "/clusters/{cluster_id}/install-config": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -6699,7 +6959,11 @@ func init() {
       "get": {
         "security": [
           {
-            "userAuth": []
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
           }
         ],
         "produces": [
@@ -6949,6 +7213,15 @@ func init() {
     },
     "/component_versions": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "versions"
         ],
@@ -6966,6 +7239,15 @@ func init() {
     },
     "/domains": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "managed_domains"
         ],
@@ -6989,6 +7271,15 @@ func init() {
     },
     "/host_requirements": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "tags": [
           "installer"
         ],
@@ -8597,7 +8888,10 @@ func init() {
   },
   "security": [
     {
-      "userAuth": []
+      "userAuth": [
+        "admin",
+        "user"
+      ]
     }
   ],
   "tags": [

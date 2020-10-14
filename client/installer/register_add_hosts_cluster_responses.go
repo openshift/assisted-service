@@ -35,6 +35,18 @@ func (o *RegisterAddHostsClusterReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewRegisterAddHostsClusterUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+	case 403:
+		result := NewRegisterAddHostsClusterForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewRegisterAddHostsClusterInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -104,6 +116,72 @@ func (o *RegisterAddHostsClusterBadRequest) GetPayload() *models.Error {
 func (o *RegisterAddHostsClusterBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewRegisterAddHostsClusterUnauthorized creates a RegisterAddHostsClusterUnauthorized with default headers values
+func NewRegisterAddHostsClusterUnauthorized() *RegisterAddHostsClusterUnauthorized {
+	return &RegisterAddHostsClusterUnauthorized{}
+}
+
+/*RegisterAddHostsClusterUnauthorized handles this case with default header values.
+
+Unauthorized.
+*/
+type RegisterAddHostsClusterUnauthorized struct {
+	Payload *models.InfraError
+}
+
+func (o *RegisterAddHostsClusterUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /add_hosts_clusters][%d] registerAddHostsClusterUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *RegisterAddHostsClusterUnauthorized) GetPayload() *models.InfraError {
+	return o.Payload
+}
+
+func (o *RegisterAddHostsClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.InfraError)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewRegisterAddHostsClusterForbidden creates a RegisterAddHostsClusterForbidden with default headers values
+func NewRegisterAddHostsClusterForbidden() *RegisterAddHostsClusterForbidden {
+	return &RegisterAddHostsClusterForbidden{}
+}
+
+/*RegisterAddHostsClusterForbidden handles this case with default header values.
+
+Forbidden.
+*/
+type RegisterAddHostsClusterForbidden struct {
+	Payload *models.InfraError
+}
+
+func (o *RegisterAddHostsClusterForbidden) Error() string {
+	return fmt.Sprintf("[POST /add_hosts_clusters][%d] registerAddHostsClusterForbidden  %+v", 403, o.Payload)
+}
+
+func (o *RegisterAddHostsClusterForbidden) GetPayload() *models.InfraError {
+	return o.Payload
+}
+
+func (o *RegisterAddHostsClusterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.InfraError)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

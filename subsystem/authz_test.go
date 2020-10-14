@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
@@ -20,7 +22,6 @@ var _ = Describe("test authorization", func() {
 
 	var err error
 
-	var adminClusterID strfmt.UUID
 	var userClusterID strfmt.UUID
 
 	var accessReviewUnallowedUserStubID string
@@ -70,7 +71,6 @@ var _ = Describe("test authorization", func() {
 			Skip("auth is disabled")
 		}
 
-		adminClusterID = registerCluster(ctx, adminUserBMClient, "admin-cluster", fmt.Sprintf(psTemplate, FakeAdminPS))
 		userClusterID = registerCluster(ctx, userBMClient, "user-cluster", fmt.Sprintf(psTemplate, FakePS))
 	})
 
@@ -80,42 +80,41 @@ var _ = Describe("test authorization", func() {
 
 	Context("unallowed user", func() {
 		It("can't list clusters", func() {
-			_, err := unallowedUserBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+			_, err = unallowedUserBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
 			Expect(err).Should(HaveOccurred())
 		})
 	})
 
 	Context("admin user", func() {
 		It("can get all clusters", func() {
-			_, err := adminUserBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID})
-			Expect(err).ShouldNot(HaveOccurred())
-
-			_, err = adminUserBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: adminClusterID})
+			_, err = readOnlyAdminUserBMClient.Installer.GetCluster(
+				ctx,
+				&installer.GetClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 
 	Context("regular user", func() {
 		It("can get owned cluster", func() {
-			_, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID})
+			_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't get not owned cluster", func() {
-			_, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: adminClusterID})
+			_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: strfmt.UUID(uuid.New().String())})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewGetClusterNotFound()))
 		})
 
 		It("can delete owned cluster", func() {
-			_, err := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
+			_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("can't delete not owned cluster", func() {
-			_, err := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: adminClusterID})
+		It("can't register/delete with read only admin", func() {
+			_, err = readOnlyAdminUserBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).Should(HaveOccurred())
-			Expect(err).To(BeAssignableToTypeOf(installer.NewDeregisterClusterNotFound()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewDeregisterClusterForbidden()))
 		})
 	})
 })
