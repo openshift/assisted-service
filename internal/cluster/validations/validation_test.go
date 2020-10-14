@@ -33,6 +33,9 @@ const (
 )
 
 var _ = Describe("Pull secret validation", func() {
+
+	var secretValidator PullSecretValidator
+
 	log := logrus.New()
 	fakeConfigDisabled := auth.Config{
 		EnableAuth: false,
@@ -52,31 +55,38 @@ var _ = Describe("Pull secret validation", func() {
 		Cache:          cache.New(1*time.Minute, 30*time.Minute),
 	}
 	authHandler := auth.NewAuthHandler(fakeConfig, client, log.WithField("pkg", "auth"), nil)
-
 	Context("test secret format", func() {
+
+		BeforeEach(func() {
+			secretValidator, _ = NewPullSecretValidator(Config{})
+		})
+
 		It("valid format", func() {
-			err := ValidatePullSecret(validSecretFormat, "", *authHandlerDisabled)
-			Expect(err).Should(BeNil())
+			err := secretValidator.ValidatePullSecret(validSecretFormat, "", *authHandlerDisabled)
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("invalid format for the auth", func() {
-			err := ValidatePullSecret(invalidAuthFormat, "", *authHandlerDisabled)
-			Expect(err).ShouldNot(BeNil())
+			err := secretValidator.ValidatePullSecret(invalidAuthFormat, "", *authHandlerDisabled)
+			Expect(err).Should(HaveOccurred())
+			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("invalid format", func() {
-			err := ValidatePullSecret(invalidSecretFormat, "", *authHandlerDisabled)
-			Expect(err).ShouldNot(BeNil())
+			err := secretValidator.ValidatePullSecret(invalidSecretFormat, "", *authHandlerDisabled)
+			Expect(err).Should(HaveOccurred())
+			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("valid format - Invalid user", func() {
-			err := ValidatePullSecret(validSecretFormat, "NotSameUser@example.com", *authHandler)
-			Expect(err)
+			err := secretValidator.ValidatePullSecret(validSecretFormat, "NotSameUser@example.com", *authHandler)
+			Expect(err).Should(HaveOccurred())
+			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("valid format - Valid user", func() {
-			err := ValidatePullSecret(validSecretFormat, userName, *authHandler)
-			Expect(err).Should(BeNil())
+			err := secretValidator.ValidatePullSecret(validSecretFormat, userName, *authHandler)
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("Add RH Reg PullSecret ", func() {
 			ps, err := AddRHRegPullSecret(validSecretFormat, regCred)
-			Expect(err).Should(BeNil())
+			Expect(err).ShouldNot(HaveOccurred())
 			Expect(ps).To(Equal(validSecretFormatUpdated))
 		})
 		It("Check empty RH Reg PullSecret ", func() {
@@ -85,6 +95,71 @@ var _ = Describe("Pull secret validation", func() {
 		})
 	})
 
+	Context("test registries", func() {
+
+		const pullSecDocker = "{\"auths\":{\"docker.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
+		const pullSecLegacyDocker = "{\"auths\":{\"https://index.docker.io/v1/\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
+
+		It("pull secret accepted when it contains all required registries", func() {
+			validator, err := NewPullSecretValidator(Config{}, "quay.io/testing:latest", "registry.redhat.io/image:v1")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(validSecretFormat, "", *authHandlerDisabled)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("pull secret accepted even if it does not contain registry.stage.redhat.io", func() {
+			validator, err := NewPullSecretValidator(Config{}, "quay.io/testing:latest", "registry.stage.redhat.io/special:v1")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(validSecretFormat, "", *authHandlerDisabled)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("pull secret accepted when it doesn't contain auths for ignored registries", func() {
+			config := Config{
+				PublicRegistries: "ignore.com,something.com",
+			}
+			validator, err := NewPullSecretValidator(config, "quay.io/testing:latest", "ignore.com/image:v1", "something.com/container:X")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(validSecretFormat, "", *authHandlerDisabled)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("docker.io auth is accepted when there is an image from docker.io", func() {
+			validator, err := NewPullSecretValidator(Config{}, "docker.io/testing:latest")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(pullSecDocker, "", *authHandlerDisabled)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("legacy DockerHub auth is accepted when there is an image from docker.io", func() {
+			validator, err := NewPullSecretValidator(Config{}, "docker.io/testing:latest")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(pullSecLegacyDocker, "", *authHandlerDisabled)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("docker.io auth is accepted when there is an image with default registry", func() {
+			validator, err := NewPullSecretValidator(Config{}, "local:v1")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(pullSecDocker, "", *authHandlerDisabled)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("legacy DockerHub auth is accepted when there is an image with default registry", func() {
+			validator, err := NewPullSecretValidator(Config{}, "local:v2")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(pullSecLegacyDocker, "", *authHandlerDisabled)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("error when pull secret does not contain required registry", func() {
+			validator, err := NewPullSecretValidator(Config{}, "quay.io/testing:latest", "required.com/image:v1")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(validSecretFormat, "", *authHandlerDisabled)
+			Expect(err).Should(HaveOccurred())
+			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
+		})
+	})
 })
 
 var _ = Describe("SSH Key validation", func() {
@@ -386,6 +461,116 @@ var _ = Describe("dns name", func() {
 			}
 		})
 	}
+})
+
+var _ = Describe("Get registry from container image name", func() {
+
+	It("all registries present when ignore list empty", func() {
+		images := []string{"registry.redhat.io/fedora:32", "quay.io/ocpmetal/assisted-service:latest"}
+		registries, err := getRegistriesWithAuth("", ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(2))
+		Expect(*registries).Should(HaveKey("registry.redhat.io"))
+		Expect(*registries).Should(HaveKey("quay.io"))
+	})
+
+	It("multiple images with same registry result in one auth entry", func() {
+		images := []string{"quay.io/ocpmetal/assisted-service:4.6", "quay.io/ocpmetal/assisted-service:latest"}
+		registries, err := getRegistriesWithAuth("", ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(1))
+		Expect(*registries).Should(HaveKey("quay.io"))
+	})
+
+	It("port preserved in image registry", func() {
+		images := []string{"localhost:5000/private/service:v1"}
+		registries, err := getRegistriesWithAuth("", ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(1))
+		Expect(*registries).Should(HaveKey("localhost:5000"))
+	})
+
+	It("empty registry is replaced with official docker registry", func() {
+		images := []string{"private/service:v1"}
+		registries, err := getRegistriesWithAuth("", ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(1))
+		Expect(*registries).Should(HaveKey(dockerHubRegistry))
+	})
+
+	It("registries omitted when in ignore list with comma (,) separator", func() {
+		images := []string{"quay.io/private/service:latest", "localhost:5050/private/service:v1", "registry.redhat.io/fedora:32"}
+		registries, err := getRegistriesWithAuth("quay.io,localhost:5050", ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(1))
+		Expect(*registries).Should(HaveKey("registry.redhat.io"))
+	})
+
+	It("registries omitted when in ignore list with semicolon (;) separator", func() {
+		images := []string{"quay.io/private/service:latest", "localhost:5050/private/service:v1", "registry.redhat.io/fedora:32"}
+		registries, err := getRegistriesWithAuth("quay.io;localhost:5050", ";", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(1))
+		Expect(*registries).Should(HaveKey("registry.redhat.io"))
+	})
+
+	It("all multiple entries from the same registries omitted when in ingore list", func() {
+		images := []string{"quay.io/private/service:v1", "quay.io/ocpmetal/assisted-service:latest"}
+		registries, err := getRegistriesWithAuth("quay.io", ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(0))
+	})
+
+	It("docker official registry is ignored when in ignore list", func() {
+		images := []string{dockerHubRegistry + "/private/service:v1"}
+		registries, err := getRegistriesWithAuth(dockerHubRegistry, ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(0))
+	})
+
+	It("docker official registry is ignored when docker legacy URL in ignore list", func() {
+		images := []string{dockerHubRegistry + "/private/service:v1"}
+		registries, err := getRegistriesWithAuth(dockerHubLegacyAuth, ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(0))
+	})
+
+	It("default registry is ignored when docker official registry in ignore list", func() {
+		images := []string{"private/service:v1"}
+		registries, err := getRegistriesWithAuth(dockerHubRegistry, ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(0))
+	})
+
+	It("default registry is ignored when docker registry URL in ignore list", func() {
+		images := []string{"private/service:v1"}
+		registries, err := getRegistriesWithAuth(dockerHubLegacyAuth, ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(0))
+	})
+
+	It("registries list empty when images empty", func() {
+		images := []string{}
+		registries, err := getRegistriesWithAuth("", ",", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(0))
+	})
+
+	It("nothing ignored when ignore list uses wrong separator", func() {
+		images := []string{"quay.io/private/service:latest", "localhost:5050/private/service:v1", "registry.redhat.io/fedora:32"}
+		registries, err := getRegistriesWithAuth("quay.io,localhost:5050", ";", images...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*registries).Should(HaveLen(3))
+		Expect(*registries).Should(HaveKey("registry.redhat.io"))
+		Expect(*registries).Should(HaveKey("quay.io"))
+		Expect(*registries).Should(HaveKey("localhost:5050"))
+	})
+
+	It("error occurs when image list contains malformed image name", func() {
+		images := []string{"quay.io:X/private/service:latest"}
+		_, err := getRegistriesWithAuth("", ";", images...)
+		Expect(err).Should(HaveOccurred())
+	})
 })
 
 func TestCluster(t *testing.T) {

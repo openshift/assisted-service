@@ -214,17 +214,18 @@ type OCPClusterAPI interface {
 
 type bareMetalInventory struct {
 	Config
-	db            *gorm.DB
-	log           logrus.FieldLogger
-	hostApi       host.API
-	clusterApi    cluster.API
-	eventsHandler events.Handler
-	objectHandler s3wrapper.API
-	metricApi     metrics.API
-	generator     generator.ISOInstallConfigGenerator
-	authHandler   auth.AuthHandler
-	k8sClient     k8sclient.K8SClient
-	leaderElector leader.Leader
+	db              *gorm.DB
+	log             logrus.FieldLogger
+	hostApi         host.API
+	clusterApi      cluster.API
+	eventsHandler   events.Handler
+	objectHandler   s3wrapper.API
+	metricApi       metrics.API
+	generator       generator.ISOInstallConfigGenerator
+	authHandler     auth.AuthHandler
+	k8sClient       k8sclient.K8SClient
+	leaderElector   leader.Leader
+	secretValidator validations.PullSecretValidator
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}
@@ -242,20 +243,22 @@ func NewBareMetalInventory(
 	authHandler auth.AuthHandler,
 	k8sClient k8sclient.K8SClient,
 	leaderElector leader.Leader,
+	pullSecretValidator validations.PullSecretValidator,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
-		db:            db,
-		log:           log,
-		Config:        cfg,
-		hostApi:       hostApi,
-		clusterApi:    clusterApi,
-		generator:     generator,
-		eventsHandler: eventsHandler,
-		objectHandler: objectHandler,
-		metricApi:     metricApi,
-		authHandler:   authHandler,
-		k8sClient:     k8sClient,
-		leaderElector: leaderElector,
+		db:              db,
+		log:             log,
+		Config:          cfg,
+		hostApi:         hostApi,
+		clusterApi:      clusterApi,
+		generator:       generator,
+		eventsHandler:   eventsHandler,
+		objectHandler:   objectHandler,
+		metricApi:       metricApi,
+		authHandler:     authHandler,
+		k8sClient:       k8sClient,
+		leaderElector:   leaderElector,
+		secretValidator: pullSecretValidator,
 	}
 }
 
@@ -479,11 +482,11 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	}
 
 	if params.NewClusterParams.PullSecret != "" {
-		err := validations.ValidatePullSecret(params.NewClusterParams.PullSecret, auth.UserNameFromContext(ctx), b.authHandler)
+		err := b.secretValidator.ValidatePullSecret(params.NewClusterParams.PullSecret, auth.UserNameFromContext(ctx), b.authHandler)
 		if err != nil {
-			log.WithError(err).Errorf("Pull-secret for new cluster has invalid format")
+			log.WithError(err).Errorf("Pull secret for new cluster is invalid")
 			return installer.NewRegisterClusterBadRequest().
-				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to validate Pull-secret")))
+				WithPayload(common.GenerateError(http.StatusBadRequest, secretValidationToUserError(err)))
 		}
 		ps, err := b.updatePullSecret(params.NewClusterParams.PullSecret, log)
 		if err != nil {
@@ -1224,11 +1227,11 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	log.Info("update cluster ", params.ClusterID)
 
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
-		err = validations.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, auth.UserNameFromContext(ctx), b.authHandler)
+		err = b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, auth.UserNameFromContext(ctx), b.authHandler)
 		if err != nil {
-			log.WithError(err).Errorf("Pull-secret for cluster %s, has invalid format", params.ClusterID)
+			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
 			return installer.NewUpdateClusterBadRequest().
-				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to validate Pull-secret")))
+				WithPayload(common.GenerateError(http.StatusBadRequest, secretValidationToUserError(err)))
 		}
 		ps, errUpdate := b.updatePullSecret(*params.ClusterUpdateParams.PullSecret, log)
 		if errUpdate != nil {
@@ -3358,4 +3361,13 @@ func (b bareMetalInventory) PermanentlyDeleteUnregisteredClustersAndHosts() {
 		b.log.WithError(err).Errorf("Failed deleting soft-deleted hosts")
 		return
 	}
+}
+
+func secretValidationToUserError(err error) error {
+
+	if _, ok := err.(*validations.PullSecretError); ok {
+		return err
+	}
+
+	return errors.New("Failed validating pull secret")
 }

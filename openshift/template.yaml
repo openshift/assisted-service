@@ -100,6 +100,8 @@ parameters:
 - name: ADMIN_USERS
   value: ''
   required: false
+- name: PUBLIC_CONTAINER_REGISTRIES
+  value: ""
 apiVersion: v1
 kind: Template
 metadata:
@@ -276,6 +278,8 @@ objects:
                 value: /etc/.aws/credentials
               - name: ADMIN_USERS
                 value: ${ADMIN_USERS}
+              - name: PUBLIC_CONTAINER_REGISTRIES
+                value: ${PUBLIC_CONTAINER_REGISTRIES}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
