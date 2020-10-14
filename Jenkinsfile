@@ -24,6 +24,10 @@ pipeline {
                 sh 'make clear-all || true'
                 sh 'docker system prune -a'
                 sh 'make ci-lint'
+
+                // Login to quay.io
+                sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
+                sh "podman login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
             }
         }
 
@@ -48,11 +52,18 @@ pipeline {
         }
 
         stage('Publish') {
+            when {
+                expression {!env.BRANCH_NAME.startsWith('PR')}
+            }
+            steps {
+                sh "make publish"
+            }
+        }
+
+        stage('Publish master') {
             when { branch 'master'}
             steps {
-                sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
-                sh "podman login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
-                sh "make publish"
+                sh "make publish PUBLISH_TAG=latest"
             }
         }
     }

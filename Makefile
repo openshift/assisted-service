@@ -34,6 +34,7 @@ BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshi
 OPENSHIFT_INSTALL_RELEASE_IMAGE := $(or ${OPENSHIFT_INSTALL_RELEASE_IMAGE},quay.io/openshift-release-dev/ocp-release:4.6.0-fc.9-x86_64)
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
+PUBLISH_TAG := $(or ${GIT_REVISION})
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
 OCM_CLIENT_ID := ${OCM_CLIENT_ID}
@@ -160,12 +161,9 @@ define publish_image
 endef # publish_image
 
 publish:
-	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:latest)
-	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${GIT_REVISION})
-	$(call publish_image,docker,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:latest)
-	$(call publish_image,docker,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${GIT_REVISION})
-	$(call publish_image,podman,${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:latest)
-	$(call publish_image,podman,${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:${GIT_REVISION})
+	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
+	$(call publish_image,docker,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${PUBLISH_TAG})
+	$(call publish_image,podman,${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:${PUBLISH_TAG})
 
 ##########
 # Deploy #
