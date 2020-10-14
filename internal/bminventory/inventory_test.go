@@ -3044,6 +3044,40 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
 
+	It("Download unregistered cluster controller log success", func() {
+		logsType := string(models.LogsTypeController)
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+			LogsType:  &logsType,
+		}
+		c.ControllerLogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&c)
+		dbReply := db.Delete(&host1)
+		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
+		dbReply = db.Where("id = ?", clusterID).Delete(&common.Cluster{})
+		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
+		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		fileName := bm.getLogsFullName(clusterID.String(), logsType)
+		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
+		generateReply := bm.DownloadClusterLogs(ctx, params)
+		downloadFileName := fmt.Sprintf("mycluster_%s_%s.tar.gz", clusterID, logsType)
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(r), downloadFileName, 4)))
+	})
+
+	It("Download unregistered cluster controller log failure - permanently deleted", func() {
+		logsType := string(models.LogsTypeController)
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+			LogsType:  &logsType,
+		}
+		c.ControllerLogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&c)
+		dbReply := db.Unscoped().Delete(&host1)
+		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
+		dbReply = db.Unscoped().Where("id = ?", clusterID).Delete(&common.Cluster{})
+		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
+	})
 })
 
 var _ = Describe("GetClusterInstallConfig", func() {

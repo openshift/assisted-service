@@ -130,7 +130,7 @@ var _ = Describe("Cluster tests", func() {
 	It("get cluster - get unregistered cluster", func() {
 		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err1).ShouldNot(HaveOccurred())
-		_, err2 := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{})
+		_, err2 := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 		Expect(err2).ShouldNot(HaveOccurred())
 	})
 
@@ -138,15 +138,35 @@ var _ = Describe("Cluster tests", func() {
 		h := registerHost(clusterID)
 		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err1).ShouldNot(HaveOccurred())
-		ret, err2 := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		ret, err2 := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(false)})
 		Expect(err2).ShouldNot(HaveOccurred())
 		clusters := ret.GetPayload()
-		Expect(len(clusters)).Should(Equal(1))
-		Expect(clusters[0].ID.String()).Should(Equal(clusterID.String()))
-		Expect(clusters[0].DeletedAt).ShouldNot(Equal(strfmt.DateTime{}))
-		Expect(len(clusters[0].Hosts)).Should(Equal(1))
-		Expect(clusters[0].Hosts[0].ID.String()).Should(Equal(h.ID.String()))
-		Expect(clusters[0].Hosts[0].DeletedAt).ShouldNot(Equal(strfmt.DateTime{}))
+		found := false
+		for _, c := range clusters {
+			if c.ID.String() != clusterID.String() {
+				continue
+			}
+			found = true
+			break
+		}
+		Expect(found).Should(Equal(false))
+		ret, err2 = userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		Expect(err2).ShouldNot(HaveOccurred())
+		clusters = ret.GetPayload()
+		found = false
+		for _, c := range clusters {
+			if c.ID.String() != clusterID.String() {
+				continue
+			}
+			found = true
+			Expect(c.ID.String()).Should(Equal(clusterID.String()))
+			Expect(c.DeletedAt).ShouldNot(Equal(strfmt.DateTime{}))
+			Expect(len(c.Hosts)).ShouldNot(Equal(0))
+			Expect(c.ID.String()).Should(Equal(h.ID.String()))
+			Expect(c.DeletedAt).ShouldNot(Equal(strfmt.DateTime{}))
+			break
+		}
+		Expect(found).Should(Equal(true))
 	})
 
 	It("cluster CRUD", func() {
@@ -1237,6 +1257,25 @@ var _ = Describe("cluster install", func() {
 					LogsType: &logsType}, file)
 				Expect(err).NotTo(HaveOccurred())
 				s, err = file.Stat()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(s.Size()).ShouldNot(Equal(0))
+			}
+
+			By("Test happy flow unregistered cluster")
+			{
+				kubeconfigFile, err := os.Open("test_kubeconfig")
+				Expect(err).NotTo(HaveOccurred())
+				_ = register3nodes(clusterID)
+				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID, LogsType: string(models.LogsTypeController), Upfile: kubeconfigFile})
+				Expect(err).NotTo(HaveOccurred())
+				logsType := string(models.LogsTypeController)
+				file, err := ioutil.TempFile("", "tmp")
+				Expect(err).NotTo(HaveOccurred())
+				_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+				Expect(err).ShouldNot(HaveOccurred())
+				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID, LogsType: &logsType}, file)
+				Expect(err).NotTo(HaveOccurred())
+				s, err := file.Stat()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(s.Size()).ShouldNot(Equal(0))
 			}

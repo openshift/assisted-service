@@ -358,7 +358,7 @@ func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOPa
 func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	c, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	c, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -377,7 +377,7 @@ func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params in
 func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	_, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	_, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -1117,7 +1117,7 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	c, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	c, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -2310,7 +2310,7 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
 	var fileName string
 	var downloadFileName string
-	c, err := b.getCluster(ctx, clusterId.String(), true)
+	c, err := b.getCluster(ctx, clusterId.String(), returnHosts(true))
 	if err != nil {
 		return "", "", err
 	}
@@ -2942,7 +2942,7 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 		return nil
 	}
 
-	currentCluster, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	currentCluster, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
 		return err
 	}
@@ -3063,17 +3063,19 @@ func (b *bareMetalInventory) getHost(ctx context.Context, clusterId string, host
 	return &host, nil
 }
 
-func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, returnHosts bool) (*common.Cluster, error) {
+type returnHosts bool
+
+func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, flags ...interface{}) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
-	var db *gorm.DB
-	if returnHosts {
-		db = b.db.Preload("Hosts")
-	} else {
-		db = b.db
+	db := b.db.Unscoped()
+	if funk.Contains(flags, returnHosts(true)) {
+		db = db.Preload("Hosts", func(db *gorm.DB) *gorm.DB {
+			return db.Unscoped()
+		})
 	}
 	if err := db.First(&cluster, identity.AddUserFilter(ctx, "id = ?"), clusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
+		log.WithError(err).Errorf("Failed to find cluster in db: %s", clusterID)
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		} else {

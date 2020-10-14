@@ -155,8 +155,6 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 	if err != nil {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
 			fmt.Sprintf("Failed to deregister cluster. Error: %s", err.Error()), time.Now())
-	} else {
-		m.eventsHandler.DeleteClusterEvents(*c.ID)
 	}
 	return err
 }
