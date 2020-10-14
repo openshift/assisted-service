@@ -42,7 +42,7 @@ const (
 
 const (
 	validDiskSize     = int64(128849018880)
-	minSuccessesInRow = 4
+	minSuccessesInRow = 2
 )
 
 var (
@@ -871,7 +871,8 @@ var _ = Describe("cluster install", func() {
 			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewPostStepReplyBadRequest())))
 
 			By("Verifying installation failed")
-			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, "failed")
+			//wait here a bit longer since this transition takes more time than others
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, 2*defaultWaitForClusterStateTimeout, "failed")
 		})
 
 		It("[only_k8s]install_cluster assisted-installer already running", func() {
