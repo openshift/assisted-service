@@ -2802,6 +2802,8 @@ definitions:
         type: string
       size_bytes:
         type: integer
+      bootable:
+        type: boolean
 
   boot:
     type: object

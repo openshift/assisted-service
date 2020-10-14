@@ -15,6 +15,9 @@ import (
 // swagger:model disk
 type Disk struct {
 
+	// bootable
+	Bootable bool `json:"bootable,omitempty"`
+
 	// by path
 	ByPath string `json:"by_path,omitempty"`
 
