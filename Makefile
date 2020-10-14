@@ -141,6 +141,10 @@ build-minimal-assisted-iso-generator-image:
 	docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
  		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
+update-service:
+	skipper make build-image
+	docker push $(SERVICE)
+
 update: build-all
 	docker push $(SERVICE)
 	docker push $(ISO_CREATION)
