@@ -6,16 +6,13 @@
 function print_usage() {
     [[ -n "$1" ]] && echo "$1" && echo
     echo "usage: pod_image_labels [-p] <pod-name-filter> "
-    echo
-    echo "    -p - Use podman instead of docker"
     exit 1
 }
 
 
-DOCKER_ENGINE="docker"
+DOCKER_ENGINE="podman"
 while getopts ':ph' flag; do
   case "${flag}" in
-    p) DOCKER_ENGINE="podman" ;;
     h) print_usage ;;
     ?) print_usage "invalid flag ${OPTARG}" ;;
   esac

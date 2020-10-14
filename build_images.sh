@@ -12,7 +12,7 @@ ASSISTED_SERVICE_IMAGE=quay.io/app-sre/assisted-service
 ASSISTED_ISO_CREATE_IMAGE=quay.io/app-sre/assisted-iso-create
 
 SERVICE="${ASSISTED_SERVICE_IMAGE}:latest" skipper make update-minimal
-docker tag "${ASSISTED_SERVICE_IMAGE}:latest" "${ASSISTED_SERVICE_IMAGE}:${TAG}"
+podman tag "${ASSISTED_SERVICE_IMAGE}:latest" "${ASSISTED_SERVICE_IMAGE}:${TAG}"
 
 ISO_CREATION="${ASSISTED_ISO_CREATE_IMAGE}:latest" skipper make build-minimal-assisted-iso-generator-image
-docker tag "${ASSISTED_ISO_CREATE_IMAGE}:latest" "${ASSISTED_ISO_CREATE_IMAGE}:${TAG}"
+podman tag "${ASSISTED_ISO_CREATE_IMAGE}:latest" "${ASSISTED_ISO_CREATE_IMAGE}:${TAG}"

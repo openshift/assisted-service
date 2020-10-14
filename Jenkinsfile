@@ -22,7 +22,7 @@ pipeline {
         stage('Init') {
             steps {
                 sh 'make clear-all || true'
-                sh 'docker system prune -a'
+                sh 'podman system prune -a'
                 sh 'make ci-lint'
             }
         }
@@ -50,7 +50,7 @@ pipeline {
         stage('Publish') {
             when { branch 'master'}
             steps {
-                sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
+                sh "podman login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
                 sh "podman login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
                 sh "make publish"
             }

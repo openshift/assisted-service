@@ -13,7 +13,6 @@ INGRESS_REMOTE_TARGET = 'oc-ingress'
 
 MINIKUBE_CMD = 'minikube'
 KUBECTL_CMD = 'kubectl'
-DOCKER = "docker"
 PODMAN = "podman"
 
 
@@ -250,12 +249,10 @@ def is_tool(name):
 
 
 def get_runtime_command():
-    if is_tool(DOCKER):
-        cmd = DOCKER
-    elif is_tool(PODMAN):
+    if is_tool(PODMAN):
         cmd = PODMAN
     else:
-        raise Exception("Nor %s nor %s are installed" % (PODMAN, DOCKER))
+        raise Exception("Nor %s nor %s are installed" % (PODMAN))
     return cmd
 
 
