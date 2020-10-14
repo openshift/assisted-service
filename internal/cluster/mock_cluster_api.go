@@ -475,3 +475,45 @@ func (mr *MockAPIMockRecorder) SetConnectivityMajorityGroupsForCluster(clusterID
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConnectivityMajorityGroupsForCluster", reflect.TypeOf((*MockAPI)(nil).SetConnectivityMajorityGroupsForCluster), clusterID, db)
 }
+
+// DeleteClusterLogs mocks base method
+func (m *MockAPI) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteClusterLogs", ctx, c, objectHandler)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteClusterLogs indicates an expected call of DeleteClusterLogs
+func (mr *MockAPIMockRecorder) DeleteClusterLogs(ctx, c, objectHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterLogs", reflect.TypeOf((*MockAPI)(nil).DeleteClusterLogs), ctx, c, objectHandler)
+}
+
+// DeleteClusterFiles mocks base method
+func (m *MockAPI) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteClusterFiles", ctx, c, objectHandler)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteClusterFiles indicates an expected call of DeleteClusterFiles
+func (mr *MockAPIMockRecorder) DeleteClusterFiles(ctx, c, objectHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterFiles", reflect.TypeOf((*MockAPI)(nil).DeleteClusterFiles), ctx, c, objectHandler)
+}
+
+// PermanentClustersDeletion mocks base method
+func (m *MockAPI) PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PermanentClustersDeletion", ctx, olderThen, objectHandler)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PermanentClustersDeletion indicates an expected call of PermanentClustersDeletion
+func (mr *MockAPIMockRecorder) PermanentClustersDeletion(ctx, olderThen, objectHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermanentClustersDeletion", reflect.TypeOf((*MockAPI)(nil).PermanentClustersDeletion), ctx, olderThen, objectHandler)
+}

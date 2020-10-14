@@ -37,6 +37,17 @@ import (
 
 const DhcpLeaseTimeoutMinutes = 2
 
+var S3FileNames = []string{
+	"kubeconfig",
+	"bootstrap.ign",
+	"master.ign",
+	"worker.ign",
+	"metadata.json",
+	"kubeadmin-password",
+	"kubeconfig-noingress",
+	"install-config.yaml",
+}
+
 //go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go
 
 type RegistrationAPI interface {
@@ -77,6 +88,9 @@ type API interface {
 	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
+	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
+	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
+	PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error
 }
 
 type PrepareConfig struct {
@@ -619,6 +633,58 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	}).Error
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return nil
+}
+
+func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	log := logutil.FromContext(ctx, m.log)
+	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
+	if err != nil {
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+	for _, file := range files {
+		log.Debugf("Deleting cluster %s S3 log file: %s", c.ID.String(), file)
+		if err := objectHandler.DeleteObject(ctx, file); err != nil {
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+	return nil
+}
+
+func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	for _, name := range S3FileNames {
+		fileName := fmt.Sprintf("%s/%s", c.ID, name)
+		if err := objectHandler.DeleteObject(ctx, fileName); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error {
+	var clusters []*common.Cluster
+	db := m.db.Unscoped()
+	if reply := db.Where("deleted_at < ?", olderThen).Find(&clusters); reply.Error != nil {
+		return reply.Error
+	}
+	for _, c := range clusters {
+		m.log.Debugf("Deleting all S3 files for cluster: %s", c.ID.String())
+
+		if err := m.DeleteClusterFiles(ctx, c, objectHandler); err != nil {
+			return err
+		}
+		if err := m.DeleteClusterLogs(ctx, c, objectHandler); err != nil {
+			return err
+		}
+
+		if reply := db.Delete(&c); reply.Error != nil {
+			return reply.Error
+		} else if reply.RowsAffected > 0 {
+			m.log.Debugf("Deleted %s cluster from db", reply.RowsAffected)
+		}
+
+		m.eventsHandler.DeleteClusterEvents(*c.ID)
 	}
 	return nil
 }

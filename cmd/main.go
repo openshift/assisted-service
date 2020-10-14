@@ -78,6 +78,7 @@ var Options struct {
 	HostConfig                  host.Config
 	LogConfig                   logconfig.Config
 	LeaderConfig                leader.Config
+	DeletionWorkerInterval      time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -251,6 +252,14 @@ func main() {
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, *authHandler)
+
+	deletionWorker := thread.New(
+		log.WithField("inventory", "Deletion Worker"),
+		"Deletion Worker",
+		Options.DeletionWorkerInterval,
+		bm.PermanentlyDeleteUnregisteredClustersAndHosts)
+	deletionWorker.Start()
+	defer deletionWorker.Stop()
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 	manifests := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
