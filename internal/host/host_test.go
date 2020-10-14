@@ -1028,6 +1028,12 @@ var _ = Describe("SetBootstrap", func() {
 	for i := range tests {
 		t := tests[i]
 		It(fmt.Sprintf("Boostrap %s", strconv.FormatBool(t.IsBootstrap)), func() {
+			if t.IsBootstrap {
+				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo,
+					fmt.Sprintf("Host %s: set as bootstrap", host.ID.String()),
+					gomock.Any())
+
+			}
 			Expect(hapi.SetBootstrap(ctx, &host, t.IsBootstrap, db)).ShouldNot(HaveOccurred())
 
 			h := getHost(*host.ID, host.ClusterID, db)
