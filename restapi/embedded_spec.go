@@ -3428,6 +3428,9 @@ func init() {
     "disk": {
       "type": "object",
       "properties": {
+        "bootable": {
+          "type": "boolean"
+        },
         "by_path": {
           "type": "string"
         },
@@ -7732,6 +7735,9 @@ func init() {
     "disk": {
       "type": "object",
       "properties": {
+        "bootable": {
+          "type": "boolean"
+        },
         "by_path": {
           "type": "string"
         },
