@@ -209,6 +209,10 @@ func (f fakeInventory) UpdateDiscoveryIgnition(ctx context.Context, params insta
 	return installer.NewUpdateDiscoveryIgnitionCreated()
 }
 
+func (f fakeInventory) UpdateHostIgnition(ctx context.Context, params installer.UpdateHostIgnitionParams) middleware.Responder {
+	return installer.NewUpdateHostIgnitionCreated()
+}
+
 func (f fakeInventory) GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder {
 	return installer.NewGetHostIgnitionOK()
 }

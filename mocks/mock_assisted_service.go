@@ -525,6 +525,20 @@ func (mr *MockInstallerAPIMockRecorder) UpdateDiscoveryIgnition(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDiscoveryIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).UpdateDiscoveryIgnition), arg0, arg1)
 }
 
+// UpdateHostIgnition mocks base method
+func (m *MockInstallerAPI) UpdateHostIgnition(arg0 context.Context, arg1 installer.UpdateHostIgnitionParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHostIgnition", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// UpdateHostIgnition indicates an expected call of UpdateHostIgnition
+func (mr *MockInstallerAPIMockRecorder) UpdateHostIgnition(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).UpdateHostIgnition), arg0, arg1)
+}
+
 // UpdateHostInstallProgress mocks base method
 func (m *MockInstallerAPI) UpdateHostInstallProgress(arg0 context.Context, arg1 installer.UpdateHostInstallProgressParams) middleware.Responder {
 	m.ctrl.T.Helper()
