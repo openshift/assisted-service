@@ -3619,29 +3619,34 @@ func init() {
       "properties": {
         "code": {
           "description": "Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.",
-          "type": "string"
+          "type": "string",
+          "x-nullable": false
         },
         "href": {
           "description": "Self link.",
-          "type": "string"
+          "type": "string",
+          "x-nullable": false
         },
         "id": {
           "description": "Numeric identifier of the error.",
           "type": "integer",
           "format": "int32",
           "maximum": 504,
-          "minimum": 400
+          "minimum": 400,
+          "x-nullable": false
         },
         "kind": {
           "description": "Indicates the type of this object. Will always be 'Error'.",
           "type": "string",
           "enum": [
             "Error"
-          ]
+          ],
+          "x-nullable": false
         },
         "reason": {
           "description": "Human-readable description of the error.",
-          "type": "string"
+          "type": "string",
+          "x-nullable": false
         }
       }
     },
@@ -4124,11 +4129,13 @@ func init() {
           "type": "integer",
           "format": "int32",
           "maximum": 403,
-          "minimum": 401
+          "minimum": 401,
+          "x-nullable": false
         },
         "message": {
           "description": "Human-readable description of the error.",
-          "type": "string"
+          "type": "string",
+          "x-nullable": false
         }
       }
     },
@@ -8073,29 +8080,34 @@ func init() {
       "properties": {
         "code": {
           "description": "Globally unique code of the error, composed of the unique identifier of the API and the numeric identifier of the error. For example, if the numeric identifier of the error is 93 and the identifier of the API is assisted_install then the code will be ASSISTED-INSTALL-93.",
-          "type": "string"
+          "type": "string",
+          "x-nullable": false
         },
         "href": {
           "description": "Self link.",
-          "type": "string"
+          "type": "string",
+          "x-nullable": false
         },
         "id": {
           "description": "Numeric identifier of the error.",
           "type": "integer",
           "format": "int32",
           "maximum": 504,
-          "minimum": 400
+          "minimum": 400,
+          "x-nullable": false
         },
         "kind": {
           "description": "Indicates the type of this object. Will always be 'Error'.",
           "type": "string",
           "enum": [
             "Error"
-          ]
+          ],
+          "x-nullable": false
         },
         "reason": {
           "description": "Human-readable description of the error.",
-          "type": "string"
+          "type": "string",
+          "x-nullable": false
         }
       }
     },
@@ -8579,11 +8591,13 @@ func init() {
           "type": "integer",
           "format": "int32",
           "maximum": 403,
-          "minimum": 401
+          "minimum": 401,
+          "x-nullable": false
         },
         "message": {
           "description": "Human-readable description of the error.",
-          "type": "string"
+          "type": "string",
+          "x-nullable": false
         }
       }
     },

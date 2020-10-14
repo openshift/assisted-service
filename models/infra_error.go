@@ -21,11 +21,11 @@ type InfraError struct {
 	// Required: true
 	// Maximum: 403
 	// Minimum: 401
-	Code *int32 `json:"code"`
+	Code int32 `json:"code"`
 
 	// Human-readable description of the error.
 	// Required: true
-	Message *string `json:"message"`
+	Message string `json:"message"`
 }
 
 // Validate validates this infra error
@@ -48,15 +48,15 @@ func (m *InfraError) Validate(formats strfmt.Registry) error {
 
 func (m *InfraError) validateCode(formats strfmt.Registry) error {
 
-	if err := validate.Required("code", "body", m.Code); err != nil {
+	if err := validate.Required("code", "body", int32(m.Code)); err != nil {
 		return err
 	}
 
-	if err := validate.MinimumInt("code", "body", int64(*m.Code), 401, false); err != nil {
+	if err := validate.MinimumInt("code", "body", int64(m.Code), 401, false); err != nil {
 		return err
 	}
 
-	if err := validate.MaximumInt("code", "body", int64(*m.Code), 403, false); err != nil {
+	if err := validate.MaximumInt("code", "body", int64(m.Code), 403, false); err != nil {
 		return err
 	}
 
@@ -65,7 +65,7 @@ func (m *InfraError) validateCode(formats strfmt.Registry) error {
 
 func (m *InfraError) validateMessage(formats strfmt.Registry) error {
 
-	if err := validate.Required("message", "body", m.Message); err != nil {
+	if err := validate.RequiredString("message", "body", string(m.Message)); err != nil {
 		return err
 	}
 
