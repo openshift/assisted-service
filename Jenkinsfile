@@ -29,7 +29,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "skipper make build-all"
+                sh "make build-all"
                 sh "make jenkins-deploy-for-subsystem"
                 sh "kubectl get pods -A"
             }
@@ -51,6 +51,7 @@ pipeline {
             when { branch 'master'}
             steps {
                 sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
+                sh "podman login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
                 sh "make publish"
             }
         }
