@@ -291,20 +291,20 @@ func NewRegisterHostConflict() *RegisterHostConflict {
 Cluster cannot accept new hosts due to its current state.
 */
 type RegisterHostConflict struct {
-	Payload *models.InfraError
+	Payload *models.Error
 }
 
 func (o *RegisterHostConflict) Error() string {
 	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostConflict  %+v", 409, o.Payload)
 }
 
-func (o *RegisterHostConflict) GetPayload() *models.InfraError {
+func (o *RegisterHostConflict) GetPayload() *models.Error {
 	return o.Payload
 }
 
 func (o *RegisterHostConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.InfraError)
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
