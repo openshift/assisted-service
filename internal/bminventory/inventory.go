@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
@@ -2227,6 +2228,16 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 	var err error
 	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID, params.FileName)
 	downloadFilename := params.FileName
+	if params.FileName == manifests.ManifestFolder {
+		if params.AdditionalName != nil {
+			additionalName := *params.AdditionalName
+			fullFileName = manifests.GetManifestObjectName(params.ClusterID, additionalName)
+			downloadFilename = additionalName[strings.LastIndex(additionalName, "/")+1:]
+		} else {
+			err = errors.New("Additional name must be provided for 'manifests' file name, prefaced with folder name, e.g.: openshift/99-openshift-xyz.yaml")
+			return common.GenerateErrorResponder(err)
+		}
+	}
 
 	if params.FileName == "logs" {
 		if params.HostID != nil && swag.StringValue(params.LogsType) == "" {
@@ -2325,7 +2336,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	var cluster common.Cluster
 	log.Infof("Checking cluster cluster file for download: %s for cluster %s", fileName, clusterID)
 
-	if !funk.Contains(clusterFileNames, fileName) {
+	if !funk.Contains(clusterFileNames, fileName) && fileName != manifests.ManifestFolder {
 		err := errors.Errorf("invalid cluster file %s", fileName)
 		log.WithError(err).Errorf("failed download file: %s from cluster: %s", fileName, clusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -2335,15 +2346,17 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
 		if gorm.IsRecordNotFoundError(err) {
 			return common.NewApiError(http.StatusNotFound, err)
-		} else {
-			return common.NewApiError(http.StatusInternalServerError, err)
 		}
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	var err error
-	if fileName == kubeconfig {
+	switch fileName {
+	case kubeconfig:
 		err = b.clusterApi.DownloadKubeconfig(&cluster)
-	} else {
+	case manifests.ManifestFolder:
+		// do nothing. manifests can be downloaded at any given cluster state
+	default:
 		err = b.clusterApi.DownloadFiles(&cluster)
 	}
 	if err != nil {

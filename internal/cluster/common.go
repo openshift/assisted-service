@@ -1,13 +1,17 @@
 package cluster
 
 import (
+	"context"
+	"net/http"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -147,4 +151,19 @@ func mapHostsByStatus(c *common.Cluster, role models.HostRole) map[string][]*mod
 
 func MapHostsByStatus(c *common.Cluster) map[string][]*models.Host {
 	return mapHostsByStatus(c, "")
+}
+
+// GetCluster returns the cluster entity fetched from the DB or an error if failed to
+func GetCluster(ctx context.Context, logger logrus.FieldLogger, db *gorm.DB, clusterID string) (*common.Cluster, *common.ApiErrorResponse) {
+	log := logutil.FromContext(ctx, logger)
+	var cluster common.Cluster
+	if err := db.First(&cluster, identity.AddUserFilter(ctx, "id = ?"), clusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, common.NewApiError(http.StatusNotFound, err)
+		}
+
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return &cluster, nil
 }

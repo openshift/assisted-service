@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -252,7 +253,7 @@ func main() {
 		generator, eventsHandler, objectHandler, metricsManager, *authHandler)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
-
+	manifests := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
 	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead)
 	imageExpirationMonitor := thread.New(
 		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
@@ -279,6 +280,7 @@ func main() {
 		VersionsAPI:         versionHandler,
 		ManagedDomainsAPI:   domainHandler,
 		InnerMiddleware:     innerHandler(),
+		ManifestsAPI:        manifests,
 	})
 	if err != nil {
 		log.Fatal("Failed to init rest handler,", err)

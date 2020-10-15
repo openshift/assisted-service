@@ -32,6 +32,10 @@ type GetPresignedForClusterFilesParams struct {
 	HTTPRequest *http.Request `json:"-"`
 
 	/*
+	  In: query
+	*/
+	AdditionalName *string
+	/*
 	  Required: true
 	  In: path
 	*/
@@ -62,6 +66,11 @@ func (o *GetPresignedForClusterFilesParams) BindRequest(r *http.Request, route *
 
 	qs := runtime.Values(r.URL.Query())
 
+	qAdditionalName, qhkAdditionalName, _ := qs.GetOK("additional_name")
+	if err := o.bindAdditionalName(qAdditionalName, qhkAdditionalName, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
@@ -85,6 +94,24 @@ func (o *GetPresignedForClusterFilesParams) BindRequest(r *http.Request, route *
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindAdditionalName binds and validates parameter AdditionalName from query.
+func (o *GetPresignedForClusterFilesParams) bindAdditionalName(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.AdditionalName = &raw
+
 	return nil
 }
 
@@ -149,7 +176,7 @@ func (o *GetPresignedForClusterFilesParams) bindFileName(rawData []string, hasKe
 // validateFileName carries on validations for parameter FileName
 func (o *GetPresignedForClusterFilesParams) validateFileName(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"bootstrap.ign", "master.ign", "metadata.json", "worker.ign", "kubeadmin-password", "kubeconfig", "kubeconfig-noingress", "install-config.yaml", "logs"}, true); err != nil {
+	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"bootstrap.ign", "master.ign", "metadata.json", "worker.ign", "kubeadmin-password", "kubeconfig", "kubeconfig-noingress", "install-config.yaml", "logs", "manifests"}, true); err != nil {
 		return err
 	}
 

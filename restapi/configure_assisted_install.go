@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
+	"github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/openshift/assisted-service/restapi/operations/versions"
 )
 
@@ -157,6 +158,23 @@ type ManagedDomainsAPI interface {
 	ListManagedDomains(ctx context.Context, params managed_domains.ListManagedDomainsParams) middleware.Responder
 }
 
+//go:generate mockery -name ManifestsAPI -inpkg
+
+/* ManifestsAPI  */
+type ManifestsAPI interface {
+	/* CreateClusterManifest Creates a manifest for customizing cluster installation. */
+	CreateClusterManifest(ctx context.Context, params manifests.CreateClusterManifestParams) middleware.Responder
+
+	/* DeleteClusterManifest Deletes a manifest from the cluster. */
+	DeleteClusterManifest(ctx context.Context, params manifests.DeleteClusterManifestParams) middleware.Responder
+
+	/* DownloadClusterManifest Downloads cluster manifest. */
+	DownloadClusterManifest(ctx context.Context, params manifests.DownloadClusterManifestParams) middleware.Responder
+
+	/* ListClusterManifests Lists manifests for customizing cluster installation. */
+	ListClusterManifests(ctx context.Context, params manifests.ListClusterManifestsParams) middleware.Responder
+}
+
 //go:generate mockery -name VersionsAPI -inpkg
 
 /* VersionsAPI  */
@@ -170,6 +188,7 @@ type Config struct {
 	EventsAPI
 	InstallerAPI
 	ManagedDomainsAPI
+	ManifestsAPI
 	VersionsAPI
 	Logger func(string, ...interface{})
 	// InnerMiddleware is for the handler executors. These do not apply to the swagger.json document.
@@ -252,6 +271,16 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.CompleteInstallation(ctx, params)
 	})
+	api.ManifestsCreateClusterManifestHandler = manifests.CreateClusterManifestHandlerFunc(func(params manifests.CreateClusterManifestParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.CreateClusterManifest(ctx, params)
+	})
+	api.ManifestsDeleteClusterManifestHandler = manifests.DeleteClusterManifestHandlerFunc(func(params manifests.DeleteClusterManifestParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.DeleteClusterManifest(ctx, params)
+	})
 	api.InstallerDeregisterClusterHandler = installer.DeregisterClusterHandlerFunc(func(params installer.DeregisterClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -286,6 +315,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterLogs(ctx, params)
+	})
+	api.ManifestsDownloadClusterManifestHandler = manifests.DownloadClusterManifestHandlerFunc(func(params manifests.DownloadClusterManifestParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.DownloadClusterManifest(ctx, params)
 	})
 	api.InstallerDownloadHostLogsHandler = installer.DownloadHostLogsHandlerFunc(func(params installer.DownloadHostLogsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -356,6 +390,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.InstallHosts(ctx, params)
+	})
+	api.ManifestsListClusterManifestsHandler = manifests.ListClusterManifestsHandlerFunc(func(params manifests.ListClusterManifestsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.ListClusterManifests(ctx, params)
 	})
 	api.InstallerListClustersHandler = installer.ListClustersHandlerFunc(func(params installer.ListClustersParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

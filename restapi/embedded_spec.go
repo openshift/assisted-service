@@ -1094,7 +1094,8 @@ func init() {
               "kubeconfig",
               "kubeconfig-noingress",
               "install-config.yaml",
-              "logs"
+              "logs",
+              "manifests"
             ],
             "type": "string",
             "name": "file_name",
@@ -1115,6 +1116,11 @@ func init() {
             "type": "string",
             "format": "uuid",
             "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "additional_name",
             "in": "query"
           }
         ],
@@ -2699,6 +2705,315 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/manifests": {
+      "get": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "tags": [
+          "manifests"
+        ],
+        "summary": "Lists manifests for customizing cluster installation.",
+        "operationId": "ListClusterManifests",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/list-manifests"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "tags": [
+          "manifests"
+        ],
+        "summary": "Creates a manifest for customizing cluster installation.",
+        "operationId": "CreateClusterManifest",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "CreateManifestParams",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/create-manifest-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/manifest"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "manifests"
+        ],
+        "summary": "Deletes a manifest from the cluster.",
+        "operationId": "DeleteClusterManifest",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "manifests",
+              "openshift"
+            ],
+            "type": "string",
+            "default": "manifests",
+            "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
+            "name": "folder",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The manifest file name to delete from the cluster.",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/manifests/files": {
+      "get": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "manifests"
+        ],
+        "summary": "Downloads cluster manifest.",
+        "operationId": "DownloadClusterManifest",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "manifests",
+              "openshift"
+            ],
+            "type": "string",
+            "default": "manifests",
+            "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
+            "name": "folder",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The manifest file name to download.",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
@@ -3505,6 +3820,32 @@ func init() {
         }
       }
     },
+    "create-manifest-params": {
+      "type": "object",
+      "required": [
+        "file_name",
+        "content"
+      ],
+      "properties": {
+        "content": {
+          "description": "base64 encoded manifest content.",
+          "type": "string"
+        },
+        "file_name": {
+          "description": "The name of the manifest to be stored on S3 and to be created on '{folder}/{file_name}' at ignition generation using openshift-install.",
+          "type": "string"
+        },
+        "folder": {
+          "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
+          "type": "string",
+          "default": "manifests",
+          "enum": [
+            "manifests",
+            "openshift"
+          ]
+        }
+      }
+    },
     "credentials": {
       "type": "object",
       "properties": {
@@ -3800,7 +4141,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or \n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
           "type": "string",
           "enum": [
             "Host",
@@ -4266,6 +4607,12 @@ func init() {
         "$ref": "#/definitions/managed-domain"
       }
     },
+    "list-manifests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/manifest"
+      }
+    },
     "list-versions": {
       "type": "object",
       "properties": {
@@ -4296,6 +4643,23 @@ func init() {
           "type": "string",
           "enum": [
             "route53"
+          ]
+        }
+      }
+    },
+    "manifest": {
+      "type": "object",
+      "properties": {
+        "file_name": {
+          "description": "The file name prefaced by the folder that contains it.",
+          "type": "string"
+        },
+        "folder": {
+          "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
+          "type": "string",
+          "enum": [
+            "manifests",
+            "openshift"
           ]
         }
       }
@@ -5523,7 +5887,8 @@ func init() {
               "kubeconfig",
               "kubeconfig-noingress",
               "install-config.yaml",
-              "logs"
+              "logs",
+              "manifests"
             ],
             "type": "string",
             "name": "file_name",
@@ -5544,6 +5909,11 @@ func init() {
             "type": "string",
             "format": "uuid",
             "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "name": "additional_name",
             "in": "query"
           }
         ],
@@ -7128,6 +7498,315 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/manifests": {
+      "get": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "tags": [
+          "manifests"
+        ],
+        "summary": "Lists manifests for customizing cluster installation.",
+        "operationId": "ListClusterManifests",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/list-manifests"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "tags": [
+          "manifests"
+        ],
+        "summary": "Creates a manifest for customizing cluster installation.",
+        "operationId": "CreateClusterManifest",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "CreateManifestParams",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/create-manifest-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/manifest"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "manifests"
+        ],
+        "summary": "Deletes a manifest from the cluster.",
+        "operationId": "DeleteClusterManifest",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "manifests",
+              "openshift"
+            ],
+            "type": "string",
+            "default": "manifests",
+            "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
+            "name": "folder",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The manifest file name to delete from the cluster.",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/manifests/files": {
+      "get": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "manifests"
+        ],
+        "summary": "Downloads cluster manifest.",
+        "operationId": "DownloadClusterManifest",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "manifests",
+              "openshift"
+            ],
+            "type": "string",
+            "default": "manifests",
+            "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
+            "name": "folder",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The manifest file name to download.",
+            "name": "file_name",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
@@ -7959,6 +8638,32 @@ func init() {
         }
       }
     },
+    "create-manifest-params": {
+      "type": "object",
+      "required": [
+        "file_name",
+        "content"
+      ],
+      "properties": {
+        "content": {
+          "description": "base64 encoded manifest content.",
+          "type": "string"
+        },
+        "file_name": {
+          "description": "The name of the manifest to be stored on S3 and to be created on '{folder}/{file_name}' at ignition generation using openshift-install.",
+          "type": "string"
+        },
+        "folder": {
+          "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
+          "type": "string",
+          "default": "manifests",
+          "enum": [
+            "manifests",
+            "openshift"
+          ]
+        }
+      }
+    },
     "credentials": {
       "type": "object",
       "properties": {
@@ -8254,7 +8959,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or \n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
           "type": "string",
           "enum": [
             "Host",
@@ -8721,6 +9426,12 @@ func init() {
         "$ref": "#/definitions/managed-domain"
       }
     },
+    "list-manifests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/manifest"
+      }
+    },
     "list-versions": {
       "type": "object",
       "properties": {
@@ -8751,6 +9462,23 @@ func init() {
           "type": "string",
           "enum": [
             "route53"
+          ]
+        }
+      }
+    },
+    "manifest": {
+      "type": "object",
+      "properties": {
+        "file_name": {
+          "description": "The file name prefaced by the folder that contains it.",
+          "type": "string"
+        },
+        "folder": {
+          "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
+          "type": "string",
+          "enum": [
+            "manifests",
+            "openshift"
           ]
         }
       }
