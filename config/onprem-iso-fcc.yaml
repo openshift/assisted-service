@@ -56,7 +56,7 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db quay.io/ocpmetal/postgres:12.3-alpine
+            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment --authfile /etc/assisted-service/auth.json --name db quay.io/ocpmetal/postgresql-12-centos7
             TimeoutStartSec=300
           
             [Install]
@@ -103,9 +103,9 @@ storage:
           mode: 0644
           contents:
             inline: |
-                POSTGRES_DB=installer
-                POSTGRES_PASSWORD=admin
-                POSTGRES_USER=admin
+                POSTGRESQL_DATABASE=installer
+                POSTGRESQL_PASSWORD=admin
+                POSTGRESQL_USER=admin
                 DB_HOST=127.0.0.1
                 DB_PORT=5432
                 DB_USER=admin
