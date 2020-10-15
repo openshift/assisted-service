@@ -85,7 +85,49 @@ var _ = Describe("installcmd", func() {
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		stepReply, stepErr = installCmd.GetStep(ctx, &host)
 		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
-		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "")
+		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "", "")
+
+		hostFromDb := getHost(*host.ID, clusterId, db)
+		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
+		Expect(hostFromDb.InstallationDiskPath).Should(Equal(GetDeviceFullName(disks[0].Name)))
+	})
+	It("get_step_one_master_success with proxy", func() {
+		cluster.Name = "test"
+		cluster.BaseDNSDomain = "redhat.com"
+		cluster.HTTPSProxy = "test.com"
+		db.Save(&cluster)
+		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		stepReply, stepErr = installCmd.GetStep(ctx, &host)
+		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
+		noProxy := []string{cluster.NoProxy, "127.0.0.1",
+			"localhost",
+			".svc",
+			".cluster.local",
+			fmt.Sprintf("api-int.%s.%s", cluster.Name, cluster.BaseDNSDomain)}
+		proxy := fmt.Sprintf("--https-proxy %s --no-proxy %s", cluster.HTTPSProxy, strings.Join(noProxy, ","))
+		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "", proxy)
+
+		hostFromDb := getHost(*host.ID, clusterId, db)
+		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
+		Expect(hostFromDb.InstallationDiskPath).Should(Equal(GetDeviceFullName(disks[0].Name)))
+	})
+
+	It("get_step_one_master_success with proxy and no proxy", func() {
+		cluster.Name = "test"
+		cluster.BaseDNSDomain = "redhat.com"
+		cluster.HTTPSProxy = "test.com"
+		cluster.NoProxy = "no-proxy"
+		db.Save(&cluster)
+		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		stepReply, stepErr = installCmd.GetStep(ctx, &host)
+		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
+		noProxy := []string{cluster.NoProxy, "127.0.0.1",
+			"localhost",
+			".svc",
+			".cluster.local",
+			fmt.Sprintf("api-int.%s.%s", cluster.Name, cluster.BaseDNSDomain)}
+		proxy := fmt.Sprintf("--https-proxy %s --no-proxy %s", cluster.HTTPSProxy, strings.Join(noProxy, ","))
+		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "", proxy)
 
 		hostFromDb := getHost(*host.ID, clusterId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
@@ -99,13 +141,13 @@ var _ = Describe("installcmd", func() {
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(3)
 		stepReply, stepErr = installCmd.GetStep(ctx, &host)
 		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
-		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "")
+		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "", "")
 		stepReply, stepErr = installCmd.GetStep(ctx, &host2)
 		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
-		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host2.ID), "")
+		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host2.ID), "", "")
 		stepReply, stepErr = installCmd.GetStep(ctx, &host3)
 		postvalidation(false, false, stepReply, stepErr, models.HostRoleBootstrap)
-		validateInstallCommand(stepReply, models.HostRoleBootstrap, string(clusterId), string(*host3.ID), "some_hostname")
+		validateInstallCommand(stepReply, models.HostRoleBootstrap, string(clusterId), string(*host3.ID), "some_hostname", "")
 	})
 
 	AfterEach(func() {
@@ -230,27 +272,27 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 	}
 }
 
-func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId string, hostId string, hostname string) {
-	if hostname != "" {
+func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId string, hostId string, hostname string, proxy string) {
+	template := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
+		"--privileged --pid=host " +
+		"--net=host -v /var/log:/var/log:rw --env PULL_SECRET_TOKEN " +
+		"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
+		"--cluster-id %s " +
+		"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
+		"--controller-image %s --url %s --insecure=false --agent-image %s --installation-timeout %s"
 
-		installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
-			"--privileged --pid=host " +
-			"--net=host -v /var/log:/var/log:rw --env PULL_SECRET_TOKEN " +
-			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
-			"--cluster-id %s " +
-			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --url %s --insecure=false --agent-image %s --host-name %s --installation-timeout %s"
+	if hostname != "" {
+		installCommand := template + " --host-name %s"
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage, hostname,
+			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage,
+			strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)), hostname)))
+	} else if proxy != "" {
+		installCommand := template + fmt.Sprintf(" %s", proxy)
+		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
+			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage,
 			strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)))))
 	} else {
-		installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
-			"--privileged --pid=host " +
-			"--net=host -v /var/log:/var/log:rw --env PULL_SECRET_TOKEN " +
-			"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
-			"--cluster-id %s " +
-			"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 " +
-			"--controller-image %s --url %s --insecure=false --agent-image %s --installation-timeout %s"
+		installCommand := template
 		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
 			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL,
 			DefaultInstructionConfig.InventoryImage, strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)))))

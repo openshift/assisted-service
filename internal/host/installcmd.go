@@ -70,15 +70,15 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"AGENT_IMAGE":            i.instructionConfig.InventoryImage,
 	}
 
+	if i.instructionConfig.InstallationTimeout != 0 {
+		cmdArgsTmpl = cmdArgsTmpl + " --installation-timeout {{.INSTALLATION_TIMEOUT}}"
+		data["INSTALLATION_TIMEOUT"] = strconv.Itoa(int(i.instructionConfig.InstallationTimeout))
+	}
+
 	hostname, _ := hostutil.GetCurrentHostName(host)
 	if hostname != "" {
 		cmdArgsTmpl = cmdArgsTmpl + " --host-name {{.HOST_NAME}}"
 		data["HOST_NAME"] = hostname
-	}
-
-	if i.instructionConfig.InstallationTimeout != 0 {
-		cmdArgsTmpl = cmdArgsTmpl + " --installation-timeout {{.INSTALLATION_TIMEOUT}}"
-		data["INSTALLATION_TIMEOUT"] = strconv.Itoa(int(i.instructionConfig.InstallationTimeout))
 	}
 
 	if cluster.HTTPProxy != "" || cluster.HTTPSProxy != "" {
@@ -90,10 +90,15 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 			cmdArgsTmpl = cmdArgsTmpl + " --https-proxy {{.HTTPS_PROXY}}"
 			data["HTTPS_PROXY"] = cluster.HTTPSProxy
 		}
-		if cluster.NoProxy != "" {
-			cmdArgsTmpl = cmdArgsTmpl + " --no-proxy {{.NO_PROXY}}"
-			data["NO_PROXY"] = cluster.NoProxy
-		}
+		cmdArgsTmpl = cmdArgsTmpl + " --no-proxy {{.NO_PROXY}}"
+		// if we set proxy we need to update assisted installer no proxy with no proxy params as installer.
+		// it must be able to connect to api int. Added this way for not to pass name and base domain
+		noProxy := []string{cluster.NoProxy, "127.0.0.1",
+			"localhost",
+			".svc",
+			".cluster.local",
+			fmt.Sprintf("api-int.%s.%s", cluster.Name, cluster.BaseDNSDomain)}
+		data["NO_PROXY"] = strings.Join(noProxy, ",")
 	}
 
 	if i.hasCACert() {
