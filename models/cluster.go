@@ -39,6 +39,9 @@ type Cluster struct {
 	// Minimum: 1
 	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
 
+	// Json formatted string containing the majority groups for conectivity checks.
+	ConnectivityMajorityGroups string `json:"connectivity_majority_groups,omitempty" gorm:"type:text"`
+
 	// controller logs collected at
 	// Format: date-time
 	ControllerLogsCollectedAt strfmt.DateTime `json:"controller_logs_collected_at,omitempty" gorm:"type:timestamp with time zone"`

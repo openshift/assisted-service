@@ -1067,6 +1067,14 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 	})
 })
 
+func mockSetConnectivityMajorityGroupsForCluster(mockClusterApi *cluster.MockAPI) {
+	mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+}
+
+func mockSetConnectivityMajorityGroupsForClusterTimes(mockClusterApi *cluster.MockAPI, times int) {
+	mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(times)
+}
+
 var _ = Describe("cluster", func() {
 	masterHostId1 := strfmt.UUID(uuid.New().String())
 	masterHostId2 := strfmt.UUID(uuid.New().String())
@@ -1339,6 +1347,7 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("pull-secret with newline", func() {
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}" // #nosec
 				pullSecretWithNewline := pullSecret + " \n"
 				clusterID = strfmt.UUID(uuid.New().String())
@@ -1373,6 +1382,7 @@ var _ = Describe("cluster", func() {
 
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1412,6 +1422,7 @@ var _ = Describe("cluster", func() {
 				})
 
 				updateCluster := func(httpProxy, httpsProxy, noProxy string) *common.Cluster {
+					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1459,6 +1470,7 @@ var _ = Describe("cluster", func() {
 					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1476,6 +1488,7 @@ var _ = Describe("cluster", func() {
 					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1543,6 +1556,7 @@ var _ = Describe("cluster", func() {
 					fileName := fmt.Sprintf("%s/worker.ign", clusterID)
 					mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1611,6 +1625,7 @@ var _ = Describe("cluster", func() {
 						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
 						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1676,6 +1691,7 @@ var _ = Describe("cluster", func() {
 						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
 						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1777,6 +1793,7 @@ var _ = Describe("cluster", func() {
 						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
 						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1847,6 +1864,7 @@ var _ = Describe("cluster", func() {
 						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(9)
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(3)
 						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
+						mockSetConnectivityMajorityGroupsForClusterTimes(mockClusterApi, 3)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1979,6 +1997,7 @@ var _ = Describe("cluster", func() {
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2014,6 +2033,7 @@ var _ = Describe("cluster", func() {
 				mockClusterPrepareForInstallationFailure(mockClusterApi)
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2034,6 +2054,7 @@ var _ = Describe("cluster", func() {
 				mockHostPrepareForInstallationFailure(mockHostApi, 1)
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2047,6 +2068,7 @@ var _ = Describe("cluster", func() {
 				mockHostPrepareForRefresh(mockHostApi)
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationFalse(mockClusterApi)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
 				Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("status", "insufficient").Error).To(Not(HaveOccurred()))
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
@@ -2069,6 +2091,7 @@ var _ = Describe("cluster", func() {
 				mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("cluster has a error"))
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
 				})
@@ -2094,6 +2117,7 @@ var _ = Describe("cluster", func() {
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2116,6 +2140,7 @@ var _ = Describe("cluster", func() {
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2139,6 +2164,7 @@ var _ = Describe("cluster", func() {
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setIsReadyForInstallationTrue(mockClusterApi)
 
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
 				})
@@ -2161,6 +2187,7 @@ var _ = Describe("cluster", func() {
 					Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -3372,7 +3399,7 @@ var _ = Describe("Install Hosts test", func() {
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler())
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
-
+		mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 	})
 
 	AfterEach(func() {

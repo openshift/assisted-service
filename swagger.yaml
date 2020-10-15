@@ -2780,6 +2780,11 @@ definitions:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
+      connectivity_majority_groups:
+        type: string
+        description: Json formatted string containing the majority groups for conectivity checks.
+        x-go-custom-tag: gorm:"type:text"
+
   image_info:
     type: object
     properties:
@@ -3200,6 +3205,7 @@ definitions:
       - 'hostname-valid'
       - 'belongs-to-machine-cidr'
       - 'api-vip-connected'
+      - 'belongs-to-majority-group'
 
   dhcp_allocation_request:
     type: object

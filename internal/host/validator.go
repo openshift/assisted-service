@@ -6,6 +6,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/go-openapi/strfmt"
+
 	"github.com/go-openapi/swag"
 
 	"github.com/thoas/go-funk"
@@ -437,6 +439,40 @@ func (v *validator) printAPIVipConnected(c *validationContext, status validation
 		return "API VIP connectivity failure"
 	case ValidationPending:
 		return "Missing inventory"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func (v *validator) belongsToMajorityGroup(c *validationContext) validationStatus {
+	if swag.StringValue(c.host.Kind) == models.HostKindAddToExistingClusterHost {
+		return ValidationSuccess
+	}
+	if c.cluster.MachineNetworkCidr == "" || c.cluster.ConnectivityMajorityGroups == "" {
+		return ValidationPending
+	}
+	var majorityGroups map[string][]strfmt.UUID
+	err := json.Unmarshal([]byte(c.cluster.ConnectivityMajorityGroups), &majorityGroups)
+	if err != nil {
+		v.log.WithError(err).Warn("Parse majority group")
+		return ValidationError
+	}
+	return boolValue(funk.Contains(majorityGroups[c.cluster.MachineNetworkCidr], *c.host.ID))
+}
+
+func (v *validator) printBelongsToMajorityGroup(c *validationContext, status validationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		if swag.StringValue(c.host.Kind) == models.HostKindAddToExistingClusterHost {
+			return "Day2 host is not required to be connected to other hosts in the cluster"
+		}
+		return "Host has connectivity to the majority of hosts in the cluster"
+	case ValidationFailure:
+		return "No connectivity to the majority of hosts in the cluster"
+	case ValidationError:
+		return "Parse error for connectivity majority group"
+	case ValidationPending:
+		return "Machine Network CIDR or Connectivity Majority Groups missing"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}

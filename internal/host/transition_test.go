@@ -1170,6 +1170,7 @@ var _ = Describe("Refresh Host", func() {
 			dstState           string
 			statusInfoChecker  statusInfoChecker
 			validationsChecker *validationsChecker
+			connectivity       string
 			errorExpected      bool
 		}{
 			{
@@ -1681,19 +1682,46 @@ var _ = Describe("Refresh Host", func() {
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
-					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
-					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
-					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
-					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
-					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
-					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
-					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
-					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
-					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
-					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:         {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:           {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:       {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:       {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					BelongsToMajorityGroup: {status: ValidationSuccess, messagePattern: "Host has connectivity to the majority of hosts in the cluster"},
 				}),
 				inventory:     masterInventory(),
+				errorExpected: false,
+			},
+			{
+				name:               "known to insufficient",
+				validCheckInTime:   true,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				role:               models.HostRoleMaster,
+				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:         {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:           {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:       {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:       {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					BelongsToMajorityGroup: {status: ValidationFailure, messagePattern: "No connectivity to the majority of hosts in the cluster"},
+				}),
+				inventory:     masterInventory(),
+				connectivity:  fmt.Sprintf("{\"%s\":[]}", "1.2.3.0/24"),
 				errorExpected: false,
 			},
 			{
@@ -1724,6 +1752,11 @@ var _ = Describe("Refresh Host", func() {
 				host.CheckedInAt = hostCheckInAt
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
+				if t.connectivity == "" {
+					cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", t.machineNetworkCidr, hostId.String())
+				} else {
+					cluster.ConnectivityMajorityGroups = t.connectivity
+				}
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
@@ -2135,6 +2168,7 @@ var _ = Describe("Refresh Host", func() {
 				otherHost.Inventory = t.otherInventory
 				Expect(db.Create(&otherHost).Error).ShouldNot(HaveOccurred())
 				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
+				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", t.machineNetworkCidr, hostId.String())
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				expectedSeverity := models.EventSeverityInfo
 				if t.dstState == models.HostStatusInsufficient {
