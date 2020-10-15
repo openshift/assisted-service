@@ -313,7 +313,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined))
 
 	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr),
-		If(IsHostnameUnique), If(IsHostnameValid), If(IsAPIVipConnected))
+		If(IsHostnameUnique), If(IsHostnameValid), If(IsAPIVipConnected), If(BelongsToMajorityGroup))
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles

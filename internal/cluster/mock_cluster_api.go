@@ -461,3 +461,17 @@ func (mr *MockAPIMockRecorder) SetUploadControllerLogsAt(ctx, c, db interface{})
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUploadControllerLogsAt", reflect.TypeOf((*MockAPI)(nil).SetUploadControllerLogsAt), ctx, c, db)
 }
+
+// SetConnectivityMajorityGroupsForCluster mocks base method
+func (m *MockAPI) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetConnectivityMajorityGroupsForCluster", clusterID, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetConnectivityMajorityGroupsForCluster indicates an expected call of SetConnectivityMajorityGroupsForCluster
+func (mr *MockAPIMockRecorder) SetConnectivityMajorityGroupsForCluster(clusterID, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConnectivityMajorityGroupsForCluster", reflect.TypeOf((*MockAPI)(nil).SetConnectivityMajorityGroupsForCluster), clusterID, db)
+}

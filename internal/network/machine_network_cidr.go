@@ -194,10 +194,10 @@ func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster) ([]*mo
 	return ret, nil
 }
 
-func GetClusterNetworks(cluster *common.Cluster, log logrus.FieldLogger) []string {
+func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
 	var err error
 	cidrs := make(map[string]bool)
-	for _, h := range cluster.Hosts {
+	for _, h := range hosts {
 		if h.Inventory != "" {
 			var inventory models.Inventory
 			err = json.Unmarshal([]byte(h.Inventory), &inventory)

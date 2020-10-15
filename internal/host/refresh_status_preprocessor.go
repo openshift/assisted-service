@@ -110,6 +110,11 @@ func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCf
 			condition: v.isAPIVipConnected,
 			formatter: v.printAPIVipConnected,
 		},
+		{
+			id:        BelongsToMajorityGroup,
+			condition: v.belongsToMajorityGroup,
+			formatter: v.printBelongsToMajorityGroup,
+		},
 	}
 	return ret
 }
