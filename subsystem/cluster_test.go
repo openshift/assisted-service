@@ -851,14 +851,18 @@ var _ = Describe("cluster install", func() {
 			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
 			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
 			Expect(len(c.Hosts)).Should(Equal(5))
+			var masterID strfmt.UUID
 			for _, host := range c.Hosts {
 				Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusInstalling))
+				if masterID == "" && host.Role == models.HostRoleMaster {
+					masterID = *host.ID
+				}
 			}
 
 			// post failure to execute the install command
 			_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 				ClusterID: clusterID,
-				HostID:    *c.Hosts[0].ID,
+				HostID:    masterID,
 				Reply: &models.StepReply{
 					ExitCode: bminventory.ContainerAlreadyRunningExitCode,
 					StepType: models.StepTypeInstall,
@@ -871,8 +875,7 @@ var _ = Describe("cluster install", func() {
 			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewPostStepReplyBadRequest())))
 
 			By("Verifying installation failed")
-			//wait here a bit longer since this transition takes more time than others
-			waitForClusterState(ctx, clusterID, models.ClusterStatusError, 2*defaultWaitForClusterStateTimeout, "failed")
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, "cluster has hosts in error")
 		})
 
 		It("[only_k8s]install_cluster assisted-installer already running", func() {
