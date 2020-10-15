@@ -190,14 +190,14 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster,
 		if swag.StringValue(host.Status) == models.HostStatusDisabled {
 			continue
 		}
-		log.Info("host name is %s", hostutil.GetHostnameForMsg(host))
+		log.Infof("host name is %s", hostutil.GetHostnameForMsg(host))
 		hosts[yamlHostIdx].Name = getBMHName(host, &masterIdx, &workerIdx)
 		hosts[yamlHostIdx].Role = string(host.Role)
 
 		var inventory models.Inventory
 		err := json.Unmarshal([]byte(host.Inventory), &inventory)
 		if err != nil {
-			log.Warn("Failed to unmarshall host %s inventory", hostutil.GetHostnameForMsg(host))
+			log.Warnf("Failed to unmarshall host %s inventory", hostutil.GetHostnameForMsg(host))
 			return err
 		}
 		hosts[yamlHostIdx].BootMACAddress = inventory.Interfaces[0].MacAddress
