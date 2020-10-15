@@ -1701,6 +1701,12 @@ func init() {
               "$ref": "#/definitions/error"
             }
           },
+          "409": {
+            "description": "Cluster cannot accept new hosts due to its current state.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
           "500": {
             "description": "Error.",
             "schema": {
@@ -6498,6 +6504,12 @@ func init() {
             "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Cluster cannot accept new hosts due to its current state.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
             }
           },
           "500": {

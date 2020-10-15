@@ -437,6 +437,18 @@ var _ = Describe("IgnitionParameters", func() {
 	})
 })
 
+func createCluster(db *gorm.DB, status string) *common.Cluster {
+	clusterID := strfmt.UUID(uuid.New().String())
+	c := &common.Cluster{
+		Cluster: models.Cluster{
+			ID:     &clusterID,
+			Status: swag.String(status),
+		},
+	}
+	Expect(db.Create(c).Error).ToNot(HaveOccurred())
+	return c
+}
+
 var _ = Describe("RegisterHost", func() {
 	var (
 		bm                *bareMetalInventory
@@ -467,7 +479,7 @@ var _ = Describe("RegisterHost", func() {
 		ctrl.Finish()
 	})
 
-	It("register host to none existing cluster", func() {
+	It("register host to non-existing cluster", func() {
 		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
 			NewHostParams: &models.HostCreateParams{
@@ -480,15 +492,41 @@ var _ = Describe("RegisterHost", func() {
 		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusNotFound)))
 	})
 
-	It("register_success", func() {
-		clusterID := strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{
-			Cluster: models.Cluster{
-				ID:     &clusterID,
-				Status: swag.String(models.ClusterStatusInsufficient),
+	It("register host to a cluster while installation is in progress", func() {
+		By("creating the cluster")
+		cluster := createCluster(db, models.ClusterStatusInstalling)
+
+		allowedStates := []string{
+			models.ClusterStatusInsufficient, models.ClusterStatusReady,
+			models.ClusterStatusPendingForInput, models.ClusterStatusAddingHosts}
+		err := errors.Errorf(
+			"Cluster %s is in installing state, host can register only in one of %s",
+			cluster.ID, allowedStates)
+
+		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(err).Times(1)
+
+		mockEventsHandler.EXPECT().
+			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityError, gomock.Any(), gomock.Any()).
+			Times(1)
+
+		By("trying to register an host while installation takes place")
+		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
+			ClusterID: *cluster.ID,
+			NewHostParams: &models.HostCreateParams{
+				DiscoveryAgentVersion: "v1",
+				HostID:                &hostID,
 			},
-		}
-		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+		})
+
+		By("verifying returned response")
+		apiErr, ok := reply.(*common.InfraErrorResponse)
+		Expect(ok).Should(BeTrue())
+		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusConflict)))
+		Expect(apiErr.Error()).Should(Equal(err.Error()))
+	})
+
+	It("register_success", func() {
+		cluster := createCluster(db, models.ClusterStatusInsufficient)
 
 		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any()).
@@ -499,7 +537,7 @@ var _ = Describe("RegisterHost", func() {
 			}).Times(1)
 		mockHostAPI.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockEventsHandler.EXPECT().
-			AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 			Times(1)
 
 		bm.ServiceBaseURL = uuid.New().String()
@@ -508,7 +546,7 @@ var _ = Describe("RegisterHost", func() {
 		bm.SkipCertVerification = true
 
 		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
-			ClusterID: clusterID,
+			ClusterID: *cluster.ID,
 			NewHostParams: &models.HostCreateParams{
 				DiscoveryAgentVersion: "v1",
 				HostID:                &hostID,
@@ -527,24 +565,16 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	It("host_api_failure", func() {
-		clusterID := strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{
-			Cluster: models.Cluster{
-				ID:     &clusterID,
-				Status: swag.String(models.ClusterStatusInsufficient),
-			},
-		}
-		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-
+		cluster := createCluster(db, models.ClusterStatusInsufficient)
 		expectedErrMsg := "some-internal-error"
 
 		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockEventsHandler.EXPECT().
-			AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityError, gomock.Any(), gomock.Any()).
+			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityError, gomock.Any(), gomock.Any()).
 			Times(1)
 		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
-			ClusterID: clusterID,
+			ClusterID: *cluster.ID,
 			NewHostParams: &models.HostCreateParams{
 				DiscoveryAgentVersion: "v1",
 				HostID:                &hostID,
