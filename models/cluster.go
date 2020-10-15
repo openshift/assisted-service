@@ -76,7 +76,7 @@ type Cluster struct {
 	ID *strfmt.UUID `json:"id" gorm:"primary_key"`
 
 	// Json formatted string containing the user overrides for the initial ignition config
-	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty"`
+	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty" gorm:"type:text"`
 
 	// ignition generator version
 	IgnitionGeneratorVersion string `json:"ignition_generator_version,omitempty"`
@@ -94,7 +94,7 @@ type Cluster struct {
 	InstallCompletedAt strfmt.DateTime `json:"install_completed_at,omitempty" gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"`
 
 	// JSON-formatted string containing the user overrides for the install-config.yaml file.
-	InstallConfigOverrides string `json:"install_config_overrides,omitempty" gorm:"type:varchar(2048)"`
+	InstallConfigOverrides string `json:"install_config_overrides,omitempty" gorm:"type:text"`
 
 	// The time that this cluster started installation.
 	// Format: date-time
