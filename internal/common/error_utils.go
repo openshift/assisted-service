@@ -6,34 +6,33 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 )
 
 func GenerateError(id int32, err error) *models.Error {
 	return &models.Error{
-		Code:   swag.String(strconv.Itoa(int(id))),
-		Href:   swag.String(""),
-		ID:     swag.Int32(id),
-		Kind:   swag.String("Error"),
-		Reason: swag.String(err.Error()),
+		Code:   strconv.Itoa(int(id)),
+		Href:   "",
+		ID:     id,
+		Kind:   "Error",
+		Reason: err.Error(),
 	}
 }
 
 func GenerateInternalFromError(err error) *models.Error {
 	return &models.Error{
-		Code:   swag.String(string(http.StatusInternalServerError)),
-		Href:   swag.String(""),
-		ID:     swag.Int32(http.StatusInternalServerError),
-		Kind:   swag.String("Error"),
-		Reason: swag.String(err.Error()),
+		Code:   string(http.StatusInternalServerError),
+		Href:   "",
+		ID:     http.StatusInternalServerError,
+		Kind:   "Error",
+		Reason: err.Error(),
 	}
 }
 
 func GenerateInfraError(id int32, err error) *models.InfraError {
 	return &models.InfraError{
-		Code:    swag.Int32(id),
-		Message: swag.String(err.Error()),
+		Code:    id,
+		Message: err.Error(),
 	}
 }
 

@@ -1737,8 +1737,8 @@ func returnRegisterHostTransitionError(
 	if isRegisterHostForbiddenDueWrongBootOrder(err) {
 		return installer.NewRegisterHostForbidden().WithPayload(
 			&models.InfraError{
-				Code:    swag.Int32(http.StatusForbidden),
-				Message: swag.String(err.Error()),
+				Code:    http.StatusForbidden,
+				Message: err.Error(),
 			})
 	}
 	return common.NewApiError(defaultCode, err)
