@@ -14,7 +14,7 @@
 1. kubectl
 
 
-## First Setup
+## First Setup try
 
 To push your build target to a Docker registry you first need to change the default target.
 1. Create a quay.io or Docker Hub account if you don't already have one. These instructions refer to quay.io, Docker Hub is similar.
