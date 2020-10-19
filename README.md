@@ -87,7 +87,7 @@ skipper make unit-test FOCUS=cluster
 if you are making changes and don't want to deploy everything once again you can simply run this command:
 
 ```shell
-skipper make update && kubectl get pod --namespace assisted-installer -o name | grep assisted-service | xargs kubectl delete --namespace assisted-installer
+make update-service && kubectl get pod --namespace assisted-installer -o name | grep assisted-service | xargs kubectl delete --namespace assisted-installer
 ```
 
 It will build and push a new image of the service to your Docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.
