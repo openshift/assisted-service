@@ -1879,9 +1879,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 		if handlingError != nil {
 			log.WithError(handlingError).Errorf("Failed handling reply error for host <%s> cluster <%s>", params.HostID, params.ClusterID)
 		}
-		// Since the assisted agent sent the message to the assisted service, no reason to send the same message back.  It will cause a log spam
-		return installer.NewPostStepReplyBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, errors.Errorf("Step <%s> terminated with non zero exit-code <%d>", params.Reply.StepID, params.Reply.ExitCode)))
+		return installer.NewPostStepReplyNoContent()
 	}
 
 	log.Infof(msg)
