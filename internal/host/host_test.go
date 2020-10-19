@@ -537,7 +537,7 @@ var _ = Describe("reset host", func() {
 			Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
 		})
 
-		It("reset pending user action - passed timeout", func() {
+		It("resetting - passed timeout and changed to pending user action", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			h = getTestHost(id, clusterId, models.HostStatusResetting)
