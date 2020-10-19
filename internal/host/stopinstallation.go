@@ -2,7 +2,6 @@ package host
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -27,8 +26,8 @@ func NewStopInstallationCmd(log logrus.FieldLogger, instructionConfig Instructio
 func (h *stopInstallationCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
 	step := &models.Step{}
 	step.StepType = models.StepTypeExecute
-	step.Command = "/usr/bin/podman"
-	cmdArgs := []string{"stop", "--all"}
+
+	const stopAllCommand = "podman stop `podman ps --format '\"'{{.ID}} {{.Names}}'\"' | grep -v next-step-runner | awk '\"'{print \\$1}'\"'`"
 
 	// added to run upload logs if we are in error or cancelled state. Stop all and gather logs
 	// will return same exit code as stop command command
@@ -39,8 +38,11 @@ func (h *stopInstallationCmd) GetStep(ctx context.Context, host *models.Host) (*
 			h.log.WithError(err).Error("Failed to create logs upload command")
 		}
 		step.Command = "bash"
-		cmdArgs = []string{"-c", "podman " + strings.Join(cmdArgs, " ") + "; " + logsCommand}
+		step.Args = []string{"-c", stopAllCommand + "; " + logsCommand}
+	} else {
+		step.Command = "bash"
+		step.Args = []string{"-c", stopAllCommand}
 	}
-	step.Args = cmdArgs
+
 	return step, nil
 }

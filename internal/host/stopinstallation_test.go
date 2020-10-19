@@ -46,7 +46,7 @@ var _ = Describe("stop-podman", func() {
 		stepReply, stepErr = stopCmd.GetStep(ctx, &host)
 		Expect(stepReply.StepType).To(Equal(models.StepTypeExecute))
 		Expect(stepErr).ShouldNot(HaveOccurred())
-		Expect(stepReply.Command).Should(Equal("/usr/bin/podman"))
+		Expect(stepReply.Command).Should(Equal("bash"))
 	})
 
 	AfterEach(func() {
