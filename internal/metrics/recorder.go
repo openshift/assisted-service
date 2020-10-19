@@ -64,7 +64,7 @@ func (c *Config) defaults() {
 		c.ServiceLabel = "service"
 	}
 	if c.IDLabel == "" {
-		c.IDLabel = "id"
+		c.IDLabel = "clusterId"
 	}
 }
 
