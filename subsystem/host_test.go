@@ -146,6 +146,7 @@ var _ = Describe("Host tests", func() {
 		Expect(db.Model(host).Update("status", "disabled").Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
 		Expect(steps.NextInstructionSeconds).Should(Equal(int64(120)))
+		Expect(*steps.PostStepAction).Should(Equal(models.StepsPostStepActionContinue))
 		Expect(len(steps.Instructions)).Should(Equal(0))
 		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)

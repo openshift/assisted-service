@@ -4754,9 +4754,6 @@ func init() {
     "steps": {
       "type": "object",
       "properties": {
-        "exit_on_completion": {
-          "type": "boolean"
-        },
         "instructions": {
           "type": "array",
           "items": {
@@ -4765,6 +4762,15 @@ func init() {
         },
         "next_instruction_seconds": {
           "type": "integer"
+        },
+        "post_step_action": {
+          "description": "What to do after finishing to run step instructions",
+          "type": "string",
+          "default": "continue",
+          "enum": [
+            "exit",
+            "continue"
+          ]
         }
       }
     },
@@ -9585,9 +9591,6 @@ func init() {
     "steps": {
       "type": "object",
       "properties": {
-        "exit_on_completion": {
-          "type": "boolean"
-        },
         "instructions": {
           "type": "array",
           "items": {
@@ -9596,6 +9599,15 @@ func init() {
         },
         "next_instruction_seconds": {
           "type": "integer"
+        },
+        "post_step_action": {
+          "description": "What to do after finishing to run step instructions",
+          "type": "string",
+          "default": "continue",
+          "enum": [
+            "exit",
+            "continue"
+          ]
         }
       }
     },
