@@ -21,7 +21,7 @@ func NewDownloadInstallerCmd(log logrus.FieldLogger, cfg InstructionConfig) *dow
 	}
 }
 
-func (d *downloadInstallerCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
+func (d *downloadInstallerCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	step := &models.Step{}
 	step.StepType = models.StepTypeExecute
 	step.Command = "timeout"
@@ -43,5 +43,5 @@ func (d *downloadInstallerCmd) GetStep(ctx context.Context, host *models.Host) (
 	}
 	step.Args = []string{"15m", "bash", "-c", buf.String()}
 
-	return step, nil
+	return []*models.Step{step}, nil
 }

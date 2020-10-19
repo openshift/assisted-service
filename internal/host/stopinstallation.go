@@ -24,7 +24,7 @@ func NewStopInstallationCmd(log logrus.FieldLogger, instructionConfig Instructio
 	}
 }
 
-func (h *stopInstallationCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
+func (h *stopInstallationCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	step := &models.Step{}
 	step.StepType = models.StepTypeExecute
 	step.Command = "/usr/bin/podman"
@@ -42,5 +42,5 @@ func (h *stopInstallationCmd) GetStep(ctx context.Context, host *models.Host) (*
 		cmdArgs = []string{"-c", "podman " + strings.Join(cmdArgs, " ") + "; " + logsCommand}
 	}
 	step.Args = cmdArgs
-	return step, nil
+	return []*models.Step{step}, nil
 }

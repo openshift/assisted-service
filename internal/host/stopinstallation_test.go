@@ -20,7 +20,7 @@ var _ = Describe("stop-podman", func() {
 	var db *gorm.DB
 	var stopCmd *stopInstallationCmd
 	var id, clusterId strfmt.UUID
-	var stepReply *models.Step
+	var stepReply []*models.Step
 	var stepErr error
 	dbName := "stop_podman"
 
@@ -35,18 +35,18 @@ var _ = Describe("stop-podman", func() {
 	})
 
 	It("get_step with logs", func() {
-		stepReply, stepErr = stopCmd.GetStep(ctx, &host)
-		Expect(stepReply.StepType).To(Equal(models.StepTypeExecute))
+		stepReply, stepErr = stopCmd.GetSteps(ctx, &host)
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeExecute))
 		Expect(stepErr).ShouldNot(HaveOccurred())
-		Expect(stepReply.Command).Should(Equal("bash"))
+		Expect(stepReply[0].Command).Should(Equal("bash"))
 	})
 	It("get_step without logs", func() {
 		host.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host)
-		stepReply, stepErr = stopCmd.GetStep(ctx, &host)
-		Expect(stepReply.StepType).To(Equal(models.StepTypeExecute))
+		stepReply, stepErr = stopCmd.GetSteps(ctx, &host)
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeExecute))
 		Expect(stepErr).ShouldNot(HaveOccurred())
-		Expect(stepReply.Command).Should(Equal("/usr/bin/podman"))
+		Expect(stepReply[0].Command).Should(Equal("/usr/bin/podman"))
 	})
 
 	AfterEach(func() {

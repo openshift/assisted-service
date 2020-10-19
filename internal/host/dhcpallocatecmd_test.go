@@ -22,7 +22,7 @@ var _ = Describe("dhcpallocate", func() {
 	var db *gorm.DB
 	var dCmd *dhcpAllocateCmd
 	var id, clusterId strfmt.UUID
-	var stepReply *models.Step
+	var stepReply []*models.Step
 	var stepErr error
 	dbName := "dhcpallocate_cmd"
 
@@ -41,13 +41,13 @@ var _ = Describe("dhcpallocate", func() {
 		cluster = getTestCluster(clusterId, "1.2.3.0/24")
 		cluster.VipDhcpAllocation = swag.Bool(true)
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-		stepReply, stepErr = dCmd.GetStep(ctx, &host)
+		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
 		Expect(stepReply).ToNot(BeNil())
-		Expect(stepReply.StepType).To(Equal(models.StepTypeDhcpLeaseAllocate))
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeDhcpLeaseAllocate))
 		Expect(stepErr).ShouldNot(HaveOccurred())
-		Expect(len(stepReply.Args)).To(BeNumerically(">", 0))
+		Expect(len(stepReply[0].Args)).To(BeNumerically(">", 0))
 		var req models.DhcpAllocationRequest
-		Expect(json.Unmarshal([]byte(stepReply.Args[len(stepReply.Args)-1]), &req)).ToNot(HaveOccurred())
+		Expect(json.Unmarshal([]byte(stepReply[0].Args[len(stepReply[0].Args)-1]), &req)).ToNot(HaveOccurred())
 		Expect(req.Interface).To(Equal(swag.String("eth0")))
 		Expect(req.APIVipMac).To(Equal(asMAC("00:1a:4a:b5:4d:cc")))
 		Expect(req.IngressVipMac).To(Equal(asMAC("00:1a:4a:83:b1:f7")))
@@ -57,7 +57,7 @@ var _ = Describe("dhcpallocate", func() {
 		cluster = getTestCluster(clusterId, "1.2.3.0/24")
 		cluster.VipDhcpAllocation = swag.Bool(false)
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-		stepReply, stepErr = dCmd.GetStep(ctx, &host)
+		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
@@ -66,7 +66,7 @@ var _ = Describe("dhcpallocate", func() {
 		cluster = getTestCluster(clusterId, "")
 		cluster.VipDhcpAllocation = swag.Bool(true)
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-		stepReply, stepErr = dCmd.GetStep(ctx, &host)
+		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
@@ -75,7 +75,7 @@ var _ = Describe("dhcpallocate", func() {
 		cluster = getTestCluster(clusterId, "blah")
 		cluster.VipDhcpAllocation = swag.Bool(true)
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-		stepReply, stepErr = dCmd.GetStep(ctx, &host)
+		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).To(HaveOccurred())
 	})
@@ -84,7 +84,7 @@ var _ = Describe("dhcpallocate", func() {
 		cluster = getTestCluster(clusterId, "4.5.6.0/24")
 		cluster.VipDhcpAllocation = swag.Bool(true)
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-		stepReply, stepErr = dCmd.GetStep(ctx, &host)
+		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).To(HaveOccurred())
 	})

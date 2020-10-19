@@ -59,7 +59,7 @@ func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
 	return string(b), nil
 }
 
-func (f *freeAddressesCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
+func (f *freeAddressesCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	param, err := f.prepareParam(host)
 	if err != nil {
 		return nil, err
@@ -77,5 +77,5 @@ func (f *freeAddressesCmd) GetStep(ctx context.Context, host *models.Host) (*mod
 			param,
 		},
 	}
-	return step, nil
+	return []*models.Step{step}, nil
 }

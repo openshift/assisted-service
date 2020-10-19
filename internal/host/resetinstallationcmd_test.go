@@ -19,7 +19,7 @@ var _ = Describe("reset", func() {
 	var db *gorm.DB
 	var rstCmd *resetInstallationCmd
 	var id, clusterId strfmt.UUID
-	var stepReply *models.Step
+	var stepReply []*models.Step
 	var stepErr error
 	dbName := "reset_cmd"
 
@@ -34,8 +34,8 @@ var _ = Describe("reset", func() {
 	})
 
 	It("get_step", func() {
-		stepReply, stepErr = rstCmd.GetStep(ctx, &host)
-		Expect(stepReply.StepType).To(Equal(models.StepTypeResetInstallation))
+		stepReply, stepErr = rstCmd.GetSteps(ctx, &host)
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeResetInstallation))
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 

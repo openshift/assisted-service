@@ -19,7 +19,7 @@ var _ = Describe("inventory", func() {
 	var db *gorm.DB
 	var invCmd *inventoryCmd
 	var id, clusterId strfmt.UUID
-	var stepReply *models.Step
+	var stepReply []*models.Step
 	var stepErr error
 	dbName := "inventorycmd"
 
@@ -34,8 +34,8 @@ var _ = Describe("inventory", func() {
 	})
 
 	It("get_step", func() {
-		stepReply, stepErr = invCmd.GetStep(ctx, &host)
-		Expect(stepReply.StepType).To(Equal(models.StepTypeInventory))
+		stepReply, stepErr = invCmd.GetSteps(ctx, &host)
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeInventory))
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 

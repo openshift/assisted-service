@@ -20,7 +20,7 @@ func NewInventoryCmd(log logrus.FieldLogger, inventoryImage string) *inventoryCm
 	}
 }
 
-func (h *inventoryCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
+func (h *inventoryCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	step := &models.Step{
 		StepType: models.StepTypeInventory,
 		Command:  "podman",
@@ -34,5 +34,5 @@ func (h *inventoryCmd) GetStep(ctx context.Context, host *models.Host) (*models.
 			"inventory",
 		},
 	}
-	return step, nil
+	return []*models.Step{step}, nil
 }

@@ -53,7 +53,7 @@ func (f *dhcpAllocateCmd) prepareParam(host *models.Host, cluster *common.Cluste
 	return string(b), nil
 }
 
-func (f *dhcpAllocateCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
+func (f *dhcpAllocateCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	var cluster common.Cluster
 	if err := f.db.Take(&cluster, "id = ?", host.ClusterID.String()).Error; err != nil {
 		return nil, err
@@ -85,5 +85,5 @@ func (f *dhcpAllocateCmd) GetStep(ctx context.Context, host *models.Host) (*mode
 			param,
 		},
 	}
-	return step, nil
+	return []*models.Step{step}, nil
 }

@@ -119,17 +119,20 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 		//need to add the step id
 		returnSteps.NextInstructionSeconds = cmdsMap.NextStepInSec
 		for _, cmd := range cmdsMap.Commands {
-			step, err := cmd.GetStep(ctx, host)
+			steps, err := cmd.GetSteps(ctx, host)
 			if err != nil {
 				return returnSteps, err
 			}
-			if step == nil {
+			if steps == nil {
 				continue
 			}
-			if step.StepID == "" {
-				step.StepID = createStepID(step.StepType)
+			for _, step := range steps {
+				if step.StepID == "" {
+					step.StepID = createStepID(step.StepType)
+				}
 			}
-			returnSteps.Instructions = append(returnSteps.Instructions, step)
+
+			returnSteps.Instructions = append(returnSteps.Instructions, steps...)
 		}
 	} else {
 		returnSteps.NextInstructionSeconds = defaultNextInstructionInSec

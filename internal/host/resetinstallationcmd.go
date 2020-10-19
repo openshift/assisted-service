@@ -20,7 +20,7 @@ func NewResetInstallationCmd(log logrus.FieldLogger) *resetInstallationCmd {
 	}
 }
 
-func (h *resetInstallationCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
+func (h *resetInstallationCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	var cmdStr string
 	if host.Bootstrap {
 		cmdStr += "systemctl stop bootkube.service; rm -rf /etc/kubernetes/manifests/* /etc/kubernetes/static-pod-resources/* /opt/openshift/*.done; "
@@ -38,5 +38,5 @@ func (h *resetInstallationCmd) GetStep(ctx context.Context, host *models.Host) (
 	step.StepType = models.StepTypeResetInstallation
 	step.Command = "bash"
 	step.Args = []string{"-c", buf.String()}
-	return step, nil
+	return []*models.Step{step}, nil
 }
