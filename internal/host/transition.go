@@ -421,19 +421,46 @@ func (th *transitionHandler) HasInstallationTimedOut(sw stateswitch.StateSwitch,
 	if !ok {
 		return false, errors.New("HasInstallationTimedOut incompatible type of StateSwitch")
 	}
+	params, ok := args.(*TransitionArgsRefreshHost)
+	if !ok {
+		return false, errors.New("HasInstallationTimedOut invalid argument")
+	}
+	if isPaused, err := IsInstallationPaused(sHost.host.ClusterID, params.db); err != nil {
+		return false, err
+	} else if isPaused {
+		return false, nil
+	}
 	return time.Since(time.Time(sHost.host.StatusUpdatedAt)) > InstallationTimeout, nil
 }
 
 func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
-		return false, errors.New("HasInstallationTimedOut incompatible type of StateSwitch")
+		return false, errors.New("HasInstallationInProgressTimedOut incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshHost)
+	if !ok {
+		return false, errors.New("HasInstallationInProgressTimedOut invalid argument")
+	}
+	if isPaused, err := IsInstallationPaused(sHost.host.ClusterID, params.db); err != nil {
+		return false, err
+	} else if isPaused {
+		return false, nil
 	}
 	maxDuration, ok := InstallationProgressTimeout[sHost.host.Progress.CurrentStage]
 	if !ok {
 		maxDuration = InstallationProgressTimeout["DEFAULT"]
 	}
 	return time.Since(time.Time(sHost.host.Progress.StageUpdatedAt)) > maxDuration, nil
+}
+
+func IsInstallationPaused(clusterID strfmt.UUID, db *gorm.DB) (bool, error) {
+	var cluster common.Cluster
+	err := db.Select("status").Take(&cluster, "id = ?", clusterID.String()).Error
+	if err != nil {
+		return false, err
+	}
+	return swag.StringValue(cluster.Status) == models.ClusterStatusPendingForInput, nil
 }
 
 // Return a post transition function with a constant reason

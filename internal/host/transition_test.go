@@ -1089,6 +1089,34 @@ var _ = Describe("Refresh Host", func() {
 			})
 		}
 	})
+	Context("host installation timeout - cluster is pending user action", func() {
+		states := []string{
+			models.HostStatusInstalling,
+			models.HostStatusInstallingInProgress,
+		}
+
+		passedTime := 90 * time.Minute
+
+		for _, srcState := range states {
+			It(fmt.Sprintf("checking timeout from state %s", srcState), func() {
+				hostCheckInAt := strfmt.DateTime(time.Now())
+				host = getTestHost(hostId, clusterId, srcState)
+				host.Inventory = masterInventory()
+				host.Role = models.HostRoleMaster
+				host.CheckedInAt = hostCheckInAt
+				host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-passedTime))
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				cluster = getTestCluster(clusterId, "1.2.3.0/24")
+				cluster.Status = swag.String(models.ClusterStatusPendingForInput)
+				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+				err := hapi.RefreshStatus(ctx, &host, db)
+				Expect(err).ShouldNot(HaveOccurred())
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+				Expect(swag.StringValue(resultHost.Status)).To(Equal(srcState))
+			})
+		}
+	})
 
 	Context("host installationInProgress timeout", func() {
 		var srcState string
