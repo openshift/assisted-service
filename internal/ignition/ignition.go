@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 
+	"golang.org/x/sync/errgroup"
+
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_31_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/coreos/ignition/v2/config/validate"
@@ -587,26 +589,32 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 }
 
 func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error {
-	for _, host := range hosts {
-		config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
-		if err != nil {
-			return err
-		}
+	g := new(errgroup.Group)
+	for i := range hosts {
+		host := hosts[i]
+		g.Go(func() error {
+			config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
+			if err != nil {
+				return err
+			}
 
-		hostname, err := hostutil.GetCurrentHostName(host)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get hostname for host %s", host.ID)
-		}
+			hostname, err := hostutil.GetCurrentHostName(host)
+			if err != nil {
+				return errors.Wrapf(err, "failed to get hostname for host %s", host.ID)
+			}
 
-		setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420)
+			setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420)
 
-		err = writeIgnitionFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), config)
-		if err != nil {
-			return errors.Wrapf(err, "failed to write ignition for host %s", host.ID)
-		}
+			err = writeIgnitionFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), config)
+			if err != nil {
+				return errors.Wrapf(err, "failed to write ignition for host %s", host.ID)
+			}
+
+			return nil
+		})
 	}
 
-	return nil
+	return g.Wait()
 }
 
 // createHostIgnitions builds an ignition file for each host in the cluster based on the generated <role>.ign file
