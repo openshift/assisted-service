@@ -289,7 +289,7 @@ type RegisterHostConflict struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.InfraError `json:"body,omitempty"`
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewRegisterHostConflict creates RegisterHostConflict with default headers values
@@ -299,13 +299,13 @@ func NewRegisterHostConflict() *RegisterHostConflict {
 }
 
 // WithPayload adds the payload to the register host conflict response
-func (o *RegisterHostConflict) WithPayload(payload *models.InfraError) *RegisterHostConflict {
+func (o *RegisterHostConflict) WithPayload(payload *models.Error) *RegisterHostConflict {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the register host conflict response
-func (o *RegisterHostConflict) SetPayload(payload *models.InfraError) {
+func (o *RegisterHostConflict) SetPayload(payload *models.Error) {
 	o.Payload = payload
 }
 
