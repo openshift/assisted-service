@@ -15,7 +15,7 @@ pipeline {
         QUAY_IO_CREDS = credentials('ocpmetal_cred')
     }
     options {
-      timeout(time: 1, unit: 'HOURS') 
+      timeout(time: 2, unit: 'HOURS')
     }
 
     stages {
