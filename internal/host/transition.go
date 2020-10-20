@@ -439,6 +439,8 @@ func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.St
 // Return a post transition function with a constant reason
 func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTransition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+		// Not using reason directly to avoid closures issue.
+		template := reason
 		sHost, ok := sw.(*stateHost)
 		if !ok {
 			return errors.New("PostRefreshHost incompatible type of StateSwitch")
@@ -455,11 +457,11 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 		if err != nil {
 			return err
 		}
-		reason = strings.Replace(reason, "$STAGE", string(sHost.host.Progress.CurrentStage), 1)
-		reason = strings.Replace(reason, "$MAX_TIME", InstallationProgressTimeout[sHost.host.Progress.CurrentStage].String(), 1)
+		template = strings.Replace(template, "$STAGE", string(sHost.host.Progress.CurrentStage), 1)
+		template = strings.Replace(template, "$MAX_TIME", InstallationProgressTimeout[sHost.host.Progress.CurrentStage].String(), 1)
 
 		_, err = updateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
-			sHost.srcState, swag.StringValue(sHost.host.Status), reason, "validations_info", string(b))
+			sHost.srcState, swag.StringValue(sHost.host.Status), template, "validations_info", string(b))
 		return err
 	}
 	return ret
