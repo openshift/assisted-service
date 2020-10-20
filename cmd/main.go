@@ -148,7 +148,7 @@ func main() {
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
 	var autoMigrationLeader leader.ElectorInterface
-	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"))
+	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
 	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
 	versionHandler := versions.NewHandler(Options.Versions)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
