@@ -165,7 +165,7 @@ func TestAuthz(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	srvAddr := "localhost:8082"
+	srvAddr := "localhost:8083"
 	server := &http.Server{
 		Addr:    srvAddr,
 		Handler: h,
