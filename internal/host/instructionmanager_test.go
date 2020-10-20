@@ -204,6 +204,8 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 		Expect(stepsReply.NextInstructionSeconds).Should(Equal(defaultNextInstructionInSec))
 	}
 
+	ExpectWithOffset(1, *stepsReply.PostStepAction).Should(Equal(models.StepsPostStepActionContinue))
+
 	for i, step := range stepsReply.Instructions {
 		ExpectWithOffset(1, step.StepType).Should(Equal(expectedStepTypes[i]))
 	}

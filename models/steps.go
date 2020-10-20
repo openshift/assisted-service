@@ -6,11 +6,13 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Steps steps
@@ -18,14 +20,15 @@ import (
 // swagger:model steps
 type Steps struct {
 
-	// exit on completion
-	ExitOnCompletion bool `json:"exit_on_completion,omitempty"`
-
 	// instructions
 	Instructions []*Step `json:"instructions"`
 
 	// next instruction seconds
 	NextInstructionSeconds int64 `json:"next_instruction_seconds,omitempty"`
+
+	// What to do after finishing to run step instructions
+	// Enum: [exit continue]
+	PostStepAction *string `json:"post_step_action,omitempty"`
 }
 
 // Validate validates this steps
@@ -33,6 +36,10 @@ func (m *Steps) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateInstructions(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePostStepAction(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -62,6 +69,49 @@ func (m *Steps) validateInstructions(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+var stepsTypePostStepActionPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["exit","continue"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		stepsTypePostStepActionPropEnum = append(stepsTypePostStepActionPropEnum, v)
+	}
+}
+
+const (
+
+	// StepsPostStepActionExit captures enum value "exit"
+	StepsPostStepActionExit string = "exit"
+
+	// StepsPostStepActionContinue captures enum value "continue"
+	StepsPostStepActionContinue string = "continue"
+)
+
+// prop value enum
+func (m *Steps) validatePostStepActionEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, stepsTypePostStepActionPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Steps) validatePostStepAction(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.PostStepAction) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validatePostStepActionEnum("post_step_action", "body", *m.PostStepAction); err != nil {
+		return err
 	}
 
 	return nil

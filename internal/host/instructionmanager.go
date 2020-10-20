@@ -115,6 +115,7 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 		stateToSteps = i.addHostsClusterToSteps
 	}
 
+	returnSteps.PostStepAction = swag.String(models.StepsPostStepActionContinue)
 	if cmdsMap, ok := stateToSteps[hostStatus]; ok {
 		//need to add the step id
 		returnSteps.NextInstructionSeconds = cmdsMap.NextStepInSec

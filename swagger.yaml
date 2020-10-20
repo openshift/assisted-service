@@ -2342,8 +2342,13 @@ definitions:
     properties:
       next_instruction_seconds:
         type: integer
-      exit_on_completion:
-        type: boolean
+      post_step_action:
+        type: string
+        description: What to do after finishing to run step instructions
+        default: continue
+        enum:
+        - exit
+        - continue
       instructions:
         type: array
         items:
