@@ -67,16 +67,17 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.DhcpLeaseAllocatorImage, db)
 	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.APIVIPConnectivityCheckImage, instructionConfig.SupportL2)
 	downloadInstallerCmd := NewDownloadInstallerCmd(log, instructionConfig)
+	formatDiskCmd := NewFormatDiskCmd(log)
 
 	return &InstructionManager{
 		log: log,
 		db:  db,
 		installingClusterStateToSteps: stateToStepsMap{
-			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd}, defaultNextInstructionInSec},
+			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd, formatDiskCmd}, defaultNextInstructionInSec},
 			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
 			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd, downloadInstallerCmd}, defaultNextInstructionInSec},
-			models.HostStatusPendingForInput:          {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd}, defaultNextInstructionInSec},
+			models.HostStatusPendingForInput:          {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, formatDiskCmd}, defaultNextInstructionInSec},
 			models.HostStatusInstalling:               {[]CommandGetter{installCmd, dhcpAllocateCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusInstallingInProgress:     {[]CommandGetter{dhcpAllocateCmd}, defaultNextInstructionInSec},
 			models.HostStatusPreparingForInstallation: {[]CommandGetter{dhcpAllocateCmd}, defaultNextInstructionInSec},
