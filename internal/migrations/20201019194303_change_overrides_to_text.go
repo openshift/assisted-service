@@ -17,7 +17,7 @@ func changeOverridesToText() *gormigrate.Migration {
 
 	return &gormigrate.Migration{
 		ID:       "20201019194303",
-		Migrate:  migrate,
-		Rollback: rollback,
+		Migrate:  gormigrate.MigrateFunc(migrate),
+		Rollback: gormigrate.RollbackFunc(rollback),
 	}
 }

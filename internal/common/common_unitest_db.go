@@ -8,7 +8,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/migrations"
 	"github.com/openshift/assisted-service/models"
 	"github.com/ory/dockertest/v3"
 )
@@ -92,8 +91,6 @@ func PrepareTestDB(dbName string, extrasSchemas ...interface{}) *gorm.DB {
 	Expect(err).ShouldNot(HaveOccurred())
 	// db = db.Debug()
 	db.AutoMigrate(&models.Host{}, &Cluster{})
-	err = migrations.Migrate(db)
-	Expect(err).ShouldNot(HaveOccurred())
 
 	if len(extrasSchemas) > 0 {
 		for _, schema := range extrasSchemas {
