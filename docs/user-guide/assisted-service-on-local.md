@@ -21,7 +21,7 @@ The assisted service can also be deployed without using a Kubernetes cluster. In
 This type of deployment requires a different container image that combines components that are used to generate the installer ISO and configuration files. First build the image:
 
 ```
-export SERVICE=quay.io/<your-org>/assisted-service:latest
+export SERVICE_ONPREM=quay.io/<your-org>/assisted-service:latest
 make build-onprem
 ```
 
