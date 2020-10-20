@@ -1105,7 +1105,7 @@ var _ = Describe("Refresh Host", func() {
 		}
 		timePassedTypes := map[string]time.Duration{
 			"under_timeout": 5 * time.Minute,
-			"over_timeout":  90 * time.Minute,
+			"over_timeout":  125 * time.Minute,
 		}
 
 		for j := range installationStages {
