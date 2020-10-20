@@ -35,8 +35,6 @@ import (
 )
 
 func TestAuthz(t *testing.T) {
-	t.Parallel()
-
 	ctx := context.TODO()
 	log := logrus.New()
 
