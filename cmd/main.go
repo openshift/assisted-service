@@ -129,10 +129,6 @@ func main() {
 	db.DB().SetMaxOpenConns(0)
 	db.DB().SetConnMaxLifetime(0)
 
-	if err = db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{}).Error; err != nil {
-		log.Fatal("failed to auto migrate, ", err)
-	}
-
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
 
