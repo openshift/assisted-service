@@ -24,7 +24,6 @@ ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
 export SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
-export SERVICE_ONPREM := $(or ${SERVICE_ONPREM},${ASSISTED_ORG}/assisted-service-onprem:${ASSISTED_TAG})
 export ISO_CREATION := $(or ${ISO_CREATION},${ASSISTED_ORG}/assisted-iso-create:${ASSISTED_TAG})
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
@@ -41,8 +40,6 @@ OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
-ISO_CREATION_DOCKER_DAEMON_PULL_STRING := $(or ${ISO_CREATION_DOCKER_DAEMON_PULL_STRING},docker-daemon:${ISO_CREATION})
-ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING := $(or ${ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING},docker-daemon:${SERVICE})
 
 # We decided to have an option to change replicas count only while running in minikube
 # That line is checking if we run on minikube
@@ -117,7 +114,7 @@ generate-keys: $(BUILD_FOLDER)
 .PHONY: build docs
 build: lint unit-test build-minimal build-iso-generator
 
-build-all: build-in-docker build-onprem
+build-all: build-in-docker
 
 build-in-docker:
 	skipper make build-image build-minimal-assisted-iso-generator-image
@@ -127,11 +124,6 @@ build-minimal: $(BUILD_FOLDER)
 
 build-iso-generator: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-iso-create assisted-iso-create/main.go
-
-build-onprem: build-in-docker
-	podman pull $(ISO_CREATION_DOCKER_DAEMON_PULL_STRING)
-	podman pull $(ASSISTED_SERVICE_DOCKER_DAEMON_PULL_STRING)
-	podman build $(CONTAINER_BUILD_PARAMS) --build-arg RHCOS_VERSION=${RHCOS_VERSION} -f Dockerfile.assisted-service-onprem . -t $(SERVICE_ONPREM)
 
 build-image: build
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
@@ -149,7 +141,6 @@ update-service:
 update: build-all
 	docker push $(SERVICE)
 	docker push $(ISO_CREATION)
-	podman push $(SERVICE_ONPREM)
 
 update-minimal: build-minimal
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
@@ -167,7 +158,6 @@ endef # publish_image
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
 	$(call publish_image,docker,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${PUBLISH_TAG})
-	$(call publish_image,podman,${SERVICE_ONPREM},quay.io/ocpmetal/assisted-service-onprem:${PUBLISH_TAG})
 
 ##########
 # Deploy #
@@ -241,7 +231,7 @@ deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
 	podman run -dt --pod assisted-installer --env-file onprem-environment --name db quay.io/ocpmetal/postgresql-12-centos7
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
-	podman run -dt --pod assisted-installer --env-file onprem-environment --env DUMMY_IGNITION=$(DUMMY_IGNITION) --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
+	podman run -dt --pod assisted-installer --env-file onprem-environment --env DUMMY_IGNITION=$(DUMMY_IGNITION) --user assisted-installer  --restart always --name installer $(SERVICE)
 
 deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
