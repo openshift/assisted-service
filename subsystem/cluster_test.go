@@ -875,8 +875,7 @@ var _ = Describe("cluster install", func() {
 					StepID:   string(models.StepTypeInstall),
 				},
 			})
-			// For some reason the post step reply API return bad request in case the exit code isn't 0
-			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewPostStepReplyBadRequest())))
+			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying installation failed")
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, "cluster has hosts in error")
@@ -904,8 +903,7 @@ var _ = Describe("cluster install", func() {
 					StepID:   string(models.StepTypeInstall) + "-123465",
 				},
 			})
-			// For some reason the post step reply API return bad request in case the exit code isn't 0
-			Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewPostStepReplyBadRequest())))
+			Expect(err).NotTo(HaveOccurred())
 			By("Verify host status is still installing")
 			_, status := isHostInState(ctx, clusterID, *c.Hosts[0].ID, models.HostStatusInstalling)
 			Expect(status).Should(Equal(models.HostStatusInstalling))

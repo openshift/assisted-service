@@ -264,7 +264,7 @@ var _ = Describe("Host tests", func() {
 				StepID:   "installCmd-" + string(models.StepTypeExecute),
 			},
 		})
-		Expect(err).Should(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred())
 		host = getHost(clusterID, *host.ID)
 		Expect(swag.StringValue(host.Status)).Should(Equal("error"))
 		Expect(swag.StringValue(host.StatusInfo)).Should(Equal("installation command failed"))
@@ -316,7 +316,7 @@ var _ = Describe("Host tests", func() {
 				StepID:   string(models.StepTypeConnectivityCheck),
 			},
 		})
-		Expect(err).To(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 		host = getHost(clusterID, *host.ID)
 		Expect(host.Connectivity).Should(Equal(connectivity))
 
@@ -387,7 +387,7 @@ var _ = Describe("Host tests", func() {
 				StepID:   string(models.StepTypeFreeNetworkAddresses),
 			},
 		})
-		Expect(err).To(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("disable enable", func() {
