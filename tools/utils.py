@@ -10,6 +10,7 @@ from typing import Optional
 
 LOCAL_TARGET = 'minikube'
 INGRESS_REMOTE_TARGET = 'oc-ingress'
+OCP_TARGET = 'ocp'
 
 MINIKUBE_CMD = 'minikube'
 KUBECTL_CMD = 'kubectl'
@@ -81,6 +82,10 @@ def get_service_host(
     elif target == INGRESS_REMOTE_TARGET:
         domain = get_domain(domain, target, namespace, profile)
         host = f'{service}.{domain}'
+    elif target == OCP_TARGET:
+        kubectl_cmd = get_kubectl_command(target, namespace, profile)
+        cmd = f'{kubectl_cmd} get nodes -o=jsonpath={{.items[0].status.addresses[0].address}}'
+        host = check_output(cmd)
     else:
         kubectl_cmd = get_kubectl_command(target, namespace, profile)
         cmd = f'{kubectl_cmd} get service {service} | grep {service}'
@@ -106,7 +111,8 @@ def get_service_port(
         kubectl_cmd = get_kubectl_command(target, namespace, profile)
         cmd = f'{kubectl_cmd} get service {service} | grep {service}'
         reply = check_output(cmd)[:-1].split()
-        port = reply[4].split(":")[0]
+        ports = reply[4].split(":")
+        port = ports[0] if target != OCP_TARGET else ports[1].split("/")[0]
     return port.strip()
 
 
@@ -263,6 +269,12 @@ def get_kubectl_command(target=None, namespace=None, profile=None):
     cmd = KUBECTL_CMD
     if namespace is not None:
         cmd += f' --namespace {namespace}'
+    if target == OCP_TARGET:
+        kubeconfig = os.environ.get("OCP_KUBECONFIG")
+        if kubeconfig is None:
+            kubeconfig = "build/kubeconfig"
+        cmd += f' --kubeconfig {kubeconfig}'
+        return cmd
     if profile is None or target != LOCAL_TARGET:
         return cmd
     server = get_minikube_server(profile) if target == LOCAL_TARGET else None
