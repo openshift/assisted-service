@@ -29,7 +29,7 @@ func NewAPIVIPConnectivityCheckCmd(log logrus.FieldLogger, db *gorm.DB, connecti
 	}
 }
 
-func (c *apivipConnectivityCheckCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
+func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	var cluster common.Cluster
 	if err := c.db.First(&cluster, "id = ?", host.ClusterID).Error; err != nil {
 		c.log.WithError(err).Errorf("failed to fetch cluster %s", host.ClusterID)
@@ -59,5 +59,5 @@ func (c *apivipConnectivityCheckCmd) GetStep(ctx context.Context, host *models.H
 			string(requestBytes),
 		},
 	}
-	return step, nil
+	return []*models.Step{step}, nil
 }

@@ -36,7 +36,7 @@ func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Val
 	}
 }
 
-func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
+func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	step := &models.Step{}
 	step.StepType = models.StepTypeInstall
 	step.Command = "bash"
@@ -133,7 +133,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		return nil, err
 	}
 
-	return step, nil
+	return []*models.Step{step}, nil
 }
 
 func (i *installCmd) hasCACert() bool {

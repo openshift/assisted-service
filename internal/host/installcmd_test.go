@@ -36,7 +36,7 @@ var _ = Describe("installcmd", func() {
 		db                *gorm.DB
 		installCmd        *installCmd
 		clusterId         strfmt.UUID
-		stepReply         *models.Step
+		stepReply         []*models.Step
 		stepErr           error
 		ctrl              *gomock.Controller
 		mockValidator     *hardware.MockValidator
@@ -73,8 +73,9 @@ var _ = Describe("installcmd", func() {
 		})
 
 		AfterEach(func() {
-			stepReply, stepErr = installCmd.GetStep(ctx, &host)
-			postvalidation(true, true, stepReply, stepErr, "")
+			stepReply, stepErr = installCmd.GetSteps(ctx, &host)
+			Expect(stepReply).To(BeNil())
+			postvalidation(true, true, nil, stepErr, "")
 			hostFromDb := getHost(*host.ID, clusterId, db)
 			Expect(hostFromDb.InstallerVersion).Should(BeEmpty())
 			Expect(hostFromDb.InstallationDiskPath).Should(BeEmpty())
@@ -83,51 +84,9 @@ var _ = Describe("installcmd", func() {
 
 	It("get_step_one_master_success", func() {
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
-		stepReply, stepErr = installCmd.GetStep(ctx, &host)
-		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
-		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "", "")
-
-		hostFromDb := getHost(*host.ID, clusterId, db)
-		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
-		Expect(hostFromDb.InstallationDiskPath).Should(Equal(GetDeviceFullName(disks[0].Name)))
-	})
-	It("get_step_one_master_success with proxy", func() {
-		cluster.Name = "test"
-		cluster.BaseDNSDomain = "redhat.com"
-		cluster.HTTPSProxy = "test.com"
-		db.Save(&cluster)
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
-		stepReply, stepErr = installCmd.GetStep(ctx, &host)
-		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
-		noProxy := []string{cluster.NoProxy, "127.0.0.1",
-			"localhost",
-			".svc",
-			".cluster.local",
-			fmt.Sprintf("api-int.%s.%s", cluster.Name, cluster.BaseDNSDomain)}
-		proxy := fmt.Sprintf("--https-proxy %s --no-proxy %s", cluster.HTTPSProxy, strings.Join(noProxy, ","))
-		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "", proxy)
-
-		hostFromDb := getHost(*host.ID, clusterId, db)
-		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
-		Expect(hostFromDb.InstallationDiskPath).Should(Equal(GetDeviceFullName(disks[0].Name)))
-	})
-
-	It("get_step_one_master_success with proxy and no proxy", func() {
-		cluster.Name = "test"
-		cluster.BaseDNSDomain = "redhat.com"
-		cluster.HTTPSProxy = "test.com"
-		cluster.NoProxy = "no-proxy"
-		db.Save(&cluster)
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
-		stepReply, stepErr = installCmd.GetStep(ctx, &host)
-		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
-		noProxy := []string{cluster.NoProxy, "127.0.0.1",
-			"localhost",
-			".svc",
-			".cluster.local",
-			fmt.Sprintf("api-int.%s.%s", cluster.Name, cluster.BaseDNSDomain)}
-		proxy := fmt.Sprintf("--https-proxy %s --no-proxy %s", cluster.HTTPSProxy, strings.Join(noProxy, ","))
-		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "", proxy)
+		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
+		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
+		validateInstallCommand(stepReply[0], models.HostRoleMaster, string(clusterId), string(*host.ID), "", "")
 
 		hostFromDb := getHost(*host.ID, clusterId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
@@ -139,15 +98,15 @@ var _ = Describe("installcmd", func() {
 		host2 := createHostInDb(db, clusterId, models.HostRoleMaster, false, "")
 		host3 := createHostInDb(db, clusterId, models.HostRoleMaster, true, "some_hostname")
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(3)
-		stepReply, stepErr = installCmd.GetStep(ctx, &host)
-		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
-		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host.ID), "", "")
-		stepReply, stepErr = installCmd.GetStep(ctx, &host2)
-		postvalidation(false, false, stepReply, stepErr, models.HostRoleMaster)
-		validateInstallCommand(stepReply, models.HostRoleMaster, string(clusterId), string(*host2.ID), "", "")
-		stepReply, stepErr = installCmd.GetStep(ctx, &host3)
-		postvalidation(false, false, stepReply, stepErr, models.HostRoleBootstrap)
-		validateInstallCommand(stepReply, models.HostRoleBootstrap, string(clusterId), string(*host3.ID), "some_hostname", "")
+		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
+		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
+		validateInstallCommand(stepReply[0], models.HostRoleMaster, string(clusterId), string(*host.ID), "", "")
+		stepReply, stepErr = installCmd.GetSteps(ctx, &host2)
+		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
+		validateInstallCommand(stepReply[0], models.HostRoleMaster, string(clusterId), string(*host2.ID), "", "")
+		stepReply, stepErr = installCmd.GetSteps(ctx, &host3)
+		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleBootstrap)
+		validateInstallCommand(stepReply[0], models.HostRoleBootstrap, string(clusterId), string(*host3.ID), "some_hostname", "")
 	})
 
 	AfterEach(func() {
@@ -190,8 +149,8 @@ var _ = Describe("installcmd arguments", func() {
 		It("insecure_cert_is_false_by_default", func() {
 			config := &InstructionConfig{}
 			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
-			reply, err := installCmd.GetStep(ctx, &host)
-			verifyStepArg(reply, err, `--insecure[ =\w]*`, "--insecure=false")
+			reply, err := installCmd.GetSteps(ctx, &host)
+			verifyStepArg(reply[0], err, `--insecure[ =\w]*`, "--insecure=false")
 		})
 
 		It("insecure_cert_is_set_to_false", func() {
@@ -199,8 +158,8 @@ var _ = Describe("installcmd arguments", func() {
 				SkipCertVerification: false,
 			}
 			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
-			reply, err := installCmd.GetStep(ctx, &host)
-			verifyStepArg(reply, err, `--insecure[ =\w]*`, "--insecure=false")
+			reply, err := installCmd.GetSteps(ctx, &host)
+			verifyStepArg(reply[0], err, `--insecure[ =\w]*`, "--insecure=false")
 		})
 
 		It("insecure_cert_is_set_to_true", func() {
@@ -208,8 +167,8 @@ var _ = Describe("installcmd arguments", func() {
 				SkipCertVerification: true,
 			}
 			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
-			reply, err := installCmd.GetStep(ctx, &host)
-			verifyStepArg(reply, err, `--insecure[ =\w]*`, "--insecure=true")
+			reply, err := installCmd.GetSteps(ctx, &host)
+			verifyStepArg(reply[0], err, `--insecure[ =\w]*`, "--insecure=true")
 		})
 
 		It("target_url_is_passed", func() {
@@ -217,8 +176,8 @@ var _ = Describe("installcmd arguments", func() {
 				ServiceBaseURL: "ws://remote-host:8080",
 			}
 			installCmd := NewInstallCmd(getTestLog(), db, validator, *config)
-			stepReply, err := installCmd.GetStep(ctx, &host)
-			verifyStepArg(stepReply, err, `-url [\w\d:/-]+`, fmt.Sprintf("-url %s", config.ServiceBaseURL))
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			verifyStepArg(stepReply[0], err, `-url [\w\d:/-]+`, fmt.Sprintf("-url %s", config.ServiceBaseURL))
 		})
 	})
 })

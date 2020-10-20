@@ -20,7 +20,7 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	var db *gorm.DB
 	var apivipConnectivityCheckCmd *apivipConnectivityCheckCmd
 	var id, clusterID strfmt.UUID
-	var stepReply *models.Step
+	var stepReply []*models.Step
 	var stepErr error
 	dbName := "apivipconnectivitycheckcmd"
 
@@ -38,15 +38,15 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	})
 
 	It("get_step", func() {
-		stepReply, stepErr = apivipConnectivityCheckCmd.GetStep(ctx, &host)
-		Expect(stepReply).ShouldNot(BeNil())
-		Expect(stepReply.Args[len(stepReply.Args)-1]).Should(Equal("{\"url\":\"http://test.com:22624/config/worker\",\"verify_cidr\":true}"))
+		stepReply, stepErr = apivipConnectivityCheckCmd.GetSteps(ctx, &host)
+		Expect(stepReply[0]).ShouldNot(BeNil())
+		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal("{\"url\":\"http://test.com:22624/config/worker\",\"verify_cidr\":true}"))
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 
 	It("get_step_unknown_cluster_id", func() {
 		host.ClusterID = strfmt.UUID(uuid.New().String())
-		stepReply, stepErr = apivipConnectivityCheckCmd.GetStep(ctx, &host)
+		stepReply, stepErr = apivipConnectivityCheckCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).Should(HaveOccurred())
 	})

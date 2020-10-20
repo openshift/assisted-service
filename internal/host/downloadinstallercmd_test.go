@@ -15,7 +15,7 @@ var _ = Describe("downloadInstallerCmd", func() {
 		ctx       = context.Background()
 		host      models.Host
 		invCmd    *downloadInstallerCmd
-		stepReply *models.Step
+		stepReply []*models.Step
 		stepErr   error
 		cfg       InstructionConfig
 	)
@@ -26,12 +26,12 @@ var _ = Describe("downloadInstallerCmd", func() {
 	})
 
 	It("get_step", func() {
-		stepReply, stepErr = invCmd.GetStep(ctx, &host)
-		Expect(stepReply.StepType).To(Equal(models.StepTypeExecute))
+		stepReply, stepErr = invCmd.GetSteps(ctx, &host)
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeExecute))
 		Expect(stepErr).ShouldNot(HaveOccurred())
-		Expect(stepReply.Command).Should(Equal("timeout"))
+		Expect(stepReply[0].Command).Should(Equal("timeout"))
 		expectedArgs := []string{"15m", "bash", "-c",
 			fmt.Sprintf("until podman pull %s; do sleep 1; done", cfg.InstallerImage)}
-		Expect(stepReply.Args).Should(Equal(expectedArgs))
+		Expect(stepReply[0].Args).Should(Equal(expectedArgs))
 	})
 })

@@ -19,7 +19,7 @@ var _ = Describe("connectivitycheckcmd", func() {
 	var db *gorm.DB
 	var connectivityCheckCmd *connectivityCheckCmd
 	var id, clusterId strfmt.UUID
-	var stepReply *models.Step
+	var stepReply []*models.Step
 	var stepErr error
 	dbName := "connectivitycheckcmd"
 
@@ -34,14 +34,14 @@ var _ = Describe("connectivitycheckcmd", func() {
 	})
 
 	It("get_step", func() {
-		stepReply, stepErr = connectivityCheckCmd.GetStep(ctx, &host)
+		stepReply, stepErr = connectivityCheckCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 
 	It("get_step_unknow_cluster_id", func() {
 		host.ClusterID = strfmt.UUID(uuid.New().String())
-		stepReply, stepErr = connectivityCheckCmd.GetStep(ctx, &host)
+		stepReply, stepErr = connectivityCheckCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})

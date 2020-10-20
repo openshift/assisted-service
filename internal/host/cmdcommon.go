@@ -12,5 +12,5 @@ type baseCmd struct {
 }
 
 type CommandGetter interface {
-	GetStep(ctx context.Context, host *models.Host) (*models.Step, error)
+	GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error)
 }

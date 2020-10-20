@@ -28,7 +28,7 @@ func NewConnectivityCheckCmd(log logrus.FieldLogger, db *gorm.DB, connectivityVa
 	}
 }
 
-func (c *connectivityCheckCmd) GetStep(ctx context.Context, host *models.Host) (*models.Step, error) {
+func (c *connectivityCheckCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 
 	var hosts []*models.Host
 	if err := c.db.Find(&hosts, "cluster_id = ?", host.ClusterID).Error; err != nil {
@@ -59,5 +59,5 @@ func (c *connectivityCheckCmd) GetStep(ctx context.Context, host *models.Host) (
 			hostsData,
 		},
 	}
-	return step, nil
+	return []*models.Step{step}, nil
 }

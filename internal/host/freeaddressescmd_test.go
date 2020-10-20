@@ -19,7 +19,7 @@ var _ = Describe("free_addresses", func() {
 	var db *gorm.DB
 	var fCmd *freeAddressesCmd
 	var id, clusterId strfmt.UUID
-	var stepReply *models.Step
+	var stepReply []*models.Step
 	var stepErr error
 	dbName := "freeaddresses_cmd"
 
@@ -35,22 +35,22 @@ var _ = Describe("free_addresses", func() {
 	})
 
 	It("happy flow", func() {
-		stepReply, stepErr = fCmd.GetStep(ctx, &host)
+		stepReply, stepErr = fCmd.GetSteps(ctx, &host)
 		Expect(stepReply).ToNot(BeNil())
-		Expect(stepReply.StepType).To(Equal(models.StepTypeFreeNetworkAddresses))
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeFreeNetworkAddresses))
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 
 	It("Illegal inventory", func() {
 		host.Inventory = "blah"
-		stepReply, stepErr = fCmd.GetStep(ctx, &host)
+		stepReply, stepErr = fCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).To(HaveOccurred())
 	})
 
 	It("Missing networks", func() {
 		host.Inventory = "{}"
-		stepReply, stepErr = fCmd.GetStep(ctx, &host)
+		stepReply, stepErr = fCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).To(HaveOccurred())
 	})
