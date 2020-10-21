@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/openshift/assisted-service/internal/common"
@@ -1148,14 +1149,66 @@ var _ = Describe("Refresh Host", func() {
 						Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingInProgress))
 					} else {
 						Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
-						timeFormat := InstallationProgressTimeout[stage].String()
-						info := fmt.Sprintf("Host failed to install because its installation stage %s took longer than expected %s", stage, timeFormat)
+						info := formatProgressTimedOutInfo(stage)
 						Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
 					}
 
 				})
 			}
 		}
+		It("state info progress when failed", func() {
+
+			cluster = getTestCluster(clusterId, "1.2.3.0/24")
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			masterID := strfmt.UUID("1")
+			master := getTestHost(masterID, clusterId, models.HostStatusInstallingInProgress)
+			master.Inventory = masterInventory()
+			master.Role = models.HostRoleMaster
+			master.CheckedInAt = strfmt.DateTime(time.Now())
+			master.Progress = &models.HostProgressInfo{
+				CurrentStage:   models.HostStageWaitingForControlPlane,
+				StageStartedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+				StageUpdatedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+			}
+			Expect(db.Create(&master).Error).ShouldNot(HaveOccurred())
+
+			hostId = strfmt.UUID("2")
+			host = getTestHost(hostId, clusterId, models.HostStatusInstallingInProgress)
+			host.Inventory = masterInventory()
+			host.Role = models.HostRoleWorker
+			host.CheckedInAt = strfmt.DateTime(time.Now())
+			progress := models.HostProgressInfo{
+				CurrentStage:   models.HostStageWaitingForIgnition,
+				StageStartedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+				StageUpdatedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+			}
+			host.Progress = &progress
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
+				gomock.Any(), hostutil.GetEventSeverityFromHostStatus(models.HostStatusError), gomock.Any(), gomock.Any()).
+				AnyTimes()
+
+			err := hapi.RefreshStatus(ctx, &master, db)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = hapi.RefreshStatus(ctx, &host, db)
+			Expect(err).ToNot(HaveOccurred())
+
+			var resultMaster models.Host
+			Expect(db.Take(&resultMaster, "id = ? and cluster_id = ?", masterID.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+			info := formatProgressTimedOutInfo(models.HostStageWaitingForControlPlane)
+			Expect(swag.StringValue(resultMaster.StatusInfo)).To(Equal(info))
+
+			info = formatProgressTimedOutInfo(models.HostStageWaitingForIgnition)
+			Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+		})
+
 	})
 
 	Context("All transitions", func() {
@@ -2237,3 +2290,10 @@ var _ = Describe("Refresh Host", func() {
 		ctrl.Finish()
 	})
 })
+
+func formatProgressTimedOutInfo(stage models.HostStage) string {
+	timeFormat := InstallationProgressTimeout[stage].String()
+	info := strings.Replace(statusInfoInstallationInProgressTimedOut, "$STAGE", string(stage), 1)
+	info = strings.Replace(info, "$MAX_TIME", timeFormat, 1)
+	return info
+}
