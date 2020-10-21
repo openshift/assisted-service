@@ -3404,11 +3404,12 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'AddHostCluster' for cluster that add hosts to existing OCP cluster",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, \n'AddHostCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
           "type": "string",
           "enum": [
             "Cluster",
-            "AddHostsCluster"
+            "AddHostsCluster",
+            "AddHostsOCPCluster"
           ]
         },
         "machine_network_cidr": {
@@ -4152,11 +4153,12 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster, or\n'AddToExistingClusterOCPHost' for host being added to existing OCP cluster via OCP AI cluster\n",
           "type": "string",
           "enum": [
             "Host",
-            "AddToExistingClusterHost"
+            "AddToExistingClusterHost",
+            "AddToExistingClusterOCPHost"
           ]
         },
         "logs_collected_at": {
@@ -8258,11 +8260,12 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'AddHostCluster' for cluster that add hosts to existing OCP cluster",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, \n'AddHostCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
           "type": "string",
           "enum": [
             "Cluster",
-            "AddHostsCluster"
+            "AddHostsCluster",
+            "AddHostsOCPCluster"
           ]
         },
         "machine_network_cidr": {
@@ -8988,11 +8991,12 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster, or\n'AddToExistingClusterOCPHost' for host being added to existing OCP cluster via OCP AI cluster\n",
           "type": "string",
           "enum": [
             "Host",
-            "AddToExistingClusterHost"
+            "AddToExistingClusterHost",
+            "AddToExistingClusterOCPHost"
           ]
         },
         "logs_collected_at": {
