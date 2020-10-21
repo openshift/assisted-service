@@ -104,4 +104,9 @@ The FCC file transpiles to an ignition config using:
 podman run --rm -v ./config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > onprem-iso-config.ign
 ````
 
+There is also a make target that you can use, which wraps the above command to generate the ignition file:
+
+````
+make generate-onprem-iso-ignition
+````
 

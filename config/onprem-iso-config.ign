@@ -29,7 +29,7 @@
         "path": "/etc/assisted-service/environment",
         "contents": {
           "compression": "gzip",
-          "source": "data:;base64,H4sIAAAAAAAC/1TOUWvzIBQG4Pv8l5qm7ce3FbywzVkTSKOo3diVSGJbwWgW3dj+/QiMdrs778PhPYdRIQ8chCp32PqYtHNmym7KiBAvlJdY94P1dz8J4D9W7lRFhcTF6j9aoiUqZmGUS/xvs17N4e/yXHlPLTnCr8MC+HO9B7UjAtSJN/ia0hi3ea5jtDGZfqFHi1zotENhND5e7TkhG7YPm806K4E19FVJwg8gcfDjZIZb5Z6oPXCpGJEVznuddO4v1n8uonHnaC/e9KibUkYZtKKqn6SqWyFJ0ygODcz/1EdyAPz2rr+QDXnoxsEk7eZhMRlndDTbjwIt0SMqsu8AAAD//xTKvnhYAQAA"
+          "source": "data:;base64,H4sIAAAAAAAC/1SOzW7iMBSF93mXOPxkGITkhUnuBEsh9thmRl1ZFjFgKThp7Fb07atIhdLld8/Vdw5nUlUC5N9al0SRLZGAnQ/RdJ0dk6eUEyn/M1Fi016df04OEsTXtdzqHZMKzxe/0QzN0Hy6cCYU/pUvFxP8fJ6k39SQ/XO5BPGPFqCnTfoganyJcQibLDMhuBBtm5rBoa4/mg71g/Xh4k4RuX6zzvNlUgKv2YtWRFSgcO+H0V4fyoLoAoTSnKgdzloTTebPzt/SYLtTcGdvW3QcY8I4NHJH/yhNG6lIXWsBNUx76J5UgF/fzAdyffaoT0fbWRNs2tr3rD8Od97kaIXm6W290qs84YdtTQtdsEYR2oDQAioqlaAg78rkMwAA//83qwcMmQEAAA=="
         },
         "mode": 420
       },
