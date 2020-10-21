@@ -163,7 +163,10 @@ func TestAuthz(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	srvAddr := "localhost:8082"
+	// port must be differentiate from other suite tests ports in the project
+	// to avoid collision with other tests (logcontext_test uses port 8082) when
+	// running all tests in parallel.
+	srvAddr := "localhost:8083"
 	server := &http.Server{
 		Addr:    srvAddr,
 		Handler: h,
