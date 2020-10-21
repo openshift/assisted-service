@@ -72,8 +72,11 @@ func createClient() *client.AssistedInstall {
 	cfg := client.Config{
 		URL: &url.URL{
 			Scheme: client.DefaultSchemes[0],
-			Host:   "localhost:8082",
-			Path:   client.DefaultBasePath,
+			// port must be differentiate from other suite tests ports in the project
+			// to avoid collision with other tests (authz_handler_test uses port 8083) when
+			// running all tests in parallel.
+			Host: "localhost:8082",
+			Path: client.DefaultBasePath,
 		},
 	}
 
