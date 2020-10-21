@@ -28,7 +28,7 @@ objects:
               - POST
               - --user
               - $(USER):$(TOKEN)
-              - $(URL)?OFFLINE_TOKEN_CRED=$(OFFLINE_TOKEN_CRED)&PULL_SECRET_CRED=$(PULL_SECRET_CRED)&ASSISTED_SERVICE_URL=$(ASSISTED_SERVICE_URL)
+              - $(URL)?OFFLINE_TOKEN_CRED=$(OFFLINE_TOKEN_CRED)&PULL_SECRET_CRED=$(PULL_SECRET_CRED)&ASSISTED_SERVICE_URL=$(ASSISTED_SERVICE_URL)&CLUSTER_NAME=assisted-test-cluster-${JOBID}
             env:
               - name: URL
                 valueFrom:
