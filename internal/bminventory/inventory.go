@@ -266,7 +266,7 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 	return pullSecret, nil
 }
 
-func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams, safeForLogs bool) (string, error) {
+func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams, logger logrus.FieldLogger, safeForLogs bool) (string, error) {
 	creds, err := validations.ParsePullSecret(cluster.PullSecret)
 	if err != nil {
 		return "", err
@@ -336,7 +336,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		if err != nil {
 			return "", err
 		}
-		b.log.Infof("Applying ignition overrides %s for cluster %s, resulting ignition: %s", cluster.IgnitionConfigOverrides, cluster.ID, res)
+		logger.Infof("Applying ignition overrides %s for cluster %s, resulting ignition: %s", cluster.IgnitionConfigOverrides, cluster.ID, res)
 	}
 
 	return res, nil
@@ -364,7 +364,7 @@ func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params in
 	}
 	isoParams := installer.GenerateClusterISOParams{ClusterID: params.ClusterID, ImageCreateParams: &models.ImageCreateParams{}}
 
-	cfg, err := b.formatIgnitionFile(c, isoParams, false)
+	cfg, err := b.formatIgnitionFile(c, isoParams, log, false)
 	if err != nil {
 		log.WithError(err).Error("Failed to format ignition config")
 		return common.GenerateErrorResponder(err)
@@ -803,7 +803,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", time.Now())
 		return installer.NewGenerateClusterISOCreated().WithPayload(&cluster.Cluster)
 	}
-	ignitionConfig, formatErr := b.formatIgnitionFile(&cluster, params, false)
+	ignitionConfig, formatErr := b.formatIgnitionFile(&cluster, params, log, false)
 	if formatErr != nil {
 		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
 		msg := "Failed to generate image: error formatting ignition file"
@@ -823,7 +823,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	ignitionConfigForLogging, _ := b.formatIgnitionFile(&cluster, params, true)
+	ignitionConfigForLogging, _ := b.formatIgnitionFile(&cluster, params, log, true)
 	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
 
 	msg := fmt.Sprintf("Generated image (proxy URL is \"%s\", ", cluster.HTTPProxy)
@@ -1874,7 +1874,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 	if params.Reply.ExitCode != 0 {
 		err = errors.New(msg)
 		log.WithError(err).Errorf("Exit code is <%d> ", params.Reply.ExitCode)
-		handlingError := b.handleReplyError(params, ctx, &host)
+		handlingError := b.handleReplyError(params, ctx, log, &host)
 		if handlingError != nil {
 			log.WithError(handlingError).Errorf("Failed handling reply error for host <%s> cluster <%s>", params.HostID, params.ClusterID)
 		}
@@ -1903,12 +1903,12 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 	return installer.NewPostStepReplyNoContent()
 }
 
-func (b *bareMetalInventory) handleReplyError(params installer.PostStepReplyParams, ctx context.Context, h *models.Host) error {
+func (b *bareMetalInventory) handleReplyError(params installer.PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host) error {
 
 	if params.Reply.StepType == models.StepTypeInstall {
 		// Handle case of installation error due to an already running assisted-installer.
 		if params.Reply.ExitCode == ContainerAlreadyRunningExitCode && strings.Contains(params.Reply.Error, "the container name \"assisted-installer\" is already in use") {
-			b.log.Warnf("Install command failed due to an already running installation: %s", params.Reply.Error)
+			log.Warnf("Install command failed due to an already running installation: %s", params.Reply.Error)
 			return nil
 		}
 		//if it's install step - need to move host to error
