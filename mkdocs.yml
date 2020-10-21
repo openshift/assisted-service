@@ -16,4 +16,5 @@ nav:
         - OCP Deployment on vSphere: 'user-guide/deploy-on-vsphere.md'
         - OCP Deployment on RHEV: 'user-guide/deploy-on-RHEV.md'
         - OCP Deployment on Openstack: 'user-guide/deploy-on-OSP.md'
-
+    - OAS Development:
+        - Migrations: 'dev/migrations.md'
