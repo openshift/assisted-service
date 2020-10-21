@@ -73,6 +73,11 @@
                     <li class="toctree-l1"><a class="reference internal" href="../user-guide/deploy-on-OSP/">OCP Deployment on Openstack</a>
                     </li>
                 </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../dev/migrations/">Migrations</a>
+                    </li>
+                </ul>
       </div>
     </div>
     </nav>
@@ -121,18 +126,15 @@ export PULL_SECRET_ENCODED=$(export PULL_SECRET=$(cat auth.json); urlencode $PUL
 sed -i 's#replace-with-your-ssh-public-key#'&quot;${SSH_PUBLIC_KEY}&quot;'#' onprem-iso-config.ign
 sed -i 's#replace-with-your-urlencoded-pull-secret#'&quot;${PULL_SECRET_ENCODED}&quot;'#' onprem-iso-config.ign
 </code></pre>
-
 <p>Currently, the upstream assisted-service container image cannot be used with the live ISO. You will 
 need to build a custom container image and push it to quay.io.</p>
 <pre><code>export SERVICE=quay.io/&lt;your-org&gt;/assisted-service:latest
 make build
 docker push ${SERVICE}
 </code></pre>
-
 <p>Then update the ignition config file to use your assisted-service container image.</p>
 <pre><code>sed -i 's#quay.io/ocpmetal/assisted-service:latest#'&quot;${SERVICE}&quot;'#' onprem-iso-config.ign
 </code></pre>
-
 <h3 id="download-the-base-rhcos-live-iso">Download the base RHCOS live ISO</h3>
 <p>The base live ISO is extracted from a container image. Run the container
 image containing the ISO, copy the ISO, and then stop and remove the container. </p>
@@ -141,19 +143,16 @@ image containing the ISO, copy the ISO, and then stop and remove the container. 
   --entrypoint /bin/bash \
   quay.io/ocpmetal/assisted-iso-create:latest cp /data/livecd.iso /download/livecd.iso
 </code></pre>
-
 <h3 id="create-the-assisted-service-live-iso">Create the assisted-service live ISO</h3>
 <p>Finally, use the ignition config (onprem-iso-config.ign) and the base live ISO (livecd.iso) to
 create the assisted-service live ISO.</p>
 <pre><code>podman run --rm --privileged  -v /dev:/dev -v /run/udev:/run/udev -v .:/data  \
   quay.io/coreos/coreos-installer:release iso ignition embed -i /data/onprem-iso-config.ign -o /data/assisted-service.iso /data/livecd.iso
 </code></pre>
-
 <p>The live ISO, <strong>assisted-service.iso</strong> (not livecd.iso), can then be used to deploy the installer. The live ISO storage system is emphemeral and its size depends on the amount of memory installed on the host. A minimum of 10GB of memory is required to deploy the installer, generate a single discovery ISO, and install an OCP cluster.</p>
 <p>After the live ISO boots, the UI should be accessible from the browser at</p>
 <pre><code>https://&lt;hostname-or-ip&gt;:8443.
 </code></pre>
-
 <p>It may take a couple of minutes for the assisted-service and UI to become ready after you see the login prompt.</p>
 <h2 id="how-to-debug">How to debug</h2>
 <p>Login to the host using your ssh private key.</p>
@@ -164,17 +163,18 @@ create the assisted-service live ISO.</p>
 <p>Verify that the containers deploy by those services are running.</p>
 <pre><code>sudo podman ps -a
 </code></pre>
-
 <p>Examine the assisted-service-installer.service logs:</p>
 <pre><code>sudo journalctl -f -u assisted-service-installer.service
 </code></pre>
-
 <p>The environment file used to deploy the assisted-service is located at /etc/assisted-service/environment.</p>
 <p>Pull secrets are saved to a file located at /etc/assisted-service/auth.json.</p>
 <h2 id="how-to-use-the-fcc-file-to-generate-the-base-ignition-config-file">How to use the FCC file to generate the base ignition config file</h2>
 <p>The ignition file is created using a predefined Fedore CoreOS Config (FCC) file provided in /config/onprem-iso-fcc.yaml. FCC files are easier to read and edit than the machine readable ignition files.</p>
 <p>The FCC file transpiles to an ignition config using:</p>
 <pre><code>podman run --rm -v ./config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc &gt; onprem-iso-config.ign
+</code></pre>
+<p>There is also a make target that you can use, which wraps the above command to generate the ignition file:</p>
+<pre><code>make generate-onprem-iso-ignition
 </code></pre>
               
             </div>

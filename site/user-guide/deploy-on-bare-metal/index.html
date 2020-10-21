@@ -87,6 +87,11 @@
                     <li class="toctree-l1"><a class="reference internal" href="../deploy-on-OSP/">OCP Deployment on Openstack</a>
                     </li>
                 </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../dev/migrations/">Migrations</a>
+                    </li>
+                </ul>
       </div>
     </div>
     </nav>
@@ -163,7 +168,7 @@
 <em>NOTE2</em>: We've set the live_url as the node hostname on 8080 port , please change to fit your use case accordingly</p>
 <h3 id="automatic">Automatic</h3>
 <p>The automatic way is done using podman, just follow this steps:</p>
-<pre><code class="shell">export IPXE_DIR=/tmp/ipxe/ai
+<pre><code class="language-shell">export IPXE_DIR=/tmp/ipxe/ai
 mkdir -p ${IPXE_DIR}
 
 # This command will download the ISO, extract the Images and create the ignition config files
@@ -172,24 +177,21 @@ podman run -e BASE_URL=http://devscripts2ipv6.e2e.bos.redhat.com:8080 -e ISO_URL
 # This command will host the iPXE files on an podman container
 podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm bitnami/nginx:latest
 </code></pre>
-
 <p>To ensure if your container is working fine, check the url with a <code>curl</code> command</p>
-<pre><code class="shell">curl http://$(hostname):8080/ipxe/ipxe
+<pre><code class="language-shell">curl http://$(hostname):8080/ipxe/ipxe
 </code></pre>
-
 <h3 id="manual">Manual</h3>
 <p>The manual way is explained here. You need at least to have the Discovery ISO already generated</p>
 <p>Now let's download that ISO in the provisioning machine, where the iPXE files will be hosted (use the <em>Command to download the ISO</em> button from the Assisted Service website</p>
-<pre><code class="shell">export IPXE_DIR=/tmp/ipxe/ai
+<pre><code class="language-shell">export IPXE_DIR=/tmp/ipxe/ai
 export IMAGE_PATH=/tmp/discovery_image_ocp.iso
 
 wget -O ${IMAGE_PATH} 'http://cloud.redhat.com/api/assisted-install/v1/clusters/&lt;cluster_id&gt;/downloads/image'
 </code></pre>
-
 <ul>
 <li>Now we need to create the folder and the <em>ipxe</em> file definition</li>
 </ul>
-<pre><code class="shell">mkdir -p ${IPXE_DIR}
+<pre><code class="language-shell">mkdir -p ${IPXE_DIR}
 
 cat &gt; $IPXE_DIR/ipxe &lt;&lt; EOF
 #!ipxe                                                                                                                                                                                    
@@ -199,11 +201,10 @@ initrd \${live_url}/initrd.img
 boot       
 EOF
 </code></pre>
-
 <ul>
 <li>We also need to extract the images from the ISO</li>
 </ul>
-<pre><code class="shell">export PXE_IMAGES=`isoinfo -i $IMAGE_PATH -f | grep -i images/pxeboot`
+<pre><code class="language-shell">export PXE_IMAGES=`isoinfo -i $IMAGE_PATH -f | grep -i images/pxeboot`
 
 for img in $PXE_IMAGES; do
   export name=`basename ${img,,} | sed 's/\;1//' | sed 's/\.$//'`
@@ -211,28 +212,24 @@ for img in $PXE_IMAGES; do
   isoinfo -i $IMAGE_PATH -x $img &gt; $IPXE_DIR/$name
 done
 </code></pre>
-
 <ul>
 <li>And as a last step, write the Ignition files for the deployment</li>
 </ul>
-<pre><code class="shell">echo writing custom user ignition
+<pre><code class="language-shell">echo writing custom user ignition
 echo '{' &gt; $IPXE_DIR/config.ign
 isoinfo -i $IMAGE_PATH -x '/IMAGES/IGNITION.IMG;1' | xz -dc - | sed '1d; $d' &gt;&gt; $IPXE_DIR/config.ign
 echo '}' &gt;&gt; $IPXE_DIR/config.ign
 </code></pre>
-
 <ul>
 <li>After the Ignition files creation we need to host the files, for that we will use a podman contianer based on nginx</li>
 </ul>
-<pre><code class="shell">podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm bitnami/nginx:latest
+<pre><code class="language-shell">podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm bitnami/nginx:latest
 </code></pre>
-
 <ul>
 <li>To ensure if your container is working fine, check the url with a <code>curl</code> command</li>
 </ul>
-<pre><code class="shell">curl http://$(hostname):8080/ipxe/ipxe
+<pre><code class="language-shell">curl http://$(hostname):8080/ipxe/ipxe
 </code></pre>
-
 <h3 id="booting-the-nodes-from-ipxe">Booting the nodes from iPXE</h3>
 <ul>
 <li>First step, we need to set up the boot mode on the iDrac's as <code>boot once</code> for iPXE, this will depend on the steps on every Bare Metal Manufacturer/Version/Hardware.</li>
