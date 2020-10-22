@@ -34,7 +34,7 @@ func (h *stopInstallationCmd) GetSteps(ctx context.Context, host *models.Host) (
 	// will return same exit code as stop command command
 	if host.LogsCollectedAt == strfmt.DateTime(time.Time{}) {
 		logsCommand, err := CreateUploadLogsCmd(host, h.instructionConfig.ServiceBaseURL,
-			h.instructionConfig.InventoryImage, h.instructionConfig.SkipCertVerification, false)
+			h.instructionConfig.InventoryImage, h.instructionConfig.SkipCertVerification, false, true)
 		if err != nil {
 			h.log.WithError(err).Error("Failed to create logs upload command")
 		}
