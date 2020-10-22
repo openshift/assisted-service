@@ -22,6 +22,9 @@ parameters:
 - name: ENABLE_AUTH
   value: ''
   required: true
+- name: ADMIN_USERS
+  value: 'ercohen,lgamliel,mfilanov,ygoldber'
+  required: false
 - name: OCM_BASE_URL
   value: ''
   required: true
