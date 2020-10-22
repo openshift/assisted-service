@@ -134,7 +134,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 				Subsystem: subsystem,
 				Name:      counterClusterHosts,
 				Help:      counterDescriptionClusterHosts,
-			}, []string{roleLabel, resultLabel, openshiftVersionLabel, clusterIdLabel}),
+			}, []string{roleLabel, resultLabel, openshiftVersionLabel, clusterIdLabel, hwVendorLabel, hwProductLabel, diskTypeLabel}),
 
 		serviceLogicClusterHostCores: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -209,9 +209,23 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 			roleStr = "bootstrap"
 		}
 		installationStageStr := string(currentStage)
+
+		var hwInfo models.Inventory
+		hwVendor, hwProduct := "Unknown", "Unknown"
+		if err := json.Unmarshal([]byte(h.Inventory), &hwInfo); err == nil {
+			if hwInfo.SystemVendor != nil {
+				hwVendor = hwInfo.SystemVendor.Manufacturer
+				hwProduct = hwInfo.SystemVendor.ProductName
+			}
+		}
+
+		diskType := "Unknown"
+		if boot != nil {
+			diskType = boot.DriveType
+		}
 		switch currentStage {
 		case models.HostStageDone, models.HostStageFailed:
-			m.handleHostInstallationComplete(log, clusterVersion, clusterID, roleStr, installationStageStr, h)
+			m.handleHostInstallationComplete(log, clusterVersion, clusterID, roleStr, hwVendor, hwProduct, diskType, installationStageStr, h)
 		}
 		//report the installation phase duration
 		if previousProgress.CurrentStage != "" {
@@ -219,20 +233,6 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 			phaseResult := models.HostStageDone
 			if currentStage == models.HostStageFailed {
 				phaseResult = models.HostStageFailed
-			}
-
-			var hwInfo models.Inventory
-			var hwVendor, hwProduct string = "Unknown", "Unknown"
-			if err := json.Unmarshal([]byte(h.Inventory), &hwInfo); err == nil {
-				if hwInfo.SystemVendor != nil {
-					hwVendor = hwInfo.SystemVendor.Manufacturer
-					hwProduct = hwInfo.SystemVendor.ProductName
-				}
-			}
-
-			var diskType string = "Unknown"
-			if boot != nil {
-				diskType = boot.DriveType
 			}
 			log.Infof("service Logic Host Installation Phase Seconds phase %s, vendor %s product %s disk %s result %s, duration %f",
 				string(previousProgress.CurrentStage), hwVendor, hwProduct, diskType, string(phaseResult), duration)
@@ -242,10 +242,11 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 	}
 }
 
-func (m *MetricsManager) handleHostInstallationComplete(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, roleStr string, installationStageStr string, h *models.Host) {
-	log.Infof("service Logic Cluster Hosts clusterVersion %s, roleStr %s, result %s",
-		clusterVersion, roleStr, installationStageStr)
-	m.serviceLogicClusterHosts.WithLabelValues(roleStr, installationStageStr, clusterVersion, clusterID.String()).Inc()
+func (m *MetricsManager) handleHostInstallationComplete(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, roleStr string,
+	hwVendor string, hwProduct string, diskType string, installationStageStr string, h *models.Host) {
+	log.Infof("service Logic Cluster Hosts clusterVersion %s, roleStr %s, vendor %s, product %s, disk %s, result %s",
+		clusterVersion, roleStr, hwVendor, hwProduct, diskType, installationStageStr)
+	m.serviceLogicClusterHosts.WithLabelValues(roleStr, installationStageStr, clusterVersion, clusterID.String(), hwVendor, hwProduct, diskType).Inc()
 	var hwInfo models.Inventory
 
 	err := json.Unmarshal([]byte(h.Inventory), &hwInfo)
