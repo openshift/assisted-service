@@ -1,4 +1,4 @@
-FROM quay.io/coreos/coreos-installer:release AS installer-image
+FROM quay.io/coreos/coreos-installer:v0.7.0 AS installer-image
 
 # Build binaries
 FROM registry.svc.ci.openshift.org/openshift/release:golang-1.14 as builder
