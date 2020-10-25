@@ -1486,6 +1486,25 @@ var _ = Describe("cluster install", func() {
 						defaultWaitForHostStateTimeout)
 				}
 			})
+			It("cancel installation - cluster in finalizing status", func() {
+				c := installCluster(clusterID)
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
+				Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+				Expect(len(c.Hosts)).Should(Equal(5))
+				for _, host := range c.Hosts {
+					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusInstalling))
+				}
+				for _, host := range c.Hosts {
+					updateProgress(*host.ID, clusterID, models.HostStageDone)
+				}
+				waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
+				Expect(err).ShouldNot(HaveOccurred())
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusCancelled,
+						defaultWaitForHostStateTimeout)
+				}
+			})
 		})
 		Context("reset installation", func() {
 			enableReset, _ := strconv.ParseBool(os.Getenv("ENABLE_RESET"))
@@ -1799,6 +1818,26 @@ var _ = Describe("cluster install", func() {
 					}
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
 						defaultWaitForClusterStateTimeout)
+				}
+			})
+
+			It("reset installation - cluster in finalizing status", func() {
+				c := installCluster(clusterID)
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
+				Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+				Expect(len(c.Hosts)).Should(Equal(5))
+				for _, host := range c.Hosts {
+					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusInstalling))
+				}
+				for _, host := range c.Hosts {
+					updateProgress(*host.ID, clusterID, models.HostStageDone)
+				}
+				waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+				_, err := userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(err).ShouldNot(HaveOccurred())
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
+						defaultWaitForHostStateTimeout)
 				}
 			})
 		})
