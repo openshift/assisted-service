@@ -3253,13 +3253,13 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 func (b *bareMetalInventory) getApiVIPFromOCP(log logrus.FieldLogger) (string, error) {
 	configMap, err := b.k8sClient.GetConfigMap("kube-system", "cluster-config-v1")
 	if err != nil {
-		log.Errorf("Failed to get configmap cluster-config-v1 from namespace kube-system")
+		log.WithError(err).Errorf("Failed to get configmap cluster-config-v1 from namespace kube-system")
 		return "", err
 	}
 	configStruct := make(map[string]interface{})
 	err = yaml.Unmarshal([]byte(configMap.Data["install-config"]), configStruct)
 	if err != nil {
-		log.Errorf("Failed to unmarshal confimap cluster-config-v1 data: <%s>", configMap.Data["install-config"])
+		log.WithError(err).Errorf("Failed to unmarshal confimap cluster-config-v1 data: <%s>", configMap.Data["install-config"])
 		return "", err
 	}
 	platform := configStruct["platform"].(map[interface{}]interface{})
@@ -3271,7 +3271,7 @@ func (b *bareMetalInventory) getApiVIPFromOCP(log logrus.FieldLogger) (string, e
 func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) (string, error) {
 	clusterVersion, err := b.k8sClient.GetClusterVersion("version")
 	if err != nil {
-		log.Errorf("Failed to get cluster version from OCP")
+		log.WithError(err).Errorf("Failed to get cluster version from OCP")
 		return "", err
 	}
 	openshiftVersion := clusterVersion.Status.Desired.Version

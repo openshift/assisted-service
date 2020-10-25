@@ -316,7 +316,7 @@ func main() {
 				log.WithError(err).Fatal("Failed uploading base ISO")
 			}
 			if Options.DeployTarget == deployment_type_ocp {
-				err = createOCPClusterWithLeader(baseISOUploadLeader, bm, log)
+				err = bm.RegisterOCPCluster(context.Background())
 				if err != nil {
 					log.WithError(err).Fatal("Failed to create OCP cluster")
 				}
@@ -390,16 +390,6 @@ func uploadBaseISOWithLeader(uploadLeader leader.ElectorInterface, objectHandler
 		log.Info("Starting base ISO upload")
 		err = generator.UploadBaseISO()
 		log.Info("Finished base ISO upload")
-		return err
-	})
-}
-
-func createOCPClusterWithLeader(uploadLeader leader.ElectorInterface, bm bminventory.OCPClusterAPI, log logrus.FieldLogger) error {
-	ctx := context.Background()
-	return uploadLeader.RunWithLeader(ctx, func() error {
-		log.Info("Starting creation of OCP Cluster")
-		err := bm.RegisterOCPCluster(ctx)
-		log.Info("Finished creation of OCP cluster")
 		return err
 	})
 }
