@@ -182,9 +182,9 @@ var _ = Describe("Cancel cluster installation", func() {
 		{state: models.ClusterStatusPreparingForInstallation, success: true},
 		{state: models.ClusterStatusInstalling, success: true},
 		{state: models.ClusterStatusError, success: true},
+		{state: models.ClusterStatusFinalizing, success: true},
 		{state: models.ClusterStatusInsufficient, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusReady, success: false, statusCode: http.StatusConflict},
-		{state: models.ClusterStatusFinalizing, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusInstalled, success: false, statusCode: http.StatusConflict},
 	}
 
@@ -246,9 +246,9 @@ var _ = Describe("Reset cluster", func() {
 		{state: models.ClusterStatusPreparingForInstallation, success: true},
 		{state: models.ClusterStatusInstalling, success: true},
 		{state: models.ClusterStatusError, success: true},
+		{state: models.ClusterStatusFinalizing, success: true},
 		{state: models.ClusterStatusInsufficient, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusReady, success: false, statusCode: http.StatusConflict},
-		{state: models.ClusterStatusFinalizing, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusInstalled, success: false, statusCode: http.StatusConflict},
 	}
 
