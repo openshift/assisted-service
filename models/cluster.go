@@ -100,9 +100,12 @@ type Cluster struct {
 	// Format: date-time
 	InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty" gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"`
 
-	// Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 'AddHostCluster' for cluster that add hosts to existing OCP cluster
+	// Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link,
+	// 'AddHostCluster' for cluster that add hosts to existing OCP cluster,
+	// 'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it
+	//
 	// Required: true
-	// Enum: [Cluster AddHostsCluster]
+	// Enum: [Cluster AddHostsCluster AddHostsOCPCluster]
 	Kind *string `json:"kind"`
 
 	// A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.
@@ -455,7 +458,7 @@ var clusterTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["Cluster","AddHostsCluster"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Cluster","AddHostsCluster","AddHostsOCPCluster"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -470,6 +473,9 @@ const (
 
 	// ClusterKindAddHostsCluster captures enum value "AddHostsCluster"
 	ClusterKindAddHostsCluster string = "AddHostsCluster"
+
+	// ClusterKindAddHostsOCPCluster captures enum value "AddHostsOCPCluster"
+	ClusterKindAddHostsOCPCluster string = "AddHostsOCPCluster"
 )
 
 // prop value enum

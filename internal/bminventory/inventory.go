@@ -21,6 +21,8 @@ import (
 	"text/template"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
 	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/go-openapi/runtime/middleware"
@@ -45,6 +47,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
+	"github.com/openshift/assisted-service/pkg/k8sclient"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -213,6 +216,10 @@ var clusterFileNames = []string{
 	"install-config.yaml",
 }
 
+type OCPClusterAPI interface {
+	RegisterOCPCluster(ctx context.Context) error
+}
+
 type bareMetalInventory struct {
 	Config
 	db            *gorm.DB
@@ -224,6 +231,7 @@ type bareMetalInventory struct {
 	metricApi     metrics.API
 	generator     generator.ISOInstallConfigGenerator
 	authHandler   auth.AuthHandler
+	k8sClient     k8sclient.K8SClient
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}
@@ -239,6 +247,7 @@ func NewBareMetalInventory(
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,
 	authHandler auth.AuthHandler,
+	k8sClient k8sclient.K8SClient,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:            db,
@@ -251,6 +260,7 @@ func NewBareMetalInventory(
 		objectHandler: objectHandler,
 		metricApi:     metricApi,
 		authHandler:   authHandler,
+		k8sClient:     k8sClient,
 	}
 }
 
@@ -3185,4 +3195,101 @@ func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, er
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
+	log := logutil.FromContext(ctx, b.log)
+	id := strfmt.UUID(uuid.New().String())
+	url := installer.GetClusterURL{ClusterID: id}
+	clusterName := "ocp-assisted-service-cluster"
+
+	log.Infof("Register OCP cluster: %s with id %s", clusterName, id.String())
+
+	apiVIP, err := b.getApiVIPFromOCP(log)
+	if err != nil {
+		return err
+	}
+
+	openshiftVersion, err := b.getOpenshiftVersionFromOCP(log)
+	if err != nil {
+		return err
+	}
+
+	cluster := common.Cluster{Cluster: models.Cluster{
+		ID:               &id,
+		Href:             swag.String(url.String()),
+		Kind:             swag.String(models.ClusterKindAddHostsOCPCluster),
+		Name:             clusterName,
+		OpenshiftVersion: openshiftVersion,
+		UserName:         auth.UserNameFromContext(ctx),
+		OrgID:            auth.OrgIDFromContext(ctx),
+		UpdatedAt:        strfmt.DateTime{},
+		APIVipDNSName:    &apiVIP,
+	}}
+
+	err = validations.ValidateClusterNameFormat(clusterName)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to validate cluster name: %s", clusterName)
+		return err
+	}
+
+	// Persist worker-ignition to s3 for cluster
+	err = b.createAndUploadNodeIgnition(ctx, &id, apiVIP)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to create and upload worker ignition for cluster %s", id)
+		return err
+	}
+
+	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
+	err = b.clusterApi.RegisterAddHostsCluster(ctx, &cluster)
+	if err != nil {
+		log.WithError(err).Errorf("failed to register cluster %s ", clusterName)
+		return err
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) getApiVIPFromOCP(log logrus.FieldLogger) (string, error) {
+	configMap, err := b.k8sClient.GetConfigMap("kube-system", "cluster-config-v1")
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get configmap cluster-config-v1 from namespace kube-system")
+		return "", err
+	}
+	configStruct := make(map[string]interface{})
+	err = yaml.Unmarshal([]byte(configMap.Data["install-config"]), configStruct)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal confimap cluster-config-v1 data: <%s>", configMap.Data["install-config"])
+		return "", err
+	}
+	platform, ok := configStruct["platform"].(map[interface{}]interface{})
+	if !ok {
+		err := fmt.Errorf("invalid or missing platform key in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
+	baremetal, ok := platform["baremetal"].(map[interface{}]interface{})
+	if !ok {
+		err := fmt.Errorf("invalid or missing baremetal key in  platform in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
+	apiVip, ok := baremetal["apiVIP"].(string)
+	if !ok {
+		err := fmt.Errorf("invalid or missing api vip key baremetal in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
+	return apiVip, nil
+}
+
+func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) (string, error) {
+	clusterVersion, err := b.k8sClient.GetClusterVersion("version")
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get cluster version from OCP")
+		return "", err
+	}
+	openshiftVersion := clusterVersion.Status.Desired.Version
+	splits := strings.Split(openshiftVersion, ".")
+	return splits[0] + "." + splits[1], nil
 }

@@ -40,6 +40,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
+	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logconfig "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -57,7 +58,9 @@ func init() {
 	strfmt.MarshalFormat = strfmt.RFC3339Millis
 }
 
-const deploymet_type_k8s = "k8s"
+const deployment_type_k8s = "k8s"
+const deployment_type_onprem = "onprem"
+const deployment_type_ocp = "ocp"
 
 var Options struct {
 	Auth                        auth.Config
@@ -170,8 +173,9 @@ func main() {
 		log.Fatal("Failed to add BareMetalHost to scheme", err)
 	}
 
+	var ocpClient k8sclient.K8SClient = nil
 	switch Options.DeployTarget {
-	case deploymet_type_k8s:
+	case deployment_type_k8s, deployment_type_ocp:
 		var kclient client.Client
 
 		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log)
@@ -205,7 +209,12 @@ func main() {
 			log.WithError(err).Fatalf("Failed to start leader")
 		}
 
-	case "onprem":
+		ocpClient, err = k8sclient.NewK8SClient("", log)
+		if err != nil {
+			log.WithError(err).Fatalf("Failed to create client for OCP")
+		}
+
+	case deployment_type_onprem:
 		lead = &leader.DummyElector{}
 		autoMigrationLeader = lead
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
@@ -215,6 +224,7 @@ func main() {
 		}
 		createS3Bucket(objectHandler)
 		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
+		ocpClient = nil
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
@@ -246,7 +256,7 @@ func main() {
 	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
-		generator, eventsHandler, objectHandler, metricsManager, *authHandler)
+		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 	manifests := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
@@ -294,7 +304,7 @@ func main() {
 	h = app.WithHealthMiddleware(apiEnabler)
 	h = requestid.Middleware(h)
 
-	if Options.DeployTarget == deploymet_type_k8s {
+	if Options.DeployTarget == deployment_type_k8s || Options.DeployTarget == deployment_type_ocp {
 		go func() {
 			defer apiEnabler.Enable()
 			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
@@ -304,6 +314,12 @@ func main() {
 			err = uploadBaseISOWithLeader(baseISOUploadLeader, objectHandler, generator, log)
 			if err != nil {
 				log.WithError(err).Fatal("Failed uploading base ISO")
+			}
+			if Options.DeployTarget == deployment_type_ocp {
+				err = bm.RegisterOCPCluster(context.Background())
+				if err != nil {
+					log.WithError(err).Fatal("Failed to create OCP cluster")
+				}
 			}
 
 		}()
