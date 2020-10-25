@@ -36,6 +36,13 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRegisterHost,
 	})
 
+	// Disabled host can register if it was booted, no change in the state.
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRegisterHost,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.HostStatusDisabled)},
+		DestinationState: stateswitch.State(models.HostStatusDisabled),
+	})
+
 	// Do nothing when host in reboot tries to register from resetting state.
 	// On such cases cluster monitor is responsible to set the host state to
 	// resetting-pending-user-action.
