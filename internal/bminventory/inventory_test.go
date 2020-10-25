@@ -2085,6 +2085,9 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockEvents.EXPECT().
+					AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					MinTimes(0)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,

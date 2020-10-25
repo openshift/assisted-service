@@ -993,7 +993,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 
 		defer func() {
 			if err != nil {
-				log.WithError(err).Warn("Cluster install")
+				log.WithError(err).Warn("Cluster installation initialization failed")
 				b.clusterApi.HandlePreInstallError(asyncCtx, &cluster, err)
 			}
 		}()
@@ -1009,11 +1009,15 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 			log:    log,
 			params: params,
 		}
-		err = b.db.Transaction(cInstaller.install)
-		if err == nil {
-			//send metric when the installation process has been started
-			b.metricApi.InstallationStarted(cluster.OpenshiftVersion, *cluster.ID)
+		if err = b.db.Transaction(cInstaller.install); err != nil {
+			return
 		}
+
+		// send metric and event that installation process has been started
+		b.metricApi.InstallationStarted(cluster.OpenshiftVersion, *cluster.ID)
+		b.eventsHandler.AddEvent(
+			ctx, *cluster.ID, nil, models.EventSeverityInfo,
+			"Updated status of cluster to installing", time.Now())
 	}()
 
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
