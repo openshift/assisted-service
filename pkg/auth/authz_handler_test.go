@@ -202,6 +202,22 @@ func TestAuthz(t *testing.T) {
 		assert.Contains(t, err.Error(), expectedCode)
 	}
 
+	waitForServerToBecomeReady := func(timeout time.Duration) {
+		start := time.Now()
+		for {
+			passAccessReview(1)
+			passCapabilityReview(1)
+			if err := listClusters(ctx, userClient); err == nil {
+				break
+			} else if time.Since(start) >= timeout {
+				panic(err)
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		authzCache.Flush()
+	}
+	waitForServerToBecomeReady(5 * time.Second)
+
 	t.Run("should store payload in cache", func(t *testing.T) {
 		assert.Equal(t, shouldStorePayloadInCache(nil), true)
 		err := common.NewApiError(http.StatusUnauthorized, errors.New(""))
