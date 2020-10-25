@@ -3229,21 +3229,21 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 
 	err = validations.ValidateClusterNameFormat(clusterName)
 	if err != nil {
-		log.Errorf("Failed to validate cluster name: %s", clusterName)
+		log.WithError(err).Errorf("Failed to validate cluster name: %s", clusterName)
 		return err
 	}
 
 	// Persist worker-ignition to s3 for cluster
 	err = b.createAndUploadNodeIgnition(ctx, &id, apiVIP)
 	if err != nil {
-		log.Errorf("Failed to create and upload worker ignition for cluster %s", id)
+		log.WithError(err).Errorf("Failed to create and upload worker ignition for cluster %s", id)
 		return err
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
 	err = b.clusterApi.RegisterAddHostsCluster(ctx, &cluster)
 	if err != nil {
-		log.Errorf("failed to register cluster %s ", clusterName)
+		log.WithError(err).Errorf("failed to register cluster %s ", clusterName)
 		return err
 	}
 
@@ -3262,9 +3262,24 @@ func (b *bareMetalInventory) getApiVIPFromOCP(log logrus.FieldLogger) (string, e
 		log.WithError(err).Errorf("Failed to unmarshal confimap cluster-config-v1 data: <%s>", configMap.Data["install-config"])
 		return "", err
 	}
-	platform := configStruct["platform"].(map[interface{}]interface{})
-	baremetal := platform["baremetal"].(map[interface{}]interface{})
-	apiVip := baremetal["apiVIP"].(string)
+	platform, ok := configStruct["platform"].(map[interface{}]interface{})
+	if !ok {
+		err := fmt.Errorf("invalid or missing platform key in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
+	baremetal, ok := platform["baremetal"].(map[interface{}]interface{})
+	if !ok {
+		err := fmt.Errorf("invalid or missing baremetal key in  platform in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
+	apiVip, ok := baremetal["apiVIP"].(string)
+	if !ok {
+		err := fmt.Errorf("invalid or missing api vip key baremetal in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
 	return apiVip, nil
 }
 
