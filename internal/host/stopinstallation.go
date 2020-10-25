@@ -28,7 +28,7 @@ func (h *stopInstallationCmd) GetSteps(ctx context.Context, host *models.Host) (
 	step := &models.Step{}
 	step.StepType = models.StepTypeExecute
 	step.Command = "/usr/bin/podman"
-	cmdArgs := []string{"stop", "--all"}
+	cmdArgs := []string{"stop", "-i", "-t", "5", "assisted-installer"}
 
 	// added to run upload logs if we are in error or cancelled state. Stop all and gather logs
 	// will return same exit code as stop command command
