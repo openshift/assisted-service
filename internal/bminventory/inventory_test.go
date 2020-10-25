@@ -3427,9 +3427,47 @@ var _ = Describe("Register OCPCluster test", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 
+	It("Register OCP cluster failed wrong format(platform) of cluster-config-v1", func() {
+		configMap.Data["install-config"] = "platfiuoiorm:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
+		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
+		err := bm.RegisterOCPCluster(ctx)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("Register OCP cluster failed wrong format(baremetal) of cluster-config-v1", func() {
+		configMap.Data["install-config"] = "platform:\n  baremioihetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
+		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
+		err := bm.RegisterOCPCluster(ctx)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("Register OCP cluster failed wrong format(api vip) of cluster-config-v1", func() {
+		configMap.Data["install-config"] = "platform:\n  baremetal:\n    apiiefVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
+		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
+		err := bm.RegisterOCPCluster(ctx)
+		Expect(err).Should(HaveOccurred())
+	})
+
 	It("Register OCP cluster failer to get cluster version", func() {
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(nil, fmt.Errorf("some error")).Times(1)
+		err := bm.RegisterOCPCluster(ctx)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("Register OCP cluster failed upload", func() {
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("Some error")).Times(1)
+		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
+		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
+		err := bm.RegisterOCPCluster(ctx)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("Register OCP cluster failed to register", func() {
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
+		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
+		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).Should(HaveOccurred())
 	})
