@@ -76,6 +76,12 @@ paths:
         - userAuth: [admin, read-only-admin, user]
       summary: Retrieves the list of OpenShift bare metal clusters.
       operationId: ListClusters
+      parameters:
+        - in: header
+          name: get_unregistered_clusters
+          type: boolean
+          required: false
+          default: false
       responses:
         200:
           description: Success.
@@ -121,6 +127,11 @@ paths:
           name: discovery_agent_version
           type: string
           required: false
+        - in: header
+          name: get_unregistered_clusters
+          type: boolean
+          required: false
+          default: false
       responses:
         200:
           description: Success.
@@ -2337,6 +2348,12 @@ definitions:
         type: string
       user_name:
         type: string
+      deleted_at:
+        type: string
+        format: date-time
+        description: The time that the host was deleted.
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+        x-nullable: true
 
   steps:
     type: object
@@ -2800,6 +2817,12 @@ definitions:
         type: string
         description: Json formatted string containing the majority groups for conectivity checks.
         x-go-custom-tag: gorm:"type:text"
+      deleted_at:
+        type: string
+        format: date-time
+        description: The time that the cluster was deleted.
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+        x-nullable: true
 
   image_info:
     type: object

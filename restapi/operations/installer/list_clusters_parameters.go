@@ -10,13 +10,23 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewListClustersParams creates a new ListClustersParams object
-// no default values defined in spec.
+// with the default values initialized.
 func NewListClustersParams() ListClustersParams {
 
-	return ListClustersParams{}
+	var (
+		// initialize parameters with default values
+
+		getUnregisteredClustersDefault = bool(false)
+	)
+
+	return ListClustersParams{
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+	}
 }
 
 // ListClustersParams contains all the bound params for the list clusters operation
@@ -27,6 +37,12 @@ type ListClustersParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
+
+	/*
+	  In: header
+	  Default: false
+	*/
+	GetUnregisteredClusters *bool
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -38,8 +54,35 @@ func (o *ListClustersParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	o.HTTPRequest = r
 
+	if err := o.bindGetUnregisteredClusters(r.Header[http.CanonicalHeaderKey("get_unregistered_clusters")], true, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindGetUnregisteredClusters binds and validates parameter GetUnregisteredClusters from header.
+func (o *ListClustersParams) bindGetUnregisteredClusters(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewListClustersParams()
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("get_unregistered_clusters", "header", "bool", raw)
+	}
+	o.GetUnregisteredClusters = &value
+
 	return nil
 }

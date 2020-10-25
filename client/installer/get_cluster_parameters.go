@@ -14,13 +14,17 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewGetClusterParams creates a new GetClusterParams object
 // with the default values initialized.
 func NewGetClusterParams() *GetClusterParams {
-	var ()
+	var (
+		getUnregisteredClustersDefault = bool(false)
+	)
 	return &GetClusterParams{
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -29,8 +33,11 @@ func NewGetClusterParams() *GetClusterParams {
 // NewGetClusterParamsWithTimeout creates a new GetClusterParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewGetClusterParamsWithTimeout(timeout time.Duration) *GetClusterParams {
-	var ()
+	var (
+		getUnregisteredClustersDefault = bool(false)
+	)
 	return &GetClusterParams{
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
 
 		timeout: timeout,
 	}
@@ -39,8 +46,11 @@ func NewGetClusterParamsWithTimeout(timeout time.Duration) *GetClusterParams {
 // NewGetClusterParamsWithContext creates a new GetClusterParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewGetClusterParamsWithContext(ctx context.Context) *GetClusterParams {
-	var ()
+	var (
+		getUnregisteredClustersDefault = bool(false)
+	)
 	return &GetClusterParams{
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
 
 		Context: ctx,
 	}
@@ -49,9 +59,12 @@ func NewGetClusterParamsWithContext(ctx context.Context) *GetClusterParams {
 // NewGetClusterParamsWithHTTPClient creates a new GetClusterParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewGetClusterParamsWithHTTPClient(client *http.Client) *GetClusterParams {
-	var ()
+	var (
+		getUnregisteredClustersDefault = bool(false)
+	)
 	return &GetClusterParams{
-		HTTPClient: client,
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+		HTTPClient:              client,
 	}
 }
 
@@ -64,6 +77,8 @@ type GetClusterParams struct {
 	ClusterID strfmt.UUID
 	/*DiscoveryAgentVersion*/
 	DiscoveryAgentVersion *string
+	/*GetUnregisteredClusters*/
+	GetUnregisteredClusters *bool
 
 	timeout    time.Duration
 	Context    context.Context
@@ -125,6 +140,17 @@ func (o *GetClusterParams) SetDiscoveryAgentVersion(discoveryAgentVersion *strin
 	o.DiscoveryAgentVersion = discoveryAgentVersion
 }
 
+// WithGetUnregisteredClusters adds the getUnregisteredClusters to the get cluster params
+func (o *GetClusterParams) WithGetUnregisteredClusters(getUnregisteredClusters *bool) *GetClusterParams {
+	o.SetGetUnregisteredClusters(getUnregisteredClusters)
+	return o
+}
+
+// SetGetUnregisteredClusters adds the getUnregisteredClusters to the get cluster params
+func (o *GetClusterParams) SetGetUnregisteredClusters(getUnregisteredClusters *bool) {
+	o.GetUnregisteredClusters = getUnregisteredClusters
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -142,6 +168,15 @@ func (o *GetClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 
 		// header param discovery_agent_version
 		if err := r.SetHeaderParam("discovery_agent_version", *o.DiscoveryAgentVersion); err != nil {
+			return err
+		}
+
+	}
+
+	if o.GetUnregisteredClusters != nil {
+
+		// header param get_unregistered_clusters
+		if err := r.SetHeaderParam("get_unregistered_clusters", swag.FormatBool(*o.GetUnregisteredClusters)); err != nil {
 			return err
 		}
 
