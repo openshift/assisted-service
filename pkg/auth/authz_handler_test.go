@@ -204,9 +204,9 @@ func TestAuthz(t *testing.T) {
 
 	waitForServerToBecomeReady := func(timeout time.Duration) {
 		start := time.Now()
+		passAccessReview(1)
+		passCapabilityReview(1)
 		for {
-			passAccessReview(1)
-			passCapabilityReview(1)
 			if err := listClusters(ctx, userClient); err == nil {
 				break
 			} else if time.Since(start) >= timeout {
