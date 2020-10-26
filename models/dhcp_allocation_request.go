@@ -17,10 +17,16 @@ import (
 // swagger:model dhcp_allocation_request
 type DhcpAllocationRequest struct {
 
+	// Contents of lease file to be used for API virtual IP.
+	APIVipLease string `json:"api_vip_lease,omitempty"`
+
 	// MAC address for the API virtual IP.
 	// Required: true
 	// Format: mac
 	APIVipMac *strfmt.MAC `json:"api_vip_mac"`
+
+	// Contents of lease file to be used for for Ingress virtual IP.
+	IngressVipLease string `json:"ingress_vip_lease,omitempty"`
 
 	// MAC address for the Ingress virtual IP.
 	// Required: true

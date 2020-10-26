@@ -3239,6 +3239,12 @@ definitions:
         type: string
         format: mac
         description: MAC address for the Ingress virtual IP.
+      api_vip_lease:
+        type: string
+        description: Contents of lease file to be used for API virtual IP.
+      ingress_vip_lease:
+        type: string
+        description: Contents of lease file to be used for for Ingress virtual IP.
 
   dhcp_allocation_response:
     type: object
@@ -3254,6 +3260,12 @@ definitions:
         type: string
         format: ipv4
         description: The IPv4 address that was allocated by DHCP for the Ingress virtual IP.
+      api_vip_lease:
+        type: string
+        description: Contents of last aquired lease for API virtual IP.
+      ingress_vip_lease:
+        type: string
+        description: Contents of last aquired lease for Ingress virtual IP.
 
   presigned:
     type: object
