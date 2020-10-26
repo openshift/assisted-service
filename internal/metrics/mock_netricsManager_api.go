@@ -5,13 +5,12 @@
 package metrics
 
 import (
-	reflect "reflect"
-	time "time"
-
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
+	reflect "reflect"
+	time "time"
 )
 
 // MockAPI is a mock of API interface
@@ -74,15 +73,15 @@ func (mr *MockAPIMockRecorder) Duration(operation, duration interface{}) *gomock
 }
 
 // ClusterInstallationFinished mocks base method
-func (m *MockAPI) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStratedTime strfmt.DateTime) {
+func (m *MockAPI) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStartedTime strfmt.DateTime) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ClusterInstallationFinished", log, result, clusterVersion, clusterID, installationStratedTime)
+	m.ctrl.Call(m, "ClusterInstallationFinished", log, result, clusterVersion, clusterID, installationStartedTime)
 }
 
 // ClusterInstallationFinished indicates an expected call of ClusterInstallationFinished
-func (mr *MockAPIMockRecorder) ClusterInstallationFinished(log, result, clusterVersion, clusterID, installationStratedTime interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) ClusterInstallationFinished(log, result, clusterVersion, clusterID, installationStartedTime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterInstallationFinished", reflect.TypeOf((*MockAPI)(nil).ClusterInstallationFinished), log, result, clusterVersion, clusterID, installationStratedTime)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterInstallationFinished", reflect.TypeOf((*MockAPI)(nil).ClusterInstallationFinished), log, result, clusterVersion, clusterID, installationStartedTime)
 }
 
 // ReportHostInstallationMetrics mocks base method

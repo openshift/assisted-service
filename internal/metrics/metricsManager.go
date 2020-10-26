@@ -63,7 +63,7 @@ type API interface {
 	ClusterRegistered(clusterVersion string, clusterID strfmt.UUID)
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID)
 	Duration(operation string, duration time.Duration)
-	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStratedTime strfmt.DateTime)
+	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStartedTime strfmt.DateTime)
 	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
 }
 
@@ -191,8 +191,8 @@ func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID st
 	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion, clusterID.String()).Inc()
 }
 
-func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStratedTime strfmt.DateTime) {
-	duration := time.Since(time.Time(installationStratedTime)).Seconds()
+func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, installationStartedTime strfmt.DateTime) {
+	duration := time.Since(time.Time(installationStartedTime)).Seconds()
 	log.Infof("Cluster %s Installation Finished result %s clusterVersion %s duration %f", clusterID.String(), result, clusterVersion, duration)
 	m.serviceLogicClusterInstallationSeconds.WithLabelValues(result, clusterVersion, clusterID.String()).Observe(duration)
 }
