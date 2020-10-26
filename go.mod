@@ -38,7 +38,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/openshift-online/ocm-sdk-go v0.1.130
 	github.com/openshift/api v0.0.0-20200326152221-912866ddb162
-        github.com/openshift/client-go v0.0.0-20200422192633-6f6c07fc2a70
+	github.com/openshift/client-go v0.0.0-20200422192633-6f6c07fc2a70
 	github.com/ory/dockertest/v3 v3.6.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pborman/uuid v1.2.0

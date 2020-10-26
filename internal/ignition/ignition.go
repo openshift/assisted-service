@@ -51,13 +51,14 @@ type Generator interface {
 }
 
 type installerGenerator struct {
-	log           logrus.FieldLogger
-	workDir       string
-	cluster       *common.Cluster
-	releaseImage  string
-	installerDir  string
-	serviceCACert string
-	s3Client      s3wrapper.API
+	log                     logrus.FieldLogger
+	workDir                 string
+	cluster                 *common.Cluster
+	releaseImage            string
+	installerDir            string
+	serviceCACert           string
+	encodedDhcpFileContents string
+	s3Client                s3wrapper.API
 }
 
 // NewGenerator returns a generator that can generate ignition files
@@ -94,13 +95,11 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		g.log.WithError(wrapped).Errorf("GenerateInstallConfig")
 		return wrapped
 	}
+	g.encodedDhcpFileContents = encodedDhcpFileContents
 	envVars := append(os.Environ(),
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+g.releaseImage,
 		"OPENSHIFT_INSTALL_INVOKER=assisted-installer",
 	)
-	if encodedDhcpFileContents != "" {
-		envVars = append(envVars, "DHCP_ALLOCATION_FILE="+encodedDhcpFileContents)
-	}
 
 	// write installConfig to install-config.yaml so openshift-install can read it
 	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
@@ -385,6 +384,20 @@ func (g *installerGenerator) modifyBMHFile(file *config_31_types.File, bmh *bmh_
 	return nil
 }
 
+func (g *installerGenerator) updateDhcpFileContents() error {
+	path := filepath.Join(g.workDir, "master.ign")
+	config, err := parseIgnitionFile(path)
+	if err != nil {
+		return err
+	}
+	setFileInIgnition(config, "/etc/keepalived/unsupported-monitor.conf", g.encodedDhcpFileContents, false, 0o644)
+	err = writeIgnitionFile(path, config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (g *installerGenerator) updateIgnitions() error {
 	masterPath := filepath.Join(g.workDir, "master.ign")
 	caCertFile := g.serviceCACert
@@ -393,6 +406,12 @@ func (g *installerGenerator) updateIgnitions() error {
 		err := setCACertInIgnition(models.HostRoleMaster, masterPath, g.workDir, caCertFile)
 		if err != nil {
 			return errors.Wrapf(err, "error adding CA cert to ignition %s", masterPath)
+		}
+	}
+
+	if g.encodedDhcpFileContents != "" {
+		if err := g.updateDhcpFileContents(); err != nil {
+			return errors.Wrapf(err, "error adding DHCP file to ignition %s", masterPath)
 		}
 	}
 

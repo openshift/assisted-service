@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-openapi/swag"
+
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_31_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/go-openapi/strfmt"
@@ -261,6 +263,21 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			content = GetServiceIPHostnames("10.10.10.1,10.10.10.2")
 			Expect(content).To(Equal("10.10.10.1 assisted-api.local.openshift.io\n10.10.10.2 assisted-api.local.openshift.io\n"))
 		})
+		It("DHCP generation", func() {
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", nil, log).(*installerGenerator)
+			g.encodedDhcpFileContents = "data:,abc"
+			err := g.updateIgnitions()
+			Expect(err).NotTo(HaveOccurred())
 
+			masterBytes, err := ioutil.ReadFile(masterPath)
+			Expect(err).ToNot(HaveOccurred())
+			masterConfig, _, err := config_31.Parse(masterBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(masterConfig.Storage.Files).To(HaveLen(1))
+			f := masterConfig.Storage.Files[0]
+			Expect(f.Mode).To(Equal(swag.Int(0o644)))
+			Expect(f.Contents.Source).To(Equal(swag.String("data:,abc")))
+			Expect(f.Path).To(Equal("/etc/keepalived/unsupported-monitor.conf"))
+		})
 	})
 })
