@@ -27,8 +27,8 @@ need to build a custom container image and push it to quay.io.
 
 ````
 export SERVICE=quay.io/<your-org>/assisted-service:latest
-make build-onprem
-podman push ${SERVICE}
+make build
+docker push ${SERVICE}
 ````
 
 Then update the ignition config file to use your assisted-service container image.
@@ -43,9 +43,10 @@ The base live ISO is extracted from a container image. Run the container
 image containing the ISO, copy the ISO, and then stop and remove the container. 
 
 ````
-podman run -dt --name livecdsrc quay.io/ocpmetal/livecd-iso:v4.6
-podman cp livecdsrc:/root/image/livecd.iso ./livecd.iso
-podman rm -f livecdsrc
+podman run --privileged --pull=always --rm \
+  -v .:/download -w /download \
+  --entrypoint /bin/bash \
+  quay.io/ocpmetal/assisted-iso-create:latest cp /data/livecd.iso /download/livecd.iso
 ````
 
 ### Create the assisted-service live ISO
@@ -54,7 +55,8 @@ Finally, use the ignition config (onprem-iso-config.ign) and the base live ISO (
 create the assisted-service live ISO.
 
 ````
-podman run --rm --privileged  -v /dev:/dev -v /run/udev:/run/udev -v .:/data  quay.io/coreos/coreos-installer:release iso embed -c /data/onprem-iso-config.ign -o /data/assisted-service.iso /data/livecd.iso
+podman run --rm --privileged  -v /dev:/dev -v /run/udev:/run/udev -v .:/data  \
+  quay.io/coreos/coreos-installer:release iso ignition embed -i /data/onprem-iso-config.ign -o /data/assisted-service.iso /data/livecd.iso
 ````
 
 The live ISO, **assisted-service.iso** (not livecd.iso), can then be used to deploy the installer. The live ISO storage system is emphemeral and its size depends on the amount of memory installed on the host. A minimum of 10GB of memory is required to deploy the installer, generate a single discovery ISO, and install an OCP cluster.

@@ -34,6 +34,19 @@ systemd:
           
             [Install]
             WantedBy=multi-user.target
+        - name: assisted-service-livecd.service
+          enabled: true
+          contents: |
+            [Unit]
+            After=network-online.target
+
+            [Service]
+            Type=oneshot
+            Restart=no
+            ExecStart=/bin/bash -c 'cp /dev/disk/by-label/rhcos* /etc/assisted-service/livecd.iso'
+
+            [Install]
+            WantedBy=multi-user.target
         - name: assisted-service-pod.service
           enabled: true
           contents: |
@@ -70,7 +83,7 @@ systemd:
             [Service]
             Type=forking
             Restart=no
-            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /etc/assisted-service/nginx-certs/nginx-selfsigned.crt:/data/nginx-selfsigned.crt:z --restart always --name installer quay.io/ocpmetal/assisted-service:latest
+            ExecStart=podman run -dt --pod assisted-installer --env-file /etc/assisted-service/environment -v /bin/coreos-installer:/data/coreos-installer:z -v /etc/assisted-service/livecd.iso:/data/livecd.iso:z -v /etc/assisted-service/nginx-certs/nginx-selfsigned.crt:/data/nginx-selfsigned.crt:z --restart always --name installer quay.io/ocpmetal/assisted-service:latest
             TimeoutStartSec=300
           
             [Install]
