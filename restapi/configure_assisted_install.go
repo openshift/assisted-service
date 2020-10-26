@@ -164,6 +164,9 @@ type InstallerAPI interface {
 	/* UpdateHostInstallProgress Update installation progress. */
 	UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder
 
+	/* UpdateHostInstallerArgs Updates an OpenShift bare metal host. */
+	UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder
+
 	/* UploadClusterIngressCert Transfer the ingress certificate for the cluster. */
 	UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder
 
@@ -520,6 +523,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UpdateHostInstallProgress(ctx, params)
+	})
+	api.InstallerUpdateHostInstallerArgsHandler = installer.UpdateHostInstallerArgsHandlerFunc(func(params installer.UpdateHostInstallerArgsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.UpdateHostInstallerArgs(ctx, params)
 	})
 	api.InstallerUploadClusterIngressCertHandler = installer.UploadClusterIngressCertHandlerFunc(func(params installer.UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

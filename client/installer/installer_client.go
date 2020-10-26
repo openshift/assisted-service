@@ -130,6 +130,9 @@ type API interface {
 	   UpdateHostInstallProgress updates installation progress*/
 	UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error)
 	/*
+	   UpdateHostInstallerArgs updates an open shift bare metal host*/
+	UpdateHostInstallerArgs(ctx context.Context, params *UpdateHostInstallerArgsParams) (*UpdateHostInstallerArgsCreated, error)
+	/*
 	   UploadClusterIngressCert transfers the ingress certificate for the cluster*/
 	UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error)
 	/*
@@ -1080,6 +1083,31 @@ func (a *Client) UpdateHostInstallProgress(ctx context.Context, params *UpdateHo
 		return nil, err
 	}
 	return result.(*UpdateHostInstallProgressOK), nil
+
+}
+
+/*
+UpdateHostInstallerArgs updates an open shift bare metal host
+*/
+func (a *Client) UpdateHostInstallerArgs(ctx context.Context, params *UpdateHostInstallerArgsParams) (*UpdateHostInstallerArgsCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateHostInstallerArgs",
+		Method:             "PATCH",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/installer-args",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateHostInstallerArgsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateHostInstallerArgsCreated), nil
 
 }
 

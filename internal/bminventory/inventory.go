@@ -1886,6 +1886,39 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.Lis
 	return installer.NewListHostsOK().WithPayload(hosts)
 }
 
+func (b *bareMetalInventory) UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	err := hostutil.ValidateInstallerArgs(params.InstallerArgsParams.Args)
+	if err != nil {
+		return installer.NewUpdateHostInstallerArgsBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+
+	_, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	argsBytes, err := json.Marshal(params.InstallerArgsParams.Args)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	err = b.db.Model(&models.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Update("installer_args", string(argsBytes)).Error
+	if err != nil {
+		log.WithError(err).Errorf("failed to update host %s", params.HostID)
+		return installer.NewUpdateHostInstallerArgsInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	h, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to get host %s after update", params.HostID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return installer.NewUpdateHostInstallerArgsCreated().WithPayload(h)
+}
+
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var steps models.Steps

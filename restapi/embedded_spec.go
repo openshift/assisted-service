@@ -2384,6 +2384,89 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/hosts/{host_id}/installer-args": {
+      "patch": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Updates an OpenShift bare metal host.",
+        "operationId": "UpdateHostInstallerArgs",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "installer-args-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/installer-args-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
       "get": {
         "security": [
@@ -4594,6 +4677,9 @@ func init() {
           "description": "Host installation path.",
           "type": "string"
         },
+        "installer_args": {
+          "type": "string"
+        },
         "installer_version": {
           "description": "Installer version.",
           "type": "string"
@@ -4947,6 +5033,25 @@ func init() {
     },
     "ingress-cert-params": {
       "type": "string"
+    },
+    "installer-args-params": {
+      "type": "object",
+      "properties": {
+        "args": {
+          "description": "List of additional arguments passed to coreos-installer",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "--append-karg",
+            "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none",
+            "--save-partindex",
+            "1",
+            "-n"
+          ]
+        }
+      }
     },
     "interface": {
       "type": "object",
@@ -7702,6 +7807,89 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/hosts/{host_id}/installer-args": {
+      "patch": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "Updates an OpenShift bare metal host.",
+        "operationId": "UpdateHostInstallerArgs",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "installer-args-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/installer-args-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
       "get": {
         "security": [
@@ -9937,6 +10125,9 @@ func init() {
           "description": "Host installation path.",
           "type": "string"
         },
+        "installer_args": {
+          "type": "string"
+        },
         "installer_version": {
           "description": "Installer version.",
           "type": "string"
@@ -10291,6 +10482,25 @@ func init() {
     },
     "ingress-cert-params": {
       "type": "string"
+    },
+    "installer-args-params": {
+      "type": "object",
+      "properties": {
+        "args": {
+          "description": "List of additional arguments passed to coreos-installer",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "--append-karg",
+            "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none",
+            "--save-partindex",
+            "1",
+            "-n"
+          ]
+        }
+      }
     },
     "interface": {
       "type": "object",
