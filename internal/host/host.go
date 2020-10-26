@@ -518,7 +518,7 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 	if err == nil && len(disks) > 0 {
 		boot = disks[0]
 	}
-	m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h.ClusterID, boot, h, previousProgress, CurrentStage)
+	m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)
 }
 
 func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {

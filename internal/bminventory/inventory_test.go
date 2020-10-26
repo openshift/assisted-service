@@ -1252,7 +1252,7 @@ var _ = Describe("cluster", func() {
 		mockHostApi.EXPECT().SetBootstrap(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
 	setDefaultMetricInstallationStarted := func(mockMetricApi *metrics.MockAPI) {
-		mockMetricApi.EXPECT().InstallationStarted(gomock.Any(), gomock.Any()).AnyTimes()
+		mockMetricApi.EXPECT().InstallationStarted(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	}
 	mockHandlePreInstallationError := func(mockClusterApi *cluster.MockAPI, done chan int) {
 		mockClusterApi.EXPECT().HandlePreInstallError(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).
@@ -3568,7 +3568,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
-		mockMetric.EXPECT().ClusterRegistered(openshiftVersion, clusterID).Times(1)
+		mockMetric.EXPECT().ClusterRegistered(openshiftVersion, clusterID, "Unknown").Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
 	})
@@ -3713,7 +3713,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 			Times(1)
-		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any()).Times(1)
+		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{

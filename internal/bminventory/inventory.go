@@ -467,6 +467,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		UpdatedAt:                strfmt.DateTime{},
 		UserName:                 auth.UserNameFromContext(ctx),
 		OrgID:                    auth.OrgIDFromContext(ctx),
+		EmailDomain:              auth.EmailDomainFromContext(ctx),
 		HTTPProxy:                swag.StringValue(params.NewClusterParams.HTTPProxy),
 		HTTPSProxy:               swag.StringValue(params.NewClusterParams.HTTPSProxy),
 		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
@@ -521,7 +522,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	}
 
 	success = true
-	b.metricApi.ClusterRegistered(swag.StringValue(params.NewClusterParams.OpenshiftVersion), *cluster.ID)
+	b.metricApi.ClusterRegistered(swag.StringValue(params.NewClusterParams.OpenshiftVersion), *cluster.ID, cluster.EmailDomain)
 	return installer.NewRegisterClusterCreated().WithPayload(&cluster.Cluster)
 }
 
@@ -543,6 +544,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 		OpenshiftVersion: openshiftVersion,
 		UserName:         auth.UserNameFromContext(ctx),
 		OrgID:            auth.OrgIDFromContext(ctx),
+		EmailDomain:      auth.EmailDomainFromContext(ctx),
 		UpdatedAt:        strfmt.DateTime{},
 		APIVipDNSName:    swag.String(apivipDnsname),
 	}}
@@ -567,7 +569,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	b.metricApi.ClusterRegistered(openshiftVersion, *cluster.ID)
+	b.metricApi.ClusterRegistered(openshiftVersion, *cluster.ID, cluster.EmailDomain)
 	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&cluster.Cluster)
 }
 
@@ -1014,7 +1016,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		}
 
 		// send metric and event that installation process has been started
-		b.metricApi.InstallationStarted(cluster.OpenshiftVersion, *cluster.ID)
+		b.metricApi.InstallationStarted(cluster.OpenshiftVersion, *cluster.ID, cluster.EmailDomain)
 		b.eventsHandler.AddEvent(
 			ctx, *cluster.ID, nil, models.EventSeverityInfo,
 			fmt.Sprintf("Updated status of cluster %s to installing", cluster.Name), time.Now())
@@ -3238,6 +3240,7 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 		OpenshiftVersion: openshiftVersion,
 		UserName:         auth.UserNameFromContext(ctx),
 		OrgID:            auth.OrgIDFromContext(ctx),
+		EmailDomain:      auth.EmailDomainFromContext(ctx),
 		UpdatedAt:        strfmt.DateTime{},
 		APIVipDNSName:    &apiVIP,
 	}}

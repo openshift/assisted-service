@@ -2654,6 +2654,8 @@ definitions:
         type: string
       org_id:
         type: string
+      email_domain:
+        type: string
       openshift_version:
         type: string
         enum: ['4.5', '4.6']

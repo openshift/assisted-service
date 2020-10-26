@@ -50,6 +50,9 @@ type Cluster struct {
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// email domain
+	EmailDomain string `json:"email_domain,omitempty"`
+
 	// List of host networks to be filled during query.
 	HostNetworks []*HostNetwork `json:"host_networks" gorm:"-"`
 

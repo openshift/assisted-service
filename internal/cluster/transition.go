@@ -288,7 +288,7 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			if sCluster.srcState == models.ClusterStatusInstalling &&
 				funk.ContainsString(reportInstallationCompleteStatuses, swag.StringValue(updatedCluster.Status)) {
 				params.metricApi.ClusterInstallationFinished(logutil.FromContext(params.ctx, th.log), swag.StringValue(updatedCluster.Status),
-					updatedCluster.OpenshiftVersion, *updatedCluster.ID, updatedCluster.InstallStartedAt)
+					updatedCluster.OpenshiftVersion, *updatedCluster.ID, updatedCluster.EmailDomain, updatedCluster.InstallStartedAt)
 			}
 		}
 
