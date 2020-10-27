@@ -2540,6 +2540,7 @@ definitions:
       - reset-installation
       - dhcp-lease-allocate
       - api-vip-connectivity-check
+      - ntp-synchronizer
 
   step:
     type: object
@@ -3448,6 +3449,42 @@ definitions:
       ingress_vip_lease:
         type: string
         description: Contents of last aquired lease for Ingress virtual IP.
+
+  ntp_synchronization_request:
+    type: object
+    required:
+      - ntp_source
+    properties:
+      ntp_source:
+        type: string
+        description: NTP source name or IP.
+
+  ntp_synchronization_response:
+    properties:
+      ntp_sources:
+        type: array
+        items:
+          $ref: "#/definitions/ntp_source"
+
+  ntp_source:
+    type: object
+    properties:
+      source_name:
+        type: string
+        description: NTP source name or IP.
+      source_state:
+        description: Indication of state of an NTP source.
+        $ref: "#/definitions/source_state"
+
+  source_state:
+    type: string
+    enum:
+      - synced
+      - combined
+      - not_combined
+      - error
+      - variable
+      - unreachable
 
   presigned:
     type: object
