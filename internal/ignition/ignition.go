@@ -89,13 +89,12 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	}
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")
 
-	encodedDhcpFileContents, err := network.GetEncodedDhcpParamFileContents(g.cluster)
+	g.encodedDhcpFileContents, err = network.GetEncodedDhcpParamFileContents(g.cluster)
 	if err != nil {
 		wrapped := errors.Wrapf(err, "Could not create DHCP encoded file")
 		g.log.WithError(wrapped).Errorf("GenerateInstallConfig")
 		return wrapped
 	}
-	g.encodedDhcpFileContents = encodedDhcpFileContents
 	envVars := append(os.Environ(),
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+g.releaseImage,
 		"OPENSHIFT_INSTALL_INVOKER=assisted-installer",
@@ -384,13 +383,21 @@ func (g *installerGenerator) modifyBMHFile(file *config_31_types.File, bmh *bmh_
 	return nil
 }
 
-func (g *installerGenerator) updateDhcpFileContents() error {
+func (g *installerGenerator) updateDhcpFiles() error {
 	path := filepath.Join(g.workDir, "master.ign")
 	config, err := parseIgnitionFile(path)
 	if err != nil {
 		return err
 	}
 	setFileInIgnition(config, "/etc/keepalived/unsupported-monitor.conf", g.encodedDhcpFileContents, false, 0o644)
+	encodedApiVip := network.GetEncodedApiVipLease(g.cluster)
+	if encodedApiVip != "" {
+		setFileInIgnition(config, "/etc/keepalived/lease-api", encodedApiVip, false, 0o644)
+	}
+	encodedIngressVip := network.GetEncodedIngressVipLease(g.cluster)
+	if encodedIngressVip != "" {
+		setFileInIgnition(config, "/etc/keepalived/lease-ingress", encodedIngressVip, false, 0o644)
+	}
 	err = writeIgnitionFile(path, config)
 	if err != nil {
 		return err
@@ -410,7 +417,7 @@ func (g *installerGenerator) updateIgnitions() error {
 	}
 
 	if g.encodedDhcpFileContents != "" {
-		if err := g.updateDhcpFileContents(); err != nil {
+		if err := g.updateDhcpFiles(); err != nil {
 			return errors.Wrapf(err, "error adding DHCP file to ignition %s", masterPath)
 		}
 	}

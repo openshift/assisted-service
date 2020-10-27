@@ -781,6 +781,17 @@ var _ = Describe("PostStepReply", func() {
 				}
 				return &ret
 			}
+			makeResponseWithLeases = func(apiVipStr, ingressVipStr, apiLease, ingressLease string) *models.DhcpAllocationResponse {
+				apiVip := strfmt.IPv4(apiVipStr)
+				ingressVip := strfmt.IPv4(ingressVipStr)
+				ret := models.DhcpAllocationResponse{
+					APIVipAddress:     &apiVip,
+					IngressVipAddress: &ingressVip,
+					APIVipLease:       apiLease,
+					IngressVipLease:   ingressLease,
+				}
+				return &ret
+			}
 		)
 		BeforeEach(func() {
 			clusterId = strToUUID(uuid.New().String())
@@ -791,6 +802,35 @@ var _ = Describe("PostStepReply", func() {
 				Status:    swag.String("insufficient"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
+		It("Happy flow with leases", func() {
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 clusterId,
+					VipDhcpAllocation:  swag.Bool(true),
+					MachineNetworkCidr: "1.2.3.0/24",
+					Status:             swag.String(models.ClusterStatusInsufficient),
+				},
+			}
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases("1.2.3.10", "1.2.3.11", "lease { hello abc; }", "lease { hello abc; }"))
+			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		})
+		It("API lease invalid", func() {
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 clusterId,
+					VipDhcpAllocation:  swag.Bool(true),
+					MachineNetworkCidr: "1.2.3.0/24",
+					Status:             swag.String(models.ClusterStatusInsufficient),
+				},
+			}
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases("1.2.3.10", "1.2.3.11", "llease { hello abc; }", "lease { hello abc; }"))
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
 		})
 		It("Happy flow", func() {
 			cluster := common.Cluster{
@@ -803,7 +843,7 @@ var _ = Describe("PostStepReply", func() {
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
-			mockClusterApi.EXPECT().SetVips(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
 		})
@@ -848,7 +888,7 @@ var _ = Describe("PostStepReply", func() {
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
-			mockClusterApi.EXPECT().SetVips(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
 		})
@@ -864,7 +904,7 @@ var _ = Describe("PostStepReply", func() {
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			mockClusterApi.EXPECT().SetVips(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("Stam"))
+			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("Stam"))
 			params := makeStepReply(*clusterId, *hostId, makeResponse("1.2.3.10", "1.2.3.11"))
 			reply := bm.PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
