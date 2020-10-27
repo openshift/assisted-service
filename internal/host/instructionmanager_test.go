@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"time"
 
 	"github.com/openshift/assisted-service/internal/connectivity"
 	"github.com/thoas/go-funk"
@@ -87,11 +88,17 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("error", func() {
 				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+					[]models.StepType{models.StepTypeExecute, models.StepTypeExecute})
+			})
+			It("error with already uploades logs", func() {
+				host.LogsCollectedAt = strfmt.DateTime(time.Now())
+				db.Save(&host)
+				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
 					[]models.StepType{models.StepTypeExecute})
 			})
 			It("cancelled", func() {
 				checkStepsByState(models.HostStatusCancelled, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeExecute})
+					[]models.StepType{models.StepTypeExecute, models.StepTypeExecute})
 			})
 			It("installing", func() {
 				checkStepsByState(models.HostStatusInstalling, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
@@ -137,11 +144,11 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("error", func() {
 				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeExecute})
+					[]models.StepType{models.StepTypeExecute, models.StepTypeExecute})
 			})
 			It("cancelled", func() {
 				checkStepsByState(models.HostStatusCancelled, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeExecute})
+					[]models.StepType{models.StepTypeExecute, models.StepTypeExecute})
 			})
 			It("installing", func() {
 				checkStepsByState(models.HostStatusInstalling, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,

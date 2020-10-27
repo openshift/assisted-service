@@ -167,7 +167,7 @@ func updateRole(h *models.Host, role models.HostRole, db *gorm.DB, srcRole *stri
 }
 
 func CreateUploadLogsCmd(host *models.Host, baseURL, agentImage string, skipCertVerification, preservePreviousCommandReturnCode,
-	withInstallerGaterLogging bool) (string, error) {
+	withInstallerGatherLogging bool) (string, error) {
 
 	cmdArgsTmpl := ""
 	if preservePreviousCommandReturnCode {
@@ -181,7 +181,7 @@ func CreateUploadLogsCmd(host *models.Host, baseURL, agentImage string, skipCert
 		"AGENT_IMAGE":            strings.TrimSpace(agentImage),
 		"SKIP_CERT_VERIFICATION": strconv.FormatBool(skipCertVerification),
 		"BOOTSTRAP":              strconv.FormatBool(host.Bootstrap),
-		"INSTALLER_GATHER":       strconv.FormatBool(withInstallerGaterLogging),
+		"INSTALLER_GATHER":       strconv.FormatBool(withInstallerGatherLogging),
 	}
 	cmdArgsTmpl += "podman run --rm --privileged " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
