@@ -91,6 +91,7 @@ func PrepareTestDB(dbName string, extrasSchemas ...interface{}) *gorm.DB {
 	Expect(err).ShouldNot(HaveOccurred())
 	// db = db.Debug()
 	db.AutoMigrate(&models.Host{}, &Cluster{})
+
 	if len(extrasSchemas) > 0 {
 		for _, schema := range extrasSchemas {
 			db = db.AutoMigrate(schema)

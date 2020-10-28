@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/migrations"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/app"
@@ -371,8 +372,21 @@ func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.D
 	return migrationLeader.RunWithLeader(context.Background(), func() error {
 		log.Infof("Start automigration")
 		err := db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{}).Error
-		log.Infof("Finish automigration")
-		return err
+		if err != nil {
+			log.WithError(err).Fatal("Failed auto migration process")
+			return err
+		}
+		log.Info("Finished automigration")
+
+		log.Infof("Starting manual migrations")
+		err = migrations.Migrate(db)
+		if err != nil {
+			log.WithError(err).Fatal("Manual migration process failed")
+			return err
+		}
+		log.Info("Finished manual migrations")
+
+		return nil
 	})
 }
 

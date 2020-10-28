@@ -3371,6 +3371,7 @@ func init() {
         "ignition_config_overrides": {
           "description": "Json formatted string containing the user overrides for the initial ignition config",
           "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
         "ignition_generator_version": {
@@ -3394,7 +3395,7 @@ func init() {
         "install_config_overrides": {
           "description": "JSON-formatted string containing the user overrides for the install-config.yaml file.",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
         },
         "install_started_at": {
@@ -8227,6 +8228,7 @@ func init() {
         "ignition_config_overrides": {
           "description": "Json formatted string containing the user overrides for the initial ignition config",
           "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
         "ignition_generator_version": {
@@ -8250,7 +8252,7 @@ func init() {
         "install_config_overrides": {
           "description": "JSON-formatted string containing the user overrides for the install-config.yaml file.",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
         },
         "install_started_at": {
