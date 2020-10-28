@@ -104,6 +104,7 @@ type API interface {
 	IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
+	PermanentHostsDeletion(olderThen strfmt.DateTime) error
 }
 
 type Manager struct {
@@ -622,4 +623,15 @@ func (m *Manager) canBeMaster(conditions map[validationID]bool) bool {
 
 func (m *Manager) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {
 	return m.hwValidator.GetHostRequirements(role)
+}
+
+func (m Manager) PermanentHostsDeletion(olderThen strfmt.DateTime) error {
+	var hosts []*models.Host
+	db := m.db.Unscoped()
+	if reply := db.Where("deleted_at < ?", olderThen).Delete(&hosts); reply.Error != nil {
+		return reply.Error
+	} else if reply.RowsAffected > 0 {
+		m.log.Debugf("Deleted %s hosts from db", reply.RowsAffected)
+	}
+	return nil
 }

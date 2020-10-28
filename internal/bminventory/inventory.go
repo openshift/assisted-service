@@ -76,21 +76,22 @@ var (
 )
 
 type Config struct {
-	ImageBuilder         string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
-	AgentDockerImg       string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	ServiceBaseURL       string            `envconfig:"SERVICE_BASE_URL"`
-	ServiceCACertPath    string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	S3EndpointURL        string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
-	S3Bucket             string            `envconfig:"S3_BUCKET" default:"test"`
-	ImageExpirationTime  time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
-	AwsAccessKeyID       string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
-	AwsSecretAccessKey   string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
-	BaseDNSDomains       map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
-	SkipCertVerification bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	InstallRHCa          bool              `envconfig:"INSTALL_RH_CA" default:"false"`
-	RhQaRegCred          string            `envconfig:"REGISTRY_CREDS" default:""`
-	AgentTimeoutStart    time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
-	ServiceIPs           string            `envconfig:"SERVICE_IPS" default:""`
+	ImageBuilder             string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
+	AgentDockerImg           string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	ServiceBaseURL           string            `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath        string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	S3EndpointURL            string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket                 string            `envconfig:"S3_BUCKET" default:"test"`
+	ImageExpirationTime      time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
+	AwsAccessKeyID           string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey       string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	BaseDNSDomains           map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
+	SkipCertVerification     bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	InstallRHCa              bool              `envconfig:"INSTALL_RH_CA" default:"false"`
+	RhQaRegCred              string            `envconfig:"REGISTRY_CREDS" default:""`
+	AgentTimeoutStart        time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
+	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
+	DeletedUnregisteredAfter time.Duration     `envconfig:"DELETED_UNREGISTERED_AFTER" default:"168h"`
 }
 
 const agentMessageOfTheDay = `
@@ -204,17 +205,6 @@ const nodeIgnitionFormat = `{
     }
   }
 }`
-
-var clusterFileNames = []string{
-	"kubeconfig",
-	"bootstrap.ign",
-	"master.ign",
-	"worker.ign",
-	"metadata.json",
-	"kubeadmin-password",
-	"kubeconfig-noingress",
-	"install-config.yaml",
-}
 
 type OCPClusterAPI interface {
 	RegisterOCPCluster(ctx context.Context) error
@@ -2404,16 +2394,16 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 
 func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID, fileName string) error {
 	log := logutil.FromContext(ctx, b.log)
-	var cluster common.Cluster
+	var c common.Cluster
 	log.Infof("Checking cluster cluster file for download: %s for cluster %s", fileName, clusterID)
 
-	if !funk.Contains(clusterFileNames, fileName) && fileName != manifests.ManifestFolder {
+	if !funk.Contains(cluster.S3FileNames, fileName) && fileName != manifests.ManifestFolder {
 		err := errors.Errorf("invalid cluster file %s", fileName)
 		log.WithError(err).Errorf("failed download file: %s from cluster: %s", fileName, clusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if err := b.db.First(&cluster, "id = ?", clusterID).Error; err != nil {
+	if err := b.db.First(&c, "id = ?", clusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
 		if gorm.IsRecordNotFoundError(err) {
 			return common.NewApiError(http.StatusNotFound, err)
@@ -2424,11 +2414,11 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	var err error
 	switch fileName {
 	case kubeconfig:
-		err = b.clusterApi.DownloadKubeconfig(&cluster)
+		err = b.clusterApi.DownloadKubeconfig(&c)
 	case manifests.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
-		err = b.clusterApi.DownloadFiles(&cluster)
+		err = b.clusterApi.DownloadFiles(&c)
 	}
 	if err != nil {
 		log.WithError(err).Errorf("failed to get file for cluster %s in current state", clusterID)
@@ -2725,7 +2715,7 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 		}
 	}
 
-	if err := b.deleteS3ClusterFiles(ctx, &c); err != nil {
+	if err := b.clusterApi.DeleteClusterFiles(ctx, &c, b.objectHandler); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	if err := b.deleteDNSRecordSets(ctx, c); err != nil {
@@ -2761,15 +2751,6 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 	}
 
 	return installer.NewCompleteInstallationAccepted().WithPayload(&c.Cluster)
-}
-
-func (b *bareMetalInventory) deleteS3ClusterFiles(ctx context.Context, c *common.Cluster) error {
-	for _, name := range clusterFileNames {
-		if err := b.objectHandler.DeleteObject(ctx, fmt.Sprintf("%s/%s", c.ID, name)); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (b *bareMetalInventory) createDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
@@ -3336,4 +3317,24 @@ func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) 
 	openshiftVersion := clusterVersion.Status.Desired.Version
 	splits := strings.Split(openshiftVersion, ".")
 	return splits[0] + "." + splits[1], nil
+}
+
+func (b bareMetalInventory) PermanentlyDeleteUnregisteredClustersAndHosts() {
+	olderThen := strfmt.DateTime(time.Now().Add(-b.Config.DeletedUnregisteredAfter))
+
+	b.log.Debugf(
+		"Permanently deleting all clusters that were de-registered before %s",
+		olderThen)
+	if err := b.clusterApi.PermanentClustersDeletion(context.Background(), olderThen, b.objectHandler); err != nil {
+		b.log.WithError(err).Errorf("Failed deleting de-registered clusters")
+		return
+	}
+
+	b.log.Debugf(
+		"Permanently deleting all hosts that were soft-deleted before %s",
+		olderThen)
+	if err := b.hostApi.PermanentHostsDeletion(olderThen); err != nil {
+		b.log.WithError(err).Errorf("Failed deleting soft-deleted hosts")
+		return
+	}
 }
