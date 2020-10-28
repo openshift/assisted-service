@@ -97,6 +97,9 @@ parameters:
   value: '3m'
 - name: SUPPORT_L2
   value: "true"
+- name: ADMIN_USERS
+  value: ''
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
