@@ -354,7 +354,7 @@ func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) valid
 func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessContext, status validationStatus) string {
 	switch status {
 	case ValidationFailure:
-		return "The base domain is undefined and must be provided and must be provided."
+		return "The base domain is undefined and must be provided."
 	case ValidationSuccess:
 		return "The base domain is defined."
 	default:
