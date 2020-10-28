@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/openshift/assisted-service/pkg/ocm"
-	"github.com/openshift/assisted-service/restapi"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -16,6 +14,9 @@ import (
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/restapi"
 
 	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
 	ign_3_1_types "github.com/coreos/ignition/v2/config/v3_1/types"
@@ -2822,6 +2823,80 @@ var _ = Describe("List unregistered clusters", func() {
 		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
 		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
 		Expect(reflect.TypeOf(resp)).Should(Equal(reflect.TypeOf(installer.NewListClustersForbidden())))
+	})
+})
+
+var _ = Describe("Get unregistered clusters", func() {
+
+	var (
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		ctrl           *gomock.Controller
+		clusterID      strfmt.UUID
+		hostID         strfmt.UUID
+		c              common.Cluster
+		kubeconfigFile *os.File
+		mockClusterAPI *cluster.MockAPI
+		dbName         = "get_unregistered_clusters"
+		mockS3Client   *s3wrapper.MockAPI
+		mockHostApi    *host.MockAPI
+		host1          models.Host
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		mockClusterAPI = cluster.NewMockAPI(ctrl)
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil)
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &clusterID,
+			Name:   "mycluster",
+			APIVip: "10.11.12.13",
+		}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		hostID = strfmt.UUID(uuid.New().String())
+		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+		kubeconfigFile.Close()
+	})
+
+	It("Get unregistered clusters success", func() {
+		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
+		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+		cluster := resp.(*installer.GetClusterOK).Payload
+		Expect(cluster.ID.String()).Should(Equal(clusterID.String()))
+		Expect(len(cluster.Hosts)).Should(Equal(1))
+		Expect(cluster.Hosts[0].ID.String()).Should(Equal(hostID.String()))
+	})
+
+	It("Get unregistered clusters failure - cluster was permanently deleted", func() {
+		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
+		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
+		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+		Expect(reflect.TypeOf(resp)).Should(Equal(reflect.TypeOf(installer.NewGetClusterNotFound())))
+	})
+
+	It("Get unregistered clusters failure - not an admin user", func() {
+		payload := &ocm.AuthPayload{}
+		payload.Role = ocm.UserRole
+		ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
+		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
+		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+		Expect(reflect.TypeOf(resp)).Should(Equal(reflect.TypeOf(installer.NewGetClusterForbidden())))
 	})
 })
 

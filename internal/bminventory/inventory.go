@@ -1635,7 +1635,23 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
-	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+
+	db := b.db
+	if swag.BoolValue(params.GetUnregisteredClusters) {
+		if !identity.IsAdmin(ctx) {
+			return installer.NewGetClusterForbidden().WithPayload(common.GenerateInfraError(
+				http.StatusForbidden, errors.New("only admin users are allowed to get unregistered clusters")))
+		}
+		db = b.db.Unscoped()
+	}
+
+	if err := db.Preload(
+		"Hosts", func(db *gorm.DB) *gorm.DB {
+			if swag.BoolValue(params.GetUnregisteredClusters) {
+				return db.Unscoped()
+			}
+			return db
+		}).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		// TODO: check for the right error
 		return installer.NewGetClusterNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
