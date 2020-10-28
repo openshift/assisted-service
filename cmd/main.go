@@ -176,7 +176,7 @@ func main() {
 
 	var ocpClient k8sclient.K8SClient = nil
 	switch Options.DeployTarget {
-	case deployment_type_k8s, deployment_type_ocp:
+	case deployment_type_k8s:
 		var kclient client.Client
 
 		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log)
@@ -215,7 +215,7 @@ func main() {
 			log.WithError(err).Fatalf("Failed to create client for OCP")
 		}
 
-	case deployment_type_onprem:
+	case deployment_type_onprem, deployment_type_ocp:
 		lead = &leader.DummyElector{}
 		autoMigrationLeader = lead
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
@@ -225,7 +225,12 @@ func main() {
 		}
 		createS3Bucket(objectHandler)
 		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
-		ocpClient = nil
+		if Options.DeployTarget == deployment_type_ocp {
+			ocpClient, err = k8sclient.NewK8SClient("", log)
+			if err != nil {
+				log.WithError(err).Fatalf("Failed to create client for OCP")
+			}
+		}
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
@@ -305,7 +310,8 @@ func main() {
 	h = app.WithHealthMiddleware(apiEnabler)
 	h = requestid.Middleware(h)
 
-	if Options.DeployTarget == deployment_type_k8s || Options.DeployTarget == deployment_type_ocp {
+	switch Options.DeployTarget {
+	case deployment_type_k8s:
 		go func() {
 			defer apiEnabler.Enable()
 			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
@@ -316,15 +322,16 @@ func main() {
 			if err != nil {
 				log.WithError(err).Fatal("Failed uploading base ISO")
 			}
-			if Options.DeployTarget == deployment_type_ocp {
-				err = bm.RegisterOCPCluster(context.Background())
-				if err != nil {
-					log.WithError(err).Fatal("Failed to create OCP cluster")
-				}
-			}
-
 		}()
-	} else {
+	case deployment_type_ocp:
+		go func() {
+			defer apiEnabler.Enable()
+			err = bm.RegisterOCPCluster(context.Background())
+			if err != nil {
+				log.WithError(err).Fatal("Failed to create OCP cluster")
+			}
+		}()
+	default:
 		apiEnabler.Enable()
 	}
 

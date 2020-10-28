@@ -1,0 +1,72 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: default
+  namespace: REPLACE_NAMESPACE
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: default
+  namespace: REPLACE_NAMESPACE
+rules:
+  - verbs:
+      - get
+      - watch
+      - list
+    apiGroups:
+      - ''
+    resources:
+      - pods
+      - endpoints
+      - services
+  - verbs:
+      - get
+      - watch
+      - list
+      - delete
+      - create
+    apiGroups:
+      - batch
+    resources:
+      - jobs
+  - verbs:
+      - create
+      - get
+      - list
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+  - verbs:
+      - get
+      - list
+    apiGroups:
+      - config.openshift.io
+    resources:
+      - clusterversions
+  - verbs:
+      - get
+      - update
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+    resourceNames: ["assisted-service-leader-election-helper", "assisted-service-migration-helper", "assisted-service-baseiso-helper"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: default
+  namespace: REPLACE_NAMESPACE
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: REPLACE_NAMESPACE
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: default
