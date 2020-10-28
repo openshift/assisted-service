@@ -22,7 +22,7 @@ var _ = Describe("upload_logs", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	dbName := "upload_logs"
+	dbName := "logs_cmd"
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
