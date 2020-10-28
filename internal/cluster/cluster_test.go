@@ -103,11 +103,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 		mockEvents        *events.MockHandler
 	)
 
-	mockHostAPIIsValidMasterCandidateTrue := func(times int) {
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).
-			Times(times)
-	}
-
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		id = strfmt.UUID(uuid.New().String())
@@ -143,7 +138,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
+
 				shouldHaveUpdated = false
 				expectedState = "installing"
 			})
@@ -153,7 +148,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing", db)
 				createWorkerHost(id, "installing", db)
 				createWorkerHost(id, "error", db)
-				mockHostAPIIsValidMasterCandidateTrue(5)
+
 				shouldHaveUpdated = false
 				expectedState = "installing"
 			})
@@ -163,7 +158,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installed", db)
 				createWorkerHost(id, "installing", db)
 				createWorkerHost(id, "installing", db)
-				mockHostAPIIsValidMasterCandidateTrue(5)
+
 				shouldHaveUpdated = false
 				expectedState = "installing"
 			})
@@ -171,7 +166,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
+
 				shouldHaveUpdated = false
 				expectedState = "installing"
 			})
@@ -179,7 +174,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing-in-progress", db)
 				createHost(id, "installing-in-progress", db)
 				createHost(id, "installing-in-progress", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
 
 				shouldHaveUpdated = false
 				expectedState = "installing"
@@ -188,7 +182,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing-in-progress", db)
 				createHost(id, "installing-in-progress", db)
 				createHost(id, "installing", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
 
 				shouldHaveUpdated = false
 				expectedState = "installing"
@@ -197,7 +190,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
 
 				shouldHaveUpdated = true
 				expectedState = models.ClusterStatusFinalizing
@@ -206,7 +198,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
 
 				shouldHaveUpdated = true
 				expectedState = models.ClusterStatusFinalizing
@@ -217,7 +208,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installed", db)
 				createWorkerHost(id, "installing", db)
 				createWorkerHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(5)
 
 				shouldHaveUpdated = true
 				expectedState = models.ClusterStatusFinalizing
@@ -228,7 +218,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "error", db)
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
 
 				shouldHaveUpdated = true
 				expectedState = "error"
@@ -237,8 +226,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(2)
-
 				shouldHaveUpdated = true
 				expectedState = "error"
 			})
@@ -247,7 +234,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installed", db)
 				createWorkerHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
 				shouldHaveUpdated = true
 				expectedState = "error"
 
@@ -258,7 +244,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing", db)
 				createWorkerHost(id, "error", db)
 				createWorkerHost(id, "error", db)
-				mockHostAPIIsValidMasterCandidateTrue(5)
 				shouldHaveUpdated = true
 				expectedState = "error"
 			})
@@ -267,7 +252,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
 				createWorkerHost(id, "error", db)
-				mockHostAPIIsValidMasterCandidateTrue(4)
 				shouldHaveUpdated = true
 				expectedState = "error"
 			})
@@ -276,7 +260,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
 				createWorkerHost(id, "error", db)
-				mockHostAPIIsValidMasterCandidateTrue(4)
+
 				shouldHaveUpdated = true
 				expectedState = "error"
 			})
@@ -311,11 +295,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 			mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 		}
 
-		mockHostAPIIsValidMasterCandidateFalseNoErrors := func(times int) {
-			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).
-				Times(times)
-		}
-
 		Context("host hosts", func() {
 
 			Context("from insufficient state", func() {
@@ -342,7 +321,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				It("insufficient -> insufficient", func() {
 					createHost(id, "known", db)
 					mockHostAPIIsRequireUserActionResetFalse()
-					mockHostAPIIsValidMasterCandidateTrue(1)
 
 					shouldHaveUpdated = false
 					expectedState = "insufficient"
@@ -371,8 +349,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 					createHost(id, "known", db)
 					createHost(id, "discovering", db)
 					mockHostAPIIsRequireUserActionResetFalse()
-					mockHostAPIIsValidMasterCandidateTrue(2)
-					mockHostAPIIsValidMasterCandidateFalseNoErrors(1)
 
 					shouldHaveUpdated = false
 					expectedState = "insufficient"
@@ -382,8 +358,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 					createHost(id, "known", db)
 					createHost(id, "error", db)
 					mockHostAPIIsRequireUserActionResetFalse()
-					mockHostAPIIsValidMasterCandidateTrue(2)
-					mockHostAPIIsValidMasterCandidateFalseNoErrors(1)
 
 					shouldHaveUpdated = false
 					expectedState = "insufficient"
@@ -393,7 +367,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 					createHost(id, "known", db)
 					createHost(id, "disabled", db)
 					mockHostAPIIsRequireUserActionResetFalse()
-					mockHostAPIIsValidMasterCandidateTrue(2)
 
 					shouldHaveUpdated = false
 					expectedState = "insufficient"
@@ -429,7 +402,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				It("ready -> insufficient", func() {
 					createHost(id, "known", db)
 					createHost(id, "known", db)
-					mockHostAPIIsValidMasterCandidateTrue(2)
 
 					shouldHaveUpdated = true
 					expectedState = "insufficient"
@@ -438,8 +410,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 					createHost(id, "known", db)
 					createHost(id, "known", db)
 					createHost(id, "discovering", db)
-					mockHostAPIIsValidMasterCandidateTrue(2)
-					mockHostAPIIsValidMasterCandidateFalseNoErrors(1)
 
 					shouldHaveUpdated = true
 					expectedState = "insufficient"
@@ -448,8 +418,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 					createHost(id, "known", db)
 					createHost(id, "known", db)
 					createHost(id, "error", db)
-					mockHostAPIIsValidMasterCandidateFalseNoErrors(1)
-					mockHostAPIIsValidMasterCandidateTrue(2)
 
 					shouldHaveUpdated = true
 					expectedState = "insufficient"
@@ -458,7 +426,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 					createHost(id, "known", db)
 					createHost(id, "known", db)
 					createHost(id, "disabled", db)
-					mockHostAPIIsValidMasterCandidateTrue(2)
 
 					shouldHaveUpdated = true
 					expectedState = "insufficient"

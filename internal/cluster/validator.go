@@ -260,34 +260,57 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 // conditions to have a valid number of masters
 // 1. have exactly three masters
 // 2. have less then 3 masters but enough to auto-assign hosts that can become masters
-// 3. have at least 2 workers, if workers configured
-// having more then 3 known masters is failure
+// 3. have at least 2 workers or auto-assign hosts that can become workers, if workers configured
+// 4. having more then 3 known masters is illegal
 func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) validationStatus {
-	mappedMastersByRole := MapMasterHostsByStatus(c.cluster)
-	mastersInKnown, ok := mappedMastersByRole[models.HostStatusKnown]
 
-	mappedWorkersByRole := MapWorkersHostsByStatus(c.cluster)
-	workerInKnown, worker_ok := mappedWorkersByRole[models.HostStatusKnown]
-
-	if ok && len(mastersInKnown) > common.MinMasterHostsNeededForInstallation {
+	knownHosts, ok := MapHostsByStatus(c.cluster)[models.HostStatusKnown]
+	if !ok { //if no known hosts exist, there is no sufficient master count
 		return boolValue(false)
 	}
 
-	if worker_ok && len(workerInKnown) == common.IllegalWorkerHostsCount {
-		return boolValue(false)
-	}
+	masters := make([]*models.Host, 0)
+	workers := make([]*models.Host, 0)
+	candidates := make([]*models.Host, 0)
 
-	if ok && len(mastersInKnown) == common.MinMasterHostsNeededForInstallation {
-		return boolValue(true)
-	}
-
-	candidates := 0
-	for _, h := range c.cluster.Hosts {
-		if isValid, err := v.hostAPI.IsValidMasterCandidate(h, c.db, v.log); isValid && err == nil {
-			candidates++
+	for _, host := range knownHosts {
+		switch role := host.Role; role {
+		case models.HostRoleMaster:
+			//add pre-assigned master hosts to the masters list
+			masters = append(masters, host)
+		case models.HostRoleWorker:
+			//add pre-assigned worker hosts to the worker list
+			workers = append(workers, host)
+		default:
+			//auto-assign hosts and other types go to the candidate list
+			candidates = append(candidates, host)
 		}
 	}
-	return boolValue(candidates >= common.MinMasterHostsNeededForInstallation)
+
+	for _, h := range candidates {
+		//if allocated masters count is less than the desired count, find eligable hosts
+		//from the candidate pool to match the master count criteria, up to 3
+		if len(masters) < common.MinMasterHostsNeededForInstallation {
+			if isValid, err := v.hostAPI.IsValidMasterCandidate(h, c.db, v.log); isValid && err == nil {
+				masters = append(masters, h)
+				continue
+			}
+		}
+		//otherwise, add the host candidate to the worker count
+		workers = append(workers, h)
+	}
+
+	//validate master candidates count
+	if len(masters) != common.MinMasterHostsNeededForInstallation {
+		return boolValue(false)
+	}
+
+	//validate worker candidates count
+	if len(workers) == common.IllegalWorkerHostsCount {
+		return boolValue(false)
+	}
+
+	return boolValue(true)
 }
 
 func (v *clusterValidator) printSufficientMastersCount(context *clusterPreprocessContext, status validationStatus) string {
