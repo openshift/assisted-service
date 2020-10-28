@@ -8,8 +8,12 @@ def main():
 
     utils.verify_build_directory(deploy_options.namespace)
 
-    src_file = os.path.join(os.getcwd(), 'deploy/roles/default_role.yaml')
-    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'default_role.yaml')
+    if deploy_options.target == 'ocp':
+        src_file = os.path.join(os.getcwd(), 'deploy/roles/ocp_role.yaml')
+        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'ocp_role.yaml')
+    else:
+        src_file = os.path.join(os.getcwd(), 'deploy/roles/default_role.yaml')
+        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'default_role.yaml')
 
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
