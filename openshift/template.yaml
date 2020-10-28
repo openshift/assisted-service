@@ -274,6 +274,8 @@ objects:
                 value: ${AGENT_TIMEOUT_START}
               - name: AWS_SHARED_CREDENTIALS_FILE
                 value: /etc/.aws/credentials
+              - name: ADMIN_USERS
+                value: ${ADMIN_USERS}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
