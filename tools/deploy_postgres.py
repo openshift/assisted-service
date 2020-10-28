@@ -15,7 +15,8 @@ def main():
 
     deploy_postgres_secret(deploy_options)
     deploy_postgres(deploy_options)
-    deploy_postgres_storage(deploy_options)
+    if deploy_options.target != utils.OCP_TARGET:
+        deploy_postgres_storage(deploy_options)
 
     log.info('Completed postgres deployment')
 
@@ -40,7 +41,10 @@ def deploy_postgres_secret(deploy_options):
 
 
 def deploy_postgres(deploy_options):
-    docs = utils.load_yaml_file_docs('deploy/postgres/postgres-deployment.yaml')
+    postgres_dep_file = 'deploy/postgres/postgres-deployment.yaml'
+    if deploy_options.target == utils.OCP_TARGET:
+        postgres_dep_file = 'deploy/postgres/postgres-deployment-ephemeral.yaml'
+    docs = utils.load_yaml_file_docs(postgres_dep_file)
 
     utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
 

@@ -218,6 +218,12 @@ deploy-role: deploy-namespace
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
+deploy-service-on-ocp-cluster:
+	export TARGET=ocp && $(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service
+
+deploy-ui-on-ocp-cluster:
+	export TARGET=ocp && $(MAKE) deploy-ui
+
 jenkins-deploy-for-subsystem: _verify_minikube generate-keys
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
 	$(MAKE) deploy-wiremock deploy-all

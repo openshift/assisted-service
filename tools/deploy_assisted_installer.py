@@ -53,6 +53,8 @@ def main():
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
         else:
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Always"
+        if deploy_options.target == utils.OCP_TARGET:
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'DEPLOY_TARGET', 'value': "ocp"})
 
     with open(DST_FILE, "w+") as dst:
         yaml.dump(data, dst, default_flow_style=False)

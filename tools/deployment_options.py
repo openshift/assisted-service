@@ -27,7 +27,7 @@ def load_deployment_options(parser=None):
     parser.add_argument(
         '--target',
         help='Target kubernetes distribution',
-        choices=['minikube', 'oc', 'oc-ingress'],
+        choices=['minikube', 'oc', 'oc-ingress', 'ocp'],
         default='minikube'
     )
     parser.add_argument(
