@@ -78,6 +78,8 @@
     </li>
         </ul>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#update-discovery-image-base-os">Update Discovery Image base OS</a>
+    </li>
     <li class="toctree-l2"><a class="reference internal" href="#deployment">Deployment</a>
         <ul>
     <li class="toctree-l3"><a class="reference internal" href="#deploy-to-minikube">Deploy to minikube</a>
@@ -232,6 +234,25 @@
 </code></pre>
 
 <p>It will build and push a new image of the service to your Docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.</p>
+<h2 id="update-discovery-image-base-os">Update Discovery Image base OS</h2>
+<p>If you want to update the underlying operating system image used by the discovery iso, follow these steps:</p>
+<ol>
+<li>
+<p>Choose the base os image you want to use</p>
+</li>
+<li>
+<p>RHCOS: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/</p>
+</li>
+<li>
+<p>Fedora CoreOS: https://getfedora.org/en/coreos/download?tab=metal_virtualized&amp;stream=stable</p>
+</li>
+<li>
+<p>Build the new iso generator image</p>
+</li>
+</ol>
+<p><code>sh
+   # Example with RHCOS
+   BASE_OS_IMAGE=https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/latest/rhcos-4.6.0-0.nightly-2020-08-26-093617-x86_64-live.x86_64.iso make build-assisted-iso-generator-image</code></p>
 <h2 id="deployment">Deployment</h2>
 <h3 id="deploy-to-minikube">Deploy to minikube</h3>
 <p>The deployment is a system deployment, it contains all the components the service need for all the operations to work (if implemented).
@@ -247,7 +268,7 @@ S3 service (scality), DB and will use the image generator to create the images i
 <p>This deployment option have multiple optional parameters that should be used in case you are not the Admin of the cluster:
 1. <code>APPLY_NAMESPACE</code> - True by default. Will try to deploy "assisted-installer" namespace, if you are not the Admin of the cluster or maybe you don't have permissions for this operation you may skip namespace deployment.
 1. <code>INGRESS_DOMAIN</code> - By default deployment script will try to get the domain prefix from OpenShift ingress controller. If you don't have access to it then you may specify the domain yourself. For example: <code>apps.ocp.prod.psi.redhat.com</code></p>
-<p>To set the parameters simply add them in the end of the command, for example</p>
+<p>To set the parameters simply add them in the end of the command, for example:</p>
 <pre><code class="shell">skipper make deploy-all TARGET=oc-ingress APPLY_NAMESPACE=False INGRESS_DOMAIN=apps.ocp.prod.psi.redhat.com
 </code></pre>
 
@@ -431,5 +452,5 @@ Image is uploaded to deployed S3 under the name template "installer-image-<clust
 
 <!--
 MkDocs version : 1.1.2
-Build Date UTC : 2020-10-07 07:19:57.741468+00:00
+Build Date UTC : 2020-10-08 12:19:12.012027+00:00
 -->

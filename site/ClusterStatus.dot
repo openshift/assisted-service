@@ -14,19 +14,29 @@ digraph ClusterStateMachine {
     }
     installed [shape = doublecircle, color = chartreuse];
     error [shape = doublecircle, color = crimson];
+    cancelled [shape = doublecircle, color = slategray];
 
     start -> insufficient [label = "cluster\ncreated", color=lightpink3, fontcolor=lightpink3];
+
     insufficient -> ready [label = "min reqs met", color=cadetblue4, fontcolor=cadetblue4];
+
     ready -> insufficient [label = "min reqs\nnot met", color=lightpink3, fontcolor=lightpink3];
-    error -> insufficient [label = "reset", color=lightpink3, fontcolor=lightpink3];
     ready -> "preparing-for-installation" [label = "installation started", color=darkolivegreen3, fontcolor=darkolivegreen4];
+
+    cancelled -> insufficient [label = "reset", color=lightpink3, fontcolor=lightpink3];
+
     "preparing-for-installation" -> installing [color=darkolivegreen4];
+
     installing -> finalizing [label = "3 masters\ninstalled", color=chartreuse4, fontcolor=chartreuse4];
-    finalizing -> error [label = "installation\nerror\nor canceled", color=crimson, fontcolor=crimson, ltail = cluster_level1];
+
+    finalizing -> error [label = "installation\nerror\n", color=crimson, fontcolor=crimson, ltail = cluster_level1];
+    finalizing -> cancelled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level1];
     finalizing -> installed [label = "installation\ncompleted", color=chartreuse4, fontcolor=chartreuse4];
+
+    error -> insufficient [label = "reset", color=lightpink3, fontcolor=lightpink3];
 
     {rank=min; start}
     {rank=max; installed}
     {rank=same; start; insufficient; ready}
-    {rank=same; installed; error}
+    {rank=same; installed; error; cancelled}
 }

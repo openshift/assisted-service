@@ -66,6 +66,18 @@
                     </li>
                     <li class="toctree-l1 current"><a class="reference internal current" href="./">OCP Deployment on Bare Metal</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#general">General</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#ipxe">iPXE</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#automatic">Automatic</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#manual">Manual</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#booting-the-nodes-from-ipxe">Booting the nodes from iPXE</a>
+    </li>
+        </ul>
+    </li>
     </ul>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="../deploy-on-vsphere/">OCP Deployment on vSphere</a>
@@ -112,7 +124,142 @@
             <div class="section">
               
                 <h1 id="openshift-deployment-with-oas-on-bare-metal">Openshift deployment with OAS - On Bare Metal</h1>
-<p>work in progress...</p>
+<p>This guide contains all the sections regarding Bare Metal deployment method, like iPXE/PXE, VirtualMedia, etc... let's get started</p>
+<h2 id="general">General</h2>
+<p>This section is generic for the most of the cases:</p>
+<ul>
+<li>DHCP/DNS running on the network you wanna deploy the OCP cluster.</li>
+<li>Assisted Installer up &amp; running (It's ok if you're working with cloud version).</li>
+<li>Typical DNS entries for API VIP and Ingress VIP.</li>
+<li>Pull Secret to reach the OCP Container Images.</li>
+<li>SSH Key pair.</li>
+</ul>
+<p><em><em>Note</em>: This method could be used also in Virtual environment</em></p>
+<ul>
+<li>With that we could start, first step is create the cluster</li>
+<li>Fill the Cluster name and Pull Secret fields, also select the version you wanna deploy:</li>
+</ul>
+<p><img alt="img" src="../img/new_cluster.png" /></p>
+<ul>
+<li>Now fill the Base Domain field and the SSH Host Public Key</li>
+</ul>
+<p><img alt="img" src="../img/entry_base_domain.png" />
+<img alt="img" src="../img/entry_ssh_pub_key.png" /></p>
+<ul>
+<li>Click on <em>Download Discovery ISO</em></li>
+</ul>
+<p><img alt="img" src="../img/entry_ssh_pub_key.png" /></p>
+<ul>
+<li>Fill again the SSH public key and click on <em>Generate Discovery ISO</em></li>
+</ul>
+<p><img alt="img" src="../img/entry_ssh_download_discovery.png" /></p>
+<ul>
+<li>Wait for ISO generation to finish and you will reach this checkpoint</li>
+</ul>
+<p><img alt="img" src="../img/discovery_iso_generated.png" /></p>
+<h2 id="ipxe">iPXE</h2>
+<p>iPXE deployment method</p>
+<p><em>NOTE1</em>: We use a sample URL, please change to fit your use case accordingly
+<em>NOTE2</em>: We've set the live_url as the node hostname on 8080 port , please change to fit your use case accordingly</p>
+<h3 id="automatic">Automatic</h3>
+<p>The automatic way is done using podman, just follow this steps:</p>
+<pre><code class="shell">export IPXE_DIR=/tmp/ipxe/ai
+mkdir -p ${IPXE_DIR}
+
+# This command will download the ISO, extract the Images and create the ignition config files
+podman run -e BASE_URL=http://devscripts2ipv6.e2e.bos.redhat.com:8080 -e ISO_URL=http://devscripts2ipv6.e2e.bos.redhat.com:6008/api/assisted-install/v1/clusters/33ffb056-ee65-4fee-91c9-f60e5ebea4a3/downloads/image -v /tmp/ipxe/ai:/data:Z --net=host -it --rm quay.io/ohadlevy/ai-ipxe
+
+# This command will host the iPXE files on an podman container
+podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm bitnami/nginx:latest
+</code></pre>
+
+<p>To ensure if your container is working fine, check the url with a <code>curl</code> command</p>
+<pre><code class="shell">curl http://$(hostname):8080/ipxe/ipxe
+</code></pre>
+
+<h3 id="manual">Manual</h3>
+<p>The manual way is explained here. You need at least to have the Discovery ISO already generated</p>
+<p>Now let's download that ISO in the provisioning machine, where the iPXE files will be hosted (use the <em>Command to download the ISO</em> button from the Assisted Service website</p>
+<pre><code class="shell">export IPXE_DIR=/tmp/ipxe/ai
+export IMAGE_PATH=/tmp/discovery_image_ocp.iso
+
+wget -O ${IMAGE_PATH} 'http://cloud.redhat.com/api/assisted-install/v1/clusters/&lt;cluster_id&gt;/downloads/image'
+</code></pre>
+
+<ul>
+<li>Now we need to create the folder and the <em>ipxe</em> file definition</li>
+</ul>
+<pre><code class="shell">mkdir -p ${IPXE_DIR}
+
+cat &gt; $IPXE_DIR/ipxe &lt;&lt; EOF
+#!ipxe                                                                                                                                                                                    
+set live_url $(hostname):8080
+kernel \${live_url}/vmlinuz ignition.config.url=\${live_url}/config.ign coreos.live.rootfs_url=\${live_url}/rootfs.img ${KERNEL_OPTS}
+initrd \${live_url}/initrd.img
+boot       
+EOF
+</code></pre>
+
+<ul>
+<li>We also need to extract the images from the ISO</li>
+</ul>
+<pre><code class="shell">export PXE_IMAGES=`isoinfo -i $IMAGE_PATH -f | grep -i images/pxeboot`
+
+for img in $PXE_IMAGES; do
+  export name=`basename ${img,,} | sed 's/\;1//' | sed 's/\.$//'`
+  echo extracting $name
+  isoinfo -i $IMAGE_PATH -x $img &gt; $IPXE_DIR/$name
+done
+</code></pre>
+
+<ul>
+<li>And as a last step, write the Ignition files for the deployment</li>
+</ul>
+<pre><code class="shell">echo writing custom user ignition
+echo '{' &gt; $IPXE_DIR/config.ign
+isoinfo -i $IMAGE_PATH -x '/IMAGES/IGNITION.IMG;1' | xz -dc - | sed '1d; $d' &gt;&gt; $IPXE_DIR/config.ign
+echo '}' &gt;&gt; $IPXE_DIR/config.ign
+</code></pre>
+
+<ul>
+<li>After the Ignition files creation we need to host the files, for that we will use a podman contianer based on nginx</li>
+</ul>
+<pre><code class="shell">podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm bitnami/nginx:latest
+</code></pre>
+
+<ul>
+<li>To ensure if your container is working fine, check the url with a <code>curl</code> command</li>
+</ul>
+<pre><code class="shell">curl http://$(hostname):8080/ipxe/ipxe
+</code></pre>
+
+<h3 id="booting-the-nodes-from-ipxe">Booting the nodes from iPXE</h3>
+<ul>
+<li>First step, we need to set up the boot mode on the iDrac's as <code>boot once</code> for iPXE, this will depend on the steps on every Bare Metal Manufacturer/Version/Hardware.</li>
+<li>When you are booting the nodes, stay tuned to press <code>crtl-b</code> when the prompt say that:</li>
+</ul>
+<p><img alt="img" src="../img/iPXE_boot.png" /></p>
+<ul>
+<li>Now we need to get a correct IP and point to the right iPXE file</li>
+<li>And we just need to wait until the boot was finished, and the nodes start appearing on the Assisted Service interface</li>
+</ul>
+<p><img alt="img" src="../img/ipxe_boot.png" /></p>
+<p><img alt="img" src="../img/boot_from_ipxe.gif" /></p>
+<ul>
+<li>Then we will modify the nodename to use a right name for Openshift</li>
+</ul>
+<p><img alt="img" src="../img/ai_node_appear.gif" /></p>
+<ul>
+<li>Create another 2 more nodes and repeat this step</li>
+</ul>
+<p><img alt="img" src="../img/ai_all_nodes.png" /></p>
+<ul>
+<li>Now fill the <em>API Virtual IP</em> and <em>Ingress Virtual IP</em> fields</li>
+</ul>
+<p><img alt="img" src="../img/ai_vips.png" /></p>
+<ul>
+<li>Now you just need to click on <em>Install Cluster</em> button and wait for the installation to finish.</li>
+</ul>
               
             </div>
           </div>
