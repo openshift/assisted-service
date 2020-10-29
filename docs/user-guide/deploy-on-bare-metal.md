@@ -134,7 +134,7 @@ curl http://$(hostname):8080/ipxe/ipxe
 - Now we need to get a correct IP and point to the right iPXE file
 - And we just need to wait until the boot was finished, and the nodes start appearing on the Assisted Service interface
 
-![img](img/ipxe_boot.png)
+![img](img/manual_ipxe_boot.png)
 
 ![img](img/boot_from_ipxe.gif)
 
