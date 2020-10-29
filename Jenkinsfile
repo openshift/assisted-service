@@ -22,7 +22,7 @@ pipeline {
         stage('Init') {
             steps {
                 sh 'make clear-all || true'
-                sh 'docker system prune -a'
+                sh 'docker system prune -a -f'
                 sh 'make ci-lint'
 
                 // Login to quay.io
