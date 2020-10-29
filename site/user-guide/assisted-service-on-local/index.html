@@ -138,7 +138,7 @@ skipper make deploy-ui
 <h2 id="running-oas-on-podman">Running OAS on Podman</h2>
 <p>The assisted service can also be deployed without using a Kubernetes cluster. In this scenario the service and associated components are deployed onto your local host as a pod using Podman.</p>
 <p>This type of deployment requires a different container image that combines components that are used to generate the installer ISO and configuration files. First build the image:</p>
-<pre><code>export SERVICE=quay.io/&lt;your-org&gt;/assisted-service:latest
+<pre><code>export SERVICE_ONPREM=quay.io/&lt;your-org&gt;/assisted-service:latest
 make build-onprem
 </code></pre>
 

@@ -125,8 +125,8 @@ sed -i 's#replace-with-your-urlencoded-pull-secret#'&quot;${PULL_SECRET_ENCODED}
 <p>Currently, the upstream assisted-service container image cannot be used with the live ISO. You will 
 need to build a custom container image and push it to quay.io.</p>
 <pre><code>export SERVICE=quay.io/&lt;your-org&gt;/assisted-service:latest
-make build-onprem
-podman push ${SERVICE}
+make build
+docker push ${SERVICE}
 </code></pre>
 
 <p>Then update the ignition config file to use your assisted-service container image.</p>
@@ -136,20 +136,22 @@ podman push ${SERVICE}
 <h3 id="download-the-base-rhcos-live-iso">Download the base RHCOS live ISO</h3>
 <p>The base live ISO is extracted from a container image. Run the container
 image containing the ISO, copy the ISO, and then stop and remove the container. </p>
-<pre><code>podman run -dt --name livecdsrc quay.io/ocpmetal/livecd-iso:rhcos-livecd
-podman cp livecdsrc:/root/image/livecd.iso ./livecd.iso
-podman rm -f livecdsrc
+<pre><code>podman run --privileged --pull=always --rm \
+  -v .:/download -w /download \
+  --entrypoint /bin/bash \
+  quay.io/ocpmetal/assisted-iso-create:latest cp /data/livecd.iso /download/livecd.iso
 </code></pre>
 
 <h3 id="create-the-assisted-service-live-iso">Create the assisted-service live ISO</h3>
 <p>Finally, use the ignition config (onprem-iso-config.ign) and the base live ISO (livecd.iso) to
 create the assisted-service live ISO.</p>
-<pre><code>podman run --rm --privileged  -v /dev:/dev -v /run/udev:/run/udev -v .:/data  quay.io/coreos/coreos-installer:release iso embed -c /data/onprem-iso-config.ign -o /data/assisted-service.iso /data/livecd.iso
+<pre><code>podman run --rm --privileged  -v /dev:/dev -v /run/udev:/run/udev -v .:/data  \
+  quay.io/coreos/coreos-installer:release iso ignition embed -i /data/onprem-iso-config.ign -o /data/assisted-service.iso /data/livecd.iso
 </code></pre>
 
 <p>The live ISO, <strong>assisted-service.iso</strong> (not livecd.iso), can then be used to deploy the installer. The live ISO storage system is emphemeral and its size depends on the amount of memory installed on the host. A minimum of 10GB of memory is required to deploy the installer, generate a single discovery ISO, and install an OCP cluster.</p>
 <p>After the live ISO boots, the UI should be accessible from the browser at</p>
-<pre><code>http://&lt;hostname-or-ip&gt;:8080. 
+<pre><code>https://&lt;hostname-or-ip&gt;:8443.
 </code></pre>
 
 <p>It may take a couple of minutes for the assisted-service and UI to become ready after you see the login prompt.</p>
@@ -174,17 +176,6 @@ create the assisted-service live ISO.</p>
 <p>The FCC file transpiles to an ignition config using:</p>
 <pre><code>podman run --rm -v ./config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc &gt; onprem-iso-config.ign
 </code></pre>
-
-<p>The transpiled ignition config is version 3.0.0. The RHCOS live ISO we are currently using is able to read v2.2.0. To change the ignition file to v2.2.0:</p>
-<ul>
-<li>Change version: from 3.0.0 to 2.2.0</li>
-<li>For each file in the storage -&gt; files section add </li>
-</ul>
-<pre><code>&quot;filesystem&quot;: &quot;root&quot;,
-</code></pre>
-
-<p>These two edits will not be necessary once we move to a RHCOS image that supports
-ignition v3.0.0.</p>
               
             </div>
           </div>
