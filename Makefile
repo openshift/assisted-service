@@ -235,9 +235,18 @@ deploy-test: _verify_minikube generate-keys
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
-	podman run -dt --pod assisted-installer --env-file onprem-environment --name db quay.io/ocpmetal/postgresql-12-centos7
+	# These are required because when running on RHCOS livecd, the coreos-installer binary and
+	# livecd are bind-mounted from the host into the assisted-service container at runtime.
+	[ -f livecd.iso ] || curl $(BASE_OS_IMAGE) -o livecd.iso
+	[ -f coreos-installer ] || podman run --privileged --pull=always -it --rm \
+		-v .:/data -w /data --entrypoint /bin/bash \
+		quay.io/coreos/coreos-installer:v0.7.0 -c 'cp /usr/sbin/coreos-installer /data/coreos-installer'
+	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --name db quay.io/ocpmetal/postgresql-12-centos7
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
-	podman run -dt --pod assisted-installer --env-file onprem-environment --env DUMMY_IGNITION=$(DUMMY_IGNITION) --user assisted-installer  --restart always --name installer $(SERVICE)
+	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --env DUMMY_IGNITION=$(DUMMY_IGNITION) \
+		-v ./livecd.iso:/data/livecd.iso:z \
+		-v ./coreos-installer:/data/coreos-installer:z \
+		--restart always --name installer $(SERVICE)
 
 deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
@@ -316,6 +325,8 @@ clear-deployment:
 
 clean-onprem:
 	podman pod rm -f assisted-installer | true
+	rm livecd.iso | true
+	rm coreos-installer | true
 
 delete-minikube-profile:
 	minikube delete -p $(PROFILE)
