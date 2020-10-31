@@ -127,6 +127,25 @@ var _ = Describe("Cluster tests", func() {
 		clusterID = *cluster.GetPayload().ID
 	})
 
+	It("list clusters - get unregistered cluster", func() {
+		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+		Expect(err1).ShouldNot(HaveOccurred())
+		ret, err2 := readOnlyAdminUserBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		Expect(err2).ShouldNot(HaveOccurred())
+		clusters := ret.GetPayload()
+		Expect(len(clusters)).ShouldNot(Equal(0))
+		clusterExistsInDB := false
+		for _, c := range clusters {
+			if c.ID.String() == clusterID.String() {
+				clusterExistsInDB = true
+				break
+			}
+		}
+		Expect(clusterExistsInDB).Should(Equal(true))
+		Expect(clusters[0].DeletedAt).ShouldNot(Equal(strfmt.DateTime{}))
+		Expect(len(clusters[0].Hosts)).ShouldNot(Equal(0))
+	})
+
 	It("cluster CRUD", func() {
 		_ = registerHost(clusterID)
 		Expect(err).NotTo(HaveOccurred())
