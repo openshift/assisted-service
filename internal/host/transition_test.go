@@ -1569,7 +1569,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(statusInfoInsufficientHardware),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},

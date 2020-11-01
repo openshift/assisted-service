@@ -2060,7 +2060,8 @@ var _ = Describe("cluster install", func() {
 					},
 				},
 			},
-			Timestamp: 1601853088,
+			SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
+			Timestamp:    1601853088,
 		}
 		h1 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h1, hwInfo, "h1")

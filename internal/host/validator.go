@@ -316,6 +316,9 @@ func (v *validator) isValidPlatform(c *validationContext) validationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
+	if c.inventory.SystemVendor == nil {
+		return ValidationError
+	}
 	return boolValue(!funk.ContainsString(invalidPlatforms, c.inventory.SystemVendor.ProductName))
 }
 
