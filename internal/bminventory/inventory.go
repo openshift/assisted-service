@@ -1017,7 +1017,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		b.metricApi.InstallationStarted(cluster.OpenshiftVersion, *cluster.ID)
 		b.eventsHandler.AddEvent(
 			ctx, *cluster.ID, nil, models.EventSeverityInfo,
-			"Updated status of cluster to installing", time.Now())
+			fmt.Sprintf("Updated status of cluster %s to installing", cluster.Name), time.Now())
 	}()
 
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
