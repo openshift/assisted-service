@@ -3662,6 +3662,12 @@ var _ = Describe("Register OCPCluster test", func() {
 		bm                  *bareMetalInventory
 		configMap           v1.ConfigMap
 		clusterVersion      configv1.ClusterVersion
+		ips                 []string
+		names               []string
+		roles               []string
+		statuses            []v1.ConditionStatus
+		nodesList           *v1.NodeList
+		archituctures       []string
 		cfg                 Config
 		db                  *gorm.DB
 		ctx                 = context.Background()
@@ -3677,6 +3683,7 @@ var _ = Describe("Register OCPCluster test", func() {
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB("register_ocp_cluster")
 		mockClusterAPI = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
@@ -3687,17 +3694,26 @@ var _ = Describe("Register OCPCluster test", func() {
 		configMap.Data = make(map[string]string)
 		configMap.Data["install-config"] = "platform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
 		clusterVersion.Status.Desired.Version = "4.6.0-rc5"
+		names = []string{"node1", "node2"}
+		ips = []string{"192.168.6.1", "192.168.6.2"}
+		roles = []string{"node-role.kubernetes.io/master", "node-role.kubernetes.io/worker"}
+		statuses = []v1.ConditionStatus{v1.ConditionTrue, v1.ConditionTrue}
+		archituctures = []string{"x64_64", "amd64"}
+		nodesList = prepareK8NodeList(names, ips, roles, archituctures, statuses)
 	})
 
 	AfterEach(func() {
+		common.DeleteTestDB(db, "register_ocp_cluster")
 		ctrl.Finish()
 	})
 
 	It("Register OCP cluster", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
+		mockK8sClient.EXPECT().ListNodes().Return(nodesList, nil).Times(1)
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -3735,7 +3751,6 @@ var _ = Describe("Register OCPCluster test", func() {
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).Should(HaveOccurred())
 	})
-
 	It("Register OCP cluster failed upload", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("Some error")).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
@@ -3748,10 +3763,32 @@ var _ = Describe("Register OCPCluster test", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
+		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).Should(HaveOccurred())
 	})
+
+	It("Register OCP cluster failed to get node list", func() {
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
+		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
+		mockK8sClient.EXPECT().ListNodes().Return(nil, fmt.Errorf("some error")).Times(1)
+		err := bm.RegisterOCPCluster(ctx)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("Register OCP cluster failed to register host", func() {
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
+		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
+		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
+		mockK8sClient.EXPECT().ListNodes().Return(nodesList, nil).Times(1)
+		err := bm.RegisterOCPCluster(ctx)
+		Expect(err).Should(HaveOccurred())
+	})
+
 })
 
 var _ = Describe("Register AddHostsCluster test", func() {
@@ -4030,3 +4067,21 @@ var _ = Describe("convert pull secret validation error to user error", func() {
 		Expect(err.Error()).Should(Equal("Failed validating pull secret"))
 	})
 })
+
+func prepareK8NodeList(names, ips, roles, archituctures []string, readyStatuses []v1.ConditionStatus) *v1.NodeList {
+	var node v1.Node
+	nodeList := &v1.NodeList{}
+	for i := range names {
+		node.Name = names[i]
+		node.Status.Conditions = make([]v1.NodeCondition, 1)
+		node.Status.Conditions[0].Type = v1.NodeReady
+		node.Status.Conditions[0].Status = readyStatuses[i]
+		node.Status.Addresses = make([]v1.NodeAddress, 1)
+		node.Status.Addresses[0].Address = ips[i]
+		node.Labels = make(map[string]string)
+		node.Labels[roles[i]] = ""
+		node.Status.NodeInfo.Architecture = archituctures[i]
+		nodeList.Items = append(nodeList.Items, node)
+	}
+	return nodeList
+}

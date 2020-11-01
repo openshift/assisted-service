@@ -151,6 +151,33 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost, statusInfo)
 }
 
+///////////////////////////////////////////////////////////////////////////
+// Register Installed host
+//////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsRegisterInstalledHost struct {
+	ctx context.Context
+	db  *gorm.DB
+}
+
+func (th *transitionHandler) PostRegisterInstalledHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostRegisterInstalledHost incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRegisterInstalledHost)
+	if !ok {
+		return errors.New("PostRegisterInstalledHost invalid argument")
+	}
+
+	log := logutil.FromContext(params.ctx, th.log)
+
+	sHost.host.StatusUpdatedAt = strfmt.DateTime(time.Now())
+	sHost.host.StatusInfo = swag.String(statusInfoDiscovering)
+	log.Infof("Register installed host %s cluster %s", sHost.host.ID.String(), sHost.host.ClusterID)
+	return params.db.Create(sHost.host).Error
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // Installation failure
 ////////////////////////////////////////////////////////////////////////////

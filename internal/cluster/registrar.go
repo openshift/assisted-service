@@ -64,6 +64,17 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 	return nil
 }
 
+func (r *registrar) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
+	c.Status = swag.String(models.ClusterStatusAddingHosts)
+	c.StatusInfo = swag.String(statusInfoReady)
+	err := db.Create(c).Error
+	if err != nil {
+		r.log.WithError(err).Errorf("Failed to create OCP cluster in DB")
+		return err
+	}
+	return nil
+}
+
 func (r *registrar) DeregisterCluster(ctx context.Context, cluster *common.Cluster) error {
 	var txErr error
 	tx := r.db.Begin()

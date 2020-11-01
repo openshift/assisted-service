@@ -16,6 +16,7 @@ const (
 	TransitionTypeResettingPendingUserAction = "ResettingPendingUserAction"
 	TransitionTypePrepareForInstallation     = "Prepare for installation"
 	TransitionTypeRefresh                    = "RefreshHost"
+	TransitionTypeRegisterInstalledHost      = "RegisterInstalledHost"
 )
 
 func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -88,6 +89,16 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRegisterDuringInstallation,
+	})
+
+	// Register host
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRegisterInstalledHost,
+		SourceStates: []stateswitch.State{
+			"",
+		},
+		DestinationState: stateswitch.State(models.HostStatusInstalled),
+		PostTransition:   th.PostRegisterInstalledHost,
 	})
 
 	// Installation failure
