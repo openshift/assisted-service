@@ -41,9 +41,11 @@ func (f *dhcpAllocateCmd) prepareParam(host *models.Host, cluster *common.Cluste
 	clusterID := host.ClusterID.String()
 
 	request := models.DhcpAllocationRequest{
-		APIVipMac:     asMAC(network.GenerateAPIVipMAC(clusterID)),
-		IngressVipMac: asMAC(network.GenerateIngressVipMAC(clusterID)),
-		Interface:     swag.String(nic),
+		APIVipMac:       asMAC(network.GenerateAPIVipMAC(clusterID)),
+		IngressVipMac:   asMAC(network.GenerateIngressVipMAC(clusterID)),
+		APIVipLease:     cluster.ApiVipLease,
+		IngressVipLease: cluster.IngressVipLease,
+		Interface:       swag.String(nic),
 	}
 	b, err := json.Marshal(&request)
 	if err != nil {

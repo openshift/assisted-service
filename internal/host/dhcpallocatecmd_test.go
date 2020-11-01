@@ -51,6 +51,28 @@ var _ = Describe("dhcpallocate", func() {
 		Expect(req.Interface).To(Equal(swag.String("eth0")))
 		Expect(req.APIVipMac).To(Equal(asMAC("00:1a:4a:b5:4d:cc")))
 		Expect(req.IngressVipMac).To(Equal(asMAC("00:1a:4a:83:b1:f7")))
+		Expect(req.APIVipLease).To(BeEmpty())
+		Expect(req.IngressVipLease).To(BeEmpty())
+	})
+
+	It("happy flow with leases", func() {
+		cluster = getTestCluster(clusterId, "1.2.3.0/24")
+		cluster.VipDhcpAllocation = swag.Bool(true)
+		cluster.ApiVipLease = "apiLease"
+		cluster.IngressVipLease = "ingressLease"
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
+		Expect(stepReply).ToNot(BeNil())
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeDhcpLeaseAllocate))
+		Expect(stepErr).ShouldNot(HaveOccurred())
+		Expect(len(stepReply[0].Args)).To(BeNumerically(">", 0))
+		var req models.DhcpAllocationRequest
+		Expect(json.Unmarshal([]byte(stepReply[0].Args[len(stepReply[0].Args)-1]), &req)).ToNot(HaveOccurred())
+		Expect(req.Interface).To(Equal(swag.String("eth0")))
+		Expect(req.APIVipMac).To(Equal(asMAC("00:1a:4a:b5:4d:cc")))
+		Expect(req.IngressVipMac).To(Equal(asMAC("00:1a:4a:83:b1:f7")))
+		Expect(req.APIVipLease).To(Equal("apiLease"))
+		Expect(req.IngressVipLease).To(Equal("ingressLease"))
 	})
 
 	It("Dhcp disabled", func() {

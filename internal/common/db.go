@@ -17,4 +17,10 @@ type Cluster struct {
 
 	// Used to detect if DHCP allocation task is timed out
 	MachineNetworkCidrUpdatedAt time.Time
+
+	// The lease acquired for API vip
+	ApiVipLease string `gorm:"type:text"`
+
+	// The lease acquired for API vip
+	IngressVipLease string `gorm:"type:text"`
 }

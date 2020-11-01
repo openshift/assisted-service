@@ -2004,7 +2004,18 @@ func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, 
 		log.WithError(err).Warn("IP in CIDR")
 		return err
 	}
-	return b.clusterApi.SetVips(ctx, &cluster, apiVip, ingressVip, b.db)
+
+	err = network.VerifyLease(dhcpAllocationReponse.APIVipLease)
+	if err != nil {
+		log.WithError(err).Warnf("API Vip not validated")
+		return err
+	}
+	err = network.VerifyLease(dhcpAllocationReponse.IngressVipLease)
+	if err != nil {
+		log.WithError(err).Warnf("Ingress Vip not validated")
+		return err
+	}
+	return b.clusterApi.SetVipsData(ctx, &cluster, apiVip, ingressVip, dhcpAllocationReponse.APIVipLease, dhcpAllocationReponse.IngressVipLease, b.db)
 }
 
 func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {

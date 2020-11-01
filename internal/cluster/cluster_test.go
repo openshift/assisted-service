@@ -1366,7 +1366,7 @@ var _ = Describe("HandlePreInstallationError", func() {
 	})
 })
 
-var _ = Describe("SetVips", func() {
+var _ = Describe("SetVipsData", func() {
 	var (
 		ctx        = context.Background()
 		capi       API
@@ -1375,6 +1375,30 @@ var _ = Describe("SetVips", func() {
 		db         *gorm.DB
 		clusterId  strfmt.UUID
 		dbName     = "set_vips"
+		apiLease   = `lease {
+  interface "api";
+  renew 0 2020/10/25 14:48:38;
+  rebind 0 2020/10/25 15:11:32;
+  expire 0 2020/10/25 15:19:02;
+}`
+		expectedApiLease = `lease {
+  interface "api";
+  renew never;
+  rebind never;
+  expire never;
+}`
+		ingressLease = `lease {
+  interface "ingress";
+  renew 0 2020/10/25 14:48:38;
+  rebind 0 2020/10/25 15:11:32;
+  expire 0 2020/10/25 15:19:02;
+}`
+		expectedIngressLease = `lease {
+  interface "ingress";
+  renew never;
+  rebind never;
+  expire never;
+}`
 	)
 
 	BeforeEach(func() {
@@ -1387,20 +1411,25 @@ var _ = Describe("SetVips", func() {
 	})
 	AfterEach(func() {
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	tests := []struct {
-		name               string
-		srcState           string
-		clusterApiVip      string
-		clusterIngressVip  string
-		apiVip             string
-		ingressVip         string
-		expectedApiVip     string
-		expectedIngressVip string
-		expectedState      string
-		errorExpected      bool
-		eventExpected      bool
+		name                 string
+		srcState             string
+		clusterApiVip        string
+		clusterIngressVip    string
+		clusterApiLease      string
+		clusterIngressLease  string
+		apiVip               string
+		ingressVip           string
+		expectedApiVip       string
+		expectedIngressVip   string
+		expectedApiLease     string
+		expectedIngressLease string
+		expectedState        string
+		errorExpected        bool
+		eventExpected        bool
 	}{
 		{
 			name:               "success-empty",
@@ -1447,6 +1476,23 @@ var _ = Describe("SetVips", func() {
 			errorExpected:      false,
 			expectedState:      models.ClusterStatusInsufficient,
 			eventExpected:      true,
+		},
+		{
+			name:                 "success- insufficient with leases",
+			srcState:             models.ClusterStatusInsufficient,
+			clusterApiVip:        "1.1.1.1",
+			clusterIngressVip:    "2.2.2.2",
+			clusterApiLease:      apiLease,
+			clusterIngressLease:  ingressLease,
+			apiVip:               "1.2.3.4",
+			ingressVip:           "1.2.3.5",
+			expectedApiVip:       "1.2.3.4",
+			expectedIngressVip:   "1.2.3.5",
+			expectedApiLease:     expectedApiLease,
+			expectedIngressLease: expectedIngressLease,
+			errorExpected:        false,
+			expectedState:        models.ClusterStatusInsufficient,
+			eventExpected:        true,
 		},
 		{
 			name:               "success- ready same",
@@ -1496,12 +1542,14 @@ var _ = Describe("SetVips", func() {
 			if t.eventExpected {
 				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
 			}
-			err := capi.SetVips(ctx, &cluster, t.apiVip, t.ingressVip, db)
+			err := capi.SetVipsData(ctx, &cluster, t.apiVip, t.ingressVip, t.clusterApiLease, t.clusterIngressLease, db)
 			Expect(err != nil).To(Equal(t.errorExpected))
 			var c common.Cluster
 			Expect(db.Take(&c, "id = ?", clusterId.String()).Error).ToNot(HaveOccurred())
 			Expect(c.APIVip).To(Equal(t.expectedApiVip))
 			Expect(c.IngressVip).To(Equal(t.expectedIngressVip))
+			Expect(c.ApiVipLease).To(Equal(t.expectedApiLease))
+			Expect(c.IngressVipLease).To(Equal(t.expectedIngressLease))
 			Expect(swag.StringValue(c.Status)).To(Equal(t.expectedState))
 		})
 	}

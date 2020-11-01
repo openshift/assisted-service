@@ -72,7 +72,7 @@ type API interface {
 	PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	HandlePreInstallError(ctx context.Context, c *common.Cluster, err error)
 	CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse
-	SetVips(ctx context.Context, c *common.Cluster, apiVip, ingressVip string, db *gorm.DB) error
+	SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
 	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
@@ -486,7 +486,7 @@ func vipMismatchError(apiVip, ingressVip string, cluster *common.Cluster) error 
 		cluster.ID.String(), apiVip, cluster.APIVip, ingressVip, cluster.IngressVip)
 }
 
-func (m *Manager) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingressVip string, db *gorm.DB) error {
+func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error {
 	var err error
 	if db == nil {
 		db = m.db
@@ -495,8 +495,12 @@ func (m *Manager) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingres
 	switch swag.StringValue(c.Status) {
 	case models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient, models.ClusterStatusReady:
 		if err = db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
-			Updates(map[string]interface{}{"api_vip": apiVip,
-				"ingress_vip": ingressVip}).Error; err != nil {
+			Updates(map[string]interface{}{
+				"api_vip":           apiVip,
+				"ingress_vip":       ingressVip,
+				"api_vip_lease":     network.FormatLease(apiVipLease),
+				"ingress_vip_lease": network.FormatLease(ingressVipLease),
+			}).Error; err != nil {
 			log.WithError(err).Warnf("Update vips of cluster %s", c.ID.String())
 			return err
 		}
