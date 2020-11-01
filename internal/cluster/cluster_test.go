@@ -1963,3 +1963,95 @@ var _ = Describe("CompleteInstallation", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 })
+
+var _ = Describe("Permanently delete clusters", func() {
+	var (
+		ctrl          *gomock.Controller
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		c1            common.Cluster
+		c2            common.Cluster
+		c3            common.Cluster
+		eventsHandler events.Handler
+		mockMetric    *metrics.MockAPI
+		dbName        = "permanently_delete_clusters"
+		mockS3Api     *s3wrapper.MockAPI
+	)
+
+	registerCluster := func() common.Cluster {
+		id := strfmt.UUID(uuid.New().String())
+		eventsHandler.AddEvent(ctx, id, &id, "", "", time.Now())
+		c := common.Cluster{Cluster: models.Cluster{
+			ID: &id,
+		}}
+		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+		return c
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		mockS3Api = s3wrapper.NewMockAPI(ctrl)
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		eventsHandler = events.New(db, logrus.New())
+		dummy := &leader.DummyElector{}
+		state = NewManager(getDefaultConfig(), getTestLog(), db, eventsHandler, nil, mockMetric, dummy)
+		c1 = registerCluster()
+		c2 = registerCluster()
+		c3 = registerCluster()
+	})
+
+	It("permanently delete clusters success", func() {
+		Expect(db.Delete(&c1).RowsAffected).Should(Equal(int64(1)))
+		Expect(db.First(&common.Cluster{}, "id = ?", c1.ID).RowsAffected).Should(Equal(int64(0)))
+		Expect(db.Unscoped().First(&common.Cluster{}, "id = ?", c1.ID).RowsAffected).Should(Equal(int64(1)))
+
+		Expect(db.Delete(&c2).RowsAffected).Should(Equal(int64(1)))
+		Expect(db.First(&common.Cluster{}, "id = ?", c2.ID).RowsAffected).Should(Equal(int64(0)))
+		Expect(db.Unscoped().First(&common.Cluster{}, "id = ?", c2.ID).RowsAffected).Should(Equal(int64(1)))
+
+		mockS3Api.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockS3Api.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{}, nil).AnyTimes()
+
+		Expect(state.PermanentClustersDeletion(ctx, strfmt.DateTime(time.Now()), mockS3Api)).ShouldNot(HaveOccurred())
+
+		Expect(db.Unscoped().Where("id = ?", c1.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(0)))
+		Expect(db.Unscoped().Where("id = ?", c2.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(0)))
+		Expect(db.Unscoped().Where("id = ?", c3.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(1)))
+
+		c1Events, err1 := eventsHandler.GetEvents(*c1.ID, c1.ID)
+		Expect(err1).ShouldNot(HaveOccurred())
+		Expect(len(c1Events)).Should(Equal(0))
+		c2Events, err2 := eventsHandler.GetEvents(*c2.ID, c2.ID)
+		Expect(err2).ShouldNot(HaveOccurred())
+		Expect(len(c2Events)).Should(Equal(0))
+		c3Events, err3 := eventsHandler.GetEvents(*c3.ID, c3.ID)
+		Expect(err3).ShouldNot(HaveOccurred())
+		Expect(len(c3Events)).ShouldNot(Equal(0))
+	})
+
+	It("permanently delete clusters - nothing to delete", func() {
+		deletedAt := strfmt.DateTime(time.Now().Add(-time.Hour))
+		Expect(state.PermanentClustersDeletion(ctx, deletedAt, mockS3Api)).ShouldNot(HaveOccurred())
+
+		Expect(db.Where("id = ?", c1.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(1)))
+		Expect(db.Where("id = ?", c2.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(1)))
+		Expect(db.Where("id = ?", c3.ID).Find(&common.Cluster{}).RowsAffected).Should(Equal(int64(1)))
+
+		c1Events, err1 := eventsHandler.GetEvents(*c1.ID, c1.ID)
+		Expect(err1).ShouldNot(HaveOccurred())
+		Expect(len(c1Events)).ShouldNot(Equal(0))
+		c2Events, err2 := eventsHandler.GetEvents(*c2.ID, c2.ID)
+		Expect(err2).ShouldNot(HaveOccurred())
+		Expect(len(c2Events)).ShouldNot(Equal(0))
+		c3Events, err3 := eventsHandler.GetEvents(*c3.ID, c3.ID)
+		Expect(err3).ShouldNot(HaveOccurred())
+		Expect(len(c3Events)).ShouldNot(Equal(0))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+})

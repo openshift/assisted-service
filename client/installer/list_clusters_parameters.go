@@ -14,13 +14,17 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewListClustersParams creates a new ListClustersParams object
 // with the default values initialized.
 func NewListClustersParams() *ListClustersParams {
-
+	var (
+		getUnregisteredClustersDefault = bool(false)
+	)
 	return &ListClustersParams{
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -29,8 +33,11 @@ func NewListClustersParams() *ListClustersParams {
 // NewListClustersParamsWithTimeout creates a new ListClustersParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewListClustersParamsWithTimeout(timeout time.Duration) *ListClustersParams {
-
+	var (
+		getUnregisteredClustersDefault = bool(false)
+	)
 	return &ListClustersParams{
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
 
 		timeout: timeout,
 	}
@@ -39,8 +46,11 @@ func NewListClustersParamsWithTimeout(timeout time.Duration) *ListClustersParams
 // NewListClustersParamsWithContext creates a new ListClustersParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewListClustersParamsWithContext(ctx context.Context) *ListClustersParams {
-
+	var (
+		getUnregisteredClustersDefault = bool(false)
+	)
 	return &ListClustersParams{
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
 
 		Context: ctx,
 	}
@@ -49,9 +59,12 @@ func NewListClustersParamsWithContext(ctx context.Context) *ListClustersParams {
 // NewListClustersParamsWithHTTPClient creates a new ListClustersParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewListClustersParamsWithHTTPClient(client *http.Client) *ListClustersParams {
-
+	var (
+		getUnregisteredClustersDefault = bool(false)
+	)
 	return &ListClustersParams{
-		HTTPClient: client,
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+		HTTPClient:              client,
 	}
 }
 
@@ -59,6 +72,10 @@ func NewListClustersParamsWithHTTPClient(client *http.Client) *ListClustersParam
 for the list clusters operation typically these are written to a http.Request
 */
 type ListClustersParams struct {
+
+	/*GetUnregisteredClusters*/
+	GetUnregisteredClusters *bool
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -97,6 +114,17 @@ func (o *ListClustersParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithGetUnregisteredClusters adds the getUnregisteredClusters to the list clusters params
+func (o *ListClustersParams) WithGetUnregisteredClusters(getUnregisteredClusters *bool) *ListClustersParams {
+	o.SetGetUnregisteredClusters(getUnregisteredClusters)
+	return o
+}
+
+// SetGetUnregisteredClusters adds the getUnregisteredClusters to the list clusters params
+func (o *ListClustersParams) SetGetUnregisteredClusters(getUnregisteredClusters *bool) {
+	o.GetUnregisteredClusters = getUnregisteredClusters
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *ListClustersParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -104,6 +132,15 @@ func (o *ListClustersParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 	var res []error
+
+	if o.GetUnregisteredClusters != nil {
+
+		// header param get_unregistered_clusters
+		if err := r.SetHeaderParam("get_unregistered_clusters", swag.FormatBool(*o.GetUnregisteredClusters)); err != nil {
+			return err
+		}
+
+	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

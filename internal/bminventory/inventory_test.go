@@ -15,6 +15,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/restapi"
+
 	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
 	ign_3_1_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/go-openapi/runtime/middleware"
@@ -269,7 +272,7 @@ var _ = Describe("GenerateClusterISO", func() {
 	Context("when kube job is used as generator", func() {
 		BeforeEach(func() {
 			mockGenerator := generator.NewMockISOInstallConfigGenerator(ctrl)
-			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil)
+			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil)
 		})
 		RunGenerateClusterISOTests()
 	})
@@ -476,7 +479,7 @@ var _ = Describe("RegisterHost", func() {
 		hostID = strfmt.UUID(uuid.New().String())
 		db = common.PrepareTestDB(dbName)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostAPI, mockClusterAPI, cfg, nil, mockEventsHandler,
-			nil, nil, getTestAuthHandler(), nil)
+			nil, nil, getTestAuthHandler(), nil, nil)
 	})
 
 	AfterEach(func() {
@@ -612,7 +615,7 @@ var _ = Describe("GetNextSteps", func() {
 		db = common.PrepareTestDB(dbName)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil)
 	})
 
 	AfterEach(func() {
@@ -697,7 +700,7 @@ var _ = Describe("PostStepReply", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockClusterApi = cluster.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil)
 	})
 
 	AfterEach(func() {
@@ -930,7 +933,7 @@ var _ = Describe("GetFreeAddresses", func() {
 		db = common.PrepareTestDB(dbName)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil)
 	})
 
 	AfterEach(func() {
@@ -1077,7 +1080,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		db = common.PrepareTestDB(dbName)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil)
 		defaultProgressStage = "some progress"
 	})
 
@@ -1272,6 +1275,7 @@ var _ = Describe("cluster", func() {
 	setResetClusterSuccess := func() {
 		mockAbortInstallConfig(mockGenerator)
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockClusterApi.EXPECT().DeleteClusterFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
@@ -2389,7 +2393,6 @@ var _ = Describe("cluster", func() {
 				})
 				It("reset installation success", func() {
 					setResetClusterSuccess()
-
 					resetReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
 						ClusterID: clusterID,
 					})
@@ -2447,7 +2450,7 @@ var _ = Describe("cluster", func() {
 	Context("when kube job is used as generator", func() {
 		BeforeEach(func() {
 			mockGenerator = generator.NewMockISOInstallConfigGenerator(ctrl)
-			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockGenerator, mockEvents, mockS3Client, mockMetric, getTestAuthHandler(), nil)
+			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockGenerator, mockEvents, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil)
 		})
 		RunClusterTests()
 	})
@@ -2477,7 +2480,7 @@ var _ = Describe("KubeConfig download", func() {
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil, nil)
 
-		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -2603,7 +2606,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil, nil)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -2748,6 +2751,155 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 	})
 })
 
+var _ = Describe("List unregistered clusters", func() {
+
+	var (
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		ctrl           *gomock.Controller
+		clusterID      strfmt.UUID
+		hostID         strfmt.UUID
+		c              common.Cluster
+		kubeconfigFile *os.File
+		mockClusterAPI *cluster.MockAPI
+		dbName         = "upload_logs"
+		mockS3Client   *s3wrapper.MockAPI
+		mockHostApi    *host.MockAPI
+		host1          models.Host
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		mockClusterAPI = cluster.NewMockAPI(ctrl)
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil)
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &clusterID,
+			Name:   "mycluster",
+			APIVip: "10.11.12.13",
+		}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		hostID = strfmt.UUID(uuid.New().String())
+		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+		kubeconfigFile.Close()
+	})
+
+	It("List unregistered clusters success", func() {
+		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
+		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
+		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		payload := resp.(*installer.ListClustersOK).Payload
+		Expect(len(payload)).Should(Equal(1))
+		Expect(payload[0].ID.String()).Should(Equal(clusterID.String()))
+		Expect(len(payload[0].Hosts)).Should(Equal(1))
+		Expect(payload[0].Hosts[0].ID.String()).Should(Equal(hostID.String()))
+	})
+
+	It("List unregistered clusters failure - cluster was permanently deleted", func() {
+		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
+		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
+		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		payload := resp.(*installer.ListClustersOK).Payload
+		Expect(len(payload)).Should(Equal(0))
+	})
+
+	It("List unregistered clusters failure - not an admin user", func() {
+		payload := &ocm.AuthPayload{}
+		payload.Role = ocm.UserRole
+		ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
+		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
+		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		Expect(reflect.TypeOf(resp)).Should(Equal(reflect.TypeOf(installer.NewListClustersForbidden())))
+	})
+})
+
+var _ = Describe("Get unregistered clusters", func() {
+
+	var (
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		ctrl           *gomock.Controller
+		clusterID      strfmt.UUID
+		hostID         strfmt.UUID
+		c              common.Cluster
+		kubeconfigFile *os.File
+		mockClusterAPI *cluster.MockAPI
+		dbName         = "get_unregistered_clusters"
+		mockS3Client   *s3wrapper.MockAPI
+		mockHostApi    *host.MockAPI
+		host1          models.Host
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		mockClusterAPI = cluster.NewMockAPI(ctrl)
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil)
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &clusterID,
+			Name:   "mycluster",
+			APIVip: "10.11.12.13",
+		}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		hostID = strfmt.UUID(uuid.New().String())
+		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+		kubeconfigFile.Close()
+	})
+
+	It("Get unregistered clusters success", func() {
+		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
+		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+		cluster := resp.(*installer.GetClusterOK).Payload
+		Expect(cluster.ID.String()).Should(Equal(clusterID.String()))
+		Expect(len(cluster.Hosts)).Should(Equal(1))
+		Expect(cluster.Hosts[0].ID.String()).Should(Equal(hostID.String()))
+	})
+
+	It("Get unregistered clusters failure - cluster was permanently deleted", func() {
+		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
+		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
+		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+		Expect(reflect.TypeOf(resp)).Should(Equal(reflect.TypeOf(installer.NewGetClusterNotFound())))
+	})
+
+	It("Get unregistered clusters failure - not an admin user", func() {
+		payload := &ocm.AuthPayload{}
+		payload.Role = ocm.UserRole
+		ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
+		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
+		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+		Expect(reflect.TypeOf(resp)).Should(Equal(reflect.TypeOf(installer.NewGetClusterForbidden())))
+	})
+})
+
 var _ = Describe("Upload and Download logs test", func() {
 
 	var (
@@ -2777,7 +2929,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockClusterAPI = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			Name:   "mycluster",
@@ -3079,6 +3231,40 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
 
+	It("Download unregistered cluster controller log success", func() {
+		logsType := string(models.LogsTypeController)
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+			LogsType:  &logsType,
+		}
+		c.ControllerLogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&c)
+		dbReply := db.Delete(&host1)
+		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
+		dbReply = db.Where("id = ?", clusterID).Delete(&common.Cluster{})
+		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
+		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		fileName := bm.getLogsFullName(clusterID.String(), logsType)
+		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
+		generateReply := bm.DownloadClusterLogs(ctx, params)
+		downloadFileName := fmt.Sprintf("mycluster_%s_%s.tar.gz", clusterID, logsType)
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(r), downloadFileName, 4)))
+	})
+
+	It("Download unregistered cluster controller log failure - permanently deleted", func() {
+		logsType := string(models.LogsTypeController)
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+			LogsType:  &logsType,
+		}
+		c.ControllerLogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&c)
+		dbReply := db.Unscoped().Delete(&host1)
+		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
+		dbReply = db.Unscoped().Where("id = ?", clusterID).Delete(&common.Cluster{})
+		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
+	})
 })
 
 var _ = Describe("GetClusterInstallConfig", func() {
@@ -3095,7 +3281,7 @@ var _ = Describe("GetClusterInstallConfig", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:                     &clusterID,
 			BaseDNSDomain:          "example.com",
@@ -3145,7 +3331,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -3215,7 +3401,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:            &clusterID,
 			PullSecretSet: true,
@@ -3287,7 +3473,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -3445,7 +3631,7 @@ var _ = Describe("Register OCPCluster test", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockK8sClient = k8sclient.NewMockK8SClient(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), mockK8sClient)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), mockK8sClient, nil)
 		configMap.Data = make(map[string]string)
 		configMap.Data["install-config"] = "platform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
 		clusterVersion.Status.Desired.Version = "4.6.0-rc5"
@@ -3546,7 +3732,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil)
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
 	})
@@ -3622,7 +3808,7 @@ var _ = Describe("Install Hosts test", func() {
 		mockClusterApi = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil)
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
 		mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
@@ -3700,7 +3886,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, mockClusterApi, cfg, nil, mockEvents,
-			nil, mockMetric, getTestAuthHandler(), nil)
+			nil, mockMetric, getTestAuthHandler(), nil, nil)
 	})
 
 	AfterEach(func() {

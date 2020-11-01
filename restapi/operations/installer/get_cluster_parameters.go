@@ -11,14 +11,23 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // NewGetClusterParams creates a new GetClusterParams object
-// no default values defined in spec.
+// with the default values initialized.
 func NewGetClusterParams() GetClusterParams {
 
-	return GetClusterParams{}
+	var (
+		// initialize parameters with default values
+
+		getUnregisteredClustersDefault = bool(false)
+	)
+
+	return GetClusterParams{
+		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+	}
 }
 
 // GetClusterParams contains all the bound params for the get cluster operation
@@ -39,6 +48,11 @@ type GetClusterParams struct {
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
+	/*
+	  In: header
+	  Default: false
+	*/
+	GetUnregisteredClusters *bool
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -56,6 +70,10 @@ func (o *GetClusterParams) BindRequest(r *http.Request, route *middleware.Matche
 	}
 
 	if err := o.bindDiscoveryAgentVersion(r.Header[http.CanonicalHeaderKey("discovery_agent_version")], true, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.bindGetUnregisteredClusters(r.Header[http.CanonicalHeaderKey("get_unregistered_clusters")], true, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -112,6 +130,29 @@ func (o *GetClusterParams) bindDiscoveryAgentVersion(rawData []string, hasKey bo
 	}
 
 	o.DiscoveryAgentVersion = &raw
+
+	return nil
+}
+
+// bindGetUnregisteredClusters binds and validates parameter GetUnregisteredClusters from header.
+func (o *GetClusterParams) bindGetUnregisteredClusters(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewGetClusterParams()
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("get_unregistered_clusters", "header", "bool", raw)
+	}
+	o.GetUnregisteredClusters = &value
 
 	return nil
 }

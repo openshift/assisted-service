@@ -104,6 +104,14 @@ func init() {
         ],
         "summary": "Retrieves the list of OpenShift bare metal clusters.",
         "operationId": "ListClusters",
+        "parameters": [
+          {
+            "type": "boolean",
+            "default": false,
+            "name": "get_unregistered_clusters",
+            "in": "header"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
@@ -229,6 +237,12 @@ func init() {
           {
             "type": "string",
             "name": "discovery_agent_version",
+            "in": "header"
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "name": "get_unregistered_clusters",
             "in": "header"
           }
         ],
@@ -3332,6 +3346,13 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "deleted_at": {
+          "description": "The time that the cluster was deleted.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-nullable": true
+        },
         "email_domain": {
           "type": "string"
         },
@@ -4143,6 +4164,13 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "deleted_at": {
+          "description": "The time that the host was deleted.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-nullable": true
+        },
         "discovery_agent_version": {
           "type": "string"
         },
@@ -4937,6 +4965,14 @@ func init() {
         ],
         "summary": "Retrieves the list of OpenShift bare metal clusters.",
         "operationId": "ListClusters",
+        "parameters": [
+          {
+            "type": "boolean",
+            "default": false,
+            "name": "get_unregistered_clusters",
+            "in": "header"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
@@ -5062,6 +5098,12 @@ func init() {
           {
             "type": "string",
             "name": "discovery_agent_version",
+            "in": "header"
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "name": "get_unregistered_clusters",
             "in": "header"
           }
         ],
@@ -8208,6 +8250,13 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "deleted_at": {
+          "description": "The time that the cluster was deleted.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-nullable": true
+        },
         "email_domain": {
           "type": "string"
         },
@@ -9000,6 +9049,13 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "deleted_at": {
+          "description": "The time that the host was deleted.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
+          "x-nullable": true
         },
         "discovery_agent_version": {
           "type": "string"

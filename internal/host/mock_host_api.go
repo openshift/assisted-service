@@ -6,6 +6,7 @@ package host
 
 import (
 	context "context"
+	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
@@ -399,4 +400,18 @@ func (m *MockAPI) GetHostRequirements(role models.HostRole) models.HostRequireme
 func (mr *MockAPIMockRecorder) GetHostRequirements(role interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockAPI)(nil).GetHostRequirements), role)
+}
+
+// PermanentHostsDeletion mocks base method
+func (m *MockAPI) PermanentHostsDeletion(olderThen strfmt.DateTime) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PermanentHostsDeletion", olderThen)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PermanentHostsDeletion indicates an expected call of PermanentHostsDeletion
+func (mr *MockAPIMockRecorder) PermanentHostsDeletion(olderThen interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermanentHostsDeletion", reflect.TypeOf((*MockAPI)(nil).PermanentHostsDeletion), olderThen)
 }

@@ -5,6 +5,8 @@ import (
 	"context"
 	"io"
 
+	"github.com/openshift/assisted-service/pkg/leader"
+
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
@@ -76,21 +78,22 @@ var (
 )
 
 type Config struct {
-	ImageBuilder         string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
-	AgentDockerImg       string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	ServiceBaseURL       string            `envconfig:"SERVICE_BASE_URL"`
-	ServiceCACertPath    string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	S3EndpointURL        string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
-	S3Bucket             string            `envconfig:"S3_BUCKET" default:"test"`
-	ImageExpirationTime  time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
-	AwsAccessKeyID       string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
-	AwsSecretAccessKey   string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
-	BaseDNSDomains       map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
-	SkipCertVerification bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	InstallRHCa          bool              `envconfig:"INSTALL_RH_CA" default:"false"`
-	RhQaRegCred          string            `envconfig:"REGISTRY_CREDS" default:""`
-	AgentTimeoutStart    time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
-	ServiceIPs           string            `envconfig:"SERVICE_IPS" default:""`
+	ImageBuilder             string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
+	AgentDockerImg           string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	ServiceBaseURL           string            `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath        string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	S3EndpointURL            string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket                 string            `envconfig:"S3_BUCKET" default:"test"`
+	ImageExpirationTime      time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
+	AwsAccessKeyID           string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey       string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	BaseDNSDomains           map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
+	SkipCertVerification     bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	InstallRHCa              bool              `envconfig:"INSTALL_RH_CA" default:"false"`
+	RhQaRegCred              string            `envconfig:"REGISTRY_CREDS" default:""`
+	AgentTimeoutStart        time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
+	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
+	DeletedUnregisteredAfter time.Duration     `envconfig:"DELETED_UNREGISTERED_AFTER" default:"168h"`
 }
 
 const agentMessageOfTheDay = `
@@ -205,17 +208,6 @@ const nodeIgnitionFormat = `{
   }
 }`
 
-var clusterFileNames = []string{
-	"kubeconfig",
-	"bootstrap.ign",
-	"master.ign",
-	"worker.ign",
-	"metadata.json",
-	"kubeadmin-password",
-	"kubeconfig-noingress",
-	"install-config.yaml",
-}
-
 type OCPClusterAPI interface {
 	RegisterOCPCluster(ctx context.Context) error
 }
@@ -232,6 +224,7 @@ type bareMetalInventory struct {
 	generator     generator.ISOInstallConfigGenerator
 	authHandler   auth.AuthHandler
 	k8sClient     k8sclient.K8SClient
+	leaderElector leader.Leader
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}
@@ -248,6 +241,7 @@ func NewBareMetalInventory(
 	metricApi metrics.API,
 	authHandler auth.AuthHandler,
 	k8sClient k8sclient.K8SClient,
+	leaderElector leader.Leader,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:            db,
@@ -261,6 +255,7 @@ func NewBareMetalInventory(
 		metricApi:     metricApi,
 		authHandler:   authHandler,
 		k8sClient:     k8sClient,
+		leaderElector: leaderElector,
 	}
 }
 
@@ -368,7 +363,7 @@ func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOPa
 func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	c, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	c, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -387,7 +382,7 @@ func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params in
 func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	_, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	_, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -1133,7 +1128,7 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	c, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	c, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -1602,30 +1597,56 @@ func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*m
 
 func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	var clusters []*common.Cluster
-	if err := b.db.Preload("Hosts").Where(identity.AddUserFilter(ctx, "")).Find(&clusters).Error; err != nil {
-		log.WithError(err).Error("failed to list clusters")
-		return installer.NewListClustersInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-	var mClusters []*models.Cluster = make([]*models.Cluster, len(clusters))
-	for i, c := range clusters {
-		mClusters[i] = &c.Cluster
-	}
-	for _, c := range mClusters {
-		for _, host := range c.Hosts {
-			// Clear this field as it is not needed to be sent via API
-			host.FreeAddresses = ""
+	db := b.db
+	if swag.BoolValue(params.GetUnregisteredClusters) {
+		if !identity.IsAdmin(ctx) {
+			return installer.NewListClustersForbidden().WithPayload(common.GenerateInfraError(
+				http.StatusForbidden, errors.New("only admin users are allowed to get unregistered clusters")))
 		}
+		db = db.Unscoped()
 	}
-
-	return installer.NewListClustersOK().WithPayload(mClusters)
+	var dbClusters []*common.Cluster
+	var clusters []*models.Cluster
+	userFilter := identity.AddUserFilter(ctx, "")
+	if err := db.Preload("Hosts", func(db *gorm.DB) *gorm.DB {
+		if swag.BoolValue(params.GetUnregisteredClusters) {
+			return db.Unscoped()
+		}
+		return db
+	}).Where(userFilter).Find(&dbClusters).Error; err != nil {
+		log.WithError(err).Error("Failed to list clusters in db")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	for _, c := range dbClusters {
+		for _, h := range c.Hosts {
+			// Clear this field as it is not needed to be sent via API
+			h.FreeAddresses = ""
+		}
+		clusters = append(clusters, &c.Cluster)
+	}
+	return installer.NewListClustersOK().WithPayload(clusters)
 }
 
 func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
-	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+
+	db := b.db
+	if swag.BoolValue(params.GetUnregisteredClusters) {
+		if !identity.IsAdmin(ctx) {
+			return installer.NewGetClusterForbidden().WithPayload(common.GenerateInfraError(
+				http.StatusForbidden, errors.New("only admin users are allowed to get unregistered clusters")))
+		}
+		db = b.db.Unscoped()
+	}
+
+	if err := db.Preload(
+		"Hosts", func(db *gorm.DB) *gorm.DB {
+			if swag.BoolValue(params.GetUnregisteredClusters) {
+				return db.Unscoped()
+			}
+			return db
+		}).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		// TODO: check for the right error
 		return installer.NewGetClusterNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
@@ -2336,7 +2357,7 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
 	var fileName string
 	var downloadFileName string
-	c, err := b.getCluster(ctx, clusterId.String(), true)
+	c, err := b.getCluster(ctx, clusterId.String(), returnHosts(true), includeDeleted(true))
 	if err != nil {
 		return "", "", err
 	}
@@ -2378,16 +2399,16 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 
 func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID, fileName string) error {
 	log := logutil.FromContext(ctx, b.log)
-	var cluster common.Cluster
+	var c common.Cluster
 	log.Infof("Checking cluster cluster file for download: %s for cluster %s", fileName, clusterID)
 
-	if !funk.Contains(clusterFileNames, fileName) && fileName != manifests.ManifestFolder {
+	if !funk.Contains(cluster.S3FileNames, fileName) && fileName != manifests.ManifestFolder {
 		err := errors.Errorf("invalid cluster file %s", fileName)
 		log.WithError(err).Errorf("failed download file: %s from cluster: %s", fileName, clusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if err := b.db.First(&cluster, "id = ?", clusterID).Error; err != nil {
+	if err := b.db.First(&c, "id = ?", clusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
 		if gorm.IsRecordNotFoundError(err) {
 			return common.NewApiError(http.StatusNotFound, err)
@@ -2398,11 +2419,11 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	var err error
 	switch fileName {
 	case kubeconfig:
-		err = b.clusterApi.DownloadKubeconfig(&cluster)
+		err = b.clusterApi.DownloadKubeconfig(&c)
 	case manifests.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
-		err = b.clusterApi.DownloadFiles(&cluster)
+		err = b.clusterApi.DownloadFiles(&c)
 	}
 	if err != nil {
 		log.WithError(err).Errorf("failed to get file for cluster %s in current state", clusterID)
@@ -2699,7 +2720,7 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 		}
 	}
 
-	if err := b.deleteS3ClusterFiles(ctx, &c); err != nil {
+	if err := b.clusterApi.DeleteClusterFiles(ctx, &c, b.objectHandler); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	if err := b.deleteDNSRecordSets(ctx, c); err != nil {
@@ -2735,15 +2756,6 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 	}
 
 	return installer.NewCompleteInstallationAccepted().WithPayload(&c.Cluster)
-}
-
-func (b *bareMetalInventory) deleteS3ClusterFiles(ctx context.Context, c *common.Cluster) error {
-	for _, name := range clusterFileNames {
-		if err := b.objectHandler.DeleteObject(ctx, fmt.Sprintf("%s/%s", c.ID, name)); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (b *bareMetalInventory) createDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
@@ -2968,7 +2980,7 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 		return nil
 	}
 
-	currentCluster, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	currentCluster, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
 		return err
 	}
@@ -3089,17 +3101,29 @@ func (b *bareMetalInventory) getHost(ctx context.Context, clusterId string, host
 	return &host, nil
 }
 
-func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, returnHosts bool) (*common.Cluster, error) {
+type returnHosts bool
+type includeDeleted bool
+
+func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, flags ...interface{}) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
-	var db *gorm.DB
-	if returnHosts {
-		db = b.db.Preload("Hosts")
-	} else {
-		db = b.db
+
+	isUnscoped := funk.Contains(flags, includeDeleted(true))
+	db := b.db
+	if isUnscoped {
+		db = b.db.Unscoped()
 	}
+	if funk.Contains(flags, returnHosts(true)) {
+		db = db.Preload("Hosts", func(db *gorm.DB) *gorm.DB {
+			if isUnscoped {
+				return db.Unscoped()
+			}
+			return db
+		})
+	}
+
 	if err := db.First(&cluster, "id = ?", clusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
+		log.WithError(err).Errorf("Failed to find cluster in db: %s", clusterID)
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		} else {
@@ -3310,4 +3334,28 @@ func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) 
 	openshiftVersion := clusterVersion.Status.Desired.Version
 	splits := strings.Split(openshiftVersion, ".")
 	return splits[0] + "." + splits[1], nil
+}
+
+func (b bareMetalInventory) PermanentlyDeleteUnregisteredClustersAndHosts() {
+	if !b.leaderElector.IsLeader() {
+		b.log.Debugf("Not a leader, exiting periodic clusters and hosts deletion")
+		return
+	}
+
+	olderThen := strfmt.DateTime(time.Now().Add(-b.Config.DeletedUnregisteredAfter))
+	b.log.Debugf(
+		"Permanently deleting all clusters that were de-registered before %s",
+		olderThen)
+	if err := b.clusterApi.PermanentClustersDeletion(context.Background(), olderThen, b.objectHandler); err != nil {
+		b.log.WithError(err).Errorf("Failed deleting de-registered clusters")
+		return
+	}
+
+	b.log.Debugf(
+		"Permanently deleting all hosts that were soft-deleted before %s",
+		olderThen)
+	if err := b.hostApi.PermanentHostsDeletion(olderThen); err != nil {
+		b.log.WithError(err).Errorf("Failed deleting soft-deleted hosts")
+		return
+	}
 }
