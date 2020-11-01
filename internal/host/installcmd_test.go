@@ -232,7 +232,7 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 }
 
 func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId string, hostId string, proxy string) {
-	template := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
+	template := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /root/.ssh:/root/.ssh -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 		"--privileged --pid=host " +
 		"--net=host -v /var/log:/var/log:rw --env PULL_SECRET_TOKEN " +
 		"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +

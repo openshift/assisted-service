@@ -192,7 +192,14 @@ const ignitionConfigFormat = `{
 	    "name": "root"
 	  },
 	  "append": [{ "source": "{{.ServiceIPs}}" }]
-  	}{{end}}]
+	}{{end}}],
+    "directories": [{
+      "overwrite": false,
+      "path": "/root/.ssh",
+      "user": {
+          "name": "root"
+      }
+	}]
   }
 }`
 

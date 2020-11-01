@@ -51,7 +51,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		role = models.HostRoleBootstrap
 	}
 
-	cmdArgsTmpl := "podman run -v /dev:/dev:rw -v /opt:/opt:rw {{if .HOST_CA_CERT_PATH}}-v {{.HOST_CA_CERT_PATH}}:{{.HOST_CA_CERT_PATH}}:rw {{end}}-v /run/systemd/journal/socket:/run/systemd/journal/socket --privileged --pid=host --net=host " +
+	cmdArgsTmpl := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /root/.ssh:/root/.ssh {{if .HOST_CA_CERT_PATH}}-v {{.HOST_CA_CERT_PATH}}:{{.HOST_CA_CERT_PATH}}:rw {{end}}-v /run/systemd/journal/socket:/run/systemd/journal/socket --privileged --pid=host --net=host " +
 		"-v /var/log:/var/log:rw --env PULL_SECRET_TOKEN --name assisted-installer {{.INSTALLER}} --role {{.ROLE}} --cluster-id {{.CLUSTER_ID}} " +
 		"--boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}} " +
 		"--controller-image {{.CONTROLLER_IMAGE}} --url {{.BASE_URL}} --insecure={{.SKIP_CERT_VERIFICATION}} --agent-image {{.AGENT_IMAGE}}"
