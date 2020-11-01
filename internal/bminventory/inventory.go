@@ -5,6 +5,8 @@ import (
 	"context"
 	"io"
 
+	"github.com/openshift/assisted-service/pkg/leader"
+
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
@@ -222,6 +224,7 @@ type bareMetalInventory struct {
 	generator     generator.ISOInstallConfigGenerator
 	authHandler   auth.AuthHandler
 	k8sClient     k8sclient.K8SClient
+	leaderElector leader.Leader
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}
@@ -238,6 +241,7 @@ func NewBareMetalInventory(
 	metricApi metrics.API,
 	authHandler auth.AuthHandler,
 	k8sClient k8sclient.K8SClient,
+	leaderElector leader.Leader,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:            db,
@@ -251,6 +255,7 @@ func NewBareMetalInventory(
 		metricApi:     metricApi,
 		authHandler:   authHandler,
 		k8sClient:     k8sClient,
+		leaderElector: leaderElector,
 	}
 }
 
@@ -3332,8 +3337,12 @@ func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) 
 }
 
 func (b bareMetalInventory) PermanentlyDeleteUnregisteredClustersAndHosts() {
-	olderThen := strfmt.DateTime(time.Now().Add(-b.Config.DeletedUnregisteredAfter))
+	if !b.leaderElector.IsLeader() {
+		b.log.Debugf("Not a leader, exiting periodic clusters and hosts deletion")
+		return
+	}
 
+	olderThen := strfmt.DateTime(time.Now().Add(-b.Config.DeletedUnregisteredAfter))
 	b.log.Debugf(
 		"Permanently deleting all clusters that were de-registered before %s",
 		olderThen)
