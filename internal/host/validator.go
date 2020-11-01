@@ -35,6 +35,10 @@ const (
 	ValidationError   validationStatus = "error"
 )
 
+var invalidPlatforms = []string{
+	"OpenStack Compute",
+}
+
 var forbiddenHostnames = []string{
 	"localhost",
 }
@@ -305,6 +309,26 @@ func (v *validator) hasMemoryForRole(c *validationContext) validationStatus {
 	default:
 		v.log.Errorf("Unexpected role %s", c.host.Role)
 		return ValidationError
+	}
+}
+
+func (v *validator) isValidPlatform(c *validationContext) validationStatus {
+	if c.inventory == nil {
+		return ValidationPending
+	}
+	return boolValue(!funk.ContainsString(invalidPlatforms, c.inventory.SystemVendor.ProductName))
+}
+
+func (v *validator) printValidPlatform(c *validationContext, status validationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return fmt.Sprintf("Platform %s is allowed", c.inventory.SystemVendor.ProductName)
+	case ValidationFailure:
+		return fmt.Sprintf("Platform %s is forbidden", c.inventory.SystemVendor.ProductName)
+	case ValidationPending:
+		return "Missing inventory"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 

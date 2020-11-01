@@ -25,6 +25,7 @@ const (
 	IsHostnameValid        = validationID(models.HostValidationIDHostnameValid)
 	IsAPIVipConnected      = validationID(models.HostValidationIDAPIVipConnected)
 	BelongsToMajorityGroup = validationID(models.HostValidationIDBelongsToMajorityGroup)
+	IsPlatformValid        = validationID(models.HostValidationIDValidPlatform)
 )
 
 func (v validationID) category() (string, error) {
@@ -32,7 +33,7 @@ func (v validationID) category() (string, error) {
 	case IsConnected, IsMachineCidrDefined, BelongsToMachineCidr, IsAPIVipConnected, BelongsToMajorityGroup:
 		return "network", nil
 	case HasInventory, HasMinCPUCores, HasMinValidDisks, HasMinMemory,
-		HasCPUCoresForRole, HasMemoryForRole, IsHostnameUnique, IsHostnameValid:
+		HasCPUCoresForRole, HasMemoryForRole, IsHostnameUnique, IsHostnameValid, IsPlatformValid:
 		return "hardware", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))

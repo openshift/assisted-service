@@ -115,6 +115,11 @@ func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCf
 			condition: v.belongsToMajorityGroup,
 			formatter: v.printBelongsToMajorityGroup,
 		},
+		{
+			id:        IsPlatformValid,
+			condition: v.isValidPlatform,
+			formatter: v.printValidPlatform,
+		},
 	}
 	return ret
 }
