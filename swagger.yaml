@@ -2514,6 +2514,11 @@ definitions:
         type: string
         description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
         x-nullable: true
+      install_lso:
+        type: boolean
+        description: Indicates if Local Storage Operator is installed.
+        x-nullable: true
+        default: false
 
   cluster-update-params:
     type: object
@@ -2589,6 +2594,11 @@ definitions:
         type: string
         description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
         x-nullable: true
+      install_lso:
+        type: boolean
+        description: Indicates if Local Storage Operator is installed.
+        x-nullable: true
+        default: false
       hosts_roles:
         type: array
         x-go-custom-tag: gorm:"type:varchar(64)[]"
@@ -2822,6 +2832,9 @@ definitions:
         format: date-time
         description: The time that the cluster was deleted.
         x-go-custom-tag: gorm:"type:timestamp with time zone"
+      install_lso:
+        type: boolean
+        description: Indicates if Local Storage Operator is installed.
         x-nullable: true
 
   image_info:
