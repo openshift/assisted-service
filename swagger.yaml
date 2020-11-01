@@ -3245,6 +3245,7 @@ definitions:
       - 'belongs-to-machine-cidr'
       - 'api-vip-connected'
       - 'belongs-to-majority-group'
+      - 'valid-platform'
 
   dhcp_allocation_request:
     type: object
