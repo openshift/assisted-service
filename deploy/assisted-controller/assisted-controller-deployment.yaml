@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assisted-installer-controller
+  namespace: REPLACE_NAMESPACE
+spec:
+  selector:
+    matchLabels:
+      app: assisted-installer-controller
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: assisted-installer-controller
+    spec:
+      containers:
+        - name: assisted-installer-controller
+          image: REPLACE_CONTROLLER_OCP_IMAGE
+          imagePullPolicy: Always
+          command:
+            - /assisted-installer-controller-ocp
+          env:
+            # Define the environment variable
+            - name: CLUSTER_ID
+              valueFrom:
+                configMapKeyRef:
+                  # The ConfigMap containing the value you want to assign to SPECIAL_LEVEL_KEY
+                  name: assisted-installer-controller-config
+                  key: cluster-id
+            - name: INVENTORY_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: assisted-installer-controller-config
+                  key: inventory-url
+            - name: PULL_SECRET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-controller-secret
+                  key: pull-secret-token
+            - name: SKIP_CERT_VERIFICATION
+              valueFrom:
+                configMapKeyRef:
+                  name: assisted-installer-controller-config
+                  key: skip-cert-verification
+                  optional: true
+            - name: DEPLOY_TARGET
+              valueFrom:
+                configMapKeyRef:
+                  name: assisted-installer-controller-config
+                  key: deploy-target
+                  optional: true
+          envFrom:
+            - configMapRef:
+                name: assisted-installer-controller-config
+      restartPolicy: Always
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      serviceAccountName: assisted-installer-controller
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+        operator: Exists

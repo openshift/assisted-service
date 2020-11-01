@@ -41,6 +41,7 @@ OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},quay.io)
+CONTROLLER_OCP_IMAGE := $(or ${CONTROLLER_OCP_IMAGE},quay.io/ocpmetal/assisted-installer-controller-ocp:latest)
 
 # We decided to have an option to change replicas count only while running in minikube
 # That line is checking if we run on minikube
@@ -220,10 +221,14 @@ deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-service-on-ocp-cluster:
-	export TARGET=ocp && $(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service
+	export TARGET=ocp && $(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-controller-on-ocp-cluster
 
 deploy-ui-on-ocp-cluster:
 	export TARGET=ocp && $(MAKE) deploy-ui
+
+deploy-controller-on-ocp-cluster:
+	python3 ./tools/deploy_assisted_controller.py --target "ocp" --namespace $(NAMESPACE) \
+		--inventory-url ${SERVICE_BASE_URL} --controller-image ${CONTROLLER_OCP_IMAGE}
 
 jenkins-deploy-for-subsystem: _verify_minikube generate-keys
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \

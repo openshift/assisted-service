@@ -157,6 +157,11 @@ def apply(target, namespace, profile, file):
     print(check_output(f'{kubectl_cmd} apply -f {file}'))
 
 
+def patch(target, namespace, profile, file, resource_type, resource_name):
+    kubectl_cmd = get_kubectl_command(target, namespace, profile)
+    print(check_output(f'{kubectl_cmd} patch {resource_type} {resource_name} -p "$(cat {file})"'))
+
+
 def get_domain(domain="", target='minikube', namespace='assisted-installer', profile='minikube'):
     if domain:
         return domain
