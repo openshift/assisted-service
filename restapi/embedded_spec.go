@@ -3350,8 +3350,7 @@ func init() {
           "description": "The time that the cluster was deleted.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
-          "x-nullable": true
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "email_domain": {
           "type": "string"
@@ -3421,6 +3420,11 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
+        },
+        "install_lso": {
+          "description": "Indicates if Local Storage Operator is installed.",
+          "type": "boolean",
+          "x-nullable": true
         },
         "install_started_at": {
           "description": "The time that this cluster started installation.",
@@ -3562,6 +3566,12 @@ func init() {
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
+        "install_lso": {
+          "description": "Indicates if Local Storage Operator is installed.",
+          "type": "boolean",
+          "default": false,
+          "x-nullable": true
+        },
         "name": {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
@@ -3689,6 +3699,12 @@ func init() {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
+          "x-nullable": true
+        },
+        "install_lso": {
+          "description": "Indicates if Local Storage Operator is installed.",
+          "type": "boolean",
+          "default": false,
           "x-nullable": true
         },
         "machine_network_cidr": {
@@ -8255,8 +8271,7 @@ func init() {
           "description": "The time that the cluster was deleted.",
           "type": "string",
           "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\"",
-          "x-nullable": true
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "email_domain": {
           "type": "string"
@@ -8326,6 +8341,11 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
+        },
+        "install_lso": {
+          "description": "Indicates if Local Storage Operator is installed.",
+          "type": "boolean",
+          "x-nullable": true
         },
         "install_started_at": {
           "description": "The time that this cluster started installation.",
@@ -8467,6 +8487,12 @@ func init() {
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$"
         },
+        "install_lso": {
+          "description": "Indicates if Local Storage Operator is installed.",
+          "type": "boolean",
+          "default": false,
+          "x-nullable": true
+        },
         "name": {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
@@ -8576,6 +8602,12 @@ func init() {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(([0-9]{1,3}\\.){3}[0-9]{1,3})?$",
+          "x-nullable": true
+        },
+        "install_lso": {
+          "description": "Indicates if Local Storage Operator is installed.",
+          "type": "boolean",
+          "default": false,
           "x-nullable": true
         },
         "machine_network_cidr": {

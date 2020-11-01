@@ -52,7 +52,7 @@ type Cluster struct {
 
 	// The time that the cluster was deleted.
 	// Format: date-time
-	DeletedAt *strfmt.DateTime `json:"deleted_at,omitempty" gorm:"type:timestamp with time zone"`
+	DeletedAt strfmt.DateTime `json:"deleted_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// email domain
 	EmailDomain string `json:"email_domain,omitempty"`
@@ -102,6 +102,9 @@ type Cluster struct {
 
 	// JSON-formatted string containing the user overrides for the install-config.yaml file.
 	InstallConfigOverrides string `json:"install_config_overrides,omitempty" gorm:"type:text"`
+
+	// Indicates if Local Storage Operator is installed.
+	InstallLso *bool `json:"install_lso,omitempty"`
 
 	// The time that this cluster started installation.
 	// Format: date-time
