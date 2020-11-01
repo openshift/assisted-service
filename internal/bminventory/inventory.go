@@ -447,6 +447,10 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
 	}
 
+	if params.NewClusterParams.InstallLso == nil {
+		params.NewClusterParams.InstallLso = swag.Bool(false)
+	}
+
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:                       &id,
 		Href:                     swag.String(url.String()),
@@ -467,6 +471,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		HTTPSProxy:               swag.StringValue(params.NewClusterParams.HTTPSProxy),
 		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
 		VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
+		InstallLso:               params.NewClusterParams.InstallLso,
 	}}
 
 	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
@@ -1409,6 +1414,8 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	clusterCidr := cluster.ClusterNetworkCidr
 	hostNetworkPrefix := cluster.ClusterNetworkHostPrefix
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
+	installLso := swag.BoolValue(cluster.InstallLso)
+
 	if params.ClusterUpdateParams.Name != nil {
 		updates["name"] = *params.ClusterUpdateParams.Name
 	}
@@ -1466,6 +1473,10 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	}
 	if err != nil {
 		return err
+	}
+	if params.ClusterUpdateParams.InstallLso != nil && swag.BoolValue(params.ClusterUpdateParams.InstallLso) != installLso {
+		installLso = swag.BoolValue(params.ClusterUpdateParams.InstallLso)
+		updates["install_lso"] = installLso
 	}
 	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)

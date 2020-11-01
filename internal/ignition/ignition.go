@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/ocs"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 )
 
@@ -127,6 +128,23 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 				_ = os.Remove(filepath.Join(g.workDir, "manifests"))
 				_ = os.Remove(filepath.Join(g.workDir, "openshift"))
 				g.log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
+				return err
+			}
+		}
+	}
+
+	if *g.cluster.InstallLso {
+		err = g.runCreateCommand(installerPath, "manifests", envVars)
+		if err != nil {
+			return err
+		}
+		manifests := ocs.LsoManifests()
+		manifestDirPath := filepath.Join(g.workDir, "manifests")
+		for name, manifest := range manifests {
+			manifestPath := filepath.Join(manifestDirPath, name)
+			err = ioutil.WriteFile(manifestPath, []byte(manifest), 0600)
+			if err != nil {
+				g.log.Errorf("Failed to write file %s %s", manifestPath, name)
 				return err
 			}
 		}
