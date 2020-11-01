@@ -3332,6 +3332,9 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "email_domain": {
+          "type": "string"
+        },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
           "type": "array",
@@ -8204,6 +8207,9 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "email_domain": {
+          "type": "string"
         },
         "host_networks": {
           "description": "List of host networks to be filled during query.",

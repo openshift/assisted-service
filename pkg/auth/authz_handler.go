@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/patrickmn/go-cache"
 
@@ -20,9 +21,13 @@ const (
 	AMSActionCreate          string = "create"
 	CapabilityName           string = "bare_metal_installer_admin"
 	CapabilityType           string = "Account"
+	EmailDelimiter           string = "@"
 
 	// AdminUsername for disabled auth
 	AdminUsername string = "admin"
+
+	// UnknownEmailDomain for disabled auth or invalid emails
+	UnknownEmailDomain string = "Unknown"
 )
 
 type AuthzHandler struct {
@@ -116,6 +121,24 @@ func UserNameFromContext(ctx context.Context) string {
 func OrgIDFromContext(ctx context.Context) string {
 	payload := PayloadFromContext(ctx)
 	return payload.Organization
+}
+
+// EmailFromContext returns email from the specified context
+func EmailFromContext(ctx context.Context) string {
+	payload := PayloadFromContext(ctx)
+	return payload.Email
+}
+
+// EmailDomainFromContext returns email Domain from the specified context
+func EmailDomainFromContext(ctx context.Context) string {
+	domain := UnknownEmailDomain
+	email := EmailFromContext(ctx)
+	delimiterIdx := strings.LastIndex(email, EmailDelimiter)
+	if delimiterIdx >= 0 {
+		emailElements := strings.Split(email, EmailDelimiter)
+		domain = emailElements[len(emailElements)-1]
+	}
+	return domain
 }
 
 func (a *AuthzHandler) hasSufficientRole(

@@ -34,6 +34,46 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func TestAuthzEmailDomain(t *testing.T) {
+	tests := []struct {
+		name           string
+		email          string
+		expectedDomain string
+	}{
+		{
+			name:           "Valid email",
+			email:          "admin@example.com",
+			expectedDomain: "example.com",
+		},
+		{
+			name:           "Valid email with special case, @ in local part",
+			email:          "\"@\"dmin@example.com",
+			expectedDomain: "example.com",
+		},
+		{
+			name:           "Invalid email address",
+			email:          "foobar",
+			expectedDomain: UnknownEmailDomain,
+		},
+		{
+			name:           "Empty value",
+			email:          "",
+			expectedDomain: UnknownEmailDomain,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("test %s", tt.name), func(t *testing.T) {
+			payload := &ocm.AuthPayload{}
+			payload.Email = tt.email
+			ctx := context.Background()
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+			domain := EmailDomainFromContext(ctx)
+			assert.Equal(t, domain, tt.expectedDomain, true)
+		})
+	}
+}
+
 func TestAuthz(t *testing.T) {
 	ctx := context.TODO()
 	log := logrus.New()
