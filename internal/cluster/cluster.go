@@ -695,15 +695,22 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt
 	for _, c := range clusters {
 		m.log.Debugf("Deleting all S3 files for cluster: %s", c.ID.String())
 
+		deleteFromDB := true
 		if err := m.DeleteClusterFiles(ctx, c, objectHandler); err != nil {
-			return err
+			deleteFromDB = false
+			m.log.WithError(err).Warnf("Failed deleting s3 files of cluster %s", c.ID.String())
 		}
 		if err := m.DeleteClusterLogs(ctx, c, objectHandler); err != nil {
-			return err
+			deleteFromDB = false
+			m.log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", c.ID.String())
+		}
+
+		if !deleteFromDB {
+			continue
 		}
 
 		if reply := db.Delete(&c); reply.Error != nil {
-			return reply.Error
+			m.log.WithError(reply.Error).Warnf("Failed deleting cluster from db %s", c.ID.String())
 		} else if reply.RowsAffected > 0 {
 			m.log.Debugf("Deleted %s cluster from db", reply.RowsAffected)
 		}
