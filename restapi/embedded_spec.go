@@ -4428,7 +4428,8 @@ func init() {
         "hostname-valid",
         "belongs-to-machine-cidr",
         "api-vip-connected",
-        "belongs-to-majority-group"
+        "belongs-to-majority-group",
+        "valid-platform"
       ]
     },
     "host_network": {
@@ -9314,7 +9315,8 @@ func init() {
         "hostname-valid",
         "belongs-to-machine-cidr",
         "api-vip-connected",
-        "belongs-to-majority-group"
+        "belongs-to-majority-group",
+        "valid-platform"
       ]
     },
     "host_network": {
