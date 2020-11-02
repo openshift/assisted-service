@@ -61,6 +61,9 @@ const (
 
 	// HostValidationIDBelongsToMajorityGroup captures enum value "belongs-to-majority-group"
 	HostValidationIDBelongsToMajorityGroup HostValidationID = "belongs-to-majority-group"
+
+	// HostValidationIDValidPlatform captures enum value "valid-platform"
+	HostValidationIDValidPlatform HostValidationID = "valid-platform"
 )
 
 // for schema
@@ -68,7 +71,7 @@ var hostValidationIdEnum []interface{}
 
 func init() {
 	var res []HostValidationID
-	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","role-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","api-vip-connected","belongs-to-majority-group"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","role-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","api-vip-connected","belongs-to-majority-group","valid-platform"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

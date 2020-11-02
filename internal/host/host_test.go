@@ -696,7 +696,35 @@ func insufficientHWInventory() string {
 				},
 			},
 		},
-		Memory: &models.Memory{PhysicalBytes: 130},
+		Memory:       &models.Memory{PhysicalBytes: 130},
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func inventoryWithUnauthorizedVendor() string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: 8},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+			},
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Memory:       &models.Memory{PhysicalBytes: gibToBytes(16)},
+		Hostname:     "master-hostname",
+		SystemVendor: &models.SystemVendor{Manufacturer: "RDO", ProductName: "OpenStack Compute", SerialNumber: "3534"},
+		Timestamp:    1601835002,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -720,7 +748,8 @@ func workerInventory() string {
 				},
 			},
 		},
-		Memory: &models.Memory{PhysicalBytes: gibToBytes(8)},
+		Memory:       &models.Memory{PhysicalBytes: gibToBytes(8)},
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -748,9 +777,10 @@ func masterInventoryWithHostname(hostname string) string {
 				},
 			},
 		},
-		Memory:    &models.Memory{PhysicalBytes: gibToBytes(16)},
-		Hostname:  hostname,
-		Timestamp: 1601835002,
+		Memory:       &models.Memory{PhysicalBytes: gibToBytes(16)},
+		Hostname:     hostname,
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Timestamp:    1601835002,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
