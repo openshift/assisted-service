@@ -24,7 +24,6 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
-	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/connectivity"
 	"github.com/openshift/assisted-service/internal/domains"
@@ -84,7 +83,6 @@ var Options struct {
 	LogConfig                   logconfig.Config
 	LeaderConfig                leader.Config
 	DeletionWorkerInterval      time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
-	ValidationsConfig           validations.Config
 }
 
 func InitLogs() *logrus.Entry {
@@ -159,22 +157,6 @@ func main() {
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, Options.InstructionConfig, connectivityValidator)
-
-	pullSecretValidator, err := validations.NewPullSecretValidator(Options.ValidationsConfig, []string{
-		Options.JobConfig.ReleaseImage,
-		Options.BMConfig.AgentDockerImg,
-		Options.InstructionConfig.InstallerImage,
-		Options.InstructionConfig.ControllerImage,
-		Options.InstructionConfig.ConnectivityCheckImage,
-		Options.InstructionConfig.InventoryImage,
-		Options.InstructionConfig.FreeAddressesImage,
-		Options.InstructionConfig.DhcpLeaseAllocatorImage,
-		Options.InstructionConfig.APIVIPConnectivityCheckImage,
-	}...)
-
-	if err != nil {
-		log.WithError(err).Fatalf("failed to create pull secret validator")
-	}
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
 
@@ -281,7 +263,7 @@ func main() {
 	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
-		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, lead, pullSecretValidator)
+		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, lead)
 
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),

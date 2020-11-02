@@ -10,11 +10,9 @@ require (
 	github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
-	github.com/containers/image/v5 v5.7.0
 	github.com/coreos/ignition/v2 v2.6.0
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/docker/docker v1.13.1 // indirect
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/loads v0.19.5
@@ -27,6 +25,7 @@ require (
 	github.com/golang/mock v1.4.3
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/jinzhu/gorm v1.9.12
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -36,6 +35,7 @@ require (
 	github.com/moby/moby v1.13.1
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
+	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/openshift-online/ocm-sdk-go v0.1.130
 	github.com/openshift/api v0.0.0-20200326152221-912866ddb162
 	github.com/openshift/client-go v0.0.0-20200422192633-6f6c07fc2a70
@@ -45,17 +45,18 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.6.0
 	github.com/rs/cors v1.7.0
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.6.0
 	github.com/slok/go-http-metrics v0.8.0
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/thoas/go-funk v0.6.0
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009 // indirect
 	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/tools v0.0.0-20200914190812-8f9ed77dd8e5 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0
-	gopkg.in/square/go-jose.v2 v2.3.1
+	gopkg.in/square/go-jose.v2 v2.2.2
 	gopkg.in/yaml.v2 v2.3.0
 	honnef.co/go/tools v0.0.1-2020.1.5 // indirect
 	k8s.io/api v0.18.5
