@@ -23,8 +23,6 @@ import (
 	"text/template"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/go-openapi/runtime/middleware"
@@ -60,6 +58,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"github.com/vincent-petithory/dataurl"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -3285,13 +3284,40 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 		return err
 	}
 
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
+	}()
+	if tx.Error != nil {
+		log.WithError(err).Errorf("Failed to open transaction during RegisterOCPCluster")
+		return err
+	}
+
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
-	err = b.clusterApi.RegisterAddHostsCluster(ctx, &cluster)
+	err = b.clusterApi.RegisterAddHostsOCPCluster(&cluster, tx)
 	if err != nil {
 		log.WithError(err).Errorf("failed to register cluster %s ", clusterName)
 		return err
 	}
 
+	err = b.createInstalledOCPHosts(ctx, &cluster, tx, log)
+	if err != nil {
+		log.WithError(err).Errorf("failed to create installed nodes for ocp cluster %s ", clusterName)
+		return err
+	}
+	if err := tx.Commit().Error; err != nil {
+		log.WithError(err).Errorf("Failed to commit transaction in register OCP cluster")
+		return err
+	}
+	txSuccess = true
 	return nil
 }
 
@@ -3301,31 +3327,7 @@ func (b *bareMetalInventory) getApiVIPFromOCP(log logrus.FieldLogger) (string, e
 		log.WithError(err).Errorf("Failed to get configmap cluster-config-v1 from namespace kube-system")
 		return "", err
 	}
-	configStruct := make(map[string]interface{})
-	err = yaml.Unmarshal([]byte(configMap.Data["install-config"]), configStruct)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to unmarshal confimap cluster-config-v1 data: <%s>", configMap.Data["install-config"])
-		return "", err
-	}
-	platform, ok := configStruct["platform"].(map[interface{}]interface{})
-	if !ok {
-		err := fmt.Errorf("invalid or missing platform key in cluster-config-v1")
-		log.WithError(err).Errorf("invalid format for cluster-config-v1")
-		return "", err
-	}
-	baremetal, ok := platform["baremetal"].(map[interface{}]interface{})
-	if !ok {
-		err := fmt.Errorf("invalid or missing baremetal key in  platform in cluster-config-v1")
-		log.WithError(err).Errorf("invalid format for cluster-config-v1")
-		return "", err
-	}
-	apiVip, ok := baremetal["apiVIP"].(string)
-	if !ok {
-		err := fmt.Errorf("invalid or missing api vip key baremetal in cluster-config-v1")
-		log.WithError(err).Errorf("invalid format for cluster-config-v1")
-		return "", err
-	}
-	return apiVip, nil
+	return k8sclient.GetApiVIP(configMap, log)
 }
 
 func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) (string, error) {
@@ -3334,9 +3336,7 @@ func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) 
 		log.WithError(err).Errorf("Failed to get cluster version from OCP")
 		return "", err
 	}
-	openshiftVersion := clusterVersion.Status.Desired.Version
-	splits := strings.Split(openshiftVersion, ".")
-	return splits[0] + "." + splits[1], nil
+	return k8sclient.GetClusterVersion(clusterVersion)
 }
 
 func (b bareMetalInventory) PermanentlyDeleteUnregisteredClustersAndHosts() {
@@ -3370,4 +3370,65 @@ func secretValidationToUserError(err error) error {
 	}
 
 	return errors.New("Failed validating pull secret")
+}
+
+func (b *bareMetalInventory) createInstalledOCPHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) error {
+	nodes, err := b.k8sClient.ListNodes()
+	if err != nil {
+		log.WithError(err).Errorf("Failed to list OCP nodes")
+		return err
+	}
+
+	for _, node := range nodes.Items {
+		if !k8sclient.IsNodeReady(&node) {
+			log.Infof("Node %s is not in ready state, skipping..", node.Name)
+			continue
+		}
+		id := strfmt.UUID(uuid.New().String())
+		url := installer.GetHostURL{ClusterID: *cluster.ID, HostID: id}
+		hostname := node.Name
+		role := k8sclient.GetNodeRole(&node)
+
+		inventory, err := b.getOCPHostInventory(&node)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to create inventory for host %s, cluster %s", id, *cluster.ID)
+			return err
+		}
+
+		host := models.Host{
+			ID:                &id,
+			Href:              swag.String(url.String()),
+			Kind:              swag.String(models.HostKindAddToExistingClusterOCPHost),
+			ClusterID:         *cluster.ID,
+			CheckedInAt:       strfmt.DateTime(time.Now()),
+			UserName:          auth.UserNameFromContext(ctx),
+			Role:              role,
+			RequestedHostname: hostname,
+			Inventory:         inventory,
+		}
+
+		err = b.hostApi.RegisterInstalledOCPHost(ctx, &host, tx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) getOCPHostInventory(node *v1.Node) (string, error) {
+	hostname := node.Name
+	ip := k8sclient.GetNodeInternalIP(node)
+	arch := node.Status.NodeInfo.Architecture
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				IPV4Addresses: append(make([]string, 0), ip),
+				MacAddress:    "some MAC address",
+			},
+		},
+		Hostname: hostname,
+		CPU:      &models.CPU{Architecture: arch},
+	}
+	ret, err := json.Marshal(&inventory)
+	return string(ret), err
 }

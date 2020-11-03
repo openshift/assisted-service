@@ -426,6 +426,41 @@ var _ = Describe("HostInstallationFailed", func() {
 	})
 })
 
+var _ = Describe("RegisterInstalledOCPHost", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+		ctrl              *gomock.Controller
+		mockMetric        *metrics.MockAPI
+		mockEvents        *events.MockHandler
+		dbName            = "register_installed_host"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		ctrl = gomock.NewController(GinkgoT())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
+		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, nil)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+		host = getTestHost(hostId, clusterId, "")
+	})
+
+	It("register_installed_host", func() {
+		Expect(hapi.RegisterInstalledOCPHost(ctx, &host, db)).ShouldNot(HaveOccurred())
+		h := getHost(hostId, clusterId, db)
+		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusInstalled))
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
 var _ = Describe("Cancel host installation", func() {
 	var (
 		ctx               = context.Background()

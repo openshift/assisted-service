@@ -6,12 +6,13 @@ package cluster
 
 import (
 	context "context"
+	reflect "reflect"
+
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
-	reflect "reflect"
 )
 
 // MockRegistrationAPI is a mock of RegistrationAPI interface
@@ -63,6 +64,20 @@ func (m *MockRegistrationAPI) RegisterAddHostsCluster(ctx context.Context, c *co
 func (mr *MockRegistrationAPIMockRecorder) RegisterAddHostsCluster(ctx, c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterAddHostsCluster), ctx, c)
+}
+
+// RegisterAddHostsOCPCluster mocks base method
+func (m *MockRegistrationAPI) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterAddHostsOCPCluster", c, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterAddHostsOCPCluster indicates an expected call of RegisterAddHostsOCPCluster
+func (mr *MockRegistrationAPIMockRecorder) RegisterAddHostsOCPCluster(c, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsOCPCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterAddHostsOCPCluster), c, db)
 }
 
 // DeregisterCluster mocks base method
@@ -180,6 +195,20 @@ func (m *MockAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster
 func (mr *MockAPIMockRecorder) RegisterAddHostsCluster(ctx, c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsCluster", reflect.TypeOf((*MockAPI)(nil).RegisterAddHostsCluster), ctx, c)
+}
+
+// RegisterAddHostsOCPCluster mocks base method
+func (m *MockAPI) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterAddHostsOCPCluster", c, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterAddHostsOCPCluster indicates an expected call of RegisterAddHostsOCPCluster
+func (mr *MockAPIMockRecorder) RegisterAddHostsOCPCluster(c, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterAddHostsOCPCluster", reflect.TypeOf((*MockAPI)(nil).RegisterAddHostsOCPCluster), c, db)
 }
 
 // DeregisterCluster mocks base method

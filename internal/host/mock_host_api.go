@@ -6,13 +6,14 @@ package host
 
 import (
 	context "context"
+	reflect "reflect"
+
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
-	reflect "reflect"
 )
 
 // MockAPI is a mock of API interface
@@ -50,6 +51,20 @@ func (m *MockAPI) RegisterHost(ctx context.Context, h *models.Host) error {
 func (mr *MockAPIMockRecorder) RegisterHost(ctx, h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterHost", reflect.TypeOf((*MockAPI)(nil).RegisterHost), ctx, h)
+}
+
+// RegisterInstalledOCPHost mocks base method
+func (m *MockAPI) RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterInstalledOCPHost", ctx, h, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterInstalledOCPHost indicates an expected call of RegisterInstalledOCPHost
+func (mr *MockAPIMockRecorder) RegisterInstalledOCPHost(ctx, h, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstalledOCPHost", reflect.TypeOf((*MockAPI)(nil).RegisterInstalledOCPHost), ctx, h, db)
 }
 
 // HandleInstallationFailure mocks base method

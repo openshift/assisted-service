@@ -55,6 +55,8 @@ type RegistrationAPI interface {
 	RegisterCluster(ctx context.Context, c *common.Cluster) error
 	// Register a new add-host cluster
 	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error
+	// Register a new add-host-ocp cluster
+	RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error
 	//deregister cluster
 	DeregisterCluster(ctx context.Context, c *common.Cluster) error
 }
@@ -162,6 +164,10 @@ func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster
 			fmt.Sprintf("Registered add-hosts cluster \"%s\"", c.Name), time.Now())
 	}
 	return err
+}
+
+func (m *Manager) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
+	return m.registrationAPI.RegisterAddHostsOCPCluster(c, db)
 }
 
 func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) error {

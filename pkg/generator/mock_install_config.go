@@ -6,9 +6,10 @@ package generator
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
-	reflect "reflect"
 )
 
 // MockISOInstallConfigGenerator is a mock of ISOInstallConfigGenerator interface

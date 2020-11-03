@@ -74,6 +74,7 @@ type Config struct {
 type API interface {
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host) error
+	RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	HandleInstallationFailure(ctx context.Context, h *models.Host) error
 	InstructionApi
 	UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error
@@ -156,6 +157,13 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host) error {
 	return m.sm.Run(TransitionTypeRegisterHost, newStateHost(pHost), &TransitionArgsRegisterHost{
 		ctx:                   ctx,
 		discoveryAgentVersion: h.DiscoveryAgentVersion,
+	})
+}
+
+func (m *Manager) RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	return m.sm.Run(TransitionTypeRegisterInstalledHost, newStateHost(h), &TransitionArgsRegisterInstalledHost{
+		ctx: ctx,
+		db:  db,
 	})
 }
 
