@@ -161,6 +161,20 @@ func (mr *MockInstallerAPIMockRecorder) DownloadClusterLogs(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadClusterLogs", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadClusterLogs), arg0, arg1)
 }
 
+// DownloadHostIgnition mocks base method
+func (m *MockInstallerAPI) DownloadHostIgnition(arg0 context.Context, arg1 installer.DownloadHostIgnitionParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadHostIgnition", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// DownloadHostIgnition indicates an expected call of DownloadHostIgnition
+func (mr *MockInstallerAPIMockRecorder) DownloadHostIgnition(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadHostIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadHostIgnition), arg0, arg1)
+}
+
 // DownloadHostLogs mocks base method
 func (m *MockInstallerAPI) DownloadHostLogs(arg0 context.Context, arg1 installer.DownloadHostLogsParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -285,6 +299,20 @@ func (m *MockInstallerAPI) GetHost(arg0 context.Context, arg1 installer.GetHostP
 func (mr *MockInstallerAPIMockRecorder) GetHost(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHost", reflect.TypeOf((*MockInstallerAPI)(nil).GetHost), arg0, arg1)
+}
+
+// GetHostIgnition mocks base method
+func (m *MockInstallerAPI) GetHostIgnition(arg0 context.Context, arg1 installer.GetHostIgnitionParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostIgnition", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// GetHostIgnition indicates an expected call of GetHostIgnition
+func (mr *MockInstallerAPIMockRecorder) GetHostIgnition(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).GetHostIgnition), arg0, arg1)
 }
 
 // GetHostRequirements mocks base method

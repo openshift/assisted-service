@@ -74,8 +74,6 @@ type API interface {
 	// Refresh state in case of hosts update
 	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error)
 	ClusterMonitoring()
-	DownloadFiles(c *common.Cluster) (err error)
-	DownloadKubeconfig(c *common.Cluster) (err error)
 	GetCredentials(c *common.Cluster) (err error)
 	UploadIngressCert(c *common.Cluster) (err error)
 	VerifyClusterUpdatability(c *common.Cluster) (err error)
@@ -349,7 +347,7 @@ func (m *Manager) ClusterMonitoring() {
 	}
 }
 
-func (m *Manager) DownloadFiles(c *common.Cluster) (err error) {
+func CanDownloadFiles(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{
 		models.ClusterStatusInstalling,
@@ -366,7 +364,7 @@ func (m *Manager) DownloadFiles(c *common.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) DownloadKubeconfig(c *common.Cluster) (err error) {
+func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	if clusterStatus != models.ClusterStatusInstalled {
 		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only in installed state", c.ID, clusterStatus, "kubeconfig")

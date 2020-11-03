@@ -6,13 +6,12 @@ package cluster
 
 import (
 	context "context"
-	reflect "reflect"
-
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
+	reflect "reflect"
 )
 
 // MockRegistrationAPI is a mock of RegistrationAPI interface
@@ -279,34 +278,6 @@ func (m *MockAPI) ClusterMonitoring() {
 func (mr *MockAPIMockRecorder) ClusterMonitoring() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterMonitoring", reflect.TypeOf((*MockAPI)(nil).ClusterMonitoring))
-}
-
-// DownloadFiles mocks base method
-func (m *MockAPI) DownloadFiles(c *common.Cluster) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DownloadFiles", c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DownloadFiles indicates an expected call of DownloadFiles
-func (mr *MockAPIMockRecorder) DownloadFiles(c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadFiles", reflect.TypeOf((*MockAPI)(nil).DownloadFiles), c)
-}
-
-// DownloadKubeconfig mocks base method
-func (m *MockAPI) DownloadKubeconfig(c *common.Cluster) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DownloadKubeconfig", c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DownloadKubeconfig indicates an expected call of DownloadKubeconfig
-func (mr *MockAPIMockRecorder) DownloadKubeconfig(c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadKubeconfig", reflect.TypeOf((*MockAPI)(nil).DownloadKubeconfig), c)
 }
 
 // GetCredentials mocks base method

@@ -209,6 +209,22 @@ func (f fakeInventory) UpdateDiscoveryIgnition(ctx context.Context, params insta
 	return installer.NewUpdateDiscoveryIgnitionCreated()
 }
 
+func (f fakeInventory) GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder {
+	return installer.NewGetHostIgnitionOK()
+}
+
+func (f fakeInventory) DownloadHostIgnition(ctx context.Context, params installer.DownloadHostIgnitionParams) middleware.Responder {
+	file, err := ioutil.TempFile("/tmp", "test.file")
+	if err != nil {
+		return installer.NewDownloadHostIgnitionInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, err))
+	}
+	return filemiddleware.NewResponder(
+		installer.NewDownloadHostIgnitionOK().WithPayload(io.ReadCloser(file)),
+		"test",
+		0)
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

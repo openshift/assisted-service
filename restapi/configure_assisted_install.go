@@ -65,6 +65,9 @@ type InstallerAPI interface {
 	/* DownloadClusterLogs Download cluster logs. */
 	DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder
 
+	/* DownloadHostIgnition Downloads the customized ignition file for this host */
+	DownloadHostIgnition(ctx context.Context, params installer.DownloadHostIgnitionParams) middleware.Responder
+
 	/* DownloadHostLogs Download host logs. */
 	DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder
 
@@ -91,6 +94,9 @@ type InstallerAPI interface {
 
 	/* GetHost Retrieves the details of the OpenShift bare metal host. */
 	GetHost(ctx context.Context, params installer.GetHostParams) middleware.Responder
+
+	/* GetHostIgnition Get the customized ignition file for this host */
+	GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder
 
 	/* GetHostRequirements Get minimum host requirements. */
 	GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder
@@ -321,6 +327,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.ManifestsAPI.DownloadClusterManifest(ctx, params)
 	})
+	api.InstallerDownloadHostIgnitionHandler = installer.DownloadHostIgnitionHandlerFunc(func(params installer.DownloadHostIgnitionParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.DownloadHostIgnition(ctx, params)
+	})
 	api.InstallerDownloadHostLogsHandler = installer.DownloadHostLogsHandlerFunc(func(params installer.DownloadHostLogsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -365,6 +376,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetHost(ctx, params)
+	})
+	api.InstallerGetHostIgnitionHandler = installer.GetHostIgnitionHandlerFunc(func(params installer.GetHostIgnitionParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetHostIgnition(ctx, params)
 	})
 	api.InstallerGetHostRequirementsHandler = installer.GetHostRequirementsHandlerFunc(func(params installer.GetHostRequirementsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

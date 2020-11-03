@@ -2421,17 +2421,81 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	var err error
 	switch fileName {
 	case kubeconfig:
-		err = b.clusterApi.DownloadKubeconfig(&c)
+		err = cluster.CanDownloadKubeconfig(&c)
 	case manifests.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
-		err = b.clusterApi.DownloadFiles(&c)
+		err = cluster.CanDownloadFiles(&c)
 	}
 	if err != nil {
 		log.WithError(err).Errorf("failed to get file for cluster %s in current state", clusterID)
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
+}
+
+func (b *bareMetalInventory) GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	_, respBody, _, err := b.downloadHostIgnition(ctx, params.ClusterID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to download host %s ignition", params.HostID)
+		return common.GenerateErrorResponder(err)
+	}
+
+	respBytes, err := ioutil.ReadAll(respBody)
+	if err != nil {
+		log.WithError(err).Errorf("failed to read ignition content for host %s", params.HostID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return installer.NewGetHostIgnitionOK().WithPayload(&models.HostIgnitionParams{Config: string(respBytes)})
+}
+
+func (b *bareMetalInventory) DownloadHostIgnition(ctx context.Context, params installer.DownloadHostIgnitionParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	fileName, respBody, contentLength, err := b.downloadHostIgnition(ctx, params.ClusterID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to download host %s ignition", params.HostID)
+		return common.GenerateErrorResponder(err)
+	}
+
+	return filemiddleware.NewResponder(installer.NewDownloadHostIgnitionOK().WithPayload(respBody), fileName, contentLength)
+}
+
+// downloadHostIgnition returns the ignition file name, the content as an io.ReadCloser, and the file content length
+func (b *bareMetalInventory) downloadHostIgnition(ctx context.Context, clusterID string, hostID string) (string, io.ReadCloser, int64, error) {
+	c, err := b.getCluster(ctx, clusterID, returnHosts(true))
+	if err != nil {
+		return "", nil, 0, err
+	}
+
+	// check if host id is in cluster
+	var host *models.Host
+	for i, h := range c.Hosts {
+		if h.ID.String() == hostID {
+			host = c.Hosts[i]
+			break
+		}
+	}
+	if host == nil {
+		err = errors.Errorf("host %s not found in cluster %s", hostID, clusterID)
+		return "", nil, 0, common.NewApiError(http.StatusNotFound, err)
+	}
+
+	// check if cluster is in the correct state to download files
+	err = cluster.CanDownloadFiles(c)
+	if err != nil {
+		return "", nil, 0, common.NewApiError(http.StatusConflict, err)
+	}
+
+	fileName := hostutil.IgnitionFileName(host)
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", clusterID, fileName))
+	if err != nil {
+		return "", nil, 0, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	return fileName, respBody, contentLength, nil
 }
 
 func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder {

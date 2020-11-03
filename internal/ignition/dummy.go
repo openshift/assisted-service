@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 )
 
@@ -36,7 +37,13 @@ func (g *dummyGenerator) Generate(ctx context.Context, installConfig []byte) err
 	if err != nil {
 		return err
 	}
-	for _, fileName := range fileNames {
+
+	toUpload := fileNames[:]
+	for _, host := range g.cluster.Hosts {
+		toUpload = append(toUpload, hostutil.IgnitionFileName(host))
+	}
+
+	for _, fileName := range toUpload {
 		f, err := os.Create(filepath.Join(g.workDir, fileName))
 		if err != nil {
 			return err
@@ -57,7 +64,7 @@ func (g *dummyGenerator) Generate(ctx context.Context, installConfig []byte) err
 
 // UploadToS3 uploads the generated files to the configured S3-compatible storage
 func (g *dummyGenerator) UploadToS3(ctx context.Context) error {
-	return uploadToS3(ctx, g.workDir, g.cluster.ID.String(), g.s3Client, g.log)
+	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
 }
 
 func (g *dummyGenerator) UpdateEtcHosts(serviceIPs string) error {

@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 
+	"golang.org/x/sync/errgroup"
+
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_31_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/coreos/ignition/v2/config/validate"
@@ -26,6 +28,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"
@@ -78,7 +81,7 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 // UploadToS3 uploads generated ignition and related files to the configured
 // S3-compatible storage
 func (g *installerGenerator) UploadToS3(ctx context.Context) error {
-	return uploadToS3(ctx, g.workDir, g.cluster.ID.String(), g.s3Client, g.log)
+	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
 }
 
 // Generate generates ignition files and applies modifications.
@@ -145,6 +148,12 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	}
 
 	err = g.updateIgnitions()
+	if err != nil {
+		g.log.Error(err)
+		return err
+	}
+
+	err = g.createHostIgnitions()
 	if err != nil {
 		g.log.Error(err)
 		return err
@@ -475,10 +484,15 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 }
 
 // UploadToS3 uploads the generated files to S3
-func uploadToS3(ctx context.Context, workDir string, clusterID string, s3Client s3wrapper.API, log logrus.FieldLogger) error {
-	for _, fileName := range fileNames {
+func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) error {
+	toUpload := fileNames[:]
+	for _, host := range cluster.Hosts {
+		toUpload = append(toUpload, hostutil.IgnitionFileName(host))
+	}
+
+	for _, fileName := range toUpload {
 		fullPath := filepath.Join(workDir, fileName)
-		key := filepath.Join(clusterID, fileName)
+		key := filepath.Join(cluster.ID.String(), fileName)
 		err := s3Client.UploadFile(ctx, fullPath, key)
 		if err != nil {
 			log.Errorf("Failed to upload file %s as object %s", fullPath, key)
@@ -570,6 +584,53 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error {
+	g := new(errgroup.Group)
+	for i := range hosts {
+		host := hosts[i]
+		g.Go(func() error {
+			config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
+			if err != nil {
+				return err
+			}
+
+			hostname, err := hostutil.GetCurrentHostName(host)
+			if err != nil {
+				return errors.Wrapf(err, "failed to get hostname for host %s", host.ID)
+			}
+
+			setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420)
+
+			err = writeIgnitionFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), config)
+			if err != nil {
+				return errors.Wrapf(err, "failed to write ignition for host %s", host.ID)
+			}
+
+			return nil
+		})
+	}
+
+	return g.Wait()
+}
+
+// createHostIgnitions builds an ignition file for each host in the cluster based on the generated <role>.ign file
+func (g *installerGenerator) createHostIgnitions() error {
+	masters, workers := sortHosts(g.cluster.Hosts)
+
+	err := writeHostFiles(masters, "master.ign", g.workDir)
+	if err != nil {
+		return errors.Wrapf(err, "error writing master host ignition files")
+	}
+
+	err = writeHostFiles(workers, "worker.ign", g.workDir)
+	if err != nil {
+		return errors.Wrapf(err, "error writing worker host ignition files")
+	}
+
 	return nil
 }
 

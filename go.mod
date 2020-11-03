@@ -52,6 +52,7 @@ require (
 	github.com/thoas/go-funk v0.6.0
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/sync v0.0.0-20201008141435-b3e1573b7520
 	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/tools v0.0.0-20200914190812-8f9ed77dd8e5 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0

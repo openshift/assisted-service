@@ -4068,6 +4068,146 @@ var _ = Describe("convert pull secret validation error to user error", func() {
 	})
 })
 
+var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
+	var (
+		bm           *bareMetalInventory
+		cfg          Config
+		db           *gorm.DB
+		ctx          = context.Background()
+		ctrl         *gomock.Controller
+		mockS3Client *s3wrapper.MockAPI
+		dbName       = "get_download_host_ignition"
+		clusterID    strfmt.UUID
+		hostID       strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, validations.NewMockPullSecretValidator(ctrl))
+
+		// create a cluster
+		clusterID = strfmt.UUID(uuid.New().String())
+		status := models.ClusterStatusInstalling
+		c := common.Cluster{Cluster: models.Cluster{ID: &clusterID, Status: &status}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// add some hosts
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("return not found when given a non-existent cluster", func() {
+		otherClusterID := strfmt.UUID(uuid.New().String())
+
+		getParams := installer.GetHostIgnitionParams{
+			ClusterID: otherClusterID,
+			HostID:    hostID,
+		}
+		resp := bm.GetHostIgnition(ctx, getParams)
+		verifyApiError(resp, http.StatusNotFound)
+
+		downloadParams := installer.DownloadHostIgnitionParams{
+			ClusterID: otherClusterID,
+			HostID:    hostID,
+		}
+		resp = bm.DownloadHostIgnition(ctx, downloadParams)
+		verifyApiError(resp, http.StatusNotFound)
+	})
+
+	It("return not found for a host in a different cluster", func() {
+		otherClusterID := strfmt.UUID(uuid.New().String())
+		c := common.Cluster{Cluster: models.Cluster{ID: &otherClusterID}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		otherHostID := strfmt.UUID(uuid.New().String())
+		addHost(otherHostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, otherClusterID, "{}", db)
+
+		getParams := installer.GetHostIgnitionParams{
+			ClusterID: clusterID,
+			HostID:    otherHostID,
+		}
+		resp := bm.GetHostIgnition(ctx, getParams)
+		verifyApiError(resp, http.StatusNotFound)
+
+		downloadParams := installer.DownloadHostIgnitionParams{
+			ClusterID: clusterID,
+			HostID:    otherHostID,
+		}
+		resp = bm.DownloadHostIgnition(ctx, downloadParams)
+		verifyApiError(resp, http.StatusNotFound)
+	})
+
+	It("return conflict when the cluster is in the incorrect status", func() {
+		db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Update("status", models.ClusterStatusInsufficient)
+
+		getParams := installer.GetHostIgnitionParams{
+			ClusterID: clusterID,
+			HostID:    hostID,
+		}
+		resp := bm.GetHostIgnition(ctx, getParams)
+		verifyApiError(resp, http.StatusConflict)
+
+		downloadParams := installer.DownloadHostIgnitionParams{
+			ClusterID: clusterID,
+			HostID:    hostID,
+		}
+		resp = bm.DownloadHostIgnition(ctx, downloadParams)
+		verifyApiError(resp, http.StatusConflict)
+	})
+
+	It("return server error when the download fails", func() {
+		mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/master-%s.ign", clusterID, hostID)).Return(nil, int64(0), errors.Errorf("download failed")).Times(2)
+
+		getParams := installer.GetHostIgnitionParams{
+			ClusterID: clusterID,
+			HostID:    hostID,
+		}
+		resp := bm.GetHostIgnition(ctx, getParams)
+		verifyApiError(resp, http.StatusInternalServerError)
+
+		downloadParams := installer.DownloadHostIgnitionParams{
+			ClusterID: clusterID,
+			HostID:    hostID,
+		}
+		resp = bm.DownloadHostIgnition(ctx, downloadParams)
+		verifyApiError(resp, http.StatusInternalServerError)
+	})
+
+	It("return the correct content", func() {
+		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/master-%s.ign", clusterID, hostID)).Return(r, int64(4), nil).Times(2)
+
+		getParams := installer.GetHostIgnitionParams{
+			ClusterID: clusterID,
+			HostID:    hostID,
+		}
+		resp := bm.GetHostIgnition(ctx, getParams)
+		Expect(resp).To(BeAssignableToTypeOf(&installer.GetHostIgnitionOK{}))
+		replyPayload := resp.(*installer.GetHostIgnitionOK).Payload
+		Expect(replyPayload.Config).Should(Equal("test"))
+
+		downloadParams := installer.DownloadHostIgnitionParams{
+			ClusterID: clusterID,
+			HostID:    hostID,
+		}
+		resp = bm.DownloadHostIgnition(ctx, downloadParams)
+		Expect(resp).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadHostIgnitionOK().WithPayload(r),
+			fmt.Sprintf("master-%s.ign", hostID), 4)))
+	})
+})
+
 func prepareK8NodeList(names, ips, roles, archituctures []string, readyStatuses []v1.ConditionStatus) *v1.NodeList {
 	var node v1.Node
 	nodeList := &v1.NodeList{}

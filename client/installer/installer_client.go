@@ -46,6 +46,9 @@ type API interface {
 	   DownloadClusterLogs downloads cluster logs*/
 	DownloadClusterLogs(ctx context.Context, params *DownloadClusterLogsParams, writer io.Writer) (*DownloadClusterLogsOK, error)
 	/*
+	   DownloadHostIgnition downloads the customized ignition file for this host*/
+	DownloadHostIgnition(ctx context.Context, params *DownloadHostIgnitionParams, writer io.Writer) (*DownloadHostIgnitionOK, error)
+	/*
 	   DownloadHostLogs downloads host logs*/
 	DownloadHostLogs(ctx context.Context, params *DownloadHostLogsParams, writer io.Writer) (*DownloadHostLogsOK, error)
 	/*
@@ -72,6 +75,9 @@ type API interface {
 	/*
 	   GetHost retrieves the details of the open shift bare metal host*/
 	GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error)
+	/*
+	   GetHostIgnition gets the customized ignition file for this host*/
+	GetHostIgnition(ctx context.Context, params *GetHostIgnitionParams) (*GetHostIgnitionOK, error)
 	/*
 	   GetHostRequirements gets minimum host requirements*/
 	GetHostRequirements(ctx context.Context, params *GetHostRequirementsParams) (*GetHostRequirementsOK, error)
@@ -375,6 +381,31 @@ func (a *Client) DownloadClusterLogs(ctx context.Context, params *DownloadCluste
 }
 
 /*
+DownloadHostIgnition downloads the customized ignition file for this host
+*/
+func (a *Client) DownloadHostIgnition(ctx context.Context, params *DownloadHostIgnitionParams, writer io.Writer) (*DownloadHostIgnitionOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadHostIgnition",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DownloadHostIgnitionReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadHostIgnitionOK), nil
+
+}
+
+/*
 DownloadHostLogs downloads host logs
 */
 func (a *Client) DownloadHostLogs(ctx context.Context, params *DownloadHostLogsParams, writer io.Writer) (*DownloadHostLogsOK, error) {
@@ -596,6 +627,31 @@ func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK
 		return nil, err
 	}
 	return result.(*GetHostOK), nil
+
+}
+
+/*
+GetHostIgnition gets the customized ignition file for this host
+*/
+func (a *Client) GetHostIgnition(ctx context.Context, params *GetHostIgnitionParams) (*GetHostIgnitionOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetHostIgnition",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/ignition",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetHostIgnitionReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetHostIgnitionOK), nil
 
 }
 
