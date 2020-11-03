@@ -493,3 +493,11 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 	}
 	return ret
 }
+
+func (th *transitionHandler) IsAddToExistingClusterHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("HasClusterError incompatible type of StateSwitch")
+	}
+	return swag.StringValue(sHost.host.Kind) == models.HostKindAddToExistingClusterHost, nil
+}

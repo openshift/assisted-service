@@ -5,12 +5,13 @@
 package metrics
 
 import (
+	reflect "reflect"
+	time "time"
+
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
-	reflect "reflect"
-	time "time"
 )
 
 // MockAPI is a mock of API interface
