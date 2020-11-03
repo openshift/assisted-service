@@ -3,6 +3,7 @@ package cluster
 import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -24,10 +25,10 @@ type refreshPreprocessor struct {
 	conditions  []condition
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, ocsValidator ocs.OcsValidator) *refreshPreprocessor {
 	return &refreshPreprocessor{
 		log:         log,
-		validations: newValidations(log, hostAPI),
+		validations: newValidations(log, hostAPI, ocsValidator),
 		conditions:  newConditions(),
 	}
 }
@@ -63,10 +64,11 @@ func (r *refreshPreprocessor) preprocess(c *clusterPreprocessContext) (map[strin
 	return stateMachineInput, validationsOutput, nil
 }
 
-func newValidations(log logrus.FieldLogger, api host.API) []validation {
+func newValidations(log logrus.FieldLogger, api host.API, ocsValidator ocs.OcsValidator) []validation {
 	v := clusterValidator{
-		log:     log,
-		hostAPI: api,
+		log:          log,
+		hostAPI:      api,
+		ocsValidator: ocsValidator,
 	}
 	ret := []validation{
 		{
@@ -143,6 +145,11 @@ func newValidations(log logrus.FieldLogger, api host.API) []validation {
 			id:        IsNtpServerConfigured,
 			condition: v.isNtpServerConfigured,
 			formatter: v.printNtpServerConfigured,
+		},
+		{
+			id:        IsOcsRequirementsSatisfied,
+			condition: v.isOcsRequirementsSatisfied,
+			formatter: v.printOcsRequirementsSatisfied,
 		},
 	}
 	return ret
