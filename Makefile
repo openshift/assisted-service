@@ -40,7 +40,7 @@ OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
-PUBLIC_CONTAINER_REGISTRIES := ${PUBLIC_CONTAINER_REGISTRIES}
+PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},quay.io)
 
 # We decided to have an option to change replicas count only while running in minikube
 # That line is checking if we run on minikube
@@ -227,13 +227,11 @@ deploy-ui-on-ocp-cluster:
 
 jenkins-deploy-for-subsystem: _verify_minikube generate-keys
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
-	export PUBLIC_CONTAINER_REGISTRIES="quay.io" && \
 	$(MAKE) deploy-wiremock deploy-all
 
 deploy-test: _verify_minikube generate-keys
 	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
 	export ENABLE_AUTH="True" && export DUMMY_IGNITION="True" && \
-	export PUBLIC_CONTAINER_REGISTRIES="quay.io" && \
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
 
 deploy-onprem:
