@@ -156,7 +156,7 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("installing-in-progress", func() {
 				checkStepsByState(models.HostStatusInstallingInProgress, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeDhcpLeaseAllocate})
+					[]models.StepType{models.StepTypeInventory, models.StepTypeDhcpLeaseAllocate})
 			})
 			It("reset", func() {
 				checkStepsByState(models.HostStatusResetting, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,

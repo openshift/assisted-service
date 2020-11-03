@@ -185,7 +185,7 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := []string{
 		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
-		models.HostStatusInsufficient, models.HostStatusPendingForInput,
+		models.HostStatusInsufficient, models.HostStatusPendingForInput, models.HostStatusInstallingInProgress,
 	}
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
 		return common.NewApiError(http.StatusConflict,
