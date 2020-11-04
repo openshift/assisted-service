@@ -16,7 +16,7 @@ First we need to setup a web server with the required files for PXE booting the 
 
     ~~~sh
     # Container code: https://github.com/ohadlevy/ai-ipxe
-    podman run -e BASE_URL=http://devscripts2ipv6.e2e.bos.redhat.com:8080/ipxe/ -e ISO_URL=http://10.19.115.219:6008/api/assisted-install/v1/clusters/1c907764-6354-409e-9a2e-93582497545a/downloads/image -v /tmp/ipxe/ai:/data:Z --net=host -it --rm quay.io/ohadlevy/ai-ipxe:latest
+    podman run -e BASE_URL=http://devscripts2ipv6.e2e.bos.redhat.com:8080/ipxe/ -e ISO_URL=<REPLACE WITH ISO URL> -v /tmp/ipxe/ai:/data:Z --net=host -it --rm quay.io/ohadlevy/ai-ipxe:latest
     ~~~
 3. Run an nginx container for exposing the required files over http
 
