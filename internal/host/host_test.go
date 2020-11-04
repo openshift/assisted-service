@@ -866,7 +866,7 @@ var _ = Describe("UpdateInventory", func() {
 			{
 				name:       models.HostStatusInstallingInProgress,
 				srcState:   models.HostStatusInstallingInProgress,
-				validation: failure,
+				validation: success,
 			},
 			{
 				name:       models.HostStatusResettingPendingUserAction,
