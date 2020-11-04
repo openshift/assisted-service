@@ -47,7 +47,7 @@ Now that we have the PXE files available over http, we are going to configure GR
     ~~~sh
     curl http://boot.ipxe.org/ipxe.lkrn -o /boot/ipxe.lkrn
     ~~~
-3. Create a iPXE script for running the DHCP request and for chainload the pxe files from the server configured previously
+3. Create an iPXE script for running the DHCP request and for chainload the PXE files from the server configured previously
 
     **DHCP Example**
     ~~~sh
