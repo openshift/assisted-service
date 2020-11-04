@@ -4208,6 +4208,113 @@ var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 	})
 })
 
+var _ = Describe("UpdateHostIgnition", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		ctrl      *gomock.Controller
+		clusterID strfmt.UUID
+		hostID    strfmt.UUID
+		dbName    = "update_host_ignition"
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, validations.NewMockPullSecretValidator(ctrl))
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// add some hosts
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("saves the given string to the host", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateHostIgnitionParams{
+			ClusterID:          clusterID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.UpdateHostIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostIgnitionCreated{}))
+
+		var updated models.Host
+		err := db.First(&updated, "id = ?", hostID).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(updated.IgnitionConfigOverrides).To(Equal(override))
+	})
+
+	It("returns not found with a non-existant cluster", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateHostIgnitionParams{
+			ClusterID:          strfmt.UUID(uuid.New().String()),
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.UpdateHostIgnition(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns not found with a non-existant host", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateHostIgnitionParams{
+			ClusterID:          clusterID,
+			HostID:             strfmt.UUID(uuid.New().String()),
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.UpdateHostIgnition(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns bad request when provided invalid json", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}}}`
+		params := installer.UpdateHostIgnitionParams{
+			ClusterID:          clusterID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.UpdateHostIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostIgnitionBadRequest{}))
+	})
+
+	It("returns bad request when provided invalid options", func() {
+		// Missing the version
+		override := `{"storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateHostIgnitionParams{
+			ClusterID:          clusterID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.UpdateHostIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostIgnitionBadRequest{}))
+	})
+
+	It("returns bad request when provided an old version", func() {
+		// Wrong version
+		override := `{"ignition": {"version": "3.0.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateHostIgnitionParams{
+			ClusterID:          clusterID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.UpdateHostIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostIgnitionBadRequest{}))
+	})
+})
+
 func prepareK8NodeList(names, ips, roles, archituctures []string, readyStatuses []v1.ConditionStatus) *v1.NodeList {
 	var node v1.Node
 	nodeList := &v1.NodeList{}

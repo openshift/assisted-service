@@ -605,7 +605,20 @@ func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error
 
 			setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420)
 
-			err = writeIgnitionFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), config)
+			configBytes, err := json.Marshal(config)
+			if err != nil {
+				return err
+			}
+
+			if host.IgnitionConfigOverrides != "" {
+				merged, mergeErr := MergeIgnitionConfig(configBytes, []byte(host.IgnitionConfigOverrides))
+				if mergeErr != nil {
+					return errors.Wrapf(mergeErr, "failed to apply ignition config overrides for host %s", host.ID)
+				}
+				configBytes = []byte(merged)
+			}
+
+			err = ioutil.WriteFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), configBytes, 0600)
 			if err != nil {
 				return errors.Wrapf(err, "failed to write ignition for host %s", host.ID)
 			}

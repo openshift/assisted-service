@@ -143,6 +143,9 @@ type InstallerAPI interface {
 	/* UpdateDiscoveryIgnition Override values in the discovery ignition config */
 	UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder
 
+	/* UpdateHostIgnition Patch the ignition file for this host */
+	UpdateHostIgnition(ctx context.Context, params installer.UpdateHostIgnitionParams) middleware.Responder
+
 	/* UpdateHostInstallProgress Update installation progress. */
 	UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder
 
@@ -476,6 +479,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UpdateDiscoveryIgnition(ctx, params)
+	})
+	api.InstallerUpdateHostIgnitionHandler = installer.UpdateHostIgnitionHandlerFunc(func(params installer.UpdateHostIgnitionParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.UpdateHostIgnition(ctx, params)
 	})
 	api.InstallerUpdateHostInstallProgressHandler = installer.UpdateHostInstallProgressHandlerFunc(func(params installer.UpdateHostInstallProgressParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

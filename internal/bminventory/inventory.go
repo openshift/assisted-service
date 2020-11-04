@@ -2434,6 +2434,33 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	return nil
 }
 
+func (b *bareMetalInventory) UpdateHostIgnition(ctx context.Context, params installer.UpdateHostIgnitionParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	_, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	_, report, err := ign_3_1.Parse([]byte(params.HostIgnitionParams.Config))
+	if err != nil {
+		log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
+		return installer.NewUpdateHostIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+	if report.IsFatal() {
+		err = errors.Errorf("Host ignition config patch %s failed validation: %s", params.HostIgnitionParams, report.String())
+		log.Error(err)
+		return installer.NewUpdateHostIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+
+	err = b.db.Model(&models.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
+	if err != nil {
+		return installer.NewUpdateHostIgnitionInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	return installer.NewUpdateHostIgnitionCreated()
+}
+
 func (b *bareMetalInventory) GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 

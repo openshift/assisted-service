@@ -437,4 +437,38 @@ var _ = Describe("createHostIgnitions", func() {
 			}
 		})
 	})
+
+	It("applies overrides correctly", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		cluster.Hosts = []*models.Host{{
+			ID:                      &hostID,
+			RequestedHostname:       "master0.example.com",
+			Role:                    models.HostRoleMaster,
+			IgnitionConfigOverrides: `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
+		}}
+
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", nil, log).(*installerGenerator)
+		err := g.createHostIgnitions()
+		Expect(err).NotTo(HaveOccurred())
+
+		ignBytes, err := ioutil.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", models.HostRoleMaster, hostID)))
+		Expect(err).NotTo(HaveOccurred())
+		config, _, err := config_31.Parse(ignBytes)
+		Expect(err).NotTo(HaveOccurred())
+
+		var exampleFile *config_31_types.File
+		var hostnameFile *config_31_types.File
+		for fileidx, file := range config.Storage.Files {
+			if file.Node.Path == "/tmp/example" {
+				exampleFile = &config.Storage.Files[fileidx]
+			} else if file.Node.Path == "/etc/hostname" {
+				hostnameFile = &config.Storage.Files[fileidx]
+			}
+		}
+		Expect(exampleFile).NotTo(BeNil())
+		// check that we didn't overwrite the other files
+		Expect(hostnameFile).NotTo(BeNil())
+
+		Expect(*exampleFile.FileEmbedded1.Contents.Source).To(Equal("data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"))
+	})
 })

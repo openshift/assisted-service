@@ -176,6 +176,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerUpdateDiscoveryIgnitionHandler: installer.UpdateDiscoveryIgnitionHandlerFunc(func(params installer.UpdateDiscoveryIgnitionParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateDiscoveryIgnition has not yet been implemented")
 		}),
+		InstallerUpdateHostIgnitionHandler: installer.UpdateHostIgnitionHandlerFunc(func(params installer.UpdateHostIgnitionParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.UpdateHostIgnition has not yet been implemented")
+		}),
 		InstallerUpdateHostInstallProgressHandler: installer.UpdateHostInstallProgressHandlerFunc(func(params installer.UpdateHostInstallProgressParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateHostInstallProgress has not yet been implemented")
 		}),
@@ -334,6 +337,8 @@ type AssistedInstallAPI struct {
 	InstallerUpdateClusterInstallConfigHandler installer.UpdateClusterInstallConfigHandler
 	// InstallerUpdateDiscoveryIgnitionHandler sets the operation handler for the update discovery ignition operation
 	InstallerUpdateDiscoveryIgnitionHandler installer.UpdateDiscoveryIgnitionHandler
+	// InstallerUpdateHostIgnitionHandler sets the operation handler for the update host ignition operation
+	InstallerUpdateHostIgnitionHandler installer.UpdateHostIgnitionHandler
 	// InstallerUpdateHostInstallProgressHandler sets the operation handler for the update host install progress operation
 	InstallerUpdateHostInstallProgressHandler installer.UpdateHostInstallProgressHandler
 	// InstallerUploadClusterIngressCertHandler sets the operation handler for the upload cluster ingress cert operation
@@ -556,6 +561,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerUpdateDiscoveryIgnitionHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateDiscoveryIgnitionHandler")
+	}
+	if o.InstallerUpdateHostIgnitionHandler == nil {
+		unregistered = append(unregistered, "installer.UpdateHostIgnitionHandler")
 	}
 	if o.InstallerUpdateHostInstallProgressHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateHostInstallProgressHandler")
@@ -842,6 +850,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/clusters/{cluster_id}/discovery-ignition"] = installer.NewUpdateDiscoveryIgnition(o.context, o.InstallerUpdateDiscoveryIgnitionHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/clusters/{cluster_id}/hosts/{host_id}/ignition"] = installer.NewUpdateHostIgnition(o.context, o.InstallerUpdateHostIgnitionHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
