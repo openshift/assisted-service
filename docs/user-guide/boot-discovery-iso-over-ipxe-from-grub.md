@@ -21,7 +21,7 @@ First we need to setup a web server with the required files for PXE booting the 
 3. Run an nginx container for exposing the required files over http
 
     ~~~sh
-    podman run  -v ${IPXE_DIR}:/app:ro,Z -p 8080:8080 -d --rm bitnami/nginx:latest
+    podman run -v ${IPXE_DIR}:/app:ro,Z -p 8080:8080 -d --rm bitnami/nginx:latest
     ~~~
 4. Make sure the web server is working
 
