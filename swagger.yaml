@@ -2941,6 +2941,10 @@ definitions:
         type: string
         enum: ['4.5', '4.6']
         description: Version of the OpenShift cluster.
+      openshift_cluster_id:
+        type: string
+        format: uuid
+        description: Cluster ID on OCP system.
       image_info:
         $ref: '#/definitions/image_info'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:image_"

@@ -71,8 +71,9 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 		return errors.New("PostResetCluster invalid argument")
 	}
 
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), params.db, sCluster,
-		params.reason, "ControllerLogsCollectedAt", strfmt.DateTime(time.Time{}))
+	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), params.db, sCluster, params.reason,
+		"ControllerLogsCollectedAt", strfmt.DateTime(time.Time{}),
+		"OpenshiftClusterID", "")
 }
 
 ////////////////////////////////////////////////////////////////////////////

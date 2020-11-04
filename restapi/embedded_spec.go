@@ -3839,6 +3839,11 @@ func init() {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string"
         },
+        "openshift_cluster_id": {
+          "description": "Cluster ID on OCP system.",
+          "type": "string",
+          "format": "uuid"
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string",
@@ -9194,6 +9199,11 @@ func init() {
         "no_proxy": {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string"
+        },
+        "openshift_cluster_id": {
+          "description": "Cluster ID on OCP system.",
+          "type": "string",
+          "format": "uuid"
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",

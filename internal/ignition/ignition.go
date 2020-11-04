@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -19,6 +20,14 @@ import (
 	"github.com/coreos/ignition/v2/config/validate"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/vincent-petithory/dataurl"
+	"gopkg.in/yaml.v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/client-go/kubernetes/scheme"
+
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/internal/installercache"
@@ -26,13 +35,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/vincent-petithory/dataurl"
 	"golang.org/x/sync/errgroup"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 var fileNames = [...]string{
@@ -186,6 +189,58 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 
 func bmhIsMaster(bmh *bmh_v1alpha1.BareMetalHost) bool {
 	return strings.Contains(bmh.Name, "-master-")
+}
+
+type clusterVersion struct {
+	APIVersion string `yaml:"apiVersion"`
+	Metadata   struct {
+		Namespace string `yaml:"namespace"`
+		Name      string `yaml:"name"`
+	} `yaml:"metadata"`
+	Spec struct {
+		Upstream  string `yaml:"upstream"`
+		Channel   string `yaml:"channel"`
+		ClusterID string `yaml:"clusterID"`
+	} `yaml:"spec"`
+}
+
+// ExtractClusterID gets a local path of a "bootstrap.ign" file and extracts the OpenShift cluster ID
+func ExtractClusterID(reader io.ReadCloser) (string, error) {
+	bs, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return "", err
+	}
+
+	config, _, err := config_31.Parse(bs)
+	if err != nil {
+		return "", err
+	}
+
+	for _, f := range config.Storage.Files {
+		if f.Node.Path != "/opt/openshift/manifests/cvo-overrides.yaml" {
+			continue
+		}
+
+		source := f.FileEmbedded1.Contents.Key()
+		dataURL, err := dataurl.DecodeString(source)
+		if err != nil {
+			return "", err
+		}
+
+		cv := clusterVersion{}
+		err = yaml.Unmarshal(dataURL.Data, &cv)
+		if err != nil {
+			return "", err
+		}
+
+		if cv.Spec.ClusterID == "" {
+			return "", errors.New("no ClusterID field in cvo-overrides file")
+		}
+
+		return cv.Spec.ClusterID, nil
+	}
+
+	return "", errors.New("could not find cvo-overrides file")
 }
 
 // updateBootstrap adds a status annotation to each BareMetalHost defined in the

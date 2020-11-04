@@ -1,10 +1,12 @@
 package ignition
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-openapi/swag"
 
@@ -470,5 +472,124 @@ var _ = Describe("createHostIgnitions", func() {
 		Expect(hostnameFile).NotTo(BeNil())
 
 		Expect(*exampleFile.FileEmbedded1.Contents.Source).To(Equal("data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"))
+	})
+})
+
+var _ = Describe("Openshift cluster ID extraction", func() {
+	It("fails on empty ignition file", func() {
+		r := ioutil.NopCloser(strings.NewReader(""))
+		_, err := ExtractClusterID(r)
+		Expect(err).To(Equal(errors.New("not a config (empty)")))
+	})
+
+	It("fails on invalid JSON file", func() {
+		r := ioutil.NopCloser(strings.NewReader("{"))
+		_, err := ExtractClusterID(r)
+		Expect(err).To(Equal(errors.New("config is not valid")))
+	})
+
+	It("fails on invalid ignition file", func() {
+		r := ioutil.NopCloser(strings.NewReader(`{
+				"ignition":{"version":"invalid.version"}
+		}`))
+		_, err := ExtractClusterID(r)
+		Expect(err).To(Equal(errors.New("unsupported config version")))
+	})
+
+	It("fails when there's no CVO file", func() {
+		r := ioutil.NopCloser(strings.NewReader(`{
+				"ignition":{"version":"3.1.0"},
+				"storage":{
+					"files":[]
+				},
+				"systemd":{}
+		}`))
+		_, err := ExtractClusterID(r)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("could not find cvo-overrides file"))
+	})
+
+	It("fails when no ClusterID is embedded in cvo-overrides", func() {
+		r := ioutil.NopCloser(strings.NewReader(`{
+				"ignition":{"version":"3.1.0"},
+				"storage":{
+					"files":[
+						{
+							"path":"/opt/openshift/manifests/cvo-overrides.yaml",
+							"contents":{
+								"source":"data:text/plain;charset=utf-8;base64,"
+							}
+						}
+					]
+				},
+				"systemd":{}
+		}`))
+		_, err := ExtractClusterID(r)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("no ClusterID field in cvo-overrides file"))
+	})
+
+	It("fails when cvo-overrides file cannot be un-marshalled", func() {
+		// embedded JSON in the base64 format is "{"
+		r := ioutil.NopCloser(strings.NewReader(`{
+				"ignition":{"version":"3.1.0"},
+				"storage":{
+					"files":[
+						{
+							"path":"/opt/openshift/manifests/cvo-overrides.yaml",
+							"contents":{
+								"source":"data:text/plain;charset=utf-8;base64,ew=="
+							}
+						}
+					]
+				},
+				"systemd":{}
+		}`))
+		_, err := ExtractClusterID(r)
+		Expect(err).To(Equal(errors.New("yaml: line 1: did not find expected node content")))
+	})
+
+	It("is successfull on valid file", func() {
+		r := ioutil.NopCloser(strings.NewReader(`{
+				"ignition":{"version":"3.1.0"},
+				"storage":{
+					"files":[
+						{
+							"path":"/opt/openshift/manifests/cvo-overrides.yaml",
+							"contents":{
+								"source":"data:text/plain;charset=utf-8;base64,YXBpVmVyc2lvbjogY29uZmlnLm9wZW5zaGlmdC5pby92MQpraW5kOiBDbHVzdGVyVmVyc2lvbgptZXRhZGF0YToKICBuYW1lc3BhY2U6IG9wZW5zaGlmdC1jbHVzdGVyLXZlcnNpb24KICBuYW1lOiB2ZXJzaW9uCnNwZWM6CiAgdXBzdHJlYW06IGh0dHBzOi8vYXBpLm9wZW5zaGlmdC5jb20vYXBpL3VwZ3JhZGVzX2luZm8vdjEvZ3JhcGgKICBjaGFubmVsOiBzdGFibGUtNC42CiAgY2x1c3RlcklEOiA0MTk0MGVlOC1lYzk5LTQzZGUtODc2Ni0xNzQzODFiNDkyMWQK"
+							}
+						}
+					]
+				},
+				"systemd":{}
+		}`))
+		Expect(ExtractClusterID(r)).To(Equal("41940ee8-ec99-43de-8766-174381b4921d"))
+	})
+
+	It("only looks on cvo-overrides file", func() {
+		r := ioutil.NopCloser(strings.NewReader(`{
+				"ignition":{"version":"3.1.0"},
+				"storage":{
+					"files":[
+						{
+							"path":"/opt/openshift/manifests/some-other-file.yaml",
+							"contents":{
+								"source":"data:text/plain;charset=utf-8;base64,YXBpVmVyc2lvbjogY29uZmlnLm9wZW5zaGlmdC5pby92MQpraW5kOiBDbHVzdGVyVmVyc2lvbgptZXRhZGF0YToKICBuYW1lc3BhY2U6IG9wZW5zaGlmdC1jbHVzdGVyLXZlcnNpb24KICBuYW1lOiB2ZXJzaW9uCnNwZWM6CiAgdXBzdHJlYW06IGh0dHBzOi8vYXBpLm9wZW5zaGlmdC5jb20vYXBpL3VwZ3JhZGVzX2luZm8vdjEvZ3JhcGgKICBjaGFubmVsOiBzdGFibGUtNC42CiAgY2x1c3RlcklEOiA0MTk0MGVlOC1lYzk5LTQzZGUtODc2Ni0xNzQzODFiNDkyMWQK"
+							}
+						},
+						{
+							"path":"/opt/openshift/manifests/cvo-overrides.yaml",
+							"contents":{
+								"source":"data:text/plain;charset=utf-8;base64,"
+							}
+						}
+					]
+				},
+				"systemd":{}
+		}`))
+		_, err := ExtractClusterID(r)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("no ClusterID field in cvo-overrides file"))
 	})
 })
