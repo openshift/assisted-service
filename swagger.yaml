@@ -2845,7 +2845,7 @@ definitions:
         x-nullable: true
       no_proxy:
         type: string
-        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+        description: An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
         x-nullable: true
 
   cluster-update-params:
@@ -2920,7 +2920,7 @@ definitions:
         x-nullable: true
       no_proxy:
         type: string
-        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+        description: An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
         x-nullable: true
       hosts_roles:
         type: array
@@ -2986,7 +2986,7 @@ definitions:
         type: string
         enum: ['Cluster', 'AddHostsCluster', 'AddHostsOCPCluster']
         description: |
-          Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 
+          Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link,
           'AddHostCluster' for cluster that add hosts to existing OCP cluster,
           'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it
       id:
