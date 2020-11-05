@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/migrations"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -159,10 +160,11 @@ func main() {
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
-	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, Options.InstructionConfig, connectivityValidator, eventsHandler)
+	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, oc.NewRelease(), Options.InstructionConfig, connectivityValidator, eventsHandler)
 
 	pullSecretValidator, err := validations.NewPullSecretValidator(Options.ValidationsConfig, []string{
 		Options.JobConfig.ReleaseImage,
+		Options.JobConfig.ReleaseImageMirror,
 		Options.BMConfig.AgentDockerImg,
 		Options.InstructionConfig.InstallerImage,
 		Options.InstructionConfig.ControllerImage,
@@ -171,6 +173,8 @@ func main() {
 		Options.InstructionConfig.FreeAddressesImage,
 		Options.InstructionConfig.DhcpLeaseAllocatorImage,
 		Options.InstructionConfig.APIVIPConnectivityCheckImage,
+		Options.InstructionConfig.ReleaseImage,
+		Options.InstructionConfig.ReleaseImageMirror,
 	}...)
 
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/openshift/assisted-service/internal/connectivity"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/thoas/go-funk"
 
 	"github.com/openshift/assisted-service/internal/hostutil"
@@ -34,6 +35,7 @@ var _ = Describe("instructionmanager", func() {
 		instMng           *InstructionManager
 		ctrl              *gomock.Controller
 		hwValidator       *hardware.MockValidator
+		mockRelease       *oc.MockRelease
 		cnValidator       *connectivity.MockValidator
 		instructionConfig InstructionConfig
 		dbName            = "instructionmanager"
@@ -44,8 +46,9 @@ var _ = Describe("instructionmanager", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		hwValidator = hardware.NewMockValidator(ctrl)
+		mockRelease = oc.NewMockRelease(ctrl)
 		cnValidator = connectivity.NewMockValidator(ctrl)
-		instMng = NewInstructionManager(getTestLog(), db, hwValidator, instructionConfig, cnValidator, mockEvents)
+		instMng = NewInstructionManager(getTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = getTestHost(hostId, clusterId, "unknown invalid state")
@@ -67,51 +70,51 @@ var _ = Describe("instructionmanager", func() {
 				Expect(stepsErr).Should(BeNil())
 			})
 			It("discovering", func() {
-				checkStepsByState(models.HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeInventory, models.StepTypeExecute})
 			})
 			It("known", func() {
-				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{
 						models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeInventory, models.StepTypeNtpSynchronizer,
 					})
 			})
 			It("disconnected", func() {
-				checkStepsByState(models.HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeInventory})
 			})
 			It("insufficient", func() {
-				checkStepsByState(models.HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{
 						models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
 					})
 			})
 			It("pending-for-input", func() {
-				checkStepsByState(models.HostStatusPendingForInput, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusPendingForInput, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{
 						models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
 					})
 			})
 			It("error", func() {
-				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeExecute, models.StepTypeExecute})
 			})
 			It("error with already uploades logs", func() {
 				host.LogsCollectedAt = strfmt.DateTime(time.Now())
 				db.Save(&host)
-				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeExecute})
 			})
 			It("cancelled", func() {
-				checkStepsByState(models.HostStatusCancelled, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusCancelled, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeExecute, models.StepTypeExecute})
 			})
 			It("installing", func() {
-				checkStepsByState(models.HostStatusInstalling, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusInstalling, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeInstall})
 			})
 			It("reset", func() {
-				checkStepsByState(models.HostStatusResetting, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusResetting, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeResetInstallation})
 			})
 		})
@@ -129,52 +132,52 @@ var _ = Describe("instructionmanager", func() {
 				Expect(stepsErr).Should(BeNil())
 			})
 			It("discovering", func() {
-				checkStepsByState(models.HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusDiscovering, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeInventory, models.StepTypeExecute})
 			})
 			It("known", func() {
-				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{
 						models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate,
 						models.StepTypeInventory, models.StepTypeNtpSynchronizer,
 					})
 			})
 			It("disconnected", func() {
-				checkStepsByState(models.HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeInventory})
 			})
 			It("insufficient", func() {
-				checkStepsByState(models.HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{
 						models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses,
 						models.StepTypeDhcpLeaseAllocate, models.StepTypeNtpSynchronizer,
 					})
 			})
 			It("pending-for-input", func() {
-				checkStepsByState(models.HostStatusPendingForInput, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusPendingForInput, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{
 						models.StepTypeInventory, models.StepTypeConnectivityCheck,
 						models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate, models.StepTypeNtpSynchronizer,
 					})
 			})
 			It("error", func() {
-				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeExecute, models.StepTypeExecute})
 			})
 			It("cancelled", func() {
-				checkStepsByState(models.HostStatusCancelled, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusCancelled, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeExecute, models.StepTypeExecute})
 			})
 			It("installing", func() {
-				checkStepsByState(models.HostStatusInstalling, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusInstalling, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeInstall, models.StepTypeDhcpLeaseAllocate})
 			})
 			It("installing-in-progress", func() {
-				checkStepsByState(models.HostStatusInstallingInProgress, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusInstallingInProgress, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeInventory, models.StepTypeDhcpLeaseAllocate})
 			})
 			It("reset", func() {
-				checkStepsByState(models.HostStatusResetting, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
+				checkStepsByState(models.HostStatusResetting, &host, db, mockEvents, instMng, hwValidator, mockRelease, cnValidator, ctx,
 					[]models.StepType{models.StepTypeResetInstallation})
 			})
 		})
@@ -191,7 +194,7 @@ var _ = Describe("instructionmanager", func() {
 })
 
 func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents *events.MockHandler,
-	instMng *InstructionManager, mockValidator *hardware.MockValidator, mockConnectivity *connectivity.MockValidator,
+	instMng *InstructionManager, mockValidator *hardware.MockValidator, mockRelease *oc.MockRelease, mockConnectivity *connectivity.MockValidator,
 	ctx context.Context, expectedStepTypes []models.StepType) {
 
 	mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, hostutil.GetEventSeverityFromHostStatus(state), gomock.Any(), gomock.Any())
@@ -207,6 +210,7 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 		{DriveType: "disk", Name: "sdh", SizeBytes: validDiskSize},
 	}
 	mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
+	mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).AnyTimes()
 	if funk.Contains(expectedStepTypes, models.StepTypeConnectivityCheck) {
 		mockConnectivity.EXPECT().GetHostValidInterfaces(gomock.Any()).Return([]*models.Interface{
 			{

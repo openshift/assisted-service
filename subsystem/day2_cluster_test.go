@@ -36,11 +36,20 @@ var _ = Describe("Day2 cluster tests", func() {
 				ID:               strToUUID(uuid.New().String()),
 			},
 		})
+
 		By(fmt.Sprintf("clusterID is %s", *cluster.GetPayload().ID))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("adding-hosts"))
 		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(statusInfoAddingHosts))
 		Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
+
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				PullSecret: swag.String(pullSecret),
+			},
+			ClusterID: *cluster.GetPayload().ID,
+		})
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	JustBeforeEach(func() {

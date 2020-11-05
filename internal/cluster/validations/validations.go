@@ -390,7 +390,9 @@ func getRegistriesWithAuth(ignoreList string, ignoreSeparator string, images ...
 
 	registries := make(map[string]bool)
 	for _, img := range images {
-
+		if img == "" {
+			continue
+		}
 		r, err := ParseRegistry(img)
 		if err != nil {
 			return &registries, err
