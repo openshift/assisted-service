@@ -1272,6 +1272,7 @@ var _ = Describe("Refresh Host", func() {
 			statusInfoChecker  statusInfoChecker
 			validationsChecker *validationsChecker
 			connectivity       string
+			kind               string
 			errorExpected      bool
 		}{
 			{
@@ -1874,6 +1875,24 @@ var _ = Describe("Refresh Host", func() {
 				inventory:          masterInventory(),
 				errorExpected:      true,
 			},
+			{
+				name:              "AddedtoExistingCluster to AddedtoExistingCluster for day2",
+				srcState:          models.HostStatusAddedToExistingCluster,
+				dstState:          models.HostStatusAddedToExistingCluster,
+				kind:              models.HostKindAddToExistingClusterHost,
+				role:              models.HostRoleWorker,
+				statusInfoChecker: makeValueChecker(""),
+				errorExpected:     false,
+			},
+			{
+				name:              "AddedtoExistingCluster to AddedtoExistingCluster for day2",
+				srcState:          models.HostStatusAddedToExistingCluster,
+				dstState:          models.HostStatusAddedToExistingCluster,
+				kind:              models.HostKindAddToExistingClusterOCPHost,
+				role:              models.HostRoleWorker,
+				statusInfoChecker: makeValueChecker(""),
+				errorExpected:     true,
+			},
 		}
 
 		for i := range tests {
@@ -1889,6 +1908,7 @@ var _ = Describe("Refresh Host", func() {
 				host.Inventory = t.inventory
 				host.Role = t.role
 				host.CheckedInAt = hostCheckInAt
+				host.Kind = swag.String(t.kind)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
 				if t.connectivity == "" {

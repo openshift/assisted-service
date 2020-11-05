@@ -878,10 +878,11 @@ func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *commo
 		return err
 	}
 	for _, chost := range cluster.Hosts {
-		if swag.StringValue(chost.Status) != models.HostStatusKnown && swag.StringValue(chost.Kind) != models.HostKindAddToExistingClusterHost {
+		if swag.StringValue(chost.Status) != models.HostStatusKnown && swag.StringValue(chost.Kind) == models.HostKindHost {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install",
 				hostutil.GetHostnameForMsg(chost), swag.StringValue(chost.Status)))
 		}
+
 		err := b.hostApi.RefreshStatus(ctx, chost, b.db)
 		if err != nil {
 			return err

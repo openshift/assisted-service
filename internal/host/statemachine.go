@@ -438,5 +438,15 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		})
 	}
 
+	// Noop transaction fro installed day2 on cloud hosts
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusAddedToExistingCluster),
+		},
+		Condition:        th.IsAddToExistingClusterHost,
+		DestinationState: stateswitch.State(models.HostStatusAddedToExistingCluster),
+	})
+
 	return sm
 }
