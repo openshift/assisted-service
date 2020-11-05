@@ -3363,6 +3363,11 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 		APIVipDNSName:    &apiVIP,
 	}}
 
+	err = b.setPullSecretFromOCP(&cluster, log)
+	if err != nil {
+		return err
+	}
+
 	err = validations.ValidateClusterNameFormat(clusterName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to validate cluster name: %s", clusterName)
@@ -3523,4 +3528,19 @@ func (b *bareMetalInventory) getOCPHostInventory(node *v1.Node) (string, error) 
 	}
 	ret, err := json.Marshal(&inventory)
 	return string(ret), err
+}
+
+func (b *bareMetalInventory) setPullSecretFromOCP(cluster *common.Cluster, log logrus.FieldLogger) error {
+	secret, err := b.k8sClient.GetSecret("openshift-config", "pull-secret")
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get secret pull-secret from openshift-config namespce")
+		return err
+	}
+	pullSecret, err := k8sclient.GetDataByKeyFromSecret(secret, ".dockerconfigjson")
+	if err != nil {
+		log.WithError(err).Errorf("Failed to extract .dockerconfigjson from secret pull-secret")
+		return err
+	}
+	setPullSecret(cluster, pullSecret)
+	return nil
 }

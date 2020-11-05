@@ -19,6 +19,7 @@ type K8SClient interface {
 	GetConfigMap(namespace string, name string) (*v1.ConfigMap, error)
 	GetClusterVersion(name string) (*configv1.ClusterVersion, error)
 	ListNodes() (*v1.NodeList, error)
+	GetSecret(namespace, name string) (*v1.Secret, error)
 }
 
 type k8sClient struct {
@@ -44,11 +45,7 @@ func NewK8SClient(configPath string, log logrus.FieldLogger) (K8SClient, error) 
 }
 
 func (c *k8sClient) GetConfigMap(namespace string, name string) (*v1.ConfigMap, error) {
-	cm, err := c.client.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return cm, nil
+	return c.client.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 func (c *k8sClient) GetClusterVersion(name string) (*configv1.ClusterVersion, error) {
@@ -56,9 +53,9 @@ func (c *k8sClient) GetClusterVersion(name string) (*configv1.ClusterVersion, er
 }
 
 func (c *k8sClient) ListNodes() (*v1.NodeList, error) {
-	nodes, err := c.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return &v1.NodeList{}, err
-	}
-	return nodes, nil
+	return c.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+}
+
+func (c *k8sClient) GetSecret(namespace, name string) (*v1.Secret, error) {
+	return c.client.CoreV1().Secrets(namespace).Get(context.TODO(), "name", metav1.GetOptions{})
 }

@@ -21,6 +21,7 @@ rules:
       - pods
       - endpoints
       - services
+      - secrets
   - verbs:
       - get
       - watch

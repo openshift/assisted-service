@@ -72,3 +72,10 @@ func GetNodeInternalIP(node *v1.Node) string {
 	}
 	return ""
 }
+func GetDataByKeyFromSecret(secret *v1.Secret, key string) (string, error) {
+	data, ok := secret.Data[key]
+	if !ok {
+		return "", fmt.Errorf("key %s not present in secret %s data", key, secret.Name)
+	}
+	return string(data), nil
+}
