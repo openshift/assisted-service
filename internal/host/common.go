@@ -30,7 +30,7 @@ const (
 	statusInfoDiscovering                    = "Waiting for host to send hardware details"
 	statusInfoInsufficientHardware           = "Host does not meet the minimum hardware requirements"
 	statusInfoPendingForInput                = "Waiting for user input"
-	statusInfoNotReadyForInstall             = "Host cannot be installed due to failing validation(s)"
+	statusInfoNotReadyForInstall             = "Host cannot be installed due to fallowing failing validation(s): $VALIDATIONS"
 	statusInfoKnown                          = "Host is ready to be installed"
 	statusInfoInstalling                     = "Installation is in progress"
 	statusInfoResettingPendingUserAction     = "Host requires booting into the discovery image to complete resetting the installation"
