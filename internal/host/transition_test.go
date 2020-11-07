@@ -1282,6 +1282,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:          models.HostStatusDiscovering,
 				dstState:          models.HostStatusDisconnected,
 				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
+				//statusInfoChecker: makeJsonChecker(statusInfoDisconnected),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationFailure, messagePattern: "Host is disconnected"},
 					HasInventory:         {status: ValidationFailure, messagePattern: "Inventory has not been received for the host"},
@@ -1557,7 +1558,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Host does not belong to machine network CIDR 5.6.7.0/24")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1581,7 +1582,10 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker: makeValueChecker(formatStatusInfoNotReadyForInstall(
+					"Host does not belong to machine network CIDR 5.6.7.0/24",
+					"Require at least 4 CPU cores for master role, found only 2",
+					"Require at least 16 GiB RAM role master, found only 8")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1631,7 +1635,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Require at least 4 CPU cores for master role, found only 2, Require at least 16 GiB RAM role master, found only 8")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1654,7 +1658,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Require at least 4 CPU cores for master role, found only 2, Require at least 16 GiB RAM role master, found only 8")),
 				inventory:          workerInventory(),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1677,7 +1681,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Host does not belong to machine network CIDR 5.6.7.0/24")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1700,7 +1704,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Host does not belong to machine network CIDR 5.6.7.0/24")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1723,7 +1727,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Hostname localhost is forbidden")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1845,7 +1849,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("No connectivity to the majority of hosts in the cluster")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2040,7 +2044,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Hostname first is not unique in cluster")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2065,7 +2069,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Hostname first is not unique in cluster")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2091,7 +2095,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Hostname second is not unique in cluster")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2112,12 +2116,12 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:     false,
 			},
 			{
-				name:               "insufficient to insufficient (same hostname) 4",
+				name:               "insufficient to insufficient (same hostname) 4 loveeee",
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Hostname third is not unique in cluster")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2198,7 +2202,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Hostname first is not unique in cluster")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2223,7 +2227,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Hostname first is not unique in cluster")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2249,7 +2253,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Hostname second is not unique in cluster")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2275,7 +2279,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleWorker,
-				statusInfoChecker:  makeValueChecker(statusInfoNotReadyForInstall),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Hostname third is not unique in cluster")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -2413,4 +2417,8 @@ func formatProgressTimedOutInfo(stage models.HostStage) string {
 	info := strings.Replace(statusInfoInstallationInProgressTimedOut, "$STAGE", string(stage), 1)
 	info = strings.Replace(info, "$MAX_TIME", timeFormat, 1)
 	return info
+}
+
+func formatStatusInfoNotReadyForInstall(validationMessages ...string) string {
+	return strings.Replace(statusInfoNotReadyForInstall, "$VALIDATIONS", strings.Join(validationMessages, ", "), 1)
 }
