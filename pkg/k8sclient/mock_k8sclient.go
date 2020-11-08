@@ -79,3 +79,18 @@ func (mr *MockK8SClientMockRecorder) ListNodes() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodes", reflect.TypeOf((*MockK8SClient)(nil).ListNodes))
 }
+
+// GetSecret mocks base method
+func (m *MockK8SClient) GetSecret(namespace, name string) (*v10.Secret, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSecret", namespace, name)
+	ret0, _ := ret[0].(*v10.Secret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSecret indicates an expected call of GetSecret
+func (mr *MockK8SClientMockRecorder) GetSecret(namespace, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecret", reflect.TypeOf((*MockK8SClient)(nil).GetSecret), namespace, name)
+}

@@ -3661,6 +3661,7 @@ var _ = Describe("Register OCPCluster test", func() {
 	var (
 		bm                  *bareMetalInventory
 		configMap           v1.ConfigMap
+		pullSecret          v1.Secret
 		clusterVersion      configv1.ClusterVersion
 		ips                 []string
 		names               []string
@@ -3693,6 +3694,8 @@ var _ = Describe("Register OCPCluster test", func() {
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), mockK8sClient, nil, mockSecretValidator)
 		configMap.Data = make(map[string]string)
 		configMap.Data["install-config"] = "platform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
+		pullSecret.Data = make(map[string][]byte)
+		pullSecret.Data[".dockerconfigjson"] = []byte("some kind of secret")
 		clusterVersion.Status.Desired.Version = "4.6.0-rc5"
 		names = []string{"node1", "node2"}
 		ips = []string{"192.168.6.1", "192.168.6.2"}
@@ -3714,6 +3717,7 @@ var _ = Describe("Register OCPCluster test", func() {
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
 		mockK8sClient.EXPECT().ListNodes().Return(nodesList, nil).Times(1)
+		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -3751,10 +3755,20 @@ var _ = Describe("Register OCPCluster test", func() {
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).Should(HaveOccurred())
 	})
+
+	It("Register OCP cluster failed to get pull secret", func() {
+		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
+		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
+		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(nil, fmt.Errorf("some error")).Times(1)
+		err := bm.RegisterOCPCluster(ctx)
+		Expect(err).Should(HaveOccurred())
+	})
+
 	It("Register OCP cluster failed upload", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("Some error")).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
+		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).Should(HaveOccurred())
 	})
@@ -3763,6 +3777,7 @@ var _ = Describe("Register OCPCluster test", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
+		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
 		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).Should(HaveOccurred())
@@ -3773,6 +3788,7 @@ var _ = Describe("Register OCPCluster test", func() {
 		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
+		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
 		mockK8sClient.EXPECT().ListNodes().Return(nil, fmt.Errorf("some error")).Times(1)
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).Should(HaveOccurred())
@@ -3784,6 +3800,7 @@ var _ = Describe("Register OCPCluster test", func() {
 		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
+		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
 		mockK8sClient.EXPECT().ListNodes().Return(nodesList, nil).Times(1)
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).Should(HaveOccurred())
