@@ -571,7 +571,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		log              = logutil.FromContext(ctx, m.log)
 	)
 
-	if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+	if isDay2Host(h) {
 		return autoSelectedRole, nil
 	}
 

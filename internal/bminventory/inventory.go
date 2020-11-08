@@ -1198,15 +1198,6 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 				h.ID.String(), cluster.ID.String())
 			return common.NewApiError(http.StatusNotFound, err)
 		}
-		addHostsSkipStatuses := []string{
-			models.HostStatusAddedToExistingCluster,
-			models.HostStatusInstallingInProgress,
-			models.HostStatusInstalling,
-		}
-		if swag.StringValue(host.Kind) == models.HostKindAddToExistingClusterHost &&
-			funk.ContainsString(addHostsSkipStatuses, swag.StringValue(host.Status)) {
-			continue
-		}
 		if err = b.hostApi.RefreshStatus(ctx, &host, tx); err != nil {
 			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, cluster.ID.String())
 			return common.NewApiError(http.StatusInternalServerError, err)
@@ -1705,8 +1696,11 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
 	kind := swag.String(models.HostKindHost)
-	if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+	switch swag.StringValue(cluster.Kind) {
+	case models.ClusterKindAddHostsCluster:
 		kind = swag.String(models.HostKindAddToExistingClusterHost)
+	case models.ClusterKindAddHostsOCPCluster:
+		kind = swag.String(models.HostKindAddToExistingClusterOCPHost)
 	}
 	host = models.Host{
 		ID:                    params.NewHostParams.HostID,

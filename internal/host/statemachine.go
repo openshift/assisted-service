@@ -186,7 +186,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusKnown),
 		},
-		Condition:        th.IsHostAddingToExistingCluster,
+		Condition:        th.IsDay2Host,
 		DestinationState: stateswitch.State(models.HostStatusInstalling),
 		PostTransition:   th.PostInstallHost,
 	})
@@ -276,7 +276,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
 		},
-		Condition:        th.HasClusterError,
+		Condition:        stateswitch.And(th.HasClusterError, stateswitch.Not(th.IsDay2Host)),
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoAbortingDueClusterErrors),
 	})
@@ -444,7 +444,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusAddedToExistingCluster),
 		},
-		Condition:        th.IsAddToExistingClusterHost,
+		Condition:        th.IsDay2Host,
 		DestinationState: stateswitch.State(models.HostStatusAddedToExistingCluster),
 	})
 

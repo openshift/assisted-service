@@ -87,7 +87,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusCancelled:                {[]CommandGetter{logsCmd, stopCmd}, defaultBackedOffInstructionInSec},
 		},
 		addHostsClusterToSteps: stateToStepsMap{
-			models.HostStatusKnown:                {[]CommandGetter{connectivityCmd, apivipConnectivityCmd}, defaultNextInstructionInSec},
+			models.HostStatusKnown:                {[]CommandGetter{connectivityCmd, apivipConnectivityCmd, inventoryCmd}, defaultNextInstructionInSec},
 			models.HostStatusInsufficient:         {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd}, defaultNextInstructionInSec},
 			models.HostStatusDisconnected:         {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusDiscovering:          {[]CommandGetter{inventoryCmd, downloadInstallerCmd}, defaultNextInstructionInSec},
@@ -112,7 +112,7 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 
 	returnSteps := models.Steps{}
 	stateToSteps := i.installingClusterStateToSteps
-	if swag.StringValue(host.Kind) == models.HostKindAddToExistingClusterHost {
+	if isDay2Host(host) {
 		stateToSteps = i.addHostsClusterToSteps
 	}
 
