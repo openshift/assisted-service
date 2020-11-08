@@ -1282,7 +1282,6 @@ var _ = Describe("Refresh Host", func() {
 				srcState:          models.HostStatusDiscovering,
 				dstState:          models.HostStatusDisconnected,
 				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
-				//statusInfoChecker: makeJsonChecker(statusInfoDisconnected),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationFailure, messagePattern: "Host is disconnected"},
 					HasInventory:         {status: ValidationFailure, messagePattern: "Inventory has not been received for the host"},
@@ -1635,7 +1634,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Require at least 4 CPU cores for master role, found only 2, Require at least 16 GiB RAM role master, found only 8")),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Require at least 4 CPU cores for master role, found only 2", "Require at least 16 GiB RAM role master, found only 8")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1658,7 +1657,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               models.HostRoleMaster,
-				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Require at least 4 CPU cores for master role, found only 2, Require at least 16 GiB RAM role master, found only 8")),
+				statusInfoChecker:  makeValueChecker(formatStatusInfoNotReadyForInstall("Require at least 4 CPU cores for master role, found only 2", "Require at least 16 GiB RAM role master, found only 8")),
 				inventory:          workerInventory(),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -2420,5 +2419,5 @@ func formatProgressTimedOutInfo(stage models.HostStage) string {
 }
 
 func formatStatusInfoNotReadyForInstall(validationMessages ...string) string {
-	return strings.Replace(statusInfoNotReadyForInstall, "$VALIDATIONS", strings.Join(validationMessages, ", "), 1)
+	return strings.Replace(statusInfoNotReadyForInstall, "$FAILING_VALIDATIONS", strings.Join(validationMessages, " ; "), 1)
 }

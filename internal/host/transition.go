@@ -487,9 +487,9 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 		template = strings.Replace(template, "$STAGE", string(sHost.host.Progress.CurrentStage), 1)
 		template = strings.Replace(template, "$MAX_TIME", InstallationProgressTimeout[sHost.host.Progress.CurrentStage].String(), 1)
 
-		if strings.Contains(template, "$VALIDATIONS") {
-			failedValidations := getFailedValidations(b, params)
-			template = strings.Replace(template, "$VALIDATIONS", strings.Join(failedValidations, ", "), 1)
+		if strings.Contains(template, "$FAILING_VALIDATIONS") {
+			failedValidations := getFailedValidations(params)
+			template = strings.Replace(template, "$FAILING_VALIDATIONS", strings.Join(failedValidations, " ; "), 1)
 		}
 
 		_, err = updateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
@@ -507,13 +507,9 @@ func (th *transitionHandler) IsAddToExistingClusterHost(sw stateswitch.StateSwit
 	return swag.StringValue(sHost.host.Kind) == models.HostKindAddToExistingClusterHost, nil
 }
 
-func getFailedValidations(b []byte, params *TransitionArgsRefreshHost) []string {
-	var dat map[string][]validationResult
-
-	if err := json.Unmarshal(b, &dat); err != nil {
-		panic(err)
-	}
+func getFailedValidations(params *TransitionArgsRefreshHost) []string {
 	var failedValidations []string
+
 	for _, validations := range params.validationResults {
 		for _, validation := range validations {
 			if validation.Status == ValidationFailure {
