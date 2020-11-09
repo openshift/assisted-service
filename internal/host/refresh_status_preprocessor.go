@@ -120,6 +120,11 @@ func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCf
 			condition: v.isValidPlatform,
 			formatter: v.printValidPlatform,
 		},
+		{
+			id:        IsNTPSynced,
+			condition: v.IsNTPSynced,
+			formatter: v.printNTPSynced,
+		},
 	}
 	return ret
 }

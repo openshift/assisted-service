@@ -3847,6 +3847,10 @@ func init() {
         "status_info"
       ],
       "properties": {
+        "additional_ntp_source": {
+          "description": "NTP source going to be added to all the hosts.",
+          "type": "string"
+        },
         "api_vip": {
           "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
@@ -4084,6 +4088,12 @@ func init() {
         "pull_secret"
       ],
       "properties": {
+        "additional_ntp_source": {
+          "description": "NTP source going to be added to all the hosts.",
+          "type": "string",
+          "default": "clock.redhat.com",
+          "x-nullable": true
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
@@ -4172,6 +4182,11 @@ func init() {
     "cluster-update-params": {
       "type": "object",
       "properties": {
+        "additional_ntp_source": {
+          "description": "NTP source going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
         "api_vip": {
           "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
@@ -4794,6 +4809,10 @@ func init() {
           "format": "datetime",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "ntp_sources": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "progress": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
           "$ref": "#/definitions/host-progress-info"
@@ -5016,7 +5035,8 @@ func init() {
         "belongs-to-machine-cidr",
         "api-vip-connected",
         "belongs-to-majority-group",
-        "valid-platform"
+        "valid-platform",
+        "ntp-synced"
       ]
     },
     "host_network": {
@@ -9409,6 +9429,10 @@ func init() {
         "status_info"
       ],
       "properties": {
+        "additional_ntp_source": {
+          "description": "NTP source going to be added to all the hosts.",
+          "type": "string"
+        },
         "api_vip": {
           "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
@@ -9646,6 +9670,12 @@ func init() {
         "pull_secret"
       ],
       "properties": {
+        "additional_ntp_source": {
+          "description": "NTP source going to be added to all the hosts.",
+          "type": "string",
+          "default": "clock.redhat.com",
+          "x-nullable": true
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
@@ -9734,6 +9764,11 @@ func init() {
     "cluster-update-params": {
       "type": "object",
       "properties": {
+        "additional_ntp_source": {
+          "description": "NTP source going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
         "api_vip": {
           "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
@@ -10338,6 +10373,10 @@ func init() {
           "format": "datetime",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "ntp_sources": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "progress": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
           "$ref": "#/definitions/host-progress-info"
@@ -10560,7 +10599,8 @@ func init() {
         "belongs-to-machine-cidr",
         "api-vip-connected",
         "belongs-to-majority-group",
-        "valid-platform"
+        "valid-platform",
+        "ntp-synced"
       ]
     },
     "host_network": {

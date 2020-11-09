@@ -65,7 +65,8 @@ def main():
                         "INVENTORY_IMAGE": "assisted-installer-agent",
                         "FREE_ADDRESSES_IMAGE": "assisted-installer-agent",
                         "DHCP_LEASE_ALLOCATOR_IMAGE": "assisted-installer-agent",
-                        "API_VIP_CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent"}
+                        "API_VIP_CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent",
+                        "NTP_SYNCHRONIZER_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
                 if deploy_options.subsystem_test and env_var_name in subsystem_versions.keys():
                     image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, subsystem_versions[env_var_name])

@@ -72,7 +72,9 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("known", func() {
 				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeInventory})
+					[]models.StepType{
+						models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeInventory, models.StepTypeNtpSynchronizer,
+					})
 			})
 			It("disconnected", func() {
 				checkStepsByState(models.HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
@@ -80,11 +82,15 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("insufficient", func() {
 				checkStepsByState(models.HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
+					[]models.StepType{
+						models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
+					})
 			})
 			It("pending-for-input", func() {
 				checkStepsByState(models.HostStatusPendingForInput, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses})
+					[]models.StepType{
+						models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
+					})
 			})
 			It("error", func() {
 				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
@@ -128,7 +134,10 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("known", func() {
 				checkStepsByState(models.HostStatusKnown, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate, models.StepTypeInventory})
+					[]models.StepType{
+						models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate,
+						models.StepTypeInventory, models.StepTypeNtpSynchronizer,
+					})
 			})
 			It("disconnected", func() {
 				checkStepsByState(models.HostStatusDisconnected, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
@@ -136,11 +145,17 @@ var _ = Describe("instructionmanager", func() {
 			})
 			It("insufficient", func() {
 				checkStepsByState(models.HostStatusInsufficient, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate})
+					[]models.StepType{
+						models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses,
+						models.StepTypeDhcpLeaseAllocate, models.StepTypeNtpSynchronizer,
+					})
 			})
 			It("pending-for-input", func() {
 				checkStepsByState(models.HostStatusPendingForInput, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,
-					[]models.StepType{models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate})
+					[]models.StepType{
+						models.StepTypeInventory, models.StepTypeConnectivityCheck,
+						models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate, models.StepTypeNtpSynchronizer,
+					})
 			})
 			It("error", func() {
 				checkStepsByState(models.HostStatusError, &host, db, mockEvents, instMng, hwValidator, cnValidator, ctx,

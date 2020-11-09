@@ -19,6 +19,9 @@ import (
 // swagger:model cluster-create-params
 type ClusterCreateParams struct {
 
+	// NTP source going to be added to all the hosts.
+	AdditionalNtpSource *string `json:"additional_ntp_source,omitempty"`
+
 	// Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
 	BaseDNSDomain string `json:"base_dns_domain,omitempty"`
 

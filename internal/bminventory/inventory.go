@@ -145,7 +145,12 @@ const ignitionConfigFormat = `{
       "name": "agent.service",
       "enabled": true,
       "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitInterval=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}  {{if .HostCACertPath}}--cacert {{.HostCACertPath}}{{end}}\n\n[Install]\nWantedBy=multi-user.target"
-    }]
+	},
+	{
+		"name": "selinux.service",
+		"enabled": true,
+		"contents": "[Service]\nType=oneshot\nExecStartPre=checkmodule -M -m -o /root/assisted.mod /root/assisted.te\nExecStartPre=semodule_package -o /root/assisted.pp -m /root/assisted.mod\nExecStart=semodule -i /root/assisted.pp\n\n[Install]\nWantedBy=multi-user.target"
+	}]
   },
   "storage": {
     "files": [{
@@ -165,7 +170,16 @@ const ignitionConfigFormat = `{
 			"name": "root"
 		},
 		"contents": { "source": "data:,{{.PULL_SECRET}}" }
-	  }{{if .RH_ROOT_CA}},
+	},
+	{
+		"overwrite": true,
+		"path": "/root/assisted.te",
+		"mode": 420,
+		"user": {
+			"name": "root"
+		},
+		"contents": { "source": "data:text/plain;charset=utf-8,module%20assisted%201.0%3B%0D%0Arequire%20%7B%0D%0A%20%20%20%20%20%20%20%20type%20chronyd_t%3B%0D%0A%20%20%20%20%20%20%20%20type%20container_file_t%3B%0D%0A%20%20%20%20%20%20%20%20type%20spc_t%3B%0D%0A%20%20%20%20%20%20%20%20class%20unix_dgram_socket%20sendto%3B%0D%0A%20%20%20%20%20%20%20%20class%20dir%20search%3B%0D%0A%20%20%20%20%20%20%20%20class%20sock_file%20write%3B%0D%0A%7D%0D%0A%23%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%20chronyd_t%20%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%0D%0Aallow%20chronyd_t%20container_file_t%3Adir%20search%3B%0D%0Aallow%20chronyd_t%20container_file_t%3Asock_file%20write%3B%0D%0Aallow%20chronyd_t%20spc_t%3Aunix_dgram_socket%20sendto%3B" }
+	}{{if .RH_ROOT_CA}},
 	{
 	  "overwrite": true,
 	  "path": "/etc/pki/ca-trust/source/anchors/rh-it-root-ca.crt",
@@ -473,6 +487,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
 		VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
 		UserManagedNetworking:    params.NewClusterParams.UserManagedNetworking,
+		AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
 	}}
 
 	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
@@ -1507,6 +1522,9 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	if params.ClusterUpdateParams.NoProxy != nil {
 		updates["no_proxy"] = swag.StringValue(params.ClusterUpdateParams.NoProxy)
 	}
+	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
+		updates["additional_ntp_source"] = swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
+	}
 	if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
 		vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
 		updates["vip_dhcp_allocation"] = vipDhcpAllocation
@@ -2160,6 +2178,42 @@ func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, 
 	return b.clusterApi.SetVipsData(ctx, &cluster, apiVip, ingressVip, dhcpAllocationReponse.APIVipLease, dhcpAllocationReponse.IngressVipLease, b.db)
 }
 
+func (b *bareMetalInventory) processNtpSynchronizerResponse(ctx context.Context, host *models.Host, ntpSynchronizerResponseStr string) error {
+	var (
+		err                     error
+		ntpSynchronizerResponse models.NtpSynchronizationResponse
+	)
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if err = json.Unmarshal([]byte(ntpSynchronizerResponseStr), &ntpSynchronizerResponse); err != nil {
+		log.WithError(err).Warnf("Json unmarshal ntp synchronizer response from host %s", host.ID.String())
+		return err
+	}
+
+	if len(ntpSynchronizerResponse.NtpSources) == 0 {
+		err = errors.Errorf("No NTP sources for host %s", host.ID.String())
+		log.WithError(err).Warnf("Update NTP sources")
+		return err
+	}
+
+	bytes, err := json.Marshal(ntpSynchronizerResponse.NtpSources)
+	if err != nil {
+		log.WithError(err).Warnf("Failed to marshal NTP sources for host %s", host.ID.String())
+		return err
+	}
+
+	if err = b.db.Model(&models.Host{}).Where("id = ? and cluster_id = ?", host.ID.String(),
+		host.ClusterID.String()).Updates(map[string]interface{}{"ntp_sources": bytes}).Error; err != nil {
+		log.WithError(err).Warnf("Update NTP sources of host %s", host.ID.String())
+		return err
+	}
+
+	// Gorm sets the number of changed rows in AffectedRows and not the number of matched rows.  Therefore, if the report hasn't changed
+	// from the previous report, the AffectedRows will be 0 but it will still be correct.  So no error reporting needed for AffectedRows == 0
+	return nil
+}
+
 func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {
 	var err error
 	switch params.Reply.StepType {
@@ -2173,6 +2227,8 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.updateFreeAddressesReport(ctx, &host, stepReply)
 	case models.StepTypeDhcpLeaseAllocate:
 		err = b.processDhcpAllocationResponse(ctx, &host, stepReply)
+	case models.StepTypeNtpSynchronizer:
+		err = b.processNtpSynchronizerResponse(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -2193,6 +2249,8 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.FreeNetworksAddresses{}, params.Reply.Output)
 	case models.StepTypeDhcpLeaseAllocate:
 		stepReply, err = filterReply(&models.DhcpAllocationResponse{}, params.Reply.Output)
+	case models.StepTypeNtpSynchronizer:
+		stepReply, err = filterReply(&models.NtpSynchronizationResponse{}, params.Reply.Output)
 	}
 
 	return stepReply, err

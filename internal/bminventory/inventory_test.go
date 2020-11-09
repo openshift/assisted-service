@@ -954,6 +954,78 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
 		})
 	})
+
+	Context("NTP synchronizer", func() {
+		var (
+			clusterId *strfmt.UUID
+			hostId    *strfmt.UUID
+		)
+
+		var makeStepReply = func(clusterID, hostID strfmt.UUID, ntpSources []*models.NtpSource) installer.PostStepReplyParams {
+			response := models.NtpSynchronizationResponse{
+				NtpSources: ntpSources,
+			}
+
+			b, _ := json.Marshal(&response)
+
+			return installer.PostStepReplyParams{
+				ClusterID: clusterID,
+				HostID:    hostID,
+				Reply: &models.StepReply{
+					Output:   string(b),
+					StepType: models.StepTypeNtpSynchronizer,
+				},
+			}
+		}
+
+		BeforeEach(func() {
+			clusterId = strToUUID(uuid.New().String())
+			hostId = strToUUID(uuid.New().String())
+
+			host := models.Host{
+				ID:        hostId,
+				ClusterID: *clusterId,
+				Status:    swag.String("discovering"),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
+
+		It("NTP synchronizer success", func() {
+			toMarshal := []*models.NtpSource{
+				{SourceName: "1.1.1.1", SourceState: "synced"},
+				{SourceName: "2.2.2.2", SourceState: "unreachable"},
+			}
+
+			By("Set returned value", func() {
+				params := makeStepReply(*clusterId, *hostId, toMarshal)
+				reply := bm.PostStepReply(ctx, params)
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			})
+
+			By("Verify DB", func() {
+				var h models.Host
+				Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+				var savedSources []*models.NtpSource
+				Expect(json.Unmarshal([]byte(h.NtpSources), &savedSources)).ToNot(HaveOccurred())
+				Expect(&savedSources).To(Equal(&toMarshal))
+			})
+		})
+
+		It("NTP synchronizer empty", func() {
+			By("Set returned value", func() {
+				toMarshal := []*models.NtpSource{}
+				params := makeStepReply(*clusterId, *hostId, toMarshal)
+				reply := bm.PostStepReply(ctx, params)
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+			})
+
+			By("Verify DB", func() {
+				var h models.Host
+				Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+				Expect(h.NtpSources).To(BeEmpty())
+			})
+		})
+	})
 })
 
 var _ = Describe("GetFreeAddresses", func() {
