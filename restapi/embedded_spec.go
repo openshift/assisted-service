@@ -4975,6 +4975,41 @@ func init() {
         }
       }
     },
+    "ntp_source": {
+      "type": "object",
+      "properties": {
+        "source_name": {
+          "description": "NTP source name or IP.",
+          "type": "string"
+        },
+        "source_state": {
+          "description": "Indication of state of an NTP source.",
+          "$ref": "#/definitions/source_state"
+        }
+      }
+    },
+    "ntp_synchronization_request": {
+      "type": "object",
+      "required": [
+        "ntp_source"
+      ],
+      "properties": {
+        "ntp_source": {
+          "description": "NTP source name or IP.",
+          "type": "string"
+        }
+      }
+    },
+    "ntp_synchronization_response": {
+      "properties": {
+        "ntp_sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ntp_source"
+          }
+        }
+      }
+    },
     "presigned": {
       "type": "object",
       "required": [
@@ -4985,6 +5020,17 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "source_state": {
+      "type": "string",
+      "enum": [
+        "synced",
+        "combined",
+        "not_combined",
+        "error",
+        "variable",
+        "unreachable"
+      ]
     },
     "step": {
       "type": "object",
@@ -5036,7 +5082,8 @@ func init() {
         "free-network-addresses",
         "reset-installation",
         "dhcp-lease-allocate",
-        "api-vip-connectivity-check"
+        "api-vip-connectivity-check",
+        "ntp-synchronizer"
       ]
     },
     "steps": {
@@ -10100,6 +10147,41 @@ func init() {
         }
       }
     },
+    "ntp_source": {
+      "type": "object",
+      "properties": {
+        "source_name": {
+          "description": "NTP source name or IP.",
+          "type": "string"
+        },
+        "source_state": {
+          "description": "Indication of state of an NTP source.",
+          "$ref": "#/definitions/source_state"
+        }
+      }
+    },
+    "ntp_synchronization_request": {
+      "type": "object",
+      "required": [
+        "ntp_source"
+      ],
+      "properties": {
+        "ntp_source": {
+          "description": "NTP source name or IP.",
+          "type": "string"
+        }
+      }
+    },
+    "ntp_synchronization_response": {
+      "properties": {
+        "ntp_sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ntp_source"
+          }
+        }
+      }
+    },
     "presigned": {
       "type": "object",
       "required": [
@@ -10110,6 +10192,17 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "source_state": {
+      "type": "string",
+      "enum": [
+        "synced",
+        "combined",
+        "not_combined",
+        "error",
+        "variable",
+        "unreachable"
+      ]
     },
     "step": {
       "type": "object",
@@ -10161,7 +10254,8 @@ func init() {
         "free-network-addresses",
         "reset-installation",
         "dhcp-lease-allocate",
-        "api-vip-connectivity-check"
+        "api-vip-connectivity-check",
+        "ntp-synchronizer"
       ]
     },
     "steps": {
