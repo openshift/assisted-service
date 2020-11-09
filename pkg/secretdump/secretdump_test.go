@@ -33,33 +33,34 @@ var _ = Describe("Secretdump", func() {
 			private int
 		}
 
-		test1Nested1 := Nested{
-			D: "World",
-			E: 6,
-			F: "ThisIsAnotherSecret",
-		}
+		It("should be as expected", func() {
+			nested1 := Nested{
+				D: "World",
+				E: 6,
+				F: "ThisIsAnotherSecret",
+			}
 
-		test1Nested2 := Nested{
-			D: "!",
-			E: 7,
-			F: "ThisIsAnotherAnotherSecret",
-		}
+			nested2 := Nested{
+				D: "!",
+				E: 7,
+				F: "ThisIsAnotherAnotherSecret",
+			}
 
-		test1IntValue := 10
+			testIntValue := 10
 
-		test1 := Example{
-			A:       "Hello",
-			B:       5,
-			C:       "ThisIsASecret",
-			N:       test1Nested1,   // Tests nested structs
-			Ppn:     nil,            // Tests nil pointers to primitives
-			Ppv:     &test1IntValue, // Tests real pointers to primitives
-			Psn:     nil,            // Tests nil pointers to structs
-			Psv:     &test1Nested2,  // Tests real pointers to structs
-			private: 2,              // Tests not crashing on unexported fields
-		}
+			testExample := Example{
+				A:       "Hello",
+				B:       5,
+				C:       "ThisIsASecret",
+				N:       nested1,       // Tests nested structs
+				Ppn:     nil,           // Tests nil pointers to primitives
+				Ppv:     &testIntValue, // Tests real pointers to primitives
+				Psn:     nil,           // Tests nil pointers to structs
+				Psv:     &nested2,      // Tests real pointers to structs
+				private: 2,             // Tests not crashing on unexported fields
+			}
 
-		test1Expected := strings.TrimSpace(`
+			expected := strings.TrimSpace(`
 struct Example {
 	A: "Hello",
 	B: 5,
@@ -76,10 +77,9 @@ struct Example {
 	private: <PRIVATE>,
 }
 `)
-		test1Actual := DumpSecretStruct(test1)
+			actual := DumpSecretStruct(testExample)
 
-		It("should be as expected", func() {
-			Expect(test1Actual).To(Equal(test1Expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 })
