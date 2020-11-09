@@ -29,6 +29,12 @@ digraph ClusterStateMachine {
 
     installing -> finalizing [label = "3 masters\ninstalled", color=chartreuse4, fontcolor=chartreuse4];
 
+    installing -> "installing-pending-user-action" [label = "hosts in wrong boot order", color=cornsilk4, fontcolor=cornsilk4];
+
+    "installing-pending-user-action" -> installing [label = "fixed wrong boot order", fontcolor=darkolivegreen4, color=darkolivegreen4];
+    "installing-pending-user-action" -> cancelled [label = "cancel", color=slategray, fontcolor=slategray];
+    "installing-pending-user-action" -> error [label = "error\n", color=crimson, fontcolor=crimson];
+
     finalizing -> error [label = "installation\nerror\n", color=crimson, fontcolor=crimson, ltail = cluster_level1];
     finalizing -> cancelled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level1];
     finalizing -> installed [label = "installation\ncompleted", color=chartreuse4, fontcolor=chartreuse4];
