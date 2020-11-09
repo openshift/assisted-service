@@ -35,7 +35,7 @@ func dumpSecretStructInternal(obj interface{}, sb *strings.Builder, depth int) {
 		sb.WriteString(fmt.Sprintf("%s: ", name))
 
 		if tag.Get("secret") == "true" {
-			sb.WriteString("<REDACTED>")
+			sb.WriteString("<SECRET>")
 		} else {
 			if field.CanInterface() {
 				value := field.Interface()

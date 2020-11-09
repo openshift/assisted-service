@@ -64,11 +64,11 @@ var _ = Describe("Secretdump", func() {
 struct Example {
 	A: "Hello",
 	B: 5,
-	C: <REDACTED>,
+	C: <SECRET>,
 	N: struct Nested {
 		D: "World",
 		E: 6,
-		F: <REDACTED>,
+		F: <SECRET>,
 	},
 	Ppn: <*int>,
 	Ppv: <*int>,
