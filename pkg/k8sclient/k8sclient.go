@@ -57,5 +57,5 @@ func (c *k8sClient) ListNodes() (*v1.NodeList, error) {
 }
 
 func (c *k8sClient) GetSecret(namespace, name string) (*v1.Secret, error) {
-	return c.client.CoreV1().Secrets(namespace).Get(context.TODO(), "name", metav1.GetOptions{})
+	return c.client.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
