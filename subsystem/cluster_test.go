@@ -29,15 +29,17 @@ import (
 
 // #nosec
 const (
-	clusterInsufficientStateInfo    = "Cluster is not ready for install"
-	clusterReadyStateInfo           = "Cluster ready to be installed"
-	pullSecret                      = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
-	IgnoreStateInfo                 = "IgnoreStateInfo"
-	clusterCanceledInfo             = "Canceled cluster installation"
-	clusterErrorInfo                = "cluster has hosts in error"
-	clusterResetStateInfo           = "cluster was reset by user"
-	clusterPendingForInputStateInfo = "User input required"
-	clusterFinalizingStateInfo      = "Finalizing cluster installation"
+	clusterInsufficientStateInfo                = "Cluster is not ready for install"
+	clusterReadyStateInfo                       = "Cluster ready to be installed"
+	pullSecret                                  = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
+	IgnoreStateInfo                             = "IgnoreStateInfo"
+	clusterCanceledInfo                         = "Canceled cluster installation"
+	clusterErrorInfo                            = "cluster has hosts in error"
+	clusterResetStateInfo                       = "cluster was reset by user"
+	clusterPendingForInputStateInfo             = "User input required"
+	clusterFinalizingStateInfo                  = "Finalizing cluster installation"
+	clusterInstallingPendingUserActionStateInfo = "Cluster has hosts with wrong boot order"
+	clusterInstallingStateInfo                  = "Installation in progress"
 )
 
 const (
@@ -797,10 +799,12 @@ var _ = Describe("cluster install", func() {
 				hostInDb := getHost(clusterID, *hostID)
 				Expect(*hostInDb.Status).Should(Equal(models.HostStatusInstallingPendingUserAction))
 
-				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-				Expect(err).NotTo(HaveOccurred())
-				c := rep.GetPayload()
-				Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+				waitForClusterState(
+					ctx,
+					clusterID,
+					models.ClusterStatusInstallingPendingUserAction,
+					defaultWaitForClusterStateTimeout,
+					clusterInstallingPendingUserActionStateInfo)
 			})
 
 			By("Updating progress after fixing boot order", func() {
@@ -812,6 +816,12 @@ var _ = Describe("cluster install", func() {
 				hostInDb := getHost(clusterID, *hostID)
 				Expect(*hostInDb.Status).Should(Equal(models.HostStatusInstallingInProgress))
 				Expect(*hostInDb.StatusInfo).Should(Equal(string(installProgress)))
+				waitForClusterState(
+					ctx,
+					clusterID,
+					models.ClusterStatusInstalling,
+					defaultWaitForClusterStateTimeout,
+					clusterInstallingStateInfo)
 			})
 		})
 
@@ -1499,6 +1509,14 @@ var _ = Describe("cluster install", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				hostInDb := getHost(clusterID, *hostID)
 				Expect(*hostInDb.Status).Should(Equal(models.HostStatusInstallingPendingUserAction))
+
+				waitForClusterState(
+					ctx,
+					clusterID,
+					models.ClusterStatusInstallingPendingUserAction,
+					defaultWaitForClusterStateTimeout,
+					clusterInstallingPendingUserActionStateInfo)
+
 				_, err = userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
 				for _, host := range c.Hosts {
