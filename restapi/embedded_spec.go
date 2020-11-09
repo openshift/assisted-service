@@ -3751,7 +3751,8 @@ func init() {
       "type": "object",
       "required": [
         "name",
-        "openshift_version"
+        "openshift_version",
+        "pull_secret"
       ],
       "properties": {
         "base_dns_domain": {
@@ -8940,7 +8941,8 @@ func init() {
       "type": "object",
       "required": [
         "name",
-        "openshift_version"
+        "openshift_version",
+        "pull_secret"
       ],
       "properties": {
         "base_dns_domain": {

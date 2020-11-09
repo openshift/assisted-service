@@ -581,6 +581,7 @@ func registerCluster(ctx context.Context, cli *client.AssistedInstall) error {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test"),
 				OpenshiftVersion: swag.String("4.5"),
+				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}`),
 			},
 		})
 	return err

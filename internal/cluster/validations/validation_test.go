@@ -65,6 +65,10 @@ var _ = Describe("Pull secret validation", func() {
 			err := secretValidator.ValidatePullSecret(validSecretFormat, "", *authHandlerDisabled)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
+		It("empty secret", func() {
+			err := secretValidator.ValidatePullSecret("", "", *authHandlerDisabled)
+			Expect(err).Should(HaveOccurred())
+		})
 		It("invalid format for the auth", func() {
 			err := secretValidator.ValidatePullSecret(invalidAuthFormat, "", *authHandlerDisabled)
 			Expect(err).Should(HaveOccurred())
