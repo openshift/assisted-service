@@ -11,3 +11,4 @@ DEPLOY_TARGET=onprem
 DUMMY_IGNITION=false
 OPENSHIFT_INSTALL_RELEASE_IMAGE=quay.io/ocpmetal/ocp-release:v1.0.9.1
 SERVICE_IPS=<Comma separated list of IPs>
+PUBLIC_CONTAINER_REGISTRIES=quay.io
