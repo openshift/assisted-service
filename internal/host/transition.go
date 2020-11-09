@@ -487,6 +487,11 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 		template = strings.Replace(template, "$STAGE", string(sHost.host.Progress.CurrentStage), 1)
 		template = strings.Replace(template, "$MAX_TIME", InstallationProgressTimeout[sHost.host.Progress.CurrentStage].String(), 1)
 
+		if strings.Contains(template, "$FAILING_VALIDATIONS") {
+			failedValidations := getFailedValidations(params)
+			template = strings.Replace(template, "$FAILING_VALIDATIONS", strings.Join(failedValidations, " ; "), 1)
+		}
+
 		_, err = updateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
 			sHost.srcState, swag.StringValue(sHost.host.Status), template, "validations_info", string(b))
 		return err
@@ -500,4 +505,17 @@ func (th *transitionHandler) IsAddToExistingClusterHost(sw stateswitch.StateSwit
 		return false, errors.New("HasClusterError incompatible type of StateSwitch")
 	}
 	return swag.StringValue(sHost.host.Kind) == models.HostKindAddToExistingClusterHost, nil
+}
+
+func getFailedValidations(params *TransitionArgsRefreshHost) []string {
+	var failedValidations []string
+
+	for _, validations := range params.validationResults {
+		for _, validation := range validations {
+			if validation.Status == ValidationFailure {
+				failedValidations = append(failedValidations, validation.Message)
+			}
+		}
+	}
+	return failedValidations
 }
