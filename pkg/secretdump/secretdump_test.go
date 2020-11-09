@@ -1,10 +1,8 @@
-package secretdump_test
+package secretdump
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	. "github.com/openshift/assisted-service/pkg/secretdump"
 
 	"strings"
 	"testing"
@@ -73,8 +71,8 @@ struct Example {
 	},
 	Ppn: <*int>,
 	Ppv: <*int>,
-	Psn: <*secretdump_test.Nested>,
-	Psv: <*secretdump_test.Nested>,
+	Psn: <*secretdump.Nested>,
+	Psv: <*secretdump.Nested>,
 	private: <PRIVATE>,
 }
 `)
