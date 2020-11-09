@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -1954,6 +1955,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
 				Expect(resultHost.Role).To(Equal(t.role))
 				Expect(resultHost.Status).To(Equal(&t.dstState))
+				fmt.Println(swag.StringValue(resultHost.StatusInfo))
 				t.statusInfoChecker.check(resultHost.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(resultHost.ValidationsInfo)
@@ -2447,5 +2449,6 @@ func formatProgressTimedOutInfo(stage models.HostStage) string {
 }
 
 func formatStatusInfoFailedValidation(statusInfo string, validationMessages ...string) string {
+	sort.Strings(validationMessages)
 	return strings.Replace(statusInfo, "$FAILING_VALIDATIONS", strings.Join(validationMessages, " ; "), 1)
 }
