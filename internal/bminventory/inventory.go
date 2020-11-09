@@ -3520,6 +3520,8 @@ func (b *bareMetalInventory) getOCPHostInventory(node *v1.Node) (string, error) 
 		},
 		Hostname: hostname,
 		CPU:      &models.CPU{Architecture: arch},
+		Memory:   &models.Memory{},
+		Disks:    []*models.Disk{{}},
 	}
 	ret, err := json.Marshal(&inventory)
 	return string(ret), err
