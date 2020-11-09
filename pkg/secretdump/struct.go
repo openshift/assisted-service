@@ -58,5 +58,5 @@ func dumpSecretStructInternal(obj interface{}, sb *strings.Builder, depth int) {
 		sb.WriteString("\t")
 	}
 
-	sb.WriteString(fmt.Sprintf("}"))
+	sb.WriteString("}")
 }
