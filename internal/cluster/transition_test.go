@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/golang/mock/gomock"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -183,6 +185,7 @@ var _ = Describe("Cancel cluster installation", func() {
 		{state: models.ClusterStatusInstalling, success: true},
 		{state: models.ClusterStatusError, success: true},
 		{state: models.ClusterStatusFinalizing, success: true},
+		{state: models.ClusterStatusInstallingPendingUserAction, success: true},
 		{state: models.ClusterStatusInsufficient, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusReady, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusInstalled, success: false, statusCode: http.StatusConflict},
@@ -247,6 +250,7 @@ var _ = Describe("Reset cluster", func() {
 		{state: models.ClusterStatusInstalling, success: true},
 		{state: models.ClusterStatusError, success: true},
 		{state: models.ClusterStatusFinalizing, success: true},
+		{state: models.ClusterStatusInstallingPendingUserAction, success: true},
 		{state: models.ClusterStatusInsufficient, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusReady, success: false, statusCode: http.StatusConflict},
 		{state: models.ClusterStatusInstalled, success: false, statusCode: http.StatusConflict},
@@ -1761,6 +1765,279 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
 				}
+			})
+		}
+	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+})
+
+var _ = Describe("Refresh Cluster - Installing Cases", func() {
+	var (
+		ctx                                     = context.Background()
+		db                                      *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
+		cluster                                 common.Cluster
+		clusterApi                              *Manager
+		mockEvents                              *events.MockHandler
+		mockHostAPI                             *host.MockAPI
+		mockMetric                              *metrics.MockAPI
+		ctrl                                    *gomock.Controller
+		dbName                                  = "cluster_transition_test_refresh_installing_cases"
+	)
+
+	mockHostAPIIsRequireUserActionResetFalse := func() {
+		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
+	}
+	mockMetricsAPIInstallationFinished := func() {
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	}
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		clusterApi = NewManager(getDefaultConfig(), getTestLog().WithField("pkg", "cluster-monitor"), db,
+			mockEvents, mockHostAPI, mockMetric, nil)
+
+		hid1 = strfmt.UUID(uuid.New().String())
+		hid2 = strfmt.UUID(uuid.New().String())
+		hid3 = strfmt.UUID(uuid.New().String())
+		hid4 = strfmt.UUID(uuid.New().String())
+		hid5 = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+	Context("All transitions", func() {
+		var srcState string
+		tests := []struct {
+			name               string
+			srcState           string
+			srcStatusInfo      string
+			machineNetworkCidr string
+			apiVip             string
+			ingressVip         string
+			dnsDomain          string
+			pullSecretSet      bool
+			dstState           string
+			hosts              []models.Host
+			statusInfoChecker  statusInfoChecker
+		}{
+			{
+				name:               "installing to installing",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstalling,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.ClusterStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.ClusterStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.ClusterStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.ClusterStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.ClusterStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInstalling),
+			},
+			{
+				name:               "installing to installing-pending-user-action",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstallingPendingUserAction,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInstallingPendingUserAction),
+			},
+			{
+				name:               "installing to installing-pending-user-action (2)",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstallingPendingUserAction,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInstallingPendingUserAction),
+			},
+			{
+				name:               "installing-pending-user-action to installing-pending-user-action",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusInstallingPendingUserAction,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInstallingPendingUserAction),
+			},
+			{
+				name:               "installing-pending-user-action to installing-pending-user-action (2)",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusInstallingPendingUserAction,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInstallingPendingUserAction),
+			},
+			{
+				name:               "installing-pending-user-action to error",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusError), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoError),
+			},
+			{
+				name:               "installing-pending-user-action to error (2)",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusError), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoError),
+			},
+			{
+				name:               "installing-pending-user-action to installing",
+				srcState:           models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo:      statusInfoInstallingPendingUserAction,
+				dstState:           models.ClusterStatusInstalling,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInstalling),
+			},
+			{
+				name:               "installing to finalizing",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoFinalizing),
+			},
+			{
+				name:               "installing to error",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusError,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusError), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoError),
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				cluster = common.Cluster{
+					Cluster: models.Cluster{
+						APIVip:                   t.apiVip,
+						ID:                       &clusterId,
+						IngressVip:               t.ingressVip,
+						MachineNetworkCidr:       t.machineNetworkCidr,
+						Status:                   &t.srcState,
+						StatusInfo:               &t.srcStatusInfo,
+						VipDhcpAllocation:        swag.Bool(true),
+						BaseDNSDomain:            t.dnsDomain,
+						PullSecretSet:            t.pullSecretSet,
+						ServiceNetworkCidr:       "1.2.4.0/24",
+						ClusterNetworkCidr:       "1.3.0.0/16",
+						ClusterNetworkHostPrefix: 24,
+					},
+				}
+				cluster.MachineNetworkCidrUpdatedAt = time.Now().Add(-3 * time.Minute)
+				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+				for i := range t.hosts {
+					t.hosts[i].ClusterID = clusterId
+					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
+				}
+				cluster = getCluster(clusterId, db)
+				if srcState != t.dstState {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
+						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				}
+				reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError}
+				if funk.Contains(reportInstallationCompleteStatuses, t.dstState) {
+					mockMetricsAPIInstallationFinished()
+				} else if t.dstState == models.ClusterStatusInsufficient {
+					mockHostAPIIsRequireUserActionResetFalse()
+				}
+				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(clusterAfterRefresh.Status).To(Equal(&t.dstState))
+				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 			})
 		}
 	})
