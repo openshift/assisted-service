@@ -24,14 +24,15 @@ var _ = Describe("Secretdump", func() {
 		}
 
 		type Example struct {
-			A   string
-			B   int
-			C   string `secret:"true"` // Tests that fields marked secret get redacted. Top level.
-			N   Nested
-			Ppn *int
-			Ppv *int
-			Psn *Nested
-			Psv *Nested
+			A       string
+			B       int
+			C       string `secret:"true"` // Tests that fields marked secret get redacted. Top level.
+			N       Nested
+			Ppn     *int
+			Ppv     *int
+			Psn     *Nested
+			Psv     *Nested
+			private int
 		}
 
 		test1Nested1 := Nested{
@@ -49,14 +50,15 @@ var _ = Describe("Secretdump", func() {
 		test1IntValue := 10
 
 		test1 := Example{
-			A:   "Hello",
-			B:   5,
-			C:   "ThisIsASecret",
-			N:   test1Nested1,   // Tests nested structs
-			Ppn: nil,            // Tests nil pointers to primitives
-			Ppv: &test1IntValue, // Tests real pointers to primitives
-			Psn: nil,            // Tests nil pointers to structs
-			Psv: &test1Nested2,  // Tests real pointers to structs
+			A:       "Hello",
+			B:       5,
+			C:       "ThisIsASecret",
+			N:       test1Nested1,   // Tests nested structs
+			Ppn:     nil,            // Tests nil pointers to primitives
+			Ppv:     &test1IntValue, // Tests real pointers to primitives
+			Psn:     nil,            // Tests nil pointers to structs
+			Psv:     &test1Nested2,  // Tests real pointers to structs
+			private: 2,              // Tests not crashing on unexported fields
 		}
 
 		test1Expected := strings.TrimSpace(`
@@ -73,6 +75,7 @@ struct Example {
 	Ppv: <*int>,
 	Psn: <*secretdump_test.Nested>,
 	Psv: <*secretdump_test.Nested>,
+	private: <PRIVATE>,
 }
 `)
 		test1Actual := DumpSecretStruct(test1)

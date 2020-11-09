@@ -25,8 +25,7 @@ func dumpSecretStructInternal(obj interface{}, sb *strings.Builder, depth int) {
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 
-		name, value, tag := v.Type().Field(i).Name,
-			field.Interface(),
+		name, tag := v.Type().Field(i).Name,
 			reflect.TypeOf(obj).Field(i).Tag
 
 		for j := 0; j < depth; j++ {
@@ -38,12 +37,17 @@ func dumpSecretStructInternal(obj interface{}, sb *strings.Builder, depth int) {
 		if tag.Get("secret") == "true" {
 			sb.WriteString("<REDACTED>")
 		} else {
-			if field.Kind() == reflect.Struct {
-				dumpSecretStructInternal(value, sb, depth+1)
-			} else if field.Kind() == reflect.Ptr {
-				sb.WriteString(fmt.Sprintf("<%T>", value))
+			if field.CanInterface() {
+				value := field.Interface()
+				if field.Kind() == reflect.Struct {
+					dumpSecretStructInternal(value, sb, depth+1)
+				} else if field.Kind() == reflect.Ptr {
+					sb.WriteString(fmt.Sprintf("<%T>", value))
+				} else {
+					sb.WriteString(fmt.Sprintf("%#v", value))
+				}
 			} else {
-				sb.WriteString(fmt.Sprintf("%#v", value))
+				sb.WriteString("<PRIVATE>")
 			}
 		}
 
