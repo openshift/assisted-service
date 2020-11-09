@@ -140,7 +140,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), fmt.Sprintf("discovery-image-%s", clusterId.String()))
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{},
@@ -204,7 +204,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
+			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         clusterId,
 				ImageCreateParams: &models.ImageCreateParams{},
@@ -220,7 +220,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), gomock.Any())
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"\", SSH public key is not set)", gomock.Any())
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{},

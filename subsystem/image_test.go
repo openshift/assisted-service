@@ -147,7 +147,7 @@ var _ = Describe("system-test proxy update tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// fetch cluster proxy hash for generated image
-		msg := "Generated image (proxy URL is \"\", SSH public key is not set)"
+		msg := "Generated image (SSH public key is not set)"
 		verifyEventExistence(clusterID, msg)
 
 		// Update cluster with proxy settings

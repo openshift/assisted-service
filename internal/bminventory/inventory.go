@@ -835,12 +835,23 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	ignitionConfigForLogging, _ := b.formatIgnitionFile(&cluster, params, log, true)
 	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
 
-	msg := fmt.Sprintf("Generated image (proxy URL is \"%s\", ", cluster.HTTPProxy)
-	if params.ImageCreateParams.SSHPublicKey != "" {
-		msg += "SSH public key is set)"
-	} else {
-		msg += "SSH public key is not set)"
+	msg := "Generated image"
+
+	var msgExtras []string
+
+	if cluster.HTTPProxy != "" {
+		msgExtras = append(msgExtras, fmt.Sprintf(`proxy URL is "%s"`, cluster.HTTPProxy))
 	}
+
+	sshExtra := "SSH public key is not set"
+	if params.ImageCreateParams.SSHPublicKey != "" {
+		sshExtra = "SSH public key is set"
+	}
+
+	msgExtras = append(msgExtras, sshExtra)
+
+	msg = fmt.Sprintf("%s (%s)", msg, strings.Join(msgExtras, ", "))
+
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
 	return installer.NewGenerateClusterISOCreated().WithPayload(&cluster.Cluster)
 }
