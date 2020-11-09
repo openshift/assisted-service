@@ -480,38 +480,33 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		cluster.ProxyHash = proxyHash
 	}
 
-	if params.NewClusterParams.PullSecret != "" {
-		err := b.secretValidator.ValidatePullSecret(params.NewClusterParams.PullSecret, auth.UserNameFromContext(ctx), b.authHandler)
-		if err != nil {
-			log.WithError(err).Errorf("Pull secret for new cluster is invalid")
-			return installer.NewRegisterClusterBadRequest().
-				WithPayload(common.GenerateError(http.StatusBadRequest, secretValidationToUserError(err)))
-		}
-		ps, err := b.updatePullSecret(params.NewClusterParams.PullSecret, log)
-		if err != nil {
-			return installer.NewRegisterClusterBadRequest().
-				WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to update Pull-secret with additional credentials")))
-		}
-		setPullSecret(&cluster, ps)
-	} else {
-		log.Warn("Pull-secret for new cluster must be provided")
+	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
+	err := b.secretValidator.ValidatePullSecret(pullSecret, auth.UserNameFromContext(ctx), b.authHandler)
+	if err != nil {
+		log.WithError(err).Errorf("Pull secret for new cluster is invalid")
 		return installer.NewRegisterClusterBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Pull-secret must be provided")))
+			WithPayload(common.GenerateError(http.StatusBadRequest, secretValidationToUserError(err)))
 	}
+	ps, err := b.updatePullSecret(pullSecret, log)
+	if err != nil {
+		return installer.NewRegisterClusterBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, errors.New("Failed to update Pull-secret with additional credentials")))
+	}
+	setPullSecret(&cluster, ps)
 
-	if err := validations.ValidateClusterNameFormat(swag.StringValue(params.NewClusterParams.Name)); err != nil {
+	if err = validations.ValidateClusterNameFormat(swag.StringValue(params.NewClusterParams.Name)); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if sshPublicKey := swag.StringValue(&cluster.SSHPublicKey); sshPublicKey != "" {
 		sshPublicKey = strings.TrimSpace(cluster.SSHPublicKey)
-		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+		if err = validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 		cluster.SSHPublicKey = sshPublicKey
 	}
 
-	err := b.clusterApi.RegisterCluster(ctx, &cluster)
+	err = b.clusterApi.RegisterCluster(ctx, &cluster)
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", swag.StringValue(params.NewClusterParams.Name))
 		return installer.NewRegisterClusterInternalServerError().

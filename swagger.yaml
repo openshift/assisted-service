@@ -2613,6 +2613,7 @@ definitions:
     required:
       - name
       - openshift_version
+      - pull_secret
     properties:
       name:
         type: string

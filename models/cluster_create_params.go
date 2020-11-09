@@ -58,7 +58,8 @@ type ClusterCreateParams struct {
 	OpenshiftVersion *string `json:"openshift_version"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
-	PullSecret string `json:"pull_secret,omitempty"`
+	// Required: true
+	PullSecret *string `json:"pull_secret"`
 
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
@@ -92,6 +93,10 @@ func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePullSecret(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -194,6 +199,15 @@ func (m *ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) 
 
 	// value enum
 	if err := m.validateOpenshiftVersionEnum("openshift_version", "body", *m.OpenshiftVersion); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterCreateParams) validatePullSecret(formats strfmt.Registry) error {
+
+	if err := validate.Required("pull_secret", "body", m.PullSecret); err != nil {
 		return err
 	}
 

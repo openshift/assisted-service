@@ -35,7 +35,7 @@ var _ = Describe("system-test image tests", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
-				PullSecret:       pullSecret,
+				PullSecret:       swag.String(pullSecret),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -104,7 +104,7 @@ var _ = Describe("image tests", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
-				PullSecret:       pullSecret,
+				PullSecret:       swag.String(pullSecret),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -131,7 +131,7 @@ var _ = Describe("system-test proxy update tests", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String("4.5"),
-				PullSecret:       pullSecret,
+				PullSecret:       swag.String(pullSecret),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
