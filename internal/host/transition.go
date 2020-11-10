@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -489,6 +490,7 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 
 		if strings.Contains(template, "$FAILING_VALIDATIONS") {
 			failedValidations := getFailedValidations(params)
+			sort.Strings(failedValidations)
 			template = strings.Replace(template, "$FAILING_VALIDATIONS", strings.Join(failedValidations, " ; "), 1)
 		}
 
