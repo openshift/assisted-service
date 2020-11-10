@@ -333,27 +333,34 @@ func (c *S3Client) ExpireObjects(ctx context.Context, prefix string, deleteTime 
 
 func (c *S3Client) handleObject(ctx context.Context, log logrus.FieldLogger, object *s3.Object, now time.Time,
 	deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string)) {
-	// The timestamp that we really want is stored in a tag, but we check this one first as a cost optimization
-	if now.Before(object.LastModified.Add(deleteTime)) {
+	// By default we use the object creation time - tags only exist if the same image was created more than once
+	creationTime := *object.LastModified
+	// If this is too new, there is no point in checking tags
+	if now.Before(creationTime.Add(deleteTime)) {
 		return
 	}
+
 	objectTags, err := c.client.GetObjectTagging(&s3.GetObjectTaggingInput{Bucket: &c.cfg.S3Bucket, Key: object.Key})
 	if err != nil {
 		log.WithError(err).Errorf("Error getting tags for object %s", *object.Key)
 		return
 	}
+
+	// If no tag was created, then the TagSet is an empty list
 	for _, tag := range objectTags.TagSet {
 		if *tag.Key == timestampTagKey {
 			objTime, _ := strconv.ParseInt(*tag.Value, 10, 64)
-			if now.After(time.Unix(objTime, 0).Add(deleteTime)) {
-				if err := c.DeleteObject(ctx, *object.Key); err != nil {
-					log.Errorf("Error deleting expired object %s", *object.Key)
-					continue
-				}
-				log.Infof("Deleted expired object %s", *object.Key)
-				callback(ctx, log, *object.Key)
-			}
+			creationTime = time.Unix(objTime, 0)
 		}
+	}
+
+	if now.After(creationTime.Add(deleteTime)) {
+		if err := c.DeleteObject(ctx, *object.Key); err != nil {
+			log.WithError(err).Errorf("Error deleting expired object %s", *object.Key)
+			return
+		}
+		log.Infof("Deleted expired object %s", *object.Key)
+		callback(ctx, log, *object.Key)
 	}
 }
 

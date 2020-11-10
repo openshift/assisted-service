@@ -54,12 +54,9 @@ var _ = Describe("s3client", func() {
 	})
 	It("expired_image_not_reused", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T08:00:00+00:00") // Two hours ago
-		unixTime := imgCreatedAt.Unix()                                          // Tag is also two hours ago
 		obj := s3.Object{Key: &objKey, LastModified: &imgCreatedAt}
 		taggingInput := s3.GetObjectTaggingInput{Bucket: &bucket, Key: &objKey}
-		tagValue := strconv.Itoa(int(unixTime))
-		tag := s3.Tag{Key: &tagKey, Value: &tagValue}
-		tagSet := []*s3.Tag{&tag}
+		tagSet := []*s3.Tag{}
 		taggingOutput := s3.GetObjectTaggingOutput{TagSet: tagSet}
 		mockAPI.EXPECT().GetObjectTagging(&taggingInput).Return(&taggingOutput, nil)
 		deleteInput := s3.DeleteObjectInput{Bucket: &bucket, Key: &objKey}
