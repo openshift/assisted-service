@@ -63,6 +63,7 @@ all: build
 
 ci-lint:
 	${ROOT_DIR}/tools/check-commits.sh
+	$(MAKE) verify-latest-onprem-config
 
 lint:
 	golangci-lint run -v
@@ -233,6 +234,19 @@ deploy-test: _verify_minikube generate-keys
 	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
 	export ENABLE_AUTH="True" && export DUMMY_IGNITION="True" && \
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
+
+generate-onprem-environment:
+	sed -i "s|OPENSHIFT_INSTALL_RELEASE_IMAGE=.*|OPENSHIFT_INSTALL_RELEASE_IMAGE=${OPENSHIFT_INSTALL_RELEASE_IMAGE}|" onprem-environment
+	sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" onprem-environment
+
+generate-onprem-iso-ignition:
+	sed -i "s|OPENSHIFT_INSTALL_RELEASE_IMAGE=.*|OPENSHIFT_INSTALL_RELEASE_IMAGE=${OPENSHIFT_INSTALL_RELEASE_IMAGE}|" ./config/onprem-iso-fcc.yaml
+	sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" ./config/onprem-iso-fcc.yaml
+	podman run --rm -v ./config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > ./config/onprem-iso-config.ign
+
+verify-latest-onprem-config: generate-onprem-environment generate-onprem-iso-ignition
+	@echo "Verifying onprem config changes"
+	hack/verify-latest-onprem-config.sh
 
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080

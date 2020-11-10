@@ -9,6 +9,5 @@ DB_NAME=installer
 SERVICE_BASE_URL=http://127.0.0.1:8090
 DEPLOY_TARGET=onprem
 DUMMY_IGNITION=false
-OPENSHIFT_INSTALL_RELEASE_IMAGE=quay.io/ocpmetal/ocp-release:v1.0.9.1
-SERVICE_IPS=<Comma separated list of IPs>
+OPENSHIFT_INSTALL_RELEASE_IMAGE=quay.io/openshift-release-dev/ocp-release:4.6.1-x86_64
 PUBLIC_CONTAINER_REGISTRIES=quay.io
