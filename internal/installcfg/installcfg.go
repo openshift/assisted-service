@@ -1,7 +1,9 @@
 package installcfg
 
 import (
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"sort"
 	"strconv"
@@ -11,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -81,6 +84,29 @@ type InstallerConfigBaremetal struct {
 		Mirrors []string `yaml:"mirrors"`
 		Source  string   `yaml:"source"`
 	} `yaml:"imageContentSources,omitempty"`
+}
+
+func (c *InstallerConfigBaremetal) Validate() error {
+	if c.AdditionalTrustBundle != "" {
+		// From https://github.com/openshift/installer/blob/56e61f1df5aa51ff244465d4bebcd1649003b0c9/pkg/validate/validate.go#L29-L47
+		rest := []byte(c.AdditionalTrustBundle)
+		for {
+			var block *pem.Block
+			block, rest = pem.Decode(rest)
+			if block == nil {
+				return errors.Errorf("invalid block")
+			}
+			_, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return err
+			}
+			if len(rest) == 0 {
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 func countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
@@ -245,7 +271,7 @@ func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error
 	return nil
 }
 
-func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
+func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) (*InstallerConfigBaremetal, error) {
 	cfg := getBasicInstallConfig(log, cluster)
 	if swag.BoolValue(cluster.UserManagedNetworking) {
 		cfg.Platform = platform{
@@ -269,9 +295,28 @@ func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 		cfg.AdditionalTrustBundle = fmt.Sprintf(` | %s`, ca)
 	}
 
+	return cfg, nil
+}
+
+func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
+	cfg, err := getInstallConfig(log, cluster, addRhCa, ca)
+	if err != nil {
+		return nil, err
+	}
+
 	return yaml.Marshal(*cfg)
 }
 
-func ValidateInstallConfigJSON(s string) error {
-	return json.Unmarshal([]byte(s), &InstallerConfigBaremetal{})
+func ValidateInstallConfigPatch(log logrus.FieldLogger, cluster *common.Cluster, patch string) error {
+	config, err := getInstallConfig(log, cluster, false, "")
+	if err != nil {
+		return err
+	}
+
+	err = applyConfigOverrides(patch, config)
+	if err != nil {
+		return err
+	}
+
+	return config.Validate()
 }

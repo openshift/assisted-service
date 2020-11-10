@@ -1304,7 +1304,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, par
 		}
 	}
 
-	if err = installcfg.ValidateInstallConfigJSON(params.InstallConfigParams); err != nil {
+	if err = installcfg.ValidateInstallConfigPatch(log, &cluster, params.InstallConfigParams); err != nil {
 		return installer.NewUpdateClusterInstallConfigBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
