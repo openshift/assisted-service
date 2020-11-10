@@ -1098,6 +1098,64 @@ var _ = Describe("Refresh Host", func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
+	Context("host installation timeout - cluster is pending user action", func() {
+		tests := []struct {
+			stage         models.HostStage
+			expectTimeout bool
+		}{
+			{models.HostStageRebooting, false},
+			{models.HostStageStartWaitingForControlPlane, false},
+			{models.HostStageWaitingForControlPlane, false},
+			{models.HostStageStartingInstallation, true},
+			{models.HostStageInstalling, true},
+			{models.HostStageWritingImageToDisk, true},
+			{models.HostStageConfiguring, true},
+			{models.HostStageDone, true},
+			{models.HostStageJoined, true},
+			{models.HostStageWaitingForIgnition, true},
+			{models.HostStageFailed, true},
+		}
+
+		passedTime := 90 * time.Minute
+
+		for _, t := range tests {
+			It(fmt.Sprintf("checking timeout from stage %s", t.stage), func() {
+				hostCheckInAt := strfmt.DateTime(time.Now())
+				host = getTestHost(hostId, clusterId, models.HostStatusInstallingInProgress)
+				host.Inventory = masterInventory()
+				host.Role = models.HostRoleMaster
+				host.CheckedInAt = hostCheckInAt
+				host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-passedTime))
+				host.Progress = &models.HostProgressInfo{
+					CurrentStage: t.stage,
+				}
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				cluster = getTestCluster(clusterId, "1.2.3.0/24")
+				cluster.Status = swag.String(models.ClusterStatusInstallingPendingUserAction)
+				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+				if t.expectTimeout {
+					mockEvents.EXPECT().AddEvent(
+						gomock.Any(),
+						host.ClusterID,
+						&hostId,
+						hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+						gomock.Any(),
+						gomock.Any())
+				}
+				err := hapi.RefreshStatus(ctx, &host, db)
+				Expect(err).ShouldNot(HaveOccurred())
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+				if t.expectTimeout {
+					Expect(swag.StringValue(resultHost.Status)).Should(Equal(models.HostStatusError))
+					Expect(swag.StringValue(resultHost.StatusInfo)).Should(Equal(formatProgressTimedOutInfo(t.stage)))
+				} else {
+					Expect(swag.StringValue(resultHost.Status)).Should(Equal(models.HostStatusInstallingInProgress))
+				}
+			})
+		}
+	})
+
 	Context("host installation timeout", func() {
 		var srcState = models.HostStatusInstalling
 		timePassedTypes := map[string]time.Duration{

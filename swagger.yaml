@@ -2902,6 +2902,7 @@ definitions:
           - installed
           - adding-hosts
           - cancelled
+          - installing-pending-user-action
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"

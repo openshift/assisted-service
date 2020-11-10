@@ -22,6 +22,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.ClusterStatusPreparingForInstallation),
 			stateswitch.State(models.ClusterStatusInstalling),
+			stateswitch.State(models.ClusterStatusInstallingPendingUserAction),
 			stateswitch.State(models.ClusterStatusError),
 			stateswitch.State(models.ClusterStatusFinalizing),
 		},
@@ -34,6 +35,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.ClusterStatusPreparingForInstallation),
 			stateswitch.State(models.ClusterStatusInstalling),
+			stateswitch.State(models.ClusterStatusInstallingPendingUserAction),
 			stateswitch.State(models.ClusterStatusError),
 			stateswitch.State(models.ClusterStatusCancelled),
 			stateswitch.State(models.ClusterStatusFinalizing),
@@ -183,13 +185,60 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshCluster(statusInfoPreparingForInstallationTimeout),
 	})
 
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusInstallingPendingUserAction),
+		},
+		Condition:        stateswitch.Not(th.IsInstalling),
+		DestinationState: stateswitch.State(models.ClusterStatusError),
+		PostTransition:   th.PostRefreshCluster(statusInfoError),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusInstallingPendingUserAction),
+		},
+		Condition: stateswitch.And(
+			th.IsInstallingPendingUserAction,
+			th.IsInstalling),
+		DestinationState: stateswitch.State(models.ClusterStatusInstallingPendingUserAction),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusInstallingPendingUserAction),
+		},
+		Condition: stateswitch.And(
+			stateswitch.Not(th.IsInstallingPendingUserAction),
+			th.IsInstalling),
+		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
+		PostTransition:   th.PostRefreshCluster(statusInfoInstalling),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusInstalling),
+		},
+		Condition: stateswitch.And(
+			th.IsInstalling,
+			th.IsInstallingPendingUserAction),
+		DestinationState: stateswitch.State(models.ClusterStatusInstallingPendingUserAction),
+		PostTransition:   th.PostRefreshCluster(statusInfoInstallingPendingUserAction),
+	})
+
 	// This transition is fired when the cluster is in installing and should move to finalizing
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefreshStatus,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.ClusterStatusInstalling),
 		},
-		Condition:        th.IsFinalizing,
+		Condition: stateswitch.And(
+			th.IsFinalizing,
+			stateswitch.Not(th.IsInstallingPendingUserAction)),
 		DestinationState: stateswitch.State(models.ClusterStatusFinalizing),
 		PostTransition:   th.PostRefreshCluster(statusInfoFinalizing),
 	})
@@ -200,7 +249,10 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.ClusterStatusInstalling),
 		},
-		Condition:        stateswitch.And(stateswitch.Not(th.IsFinalizing), th.IsInstalling),
+		Condition: stateswitch.And(
+			stateswitch.Not(th.IsFinalizing),
+			stateswitch.Not(th.IsInstallingPendingUserAction),
+			th.IsInstalling),
 		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
 		PostTransition:   th.PostRefreshCluster(statusInfoInstalling),
 	})
@@ -211,7 +263,9 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.ClusterStatusInstalling),
 		},
-		Condition:        stateswitch.And(stateswitch.Not(th.IsFinalizing), stateswitch.Not(th.IsInstalling)),
+		Condition: stateswitch.And(
+			stateswitch.Not(th.IsFinalizing),
+			stateswitch.Not(th.IsInstalling)),
 		DestinationState: stateswitch.State(models.ClusterStatusError),
 		PostTransition:   th.PostRefreshCluster(statusInfoError),
 	})

@@ -62,6 +62,12 @@ var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 	"DEFAULT":                                   60 * time.Minute,
 }
 
+var WrongBootOrderIgnoreTimeoutStages = []models.HostStage{
+	models.HostStageStartWaitingForControlPlane,
+	models.HostStageWaitingForControlPlane,
+	models.HostStageRebooting,
+}
+
 var InstallationTimeout = 20 * time.Minute
 
 type Config struct {

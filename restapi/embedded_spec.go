@@ -3712,7 +3712,8 @@ func init() {
             "finalizing",
             "installed",
             "adding-hosts",
-            "cancelled"
+            "cancelled",
+            "installing-pending-user-action"
           ]
         },
         "status_info": {
@@ -8902,7 +8903,8 @@ func init() {
             "finalizing",
             "installed",
             "adding-hosts",
-            "cancelled"
+            "cancelled",
+            "installing-pending-user-action"
           ]
         },
         "status_info": {
