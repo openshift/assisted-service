@@ -3,7 +3,6 @@ package host
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"strconv"
@@ -124,16 +123,10 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	}
 
 	buf := &bytes.Buffer{}
-	if err = t.Execute(buf, data); err != nil {
+	if err := t.Execute(buf, data); err != nil {
 		return nil, err
 	}
-
-	formatCmds, err := getDiskFormatCmds(i.log, *host)
-	if err != nil {
-		return nil, err
-	}
-
-	step.Args = []string{"-c", formatCmds + buf.String()}
+	step.Args = []string{"-c", buf.String()}
 
 	if _, err := UpdateHost(i.log, i.db, host.ClusterID, *host.ID, *host.Status,
 		"installer_version", i.instructionConfig.InstallerImage, "installation_disk_path", bootdevice); err != nil {
@@ -141,25 +134,6 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	}
 
 	return []*models.Step{step}, nil
-}
-
-func getDiskFormatCmds(log logrus.FieldLogger, host models.Host) (string, error) {
-	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
-		log.Errorf("Failed to get inventory from host with id %s", host.ID)
-		return "", err
-	}
-	formatCmds := ""
-	for _, disk := range inventory.Disks {
-		if disk.Bootable {
-			dev := GetDeviceFullName(disk.Name)
-			formatCmds = formatCmds + fmt.Sprintf("wipefs --force --all %s ; ", dev)
-			formatCmds = formatCmds + fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=33 ; ", dev)
-			formatCmds = formatCmds + fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=33 seek=$((`blockdev --getsz %s` - 33)) ; ", dev, dev)
-			formatCmds = formatCmds + fmt.Sprintf("sgdisk -Z %s ; ", dev)
-		}
-	}
-	return formatCmds, nil
 }
 
 func (i *installCmd) hasCACert() bool {
