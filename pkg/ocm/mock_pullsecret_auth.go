@@ -6,9 +6,8 @@ package ocm
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // MockOCMAuthentication is a mock of OCMAuthentication interface
