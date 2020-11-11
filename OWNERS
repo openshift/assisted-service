@@ -13,7 +13,7 @@ filters:
       - do-not-merge/hold
   ^Dockerfile\..*:
     labels:
-      - do-not-merge/hold
+      - downstream-change-needed
       - kind/dependency-change
   swagger.yaml:
     labels:
