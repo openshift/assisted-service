@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openshift/assisted-service/internal/hostutil"
-
 	"github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/gorm"
@@ -73,12 +71,6 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	if i.instructionConfig.InstallationTimeout != 0 {
 		cmdArgsTmpl = cmdArgsTmpl + " --installation-timeout {{.INSTALLATION_TIMEOUT}}"
 		data["INSTALLATION_TIMEOUT"] = strconv.Itoa(int(i.instructionConfig.InstallationTimeout))
-	}
-
-	hostname, _ := hostutil.GetCurrentHostName(host)
-	if hostname != "" {
-		cmdArgsTmpl = cmdArgsTmpl + " --host-name {{.HOST_NAME}}"
-		data["HOST_NAME"] = hostname
 	}
 
 	if cluster.HTTPProxy != "" || cluster.HTTPSProxy != "" {
