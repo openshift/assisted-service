@@ -17,6 +17,7 @@ import (
 
 const imagePrefix = "discovery-image-"
 const imageRegex = imagePrefix + `(?P<uuid>[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}).iso`
+const AssistedServiceLiveISOPrefix = "assisted-service-iso-"
 
 var (
 	//Image name format is "discovery-image-<clusterID>.iso"
@@ -45,6 +46,7 @@ func (m *Manager) ExpirationTask() {
 	}
 	ctx := requestid.ToContext(context.Background(), requestid.NewID())
 	m.objectHandler.ExpireObjects(ctx, imagePrefix, m.deleteTime, m.DeletedImageCallback)
+	m.objectHandler.ExpireObjects(ctx, AssistedServiceLiveISOPrefix, m.deleteTime, m.DeletedImageNoCallback)
 }
 
 func (m *Manager) DeletedImageCallback(ctx context.Context, log logrus.FieldLogger, objectName string) {
@@ -56,4 +58,7 @@ func (m *Manager) DeletedImageCallback(ctx context.Context, log logrus.FieldLogg
 	clusterID := strfmt.UUID(matches[1])
 	m.eventsHandler.AddEvent(ctx, clusterID, nil, models.EventSeverityInfo,
 		"Deleted image from backend because it expired. It may be generated again at any time.", time.Now())
+}
+
+func (m *Manager) DeletedImageNoCallback(ctx context.Context, log logrus.FieldLogger, objectName string) {
 }

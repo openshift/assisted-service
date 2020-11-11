@@ -40,4 +40,5 @@ RUN curl -s $OC_URL | tar -xzC /usr/local/bin/ oc
 
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /assisted-service-client/assisted-service-client-*.tar.gz /clients/
+COPY /config/onprem-iso-config.ign /data/onprem-iso-config.ign
 CMD ["/assisted-service"]

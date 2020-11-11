@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/assisted-service/pkg/thread"
 
+	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/imgexpirer"
 
 	"k8s.io/client-go/kubernetes"
@@ -85,6 +86,7 @@ var Options struct {
 	LeaderConfig                leader.Config
 	DeletionWorkerInterval      time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
 	ValidationsConfig           validations.Config
+	AssistedServiceISOConfig    assistedserviceiso.Config
 }
 
 func InitLogs() *logrus.Entry {
@@ -298,6 +300,7 @@ func main() {
 		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
 	imageExpirationMonitor.Start()
 	defer imageExpirationMonitor.Stop()
+	assistedServiceISO := assistedserviceiso.NewAssistedServiceISOApi(objectHandler, *authHandler, logrus.WithField("pkg", "assistedserviceiso"), pullSecretValidator, Options.AssistedServiceISOConfig)
 
 	//Set inner handler chain. Inner handlers requires access to the Route
 	innerHandler := func() func(http.Handler) http.Handler {
@@ -309,17 +312,18 @@ func main() {
 	}
 
 	h, err := restapi.Handler(restapi.Config{
-		AuthAgentAuth:       authHandler.AuthAgentAuth,
-		AuthUserAuth:        authHandler.AuthUserAuth,
-		APIKeyAuthenticator: authHandler.CreateAuthenticator(),
-		Authorizer:          authzHandler.CreateAuthorizer(),
-		InstallerAPI:        bm,
-		EventsAPI:           events,
-		Logger:              log.Printf,
-		VersionsAPI:         versionHandler,
-		ManagedDomainsAPI:   domainHandler,
-		InnerMiddleware:     innerHandler(),
-		ManifestsAPI:        manifests,
+		AuthAgentAuth:         authHandler.AuthAgentAuth,
+		AuthUserAuth:          authHandler.AuthUserAuth,
+		APIKeyAuthenticator:   authHandler.CreateAuthenticator(),
+		Authorizer:            authzHandler.CreateAuthorizer(),
+		InstallerAPI:          bm,
+		AssistedServiceIsoAPI: assistedServiceISO,
+		EventsAPI:             events,
+		Logger:                log.Printf,
+		VersionsAPI:           versionHandler,
+		ManagedDomainsAPI:     domainHandler,
+		InnerMiddleware:       innerHandler(),
+		ManifestsAPI:          manifests,
 	})
 	if err != nil {
 		log.Fatal("Failed to init rest handler,", err)

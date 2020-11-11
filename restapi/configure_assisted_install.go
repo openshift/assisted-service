@@ -15,6 +15,7 @@ import (
 	"github.com/go-openapi/runtime/security"
 
 	"github.com/openshift/assisted-service/restapi/operations"
+	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
 	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
@@ -25,6 +26,20 @@ import (
 type contextKey string
 
 const AuthKey contextKey = "Auth"
+
+//go:generate mockery -name AssistedServiceIsoAPI -inpkg
+
+/* AssistedServiceIsoAPI  */
+type AssistedServiceIsoAPI interface {
+	/* CreateISOAndUploadToS3 Creates ISO for the user and uploads to S3. */
+	CreateISOAndUploadToS3(ctx context.Context, params assisted_service_iso.CreateISOAndUploadToS3Params) middleware.Responder
+
+	/* DownloadISO Downloads the Assisted Service ISO. */
+	DownloadISO(ctx context.Context, params assisted_service_iso.DownloadISOParams) middleware.Responder
+
+	/* GetPresignedForAssistedServiceISO Retrieves a pre-signed S3 URL for downloading assisted-service ISO. */
+	GetPresignedForAssistedServiceISO(ctx context.Context, params assisted_service_iso.GetPresignedForAssistedServiceISOParams) middleware.Responder
+}
 
 //go:generate mockery -name EventsAPI -inpkg
 
@@ -194,6 +209,7 @@ type VersionsAPI interface {
 
 // Config is configuration for Handler
 type Config struct {
+	AssistedServiceIsoAPI
 	EventsAPI
 	InstallerAPI
 	ManagedDomainsAPI
@@ -285,6 +301,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.ManifestsAPI.CreateClusterManifest(ctx, params)
 	})
+	api.AssistedServiceIsoCreateISOAndUploadToS3Handler = assisted_service_iso.CreateISOAndUploadToS3HandlerFunc(func(params assisted_service_iso.CreateISOAndUploadToS3Params, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.AssistedServiceIsoAPI.CreateISOAndUploadToS3(ctx, params)
+	})
 	api.ManifestsDeleteClusterManifestHandler = manifests.DeleteClusterManifestHandlerFunc(func(params manifests.DeleteClusterManifestParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -340,6 +361,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadHostLogs(ctx, params)
 	})
+	api.AssistedServiceIsoDownloadISOHandler = assisted_service_iso.DownloadISOHandlerFunc(func(params assisted_service_iso.DownloadISOParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.AssistedServiceIsoAPI.DownloadISO(ctx, params)
+	})
 	api.InstallerEnableHostHandler = installer.EnableHostHandlerFunc(func(params installer.EnableHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -394,6 +420,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetNextSteps(ctx, params)
+	})
+	api.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler = assisted_service_iso.GetPresignedForAssistedServiceISOHandlerFunc(func(params assisted_service_iso.GetPresignedForAssistedServiceISOParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.AssistedServiceIsoAPI.GetPresignedForAssistedServiceISO(ctx, params)
 	})
 	api.InstallerGetPresignedForClusterFilesHandler = installer.GetPresignedForClusterFilesHandlerFunc(func(params installer.GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -156,15 +156,16 @@ func TestAuth(t *testing.T) {
 			}
 
 			h, _ := restapi.Handler(restapi.Config{
-				AuthAgentAuth:       AuthHandler.AuthAgentAuth,
-				AuthUserAuth:        AuthHandler.AuthUserAuth,
-				APIKeyAuthenticator: AuthHandler.CreateAuthenticator(),
-				InstallerAPI:        fakeInventory{},
-				EventsAPI:           nil,
-				Logger:              logrus.Printf,
-				VersionsAPI:         nil,
-				ManagedDomainsAPI:   nil,
-				InnerMiddleware:     nil,
+				AuthAgentAuth:         AuthHandler.AuthAgentAuth,
+				AuthUserAuth:          AuthHandler.AuthUserAuth,
+				APIKeyAuthenticator:   AuthHandler.CreateAuthenticator(),
+				InstallerAPI:          fakeInventory{},
+				AssistedServiceIsoAPI: fakeAssistedServiceIsoAPI{},
+				EventsAPI:             nil,
+				Logger:                logrus.Printf,
+				VersionsAPI:           nil,
+				ManagedDomainsAPI:     nil,
+				InnerMiddleware:       nil,
 			})
 
 			cfg := client.Config{

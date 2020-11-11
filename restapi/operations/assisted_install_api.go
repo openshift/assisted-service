@@ -19,6 +19,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
+	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
 	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
@@ -59,6 +60,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		ManifestsCreateClusterManifestHandler: manifests.CreateClusterManifestHandlerFunc(func(params manifests.CreateClusterManifestParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation manifests.CreateClusterManifest has not yet been implemented")
 		}),
+		AssistedServiceIsoCreateISOAndUploadToS3Handler: assisted_service_iso.CreateISOAndUploadToS3HandlerFunc(func(params assisted_service_iso.CreateISOAndUploadToS3Params, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation assisted_service_iso.CreateISOAndUploadToS3 has not yet been implemented")
+		}),
 		ManifestsDeleteClusterManifestHandler: manifests.DeleteClusterManifestHandlerFunc(func(params manifests.DeleteClusterManifestParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation manifests.DeleteClusterManifest has not yet been implemented")
 		}),
@@ -92,6 +96,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerDownloadHostLogsHandler: installer.DownloadHostLogsHandlerFunc(func(params installer.DownloadHostLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadHostLogs has not yet been implemented")
 		}),
+		AssistedServiceIsoDownloadISOHandler: assisted_service_iso.DownloadISOHandlerFunc(func(params assisted_service_iso.DownloadISOParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation assisted_service_iso.DownloadISO has not yet been implemented")
+		}),
 		InstallerEnableHostHandler: installer.EnableHostHandlerFunc(func(params installer.EnableHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.EnableHost has not yet been implemented")
 		}),
@@ -124,6 +131,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerGetNextStepsHandler: installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetNextSteps has not yet been implemented")
+		}),
+		AssistedServiceIsoGetPresignedForAssistedServiceISOHandler: assisted_service_iso.GetPresignedForAssistedServiceISOHandlerFunc(func(params assisted_service_iso.GetPresignedForAssistedServiceISOParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation assisted_service_iso.GetPresignedForAssistedServiceISO has not yet been implemented")
 		}),
 		InstallerGetPresignedForClusterFilesHandler: installer.GetPresignedForClusterFilesHandlerFunc(func(params installer.GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetPresignedForClusterFiles has not yet been implemented")
@@ -259,6 +269,8 @@ type AssistedInstallAPI struct {
 	InstallerCompleteInstallationHandler installer.CompleteInstallationHandler
 	// ManifestsCreateClusterManifestHandler sets the operation handler for the create cluster manifest operation
 	ManifestsCreateClusterManifestHandler manifests.CreateClusterManifestHandler
+	// AssistedServiceIsoCreateISOAndUploadToS3Handler sets the operation handler for the create i s o and upload to s3 operation
+	AssistedServiceIsoCreateISOAndUploadToS3Handler assisted_service_iso.CreateISOAndUploadToS3Handler
 	// ManifestsDeleteClusterManifestHandler sets the operation handler for the delete cluster manifest operation
 	ManifestsDeleteClusterManifestHandler manifests.DeleteClusterManifestHandler
 	// InstallerDeregisterClusterHandler sets the operation handler for the deregister cluster operation
@@ -281,6 +293,8 @@ type AssistedInstallAPI struct {
 	InstallerDownloadHostIgnitionHandler installer.DownloadHostIgnitionHandler
 	// InstallerDownloadHostLogsHandler sets the operation handler for the download host logs operation
 	InstallerDownloadHostLogsHandler installer.DownloadHostLogsHandler
+	// AssistedServiceIsoDownloadISOHandler sets the operation handler for the download i s o operation
+	AssistedServiceIsoDownloadISOHandler assisted_service_iso.DownloadISOHandler
 	// InstallerEnableHostHandler sets the operation handler for the enable host operation
 	InstallerEnableHostHandler installer.EnableHostHandler
 	// InstallerGenerateClusterISOHandler sets the operation handler for the generate cluster i s o operation
@@ -303,6 +317,8 @@ type AssistedInstallAPI struct {
 	InstallerGetHostRequirementsHandler installer.GetHostRequirementsHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
 	InstallerGetNextStepsHandler installer.GetNextStepsHandler
+	// AssistedServiceIsoGetPresignedForAssistedServiceISOHandler sets the operation handler for the get presigned for assisted service i s o operation
+	AssistedServiceIsoGetPresignedForAssistedServiceISOHandler assisted_service_iso.GetPresignedForAssistedServiceISOHandler
 	// InstallerGetPresignedForClusterFilesHandler sets the operation handler for the get presigned for cluster files operation
 	InstallerGetPresignedForClusterFilesHandler installer.GetPresignedForClusterFilesHandler
 	// InstallerInstallClusterHandler sets the operation handler for the install cluster operation
@@ -445,6 +461,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.ManifestsCreateClusterManifestHandler == nil {
 		unregistered = append(unregistered, "manifests.CreateClusterManifestHandler")
 	}
+	if o.AssistedServiceIsoCreateISOAndUploadToS3Handler == nil {
+		unregistered = append(unregistered, "assisted_service_iso.CreateISOAndUploadToS3Handler")
+	}
 	if o.ManifestsDeleteClusterManifestHandler == nil {
 		unregistered = append(unregistered, "manifests.DeleteClusterManifestHandler")
 	}
@@ -478,6 +497,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerDownloadHostLogsHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadHostLogsHandler")
 	}
+	if o.AssistedServiceIsoDownloadISOHandler == nil {
+		unregistered = append(unregistered, "assisted_service_iso.DownloadISOHandler")
+	}
 	if o.InstallerEnableHostHandler == nil {
 		unregistered = append(unregistered, "installer.EnableHostHandler")
 	}
@@ -510,6 +532,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.GetNextStepsHandler")
+	}
+	if o.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler == nil {
+		unregistered = append(unregistered, "assisted_service_iso.GetPresignedForAssistedServiceISOHandler")
 	}
 	if o.InstallerGetPresignedForClusterFilesHandler == nil {
 		unregistered = append(unregistered, "installer.GetPresignedForClusterFilesHandler")
@@ -694,6 +719,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/manifests"] = manifests.NewCreateClusterManifest(o.context, o.ManifestsCreateClusterManifestHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/assisted-service-iso"] = assisted_service_iso.NewCreateISOAndUploadToS3(o.context, o.AssistedServiceIsoCreateISOAndUploadToS3Handler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
@@ -738,6 +767,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewDownloadHostLogs(o.context, o.InstallerDownloadHostLogsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/assisted-service-iso/data"] = assisted_service_iso.NewDownloadISO(o.context, o.AssistedServiceIsoDownloadISOHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -782,6 +815,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewGetNextSteps(o.context, o.InstallerGetNextStepsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/assisted-service-iso/presigned"] = assisted_service_iso.NewGetPresignedForAssistedServiceISO(o.context, o.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
