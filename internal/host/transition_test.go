@@ -1125,9 +1125,11 @@ var _ = Describe("Refresh Host", func() {
 				host.Inventory = masterInventory()
 				host.Role = models.HostRoleMaster
 				host.CheckedInAt = hostCheckInAt
-				host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-passedTime))
+				updatedAt := strfmt.DateTime(time.Now().Add(-passedTime))
+				host.StatusUpdatedAt = updatedAt
 				host.Progress = &models.HostProgressInfo{
-					CurrentStage: t.stage,
+					StageUpdatedAt: updatedAt,
+					CurrentStage:   t.stage,
 				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				cluster = getTestCluster(clusterId, "1.2.3.0/24")
@@ -1146,10 +1148,14 @@ var _ = Describe("Refresh Host", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+				prevStageUpdatedAt := time.Time(updatedAt).UTC().Round(time.Second).String()
+				currStageUpdateAt := time.Time(resultHost.Progress.StageUpdatedAt).UTC().Round(time.Second).String()
 				if t.expectTimeout {
+					Expect(prevStageUpdatedAt).Should(Equal(currStageUpdateAt))
 					Expect(swag.StringValue(resultHost.Status)).Should(Equal(models.HostStatusError))
 					Expect(swag.StringValue(resultHost.StatusInfo)).Should(Equal(formatProgressTimedOutInfo(t.stage)))
 				} else {
+					Expect(prevStageUpdatedAt).ShouldNot(Equal(currStageUpdateAt))
 					Expect(swag.StringValue(resultHost.Status)).Should(Equal(models.HostStatusInstallingInProgress))
 				}
 			})
