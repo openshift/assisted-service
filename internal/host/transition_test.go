@@ -1964,7 +1964,7 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:      true,
 			},
 			{
-				name:              "AddedtoExistingCluster to AddedtoExistingCluster for day2",
+				name:              "AddedtoExistingCluster to AddedtoExistingCluster for day2 cloud",
 				srcState:          models.HostStatusAddedToExistingCluster,
 				dstState:          models.HostStatusAddedToExistingCluster,
 				kind:              models.HostKindAddToExistingClusterHost,
@@ -1973,13 +1973,13 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:     false,
 			},
 			{
-				name:              "AddedtoExistingCluster to AddedtoExistingCluster for day2",
+				name:              "AddedtoExistingCluster to AddedtoExistingCluster for day2 OCP",
 				srcState:          models.HostStatusAddedToExistingCluster,
 				dstState:          models.HostStatusAddedToExistingCluster,
 				kind:              models.HostKindAddToExistingClusterOCPHost,
 				role:              models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(""),
-				errorExpected:     true,
+				errorExpected:     false,
 			},
 		}
 

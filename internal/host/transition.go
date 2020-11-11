@@ -96,15 +96,6 @@ func (th *transitionHandler) IsHostInReboot(sw stateswitch.StateSwitch, _ states
 	return sHost.host.Progress.CurrentStage == models.HostStageRebooting, nil
 }
 
-func (th *transitionHandler) IsHostAddingToExistingCluster(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
-	sHost, ok := sw.(*stateHost)
-	if !ok {
-		return false, errors.New("IsHostAddingToExistingCluster incompatible type of StateSwitch")
-	}
-
-	return swag.StringValue(sHost.host.Kind) == models.HostKindAddToExistingClusterHost, nil
-}
-
 func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
@@ -531,12 +522,12 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 	return ret
 }
 
-func (th *transitionHandler) IsAddToExistingClusterHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+func (th *transitionHandler) IsDay2Host(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
 		return false, errors.New("HasClusterError incompatible type of StateSwitch")
 	}
-	return swag.StringValue(sHost.host.Kind) == models.HostKindAddToExistingClusterHost, nil
+	return isDay2Host(sHost.host), nil
 }
 
 func getFailedValidations(params *TransitionArgsRefreshHost) []string {

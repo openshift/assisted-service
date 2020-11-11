@@ -116,6 +116,12 @@ func hostExistsInDB(db *gorm.DB, hostId, clusterId strfmt.UUID, where map[string
 	return db.Select("id").Take(&host, where).Error == nil
 }
 
+func isDay2Host(h *models.Host) bool {
+	day2HostKinds := []string{models.HostKindAddToExistingClusterHost,
+		models.HostKindAddToExistingClusterOCPHost}
+	return funk.ContainsString(day2HostKinds, swag.StringValue(h.Kind))
+}
+
 func UpdateHost(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, extra ...interface{}) (*models.Host, error) {
 	updates := make(map[string]interface{})
