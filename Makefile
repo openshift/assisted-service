@@ -327,7 +327,7 @@ test-onprem:
 # Clean #
 #########
 
-clear-all: clean subsystem-clean clear-deployment
+clear-all: clean subsystem-clean clear-deployment clear-images
 
 clean:
 	-rm -rf $(BUILD_FOLDER) $(REPORTS)
@@ -337,6 +337,10 @@ subsystem-clean:
 
 clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
+
+clear-images:
+	-docker rmi -f $(SERVICE)
+	-docker rmi -f $(ISO_CREATION)
 
 clean-onprem:
 	podman pod rm -f assisted-installer | true
