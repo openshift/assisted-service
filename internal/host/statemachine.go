@@ -291,12 +291,23 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshHost(statusInfoInstallationTimedOut),
 	})
 
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingInProgress)},
+		Condition:        th.ShouldIgnoreInstallingInProgressTimeout,
+		DestinationState: stateswitch.State(models.HostStatusInstallingInProgress),
+		PostTransition:   th.PostRefreshHostRefreshStageUpdateTime,
+	})
+
 	// Time out while host installationInProgress
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstallingInProgress)},
-		Condition:        stateswitch.And(th.HasInstallationInProgressTimedOut),
+		Condition: stateswitch.And(
+			th.HasInstallationInProgressTimedOut,
+			stateswitch.Not(th.ShouldIgnoreInstallingInProgressTimeout)),
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoInstallationInProgressTimedOut),
 	})

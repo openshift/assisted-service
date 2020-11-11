@@ -89,6 +89,26 @@ func updateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 	return host, nil
 }
 
+func refreshHostStageUpdateTime(
+	log logrus.FieldLogger,
+	db *gorm.DB,
+	clusterId strfmt.UUID,
+	hostId strfmt.UUID,
+	srcStatus string) (*models.Host, error) {
+	var host *models.Host
+	var err error
+
+	now := strfmt.DateTime(time.Now())
+	if host, err = UpdateHost(log, db, clusterId, hostId, srcStatus, "progress_stage_updated_at", now); err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to refresh host status update time %s from cluster %s state from %s",
+			hostId, clusterId, srcStatus)
+	}
+
+	return host, nil
+}
+
 func hostExistsInDB(db *gorm.DB, hostId, clusterId strfmt.UUID, where map[string]interface{}) bool {
 	where["id"] = hostId.String()
 	where["cluster_id"] = clusterId.String()
