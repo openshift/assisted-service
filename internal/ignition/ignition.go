@@ -243,6 +243,8 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 
 	config.Storage.Files = newFiles
 
+	setFileInIgnition(config, "/opt/openshift/assisted-install-bootstrap", "data:,", false, 420)
+
 	err = writeIgnitionFile(bootstrapPath, config)
 	if err != nil {
 		g.log.Error(err)

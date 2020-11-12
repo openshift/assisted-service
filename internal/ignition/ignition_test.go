@@ -81,8 +81,8 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 	var (
 		err         error
 		examplePath string
-		file        *config_31_types.File
 		bmh         *bmh_v1alpha1.BareMetalHost
+		config      config_31_types.Config
 	)
 
 	BeforeEach(func() {
@@ -103,10 +103,15 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		err = g.updateBootstrap(examplePath)
 
 		bootstrapBytes, _ := ioutil.ReadFile(examplePath)
-		config, _, err1 := config_31.Parse(bootstrapBytes)
+		config, _, err1 = config_31.Parse(bootstrapBytes)
 		Expect(err1).NotTo(HaveOccurred())
-		Expect(config.Storage.Files).To(HaveLen(1))
-		file = &config.Storage.Files[0]
+
+		var file *config_31_types.File
+		for i := range config.Storage.Files {
+			if isBMHFile(&config.Storage.Files[i]) {
+				file = &config.Storage.Files[i]
+			}
+		}
 		bmh, _ = fileToBMH(file)
 	})
 
@@ -118,6 +123,15 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			It("adds annotation", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(bmh.Annotations).To(HaveKey(bmh_v1alpha1.StatusAnnotation))
+			})
+			It("adds the marker file", func() {
+				var found bool
+				for _, f := range config.Storage.Files {
+					if f.Path == "/opt/openshift/assisted-install-bootstrap" {
+						found = true
+					}
+				}
+				Expect(found).To(BeTrue())
 			})
 		})
 	})
