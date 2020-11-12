@@ -163,6 +163,23 @@ var _ = Describe("RegisterHost", func() {
 		})).ShouldNot(HaveOccurred())
 	})
 
+	It("register host in error state", func() {
+		Expect(db.Create(&models.Host{
+			ID:        &hostId,
+			ClusterID: clusterId,
+			Role:      models.HostRoleMaster,
+			Inventory: defaultHwInfo,
+			Status:    swag.String(models.HostStatusError),
+		}).Error).ShouldNot(HaveOccurred())
+
+		Expect(hapi.RegisterHost(ctx, &models.Host{
+			ID:                    &hostId,
+			ClusterID:             clusterId,
+			Status:                swag.String(models.HostStatusError),
+			DiscoveryAgentVersion: "v2.0.5",
+		})).ShouldNot(HaveOccurred())
+	})
+
 	Context("host already exists register success", func() {
 		discoveryAgentVersion := "v2.0.5"
 		tests := []struct {
@@ -229,10 +246,6 @@ var _ = Describe("RegisterHost", func() {
 			srcState    string
 			targetState string
 		}{
-			{
-				name:     "error",
-				srcState: models.HostStatusError,
-			},
 			{
 				name:     "installed",
 				srcState: models.HostStatusInstalled,
