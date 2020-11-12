@@ -11,8 +11,7 @@ import (
 )
 
 type Versions struct {
-	SelfVersion     string `envconfig:"SELF_VERSION" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
-	ImageBuilder    string `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
+	SelfVersion     string `envconfig:"SELF_VERSION" default:"quay.io/ocpmetal/assisted-service:latest"`
 	AgentDockerImg  string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/agent:latest"`
 	InstallerImage  string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
 	ControllerImage string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
@@ -47,7 +46,6 @@ func (h *handler) ListComponentVersions(ctx context.Context, params operations.L
 		&models.ListVersions{
 			Versions: models.Versions{
 				"assisted-installer-service":    h.versions.SelfVersion,
-				"image-builder":                 h.versions.ImageBuilder,
 				"discovery-agent":               h.versions.AgentDockerImg,
 				"assisted-installer":            h.versions.InstallerImage,
 				"assisted-installer-controller": h.versions.ControllerImage,

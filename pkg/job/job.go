@@ -16,24 +16,17 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	batch "k8s.io/api/batch/v1"
-	core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const ignitionGeneratorPrefix = "ignition-generator"
 
-// UploadBaseISOJobName is a prefix used to form the job name
-var UploadBaseISOJobName = s3wrapper.BaseObjectName + "-"
-
 type Config struct {
 	MonitorLoopInterval time.Duration `envconfig:"JOB_MONITOR_INTERVAL" default:"500ms"`
 	RetryInterval       time.Duration `envconfig:"JOB_RETRY_INTERVAL" default:"1s"`
 	RetryAttempts       int           `envconfig:"JOB_RETRY_ATTEMPTS" default:"30"`
-	ImageBuilder        string        `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
 	Namespace           string        `envconfig:"NAMESPACE" default:"assisted-installer"`
 	S3SecretName        string        `envconfig:"S3_SECRET_NAME" default:"assisted-installer-s3"`
 	S3EndpointURL       string        `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
@@ -70,10 +63,6 @@ type kubeJob struct {
 	log      logrus.FieldLogger
 	kube     client.Client
 	s3Client s3wrapper.API
-}
-
-func (k *kubeJob) create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
-	return k.kube.Create(ctx, obj, opts...)
 }
 
 func (k *kubeJob) getJob(ctx context.Context, job *batch.Job, name, namespace string) error {
@@ -168,130 +157,6 @@ func (k *kubeJob) delete(ctx context.Context, name, namespace string, force bool
 		}
 	}
 	log.Infof("Completed deletion of job <%s>", name)
-	return nil
-}
-
-func getQuantity(s string) resource.Quantity {
-	reply, _ := resource.ParseQuantity(s)
-	return reply
-}
-
-// create discovery image generation job, return job name and error
-func (k *kubeJob) uploadImageJob(jobName, imageName string) *batch.Job {
-	var pullPolicy core.PullPolicy = "Always"
-	if k.Config.SubsystemRun {
-		pullPolicy = "Never"
-	}
-	return &batch.Job{
-		TypeMeta: meta.TypeMeta{
-			Kind:       "Job",
-			APIVersion: "batch/v1",
-		},
-		ObjectMeta: meta.ObjectMeta{
-			GenerateName: jobName,
-			Namespace:    k.Config.Namespace,
-		},
-		Spec: batch.JobSpec{
-			BackoffLimit: swag.Int32(2),
-			Template: core.PodTemplateSpec{
-				ObjectMeta: meta.ObjectMeta{
-					Name:      jobName,
-					Namespace: k.Config.Namespace,
-				},
-				Spec: core.PodSpec{
-					Containers: []core.Container{
-						{
-							Resources: core.ResourceRequirements{
-								Limits: core.ResourceList{
-									"cpu":    getQuantity(k.Config.JobCPULimit),
-									"memory": getQuantity(k.Config.JobMemoryLimit),
-								},
-								Requests: core.ResourceList{
-									"cpu":    getQuantity(k.Config.JobCPURequests),
-									"memory": getQuantity(k.Config.JobMemoryRequests),
-								},
-							},
-							Name:            "image-creator",
-							Image:           k.Config.ImageBuilder,
-							ImagePullPolicy: pullPolicy,
-							Env: []core.EnvVar{
-								{
-									Name:  "S3_ENDPOINT_URL",
-									Value: k.Config.S3EndpointURL,
-								},
-								{
-									Name:  "IMAGE_NAME",
-									Value: imageName,
-								},
-								{
-									Name: "S3_BUCKET",
-									ValueFrom: &core.EnvVarSource{
-										SecretKeyRef: &core.SecretKeySelector{
-											LocalObjectReference: core.LocalObjectReference{
-												Name: k.Config.S3SecretName,
-											},
-											Key: "bucket",
-										},
-									},
-								},
-								{
-									Name: "S3_REGION",
-									ValueFrom: &core.EnvVarSource{
-										SecretKeyRef: &core.SecretKeySelector{
-											LocalObjectReference: core.LocalObjectReference{
-												Name: k.Config.S3SecretName,
-											},
-											Key: "aws_region",
-										},
-									},
-								},
-								{
-									Name: "AWS_ACCESS_KEY_ID",
-									ValueFrom: &core.EnvVarSource{
-										SecretKeyRef: &core.SecretKeySelector{
-											LocalObjectReference: core.LocalObjectReference{
-												Name: k.Config.S3SecretName,
-											},
-											Key: "aws_access_key_id",
-										},
-									},
-								},
-								{
-									Name: "AWS_SECRET_ACCESS_KEY",
-									ValueFrom: &core.EnvVarSource{
-										SecretKeyRef: &core.SecretKeySelector{
-											LocalObjectReference: core.LocalObjectReference{
-												Name: k.Config.S3SecretName,
-											},
-											Key: "aws_secret_access_key",
-										},
-									},
-								},
-							},
-						},
-					},
-					RestartPolicy: "Never",
-				},
-			},
-		},
-	}
-}
-
-func (k *kubeJob) UploadBaseISO() error {
-	ctx := context.Background()
-	log := logutil.FromContext(ctx, k.log)
-
-	log.Infof("Creating job %s", UploadBaseISOJobName)
-	uploadJob := k.uploadImageJob(UploadBaseISOJobName, s3wrapper.BaseObjectName)
-	if err := k.create(ctx, uploadJob); err != nil {
-		log.WithError(err).Error("failed to create image job")
-		return err
-	}
-
-	if err := k.monitor(ctx, uploadJob.Name, k.Namespace); err != nil {
-		log.WithError(err).Error("image creation failed")
-		return err
-	}
 	return nil
 }
 

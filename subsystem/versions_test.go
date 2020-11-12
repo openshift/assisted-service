@@ -14,8 +14,8 @@ var _ = Describe("[minimal-set]test versions", func() {
 			&versions.ListComponentVersionsParams{})
 		Expect(err).ShouldNot(HaveOccurred())
 
-		// service, iso-creation, agent, installer, controller
-		Expect(reply.GetPayload().Versions).To(HaveLen(5))
+		// service, agent, installer, controller
+		Expect(len(reply.GetPayload().Versions)).To(Equal(4))
 	})
 
 	It("get openshift versions list", func() {

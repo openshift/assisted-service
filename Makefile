@@ -27,12 +27,10 @@ ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
 export SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
-export ISO_CREATION := $(or ${ISO_CREATION},${ASSISTED_ORG}/assisted-iso-create:${ASSISTED_TAG})
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
-RHCOS_VERSION := $(or ${RHCOS_VERSION},46.82.202009222340-0)
-BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/${RHCOS_VERSION}/x86_64/rhcos-${RHCOS_VERSION}-live.x86_64.iso)
+RHCOS_BASE_ISO := $(or ${RHCOS_BASE_ISO},https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/latest/rhcos-live.x86_64.iso)
 OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, {\"4.6\": {\"release_image\": \"quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64\"}})
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
@@ -76,8 +74,8 @@ $(BUILD_FOLDER):
 	mkdir -p $(BUILD_FOLDER)
 
 format:
-	goimports -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/
-	gofmt -w -l cmd/ internal/ subsystem/ pkg/ assisted-iso-create/
+	goimports -w -l cmd/ internal/ subsystem/ pkg/
+	gofmt -w -l cmd/ internal/ subsystem/ pkg/
 
 ############
 # Generate #
@@ -121,27 +119,18 @@ generate-migration:
 ##################
 
 .PHONY: build docs
-build: lint unit-test build-minimal build-iso-generator
+build: lint unit-test build-minimal
 
 build-all: build-in-docker
 
 build-in-docker:
-	skipper make build-image build-minimal-assisted-iso-generator-image
+	skipper make build-image
 
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
-build-iso-generator: $(BUILD_FOLDER)
-	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-iso-create assisted-iso-create/main.go
-
 build-image: build
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
-
-build-assisted-iso-generator-image: lint unit-test build-minimal build-minimal-assisted-iso-generator-image
-
-build-minimal-assisted-iso-generator-image:
-	docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) \
- 		-f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
 
 update-service:
 	skipper make build-image
@@ -149,15 +138,13 @@ update-service:
 
 update: build-all
 	docker push $(SERVICE)
-	docker push $(ISO_CREATION)
 
 update-minimal: build-minimal
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 _update-minikube: build
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
-		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE) && \
-		docker build $(CONTAINER_BUILD_PARAMS) --build-arg OS_IMAGE=$(BASE_OS_IMAGE) -f Dockerfile.assisted-iso-create . -t $(ISO_CREATION)
+		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 define publish_image
 	${1} tag ${2} ${3}
@@ -166,7 +153,6 @@ endef # publish_image
 
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
-	$(call publish_image,docker,${ISO_CREATION},quay.io/ocpmetal/assisted-iso-create:${PUBLISH_TAG})
 
 ##########
 # Deploy #
@@ -266,7 +252,7 @@ deploy-onprem:
 	podman pod create --name assisted-installer -p 5432:5432,8000:8000,8090:8090,8080:8080
 	# These are required because when running on RHCOS livecd, the coreos-installer binary and
 	# livecd are bind-mounted from the host into the assisted-service container at runtime.
-	[ -f livecd.iso ] || ./hack/retry.sh 5 1 "curl $(BASE_OS_IMAGE) -o livecd.iso"
+	[ -f livecd.iso ] || ./hack/retry.sh 5 1 "curl $(RHCOS_BASE_ISO) -o livecd.iso"
 	[ -f coreos-installer ] || podman run --privileged --pull=always -it --rm \
 		-v .:/data -w /data --entrypoint /bin/bash \
 		quay.io/coreos/coreos-installer:v0.7.0 -c 'cp /usr/sbin/coreos-installer /data/coreos-installer'

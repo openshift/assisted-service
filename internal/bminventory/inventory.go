@@ -78,7 +78,6 @@ var (
 )
 
 type Config struct {
-	ImageBuilder             string            `envconfig:"IMAGE_BUILDER" default:"quay.io/ocpmetal/assisted-iso-create:latest"`
 	AgentDockerImg           string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	ServiceBaseURL           string            `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath        string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
@@ -984,7 +983,6 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 
 	var imageExists bool
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
-		cluster.ImageInfo.GeneratorVersion == b.Config.ImageBuilder &&
 		cluster.ProxyHash == clusterProxyHash &&
 		cluster.ImageInfo.StaticIpsConfig == staticIpsConfig {
 		var err error
@@ -1003,7 +1001,6 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	updates["image_ssh_public_key"] = params.ImageCreateParams.SSHPublicKey
 	updates["image_created_at"] = strfmt.DateTime(now)
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
-	updates["image_generator_version"] = b.Config.ImageBuilder
 	updates["image_download_url"] = ""
 	updates["image_static_ips_config"] = staticIpsConfig
 	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
