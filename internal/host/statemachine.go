@@ -91,6 +91,17 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRegisterDuringInstallation,
 	})
 
+	// Host in error should be able to register without changes.
+	// if the registration return conflict or error then we have infinite number of events.
+	// if the registration is blocked (403) it will break auto-reset feature.
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRegisterHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusError),
+		},
+		DestinationState: stateswitch.State(models.HostStatusError),
+	})
+
 	// Register host
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRegisterInstalledHost,
