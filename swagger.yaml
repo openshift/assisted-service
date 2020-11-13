@@ -2256,6 +2256,102 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /assisted-service-iso:
+    post:
+      tags:
+        - assisted-service-iso
+      summary: Creates ISO for the user and uploads to S3.
+      operationId: CreateISOAndUploadToS3
+      parameters:
+        - in: body
+          name: assisted-service-iso-create-params
+          required: true
+          schema:
+            $ref: '#/definitions/assisted-service-iso-create-params'
+      responses:
+        201:
+          description: Success.
+        400:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /assisted-service-iso/data:
+    get:
+      tags:
+        - assisted-service-iso
+      summary: Downloads the Assisted Service ISO.
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      operationId: DownloadISO
+      produces:
+        # application/vnd.efi.iso is not supported
+        - application/octet-stream
+      responses:
+        200:
+          description: Success.
+          schema:
+            type: string
+            format: binary
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /assisted-service-iso/presigned:
+    get:
+      tags:
+        - assisted-service-iso
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      summary: Retrieves a pre-signed S3 URL for downloading assisted-service ISO.
+      operationId: GetPresignedForAssistedServiceISO
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/presigned'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   list-managed-domains:
     type: array
@@ -2345,6 +2441,16 @@ definitions:
       ssh_public_key:
         type: string
         description: SSH public key for debugging the installation.
+
+  assisted-service-iso-create-params:
+    type: object
+    properties:
+      ssh_public_key:
+        type: string
+        description: SSH public key for debugging the installation.
+      pull_secret:
+        type: string
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 
   host-create-params:
     type: object

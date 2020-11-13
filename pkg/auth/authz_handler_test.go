@@ -193,12 +193,13 @@ func TestAuthz(t *testing.T) {
 					Cache:         authzCache,
 				},
 				log.WithField("pkg", "auth")).CreateAuthorizer(),
-			InstallerAPI:      fakeInventory{},
-			EventsAPI:         &fakeEventsAPI{},
-			Logger:            logrus.Printf,
-			VersionsAPI:       fakeVersionsAPI{},
-			ManagedDomainsAPI: fakeManagedDomainsAPI{},
-			InnerMiddleware:   nil,
+			InstallerAPI:          fakeInventory{},
+			AssistedServiceIsoAPI: fakeAssistedServiceIsoAPI{},
+			EventsAPI:             &fakeEventsAPI{},
+			Logger:                logrus.Printf,
+			VersionsAPI:           fakeVersionsAPI{},
+			ManagedDomainsAPI:     fakeManagedDomainsAPI{},
+			InnerMiddleware:       nil,
 		})
 	if err != nil {
 		panic(err)

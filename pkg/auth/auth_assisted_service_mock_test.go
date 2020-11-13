@@ -16,6 +16,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/restapi"
+	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 )
 
@@ -253,4 +254,26 @@ func (f fakeManagedDomainsAPI) ListManagedDomains(
 	_ context.Context,
 	_ managed_domains_api.ListManagedDomainsParams) middleware.Responder {
 	return managed_domains_api.NewListManagedDomainsOK()
+}
+
+type fakeAssistedServiceIsoAPI struct{}
+
+func (f fakeAssistedServiceIsoAPI) CreateISOAndUploadToS3(ctx context.Context, params assisted_service_iso.CreateISOAndUploadToS3Params) middleware.Responder {
+	return assisted_service_iso.NewCreateISOAndUploadToS3Created()
+}
+
+func (f fakeAssistedServiceIsoAPI) DownloadISO(ctx context.Context, params assisted_service_iso.DownloadISOParams) middleware.Responder {
+	file, err := ioutil.TempFile("/tmp", "test.file")
+	if err != nil {
+		return assisted_service_iso.NewDownloadISOInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, err))
+	}
+	return filemiddleware.NewResponder(
+		assisted_service_iso.NewDownloadISOOK().WithPayload(io.ReadCloser(file)),
+		"test",
+		0)
+}
+
+func (f fakeAssistedServiceIsoAPI) GetPresignedForAssistedServiceISO(ctx context.Context, params assisted_service_iso.GetPresignedForAssistedServiceISOParams) middleware.Responder {
+	return assisted_service_iso.NewGetPresignedForAssistedServiceISOOK()
 }
