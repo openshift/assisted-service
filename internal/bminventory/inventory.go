@@ -449,6 +449,10 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
 	}
 
+	if params.NewClusterParams.UserManagedNetworking == nil {
+		params.NewClusterParams.UserManagedNetworking = swag.Bool(false)
+	}
+
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:                       &id,
 		Href:                     swag.String(url.String()),
@@ -469,6 +473,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		HTTPSProxy:               swag.StringValue(params.NewClusterParams.HTTPSProxy),
 		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
 		VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
+		UserManagedNetworking:    params.NewClusterParams.UserManagedNetworking,
 	}}
 
 	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
@@ -1442,6 +1447,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	clusterCidr := cluster.ClusterNetworkCidr
 	hostNetworkPrefix := cluster.ClusterNetworkHostPrefix
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
+	userManagedNetworking := swag.BoolValue(cluster.UserManagedNetworking)
 	if params.ClusterUpdateParams.Name != nil {
 		updates["name"] = *params.ClusterUpdateParams.Name
 	}
@@ -1505,6 +1511,9 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	}
 	if params.ClusterUpdateParams.SSHPublicKey != nil {
 		updates["ssh_public_key"] = *params.ClusterUpdateParams.SSHPublicKey
+	}
+	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
+		updates["user_managed_networking"] = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
 	}
 
 	if params.ClusterUpdateParams.PullSecret != nil {
