@@ -186,11 +186,28 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 	return m
 }
 
-func (m *MetricsManager) ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
+func (m *MetricsManager) IncrementClusterCreationMetric (clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
+	// assuming Prometheus scrap interval is 1m
+	time.Sleep(time.Second * 180)
 	m.serviceLogicClusterCreation.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Inc()
 }
-func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
+
+func (m *MetricsManager) ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
+	// Initialize metric to zero
+	m.serviceLogicClusterCreation.WithLabelValues(clusterVersion, clusterID.String(), emailDomain)
+
+	go m.IncrementClusterCreationMetric(clusterVersion, clusterID, emailDomain)
+}
+
+func (m *MetricsManager) IncrementClusterInstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
+	// assuming Prometheus scrap interval is 1m
+	time.Sleep(time.Second * 180)
 	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Inc()
+}
+
+func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
+	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion, clusterID.String(), emailDomain)
+	go m.IncrementClusterInstallationStarted(clusterVersion, clusterID, emailDomain)
 }
 
 func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
@@ -244,11 +261,19 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 	}
 }
 
+func (m *MetricsManager) IncrementClusterHosts(roleStr string, installationStageStr string, clusterVersion string, clusterID strfmt.UUID, emailDomain string,
+	hwVendor string, hwProduct string, diskType string) {
+	// assuming Prometheus scrap interval is 1m
+	time.Sleep(time.Second * 180)
+	m.serviceLogicClusterHosts.WithLabelValues(roleStr, installationStageStr, clusterVersion, clusterID.String(), emailDomain, hwVendor, hwProduct, diskType).Inc()
+}
+
 func (m *MetricsManager) handleHostInstallationComplete(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string,
 	roleStr string, hwVendor string, hwProduct string, diskType string, installationStageStr string, h *models.Host) {
 	log.Infof("service Logic Cluster Hosts clusterVersion %s, roleStr %s, vendor %s, product %s, disk %s, result %s",
 		clusterVersion, roleStr, hwVendor, hwProduct, diskType, installationStageStr)
-	m.serviceLogicClusterHosts.WithLabelValues(roleStr, installationStageStr, clusterVersion, clusterID.String(), emailDomain, hwVendor, hwProduct, diskType).Inc()
+	m.serviceLogicClusterHosts.WithLabelValues(roleStr, installationStageStr, clusterVersion, clusterID.String(), emailDomain, hwVendor, hwProduct, diskType)
+	go m.IncrementClusterHosts(roleStr, installationStageStr, clusterVersion, clusterID, emailDomain, hwVendor, hwProduct, diskType)
 	var hwInfo models.Inventory
 
 	err := json.Unmarshal([]byte(h.Inventory), &hwInfo)
