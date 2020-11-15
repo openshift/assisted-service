@@ -6,11 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hostutil"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/sirupsen/logrus"
 )
 
 type dummyGenerator struct {
@@ -40,7 +41,9 @@ func (g *dummyGenerator) Generate(ctx context.Context, installConfig []byte) err
 
 	toUpload := fileNames[:]
 	for _, host := range g.cluster.Hosts {
-		toUpload = append(toUpload, hostutil.IgnitionFileName(host))
+		if swag.StringValue(host.Status) != models.HostStatusDisabled {
+			toUpload = append(toUpload, hostutil.IgnitionFileName(host))
+		}
 	}
 
 	for _, fileName := range toUpload {

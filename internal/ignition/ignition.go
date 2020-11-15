@@ -14,19 +14,11 @@ import (
 	"sort"
 	"strings"
 
-	"golang.org/x/sync/errgroup"
-
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_31_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/coreos/ignition/v2/config/validate"
+	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/vincent-petithory/dataurl"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/client-go/kubernetes/scheme"
-
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/internal/installercache"
@@ -34,6 +26,13 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/vincent-petithory/dataurl"
+	"golang.org/x/sync/errgroup"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 var fileNames = [...]string{
@@ -487,7 +486,9 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) error {
 	toUpload := fileNames[:]
 	for _, host := range cluster.Hosts {
-		toUpload = append(toUpload, hostutil.IgnitionFileName(host))
+		if swag.StringValue(host.Status) != models.HostStatusDisabled {
+			toUpload = append(toUpload, hostutil.IgnitionFileName(host))
+		}
 	}
 
 	for _, fileName := range toUpload {
