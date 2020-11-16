@@ -7,6 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 
 	"github.com/openshift/assisted-service/internal/common"
@@ -36,7 +37,12 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 		return nil, err
 	}
 
-	apiURL := fmt.Sprintf("http://%s:22624/config/worker", *cluster.APIVipDNSName)
+	addressPart := swag.StringValue(cluster.APIVipDNSName)
+	if addressPart == "" {
+		addressPart = cluster.APIVip
+	}
+
+	apiURL := fmt.Sprintf("http://%s:22624/config/worker", addressPart)
 	request := models.APIVipConnectivityRequest{
 		URL:        &apiURL,
 		VerifyCidr: c.verifyAPIVipCidr,

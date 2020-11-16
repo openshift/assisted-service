@@ -3693,7 +3693,7 @@ var _ = Describe("Register OCPCluster test", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), mockK8sClient, nil, mockSecretValidator)
 		configMap.Data = make(map[string]string)
-		configMap.Data["install-config"] = "platform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
+		configMap.Data["install-config"] = "baseDomain: redhat.com\nnetworking:\n  machineNetwork:\n  - cidr: 192.168.126.0/24\nplatform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
 		pullSecret.Data = make(map[string][]byte)
 		pullSecret.Data[".dockerconfigjson"] = []byte("some kind of secret")
 		clusterVersion.Status.Desired.Version = "4.6.0-rc5"
@@ -3724,6 +3724,13 @@ var _ = Describe("Register OCPCluster test", func() {
 
 	It("Register OCP cluster failer to get cluster-config-v1", func() {
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(nil, fmt.Errorf("some error")).Times(1)
+		err := bm.RegisterOCPCluster(ctx)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("Register OCP cluster failed wrong format(basedomain) of cluster-config-v1", func() {
+		configMap.Data["install-config"] = "baseDoimain: 98iijhk\nplatform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
+		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).Should(HaveOccurred())
 	})

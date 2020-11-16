@@ -40,6 +40,56 @@ func GetApiVIP(configMap *v1.ConfigMap, log logrus.FieldLogger) (string, error) 
 	return apiVip, nil
 }
 
+func GetBaseDNSDomain(configMap *v1.ConfigMap, log logrus.FieldLogger) (string, error) {
+	configStruct := make(map[string]interface{})
+	err := yaml.Unmarshal([]byte(configMap.Data["install-config"]), configStruct)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal confimap cluster-config-v1 data: <%s>", configMap.Data["install-config"])
+		return "", err
+	}
+	baseDomain, ok := configStruct["baseDomain"].(string)
+	if !ok {
+		err := fmt.Errorf("invalid or missing baseDomain  key in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
+	return baseDomain, nil
+}
+
+func GetMachineNetworkCIDR(configMap *v1.ConfigMap, log logrus.FieldLogger) (string, error) {
+	configStruct := make(map[string]interface{})
+	err := yaml.Unmarshal([]byte(configMap.Data["install-config"]), configStruct)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal confimap cluster-config-v1 data: <%s>", configMap.Data["install-config"])
+		return "", err
+	}
+	networking, ok := configStruct["networking"].(map[interface{}]interface{})
+	if !ok {
+		err := fmt.Errorf("invalid or missing networking key in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
+	machineNetwork, ok := networking["machineNetwork"].([]interface{})
+	if !ok {
+		err := fmt.Errorf("invalid or missing machineNetwork key in networking in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
+	cidrEntry, ok := machineNetwork[0].(map[interface{}]interface{})
+	if !ok {
+		err := fmt.Errorf("invalid or missing cidr entry in networking in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
+	cidr, ok := cidrEntry["cidr"].(string)
+	if !ok {
+		err := fmt.Errorf("invalid or missing cidr key in networking in cluster-config-v1")
+		log.WithError(err).Errorf("invalid format for cluster-config-v1")
+		return "", err
+	}
+	return cidr, nil
+}
+
 func GetClusterVersion(clusterVersion *configv1.ClusterVersion) (string, error) {
 	openshiftVersion := clusterVersion.Status.Desired.Version
 	splits := strings.Split(openshiftVersion, ".")

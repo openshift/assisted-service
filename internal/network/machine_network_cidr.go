@@ -313,3 +313,12 @@ func IpInFreeList(hosts []*models.Host, vipIPStr, network string, log logrus.Fie
 	}
 	return isFree
 }
+
+func CreateIpWithCidr(ip, cidr string) (string, error) {
+	_, ipNet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", err
+	}
+	ipNet.IP = net.ParseIP(ip)
+	return ipNet.String(), nil
+}
