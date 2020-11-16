@@ -929,6 +929,34 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 	return nil
 }
 
+func (b *bareMetalInventory) storeOpenshiftClusterID(ctx context.Context, clusterID string) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Debug("Downloading bootstrap ignition file")
+	reader, _, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", clusterID, "bootstrap.ign"))
+	if err != nil {
+		log.WithError(err).Error("Failed downloading bootstrap ignition file")
+		return err
+	}
+
+	var openshiftClusterID string
+	log.Debug("Extracting Openshift cluster ID from ignition file")
+	openshiftClusterID, err = ignition.ExtractClusterID(reader)
+	if err != nil {
+		log.WithError(err).Error("Failed extracting Openshift cluster ID from ignition file")
+		return err
+	}
+	log.Debugf("Got OpenShift cluster ID of %s", openshiftClusterID)
+
+	log.Debugf("Storing Openshift cluster ID of cluster %s to DB", clusterID)
+	if err = b.db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update(
+		"openshift_cluster_id", openshiftClusterID).Error; err != nil {
+		log.WithError(err).Errorf("Failed storing Openshift cluster ID of cluster %s to DB", clusterID)
+		return err
+	}
+
+	return nil
+}
+
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
@@ -1008,6 +1036,11 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 			return
 		}
 		log.Infof("generated ignition for cluster %s", cluster.ID.String())
+
+		log.Infof("Storing OpenShift cluster ID of cluster %s to DB", cluster.ID.String())
+		if err = b.storeOpenshiftClusterID(ctx, cluster.ID.String()); err != nil {
+			return
+		}
 
 		cInstaller := clusterInstaller{
 			ctx:    asyncCtx, // Need a new context for async part

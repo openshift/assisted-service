@@ -12,6 +12,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -103,6 +104,20 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client        *s3wrapper.MockAPI
 		mockSecretValidator *validations.MockPullSecretValidator
 		dbName              = "generate_cluster_iso"
+		ignitionReader      = ioutil.NopCloser(strings.NewReader(`{
+				"ignition":{"version":"3.1.0"},
+				"storage":{
+					"files":[
+						{
+							"path":"/opt/openshift/manifests/cvo-overrides.yaml",
+							"contents":{
+								"source":"data:text/plain;charset=utf-8;base64,YXBpVmVyc2lvbjogY29uZmlnLm9wZW5zaGlmdC5pby92MQpraW5kOiBDbHVzdGVyVmVyc2lvbgptZXRhZGF0YToKICBuYW1lc3BhY2U6IG9wZW5zaGlmdC1jbHVzdGVyLXZlcnNpb24KICBuYW1lOiB2ZXJzaW9uCnNwZWM6CiAgdXBzdHJlYW06IGh0dHBzOi8vYXBpLm9wZW5zaGlmdC5jb20vYXBpL3VwZ3JhZGVzX2luZm8vdjEvZ3JhcGgKICBjaGFubmVsOiBzdGFibGUtNC42CiAgY2x1c3RlcklEOiA0MTk0MGVlOC1lYzk5LTQzZGUtODc2Ni0xNzQzODFiNDkyMWQK"
+							}
+						}
+					]
+				},
+				"systemd":{}
+		}`))
 	)
 
 	BeforeEach(func() {
@@ -111,6 +126,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		db = common.PrepareTestDB(dbName)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 	})
 
@@ -1186,6 +1202,7 @@ var _ = Describe("cluster", func() {
 		mockEvents          *events.MockHandler
 		mockMetric          *metrics.MockAPI
 		dbName              = "inventory_cluster"
+		ignitionReader      io.ReadCloser
 	)
 
 	BeforeEach(func() {
@@ -2130,6 +2147,21 @@ var _ = Describe("cluster", func() {
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
 				Expect(err).ToNot(HaveOccurred())
 				mockDurationsSuccess()
+				ignitionReader = ioutil.NopCloser(strings.NewReader(`{
+						"ignition":{"version":"3.1.0"},
+						"storage":{
+							"files":[
+								{
+									"path":"/opt/openshift/manifests/cvo-overrides.yaml",
+									"contents":{
+										"source":"data:text/plain;charset=utf-8;base64,YXBpVmVyc2lvbjogY29uZmlnLm9wZW5zaGlmdC5pby92MQpraW5kOiBDbHVzdGVyVmVyc2lvbgptZXRhZGF0YToKICBuYW1lc3BhY2U6IG9wZW5zaGlmdC1jbHVzdGVyLXZlcnNpb24KICBuYW1lOiB2ZXJzaW9uCnNwZWM6CiAgdXBzdHJlYW06IGh0dHBzOi8vYXBpLm9wZW5zaGlmdC5jb20vYXBpL3VwZ3JhZGVzX2luZm8vdjEvZ3JhcGgKICBjaGFubmVsOiBzdGFibGUtNC42CiAgY2x1c3RlcklEOiA0MTk0MGVlOC1lYzk5LTQzZGUtODc2Ni0xNzQzODFiNDkyMWQK"
+									}
+								}
+							]
+						},
+						"systemd":{}
+				}`))
+				mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
 			})
 
 			It("success", func() {
@@ -2159,6 +2191,9 @@ var _ = Describe("cluster", func() {
 
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
 				waitForDoneChannel()
+
+				count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
+				Expect(count).To(Equal(int64(1)))
 			})
 
 			It("cluster doesn't exists", func() {
@@ -2463,6 +2498,7 @@ var _ = Describe("cluster", func() {
 
 			AfterEach(func() {
 				close(DoneChannel)
+				common.DeleteTestDB(db, dbName)
 			})
 		})
 	}
@@ -2470,6 +2506,21 @@ var _ = Describe("cluster", func() {
 	Context("when kube job is used as generator", func() {
 		BeforeEach(func() {
 			mockGenerator = generator.NewMockISOInstallConfigGenerator(ctrl)
+			ignitionReader = ioutil.NopCloser(strings.NewReader(`{
+					"ignition":{"version":"3.1.0"},
+					"storage":{
+						"files":[
+							{
+								"path":"/opt/openshift/manifests/cvo-overrides.yaml",
+								"contents":{
+									"source":"data:text/plain;charset=utf-8;base64,YXBpVmVyc2lvbjogY29uZmlnLm9wZW5zaGlmdC5pby92MQpraW5kOiBDbHVzdGVyVmVyc2lvbgptZXRhZGF0YToKICBuYW1lc3BhY2U6IG9wZW5zaGlmdC1jbHVzdGVyLXZlcnNpb24KICBuYW1lOiB2ZXJzaW9uCnNwZWM6CiAgdXBzdHJlYW06IGh0dHBzOi8vYXBpLm9wZW5zaGlmdC5jb20vYXBpL3VwZ3JhZGVzX2luZm8vdjEvZ3JhcGgKICBjaGFubmVsOiBzdGFibGUtNC42CiAgY2x1c3RlcklEOiA0MTk0MGVlOC1lYzk5LTQzZGUtODc2Ni0xNzQzODFiNDkyMWQK"
+								}
+							}
+						]
+					},
+					"systemd":{}
+			}`))
+			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
 			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockGenerator, mockEvents, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator)
 		})
 		RunClusterTests()

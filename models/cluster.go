@@ -125,6 +125,10 @@ type Cluster struct {
 	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy string `json:"no_proxy,omitempty"`
 
+	// Cluster ID on OCP system.
+	// Format: uuid
+	OpenshiftClusterID strfmt.UUID `json:"openshift_cluster_id,omitempty"`
+
 	// Version of the OpenShift cluster.
 	// Enum: [4.5 4.6]
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
@@ -234,6 +238,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateMachineNetworkCidr(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateOpenshiftClusterID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -531,6 +539,19 @@ func (m *Cluster) validateMachineNetworkCidr(formats strfmt.Registry) error {
 	}
 
 	if err := validate.Pattern("machine_network_cidr", "body", string(m.MachineNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateOpenshiftClusterID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.OpenshiftClusterID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("openshift_cluster_id", "body", "uuid", m.OpenshiftClusterID.String(), formats); err != nil {
 		return err
 	}
 

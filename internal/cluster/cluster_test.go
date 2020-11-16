@@ -995,8 +995,9 @@ var _ = Describe("ResetCluster", func() {
 	It("reset_cluster", func() {
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
-			ID:     &id,
-			Status: swag.String(models.ClusterStatusError),
+			ID:                 &id,
+			Status:             swag.String(models.ClusterStatusError),
+			OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
 		}}
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 		Expect(state.ResetCluster(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
@@ -1008,6 +1009,9 @@ var _ = Describe("ResetCluster", func() {
 		resetEvent := events[len(events)-1]
 		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
 		Expect(*resetEvent.Message).Should(Equal("Reset cluster installation"))
+
+		count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
+		Expect(count).To(Equal(int64(0)))
 	})
 
 	It("reset cluster conflict", func() {
