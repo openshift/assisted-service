@@ -353,7 +353,8 @@ func (m *multiUpload) complete() {
 }
 
 func (m *multiUpload) fail() {
-	_, err := m.uploader.s3client.AbortMultipartUploadWithContext(m.ctx, &s3.AbortMultipartUploadInput{
+	// using new context because m.ctx may be canceled and it will fail the operation
+	_, err := m.uploader.s3client.AbortMultipartUploadWithContext(context.Background(), &s3.AbortMultipartUploadInput{
 		Bucket:   aws.String(m.uploader.bucket),
 		Key:      aws.String(m.destObjectKey),
 		UploadId: aws.String(m.uploadID),

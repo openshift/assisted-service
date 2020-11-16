@@ -220,6 +220,41 @@ var _ = Describe("s3client", func() {
 			err := client.UploadISO(ctx, "ignition", "object-prefix")
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("cancel context", func() {
+			canceledCtx, cancel := context.WithCancel(context.Background())
+			// Taken from hex dump of ISO
+			hexBytes := []byte{0x63, 0x6f, 0x72, 0x65, 0x69, 0x73, 0x6f, 0x2b, // coreiso+
+				0x00, 0xb0, 0x7e, 0x00, 0x00, 0x00, 0x00, 0x00, // offset = 8302592
+				0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00} // length = 262144
+			baseISOSize := int64(962592768)
+			uploadID := "12345"
+			destObjName := "object-prefix.iso"
+			copySource := fmt.Sprintf("/%s/%s", bucket, BaseObjectName)
+
+			mockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName)}).
+				Return(&s3.HeadObjectOutput{ETag: aws.String("abcdefg"), ContentLength: aws.Int64(baseISOSize)}, nil)
+			mockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName), Range: aws.String("bytes=32744-32767")}).
+				Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader(hexBytes))}, nil)
+			mockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &bucket, Key: aws.String(BaseObjectName), Range: aws.String("bytes=8302592-13545471")}).
+				Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader(make([]byte, 100)))}, nil)
+			mockAPI.EXPECT().CreateMultipartUploadWithContext(gomock.Any(), &s3.CreateMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName)}).
+				Return(&s3.CreateMultipartUploadOutput{UploadId: aws.String(uploadID)}, nil)
+			mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), &s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(1),
+				CopySource: aws.String(copySource), CopySourceRange: aws.String("bytes=0-8302591"), UploadId: aws.String(uploadID)}).
+				DoAndReturn(func(args ...interface{}) (*s3.UploadPartCopyOutput, error) {
+					cancel()
+					return &s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String("etag")}}, errors.New("failed")
+				})
+			mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), gomock.Any()).
+				Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String("etagfoo")}}, nil).AnyTimes()
+			mockAPI.EXPECT().UploadPart(gomock.Any()).Return(&s3.UploadPartOutput{ETag: aws.String("etagbar")}, nil).AnyTimes()
+			// validate that the context that is being used is not the canceled context
+			mockAPI.EXPECT().AbortMultipartUploadWithContext(gomock.Not(canceledCtx), &s3.AbortMultipartUploadInput{Bucket: &bucket, Key: aws.String(destObjName), UploadId: aws.String(uploadID)})
+
+			err := client.UploadISO(canceledCtx, "ignition", "object-prefix")
+			Expect(err).To(HaveOccurred())
+		})
 		It("upload_iso_ignition_generate_failure", func() {
 			// Taken from hex dump of ISO
 			hexBytes := []byte{0x63, 0x6f, 0x72, 0x65, 0x69, 0x73, 0x6f, 0x2b, // coreiso+
