@@ -1175,6 +1175,54 @@ var _ = Describe("Refresh Host", func() {
 		}
 	})
 
+	Context("host disconnected & installation timeout", func() {
+		var srcState string
+
+		installationStages := []models.HostStage{
+			models.HostStageInstalling,
+			models.HostStageWritingImageToDisk,
+		}
+
+		for j := range installationStages {
+			stage := installationStages[j]
+			name := fmt.Sprintf("installationInProgress stage %s", stage)
+			passedTime := 90 * time.Minute
+			It(name, func() {
+				srcState = models.HostStatusInstallingInProgress
+				host = getTestHost(hostId, clusterId, srcState)
+				host.Inventory = masterInventory()
+				host.Role = models.HostRoleMaster
+				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-5 * time.Minute))
+
+				progress := models.HostProgressInfo{
+					CurrentStage:   stage,
+					StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+					StageUpdatedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+				}
+
+				host.Progress = &progress
+
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				cluster = getTestCluster(clusterId, "1.2.3.0/24")
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+					gomock.Any(), gomock.Any())
+				err := hapi.RefreshStatus(ctx, &host, db)
+
+				Expect(err).ToNot(HaveOccurred())
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+				Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
+				info := formatProgressTimedOutInfo(stage) + hostNotRespondingNotification
+				Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))
+
+			})
+
+		}
+	})
+
 	Context("host installation timeout", func() {
 		var srcState = models.HostStatusInstalling
 		timePassedTypes := map[string]time.Duration{
