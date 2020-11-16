@@ -1,6 +1,7 @@
 package ignition
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -8,19 +9,21 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/hostutil"
 
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_31_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -605,5 +608,96 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 		_, err := ExtractClusterID(r)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("no ClusterID field in cvo-overrides file"))
+	})
+})
+
+var _ = Describe("Generator UploadToS3", func() {
+	var (
+		ctx          = context.Background()
+		ctrl         *gomock.Controller
+		mockS3Client *s3wrapper.MockAPI
+	)
+
+	generator := installerGenerator{
+		log:     log,
+		workDir: workDir,
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+
+		generator.s3Client = mockS3Client
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	mockUploadFile := func() *gomock.Call {
+		return mockS3Client.EXPECT().UploadFile(gomock.Any(), gomock.Any(), gomock.Any())
+	}
+
+	mockUploadObjectTimestamp := func() *gomock.Call {
+		return mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any())
+	}
+
+	It("disabled host", func() {
+		cluster.Hosts = []*models.Host{
+			{Status: swag.String(models.HostStatusDisabled)},
+		}
+		generator.cluster = cluster
+
+		mockUploadFile().Return(nil).Times(len(fileNames))
+		mockUploadObjectTimestamp().Return(true, nil).Times(len(fileNames))
+
+		Expect(generator.UploadToS3(ctx)).Should(Succeed())
+	})
+
+	Context("cluster with known hosts", func() {
+		BeforeEach(func() {
+			hostID1 := strfmt.UUID(uuid.New().String())
+			hostID2 := strfmt.UUID(uuid.New().String())
+			cluster.Hosts = []*models.Host{
+				{ID: &hostID1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+				{ID: &hostID2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+			}
+			generator.cluster = cluster
+		})
+
+		It("validate upload files names", func() {
+			for _, f := range fileNames {
+				fullPath := filepath.Join(generator.workDir, f)
+				key := filepath.Join(cluster.ID.String(), f)
+				mockS3Client.EXPECT().UploadFile(gomock.Any(), fullPath, key).Return(nil).Times(1)
+				mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), key).Return(true, nil).Times(1)
+			}
+			for i := range cluster.Hosts {
+				fullPath := filepath.Join(generator.workDir, hostutil.IgnitionFileName(cluster.Hosts[i]))
+				key := filepath.Join(cluster.ID.String(), hostutil.IgnitionFileName(cluster.Hosts[i]))
+				mockS3Client.EXPECT().UploadFile(gomock.Any(), fullPath, key).Return(nil).Times(1)
+				mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), key).Return(true, nil).Times(1)
+			}
+
+			Expect(generator.UploadToS3(ctx)).Should(Succeed())
+		})
+
+		It("upload failure", func() {
+			mockUploadFile().Return(nil).Times(1)
+			mockUploadObjectTimestamp().Return(true, nil).Times(1)
+			mockUploadFile().Return(errors.New("error")).Times(1)
+
+			err := generator.UploadToS3(ctx)
+			Expect(err).Should(HaveOccurred())
+		})
+
+		It("set timestamp failure", func() {
+			mockUploadFile().Return(nil).Times(2)
+			mockUploadObjectTimestamp().Return(true, nil).Times(1)
+			mockUploadObjectTimestamp().Return(true, errors.New("error")).Times(1)
+
+			err := generator.UploadToS3(ctx)
+			Expect(err).Should(HaveOccurred())
+		})
 	})
 })
