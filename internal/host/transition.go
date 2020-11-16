@@ -515,6 +515,10 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 			template = strings.Replace(template, "$FAILING_VALIDATIONS", strings.Join(failedValidations, " ; "), 1)
 		}
 
+		if funk.Contains(disconnectionValidationStages, sHost.host.Progress.CurrentStage) && host {
+
+		}
+
 		_, err = updateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
 			sHost.srcState, swag.StringValue(sHost.host.Status), template, "validations_info", string(b))
 		return err

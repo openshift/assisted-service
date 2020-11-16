@@ -62,6 +62,11 @@ var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 	"DEFAULT":                                   60 * time.Minute,
 }
 
+var disconnectionValidationStages = []models.HostStage{
+	models.HostStageWritingImageToDisk,
+	models.HostStageInstalling,
+}
+
 var WrongBootOrderIgnoreTimeoutStages = []models.HostStage{
 	models.HostStageStartWaitingForControlPlane,
 	models.HostStageWaitingForControlPlane,
