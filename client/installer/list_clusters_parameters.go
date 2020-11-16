@@ -75,6 +75,8 @@ type ListClustersParams struct {
 
 	/*GetUnregisteredClusters*/
 	GetUnregisteredClusters *bool
+	/*OpenshiftClusterID*/
+	OpenshiftClusterID *strfmt.UUID
 
 	timeout    time.Duration
 	Context    context.Context
@@ -125,6 +127,17 @@ func (o *ListClustersParams) SetGetUnregisteredClusters(getUnregisteredClusters 
 	o.GetUnregisteredClusters = getUnregisteredClusters
 }
 
+// WithOpenshiftClusterID adds the openshiftClusterID to the list clusters params
+func (o *ListClustersParams) WithOpenshiftClusterID(openshiftClusterID *strfmt.UUID) *ListClustersParams {
+	o.SetOpenshiftClusterID(openshiftClusterID)
+	return o
+}
+
+// SetOpenshiftClusterID adds the openshiftClusterId to the list clusters params
+func (o *ListClustersParams) SetOpenshiftClusterID(openshiftClusterID *strfmt.UUID) {
+	o.OpenshiftClusterID = openshiftClusterID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *ListClustersParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -138,6 +151,22 @@ func (o *ListClustersParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		// header param get_unregistered_clusters
 		if err := r.SetHeaderParam("get_unregistered_clusters", swag.FormatBool(*o.GetUnregisteredClusters)); err != nil {
 			return err
+		}
+
+	}
+
+	if o.OpenshiftClusterID != nil {
+
+		// query param openshift_cluster_id
+		var qrOpenshiftClusterID strfmt.UUID
+		if o.OpenshiftClusterID != nil {
+			qrOpenshiftClusterID = *o.OpenshiftClusterID
+		}
+		qOpenshiftClusterID := qrOpenshiftClusterID.String()
+		if qOpenshiftClusterID != "" {
+			if err := r.SetQueryParam("openshift_cluster_id", qOpenshiftClusterID); err != nil {
+				return err
+			}
 		}
 
 	}

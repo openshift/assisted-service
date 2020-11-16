@@ -13,17 +13,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/bminventory"
-	"github.com/openshift/assisted-service/internal/host"
-
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -101,7 +99,7 @@ var (
 	}
 )
 
-var _ = Describe("Cluster tests", func() {
+var _ = Describe("Cluster", func() {
 	ctx := context.Background()
 	var cluster *installer.RegisterClusterCreated
 	var clusterID strfmt.UUID
@@ -430,6 +428,32 @@ var _ = Describe("cluster install - DHCP", func() {
 			clusterID = *cluster.ID
 			registerHostsAndSetRolesDHCP(clusterID, 5)
 		})
+
+		It("filters based on openshift cluster ID", func() {
+			_ = installCluster(clusterID)
+
+			By("searching for an existing openshift cluster ID")
+			list, err := userBMClient.Installer.ListClusters(
+				ctx,
+				&installer.ListClustersParams{OpenshiftClusterID: strToUUID("41940ee8-ec99-43de-8766-174381b4921d")})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(list.GetPayload())).Should(Equal(1))
+
+			By("discarding cluster ID field")
+			list, err = userBMClient.Installer.ListClusters(
+				ctx,
+				&installer.ListClustersParams{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(list.GetPayload())).Should(Equal(1))
+
+			By("searching for a non-existing openshift cluster ID")
+			list, err = userBMClient.Installer.ListClusters(
+				ctx,
+				&installer.ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(list.GetPayload())).Should(Equal(0))
+		})
+
 		It("Install with DHCP", func() {
 			c := installCluster(clusterID)
 			Expect(len(c.Hosts)).Should(Equal(5))
@@ -449,59 +473,68 @@ var _ = Describe("cluster install - DHCP", func() {
 
 			Expect(atLeastOneBootstrap).Should(BeTrue())
 		})
-		It("Move between DHCP modes", func() {
-			reply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
-					VipDhcpAllocation: swag.Bool(false),
-				},
-				ClusterID: clusterID,
-			})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusPendingForInput))
-			generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", true)
-			reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
-					APIVip:     swag.String("1.2.3.100"),
-					IngressVip: swag.String("1.2.3.101"),
-				},
-				ClusterID: clusterID,
-			})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusReady))
-			reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
-					VipDhcpAllocation: swag.Bool(false),
-				},
-				ClusterID: clusterID,
-			})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusReady))
-			reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
-					VipDhcpAllocation:  swag.Bool(true),
-					MachineNetworkCidr: swag.String("1.2.3.0/24"),
-				},
-				ClusterID: clusterID,
-			})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusInsufficient))
-			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterUpdateParams: &models.ClusterUpdateParams{
-					APIVip:     swag.String("1.2.3.100"),
-					IngressVip: swag.String("1.2.3.101"),
-				},
-				ClusterID: clusterID,
-			})
-			Expect(err).To(HaveOccurred())
-			generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", false)
-			waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
-			getReply, err := userBMClient.Installer.GetCluster(ctx, installer.NewGetClusterParams().WithClusterID(clusterID))
-			Expect(err).ToNot(HaveOccurred())
-			c := getReply.Payload
-			Expect(swag.StringValue(c.Status)).To(Equal(models.ClusterStatusReady))
-			Expect(c.APIVip).To(Equal("1.2.3.102"))
-			Expect(c.IngressVip).To(Equal("1.2.3.103"))
+
+		AfterEach(func() {
+			reply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(reply.GetPayload().OpenshiftClusterID).To(Equal(*strToUUID("41940ee8-ec99-43de-8766-174381b4921d")))
 		})
+	})
+
+	It("moves between DHCP modes", func() {
+		clusterID := *cluster.ID
+		registerHostsAndSetRolesDHCP(clusterID, 5)
+		reply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				VipDhcpAllocation: swag.Bool(false),
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusPendingForInput))
+		generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", true)
+		reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				APIVip:     swag.String("1.2.3.100"),
+				IngressVip: swag.String("1.2.3.101"),
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusReady))
+		reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				VipDhcpAllocation: swag.Bool(false),
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusReady))
+		reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				VipDhcpAllocation:  swag.Bool(true),
+				MachineNetworkCidr: swag.String("1.2.3.0/24"),
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusInsufficient))
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				APIVip:     swag.String("1.2.3.100"),
+				IngressVip: swag.String("1.2.3.101"),
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).To(HaveOccurred())
+		generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", false)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
+		getReply, err := userBMClient.Installer.GetCluster(ctx, installer.NewGetClusterParams().WithClusterID(clusterID))
+		Expect(err).ToNot(HaveOccurred())
+		c := getReply.Payload
+		Expect(swag.StringValue(c.Status)).To(Equal(models.ClusterStatusReady))
+		Expect(c.APIVip).To(Equal("1.2.3.102"))
+		Expect(c.IngressVip).To(Equal("1.2.3.103"))
 	})
 })
 
@@ -1914,6 +1947,12 @@ var _ = Describe("cluster install", func() {
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
 						defaultWaitForHostStateTimeout)
 				}
+			})
+
+			AfterEach(func() {
+				reply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reply.GetPayload().OpenshiftClusterID).To(Equal(*strToUUID("")))
 			})
 		})
 	})

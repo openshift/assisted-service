@@ -9,9 +9,11 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // NewListClustersParams creates a new ListClustersParams object
@@ -43,6 +45,10 @@ type ListClustersParams struct {
 	  Default: false
 	*/
 	GetUnregisteredClusters *bool
+	/*
+	  In: query
+	*/
+	OpenshiftClusterID *strfmt.UUID
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -54,7 +60,14 @@ func (o *ListClustersParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	o.HTTPRequest = r
 
+	qs := runtime.Values(r.URL.Query())
+
 	if err := o.bindGetUnregisteredClusters(r.Header[http.CanonicalHeaderKey("get_unregistered_clusters")], true, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qOpenshiftClusterID, qhkOpenshiftClusterID, _ := qs.GetOK("openshift_cluster_id")
+	if err := o.bindOpenshiftClusterID(qOpenshiftClusterID, qhkOpenshiftClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -84,5 +97,41 @@ func (o *ListClustersParams) bindGetUnregisteredClusters(rawData []string, hasKe
 	}
 	o.GetUnregisteredClusters = &value
 
+	return nil
+}
+
+// bindOpenshiftClusterID binds and validates parameter OpenshiftClusterID from query.
+func (o *ListClustersParams) bindOpenshiftClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("openshift_cluster_id", "query", "strfmt.UUID", raw)
+	}
+	o.OpenshiftClusterID = (value.(*strfmt.UUID))
+
+	if err := o.validateOpenshiftClusterID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateOpenshiftClusterID carries on validations for parameter OpenshiftClusterID
+func (o *ListClustersParams) validateOpenshiftClusterID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("openshift_cluster_id", "query", "uuid", o.OpenshiftClusterID.String(), formats); err != nil {
+		return err
+	}
 	return nil
 }

@@ -9,11 +9,17 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
+
+	"github.com/go-openapi/strfmt"
 )
 
 // ListClustersURL generates an URL for the list clusters operation
 type ListClustersURL struct {
+	OpenshiftClusterID *strfmt.UUID
+
 	_basePath string
+	// avoid unkeyed usage
+	_ struct{}
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
@@ -42,6 +48,18 @@ func (o *ListClustersURL) Build() (*url.URL, error) {
 		_basePath = "/api/assisted-install/v1"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var openshiftClusterIDQ string
+	if o.OpenshiftClusterID != nil {
+		openshiftClusterIDQ = o.OpenshiftClusterID.String()
+	}
+	if openshiftClusterIDQ != "" {
+		qs.Set("openshift_cluster_id", openshiftClusterIDQ)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }
