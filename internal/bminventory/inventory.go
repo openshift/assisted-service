@@ -2711,6 +2711,7 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 
 	txSuccess := false
 	tx := b.db.Begin()
+	tx = transaction.AddForUpdateQueryOption(tx)
 	defer func() {
 		if !txSuccess {
 			log.Error("cancel installation failed")
@@ -2771,6 +2772,7 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 
 	txSuccess := false
 	tx := b.db.Begin()
+	tx = transaction.AddForUpdateQueryOption(tx)
 	defer func() {
 		if !txSuccess {
 			log.Error("reset cluster failed")
