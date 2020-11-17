@@ -3445,6 +3445,9 @@ definitions:
         type: string
       manufacturer:
         type: string
+      virtual:
+        type: boolean
+        description: Whether the machine appears to be a virtual machine or not
 
   memory:
     type: object

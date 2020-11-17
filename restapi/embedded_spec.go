@@ -5403,6 +5403,10 @@ func init() {
         },
         "serial_number": {
           "type": "string"
+        },
+        "virtual": {
+          "description": "Whether the machine appears to be a virtual machine or not",
+          "type": "boolean"
         }
       }
     },
@@ -10852,6 +10856,10 @@ func init() {
         },
         "serial_number": {
           "type": "string"
+        },
+        "virtual": {
+          "description": "Whether the machine appears to be a virtual machine or not",
+          "type": "boolean"
         }
       }
     },
