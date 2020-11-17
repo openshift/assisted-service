@@ -8,6 +8,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 )
 
 func GenerateError(id int32, err error) *models.Error {
@@ -101,6 +102,8 @@ func GenerateErrorResponder(err error) middleware.Responder {
 		return errValue
 	case *InfraErrorResponse:
 		return errValue
+	case s3wrapper.NotFound:
+		return NewApiError(http.StatusNotFound, err)
 	default:
 		return NewApiError(http.StatusInternalServerError, err)
 	}

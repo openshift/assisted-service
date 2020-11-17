@@ -46,6 +46,7 @@ var S3FileNames = []string{
 	"kubeadmin-password",
 	"kubeconfig-noingress",
 	"install-config.yaml",
+	"discovery.ign",
 }
 
 //go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go

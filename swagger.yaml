@@ -376,7 +376,7 @@ paths:
         - in: query
           name: file_name
           type: string
-          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml]
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, discovery.ign]
           required: true
         - in: header
           name: discovery_agent_version

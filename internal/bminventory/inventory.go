@@ -828,6 +828,11 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 			WithPayload(common.GenerateError(http.StatusInternalServerError, formatErr))
 	}
 
+	if err := b.objectHandler.Upload(ctx, []byte(ignitionConfig), fmt.Sprintf("%s/discovery.ign", cluster.ID)); err != nil {
+		log.WithError(err).Errorf("Upload discovery ignition failed for cluster %s", cluster.ID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	if err := b.objectHandler.UploadISO(ctx, ignitionConfig, fmt.Sprintf("discovery-image-%s", cluster.ID.String())); err != nil {
 		log.WithError(err).Errorf("Upload ISO failed for cluster %s", cluster.ID)
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
@@ -2452,7 +2457,7 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName))
 	if err != nil {
 		log.WithError(err).Errorf("failed to download file %s from cluster: %s", params.FileName, params.ClusterID.String())
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return common.GenerateErrorResponder(err)
 	}
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
@@ -2536,7 +2541,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	switch fileName {
 	case kubeconfig:
 		err = cluster.CanDownloadKubeconfig(&c)
-	case manifests.ManifestFolder:
+	case manifests.ManifestFolder, "discovery.ign":
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
 		err = cluster.CanDownloadFiles(&c)
