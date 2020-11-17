@@ -38,6 +38,7 @@ type transitionHandler struct {
 type TransitionArgsRegisterHost struct {
 	ctx                   context.Context
 	discoveryAgentVersion string
+	db                    *gorm.DB
 }
 
 func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -54,10 +55,10 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 	log := logutil.FromContext(params.ctx, th.log)
 
 	// If host already exists
-	if err := th.db.First(&host, "id = ? and cluster_id = ?", sHost.host.ID, sHost.host.ClusterID).Error; err == nil {
+	if err := params.db.First(&host, "id = ? and cluster_id = ?", sHost.host.ID, sHost.host.ClusterID).Error; err == nil {
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and progress, and start the discovery process again.
-		if host, err := updateHostProgress(params.ctx, log, th.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState,
+		if host, err := updateHostProgress(params.ctx, log, params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState,
 			swag.StringValue(sHost.host.Status), statusInfoDiscovering, sHost.host.Progress.CurrentStage, "", "",
 			"inventory", "", "discovery_agent_version", params.discoveryAgentVersion, "bootstrap", false); err != nil {
 			return err
@@ -70,7 +71,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 	sHost.host.StatusUpdatedAt = strfmt.DateTime(time.Now())
 	sHost.host.StatusInfo = swag.String(statusInfoDiscovering)
 	log.Infof("Register new host %s cluster %s", sHost.host.ID.String(), sHost.host.ClusterID)
-	return th.db.Create(sHost.host).Error
+	return params.db.Create(sHost.host).Error
 }
 
 func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -83,7 +84,7 @@ func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.State
 		return errors.New("PostRegisterDuringInstallation invalid argument")
 	}
 
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost,
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		"The host unexpectedly restarted during the installation")
 }
 
@@ -140,7 +141,7 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 		statusInfo += fmt.Sprintf(" (%s)", installationDisk.Serial)
 	}
 
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost, statusInfo)
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfo)
 }
 
 ///////////////////////////////////////////////////////////////////////////

@@ -39,17 +39,17 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 }
 
 // RegisterHost mocks base method
-func (m *MockAPI) RegisterHost(ctx context.Context, h *models.Host) error {
+func (m *MockAPI) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterHost", ctx, h)
+	ret := m.ctrl.Call(m, "RegisterHost", ctx, h, db)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterHost indicates an expected call of RegisterHost
-func (mr *MockAPIMockRecorder) RegisterHost(ctx, h interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) RegisterHost(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterHost", reflect.TypeOf((*MockAPI)(nil).RegisterHost), ctx, h)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterHost", reflect.TypeOf((*MockAPI)(nil).RegisterHost), ctx, h, db)
 }
 
 // RegisterInstalledOCPHost mocks base method

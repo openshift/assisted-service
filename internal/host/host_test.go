@@ -532,7 +532,7 @@ var _ = Describe("reset host", func() {
 			clusterId := strfmt.UUID(uuid.New().String())
 			h = getTestHost(id, clusterId, models.HostStatusResetting)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-			Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
+			Expect(state.RegisterHost(ctx, &h, db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
 		})
@@ -627,8 +627,6 @@ var _ = Describe("register host", func() {
 		dummy := &leader.DummyElector{}
 		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil, &config, dummy)
 	})
-	AfterEach(func() {
-	})
 
 	BeforeEach(func() {
 		id := strfmt.UUID(uuid.New().String())
@@ -637,20 +635,21 @@ var _ = Describe("register host", func() {
 	})
 
 	It("register host success", func() {
-		Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
+		Expect(state.RegisterHost(ctx, &h, db)).ShouldNot(HaveOccurred())
 		db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
 		Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
 	})
 
 	It("register (soft) deleted host success", func() {
-		Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
+		Expect(state.RegisterHost(ctx, &h, db)).ShouldNot(HaveOccurred())
 		db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
 		Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
 		Expect(db.Delete(&h).RowsAffected).Should(Equal(int64(1)))
 		Expect(db.Unscoped().Find(&h).RowsAffected).Should(Equal(int64(1)))
-		Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
+		Expect(state.RegisterHost(ctx, &h, db)).ShouldNot(HaveOccurred())
 		db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
 		Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
+
 	})
 
 	AfterEach(func() {
