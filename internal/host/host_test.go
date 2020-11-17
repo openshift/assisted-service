@@ -607,6 +607,59 @@ var _ = Describe("reset host", func() {
 
 })
 
+var _ = Describe("register host", func() {
+	var (
+		ctx           = context.Background()
+		db            *gorm.DB
+		ctrl          *gomock.Controller
+		state         API
+		h             models.Host
+		eventsHandler *events.MockHandler
+		dbName        = "host_tests_register_host"
+		config        Config
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		ctrl = gomock.NewController(GinkgoT())
+		eventsHandler = events.NewMockHandler(ctrl)
+		config = *defaultConfig
+		dummy := &leader.DummyElector{}
+		state = NewManager(getTestLog(), db, eventsHandler, nil, nil, nil, nil, &config, dummy)
+	})
+	AfterEach(func() {
+	})
+
+	BeforeEach(func() {
+		id := strfmt.UUID(uuid.New().String())
+		clusterId := strfmt.UUID(uuid.New().String())
+		h = getTestHost(id, clusterId, models.HostStatusDiscovering)
+	})
+
+	It("register host success", func() {
+		Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
+		db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
+		Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
+	})
+
+	It("register (soft) deleted host success", func() {
+		Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
+		db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
+		Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
+		Expect(db.Delete(&h).RowsAffected).Should(Equal(int64(1)))
+		Expect(db.Unscoped().Find(&h).RowsAffected).Should(Equal(int64(1)))
+		Expect(state.RegisterHost(ctx, &h)).ShouldNot(HaveOccurred())
+		db.First(&h, "id = ? and cluster_id = ?", h.ID, h.ClusterID)
+		Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+})
+
 func getHost(hostId, clusterId strfmt.UUID, db *gorm.DB) *models.Host {
 	var host models.Host
 	Expect(db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error).ShouldNot(HaveOccurred())
