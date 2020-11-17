@@ -129,6 +129,25 @@ var _ = Describe("Cluster tests", func() {
 		clusterID = *cluster.GetPayload().ID
 	})
 
+	It("register an unregistered host success", func() {
+		h := registerHost(clusterID)
+		_, err1 := userBMClient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
+			ClusterID: clusterID,
+			HostID:    *h.ID,
+		})
+		Expect(err1).ShouldNot(HaveOccurred())
+		_, err2 := agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
+			ClusterID: clusterID,
+			NewHostParams: &models.HostCreateParams{
+				HostID: h.ID,
+			},
+		})
+		Expect(err2).ShouldNot(HaveOccurred())
+		c := getCluster(clusterID)
+		Expect(len(c.Hosts)).Should(Equal(1))
+		Expect(c.Hosts[0].ID.String()).Should(Equal(h.ID.String()))
+	})
+
 	It("list clusters - get unregistered cluster", func() {
 		_ = registerHost(clusterID)
 		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
