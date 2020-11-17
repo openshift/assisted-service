@@ -71,3 +71,27 @@ func ValidateHostname(hostname string) error {
 func IgnitionFileName(host *models.Host) string {
 	return fmt.Sprintf("%s-%s.ign", host.Role, host.ID)
 }
+
+var allowedFlags = []string{"--append-karg", "--delete-karg", "-n", "--copy-network", "--network-dir", "--save-partlabel", "--save-partindex"}
+
+func ValidateInstallerArgs(args []string) error {
+	re := regexp.MustCompile("^-+.*")
+	for _, arg := range args {
+		if !re.MatchString(arg) {
+			continue
+		}
+
+		found := false
+		for _, f := range allowedFlags {
+			if arg == f {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("found unexpected flag %s for installer - allowed flags are %v", arg, allowedFlags)
+		}
+	}
+
+	return nil
+}

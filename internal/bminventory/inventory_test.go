@@ -4388,6 +4388,90 @@ var _ = Describe("UpdateHostIgnition", func() {
 	})
 })
 
+var _ = Describe("UpdateHostInstallerArgs", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		ctrl      *gomock.Controller
+		clusterID strfmt.UUID
+		hostID    strfmt.UUID
+		dbName    = "update_host_installer_args"
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, validations.NewMockPullSecretValidator(ctrl))
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// add a host
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("saves the given array to the host", func() {
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
+		params := installer.UpdateHostInstallerArgsParams{
+			ClusterID:           clusterID,
+			HostID:              hostID,
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+		response := bm.UpdateHostInstallerArgs(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostInstallerArgsCreated{}))
+
+		var updated models.Host
+		err := db.First(&updated, "id = ?", hostID).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var newArgs []string
+		err = json.Unmarshal([]byte(updated.InstallerArgs), &newArgs)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(newArgs).To(Equal(args))
+	})
+
+	It("returns not found with a non-existant cluster", func() {
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
+		params := installer.UpdateHostInstallerArgsParams{
+			ClusterID:           strfmt.UUID(uuid.New().String()),
+			HostID:              hostID,
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+		response := bm.UpdateHostInstallerArgs(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns not found with a non-existant host", func() {
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
+		params := installer.UpdateHostInstallerArgsParams{
+			ClusterID:           clusterID,
+			HostID:              strfmt.UUID(uuid.New().String()),
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+		response := bm.UpdateHostInstallerArgs(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+
+	It("returns bad request when provided an invalid flag", func() {
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-a"}
+		params := installer.UpdateHostInstallerArgsParams{
+			ClusterID:           clusterID,
+			HostID:              hostID,
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+		response := bm.UpdateHostInstallerArgs(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostInstallerArgsBadRequest{}))
+	})
+})
+
 func prepareK8NodeList(names, ips, roles, archituctures []string, readyStatuses []v1.ConditionStatus) *v1.NodeList {
 	var node v1.Node
 	nodeList := &v1.NodeList{}

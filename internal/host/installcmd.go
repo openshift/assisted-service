@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html/template"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/sirupsen/logrus"
 
@@ -71,6 +71,11 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	if i.instructionConfig.InstallationTimeout != 0 {
 		cmdArgsTmpl = cmdArgsTmpl + " --installation-timeout {{.INSTALLATION_TIMEOUT}}"
 		data["INSTALLATION_TIMEOUT"] = strconv.Itoa(int(i.instructionConfig.InstallationTimeout))
+	}
+
+	if host.InstallerArgs != "" {
+		cmdArgsTmpl = cmdArgsTmpl + " --installer-args '{{.INSTALLER_ARGS}}'"
+		data["INSTALLER_ARGS"] = host.InstallerArgs
 	}
 
 	if cluster.HTTPProxy != "" || cluster.HTTPSProxy != "" {
