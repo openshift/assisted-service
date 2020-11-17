@@ -30,7 +30,11 @@ type baremetal struct {
 }
 
 type platform struct {
-	Baremetal baremetal `yaml:"baremetal"`
+	Baremetal *baremetal    `yaml:"baremetal,omitempty"`
+	None      *platformNone `yaml:"none,omitempty"`
+}
+
+type platformNone struct {
 }
 
 type proxy struct {
@@ -51,7 +55,7 @@ type InstallerConfigBaremetal struct {
 		} `yaml:"clusterNetwork"`
 		MachineNetwork []struct {
 			Cidr string `yaml:"cidr"`
-		} `yaml:"machineNetwork"`
+		} `yaml:"machineNetwork,omitempty"`
 		ServiceNetwork []string `yaml:"serviceNetwork"`
 	} `yaml:"networking"`
 	Metadata struct {
@@ -112,7 +116,7 @@ func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
 			} `yaml:"clusterNetwork"`
 			MachineNetwork []struct {
 				Cidr string `yaml:"cidr"`
-			} `yaml:"machineNetwork"`
+			} `yaml:"machineNetwork,omitempty"`
 			ServiceNetwork []string `yaml:"serviceNetwork"`
 		}{
 			NetworkType: "OpenShiftSDN",
@@ -208,12 +212,13 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster,
 		yamlHostIdx += 1
 	}
 	cfg.Platform = platform{
-		Baremetal: baremetal{
+		Baremetal: &baremetal{
 			ProvisioningNetwork: "Unmanaged",
 			APIVIP:              cluster.APIVip,
 			IngressVIP:          cluster.IngressVip,
 			Hosts:               hosts,
 		},
+		None: nil,
 	}
 	return nil
 }
@@ -231,12 +236,21 @@ func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error
 
 func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
 	cfg := getBasicInstallConfig(cluster)
-	err := setBMPlatformInstallconfig(log, cluster, cfg)
-	if err != nil {
-		return nil, err
+	if swag.BoolValue(cluster.UserManagedNetworking) {
+		cfg.Platform = platform{
+			Baremetal: nil,
+			None:      &platformNone{},
+		}
+		cfg.Networking.MachineNetwork = nil
+
+	} else {
+		err := setBMPlatformInstallconfig(log, cluster, cfg)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	err = applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
+	err := applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
 	if err != nil {
 		return nil, err
 	}
