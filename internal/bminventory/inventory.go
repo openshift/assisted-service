@@ -3408,7 +3408,7 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 
 	log.Infof("Register OCP cluster: %s with id %s", clusterName, id.String())
 
-	apiVIP, err := b.getApiVIPFromOCP(log)
+	apiVIP, baseDNSDomain, machineCidr, err := b.getInstallConfigParamsFromOCP(log)
 	if err != nil {
 		return err
 	}
@@ -3419,16 +3419,18 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 	}
 
 	cluster := common.Cluster{Cluster: models.Cluster{
-		ID:               &id,
-		Href:             swag.String(url.String()),
-		Kind:             swag.String(models.ClusterKindAddHostsOCPCluster),
-		Name:             clusterName,
-		OpenshiftVersion: openshiftVersion,
-		UserName:         auth.UserNameFromContext(ctx),
-		OrgID:            auth.OrgIDFromContext(ctx),
-		EmailDomain:      auth.EmailDomainFromContext(ctx),
-		UpdatedAt:        strfmt.DateTime{},
-		APIVipDNSName:    &apiVIP,
+		ID:                 &id,
+		Href:               swag.String(url.String()),
+		Kind:               swag.String(models.ClusterKindAddHostsOCPCluster),
+		Name:               clusterName,
+		OpenshiftVersion:   openshiftVersion,
+		UserName:           auth.UserNameFromContext(ctx),
+		OrgID:              auth.OrgIDFromContext(ctx),
+		EmailDomain:        auth.EmailDomainFromContext(ctx),
+		UpdatedAt:          strfmt.DateTime{},
+		APIVip:             apiVIP,
+		BaseDNSDomain:      baseDNSDomain,
+		MachineNetworkCidr: machineCidr,
 	}}
 
 	err = b.setPullSecretFromOCP(&cluster, log)
@@ -3486,13 +3488,31 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 	return nil
 }
 
-func (b *bareMetalInventory) getApiVIPFromOCP(log logrus.FieldLogger) (string, error) {
+func (b *bareMetalInventory) getInstallConfigParamsFromOCP(log logrus.FieldLogger) (string, string, string, error) {
 	configMap, err := b.k8sClient.GetConfigMap("kube-system", "cluster-config-v1")
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get configmap cluster-config-v1 from namespace kube-system")
-		return "", err
+		return "", "", "", err
 	}
-	return k8sclient.GetApiVIP(configMap, log)
+	apiVIP, err := k8sclient.GetApiVIP(configMap, log)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get api VIP from configmap cluster-config-v1 from namespace kube-system")
+		return "", "", "", err
+	}
+	log.Infof("apiVIP is %s", apiVIP)
+	baseDomain, err := k8sclient.GetBaseDNSDomain(configMap, log)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get base domain from configmap cluster-config-v1 from namespace kube-system")
+		return "", "", "", err
+	}
+	log.Infof("baseDomain is %s", baseDomain)
+	machineCidr, err := k8sclient.GetMachineNetworkCIDR(configMap, log)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get machineCidr from configmap cluster-config-v1 from namespace kube-system")
+		return "", "", "", err
+	}
+	log.Infof("machineCidr is %s", machineCidr)
+	return apiVIP, baseDomain, machineCidr, nil
 }
 
 func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) (string, error) {
@@ -3554,7 +3574,7 @@ func (b *bareMetalInventory) createInstalledOCPHosts(ctx context.Context, cluste
 		hostname := node.Name
 		role := k8sclient.GetNodeRole(&node)
 
-		inventory, err := b.getOCPHostInventory(&node)
+		inventory, err := b.getOCPHostInventory(&node, cluster.MachineNetworkCidr)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to create inventory for host %s, cluster %s", id, *cluster.ID)
 			return err
@@ -3580,14 +3600,18 @@ func (b *bareMetalInventory) createInstalledOCPHosts(ctx context.Context, cluste
 	return nil
 }
 
-func (b *bareMetalInventory) getOCPHostInventory(node *v1.Node) (string, error) {
+func (b *bareMetalInventory) getOCPHostInventory(node *v1.Node, machineNetworkCidr string) (string, error) {
 	hostname := node.Name
 	ip := k8sclient.GetNodeInternalIP(node)
+	ipWithCidr, err := network.CreateIpWithCidr(ip, machineNetworkCidr)
+	if err != nil {
+		return "", err
+	}
 	arch := node.Status.NodeInfo.Architecture
 	inventory := models.Inventory{
 		Interfaces: []*models.Interface{
 			{
-				IPV4Addresses: append(make([]string, 0), ip),
+				IPV4Addresses: append(make([]string, 0), ipWithCidr),
 				MacAddress:    "some MAC address",
 			},
 		},
