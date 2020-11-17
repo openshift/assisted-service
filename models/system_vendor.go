@@ -23,6 +23,9 @@ type SystemVendor struct {
 
 	// serial number
 	SerialNumber string `json:"serial_number,omitempty"`
+
+	// Whether the machine appears to be a virtual machine or not
+	Virtual bool `json:"virtual,omitempty"`
 }
 
 // Validate validates this system vendor
