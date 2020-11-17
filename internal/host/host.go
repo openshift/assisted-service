@@ -62,6 +62,11 @@ var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 	"DEFAULT":                                   60 * time.Minute,
 }
 
+var disconnectionValidationStages = []models.HostStage{
+	models.HostStageWritingImageToDisk,
+	models.HostStageInstalling,
+}
+
 var WrongBootOrderIgnoreTimeoutStages = []models.HostStage{
 	models.HostStageStartWaitingForControlPlane,
 	models.HostStageWaitingForControlPlane,
@@ -69,6 +74,8 @@ var WrongBootOrderIgnoreTimeoutStages = []models.HostStage{
 }
 
 var InstallationTimeout = 20 * time.Minute
+
+var MaxHostDisconnectionTime = 3 * time.Minute
 
 type Config struct {
 	EnableAutoReset  bool          `envconfig:"ENABLE_AUTO_RESET" default:"false"`

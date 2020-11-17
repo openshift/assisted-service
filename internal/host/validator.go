@@ -147,7 +147,7 @@ type validator struct {
 }
 
 func (v *validator) isConnected(c *validationContext) validationStatus {
-	return boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= 3*time.Minute)
+	return boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= MaxHostDisconnectionTime)
 }
 
 func (v *validator) printConnected(context *validationContext, status validationStatus) string {
