@@ -542,8 +542,8 @@ var _ = Describe("RegisterHost", func() {
 		cluster := createCluster(db, models.ClusterStatusInsufficient)
 
 		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, h *models.Host) error {
+		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 				// validate that host is registered with auto-assign role
 				Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
 				return nil
@@ -582,7 +582,7 @@ var _ = Describe("RegisterHost", func() {
 		expectedErrMsg := "some-internal-error"
 
 		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
+		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockEventsHandler.EXPECT().
 			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityError, gomock.Any(), gomock.Any()).
 			Times(1)
