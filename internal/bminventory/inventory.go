@@ -1679,14 +1679,28 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	var cluster common.Cluster
 	log.Infof("Register host: %+v", params)
 
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID.String()).Error; err != nil {
+	txSuccess := false
+	tx := b.db.Begin()
+	tx = transaction.AddForUpdateQueryOption(tx)
+	defer func() {
+		if !txSuccess {
+			log.Error("RegisterHost failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("RegisterHost failed")
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.First(&cluster, "id = ?", params.ClusterID.String()).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID.String())
 		if gorm.IsRecordNotFoundError(err) {
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	err := b.db.First(&host, "id = ? and cluster_id = ?", *params.NewHostParams.HostID, params.ClusterID).Error
+	err := tx.First(&host, "id = ? and cluster_id = ?", *params.NewHostParams.HostID, params.ClusterID).Error
 	if err != nil && !gorm.IsRecordNotFoundError(err) {
 		log.WithError(err).Errorf("failed to get host %s in cluster: %s",
 			*params.NewHostParams.HostID, params.ClusterID.String())
@@ -1724,7 +1738,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		Role:                  models.HostRoleAutoAssign,
 	}
 
-	if err = b.hostApi.RegisterHost(ctx, &host); err != nil {
+	if err = b.hostApi.RegisterHost(ctx, &host, tx); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
 			params.NewHostParams.HostID.String(), params.ClusterID.String())
 		uerr := errors.Wrap(err, "Failed to register host: error creating host metadata")
@@ -1746,6 +1760,13 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		Host:                  host,
 		NextStepRunnerCommand: b.generateNextStepRunnerCommand(ctx, &params),
 	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Error(err)
+		return installer.NewRegisterHostInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+	txSuccess = true
 
 	return installer.NewRegisterHostCreated().WithPayload(&hostRegistration)
 }

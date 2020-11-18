@@ -79,7 +79,7 @@ type Config struct {
 //go:generate mockgen -source=host.go -package=host -aux_files=github.com/openshift/assisted-service/internal/host=instructionmanager.go -destination=mock_host_api.go
 type API interface {
 	// Register a new host
-	RegisterHost(ctx context.Context, h *models.Host) error
+	RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	HandleInstallationFailure(ctx context.Context, h *models.Host) error
 	InstructionApi
@@ -148,21 +148,30 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 	}
 }
 
-func (m *Manager) RegisterHost(ctx context.Context, h *models.Host) error {
+func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	var host models.Host
-	err := m.db.First(&host, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error
+	err := db.First(&host, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error
 	if err != nil && !gorm.IsRecordNotFoundError(err) {
 		return err
 	}
 
 	pHost := &host
 	if err != nil && gorm.IsRecordNotFoundError(err) {
+		// Delete any previews record of the host if it was soft deleted from the cluster,
+		// no error will be returned if the host was not existed.
+		if err := db.Unscoped().Delete(&host, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error; err != nil {
+			return errors.Wrapf(
+				err,
+				"error while trying to delete previews record from db (if exists) of host %s in cluster %s",
+				host.ID.String(), host.ClusterID.String())
+		}
 		pHost = h
 	}
 
 	return m.sm.Run(TransitionTypeRegisterHost, newStateHost(pHost), &TransitionArgsRegisterHost{
 		ctx:                   ctx,
 		discoveryAgentVersion: h.DiscoveryAgentVersion,
+		db:                    db,
 	})
 }
 

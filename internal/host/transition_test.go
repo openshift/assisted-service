@@ -59,7 +59,7 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	It("register_new", func() {
-		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: clusterId, DiscoveryAgentVersion: "v1.0.1"})).ShouldNot(HaveOccurred())
+		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: clusterId, DiscoveryAgentVersion: "v1.0.1"}, db)).ShouldNot(HaveOccurred())
 		h := getHost(hostId, clusterId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
 		Expect(h.DiscoveryAgentVersion).To(Equal("v1.0.1"))
@@ -123,7 +123,8 @@ var _ = Describe("RegisterHost", func() {
 					ID:        &hostId,
 					ClusterID: clusterId,
 					Status:    swag.String(t.srcState),
-				})
+				},
+					db)
 
 				if t.errorCode == 0 {
 					Expect(err).ShouldNot(HaveOccurred())
@@ -160,7 +161,8 @@ var _ = Describe("RegisterHost", func() {
 			ClusterID:             clusterId,
 			Status:                swag.String(models.HostStatusDisabled),
 			DiscoveryAgentVersion: "v2.0.5",
-		})).ShouldNot(HaveOccurred())
+		},
+			db)).ShouldNot(HaveOccurred())
 	})
 
 	It("register host in error state", func() {
@@ -177,7 +179,8 @@ var _ = Describe("RegisterHost", func() {
 			ClusterID:             clusterId,
 			Status:                swag.String(models.HostStatusError),
 			DiscoveryAgentVersion: "v2.0.5",
-		})).ShouldNot(HaveOccurred())
+		},
+			db)).ShouldNot(HaveOccurred())
 	})
 
 	Context("host already exists register success", func() {
@@ -235,7 +238,8 @@ var _ = Describe("RegisterHost", func() {
 					ClusterID:             clusterId,
 					Status:                swag.String(t.srcState),
 					DiscoveryAgentVersion: discoveryAgentVersion,
-				})).ShouldNot(HaveOccurred())
+				},
+					db)).ShouldNot(HaveOccurred())
 			})
 		}
 	})
@@ -268,7 +272,8 @@ var _ = Describe("RegisterHost", func() {
 					ID:        &hostId,
 					ClusterID: clusterId,
 					Status:    swag.String(t.srcState),
-				})).Should(HaveOccurred())
+				},
+					db)).Should(HaveOccurred())
 
 				h := getHost(hostId, clusterId, db)
 				Expect(swag.StringValue(h.Status)).Should(Equal(t.srcState))
@@ -381,7 +386,8 @@ var _ = Describe("RegisterHost", func() {
 					ID:        &hostId,
 					ClusterID: clusterId,
 					Status:    swag.String(t.srcState),
-				})).ShouldNot(HaveOccurred())
+				},
+					db)).ShouldNot(HaveOccurred())
 
 				h := getHost(hostId, clusterId, db)
 				Expect(swag.StringValue(h.Status)).Should(Equal(t.dstState))
