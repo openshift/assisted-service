@@ -461,9 +461,16 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	if params.NewClusterParams.VipDhcpAllocation == nil {
 		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
 	}
-
 	if params.NewClusterParams.UserManagedNetworking == nil {
 		params.NewClusterParams.UserManagedNetworking = swag.Bool(false)
+	}
+
+	if params.NewClusterParams.AdditionalNtpSource != nil {
+		if !validations.ValidateNTPSource(swag.StringValue(params.NewClusterParams.AdditionalNtpSource)) {
+			err := errors.Errorf("Invalid NTP source: %s", swag.StringValue(params.NewClusterParams.AdditionalNtpSource))
+			log.WithError(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	cluster := common.Cluster{Cluster: models.Cluster{
@@ -1523,6 +1530,12 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		updates["no_proxy"] = swag.StringValue(params.ClusterUpdateParams.NoProxy)
 	}
 	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
+		if !validations.ValidateNTPSource(swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)) {
+			err = errors.Errorf("Invalid NTP source: %s", swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource))
+			log.WithError(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
 		updates["additional_ntp_source"] = swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
 	}
 	if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
@@ -2191,27 +2204,7 @@ func (b *bareMetalInventory) processNtpSynchronizerResponse(ctx context.Context,
 		return err
 	}
 
-	if len(ntpSynchronizerResponse.NtpSources) == 0 {
-		err = errors.Errorf("No NTP sources for host %s", host.ID.String())
-		log.WithError(err).Warnf("Update NTP sources")
-		return err
-	}
-
-	bytes, err := json.Marshal(ntpSynchronizerResponse.NtpSources)
-	if err != nil {
-		log.WithError(err).Warnf("Failed to marshal NTP sources for host %s", host.ID.String())
-		return err
-	}
-
-	if err = b.db.Model(&models.Host{}).Where("id = ? and cluster_id = ?", host.ID.String(),
-		host.ClusterID.String()).Updates(map[string]interface{}{"ntp_sources": bytes}).Error; err != nil {
-		log.WithError(err).Warnf("Update NTP sources of host %s", host.ID.String())
-		return err
-	}
-
-	// Gorm sets the number of changed rows in AffectedRows and not the number of matched rows.  Therefore, if the report hasn't changed
-	// from the previous report, the AffectedRows will be 0 but it will still be correct.  So no error reporting needed for AffectedRows == 0
-	return nil
+	return b.hostApi.UpdateNTP(ctx, host, ntpSynchronizerResponse.NtpSources, b.db)
 }
 
 func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {

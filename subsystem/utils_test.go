@@ -122,3 +122,23 @@ func generateHWPostStepReply(ctx context.Context, h *models.Host, hwInfo *models
 	})
 	Expect(err).ShouldNot(HaveOccurred())
 }
+
+func generateNTPPostStepReply(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource) {
+	response := models.NtpSynchronizationResponse{
+		NtpSources: ntpSources,
+	}
+
+	bytes, err := json.Marshal(&response)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		ClusterID: h.ClusterID,
+		HostID:    *h.ID,
+		Reply: &models.StepReply{
+			ExitCode: 0,
+			Output:   string(bytes),
+			StepID:   string(models.StepTypeNtpSynchronizer),
+			StepType: models.StepTypeNtpSynchronizer,
+		},
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+}

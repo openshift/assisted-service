@@ -97,6 +97,9 @@ var (
 			},
 		},
 	}
+	validNtpSources = []*models.NtpSource{
+		{SourceName: "clock.dummy.com", SourceState: models.SourceStateSynced},
+	}
 )
 
 var _ = Describe("Cluster", func() {
@@ -681,6 +684,7 @@ var _ = Describe("cluster install", func() {
 	registerNode := func(clusterID strfmt.UUID, name string) *models.Host {
 		h := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h, validHwInfo, name)
+		generateNTPPostStepReply(ctx, h, validNtpSources)
 		return h
 	}
 
@@ -701,10 +705,13 @@ var _ = Describe("cluster install", func() {
 		h1 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h1, validMasterHwInfo, "h1")
 		generateFAPostStepReply(h1, validFreeAddresses)
+		generateNTPPostStepReply(ctx, h1, validNtpSources)
 		h2 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h2, validMasterHwInfo, "h2")
+		generateNTPPostStepReply(ctx, h2, validNtpSources)
 		h3 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h3, validMasterHwInfo, "h3")
+		generateNTPPostStepReply(ctx, h3, validNtpSources)
 		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3)
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
@@ -728,11 +735,13 @@ var _ = Describe("cluster install", func() {
 		By("add two more hosts with master inventory expect the cluster to be ready")
 		h4 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h4, validMasterHwInfo, "h4")
+		generateNTPPostStepReply(ctx, h4, validNtpSources)
 		h5 := &registerHost(clusterID).Host
 
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 		generateHWPostStepReply(ctx, h5, validMasterHwInfo, "h5")
+		generateNTPPostStepReply(ctx, h5, validNtpSources)
 
 		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4, h5)
 		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
@@ -746,6 +755,7 @@ var _ = Describe("cluster install", func() {
 			IgnoreStateInfo)
 
 		generateHWPostStepReply(ctx, h6, validWorkerHwInfo, "h6")
+		generateNTPPostStepReply(ctx, h6, validNtpSources)
 		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4, h5, h6)
 		waitForHostState(ctx, clusterID, *h6.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 
@@ -789,6 +799,79 @@ var _ = Describe("cluster install", func() {
 		BeforeEach(func() {
 			clusterID = *cluster.ID
 			registerHostsAndSetRoles(clusterID, 5)
+		})
+
+		Context("NTP cases", func() {
+			It("Update NTP source", func() {
+				c, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				hosts := c.GetPayload().Hosts
+
+				By("Verify NTP step", func() {
+					step, ok := getStepInList(getNextSteps(clusterID, *hosts[0].ID), models.StepTypeNtpSynchronizer)
+					Expect(ok).Should(Equal(true))
+
+					requestStr := step.Args[len(step.Args)-1]
+					var ntpRequest models.NtpSynchronizationRequest
+
+					Expect(json.Unmarshal([]byte(requestStr), &ntpRequest)).ShouldNot(HaveOccurred())
+					Expect(*ntpRequest.NtpSource).Should(Equal(c.Payload.AdditionalNtpSource))
+				})
+
+				By("Update NTP source", func() {
+					newSource := "5.5.5.5"
+
+					reply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							AdditionalNtpSource: &newSource,
+						},
+						ClusterID: clusterID,
+					})
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(reply.Payload.AdditionalNtpSource).Should(Equal(newSource))
+
+					step, ok := getStepInList(getNextSteps(clusterID, *hosts[0].ID), models.StepTypeNtpSynchronizer)
+					Expect(ok).Should(Equal(true))
+
+					requestStr := step.Args[len(step.Args)-1]
+					var ntpRequest models.NtpSynchronizationRequest
+
+					Expect(json.Unmarshal([]byte(requestStr), &ntpRequest)).ShouldNot(HaveOccurred())
+					Expect(*ntpRequest.NtpSource).Should(Equal(newSource))
+				})
+			})
+
+			It("Unsynced host", func() {
+				c, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				hosts := c.GetPayload().Hosts
+
+				By("unsync", func() {
+					generateNTPPostStepReply(ctx, hosts[0], []*models.NtpSource{
+						{SourceName: validNtpSources[0].SourceName, SourceState: models.SourceStateUnreachable},
+					})
+					waitForHostState(ctx, clusterID, *hosts[0].ID, models.HostStatusInsufficient, defaultWaitForHostStateTimeout)
+				})
+
+				By("Set new NTP source", func() {
+					newSource := "5.5.5.5"
+
+					_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							AdditionalNtpSource: &newSource,
+						},
+						ClusterID: clusterID,
+					})
+					Expect(err).ShouldNot(HaveOccurred())
+
+					generateNTPPostStepReply(ctx, hosts[0], []*models.NtpSource{
+						{SourceName: validNtpSources[0].SourceName, SourceState: models.SourceStateUnreachable},
+						{SourceName: newSource, SourceState: models.SourceStateSynced},
+					})
+				})
+
+				waitForHostState(ctx, clusterID, *hosts[0].ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+			})
 		})
 
 		It("[only_k8s]disable enable master", func() {
@@ -1530,6 +1613,7 @@ var _ = Describe("cluster install", func() {
 				disabledHost := &registerHost(clusterID).Host
 				generateHWPostStepReply(ctx, disabledHost, validHwInfo, "hostname")
 				generateFAPostStepReply(disabledHost, validFreeAddresses)
+				generateNTPPostStepReply(ctx, disabledHost, validNtpSources)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -1668,6 +1752,7 @@ var _ = Describe("cluster install", func() {
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
 						defaultWaitForHostStateTimeout)
 					generateHWPostStepReply(ctx, host, validHwInfo, fmt.Sprintf("host-after-reset-%d", i))
+					generateNTPPostStepReply(ctx, host, validNtpSources)
 				}
 				generateFullMeshConnectivity(ctx, "1.2.3.10", c.Hosts...)
 				for _, host := range c.Hosts {
@@ -1721,6 +1806,7 @@ var _ = Describe("cluster install", func() {
 						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
 							defaultWaitForHostStateTimeout)
 						generateHWPostStepReply(ctx, host, validHwInfo, fmt.Sprintf("host-after-reset-%d", i))
+						generateNTPPostStepReply(ctx, host, validNtpSources)
 					}
 					generateFullMeshConnectivity(ctx, "1.2.3.10", c.Hosts...)
 					for _, host := range c.Hosts {
@@ -1738,6 +1824,7 @@ var _ = Describe("cluster install", func() {
 					h := &registerHost(clusterID).Host
 					generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 					generateFAPostStepReply(h, validFreeAddresses)
+					generateNTPPostStepReply(ctx, h, validNtpSources)
 					_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 						ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 							{ID: *h.ID, Role: models.HostRoleUpdateParamsMaster},
@@ -1830,6 +1917,7 @@ var _ = Describe("cluster install", func() {
 				disabledHost := &registerHost(clusterID).Host
 				generateHWPostStepReply(ctx, disabledHost, validHwInfo, "hostname")
 				generateFAPostStepReply(disabledHost, validFreeAddresses)
+				generateNTPPostStepReply(ctx, disabledHost, validNtpSources)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -1891,6 +1979,7 @@ var _ = Describe("cluster install", func() {
 				disabledHost := &registerHost(clusterID).Host
 				generateHWPostStepReply(ctx, disabledHost, validHwInfo, "hostname")
 				generateFAPostStepReply(disabledHost, validFreeAddresses)
+				generateNTPPostStepReply(ctx, disabledHost, validNtpSources)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2012,6 +2101,7 @@ var _ = Describe("cluster install", func() {
 
 		// update host4 again (now it has inventory) -> state must be ready
 		generateHWPostStepReply(ctx, h4, validHwInfo, "h4")
+		generateNTPPostStepReply(ctx, h4, validNtpSources)
 		// update role for the host4 to master -> state must be ready
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts[0], hosts[1], hosts[2], h4, h5)
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -2030,10 +2120,13 @@ var _ = Describe("cluster install", func() {
 
 		wh1 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, wh1, validHwInfo, "wh1")
+		generateNTPPostStepReply(ctx, wh1, validNtpSources)
 		wh2 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, wh2, validHwInfo, "wh2")
+		generateNTPPostStepReply(ctx, wh2, validNtpSources)
 		wh3 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, wh3, validHwInfo, "wh3")
+		generateNTPPostStepReply(ctx, wh3, validNtpSources)
 		generateFullMeshConnectivity(ctx, "1.2.3.10", wh1, wh2, wh3)
 
 		apiVip := "1.2.3.5"
@@ -2066,10 +2159,13 @@ var _ = Describe("cluster install", func() {
 		mh1 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, mh1, validHwInfo, "mh1")
 		generateFAPostStepReply(mh1, validFreeAddresses)
+		generateNTPPostStepReply(ctx, mh1, validNtpSources)
 		mh2 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, mh2, validHwInfo, "mh2")
+		generateNTPPostStepReply(ctx, mh2, validNtpSources)
 		mh3 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, mh3, validHwInfo, "mh3")
+		generateNTPPostStepReply(ctx, mh3, validNtpSources)
 		generateFullMeshConnectivity(ctx, "1.2.3.10", mh1, mh2, mh3, wh1, wh2, wh3)
 		clusterReply, _ = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
 			ClusterID: clusterID,
@@ -2175,6 +2271,7 @@ var _ = Describe("cluster install", func() {
 		h1 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h1, hwInfo, "h1")
 		generateFAPostStepReply(h1, validFreeAddresses)
+		generateNTPPostStepReply(ctx, h1, validNtpSources)
 		apiVip := "1.2.3.8"
 		ingressVip := "1.2.3.9"
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -2190,10 +2287,13 @@ var _ = Describe("cluster install", func() {
 		By("Register 3 more hosts with valid hw info")
 		h2 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h2, validHwInfo, "h2")
+		generateNTPPostStepReply(ctx, h2, validNtpSources)
 		h3 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h3, validHwInfo, "h3")
+		generateNTPPostStepReply(ctx, h3, validNtpSources)
 		h4 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h4, validHwInfo, "h4")
+		generateNTPPostStepReply(ctx, h4, validNtpSources)
 
 		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4)
 		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, defaultWaitForClusterStateTimeout)
@@ -2270,6 +2370,7 @@ var _ = Describe("cluster install", func() {
 
 		By("Changing hostname, verify host is known now")
 		generateHWPostStepReply(ctx, h4, validHwInfo, "h4")
+		generateNTPPostStepReply(ctx, h4, validNtpSources)
 		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 		h4 = getHost(clusterID, *h4.ID)
 		Expect(h4.RequestedHostname).Should(Equal("h4"))
@@ -2322,6 +2423,7 @@ var _ = Describe("cluster install", func() {
 
 		By("Changing hostname reply to localhost")
 		generateHWPostStepReply(ctx, h1, validHwInfo, localhost)
+		generateNTPPostStepReply(ctx, h1, validNtpSources)
 		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, 60*time.Second)
 		h1Host := getHost(clusterID, *h1.ID)
 		Expect(h1Host.RequestedHostname).Should(Equal(localhost))
@@ -2415,6 +2517,7 @@ var _ = Describe("cluster install", func() {
 		By("Registering new host with same hostname as in node's inventory")
 		h4 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h4, validHwInfo, "h3")
+		generateNTPPostStepReply(ctx, h4, validNtpSources)
 		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4)
 		h4 = getHost(clusterID, *h4.ID)
 		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusInsufficient, time.Minute)
@@ -2427,6 +2530,7 @@ var _ = Describe("cluster install", func() {
 		By("Registering new host with same hostname as in node's requested_hostname")
 		h5 := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, h5, validHwInfo, "reqh0")
+		generateNTPPostStepReply(ctx, h5, validNtpSources)
 		h5 = getHost(clusterID, *h5.ID)
 		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4, h5)
 		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusInsufficient, time.Minute)
@@ -2570,6 +2674,7 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 		host := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, host, validHwInfo, hostname)
 		generateFAPostStepReply(host, validFreeAddresses)
+		generateNTPPostStepReply(ctx, host, validNtpSources)
 		var role models.HostRoleUpdateParams
 		if i < 3 {
 			role = models.HostRoleUpdateParamsMaster
@@ -2644,6 +2749,7 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 		hostname := fmt.Sprintf("h%d", i)
 		host := &registerHost(clusterID).Host
 		generateHWPostStepReply(ctx, host, validHwInfo, hostname)
+		generateNTPPostStepReply(ctx, host, validNtpSources)
 		var role models.HostRoleUpdateParams
 		if i < 3 {
 			role = models.HostRoleUpdateParamsMaster

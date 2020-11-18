@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -218,6 +219,20 @@ func ValidateBaseDNS(dnsDomainName, dnsDomainID, dnsProviderType string) error {
 		return nil
 	}
 	return validateBaseDNS(dnsDomainName, dnsDomainID, dnsProvider)
+}
+
+func ValidateNTPSource(ntpSource string) bool {
+	if addr := net.ParseIP(ntpSource); addr != nil {
+		return true
+	}
+
+	if hostName, err := net.LookupHost(ntpSource); err != nil {
+		return false
+	} else if len(hostName) > 0 {
+		return true
+	}
+
+	return false
 }
 
 func validateBaseDNS(dnsDomainName, dnsDomainID string, dnsProvider dnsproviders.Provider) error {

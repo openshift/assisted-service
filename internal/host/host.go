@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -110,6 +111,7 @@ type API interface {
 	Install(ctx context.Context, h *models.Host, db *gorm.DB) error
 	// Set a new inventory information
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
+	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage
 	IsInstallable(h *models.Host) bool
 	PrepareForInstallation(ctx context.Context, h *models.Host, db *gorm.DB) error
@@ -382,6 +384,15 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.Ho
 		cdb = db
 	}
 	return updateRole(h, role, cdb, nil)
+}
+
+func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {
+	bytes, err := json.Marshal(ntpSources)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to marshal NTP sources for host %s", h.ID.String())
+	}
+
+	return db.Model(h).Update("ntp_sources", string(bytes)).Error
 }
 
 func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {

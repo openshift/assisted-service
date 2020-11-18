@@ -996,34 +996,20 @@ var _ = Describe("PostStepReply", func() {
 				{SourceName: "2.2.2.2", SourceState: "unreachable"},
 			}
 
-			By("Set returned value", func() {
-				params := makeStepReply(*clusterId, *hostId, toMarshal)
-				reply := bm.PostStepReply(ctx, params)
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
-			})
+			mockHostApi.EXPECT().UpdateNTP(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-			By("Verify DB", func() {
-				var h models.Host
-				Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
-				var savedSources []*models.NtpSource
-				Expect(json.Unmarshal([]byte(h.NtpSources), &savedSources)).ToNot(HaveOccurred())
-				Expect(&savedSources).To(Equal(&toMarshal))
-			})
+			params := makeStepReply(*clusterId, *hostId, toMarshal)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
 		})
 
-		It("NTP synchronizer empty", func() {
-			By("Set returned value", func() {
-				toMarshal := []*models.NtpSource{}
-				params := makeStepReply(*clusterId, *hostId, toMarshal)
-				reply := bm.PostStepReply(ctx, params)
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
-			})
+		It("NTP synchronizer error", func() {
+			mockHostApi.EXPECT().UpdateNTP(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("Some error"))
 
-			By("Verify DB", func() {
-				var h models.Host
-				Expect(db.Take(&h, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
-				Expect(h.NtpSources).To(BeEmpty())
-			})
+			toMarshal := []*models.NtpSource{}
+			params := makeStepReply(*clusterId, *hostId, toMarshal)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
 		})
 	})
 })
@@ -1856,6 +1842,14 @@ var _ = Describe("cluster", func() {
 					Expect(err).ToNot(HaveOccurred())
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 				})
+
+				mockSuccess := func(times int) {
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(times * 3) // Number of hosts
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times * 1)
+					mockSetConnectivityMajorityGroupsForClusterTimes(mockClusterApi, times)
+				}
+
 				Context("Non DHCP", func() {
 					It("No machine network", func() {
 						apiVip := "8.8.8.8"
@@ -1895,12 +1889,10 @@ var _ = Describe("cluster", func() {
 						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 					})
 					It("Update success", func() {
+						mockSuccess(1)
+
 						apiVip := "10.11.12.15"
 						ingressVip := "10.11.12.16"
-						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-						mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1961,12 +1953,10 @@ var _ = Describe("cluster", func() {
 				Context("Advanced networking validations", func() {
 
 					It("Update success", func() {
+						mockSuccess(1)
+
 						apiVip := "10.11.12.15"
 						ingressVip := "10.11.12.16"
-						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-						mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -2063,12 +2053,10 @@ var _ = Describe("cluster", func() {
 						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 					})
 					It("OK", func() {
+						mockSuccess(1)
+
 						apiVip := "10.11.12.15"
 						ingressVip := "10.11.12.16"
-						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-						mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -2133,13 +2121,11 @@ var _ = Describe("cluster", func() {
 					})
 
 					It("Success in DHCP", func() {
+						mockSuccess(3)
+						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
+
 						apiVip := "10.11.12.15"
 						ingressVip := "10.11.12.16"
-						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(9)
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(9)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(3)
-						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
-						mockSetConnectivityMajorityGroupsForClusterTimes(mockClusterApi, 3)
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -2219,6 +2205,51 @@ var _ = Describe("cluster", func() {
 						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 					})
 
+				})
+
+				Context("NTP", func() {
+					It("Valid IP NTP source", func() {
+						mockSuccess(1)
+
+						ntpSource := "1.1.1.1"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								AdditionalNtpSource: &ntpSource,
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+						actual := reply.(*installer.UpdateClusterCreated)
+						Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
+					})
+
+					It("Valid Hostname NTP source", func() {
+						mockSuccess(1)
+
+						ntpSource := "clock.redhat.com"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								AdditionalNtpSource: &ntpSource,
+							},
+						})
+
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+						actual := reply.(*installer.UpdateClusterCreated)
+						Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
+					})
+
+					It("Invalid NTP source", func() {
+						ntpSource := "test"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								AdditionalNtpSource: &ntpSource,
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					})
 				})
 			})
 		})

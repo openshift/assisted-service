@@ -577,6 +577,35 @@ var _ = Describe("Get registry from container image name", func() {
 	})
 })
 
+var _ = Describe("NTP source", func() {
+	tests := []struct {
+		ntpSource string
+		valid     bool
+	}{
+		{
+			ntpSource: "1.1.1.1",
+			valid:     true,
+		},
+		{
+			ntpSource: "clock.redhat.com",
+			valid:     true,
+		},
+		{
+			ntpSource: "test",
+			valid:     false,
+		},
+	}
+	for _, t := range tests {
+		It(fmt.Sprintf("NTP source \"%s\"", t.ntpSource), func() {
+			if t.valid {
+				Expect(ValidateNTPSource(t.ntpSource)).To(BeTrue())
+			} else {
+				Expect(ValidateNTPSource(t.ntpSource)).To(BeFalse())
+			}
+		})
+	}
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")

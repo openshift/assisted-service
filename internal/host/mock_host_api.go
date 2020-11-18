@@ -317,6 +317,20 @@ func (mr *MockAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockAPI)(nil).UpdateInventory), ctx, h, inventory)
 }
 
+// UpdateNTP mocks base method
+func (m *MockAPI) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateNTP", ctx, h, ntpSources, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateNTP indicates an expected call of UpdateNTP
+func (mr *MockAPIMockRecorder) UpdateNTP(ctx, h, ntpSources, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNTP", reflect.TypeOf((*MockAPI)(nil).UpdateNTP), ctx, h, ntpSources, db)
+}
+
 // GetStagesByRole mocks base method
 func (m *MockAPI) GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage {
 	m.ctrl.T.Helper()

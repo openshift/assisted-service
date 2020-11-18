@@ -4810,6 +4810,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "ntp_sources": {
+          "description": "The configured NTP sources on the host.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
@@ -10374,6 +10375,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "ntp_sources": {
+          "description": "The configured NTP sources on the host.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },

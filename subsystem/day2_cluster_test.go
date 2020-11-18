@@ -127,6 +127,7 @@ var _ = Describe("Day2 cluster tests", func() {
 
 		By("checking insufficient state state - one host, no conenctivity check")
 		generateHWPostStepReply(ctx, h, validHwInfo, "h1host")
+		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
 		steps = getNextSteps(clusterID, *host.ID)
 		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck}, 2)
@@ -156,12 +157,14 @@ var _ = Describe("Day2 cluster tests", func() {
 
 		By("checking insufficient state state host2 ")
 		generateHWPostStepReply(ctx, h2, validHwInfo, "h2host")
+		generateNTPPostStepReply(ctx, h2, validNtpSources)
 		waitForHostState(ctx, clusterID, *h2.ID, "insufficient", 60*time.Second)
 		steps = getNextSteps(clusterID, *h2.ID)
 		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck}, 2)
 
 		By("checking insufficient state state")
 		generateHWPostStepReply(ctx, h1, validHwInfo, "h1host")
+		generateNTPPostStepReply(ctx, h1, validNtpSources)
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
 		steps = getNextSteps(clusterID, *h1.ID)
 		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck}, 3)
@@ -177,6 +180,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
+		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
@@ -197,6 +201,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
+		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
@@ -222,11 +227,13 @@ var _ = Describe("Day2 cluster tests", func() {
 		h2 := getHost(clusterID, *host.ID)
 
 		generateHWPostStepReply(ctx, h1, validHwInfo, "hostname1")
+		generateNTPPostStepReply(ctx, h1, validNtpSources)
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(h1, true)
 		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
 
 		generateHWPostStepReply(ctx, h2, validHwInfo, "hostname2")
+		generateNTPPostStepReply(ctx, h2, validNtpSources)
 		waitForHostState(ctx, clusterID, *h2.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(h2, true)
 		waitForHostState(ctx, clusterID, *h2.ID, "known", 60*time.Second)
@@ -266,9 +273,11 @@ var _ = Describe("Day2 cluster tests", func() {
 		h2 := getHost(clusterID, *host.ID)
 
 		generateHWPostStepReply(ctx, h1, validHwInfo, "hostname1")
+		generateNTPPostStepReply(ctx, h1, validNtpSources)
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
 
 		generateHWPostStepReply(ctx, h2, validHwInfo, "hostname2")
+		generateNTPPostStepReply(ctx, h2, validNtpSources)
 		waitForHostState(ctx, clusterID, *h2.ID, "insufficient", 60*time.Second)
 
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
@@ -289,6 +298,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
+		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)

@@ -230,8 +230,8 @@ var _ = Describe("RegisterHost", func() {
 					ClusterID: clusterId,
 					Role:      models.HostRoleMaster,
 					Inventory: defaultHwInfo,
-					Bootstrap: true,
 					Status:    swag.String(t.srcState),
+					Bootstrap: true,
 					Progress: &models.HostProgressInfo{
 						CurrentStage: defaultProgressStage,
 						ProgressInfo: "some info",
@@ -956,6 +956,7 @@ var _ = Describe("Enable", func() {
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
 			Expect(h.Inventory).Should(BeEmpty())
 			Expect(h.Bootstrap).Should(BeFalse())
+			Expect(h.NtpSources).Should(BeEmpty())
 		}
 
 		failure := func(reply error) {
@@ -964,6 +965,10 @@ var _ = Describe("Enable", func() {
 			Expect(*h.Status).Should(Equal(srcState))
 			Expect(h.Inventory).Should(Equal(defaultHwInfo))
 			Expect(h.Bootstrap).Should(Equal(true))
+
+			var ntpSources []*models.NtpSource
+			Expect(json.Unmarshal([]byte(h.NtpSources), &ntpSources)).ShouldNot(HaveOccurred())
+			Expect(ntpSources).Should(Equal(defaultNTPSources))
 		}
 
 		tests := []struct {
@@ -1037,12 +1042,18 @@ var _ = Describe("Enable", func() {
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
+				// Test setup - Host creation
 				srcState = t.srcState
 				host = getTestHost(hostId, clusterId, srcState)
 				host.Inventory = defaultHwInfo
 				host.Bootstrap = true
 
+				bytes, err := json.Marshal(defaultNTPSources)
+				Expect(err).ShouldNot(HaveOccurred())
+				host.NtpSources = string(bytes)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				// Test definition
 				if t.sendEvent {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
 						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host to send hardware details)", hostutil.GetHostnameForMsg(&host), srcState),
@@ -1791,7 +1802,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				ntpSources:         []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}},
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
 					"Platform OpenStack Compute is forbidden")),
@@ -1820,7 +1831,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				ntpSources:         []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}},
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Require at least 4 CPU cores for master role, found only 2", "Require at least 16 GiB RAM role master, found only 8")),
@@ -1846,7 +1857,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusPendingForInput,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				ntpSources:         []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}},
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Require at least 4 CPU cores for master role, found only 2", "Require at least 16 GiB RAM role master, found only 8")),
@@ -1924,7 +1935,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				ntpSources:         []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}},
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Hostname localhost is forbidden")),
@@ -1951,7 +1962,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				ntpSources:         []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}},
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1978,7 +1989,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				ntpSources:         []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}},
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2004,7 +2015,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusPendingForInput,
 				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				ntpSources:         []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}},
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2030,7 +2041,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
-				ntpSources:         []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}},
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2057,7 +2068,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
-				ntpSources:         []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}},
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"No connectivity to the majority of hosts in the cluster")),
@@ -2218,7 +2229,7 @@ var _ = Describe("Refresh Host", func() {
 
 		BeforeEach(func() {
 			otherHostID = strfmt.UUID(uuid.New().String())
-			ntpSources = []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}}
+			ntpSources = defaultNTPSources
 		})
 
 		tests := []struct {

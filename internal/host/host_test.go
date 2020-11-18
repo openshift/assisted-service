@@ -39,6 +39,8 @@ var defaultConfig = &Config{
 	MonitorBatchSize: 100,
 }
 
+var defaultNTPSources = []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}}
+
 var _ = Describe("update_role", func() {
 	var (
 		ctx           = context.Background()
@@ -1120,6 +1122,67 @@ var _ = Describe("SetBootstrap", func() {
 
 			h := getHost(*host.ID, host.ClusterID, db)
 			Expect(h.Bootstrap).Should(Equal(t.IsBootstrap))
+		})
+	}
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("UpdateNTP", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		ctrl              *gomock.Controller
+		mockEvents        *events.MockHandler
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+		dbName            = "UpdateNTP"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		dummy := &leader.DummyElector{}
+		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+
+		host = getTestHost(hostId, clusterId, models.HostStatusResetting)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+		h := getHost(*host.ID, host.ClusterID, db)
+		Expect(h.NtpSources).Should(BeEmpty())
+	})
+
+	tests := []struct {
+		name       string
+		ntpSources []*models.NtpSource
+	}{
+		{
+			name:       "empty NTP sources",
+			ntpSources: []*models.NtpSource{},
+		},
+		{
+			name:       "one NTP source",
+			ntpSources: defaultNTPSources,
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			Expect(hapi.UpdateNTP(ctx, &host, t.ntpSources, db)).ShouldNot(HaveOccurred())
+
+			h := getHost(*host.ID, host.ClusterID, db)
+
+			marshalled, err := json.Marshal(t.ntpSources)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(h.NtpSources).Should(Equal(string(marshalled)))
 		})
 	}
 
