@@ -40,8 +40,9 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 	cluster.StatusInfo = swag.String(statusInfo)
 	cluster.StatusUpdatedAt = strfmt.DateTime(registerTime)
 	tx := r.db.Begin()
+	success := false
 	defer func() {
-		if rec := recover(); rec != nil {
+		if rec := recover(); rec != nil || !success {
 			r.log.Error("update cluster failed")
 			tx.Rollback()
 		}
@@ -50,17 +51,32 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 		r.log.WithError(tx.Error).Error("failed to start transaction")
 	}
 
+	queryParams := []string{"id = ?", cluster.ID.String()}
+	if err := tx.First(&cluster, queryParams).Error; err != nil && !gorm.IsRecordNotFoundError(err) {
+		r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
+		return err
+	} else if gorm.IsRecordNotFoundError(err) {
+		// Delete any previews record of the cluster if it was soft deleted in the past,
+		// no error will be returned it wasn't existed.
+		if err := tx.Unscoped().Delete(&cluster, queryParams).Error; err != nil {
+			r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
+			return errors.Wrapf(
+				err,
+				"error while trying to delete previews record from db (if exists) of cluster %s",
+				cluster.ID.String())
+		}
+	}
+
 	if err := tx.Preload("Hosts").Create(cluster).Error; err != nil {
 		r.log.Errorf("Error registering cluster %s", cluster.Name)
-		tx.Rollback()
 		return err
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
 		return err
 	}
 
+	success = true
 	return nil
 }
 

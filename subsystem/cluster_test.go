@@ -148,6 +148,24 @@ var _ = Describe("Cluster tests", func() {
 		Expect(c.Hosts[0].ID.String()).Should(Equal(h.ID.String()))
 	})
 
+	It("register an unregistered cluster success", func() {
+		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
+			ClusterID: clusterID,
+		})
+		Expect(err1).ShouldNot(HaveOccurred())
+		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String("4.5"),
+				PullSecret:       swag.String(pullSecret),
+			},
+		})
+
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal(models.ClusterStatusInsufficient))
+		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+	})
+
 	It("list clusters - get unregistered cluster", func() {
 		_ = registerHost(clusterID)
 		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
