@@ -1670,8 +1670,6 @@ var _ = Describe("cluster", func() {
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 				})
 				It("update api vip dnsname success", func() {
-					fileName := fmt.Sprintf("%s/worker.ign", clusterID)
-					mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
 					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -3661,6 +3659,21 @@ func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, clust
 	return host
 }
 
+func getInventoryStr(hostname, bootMode string, ipv4Addresses ...string) string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				IPV4Addresses: append(make([]string, 0), ipv4Addresses...),
+				MacAddress:    "some MAC address",
+			},
+		},
+		Hostname: hostname,
+		Boot:     &models.Boot{CurrentBootMode: bootMode},
+	}
+	ret, _ := json.Marshal(&inventory)
+	return string(ret)
+}
+
 var _ = Describe("proxySettingsForIgnition", func() {
 
 	Context("test proxy settings in discovery ignition", func() {
@@ -3762,7 +3775,6 @@ var _ = Describe("Register OCPCluster test", func() {
 	})
 
 	It("Register OCP cluster", func() {
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
@@ -3822,17 +3834,7 @@ var _ = Describe("Register OCPCluster test", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 
-	It("Register OCP cluster failed upload", func() {
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("Some error")).Times(1)
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
 	It("Register OCP cluster failed to register", func() {
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
 		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
@@ -3842,7 +3844,6 @@ var _ = Describe("Register OCPCluster test", func() {
 	})
 
 	It("Register OCP cluster failed to get node list", func() {
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
@@ -3853,7 +3854,6 @@ var _ = Describe("Register OCPCluster test", func() {
 	})
 
 	It("Register OCP cluster failed to register host", func() {
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
@@ -3917,28 +3917,10 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftVersion: &openshiftVersion,
 			},
 		}
-		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered(openshiftVersion, clusterID, "Unknown").Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
-	})
-
-	It("Create AddHost cluster fail upload", func() {
-		params := installer.RegisterAddHostsClusterParams{
-			HTTPRequest: request,
-			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
-				APIVipDnsname:    &apiVIPDnsname,
-				ID:               &clusterID,
-				Name:             &clusterName,
-				OpenshiftVersion: &openshiftVersion,
-			},
-		}
-		fileName := fmt.Sprintf("%s/worker.ign", clusterID)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("dummy")).Times(1)
-		res := bm.RegisterAddHostsCluster(ctx, params)
-		verifyApiError(res, http.StatusInternalServerError)
 	})
 })
 
@@ -3992,12 +3974,13 @@ var _ = Describe("Install Hosts test", func() {
 			HTTPRequest: request,
 			ClusterID:   clusterID,
 		}
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, "", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, "", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, "", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		res := bm.InstallHosts(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostsAccepted()))
 	})
@@ -4007,14 +3990,17 @@ var _ = Describe("Install Hosts test", func() {
 			HTTPRequest: request,
 			ClusterID:   clusterID,
 		}
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalling, models.HostKindAddToExistingClusterHost, clusterID, "", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, "", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, "", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalled, models.HostKindAddToExistingClusterHost, clusterID, "", db)
-		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusAddedToExistingCluster, models.HostKindAddToExistingClusterHost, clusterID, "", db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalling, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		knownHostID := strfmt.UUID(uuid.New().String())
+		addHost(knownHostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusInstalled, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname3", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusAddedToExistingCluster, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname4", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(5)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		fileName := fmt.Sprintf("%s/worker-%s.ign", clusterID, knownHostID)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		res := bm.InstallHosts(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostsAccepted()))
 	})
