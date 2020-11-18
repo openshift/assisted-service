@@ -54,6 +54,7 @@ def main():
         else:
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Always"
         if deploy_options.target == utils.OCP_TARGET:
+            data["spec"]["replicas"] = 1 # force single replica
             spec = data["spec"]["template"]["spec"]
             service_container = spec["containers"][0]
             service_container["env"].append({'name': 'DEPLOY_TARGET', 'value': "ocp"})
