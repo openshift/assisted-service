@@ -72,7 +72,7 @@ func IgnitionFileName(host *models.Host) string {
 	return fmt.Sprintf("%s-%s.ign", host.Role, host.ID)
 }
 
-var allowedFlags = []string{"--append-karg", "--delete-karg", "-n", "--copy-network", "--network-dir", "--save-partlabel", "--save-partindex"}
+var allowedFlags = []string{"--append-karg", "--delete-karg", "-n", "--copy-network", "--network-dir", "--save-partlabel", "--save-partindex", "--image-url"}
 
 func ValidateInstallerArgs(args []string) error {
 	re := regexp.MustCompile("^-+.*")
