@@ -41,6 +41,7 @@ OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},quay.io)
+PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 
 # We decided to have an option to change replicas count only while running in minikube
 # That line is checking if we run on minikube
@@ -248,6 +249,11 @@ verify-latest-onprem-config: generate-onprem-environment generate-onprem-iso-ign
 	@echo "Verifying onprem config changes"
 	hack/verify-latest-onprem-config.sh
 
+# $SERVICE is built with docker. If we want the latest version of $SERVICE
+# we need to pull it from the docker daemon before deploy-onprem.
+podman-pull-service-from-docker-daemon:
+	podman pull "docker-daemon:${SERVICE}"
+
 deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
 	# These are required because when running on RHCOS livecd, the coreos-installer binary and
@@ -258,7 +264,7 @@ deploy-onprem:
 		quay.io/coreos/coreos-installer:v0.7.0 -c 'cp /usr/sbin/coreos-installer /data/coreos-installer'
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --name db quay.io/ocpmetal/postgresql-12-centos7
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
-	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --env DUMMY_IGNITION=$(DUMMY_IGNITION) \
+	podman run -dt --pod assisted-installer --env-file onprem-environment ${PODMAN_PULL_FLAG} --env DUMMY_IGNITION=$(DUMMY_IGNITION) \
 		-v ./livecd.iso:/data/livecd.iso:z \
 		-v ./coreos-installer:/data/coreos-installer:z \
 		--restart always --name installer $(SERVICE)
@@ -327,7 +333,7 @@ test-onprem:
 # Clean #
 #########
 
-clear-all: clean subsystem-clean clear-deployment clear-images
+clear-all: clean subsystem-clean clear-deployment clear-images clean-onprem
 
 clean:
 	-rm -rf $(BUILD_FOLDER) $(REPORTS)
