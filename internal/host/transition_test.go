@@ -211,7 +211,10 @@ var _ = Describe("RegisterHost", func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
 			Expect(h.Role).Should(Equal(models.HostRoleMaster))
-			Expect(h.Inventory).Should(Equal(""))
+			Expect(h.Inventory).Should(BeEmpty())
+			Expect(h.Bootstrap).Should(BeFalse())
+			Expect(h.Progress.CurrentStage).Should(BeEmpty())
+			Expect(h.Progress.ProgressInfo).Should(BeEmpty())
 			Expect(h.DiscoveryAgentVersion).To(Equal(discoveryAgentVersion))
 		})
 
@@ -224,7 +227,12 @@ var _ = Describe("RegisterHost", func() {
 					ClusterID: clusterId,
 					Role:      models.HostRoleMaster,
 					Inventory: defaultHwInfo,
-					Status:    swag.String(t.srcState),
+					Bootstrap: true,
+					Progress: &models.HostProgressInfo{
+						CurrentStage: models.HostStageRebooting,
+						ProgressInfo: defaultStatusInfo,
+					},
+					Status: swag.String(t.srcState),
 				}).Error).ShouldNot(HaveOccurred())
 				if t.srcState != models.HostStatusDiscovering {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo,
@@ -941,7 +949,8 @@ var _ = Describe("Enable", func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
-			Expect(h.Inventory).Should(Equal(""))
+			Expect(h.Inventory).Should(BeEmpty())
+			Expect(h.Bootstrap).Should(BeFalse())
 		}
 
 		failure := func(reply error) {
@@ -949,6 +958,7 @@ var _ = Describe("Enable", func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(srcState))
 			Expect(h.Inventory).Should(Equal(defaultHwInfo))
+			Expect(h.Bootstrap).Should(Equal(true))
 		}
 
 		tests := []struct {
@@ -1025,6 +1035,8 @@ var _ = Describe("Enable", func() {
 				srcState = t.srcState
 				host = getTestHost(hostId, clusterId, srcState)
 				host.Inventory = defaultHwInfo
+				host.Bootstrap = true
+
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				if t.sendEvent {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,

@@ -31,6 +31,8 @@ type transitionHandler struct {
 	eventsHandler events.Handler
 }
 
+var resetFields = [...]interface{}{"inventory", "", "bootstrap", false}
+
 ////////////////////////////////////////////////////////////////////////////
 // RegisterHost
 ////////////////////////////////////////////////////////////////////////////
@@ -58,9 +60,11 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 	if err := params.db.First(&host, "id = ? and cluster_id = ?", sHost.host.ID, sHost.host.ClusterID).Error; err == nil {
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and progress, and start the discovery process again.
+
+		extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion)
+
 		if host, err := updateHostProgress(params.ctx, log, params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState,
-			swag.StringValue(sHost.host.Status), statusInfoDiscovering, sHost.host.Progress.CurrentStage, "", "",
-			"inventory", "", "discovery_agent_version", params.discoveryAgentVersion, "bootstrap", false); err != nil {
+			swag.StringValue(sHost.host.Status), statusInfoDiscovering, sHost.host.Progress.CurrentStage, "", "", extra...); err != nil {
 			return err
 		} else {
 			sHost.host = host
@@ -306,8 +310,8 @@ func (th *transitionHandler) PostEnableHost(sw stateswitch.StateSwitch, args sta
 		return errors.New("PostEnableHost invalid argument")
 	}
 
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		statusInfoDiscovering, "inventory", "")
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoDiscovering,
+		resetFields[:]...)
 }
 
 ////////////////////////////////////////////////////////////////////////////
