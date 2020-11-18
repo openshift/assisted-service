@@ -2208,14 +2208,15 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		msg := "Failed to disable host: error fetching host from DB"
+		msg := fmt.Sprintf("Failed to disable host %s: error fetching host from DB", params.HostID.String())
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if err := b.hostApi.DisableHost(ctx, &host, tx); err != nil {
 		log.WithError(err).Errorf("failed to disable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		msg := "Failed to disable host: error disabling host in current status"
+		msg := fmt.Sprintf("Failed to disable host %s: error disabling host in current status",
+			hostutil.GetHostnameForMsg(&host))
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
@@ -2232,8 +2233,8 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 	}
 	txSuccess = true
 
-	msg := "Host disabled by user"
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, msg, time.Now())
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo,
+		fmt.Sprintf("Host %s disabled by user", hostutil.GetHostnameForMsg(&host)), time.Now())
 	return installer.NewDisableHostOK().WithPayload(&c.Cluster)
 }
 
@@ -2264,14 +2265,15 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID)
-		msg := "Failed to enable host: error fetching host from DB"
+		msg := fmt.Sprintf("Failed to enable host %s: error fetching host from DB", params.HostID)
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if err := b.hostApi.EnableHost(ctx, &host, tx); err != nil {
 		log.WithError(err).Errorf("failed to enable host <%s> from cluster <%s>", params.HostID, params.ClusterID)
-		msg := "Failed to enable host: error disabling host in current status"
+		msg := fmt.Sprintf("Failed to enable host %s: error disabling host in current status",
+			hostutil.GetHostnameForMsg(&host))
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
 		return common.GenerateErrorResponderWithDefault(err, http.StatusConflict)
 	}
@@ -2287,8 +2289,8 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 	}
 	txSuccess = true
 
-	msg := "Host enabled by user"
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, msg, time.Now())
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo,
+		fmt.Sprintf("Host %s enabled by user", hostutil.GetHostnameForMsg(&host)), time.Now())
 	return installer.NewEnableHostOK().WithPayload(&c.Cluster)
 }
 
