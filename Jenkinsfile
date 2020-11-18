@@ -22,7 +22,6 @@ pipeline {
         stage('Init') {
             steps {
                 sh 'make clear-all || true'
-                sh 'make clean-onprem || true'
                 sh 'docker system prune -a'
                 sh 'make ci-lint'
 
@@ -56,8 +55,7 @@ pipeline {
             steps {
                 sh "make podman-pull-service-from-docker-daemon"
                 sh "export PODMAN_PULL_FLAG='--pull never'; make deploy-onprem-for-subsystem"
-                sh "export GINKGO_FOCUS_FLAG=-ginkgo.focus=minimal-set; make test-onprem"
-                sh "make clean-onprem || true"
+                sh "make test-onprem FOCUS=minimal-set"
             }
         }
 

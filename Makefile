@@ -333,7 +333,7 @@ test-onprem:
 # Clean #
 #########
 
-clear-all: clean subsystem-clean clear-deployment clear-images
+clear-all: clean subsystem-clean clear-deployment clear-images clean-onprem
 
 clean:
 	-rm -rf $(BUILD_FOLDER) $(REPORTS)
