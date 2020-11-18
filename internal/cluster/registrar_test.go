@@ -51,6 +51,27 @@ var _ = Describe("registrar", func() {
 			cluster = geCluster(*cluster.ID, db)
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 		})
+
+		It("register a (soft) deleted cluster", func() {
+			Expect(db.Unscoped().Delete(&cluster).Error).ShouldNot(HaveOccurred())
+
+			updateErr = registerManager.RegisterCluster(ctx, &cluster)
+			Expect(updateErr).ShouldNot(HaveOccurred())
+
+			cluster = geCluster(*cluster.ID, db)
+			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
+
+			updateErr = registerManager.DeregisterCluster(ctx, &cluster)
+			Expect(updateErr).ShouldNot(HaveOccurred())
+			Expect(db.First(&common.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(0)))
+			Expect(db.Unscoped().First(&common.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(1)))
+
+			updateErr = registerManager.RegisterCluster(ctx, &cluster)
+			Expect(updateErr).ShouldNot(HaveOccurred())
+
+			cluster = geCluster(*cluster.ID, db)
+			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
+		})
 	})
 
 	Context("deregister", func() {
