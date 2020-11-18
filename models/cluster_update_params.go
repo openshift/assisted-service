@@ -78,6 +78,9 @@ type ClusterUpdateParams struct {
 	// SSH public key for debugging OpenShift nodes.
 	SSHPublicKey *string `json:"ssh_public_key,omitempty"`
 
+	// Indicate if the networking is managed by the user.
+	UserManagedNetworking *bool `json:"user-managed-networking,omitempty"`
+
 	// Indicate if virtual IP DHCP allocation mode is enabled.
 	VipDhcpAllocation *bool `json:"vip_dhcp_allocation,omitempty"`
 }

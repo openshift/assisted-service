@@ -147,6 +147,31 @@ var _ = Describe("installcfg", func() {
 		Expect(result.AdditionalTrustBundle).Should(Equal(""))
 	})
 
+	It("UserManagedNetworking None Platform", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.UserManagedNetworking = swag.Bool(true)
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform.Baremetal).Should(BeNil())
+		var none = platformNone{}
+		Expect(*result.Platform.None).Should(Equal(none))
+	})
+
+	It("UserManagedNetworking BareMetal", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.UserManagedNetworking = swag.Bool(false)
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform.Baremetal).ShouldNot(BeNil())
+		Expect(result.Platform.None).Should(BeNil())
+	})
+
 	AfterEach(func() {
 		// cleanup
 		ctrl.Finish()
