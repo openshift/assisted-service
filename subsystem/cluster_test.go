@@ -844,7 +844,7 @@ var _ = Describe("cluster install", func() {
 			})
 		})
 
-		It("[only_k8s]install_cluster", func() {
+		It("[only_k8s][minimal-set]install_cluster", func() {
 			By("Installing cluster till finalize")
 			c := installCluster(clusterID)
 			Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
@@ -1098,7 +1098,7 @@ var _ = Describe("cluster install", func() {
 			})
 		})
 
-		It("[only_k8s]install download_config_files", func() {
+		It("[only_k8s][minimal-set]install download_config_files", func() {
 			//Test downloading kubeconfig files in worng state
 			//This test uses Agent Auth for DownloadClusterFiles (as opposed to the other tests), to cover both supported authentication types for this API endpoint.
 			file, err := ioutil.TempFile("", "tmp")

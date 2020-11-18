@@ -43,7 +43,7 @@ var _ = Describe("system-test image tests", func() {
 		clusterID = *cluster.GetPayload().ID
 	})
 
-	It("[only_k8s]create_and_get_image", func() {
+	It("[only_k8s][minimal-set]create_and_get_image", func() {
 		file, err := ioutil.TempFile("", "tmp")
 		if err != nil {
 			log.Fatal(err)
