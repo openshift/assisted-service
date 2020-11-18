@@ -63,7 +63,7 @@ import (
 )
 
 const kubeconfig = "kubeconfig"
-const workerIgnition = "worker.ign"
+
 const DefaultUser = "kubeadmin"
 const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 
@@ -546,13 +546,6 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	// Persist worker-ignition to s3 for cluster
-	err = b.createAndUploadNodeIgnition(ctx, id, apivipDnsname)
-	if err != nil {
-		log.Errorf("Failed to create and upload worker ignition for cluster %s", *id)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
 	err = b.clusterApi.RegisterAddHostsCluster(ctx, &cluster)
 	if err != nil {
@@ -565,9 +558,9 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&cluster.Cluster)
 }
 
-func (b *bareMetalInventory) formatNodeIgnitionFile(apiVipDnsname string) ([]byte, error) {
+func (b *bareMetalInventory) formatNodeIgnitionFile(address string) ([]byte, error) {
 	var ignitionParams = map[string]string{
-		"SOURCE": "http://" + apiVipDnsname + ":22624/config/worker",
+		"SOURCE": "http://" + address + ":22624/config/worker",
 	}
 	tmpl, err := template.New("nodeIgnition").Parse(nodeIgnitionFormat)
 	if err != nil {
@@ -580,15 +573,26 @@ func (b *bareMetalInventory) formatNodeIgnitionFile(apiVipDnsname string) ([]byt
 	return buf.Bytes(), nil
 }
 
-func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, clusterID *strfmt.UUID, apiVipDnsname string) error {
-	ignitionString, err := b.formatNodeIgnitionFile(apiVipDnsname)
-	if err != nil {
-		return errors.Errorf("Failed to create ignition string for cluster %s", clusterID)
+func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cluster *common.Cluster, host *models.Host) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Starting createAndUploadNodeIgnition for cluster %s, host %s", cluster.ID, host.ID)
+	address := cluster.APIVip
+	if address == "" {
+		address = swag.StringValue(cluster.APIVipDNSName)
 	}
-	fileName := fmt.Sprintf("%s/%s", clusterID, workerIgnition)
-	err = b.objectHandler.Upload(ctx, ignitionString, fileName)
+	ignitionBytes, err := b.formatNodeIgnitionFile(address)
 	if err != nil {
-		return errors.Errorf("Failed to upload worker ignition for cluster %s", clusterID)
+		return errors.Errorf("Failed to create ignition string for cluster %s", cluster.ID)
+	}
+	fullIgnition, err := ignition.SetHostnameForNodeIgnition(ignitionBytes, host)
+	if err != nil {
+		return errors.Errorf("Failed to create ignition string for cluster %s, host %s", cluster.ID, host.ID)
+	}
+	fileName := fmt.Sprintf("%s/worker-%s.ign", cluster.ID, host.ID)
+	log.Infof("Uploading ignition file <%s>", fileName)
+	err = b.objectHandler.Upload(ctx, fullIgnition, fileName)
+	if err != nil {
+		return errors.Errorf("Failed to upload worker ignition for cluster %s", cluster.ID)
 	}
 	return nil
 }
@@ -1085,6 +1089,11 @@ func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.
 		if swag.StringValue(cluster.Hosts[i].Status) != models.HostStatusKnown {
 			continue
 		}
+		err = b.createAndUploadNodeIgnition(ctx, &cluster, cluster.Hosts[i])
+		if err != nil {
+			log.Error("Failed to upload ignition for host %s", cluster.Hosts[i].RequestedHostname)
+			continue
+		}
 		if installErr := b.hostApi.Install(ctx, cluster.Hosts[i], tx); installErr != nil {
 			// we just logs the error, each host install is independent
 			log.Error("Failed to move host %s to installing", cluster.Hosts[i].RequestedHostname)
@@ -1485,10 +1494,6 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	}
 	if params.ClusterUpdateParams.APIVipDNSName != nil && swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 		log.Infof("Updating api vip to %s for day2 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
-		err = b.createAndUploadNodeIgnition(ctx, cluster.ID, *params.ClusterUpdateParams.APIVipDNSName)
-		if err != nil {
-			return err
-		}
 		updates["api_vip_dns_name"] = *params.ClusterUpdateParams.APIVipDNSName
 	}
 	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
@@ -3394,13 +3399,6 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 	err = validations.ValidateClusterNameFormat(clusterName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to validate cluster name: %s", clusterName)
-		return err
-	}
-
-	// Persist worker-ignition to s3 for cluster
-	err = b.createAndUploadNodeIgnition(ctx, &id, apiVIP)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to create and upload worker ignition for cluster %s", id)
 		return err
 	}
 

@@ -740,3 +740,23 @@ func (g *installerGenerator) downloadManifest(ctx context.Context, manifest stri
 	}
 	return nil
 }
+
+func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, error) {
+	config, _, err := config_31.Parse(ignition)
+	if err != nil {
+		return nil, errors.Errorf("error parsing ignition: %v", err)
+	}
+
+	hostname, err := hostutil.GetCurrentHostName(host)
+	if err != nil {
+		return nil, errors.Errorf("failed to get hostname for host %s", host.ID)
+	}
+
+	setFileInIgnition(&config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420)
+
+	configBytes, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	return configBytes, nil
+}
