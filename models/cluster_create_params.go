@@ -47,6 +47,8 @@ type ClusterCreateParams struct {
 
 	// Name of the OpenShift cluster.
 	// Required: true
+	// Max Length: 54
+	// Min Length: 1
 	Name *string `json:"name"`
 
 	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
@@ -159,6 +161,14 @@ func (m *ClusterCreateParams) validateIngressVip(formats strfmt.Registry) error 
 func (m *ClusterCreateParams) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
+		return err
+	}
+
+	if err := validate.MinLength("name", "body", string(*m.Name), 1); err != nil {
+		return err
+	}
+
+	if err := validate.MaxLength("name", "body", string(*m.Name), 54); err != nil {
 		return err
 	}
 
