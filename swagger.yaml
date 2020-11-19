@@ -2027,7 +2027,7 @@ paths:
           name: upfile
           type: file
           required: false
-          maxLength: 20971520  #20MB
+          maxLength: 104857600  #100MB
           description: The file to upload.
           x-mimetype: application/zip
         - in: query
