@@ -674,8 +674,20 @@ func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, obje
 
 func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
 	var failedToDelete []string
-	for _, name := range S3FileNames {
-		fileName := fmt.Sprintf("%s/%s", c.ID, name)
+	path := fmt.Sprintf("%s/", c.ID)
+	filesList, err := objectHandler.ListObjectsByPrefix(ctx, path)
+	if err != nil {
+		msg := fmt.Sprintf("Failed to list files in %s", path)
+		m.log.WithError(err).Errorf(msg)
+		return common.NewApiError(
+			http.StatusInternalServerError,
+			errors.Errorf(msg))
+	}
+	for _, fileName := range filesList {
+		//skip log deletion
+		if strings.Contains(fileName, "logs") {
+			continue
+		}
 		if err := objectHandler.DeleteObject(ctx, fileName); err != nil {
 			m.log.WithError(err).Errorf("failed deleting s3 file %s", fileName)
 			failedToDelete = append(failedToDelete, fileName)
