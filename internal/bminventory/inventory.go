@@ -5,8 +5,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/openshift/assisted-service/pkg/leader"
-
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
@@ -48,6 +46,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
+	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -1655,15 +1654,22 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 	var dbClusters []*common.Cluster
 	var clusters []*models.Cluster
 	userFilter := identity.AddUserFilter(ctx, "")
-	if err := db.Preload("Hosts", func(db *gorm.DB) *gorm.DB {
+	query := db.Preload("Hosts", func(db *gorm.DB) *gorm.DB {
 		if swag.BoolValue(params.GetUnregisteredClusters) {
 			return db.Unscoped()
 		}
 		return db
-	}).Where(userFilter).Find(&dbClusters).Error; err != nil {
+	}).Where(userFilter)
+
+	if params.OpenshiftClusterID != nil {
+		query = query.Where("openshift_cluster_id = ?", *params.OpenshiftClusterID)
+	}
+
+	if err := query.Find(&dbClusters).Error; err != nil {
 		log.WithError(err).Error("Failed to list clusters in db")
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+
 	for _, c := range dbClusters {
 		for _, h := range c.Hosts {
 			// Clear this field as it is not needed to be sent via API

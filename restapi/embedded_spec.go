@@ -262,6 +262,12 @@ func init() {
             "default": false,
             "name": "get_unregistered_clusters",
             "in": "header"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "openshift_cluster_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -3901,7 +3907,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, \n'AddHostCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link,\n'AddHostCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
           "type": "string",
           "enum": [
             "Cluster",
@@ -3985,6 +3991,11 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "user-managed-networking": {
+          "description": "Indicate if the networking is managed by the user.",
+          "type": "boolean",
+          "x-nullable": true
         },
         "user_name": {
           "type": "string"
@@ -4071,6 +4082,12 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string"
+        },
+        "user-managed-networking": {
+          "description": "Indicate if the networking is managed by the user.",
+          "type": "boolean",
+          "default": false,
+          "x-nullable": true
         },
         "vip_dhcp_allocation": {
           "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
@@ -4200,6 +4217,12 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string",
+          "x-nullable": true
+        },
+        "user-managed-networking": {
+          "description": "Indicate if the networking is managed by the user.",
+          "type": "boolean",
+          "default": false,
           "x-nullable": true
         },
         "vip_dhcp_allocation": {
@@ -5689,6 +5712,12 @@ func init() {
             "default": false,
             "name": "get_unregistered_clusters",
             "in": "header"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "openshift_cluster_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -9371,7 +9400,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, \n'AddHostCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link,\n'AddHostCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
           "type": "string",
           "enum": [
             "Cluster",
@@ -9455,6 +9484,11 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "user-managed-networking": {
+          "description": "Indicate if the networking is managed by the user.",
+          "type": "boolean",
+          "x-nullable": true
         },
         "user_name": {
           "type": "string"
@@ -9541,6 +9575,12 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string"
+        },
+        "user-managed-networking": {
+          "description": "Indicate if the networking is managed by the user.",
+          "type": "boolean",
+          "default": false,
+          "x-nullable": true
         },
         "vip_dhcp_allocation": {
           "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
@@ -9652,6 +9692,12 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string",
+          "x-nullable": true
+        },
+        "user-managed-networking": {
+          "description": "Indicate if the networking is managed by the user.",
+          "type": "boolean",
+          "default": false,
           "x-nullable": true
         },
         "vip_dhcp_allocation": {

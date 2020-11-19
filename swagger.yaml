@@ -82,6 +82,11 @@ paths:
           type: boolean
           required: false
           default: false
+        - in: query
+          name: openshift_cluster_id
+          type: string
+          format: uuid
+          required: false
       responses:
         200:
           description: Success.
@@ -2996,7 +3001,7 @@ definitions:
         type: string
         enum: ['Cluster', 'AddHostsCluster', 'AddHostsOCPCluster']
         description: |
-          Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link, 
+          Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link,
           'AddHostCluster' for cluster that add hosts to existing OCP cluster,
           'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it
       id:
