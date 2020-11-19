@@ -2797,6 +2797,8 @@ definitions:
     properties:
       name:
         type: string
+        minLength: 1
+        maxLength: 54
         description: Name of the OpenShift cluster.
       openshift_version:
         type: string
