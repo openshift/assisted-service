@@ -23,7 +23,7 @@ type ClusterUpdateParams struct {
 	AdditionalNtpSource *string `json:"additional_ntp_source,omitempty"`
 
 	// The virtual IP used to reach the OpenShift cluster's API.
-	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
+	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$
 	APIVip *string `json:"api_vip,omitempty"`
 
 	// The domain name used to reach the OpenShift cluster API.
@@ -33,11 +33,11 @@ type ClusterUpdateParams struct {
 	BaseDNSDomain *string `json:"base_dns_domain,omitempty"`
 
 	// IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
-	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
+	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	ClusterNetworkCidr *string `json:"cluster_network_cidr,omitempty"`
 
 	// The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.
-	// Maximum: 32
+	// Maximum: 128
 	// Minimum: 1
 	ClusterNetworkHostPrefix *int64 `json:"cluster_network_host_prefix,omitempty"`
 
@@ -58,11 +58,11 @@ type ClusterUpdateParams struct {
 	HTTPSProxy *string `json:"https_proxy,omitempty"`
 
 	// The virtual IP used for cluster ingress traffic.
-	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
+	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$
 	IngressVip *string `json:"ingress_vip,omitempty"`
 
 	// A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.
-	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
+	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	MachineNetworkCidr *string `json:"machine_network_cidr,omitempty"`
 
 	// OpenShift cluster name.
@@ -75,7 +75,7 @@ type ClusterUpdateParams struct {
 	PullSecret *string `json:"pull_secret,omitempty"`
 
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
-	// Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
+	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	ServiceNetworkCidr *string `json:"service_network_cidr,omitempty"`
 
 	// SSH public key for debugging OpenShift nodes.
@@ -136,7 +136,7 @@ func (m *ClusterUpdateParams) validateAPIVip(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.Pattern("api_vip", "body", string(*m.APIVip), `^(([0-9]{1,3}\.){3}[0-9]{1,3})?$`); err != nil {
+	if err := validate.Pattern("api_vip", "body", string(*m.APIVip), `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$`); err != nil {
 		return err
 	}
 
@@ -149,7 +149,7 @@ func (m *ClusterUpdateParams) validateClusterNetworkCidr(formats strfmt.Registry
 		return nil
 	}
 
-	if err := validate.Pattern("cluster_network_cidr", "body", string(*m.ClusterNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+	if err := validate.Pattern("cluster_network_cidr", "body", string(*m.ClusterNetworkCidr), `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$`); err != nil {
 		return err
 	}
 
@@ -166,7 +166,7 @@ func (m *ClusterUpdateParams) validateClusterNetworkHostPrefix(formats strfmt.Re
 		return err
 	}
 
-	if err := validate.MaximumInt("cluster_network_host_prefix", "body", int64(*m.ClusterNetworkHostPrefix), 32, false); err != nil {
+	if err := validate.MaximumInt("cluster_network_host_prefix", "body", int64(*m.ClusterNetworkHostPrefix), 128, false); err != nil {
 		return err
 	}
 
@@ -229,7 +229,7 @@ func (m *ClusterUpdateParams) validateIngressVip(formats strfmt.Registry) error 
 		return nil
 	}
 
-	if err := validate.Pattern("ingress_vip", "body", string(*m.IngressVip), `^(([0-9]{1,3}\.){3}[0-9]{1,3})?$`); err != nil {
+	if err := validate.Pattern("ingress_vip", "body", string(*m.IngressVip), `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$`); err != nil {
 		return err
 	}
 
@@ -242,7 +242,7 @@ func (m *ClusterUpdateParams) validateMachineNetworkCidr(formats strfmt.Registry
 		return nil
 	}
 
-	if err := validate.Pattern("machine_network_cidr", "body", string(*m.MachineNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+	if err := validate.Pattern("machine_network_cidr", "body", string(*m.MachineNetworkCidr), `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$`); err != nil {
 		return err
 	}
 
@@ -255,7 +255,7 @@ func (m *ClusterUpdateParams) validateServiceNetworkCidr(formats strfmt.Registry
 		return nil
 	}
 
-	if err := validate.Pattern("service_network_cidr", "body", string(*m.ServiceNetworkCidr), `^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$`); err != nil {
+	if err := validate.Pattern("service_network_cidr", "body", string(*m.ServiceNetworkCidr), `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$`); err != nil {
 		return err
 	}
 

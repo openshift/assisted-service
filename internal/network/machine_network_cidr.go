@@ -17,6 +17,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func getVIPInterfaceNetwork(vip net.IP, addresses []string) *net.IPNet {
+	for _, addr := range addresses {
+		_, ipnet, err := net.ParseCIDR(addr)
+		if err != nil {
+			continue
+		}
+		if ipnet.Contains(vip) {
+			return ipnet
+		}
+	}
+	return nil
+}
+
 /*
  * Calculate the machine network CIDR from the one of (ApiVip, IngressVip) and the ip addresses of the hosts.
  * The ip addresses of the host appear with CIDR notation. Therefore, the network can be calculated from it.
@@ -32,6 +45,7 @@ func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*mode
 	} else {
 		return "", nil
 	}
+	isIPv4 := IsIPv4Addr(ip)
 	parsedVipAddr := net.ParseIP(ip)
 	if parsedVipAddr == nil {
 		return "", errors.Errorf("Could not parse VIP ip %s", ip)
@@ -46,14 +60,14 @@ func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*mode
 			continue
 		}
 		for _, intf := range inventory.Interfaces {
-			for _, ipv4addr := range intf.IPV4Addresses {
-				_, ipnet, err := net.ParseCIDR(ipv4addr)
-				if err != nil {
-					continue
-				}
-				if ipnet.Contains(parsedVipAddr) {
-					return ipnet.String(), nil
-				}
+			var ipnet *net.IPNet
+			if isIPv4 {
+				ipnet = getVIPInterfaceNetwork(parsedVipAddr, intf.IPV4Addresses)
+			} else {
+				ipnet = getVIPInterfaceNetwork(parsedVipAddr, intf.IPV6Addresses)
+			}
+			if ipnet != nil {
+				return ipnet.String(), nil
 			}
 		}
 	}
@@ -119,9 +133,31 @@ func VerifyMachineCIDR(machineCidr string, hosts []*models.Host, log logrus.Fiel
 	return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s does not belong to any of the host networks", machineCidr))
 }
 
+func findMatchingIPForFamily(ipnet *net.IPNet, addresses []string) (bool, string) {
+	for _, addr := range addresses {
+		ip, _, err := net.ParseCIDR(addr)
+		if err != nil {
+			continue
+		}
+		if ipnet.Contains(ip) {
+			return true, addr
+		}
+	}
+	return false, ""
+}
+
+func findMatchingIP(ipnet *net.IPNet, intf *models.Interface, isIPv4 bool) (bool, string) {
+	if isIPv4 {
+		return findMatchingIPForFamily(ipnet, intf.IPV4Addresses)
+	} else {
+		return findMatchingIPForFamily(ipnet, intf.IPV6Addresses)
+	}
+}
+
 func getMachineCIDRObj(host *models.Host, cluster *common.Cluster, obj string) (string, error) {
 	var inventory models.Inventory
 	var err error
+	isIPv4 := IsIPV4CIDR(cluster.MachineNetworkCidr)
 	if err = json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		return "", err
 	}
@@ -130,20 +166,15 @@ func getMachineCIDRObj(host *models.Host, cluster *common.Cluster, obj string) (
 		return "", err
 	}
 	for _, intf := range inventory.Interfaces {
-		for _, a := range intf.IPV4Addresses {
-			ip, _, err := net.ParseCIDR(a)
-			if err != nil {
-				return "", err
-			}
-			if ipNet.Contains(ip) {
-				switch obj {
-				case "interface":
-					return intf.Name, nil
-				case "ip":
-					return strings.Split(ip.String(), "/")[0], nil
-				default:
-					return "", errors.Errorf("obj %s not supported", obj)
-				}
+		found, addr := findMatchingIP(ipNet, intf, isIPv4)
+		if found {
+			switch obj {
+			case "interface":
+				return intf.Name, nil
+			case "ip":
+				return strings.Split(addr, "/")[0], nil
+			default:
+				return "", errors.Errorf("obj %s not supported", obj)
 			}
 		}
 	}
@@ -177,16 +208,10 @@ func belongsToNetwork(log logrus.FieldLogger, h *models.Host, machineIpnet *net.
 		log.WithError(err).Warnf("Error unmarshalling host %s inventory %s", h.ID, h.Inventory)
 		return false
 	}
+	isIPv4 := IsIPV4CIDR(machineIpnet.String())
 	for _, intf := range inventory.Interfaces {
-		for _, ipv4addr := range intf.IPV4Addresses {
-			ip, _, err := net.ParseCIDR(ipv4addr)
-			if err != nil {
-				log.WithError(err).Warnf("Could not parse cidr %s", ipv4addr)
-				continue
-			}
-			if machineIpnet.Contains(ip) {
-				return true
-			}
+		if found, _ := findMatchingIP(machineIpnet, intf, isIPv4); found {
+			return true
 		}
 	}
 	return false
