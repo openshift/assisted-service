@@ -146,6 +146,21 @@ var _ = Describe("Cluster", func() {
 		Expect(c.Hosts[0].ID.String()).Should(Equal(h.ID.String()))
 	})
 
+	It("cluster name exceed max length (54 characters)", func() {
+		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
+			ClusterID: clusterID,
+		})
+		Expect(err1).ShouldNot(HaveOccurred())
+		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"),
+				OpenshiftVersion: swag.String("4.5"),
+				PullSecret:       swag.String(pullSecret),
+			},
+		})
+		Expect(err).Should(HaveOccurred())
+	})
+
 	It("register an unregistered cluster success", func() {
 		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
 			ClusterID: clusterID,

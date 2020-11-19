@@ -4054,7 +4054,9 @@ func init() {
         },
         "name": {
           "description": "Name of the OpenShift cluster.",
-          "type": "string"
+          "type": "string",
+          "maxLength": 54,
+          "minLength": 1
         },
         "no_proxy": {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
@@ -9547,7 +9549,9 @@ func init() {
         },
         "name": {
           "description": "Name of the OpenShift cluster.",
-          "type": "string"
+          "type": "string",
+          "maxLength": 54,
+          "minLength": 1
         },
         "no_proxy": {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
