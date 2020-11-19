@@ -193,7 +193,7 @@ func updateRole(h *models.Host, role models.HostRole, db *gorm.DB, srcRole *stri
 	return nil
 }
 
-func CreateUploadLogsCmd(host *models.Host, baseURL, agentImage string, skipCertVerification, preservePreviousCommandReturnCode,
+func CreateUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs string, skipCertVerification, preservePreviousCommandReturnCode,
 	withInstallerGatherLogging bool) (string, error) {
 
 	cmdArgsTmpl := ""
@@ -209,12 +209,14 @@ func CreateUploadLogsCmd(host *models.Host, baseURL, agentImage string, skipCert
 		"SKIP_CERT_VERIFICATION": strconv.FormatBool(skipCertVerification),
 		"BOOTSTRAP":              strconv.FormatBool(host.Bootstrap),
 		"INSTALLER_GATHER":       strconv.FormatBool(withInstallerGatherLogging),
+		"MASTERS_IPS":            mastersIPs,
 	}
 	cmdArgsTmpl += "podman run --rm --privileged " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 		"--env PULL_SECRET_TOKEN --name logs-sender --pid=host {{.AGENT_IMAGE}} logs_sender " +
 		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} " +
-		"--insecure={{.SKIP_CERT_VERIFICATION}} -bootstrap={{.BOOTSTRAP}} -with-installer-gather-logging={{.INSTALLER_GATHER}}"
+		"--insecure={{.SKIP_CERT_VERIFICATION}} -bootstrap={{.BOOTSTRAP}} -with-installer-gather-logging={{.INSTALLER_GATHER}}" +
+		"{{if .MASTERS_IPS}} -masters-ips={{.MASTERS_IPS}} {{end}}"
 
 	if preservePreviousCommandReturnCode {
 		cmdArgsTmpl = cmdArgsTmpl + "; exit $returnCode; )"
