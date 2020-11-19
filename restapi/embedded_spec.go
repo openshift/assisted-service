@@ -3129,7 +3129,7 @@ func init() {
             "required": true
           },
           {
-            "maxLength": 20971520,
+            "maxLength": 104857600,
             "type": "file",
             "x-mimetype": "application/zip",
             "description": "The file to upload.",
@@ -4059,7 +4059,7 @@ func init() {
           "minLength": 1
         },
         "no_proxy": {
-          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
         },
@@ -4201,7 +4201,7 @@ func init() {
           "x-nullable": true
         },
         "no_proxy": {
-          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
         },
@@ -8581,7 +8581,7 @@ func init() {
             "required": true
           },
           {
-            "maxLength": 20971520,
+            "maxLength": 104857600,
             "type": "file",
             "x-mimetype": "application/zip",
             "description": "The file to upload.",
@@ -9554,7 +9554,7 @@ func init() {
           "minLength": 1
         },
         "no_proxy": {
-          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
         },
@@ -9678,7 +9678,7 @@ func init() {
           "x-nullable": true
         },
         "no_proxy": {
-          "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
         },

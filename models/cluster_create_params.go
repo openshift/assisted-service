@@ -51,7 +51,7 @@ type ClusterCreateParams struct {
 	// Min Length: 1
 	Name *string `json:"name"`
 
-	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
 	// Version of the OpenShift cluster.

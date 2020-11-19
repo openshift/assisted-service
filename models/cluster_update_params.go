@@ -65,7 +65,7 @@ type ClusterUpdateParams struct {
 	// OpenShift cluster name.
 	Name *string `json:"name,omitempty"`
 
-	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
