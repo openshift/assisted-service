@@ -65,6 +65,7 @@ all: build
 ci-lint:
 	${ROOT_DIR}/tools/check-commits.sh
 	$(MAKE) verify-latest-onprem-config
+	$(MAKE) verify-generated-files
 
 lint:
 	golangci-lint run -v
@@ -109,6 +110,9 @@ generate-python-client: $(BUILD_FOLDER)
 
 generate-keys: $(BUILD_FOLDER)
 	cd tools && go run auth_keys_generator.go -keys-dir=$(BUILD_FOLDER)
+
+verify-generated-files: generate generate-from-swagger
+	${ROOT_DIR}/tools/verify-generated-files.sh
 
 ##################
 # Build & Update #
