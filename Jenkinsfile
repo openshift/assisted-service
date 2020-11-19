@@ -51,14 +51,6 @@ pipeline {
             }
         }
 
-        stage('Subsystem Test onprem') {
-            steps {
-                sh "make podman-pull-service-from-docker-daemon"
-                sh "export PODMAN_PULL_FLAG='--pull never'; make deploy-onprem-for-subsystem"
-                sh "make test-onprem FOCUS=minimal-set"
-            }
-        }
-
         stage('Publish') {
             when {
                 expression {!env.BRANCH_NAME.startsWith('PR')}
