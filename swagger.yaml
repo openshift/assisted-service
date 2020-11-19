@@ -2850,7 +2850,7 @@ definitions:
         x-nullable: true
       no_proxy:
         type: string
-        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+        description: An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
         x-nullable: true
       user-managed-networking:
         type: boolean
@@ -2930,7 +2930,7 @@ definitions:
         x-nullable: true
       no_proxy:
         type: string
-        description: A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+        description: An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
         x-nullable: true
       hosts_roles:
         type: array

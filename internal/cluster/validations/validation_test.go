@@ -409,7 +409,7 @@ var _ = Describe("Proxy validations", func() {
 		})
 		It("'*' bypass proxy for all destinations", func() {
 			err := ValidateNoProxyFormat("*")
-			Expect(err).ShouldNot(BeNil())
+			Expect(err).Should(BeNil())
 		})
 		It("invalid format", func() {
 			err := ValidateNoProxyFormat("...")
