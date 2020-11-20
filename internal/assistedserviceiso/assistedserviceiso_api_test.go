@@ -57,6 +57,7 @@ var _ = Describe("AssistedServiceISO", func() {
 		})
 
 		It("success", func() {
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey:     sshPublicKey,
@@ -70,6 +71,7 @@ var _ = Describe("AssistedServiceISO", func() {
 		})
 
 		It("failure when pull-secret is missing", func() {
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey: sshPublicKey,
@@ -82,6 +84,7 @@ var _ = Describe("AssistedServiceISO", func() {
 		})
 
 		It("failure when pull-secret is wrong format", func() {
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("bad pull secret")).Times(1)
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey: sshPublicKey,
@@ -94,6 +97,7 @@ var _ = Describe("AssistedServiceISO", func() {
 		})
 
 		It("ssh public key is not required and request should be successful if it is missing", func() {
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey:     "",
@@ -107,6 +111,7 @@ var _ = Describe("AssistedServiceISO", func() {
 		})
 
 		It("multiple creates", func() {
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey:     sshPublicKey,
@@ -125,6 +130,22 @@ var _ = Describe("AssistedServiceISO", func() {
 				AssistedServiceIsoCreateParams: &ignitionParams,
 			})
 			Expect(generateReply).Should(BeAssignableToTypeOf(assisted_service_iso.NewCreateISOAndUploadToS3Created()))
+		})
+
+		It("if AWS S3 the presigned URL is generated and returned as the response", func() {
+			mockS3Client.EXPECT().IsAwsS3().Return(true).Times(2)
+			mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, destIsoName, isoNameWithExtension, gomock.Any()).Return("url", nil)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			ignitionParams := models.AssistedServiceIsoCreateParams{
+				SSHPublicKey: sshPublicKey,
+				PullSecret:   pullSecret,
+			}
+			generateReply := api.CreateISOAndUploadToS3(ctx, assisted_service_iso.CreateISOAndUploadToS3Params{
+				AssistedServiceIsoCreateParams: &ignitionParams,
+			})
+			Expect(generateReply).Should(BeAssignableToTypeOf(&assisted_service_iso.GetPresignedForAssistedServiceISOOK{}))
+			replyPayload := generateReply.(*assisted_service_iso.GetPresignedForAssistedServiceISOOK).Payload
+			Expect(*replyPayload.URL).Should(Equal("url"))
 		})
 	})
 

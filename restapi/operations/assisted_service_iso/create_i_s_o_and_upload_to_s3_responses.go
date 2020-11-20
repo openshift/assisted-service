@@ -21,6 +21,11 @@ const CreateISOAndUploadToS3CreatedCode int = 201
 swagger:response createISOAndUploadToS3Created
 */
 type CreateISOAndUploadToS3Created struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Presigned `json:"body,omitempty"`
 }
 
 // NewCreateISOAndUploadToS3Created creates CreateISOAndUploadToS3Created with default headers values
@@ -29,12 +34,27 @@ func NewCreateISOAndUploadToS3Created() *CreateISOAndUploadToS3Created {
 	return &CreateISOAndUploadToS3Created{}
 }
 
+// WithPayload adds the payload to the create i s o and upload to s3 created response
+func (o *CreateISOAndUploadToS3Created) WithPayload(payload *models.Presigned) *CreateISOAndUploadToS3Created {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the create i s o and upload to s3 created response
+func (o *CreateISOAndUploadToS3Created) SetPayload(payload *models.Presigned) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *CreateISOAndUploadToS3Created) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(201)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 // CreateISOAndUploadToS3BadRequestCode is the HTTP code returned for type CreateISOAndUploadToS3BadRequest

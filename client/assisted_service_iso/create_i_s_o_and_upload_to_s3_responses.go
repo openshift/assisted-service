@@ -69,13 +69,25 @@ func NewCreateISOAndUploadToS3Created() *CreateISOAndUploadToS3Created {
 Success.
 */
 type CreateISOAndUploadToS3Created struct {
+	Payload *models.Presigned
 }
 
 func (o *CreateISOAndUploadToS3Created) Error() string {
-	return fmt.Sprintf("[POST /assisted-service-iso][%d] createISOAndUploadToS3Created ", 201)
+	return fmt.Sprintf("[POST /assisted-service-iso][%d] createISOAndUploadToS3Created  %+v", 201, o.Payload)
+}
+
+func (o *CreateISOAndUploadToS3Created) GetPayload() *models.Presigned {
+	return o.Payload
 }
 
 func (o *CreateISOAndUploadToS3Created) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Presigned)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

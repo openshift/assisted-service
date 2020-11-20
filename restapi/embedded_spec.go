@@ -113,7 +113,10 @@ func init() {
         ],
         "responses": {
           "201": {
-            "description": "Success."
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/presigned"
+            }
           },
           "400": {
             "description": "Error.",
@@ -7686,7 +7689,10 @@ func init() {
         ],
         "responses": {
           "201": {
-            "description": "Success."
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/presigned"
+            }
           },
           "400": {
             "description": "Error.",

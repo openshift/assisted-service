@@ -3071,6 +3071,8 @@ paths:
       responses:
         "201":
           description: Success.
+          schema:
+            $ref: '#/definitions/presigned'
         "400":
           description: Error.
           schema:
