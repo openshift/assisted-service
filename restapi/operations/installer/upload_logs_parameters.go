@@ -48,7 +48,7 @@ type UploadLogsParams struct {
 	*/
 	LogsType string
 	/*The file to upload.
-	  Max Length: 20971520
+	  Max Length: 104857600
 	  In: formData
 	*/
 	Upfile io.ReadCloser
@@ -215,8 +215,8 @@ func (o *UploadLogsParams) validateLogsType(formats strfmt.Registry) error {
 func (o *UploadLogsParams) bindUpfile(file multipart.File, header *multipart.FileHeader) error {
 	size, _ := file.Seek(0, io.SeekEnd)
 	file.Seek(0, io.SeekStart)
-	if size > 20971520 {
-		return errors.ExceedsMaximum("upfile", "formData", 20971520, false, size)
+	if size > 104857600 {
+		return errors.ExceedsMaximum("upfile", "formData", 104857600, false, size)
 	}
 	return nil
 }
