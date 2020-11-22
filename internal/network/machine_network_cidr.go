@@ -119,7 +119,7 @@ func VerifyMachineCIDR(machineCidr string, hosts []*models.Host, log logrus.Fiel
 	return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s does not belong to any of the host networks", machineCidr))
 }
 
-func GetMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string, error) {
+func getMachineCIDRObj(host *models.Host, cluster *common.Cluster, obj string) (string, error) {
 	var inventory models.Inventory
 	var err error
 	if err = json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
@@ -136,11 +136,26 @@ func GetMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string
 				return "", err
 			}
 			if ipNet.Contains(ip) {
-				return intf.Name, nil
+				switch obj {
+				case "interface":
+					return intf.Name, nil
+				case "ip":
+					return strings.Split(ip.String(), "/")[0], nil
+				default:
+					return "", errors.Errorf("obj %s not supported", obj)
+				}
 			}
 		}
 	}
 	return "", errors.Errorf("No matching interface found for host %s", host.ID.String())
+}
+
+func GetMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string, error) {
+	return getMachineCIDRObj(host, cluster, "interface")
+}
+
+func GetMachineCIDRIP(host *models.Host, cluster *common.Cluster) (string, error) {
+	return getMachineCIDRObj(host, cluster, "ip")
 }
 
 func IpInCidr(ipAddr, cidr string) (bool, error) {

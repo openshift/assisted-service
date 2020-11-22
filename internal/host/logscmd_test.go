@@ -26,7 +26,7 @@ var _ = Describe("upload_logs", func() {
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
-		logsCmd = NewLogsCmd(getTestLog(), DefaultInstructionConfig)
+		logsCmd = NewLogsCmd(getTestLog(), db, DefaultInstructionConfig)
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
