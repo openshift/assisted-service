@@ -117,7 +117,7 @@ func hostExistsInDB(db *gorm.DB, hostId, clusterId strfmt.UUID, where map[string
 	return db.Select("id").Take(&host, where).Error == nil
 }
 
-func isDay2Host(h *models.Host) bool {
+func IsDay2Host(h *models.Host) bool {
 	day2HostKinds := []string{models.HostKindAddToExistingClusterHost,
 		models.HostKindAddToExistingClusterOCPHost}
 	return funk.ContainsString(day2HostKinds, swag.StringValue(h.Kind))

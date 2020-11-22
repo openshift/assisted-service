@@ -448,7 +448,7 @@ func (v *validator) isAPIVipConnected(c *validationContext) validationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	if !isDay2Host(c.host) {
+	if !IsDay2Host(c.host) {
 		return ValidationSuccess
 	}
 	var response models.APIVipConnectivityResponse
@@ -472,7 +472,7 @@ func (v *validator) printAPIVipConnected(c *validationContext, status validation
 }
 
 func (v *validator) belongsToMajorityGroup(c *validationContext) validationStatus {
-	if isDay2Host(c.host) {
+	if IsDay2Host(c.host) {
 		return ValidationSuccess
 	}
 	if c.cluster.MachineNetworkCidr == "" || c.cluster.ConnectivityMajorityGroups == "" {
@@ -490,7 +490,7 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) validationStatu
 func (v *validator) printBelongsToMajorityGroup(c *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		if isDay2Host(c.host) {
+		if IsDay2Host(c.host) {
 			return "Day2 host is not required to be connected to other hosts in the cluster"
 		}
 		return "Host has connectivity to the majority of hosts in the cluster"
