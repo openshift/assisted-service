@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -263,6 +265,14 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 // 3. have at least 2 workers or auto-assign hosts that can become workers, if workers configured
 // 4. having more then 3 known masters is illegal
 func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) validationStatus {
+	//if cluster status is during or finished installation - this validation should be true
+	clusterInstallationStatuses := []string{
+		models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalling, models.ClusterStatusFinalizing,
+		models.ClusterStatusInstalled,
+	}
+	if funk.ContainsString(clusterInstallationStatuses, swag.StringValue(c.cluster.Status)) {
+		return boolValue(true)
+	}
 
 	knownHosts, ok := MapHostsByStatus(c.cluster)[models.HostStatusKnown]
 	if !ok { //if no known hosts exist, there is no sufficient master count
@@ -327,6 +337,15 @@ func (v *clusterValidator) printSufficientMastersCount(context *clusterPreproces
 
 func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext) validationStatus {
 	foundNotKnownHost := false
+	//if cluster status is during or finished installation - this validation should be true
+	clusterInstallationStatuses := []string{
+		models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalling, models.ClusterStatusFinalizing,
+		models.ClusterStatusInstalled,
+	}
+	if funk.ContainsString(clusterInstallationStatuses, swag.StringValue(c.cluster.Status)) {
+		return boolValue(true)
+	}
+
 	for _, host := range c.cluster.Hosts {
 		if swag.StringValue(host.Status) != models.HostStatusDisabled && swag.StringValue(host.Status) != models.HostStatusKnown {
 			foundNotKnownHost = true

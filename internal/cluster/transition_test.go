@@ -897,6 +897,38 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				validationsChecker: nil,
 				errorExpected:      false,
 			},
+			{
+				name:               "Installing to Installing",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstalling,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInstalling),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined."},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR."},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined."},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "api vip 1.2.3.5 belongs to the Machine CIDR and is not in use."},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined."},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to the Machine CIDR and is not in use."},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined."},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				}),
+				errorExpected: false,
+			},
 		}
 
 		for i := range tests {
@@ -916,6 +948,10 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 						ServiceNetworkCidr:       "1.4.0.0/16",
 						ClusterNetworkHostPrefix: 24,
 					},
+				}
+				//need to verify that validation info was not changed after we start installation
+				if t.srcState == models.ClusterStatusInstalling {
+					cluster.ValidationsInfo = getSuccessfulValidationInfo()
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 				for i := range t.hosts {
@@ -1715,6 +1751,38 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				validationsChecker: nil,
 				errorExpected:      false,
 			},
+			{
+				name:               "Installing to Installing",
+				srcState:           models.ClusterStatusInstalling,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstalling,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalling), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInstalling),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined."},
+					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR."},
+					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined."},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "api vip 1.2.3.5 belongs to the Machine CIDR and is not in use."},
+					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined."},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to the Machine CIDR and is not in use."},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined."},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				}),
+				errorExpected: false,
+			},
 		}
 
 		for i := range tests {
@@ -1740,6 +1808,10 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					cluster.MachineNetworkCidrUpdatedAt = time.Now()
 				} else {
 					cluster.MachineNetworkCidrUpdatedAt = time.Now().Add(-3 * time.Minute)
+				}
+				//need to verify that validation info was not changed after we start installation
+				if t.srcState == models.ClusterStatusInstalling {
+					cluster.ValidationsInfo = getSuccessfulValidationInfo()
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 				for i := range t.hosts {
@@ -2305,9 +2377,9 @@ var _ = Describe("NTP refresh cluster", func() {
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined."},
 					isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR."},
 					isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined."},
-					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "api vip 1.2.3.5 belongs to the Machine CIDR and is not in use."},
+					isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined."},
-					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "ingress vip 1.2.3.6 belongs to the Machine CIDR and is not in use."},
+					isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "The cluster has hosts that are not ready to install."},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined."},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
@@ -2404,4 +2476,36 @@ func getCluster(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
 	var cluster common.Cluster
 	Expect(db.Preload("Hosts").First(&cluster, "id = ?", clusterId).Error).ShouldNot(HaveOccurred())
 	return cluster
+}
+
+func getSuccessfulValidationInfo() string {
+	validationsOutput := make(map[string][]validationResult)
+	validationsOutput["network"] = append(validationsOutput["network"], validationResult{ID: IsMachineCidrDefined,
+		Status: ValidationSuccess, Message: "The Machine Network CIDR is defined."})
+	validationsOutput["network"] = append(validationsOutput["network"], validationResult{ID: isMachineCidrEqualsToCalculatedCidr,
+		Status: ValidationSuccess, Message: "The Cluster Machine CIDR is equivalent to the calculated CIDR."})
+	validationsOutput["network"] = append(validationsOutput["network"], validationResult{ID: isApiVipDefined,
+		Status: ValidationSuccess, Message: "The API virtual IP is defined."})
+	validationsOutput["network"] = append(validationsOutput["network"], validationResult{ID: isApiVipValid,
+		Status: ValidationSuccess, Message: "API VIP belongs to machine CIDR and not in use"})
+	validationsOutput["network"] = append(validationsOutput["network"], validationResult{ID: isIngressVipDefined,
+		Status: ValidationSuccess, Message: "The Ingress virtual IP is defined."})
+	validationsOutput["network"] = append(validationsOutput["network"], validationResult{ID: isIngressVipValid,
+		Status: ValidationSuccess, Message: "Ingress VIP belongs to machine CIDR and not in use"})
+	validationsOutput["network"] = append(validationsOutput["network"], validationResult{ID: IsDNSDomainDefined,
+		Status: ValidationSuccess, Message: "The base domain is defined."})
+
+	validationsOutput["hosts-data"] = append(validationsOutput["hosts-data"], validationResult{ID: AllHostsAreReadyToInstall,
+		Status: ValidationSuccess, Message: "All hosts in the cluster are ready to install"})
+	validationsOutput["hosts-data"] = append(validationsOutput["hosts-data"], validationResult{ID: SufficientMastersCount,
+		Status: ValidationSuccess, Message: "The cluster has a sufficient number of master candidates."})
+
+	validationsOutput["configuration"] = append(validationsOutput["configuration"], validationResult{ID: IsPullSecretSet,
+		Status: ValidationSuccess, Message: "The pull secret is set"})
+
+	reply, err := json.Marshal(validationsOutput)
+	if err != nil {
+		return ""
+	}
+	return string(reply)
 }
