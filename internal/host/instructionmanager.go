@@ -64,7 +64,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	freeAddressesCmd := NewFreeAddressesCmd(log, instructionConfig.FreeAddressesImage)
 	resetCmd := NewResetInstallationCmd(log)
 	stopCmd := NewStopInstallationCmd(log)
-	logsCmd := NewLogsCmd(log, instructionConfig)
+	logsCmd := NewLogsCmd(log, db, instructionConfig)
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.DhcpLeaseAllocatorImage, db)
 	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.APIVIPConnectivityCheckImage, instructionConfig.SupportL2)
 	downloadInstallerCmd := NewDownloadInstallerCmd(log, instructionConfig)
