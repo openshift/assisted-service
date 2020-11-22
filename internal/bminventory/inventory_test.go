@@ -2208,6 +2208,21 @@ var _ = Describe("cluster", func() {
 				})
 
 				Context("NTP", func() {
+					It("Empty NTP source", func() {
+						mockSuccess(1)
+
+						ntpSource := ""
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								AdditionalNtpSource: &ntpSource,
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+						actual := reply.(*installer.UpdateClusterCreated)
+						Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
+					})
+
 					It("Valid IP NTP source", func() {
 						mockSuccess(1)
 
@@ -4344,6 +4359,26 @@ var _ = Describe("TestRegisterCluster", func() {
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 		actual := reply.(*installer.RegisterClusterCreated)
 		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
+	})
+
+	It("NTPSource default value", func() {
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockEvents.EXPECT().
+			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+			Times(1)
+		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				OpenshiftVersion: swag.String("4.6"),
+				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(actual.Payload.AdditionalNtpSource).To(Equal(DefaultNTPSource))
 	})
 
 	It("cluster api failed to register", func() {

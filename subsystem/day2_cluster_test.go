@@ -326,6 +326,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
+		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
@@ -355,6 +356,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
+		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
@@ -379,6 +381,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
+		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)

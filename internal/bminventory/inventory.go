@@ -73,6 +73,7 @@ var (
 	DefaultClusterNetworkCidr       = "10.128.0.0/14"
 	DefaultClusterNetworkHostPrefix = int64(23)
 	DefaultServiceNetworkCidr       = "172.30.0.0/16"
+	DefaultNTPSource                = "clock.redhat.com"
 )
 
 type Config struct {
@@ -465,9 +466,13 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		params.NewClusterParams.UserManagedNetworking = swag.Bool(false)
 	}
 
-	if params.NewClusterParams.AdditionalNtpSource != nil {
-		if !validations.ValidateNTPSource(swag.StringValue(params.NewClusterParams.AdditionalNtpSource)) {
-			err := errors.Errorf("Invalid NTP source: %s", swag.StringValue(params.NewClusterParams.AdditionalNtpSource))
+	if params.NewClusterParams.AdditionalNtpSource == nil {
+		params.NewClusterParams.AdditionalNtpSource = &DefaultNTPSource
+	} else {
+		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
+
+		if ntpSource != "" && !validations.ValidateNTPSource(ntpSource) {
+			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
 			log.WithError(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -1530,13 +1535,15 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		updates["no_proxy"] = swag.StringValue(params.ClusterUpdateParams.NoProxy)
 	}
 	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
-		if !validations.ValidateNTPSource(swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)) {
-			err = errors.Errorf("Invalid NTP source: %s", swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource))
+		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
+
+		if ntpSource != "" && !validations.ValidateNTPSource(ntpSource) {
+			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
 			log.WithError(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
-		updates["additional_ntp_source"] = swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
+		updates["additional_ntp_source"] = ntpSource
 	}
 	if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
 		vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
@@ -2192,14 +2199,11 @@ func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, 
 }
 
 func (b *bareMetalInventory) processNtpSynchronizerResponse(ctx context.Context, host *models.Host, ntpSynchronizerResponseStr string) error {
-	var (
-		err                     error
-		ntpSynchronizerResponse models.NtpSynchronizationResponse
-	)
+	var ntpSynchronizerResponse models.NtpSynchronizationResponse
 
 	log := logutil.FromContext(ctx, b.log)
 
-	if err = json.Unmarshal([]byte(ntpSynchronizerResponseStr), &ntpSynchronizerResponse); err != nil {
+	if err := json.Unmarshal([]byte(ntpSynchronizerResponseStr), &ntpSynchronizerResponse); err != nil {
 		log.WithError(err).Warnf("Json unmarshal ntp synchronizer response from host %s", host.ID.String())
 		return err
 	}
