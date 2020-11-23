@@ -66,6 +66,11 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 	return cluster, nil
 }
 
+func ClusterExists(db *gorm.DB, clusterId strfmt.UUID) bool {
+	where := make(map[string]interface{})
+	return clusterExistsInDB(db, clusterId, where)
+}
+
 func clusterExistsInDB(db *gorm.DB, clusterId strfmt.UUID, where map[string]interface{}) bool {
 	where["id"] = clusterId.String()
 	var cluster common.Cluster
