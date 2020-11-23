@@ -29,7 +29,7 @@
         "path": "/etc/assisted-service/environment",
         "contents": {
           "compression": "gzip",
-          "source": "data:;base64,H4sIAAAAAAAC/1SOzW7iMBSF93mXOPxkGITkhUnuBEsh9thmRl1ZFjFgKThp7Fb07atIhdLld8/Vdw5nUlUC5N9al0SRLZGAnQ/RdJ0dk6eUEyn/M1Fi016df04OEsTXtdzqHZMKzxe/0QzN0Hy6cCYU/pUvFxP8fJ6k39SQ/XO5BPGPFqCnTfoganyJcQibLDMhuBBtm5rBoa4/mg71g/Xh4k4RuX6zzvNlUgKv2YtWRFSgcO+H0V4fyoLoAoTSnKgdzloTTebPzt/SYLtTcGdvW3QcY8I4NHJH/yhNG6lIXWsBNUx76J5UgF/fzAdyffaoT0fbWRNs2tr3rD8Od97kaIXm6W290qs84YdtTQtdsEYR2oDQAioqlaAg78rkMwAA//83qwcMmQEAAA=="
+          "source": "data:;base64,H4sIAAAAAAAC/1SOzW7iMBSF93mXOPxkGITkhUnuBEsh9thmRl1ZFjFgKThp7Fb07atIhdLld8/Vdw5nUlUC5N9al0SRLZGAnQ/RdJ0dk6eUEyn/M1Fi016df04OEsTXtdzqHZMKzxe/0QzN0Hy6cCYU/pUvFxP8fJ6k39SQ/XO5BPGPFqCnTfoganyJcQibLDMhuBBtm5rBoa4/mg71g/Xh4k4RuX6zzvNlUgKv2YtWRFSgcO+H0V4fyoLoAoTSnKgdzloTTebPzt/SYLtTcGdvW3QcY8I4NHJH/yhNG6lIXWsBNUx76J5UgF/fzAdyffaoT0fbWRNs2tr3rD8Od97kaIXy9LZe6VWe8MO2poUuWKMIbUBoARWVSlCQd2XyGQAA//+IKFpMmQEAAA=="
         },
         "mode": 420
       },
