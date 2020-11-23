@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -393,9 +394,9 @@ func (g *installerGenerator) modifyBMHFile(file *config_31_types.File, bmh *bmh_
 		}
 		switch {
 		case len(iface.IPV4Addresses) > 0:
-			hw.NIC[i].IP = iface.IPV4Addresses[0]
+			hw.NIC[i].IP = g.getInterfaceIP(iface.IPV4Addresses[0])
 		case len(iface.IPV6Addresses) > 0:
-			hw.NIC[i].IP = iface.IPV6Addresses[0]
+			hw.NIC[i].IP = g.getInterfaceIP(iface.IPV6Addresses[0])
 		}
 	}
 	for i, disk := range inventory.Disks {
@@ -578,6 +579,15 @@ func parseIgnitionFile(path string) (*config_31_types.Config, error) {
 	}
 
 	return &config, nil
+}
+
+func (g *installerGenerator) getInterfaceIP(cidr string) string {
+	ip, _, err := net.ParseCIDR(cidr)
+	if err != nil {
+		g.log.Warnf("Failed to parse cidr %s for filling BMH CR", cidr)
+		return ""
+	}
+	return ip.String()
 }
 
 // writeIgnitionFile writes an ignition config to a given path on disk
