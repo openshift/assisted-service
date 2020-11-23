@@ -1,5 +1,17 @@
 FROM quay.io/coreos/coreos-installer:v0.7.0 AS installer-image
 
+ARG WORK_DIR=/data
+ENV WORK_DIR=$WORK_DIR
+
+ARG OS_IMAGE
+ENV BASE_OS_IMAGE=$OS_IMAGE
+
+RUN mkdir $WORK_DIR
+RUN chmod 775 $WORK_DIR
+
+RUN curl -L -k  --fail ${BASE_OS_IMAGE} -o $WORK_DIR/livecd.iso
+RUN chmod 644 $WORK_DIR/livecd.iso
+
 # Build binaries
 FROM registry.svc.ci.openshift.org/openshift/release:golang-1.14 as builder
 COPY . .
@@ -8,17 +20,12 @@ RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-iso-crea
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 ARG WORK_DIR=/data
-ARG OS_IMAGE
-ENV COREOS_IMAGE=$WORK_DIR/livecd.iso
-
 ENV WORK_DIR=$WORK_DIR
-ENV BASE_OS_IMAGE=$OS_IMAGE
 
 RUN mkdir $WORK_DIR
 RUN chmod 775 $WORK_DIR
 
-RUN curl -L -k  --fail ${BASE_OS_IMAGE} -o $WORK_DIR/livecd.iso
-RUN chmod 644 $WORK_DIR/livecd.iso
+COPY --from=installer-image $WORK_DIR/livecd.iso $WORK_DIR/livecd_iso
 
 COPY --from=installer-image /usr/sbin/coreos-installer $WORK_DIR
 
