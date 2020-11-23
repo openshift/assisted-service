@@ -3945,6 +3945,78 @@ var _ = Describe("Register AddHostsCluster test", func() {
 	})
 })
 
+var _ = Describe("Reset Host test", func() {
+	var (
+		bm          *bareMetalInventory
+		cfg         Config
+		db          *gorm.DB
+		ctx         = context.Background()
+		ctrl        *gomock.Controller
+		clusterID   strfmt.UUID
+		hostID      strfmt.UUID
+		mockHostApi *host.MockAPI
+		dbName      = "reset_host_cluster"
+		request     *http.Request
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db = common.PrepareTestDB(dbName)
+		ctrl = gomock.NewController(GinkgoT())
+		clusterID = strfmt.UUID(uuid.New().String())
+		hostID = strfmt.UUID(uuid.New().String())
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			Kind:             swag.String(models.ClusterKindAddHostsCluster),
+			OpenshiftVersion: "4.6",
+			Status:           swag.String(models.ClusterStatusAddingHosts),
+		}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		mockHostApi = host.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, nil)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("Reset day2 host", func() {
+		params := installer.ResetHostParams{
+			HTTPRequest: request,
+			ClusterID:   clusterID,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		res := bm.ResetHost(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewResetHostOK()))
+	})
+
+	It("Reset day2 host, host not found", func() {
+		params := installer.ResetHostParams{
+			HTTPRequest: request,
+			ClusterID:   clusterID,
+			HostID:      strfmt.UUID(uuid.New().String()),
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		res := bm.ResetHost(ctx, params)
+		verifyApiError(res, http.StatusNotFound)
+	})
+
+	It("Reset day2 host, host is not day2 host", func() {
+		params := installer.ResetHostParams{
+			HTTPRequest: request,
+			ClusterID:   clusterID,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		res := bm.ResetHost(ctx, params)
+		verifyApiError(res, http.StatusConflict)
+	})
+})
+
 var _ = Describe("Install Hosts test", func() {
 
 	var (

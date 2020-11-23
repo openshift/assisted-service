@@ -587,7 +587,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		log              = logutil.FromContext(ctx, m.log)
 	)
 
-	if isDay2Host(h) {
+	if IsDay2Host(h) {
 		return autoSelectedRole, nil
 	}
 

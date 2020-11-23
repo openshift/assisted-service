@@ -536,7 +536,7 @@ func (th *transitionHandler) IsDay2Host(sw stateswitch.StateSwitch, args statesw
 	if !ok {
 		return false, errors.New("HasClusterError incompatible type of StateSwitch")
 	}
-	return isDay2Host(sHost.host), nil
+	return IsDay2Host(sHost.host), nil
 }
 
 func getFailedValidations(params *TransitionArgsRefreshHost) []string {

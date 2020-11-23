@@ -2942,6 +2942,44 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 	return installer.NewResetClusterAccepted().WithPayload(&c.Cluster)
 }
 
+func (b *bareMetalInventory) ResetHost(ctx context.Context, params installer.ResetHostParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var h models.Host
+
+	log.Info("Reseting host: ", params.HostID)
+	if err := b.db.First(&h, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			log.WithError(err).Errorf("host %s not found", params.HostID)
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		log.WithError(err).Errorf("failed to get host %s", params.HostID)
+		msg := fmt.Sprintf("Failed to reset host %s: error fetching host from DB", params.HostID.String())
+		b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityError, msg, time.Now())
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	if !host.IsDay2Host(&h) {
+		log.Errorf("ResetHost for host %s is forbiddent: not a Day2 hosts", params.HostID.String())
+		return common.NewApiError(http.StatusConflict, fmt.Errorf("Method only allowed when adding hosts to an existing cluster"))
+	}
+
+	err := b.db.Transaction(func(tx *gorm.DB) error {
+		if err := b.hostApi.ResetHost(ctx, &h, "host was reset by user", tx); err != nil {
+			return err
+		}
+		if err := b.customizeHost(&h); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	return installer.NewResetHostOK().WithPayload(&h)
+}
+
 func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 

@@ -483,6 +483,20 @@ func (mr *MockInstallerAPIMockRecorder) ResetCluster(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetCluster", reflect.TypeOf((*MockInstallerAPI)(nil).ResetCluster), arg0, arg1)
 }
 
+// ResetHost mocks base method
+func (m *MockInstallerAPI) ResetHost(arg0 context.Context, arg1 installer.ResetHostParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetHost", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// ResetHost indicates an expected call of ResetHost
+func (mr *MockInstallerAPIMockRecorder) ResetHost(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetHost", reflect.TypeOf((*MockInstallerAPI)(nil).ResetHost), arg0, arg1)
+}
+
 // UpdateCluster mocks base method
 func (m *MockInstallerAPI) UpdateCluster(arg0 context.Context, arg1 installer.UpdateClusterParams) middleware.Responder {
 	m.ctrl.T.Helper()
