@@ -3490,6 +3490,8 @@ definitions:
         type: integer
       bootable:
         type: boolean
+      smart:
+        type: string
 
   boot:
     type: object

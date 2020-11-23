@@ -4560,6 +4560,9 @@ func init() {
         "size_bytes": {
           "type": "integer"
         },
+        "smart": {
+          "type": "string"
+        },
         "vendor": {
           "type": "string"
         },
@@ -10099,6 +10102,9 @@ func init() {
         },
         "size_bytes": {
           "type": "integer"
+        },
+        "smart": {
+          "type": "string"
         },
         "vendor": {
           "type": "string"

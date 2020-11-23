@@ -42,6 +42,9 @@ type Disk struct {
 	// size bytes
 	SizeBytes int64 `json:"size_bytes,omitempty"`
 
+	// smart
+	Smart string `json:"smart,omitempty"`
+
 	// vendor
 	Vendor string `json:"vendor,omitempty"`
 
