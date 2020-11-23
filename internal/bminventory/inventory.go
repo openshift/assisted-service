@@ -532,7 +532,11 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 
 	log.Infof("Register add-hosts-cluster: %s with id %s", clusterName, id.String())
 
-	cluster := common.Cluster{Cluster: models.Cluster{
+	if cluster.ClusterExists(b.db, *id) {
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
+	}
+
+	newCluster := common.Cluster{Cluster: models.Cluster{
 		ID:               id,
 		Href:             swag.String(url.String()),
 		Kind:             swag.String(models.ClusterKindAddHostsCluster),
@@ -551,15 +555,15 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
-	err = b.clusterApi.RegisterAddHostsCluster(ctx, &cluster)
+	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster)
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", clusterName)
 		return installer.NewRegisterAddHostsClusterInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	b.metricApi.ClusterRegistered(openshiftVersion, *cluster.ID, cluster.EmailDomain)
-	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&cluster.Cluster)
+	b.metricApi.ClusterRegistered(openshiftVersion, *newCluster.ID, newCluster.EmailDomain)
+	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&newCluster.Cluster)
 }
 
 func (b *bareMetalInventory) formatNodeIgnitionFile(address string) ([]byte, error) {

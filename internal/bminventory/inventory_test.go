@@ -3910,6 +3910,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB("register_add_hosts_cluster")
 		clusterID = strfmt.UUID(uuid.New().String())
 		clusterName = "add-hosts-cluster"
 		openshiftVersion = "4.6"
@@ -3925,6 +3926,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 	})
 
 	AfterEach(func() {
+		common.DeleteTestDB(db, "register_add_hosts_cluster")
 		ctrl.Finish()
 	})
 
@@ -3942,6 +3944,27 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		mockMetric.EXPECT().ClusterRegistered(openshiftVersion, clusterID, "Unknown").Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
+	})
+
+	It("Create AddHosts cluster -  cluster id already exists", func() {
+		params := installer.RegisterAddHostsClusterParams{
+			HTTPRequest: request,
+			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
+				APIVipDnsname:    &apiVIPDnsname,
+				ID:               &clusterID,
+				Name:             &clusterName,
+				OpenshiftVersion: &openshiftVersion,
+			},
+		}
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			Kind:             swag.String(models.ClusterKindAddHostsCluster),
+			OpenshiftVersion: "4.6",
+			Status:           swag.String(models.ClusterStatusAddingHosts),
+		}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		res := bm.RegisterAddHostsCluster(ctx, params)
+		verifyApiError(res, http.StatusBadRequest)
 	})
 })
 
