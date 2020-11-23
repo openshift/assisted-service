@@ -42,7 +42,7 @@ var _ = Describe("Transition tests", func() {
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
-		capi = NewManager(getDefaultConfig(), getTestLog(), db, eventsHandler, nil, mockMetric, nil)
+		capi = NewManager(getDefaultConfig(), getTestLog(), db, eventsHandler, nil, mockMetric, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
@@ -165,7 +165,7 @@ var _ = Describe("Cancel cluster installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		capi = NewManager(getDefaultConfig(), getTestLog(), db, mockEventsHandler, nil, mockMetric, nil)
+		capi = NewManager(getDefaultConfig(), getTestLog(), db, mockEventsHandler, nil, mockMetric, nil, nil)
 	})
 
 	acceptNewEvents := func(times int) {
@@ -234,7 +234,7 @@ var _ = Describe("Reset cluster", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
-		capi = NewManager(getDefaultConfig(), getTestLog(), db, mockEventsHandler, nil, nil, nil)
+		capi = NewManager(getDefaultConfig(), getTestLog(), db, mockEventsHandler, nil, nil, nil, nil)
 	})
 
 	acceptNewEvents := func(times int) {
@@ -371,7 +371,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), getTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1013,7 +1013,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), getTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1383,7 +1383,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), getTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1874,7 +1874,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), getTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -2143,7 +2143,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), getTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil)
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
