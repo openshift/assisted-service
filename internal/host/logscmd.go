@@ -71,7 +71,7 @@ func (i *logsCmd) getNonBootstrapMastersIPsInHostCluster(ctx context.Context, ho
 
 	var ips []string
 	for _, h := range cluster.Hosts {
-		if h.Bootstrap {
+		if h.Bootstrap || h.Role == models.HostRoleWorker {
 			continue
 		}
 		ip, err := network.GetMachineCIDRIP(h, &cluster)
