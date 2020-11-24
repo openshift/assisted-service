@@ -90,7 +90,7 @@ type clusterValidator struct {
 }
 
 func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) validationStatus {
-	return boolValue(c.cluster.MachineNetworkCidr != "")
+	return boolValue(c.cluster.MachineNetworkCidr != "" || swag.BoolValue(c.cluster.UserManagedNetworking))
 }
 
 func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessContext, status validationStatus) string {
@@ -102,6 +102,9 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 			return "The Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs."
 		}
 	case ValidationSuccess:
+		if swag.BoolValue(context.cluster.UserManagedNetworking) {
+			return "No Machine Network CIDR needed: User Managed Networking"
+		}
 		return "The Machine Network CIDR is defined."
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
@@ -382,10 +385,16 @@ func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessCon
 }
 
 func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) validationStatus {
-	if c.cluster.MachineNetworkCidr == "" || c.cluster.ClusterNetworkCidr == "" || c.cluster.ServiceNetworkCidr == "" {
-		return ValidationPending
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		if c.cluster.ClusterNetworkCidr == "" || c.cluster.ServiceNetworkCidr == "" {
+			return ValidationPending
+		}
+	} else {
+		if c.cluster.MachineNetworkCidr == "" || c.cluster.ClusterNetworkCidr == "" || c.cluster.ServiceNetworkCidr == "" {
+			return ValidationPending
+		}
 	}
-	return boolValue(network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr) == nil)
+	return boolValue(network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr, swag.BoolValue(c.cluster.UserManagedNetworking)) == nil)
 }
 
 func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, status validationStatus) string {
@@ -393,11 +402,14 @@ func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, 
 	case ValidationSuccess:
 		return "No CIDRS are overlapping."
 	case ValidationFailure:
-		if err := network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr); err != nil {
+		if err := network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr, swag.BoolValue(c.cluster.UserManagedNetworking)); err != nil {
 			return fmt.Sprintf("CIDRS Overlapping: %s.", err.Error())
 		}
 		return ""
 	case ValidationPending:
+		if swag.BoolValue(c.cluster.UserManagedNetworking) {
+			return "At least one of the CIDRs (Cluster Network, Service Network) is undefined."
+		}
 		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
