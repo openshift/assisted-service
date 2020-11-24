@@ -1579,14 +1579,17 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	if err != nil {
 		return err
 	}
-	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr); err != nil {
+
+	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
+		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
+		updates["user_managed_networking"] = userManagedNetworking
+	}
+
+	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	if params.ClusterUpdateParams.SSHPublicKey != nil {
 		updates["ssh_public_key"] = *params.ClusterUpdateParams.SSHPublicKey
-	}
-	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
-		updates["user_managed_networking"] = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
 	}
 
 	if params.ClusterUpdateParams.PullSecret != nil {

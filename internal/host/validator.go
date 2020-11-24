@@ -239,12 +239,15 @@ func (v *validator) printHasMinValidDisks(c *validationContext, status validatio
 }
 
 func (v *validator) isMachineCidrDefined(c *validationContext) validationStatus {
-	return boolValue(swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || c.cluster.MachineNetworkCidr != "")
+	return boolValue(swag.BoolValue(c.cluster.UserManagedNetworking) || swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || c.cluster.MachineNetworkCidr != "")
 }
 
 func (v *validator) printIsMachineCidrDefined(context *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
+		if swag.BoolValue(context.cluster.UserManagedNetworking) {
+			return "No Machine Network CIDR needed: User Managed Networking"
+		}
 		return "Machine Network CIDR is defined"
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
@@ -361,7 +364,7 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status validatio
 }
 
 func (v *validator) belongsToMachineCidr(c *validationContext) validationStatus {
-	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
+	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
 	if c.inventory == nil || c.cluster.MachineNetworkCidr == "" {
@@ -373,6 +376,9 @@ func (v *validator) belongsToMachineCidr(c *validationContext) validationStatus 
 func (v *validator) printBelongsToMachineCidr(c *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
+		if swag.BoolValue(c.cluster.UserManagedNetworking) {
+			return "No machine network CIDR validation needed: User Managed Networking"
+		}
 		return fmt.Sprintf("Host belongs to machine network CIDR %s", c.cluster.MachineNetworkCidr)
 	case ValidationFailure:
 		return fmt.Sprintf("Host does not belong to machine network CIDR %s", c.cluster.MachineNetworkCidr)
@@ -448,7 +454,7 @@ func (v *validator) isAPIVipConnected(c *validationContext) validationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	if !IsDay2Host(c.host) {
+	if !IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
 	var response models.APIVipConnectivityResponse
@@ -461,6 +467,9 @@ func (v *validator) isAPIVipConnected(c *validationContext) validationStatus {
 func (v *validator) printAPIVipConnected(c *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
+		if swag.BoolValue(c.cluster.UserManagedNetworking) {
+			return "No API VIP needed: User Managed Networking"
+		}
 		return "API VIP connectivity success"
 	case ValidationFailure:
 		return "API VIP connectivity failure"
@@ -472,7 +481,7 @@ func (v *validator) printAPIVipConnected(c *validationContext, status validation
 }
 
 func (v *validator) belongsToMajorityGroup(c *validationContext) validationStatus {
-	if IsDay2Host(c.host) {
+	if IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
 	if c.cluster.MachineNetworkCidr == "" || c.cluster.ConnectivityMajorityGroups == "" {
@@ -492,6 +501,9 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status val
 	case ValidationSuccess:
 		if IsDay2Host(c.host) {
 			return "Day2 host is not required to be connected to other hosts in the cluster"
+		}
+		if swag.BoolValue(c.cluster.UserManagedNetworking) {
+			return "L2 connectivy validation skipped: User Managed Networking"
 		}
 		return "Host has connectivity to the majority of hosts in the cluster"
 	case ValidationFailure:

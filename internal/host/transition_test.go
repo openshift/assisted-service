@@ -1438,8 +1438,9 @@ var _ = Describe("Refresh Host", func() {
 			ntpSources []*models.NtpSource
 
 			// Cluster fields
-			machineNetworkCidr string
-			connectivity       string
+			machineNetworkCidr    string
+			connectivity          string
+			userManagedNetworking bool
 		}{
 			{
 				name:              "discovering to disconnected",
@@ -1984,6 +1985,33 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected: false,
 			},
 			{
+				name:               "discovering to known user managed networking",
+				validCheckInTime:   true,
+				srcState:           models.HostStatusDiscovering,
+				dstState:           models.HostStatusKnown,
+				machineNetworkCidr: "1.2.3.0/24",
+				role:               models.HostRoleMaster,
+				statusInfoChecker:  makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:         {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:           {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:       {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "No Machine Network CIDR needed: User Managed Networking"},
+					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:       {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "No machine network CIDR validation needed: User Managed Networking"},
+					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsAPIVipConnected:      {status: ValidationSuccess, messagePattern: "No API VIP needed: User Managed Networking"},
+					BelongsToMajorityGroup: {status: ValidationSuccess, messagePattern: "L2 connectivy validation skipped: User Managed Networking"},
+				}),
+				inventory:             masterInventory(),
+				errorExpected:         false,
+				userManagedNetworking: true,
+			},
+			{
 				name:               "insufficient to known",
 				validCheckInTime:   true,
 				srcState:           models.HostStatusInsufficient,
@@ -2144,6 +2172,7 @@ var _ = Describe("Refresh Host", func() {
 
 				// Test setup - Cluster creation
 				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
+				cluster.UserManagedNetworking = &t.userManagedNetworking
 				if t.connectivity == "" {
 					cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", t.machineNetworkCidr, hostId.String())
 				} else {
