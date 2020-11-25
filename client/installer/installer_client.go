@@ -115,6 +115,9 @@ type API interface {
 	   ResetCluster resets a failed installation*/
 	ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error)
 	/*
+	   ResetHost resets a failed host for day2 cluster*/
+	ResetHost(ctx context.Context, params *ResetHostParams) (*ResetHostOK, error)
+	/*
 	   UpdateCluster updates an open shift bare metal cluster definition*/
 	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
 	/*
@@ -955,6 +958,31 @@ func (a *Client) ResetCluster(ctx context.Context, params *ResetClusterParams) (
 		return nil, err
 	}
 	return result.(*ResetClusterAccepted), nil
+
+}
+
+/*
+ResetHost resets a failed host for day2 cluster
+*/
+func (a *Client) ResetHost(ctx context.Context, params *ResetHostParams) (*ResetHostOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ResetHost",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/reset",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ResetHostReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResetHostOK), nil
 
 }
 

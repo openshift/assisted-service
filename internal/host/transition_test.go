@@ -592,6 +592,7 @@ var _ = Describe("Reset host", func() {
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict},
 		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict},
+		{state: models.HostStatusAddedToExistingCluster, success: true},
 	}
 
 	acceptNewEvents := func(times int) {

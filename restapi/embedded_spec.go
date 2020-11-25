@@ -2160,6 +2160,69 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/hosts/{host_id}/actions/reset": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "reset a failed host for day2 cluster.",
+        "operationId": "ResetHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition": {
       "get": {
         "security": [
@@ -7454,6 +7517,69 @@ func init() {
           },
           "405": {
             "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{cluster_id}/hosts/{host_id}/actions/reset": {
+      "post": {
+        "tags": [
+          "installer"
+        ],
+        "summary": "reset a failed host for day2 cluster.",
+        "operationId": "ResetHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }

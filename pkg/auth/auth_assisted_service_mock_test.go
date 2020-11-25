@@ -146,6 +146,10 @@ func (f fakeInventory) ResetCluster(ctx context.Context, params installer.ResetC
 	return installer.NewResetClusterAccepted()
 }
 
+func (f fakeInventory) ResetHost(ctx context.Context, params installer.ResetHostParams) middleware.Responder {
+	return installer.NewResetHostOK()
+}
+
 func (f fakeInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	return installer.NewUpdateClusterCreated()
 }

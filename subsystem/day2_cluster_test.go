@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -310,4 +311,94 @@ var _ = Describe("Day2 cluster tests", func() {
 		h = getHost(clusterID, *host.ID)
 		Expect(*h.Status).Should(Equal("installing-pending-user-action"))
 	})
+
+	It("reset node after failed installation", func() {
+		host := &registerHost(clusterID).Host
+		h := getHost(clusterID, *host.ID)
+		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
+		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
+		generateApiVipPostStepReply(h, true)
+		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
+		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("installing"))
+		Expect(h.Role).Should(Equal(models.HostRoleWorker))
+		updateProgress(*h.ID, clusterID, models.HostStageStartingInstallation)
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("installing-in-progress"))
+		updateProgress(*h.ID, clusterID, models.HostStageRebooting)
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("added-to-existing-cluster"))
+		c := getCluster(clusterID)
+		Expect(*c.Status).Should(Equal("adding-hosts"))
+		_, err = userBMClient.Installer.ResetHost(ctx, &installer.ResetHostParams{ClusterID: clusterID, HostID: *host.ID})
+		Expect(err).NotTo(HaveOccurred())
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("resetting-pending-user-action"))
+		host = &registerHostByUUID(clusterID, *host.ID).Host
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("discovering"))
+	})
+
+	It("reset node during failed installation", func() {
+		host := &registerHost(clusterID).Host
+		h := getHost(clusterID, *host.ID)
+		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
+		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
+		generateApiVipPostStepReply(h, true)
+		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
+		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("installing"))
+		Expect(h.Role).Should(Equal(models.HostRoleWorker))
+		updateProgress(*h.ID, clusterID, models.HostStageStartingInstallation)
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("installing-in-progress"))
+		_, err = userBMClient.Installer.ResetHost(ctx, &installer.ResetHostParams{ClusterID: clusterID, HostID: *host.ID})
+		Expect(err).NotTo(HaveOccurred())
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("resetting-pending-user-action"))
+		host = &registerHostByUUID(clusterID, *host.ID).Host
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("discovering"))
+	})
+
+	It("reset node failed install command", func() {
+		host := &registerHost(clusterID).Host
+		h := getHost(clusterID, *host.ID)
+		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
+		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
+		generateApiVipPostStepReply(h, true)
+		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
+		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("installing"))
+		Expect(h.Role).Should(Equal(models.HostRoleWorker))
+		// post failure to execute the install command
+		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: bminventory.ContainerAlreadyRunningExitCode,
+				StepType: models.StepTypeInstall,
+				Output:   "blabla",
+				Error:    "Some random error",
+				StepID:   string(models.StepTypeInstall),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("error"))
+		_, err = userBMClient.Installer.ResetHost(ctx, &installer.ResetHostParams{ClusterID: clusterID, HostID: *host.ID})
+		Expect(err).NotTo(HaveOccurred())
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("resetting-pending-user-action"))
+		host = &registerHostByUUID(clusterID, *host.ID).Host
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("discovering"))
+	})
+
 })

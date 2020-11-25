@@ -112,7 +112,7 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 
 	returnSteps := models.Steps{}
 	stateToSteps := i.installingClusterStateToSteps
-	if isDay2Host(host) {
+	if IsDay2Host(host) {
 		stateToSteps = i.addHostsClusterToSteps
 	}
 
