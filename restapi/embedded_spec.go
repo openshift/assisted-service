@@ -1167,7 +1167,8 @@ func init() {
               "kubeadmin-password",
               "kubeconfig",
               "kubeconfig-noingress",
-              "install-config.yaml"
+              "install-config.yaml",
+              "discovery.ign"
             ],
             "type": "string",
             "name": "file_name",
@@ -6685,7 +6686,8 @@ func init() {
               "kubeadmin-password",
               "kubeconfig",
               "kubeconfig-noingress",
-              "install-config.yaml"
+              "install-config.yaml",
+              "discovery.ign"
             ],
             "type": "string",
             "name": "file_name",
