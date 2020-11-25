@@ -2255,7 +2255,7 @@ var _ = Describe("cluster", func() {
 					})
 
 					It("Invalid NTP source", func() {
-						ntpSource := "test"
+						ntpSource := "inject'"
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.ClusterUpdateParams{

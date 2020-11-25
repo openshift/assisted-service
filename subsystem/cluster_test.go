@@ -842,6 +842,8 @@ var _ = Describe("cluster install", func() {
 			})
 
 			It("Unsynced host", func() {
+				Skip("IsNTPSynced isn't mandatory validation for host isSufficientForInstall")
+
 				c, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				hosts := c.GetPayload().Hosts

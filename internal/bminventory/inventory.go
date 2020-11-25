@@ -8,6 +8,7 @@ import (
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -73,7 +74,7 @@ var (
 	DefaultClusterNetworkCidr       = "10.128.0.0/14"
 	DefaultClusterNetworkHostPrefix = int64(23)
 	DefaultServiceNetworkCidr       = "172.30.0.0/16"
-	DefaultNTPSource                = "clock.redhat.com"
+	DefaultNTPSource                = `envconfig:"NTP_DEFAULT_SERVER" default:"0.rhel.pool.ntp.org"`
 )
 
 type Config struct {
@@ -131,6 +132,22 @@ S9K0JAcps2xdnGu0fkzhSQxY8GPQNFTlr6rYld5+ID/hHeS76gq0YG3q6RLWRkHf
 RxNEp7yHoXcwn+fXna+t5JWh1gxUZty3
 -----END CERTIFICATE-----`
 
+const selinuxPolicy = `
+module assisted 1.0;
+require {
+        type chronyd_t;
+        type container_file_t;
+        type spc_t;
+        class unix_dgram_socket sendto;
+        class dir search;
+        class sock_file write;
+}
+#============= chronyd_t ==============
+allow chronyd_t container_file_t:dir search;
+allow chronyd_t container_file_t:sock_file write;
+allow chronyd_t spc_t:unix_dgram_socket sendto;
+`
+
 const ignitionConfigFormat = `{
   "ignition": {
     "version": "3.1.0"{{if .PROXY_SETTINGS}},
@@ -179,7 +196,7 @@ const ignitionConfigFormat = `{
 		"user": {
 			"name": "root"
 		},
-		"contents": { "source": "data:text/plain;charset=utf-8,module%20assisted%201.0%3B%0D%0Arequire%20%7B%0D%0A%20%20%20%20%20%20%20%20type%20chronyd_t%3B%0D%0A%20%20%20%20%20%20%20%20type%20container_file_t%3B%0D%0A%20%20%20%20%20%20%20%20type%20spc_t%3B%0D%0A%20%20%20%20%20%20%20%20class%20unix_dgram_socket%20sendto%3B%0D%0A%20%20%20%20%20%20%20%20class%20dir%20search%3B%0D%0A%20%20%20%20%20%20%20%20class%20sock_file%20write%3B%0D%0A%7D%0D%0A%23%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%20chronyd_t%20%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%0D%0Aallow%20chronyd_t%20container_file_t%3Adir%20search%3B%0D%0Aallow%20chronyd_t%20container_file_t%3Asock_file%20write%3B%0D%0Aallow%20chronyd_t%20spc_t%3Aunix_dgram_socket%20sendto%3B" }
+		"contents": { "source": "data:text/plain;base64,{{.SELINUX_POLICY}}" }
 	}{{if .RH_ROOT_CA}},
 	{
 	  "overwrite": true,
@@ -324,6 +341,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"NoProxy":              cluster.NoProxy,
 		"SkipCertVerification": strconv.FormatBool(b.SkipCertVerification),
 		"AgentTimeoutStartSec": strconv.FormatInt(int64(b.AgentTimeoutStart.Seconds()), 10),
+		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
 	}
 	if safeForLogs {
 		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {

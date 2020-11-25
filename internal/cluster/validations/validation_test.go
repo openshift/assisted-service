@@ -591,7 +591,11 @@ var _ = Describe("NTP source", func() {
 			valid:     true,
 		},
 		{
-			ntpSource: "test",
+			ntpSource: "alias",
+			valid:     true,
+		},
+		{
+			ntpSource: "!jkfd.com",
 			valid:     false,
 		},
 	}
