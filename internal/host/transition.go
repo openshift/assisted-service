@@ -74,6 +74,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 
 	sHost.host.StatusUpdatedAt = strfmt.DateTime(time.Now())
 	sHost.host.StatusInfo = swag.String(statusInfoDiscovering)
+	sHost.host.InstallerArgs = "--delete-karg 'console=tty0'"
 	log.Infof("Register new host %s cluster %s", sHost.host.ID.String(), sHost.host.ClusterID)
 	return params.db.Create(sHost.host).Error
 }
