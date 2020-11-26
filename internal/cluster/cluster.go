@@ -112,13 +112,15 @@ type Manager struct {
 	eventsHandler        events.Handler
 	sm                   stateswitch.StateMachine
 	metricAPI            metrics.API
+	ntpUtils             network.NtpUtilsAPI
 	hostAPI              host.API
 	rp                   *refreshPreprocessor
 	leaderElector        leader.Leader
 	prevMonitorInvokedAt time.Time
 }
 
-func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hostAPI host.API, metricApi metrics.API,
+func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler,
+	hostAPI host.API, metricApi metrics.API, ntpUtils network.NtpUtilsAPI,
 	leaderElector leader.Leader) *Manager {
 	th := &transitionHandler{
 		log:           log,
@@ -134,6 +136,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		eventsHandler:        eventsHandler,
 		sm:                   NewClusterStateMachine(th),
 		metricAPI:            metricApi,
+		ntpUtils:             ntpUtils,
 		rp:                   newRefreshPreprocessor(log, hostAPI),
 		hostAPI:              hostAPI,
 		leaderElector:        leaderElector,
@@ -481,8 +484,9 @@ func (m *Manager) CompleteInstallation(ctx context.Context, c *common.Cluster, s
 func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
 	err := m.sm.Run(TransitionTypePrepareForInstallation, newStateCluster(c),
 		&TransitionArgsPrepareForInstallation{
-			ctx: ctx,
-			db:  db,
+			ctx:      ctx,
+			db:       db,
+			ntpUtils: m.ntpUtils,
 		},
 	)
 	return err

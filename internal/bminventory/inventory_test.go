@@ -992,8 +992,8 @@ var _ = Describe("PostStepReply", func() {
 
 		It("NTP synchronizer success", func() {
 			toMarshal := []*models.NtpSource{
-				{SourceName: "1.1.1.1", SourceState: "synced"},
-				{SourceName: "2.2.2.2", SourceState: "unreachable"},
+				{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced},
+				{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable},
 			}
 
 			mockHostApi.EXPECT().UpdateNTP(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -2704,7 +2704,7 @@ var _ = Describe("KubeConfig download", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil, nil)
+			db, nil, nil, nil, nil, nil)
 
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -2832,7 +2832,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil, nil)
+			db, nil, nil, nil, nil, nil)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,

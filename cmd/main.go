@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/imgexpirer"
+	"github.com/openshift/assisted-service/internal/network"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -263,8 +264,10 @@ func main() {
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead)
+	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
+	ntpUtils := network.NewNtpUtils(manifestsApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, lead)
+		eventsHandler, hostApi, metricsManager, ntpUtils, lead)
 
 	clusterStateMonitor := thread.New(
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
@@ -294,7 +297,6 @@ func main() {
 	defer deletionWorker.Stop()
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
-	manifests := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
 	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead)
 	imageExpirationMonitor := thread.New(
 		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
@@ -323,7 +325,7 @@ func main() {
 		VersionsAPI:           versionHandler,
 		ManagedDomainsAPI:     domainHandler,
 		InnerMiddleware:       innerHandler(),
-		ManifestsAPI:          manifests,
+		ManifestsAPI:          manifestsApi,
 	})
 	if err != nil {
 		log.Fatal("Failed to init rest handler,", err)
