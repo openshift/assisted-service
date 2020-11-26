@@ -161,6 +161,9 @@ type InstallerAPI interface {
 	/* UpdateClusterInstallConfig Override values in the install config. */
 	UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder
 
+	/* UpdateClusterInstallProgress Update cluster installation progress. */
+	UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder
+
 	/* UpdateDiscoveryIgnition Override values in the discovery ignition config */
 	UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder
 
@@ -524,6 +527,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UpdateClusterInstallConfig(ctx, params)
+	})
+	api.InstallerUpdateClusterInstallProgressHandler = installer.UpdateClusterInstallProgressHandlerFunc(func(params installer.UpdateClusterInstallProgressParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.UpdateClusterInstallProgress(ctx, params)
 	})
 	api.InstallerUpdateDiscoveryIgnitionHandler = installer.UpdateDiscoveryIgnitionHandlerFunc(func(params installer.UpdateDiscoveryIgnitionParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

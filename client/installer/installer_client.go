@@ -127,6 +127,9 @@ type API interface {
 	   UpdateClusterInstallConfig overrides values in the install config*/
 	UpdateClusterInstallConfig(ctx context.Context, params *UpdateClusterInstallConfigParams) (*UpdateClusterInstallConfigCreated, error)
 	/*
+	   UpdateClusterInstallProgress updates cluster installation progress*/
+	UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressOK, error)
+	/*
 	   UpdateDiscoveryIgnition overrides values in the discovery ignition config*/
 	UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error)
 	/*
@@ -1064,6 +1067,31 @@ func (a *Client) UpdateClusterInstallConfig(ctx context.Context, params *UpdateC
 		return nil, err
 	}
 	return result.(*UpdateClusterInstallConfigCreated), nil
+
+}
+
+/*
+UpdateClusterInstallProgress updates cluster installation progress
+*/
+func (a *Client) UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateClusterInstallProgress",
+		Method:             "PUT",
+		PathPattern:        "/clusters/{cluster_id}/progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateClusterInstallProgressReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateClusterInstallProgressOK), nil
 
 }
 
