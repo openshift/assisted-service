@@ -4378,7 +4378,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 		actual := reply.(*installer.RegisterClusterCreated)
-		Expect(actual.Payload.AdditionalNtpSource).To(Equal(DefaultNTPSource))
+		Expect(actual.Payload.AdditionalNtpSource).To(Equal(bm.Config.DefaultNTPSource))
 	})
 
 	It("cluster api failed to register", func() {
