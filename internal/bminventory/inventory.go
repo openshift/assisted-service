@@ -74,7 +74,6 @@ var (
 	DefaultClusterNetworkCidr       = "10.128.0.0/14"
 	DefaultClusterNetworkHostPrefix = int64(23)
 	DefaultServiceNetworkCidr       = "172.30.0.0/16"
-	DefaultNTPSource                = `envconfig:"NTP_DEFAULT_SERVER" default:"0.rhel.pool.ntp.org"`
 )
 
 type Config struct {
@@ -94,6 +93,7 @@ type Config struct {
 	AgentTimeoutStart        time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
 	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
 	DeletedUnregisteredAfter time.Duration     `envconfig:"DELETED_UNREGISTERED_AFTER" default:"168h"`
+	DefaultNTPSource         string            `envconfig:"NTP_DEFAULT_SERVER" default:"0.rhel.pool.ntp.org"`
 }
 
 const agentMessageOfTheDay = `
@@ -485,7 +485,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	}
 
 	if params.NewClusterParams.AdditionalNtpSource == nil {
-		params.NewClusterParams.AdditionalNtpSource = &DefaultNTPSource
+		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
 	} else {
 		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
 
