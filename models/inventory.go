@@ -30,7 +30,7 @@ type Inventory struct {
 	// cpu
 	CPU *CPU `json:"cpu,omitempty"`
 
-	// Disks that are candidates for installation, filtered
+	// disks
 	Disks []*Disk `json:"disks"`
 
 	// hostname
@@ -47,9 +47,6 @@ type Inventory struct {
 
 	// timestamp
 	Timestamp int64 `json:"timestamp,omitempty"`
-
-	// All disks found on the system, unfiltered
-	UnfilteredDisks []*Disk `json:"unfiltered_disks"`
 }
 
 // Validate validates this inventory
@@ -77,10 +74,6 @@ func (m *Inventory) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateSystemVendor(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateUnfilteredDisks(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -207,31 +200,6 @@ func (m *Inventory) validateSystemVendor(formats strfmt.Registry) error {
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *Inventory) validateUnfilteredDisks(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.UnfilteredDisks) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.UnfilteredDisks); i++ {
-		if swag.IsZero(m.UnfilteredDisks[i]) { // not required
-			continue
-		}
-
-		if m.UnfilteredDisks[i] != nil {
-			if err := m.UnfilteredDisks[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("unfiltered_disks" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
 	}
 
 	return nil

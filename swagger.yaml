@@ -3567,12 +3567,6 @@ definitions:
           $ref: '#/definitions/interface'
       disks:
         type: array
-        description: "Disks that are candidates for installation, filtered"
-        items:
-          $ref: '#/definitions/disk'
-      unfiltered_disks:
-        type: array
-        description: "All disks found on the system, unfiltered"
         items:
           $ref: '#/definitions/disk'
       boot:
