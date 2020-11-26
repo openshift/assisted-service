@@ -258,7 +258,7 @@ deploy-onprem:
 	podman pod create --name assisted-installer -p 5432,8000,8090,8080
 	# These are required because when running on RHCOS livecd, the coreos-installer binary and
 	# livecd are bind-mounted from the host into the assisted-service container at runtime.
-	[ -f livecd.iso ] || curl $(BASE_OS_IMAGE) -o livecd.iso
+	[ -f livecd.iso ] || curl $(BASE_OS_IMAGE) --retry 5 -o livecd.iso
 	[ -f coreos-installer ] || podman run --privileged --pull=always -it --rm \
 		-v .:/data -w /data --entrypoint /bin/bash \
 		quay.io/coreos/coreos-installer:v0.7.0 -c 'cp /usr/sbin/coreos-installer /data/coreos-installer'
