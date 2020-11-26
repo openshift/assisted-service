@@ -3944,9 +3944,6 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
-        "ignition_generator_version": {
-          "type": "string"
-        },
         "image_info": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",
           "$ref": "#/definitions/image_info"
@@ -9555,9 +9552,6 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
-        },
-        "ignition_generator_version": {
-          "type": "string"
         },
         "image_info": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:image_\"",

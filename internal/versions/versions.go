@@ -35,7 +35,6 @@ func (h *handler) ListComponentVersions(ctx context.Context, params operations.L
 				"assisted-installer-service":    h.versions.SelfVersion,
 				"image-builder":                 h.versions.ImageBuilder,
 				"discovery-agent":               h.versions.AgentDockerImg,
-				"assisted-ignition-generator":   "",
 				"assisted-installer":            h.versions.InstallerImage,
 				"assisted-installer-controller": h.versions.ControllerImage,
 			},
