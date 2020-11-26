@@ -81,6 +81,9 @@ parameters:
 - name: API_VIP_CONNECTIVITY_CHECK_IMAGE
   value: ''
   required: true
+- name: NTP_SYNCHRONIZER_IMAGE
+  value: ''
+  required: true
 - name: INSTALL_RH_CA
   value: "false"
   required: true
@@ -262,6 +265,8 @@ objects:
                 value: ${DHCP_LEASE_ALLOCATOR_IMAGE}
               - name: API_VIP_CONNECTIVITY_CHECK_IMAGE
                 value: ${API_VIP_CONNECTIVITY_CHECK_IMAGE}
+              - name: NTP_SYNCHRONIZER_IMAGE
+                value: ${NTP_SYNCHRONIZER_IMAGE}
               - name: SUPPORT_L2
                 value: ${SUPPORT_L2}
               - name: LOG_LEVEL

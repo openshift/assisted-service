@@ -211,11 +211,14 @@ var _ = Describe("RegisterHost", func() {
 			h := getHost(hostId, clusterId, db)
 			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
 			Expect(h.Role).Should(Equal(models.HostRoleMaster))
-			Expect(h.Inventory).Should(BeEmpty())
-			Expect(h.Bootstrap).Should(BeFalse())
-			Expect(h.Progress.CurrentStage).Should(BeEmpty())
-			Expect(h.Progress.ProgressInfo).Should(BeEmpty())
 			Expect(h.DiscoveryAgentVersion).To(Equal(discoveryAgentVersion))
+			Expect(h.Bootstrap).To(BeFalse())
+
+			// Verify resetted fields
+			Expect(h.Inventory).To(BeEmpty())
+			Expect(h.Progress.CurrentStage).To(BeEmpty())
+			Expect(h.Progress.ProgressInfo).To(BeEmpty())
+			Expect(h.NtpSources).To(BeEmpty())
 		})
 
 		for i := range tests {
@@ -227,12 +230,13 @@ var _ = Describe("RegisterHost", func() {
 					ClusterID: clusterId,
 					Role:      models.HostRoleMaster,
 					Inventory: defaultHwInfo,
+					Status:    swag.String(t.srcState),
 					Bootstrap: true,
 					Progress: &models.HostProgressInfo{
-						CurrentStage: models.HostStageRebooting,
-						ProgressInfo: defaultStatusInfo,
+						CurrentStage: defaultProgressStage,
+						ProgressInfo: "some info",
 					},
-					Status: swag.String(t.srcState),
+					NtpSources: "some ntp sources",
 				}).Error).ShouldNot(HaveOccurred())
 				if t.srcState != models.HostStatusDiscovering {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo,
@@ -952,6 +956,7 @@ var _ = Describe("Enable", func() {
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
 			Expect(h.Inventory).Should(BeEmpty())
 			Expect(h.Bootstrap).Should(BeFalse())
+			Expect(h.NtpSources).Should(BeEmpty())
 		}
 
 		failure := func(reply error) {
@@ -960,6 +965,10 @@ var _ = Describe("Enable", func() {
 			Expect(*h.Status).Should(Equal(srcState))
 			Expect(h.Inventory).Should(Equal(defaultHwInfo))
 			Expect(h.Bootstrap).Should(Equal(true))
+
+			var ntpSources []*models.NtpSource
+			Expect(json.Unmarshal([]byte(h.NtpSources), &ntpSources)).ShouldNot(HaveOccurred())
+			Expect(ntpSources).Should(Equal(defaultNTPSources))
 		}
 
 		tests := []struct {
@@ -1033,12 +1042,18 @@ var _ = Describe("Enable", func() {
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
+				// Test setup - Host creation
 				srcState = t.srcState
 				host = getTestHost(hostId, clusterId, srcState)
 				host.Inventory = defaultHwInfo
 				host.Bootstrap = true
 
+				bytes, err := json.Marshal(defaultNTPSources)
+				Expect(err).ShouldNot(HaveOccurred())
+				host.NtpSources = string(bytes)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				// Test definition
 				if t.sendEvent {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
 						fmt.Sprintf("Host %s: updated status from \"%s\" to \"discovering\" (Waiting for host to send hardware details)", hostutil.GetHostnameForMsg(&host), srcState),
@@ -1407,18 +1422,24 @@ var _ = Describe("Refresh Host", func() {
 	Context("All transitions", func() {
 		var srcState string
 		tests := []struct {
+			// Test parameters
 			name               string
-			srcState           string
-			inventory          string
-			role               models.HostRole
-			machineNetworkCidr string
-			validCheckInTime   bool
-			dstState           string
 			statusInfoChecker  statusInfoChecker
 			validationsChecker *validationsChecker
-			connectivity       string
-			kind               string
+			validCheckInTime   bool
 			errorExpected      bool
+
+			// Host fields
+			srcState   string
+			dstState   string
+			inventory  string
+			role       models.HostRole
+			kind       string
+			ntpSources []*models.NtpSource
+
+			// Cluster fields
+			machineNetworkCidr string
+			connectivity       string
 		}{
 			{
 				name:              "discovering to disconnected",
@@ -1439,6 +1460,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:      {status: ValidationPending, messagePattern: "Missing inventory"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				errorExpected: false,
 			},
@@ -1461,6 +1483,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:      {status: ValidationPending, messagePattern: "Missing inventory"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				errorExpected: false,
 			},
@@ -1492,6 +1515,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:      {status: ValidationPending, messagePattern: "Missing inventory"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				errorExpected: false,
 			},
@@ -1514,6 +1538,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:      {status: ValidationPending, messagePattern: "Missing inventory"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				errorExpected: false,
 			},
@@ -1535,6 +1560,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationPending, messagePattern: "Missing inventory or role"},
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				errorExpected: false,
 			},
@@ -1557,6 +1583,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationPending, messagePattern: "Missing inventory"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:      {status: ValidationPending, messagePattern: "Missing inventory"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				errorExpected: false,
 			},
@@ -1583,6 +1610,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				errorExpected: false,
 			},
@@ -1609,6 +1637,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				inventory:     insufficientHWInventory(),
 				errorExpected: false,
@@ -1635,6 +1664,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				inventory:     insufficientHWInventory(),
 				errorExpected: false,
@@ -1679,6 +1709,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				inventory:     workerInventory(),
 				errorExpected: false,
@@ -1703,6 +1734,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationPending, messagePattern: "Missing NTP sources"},
 				}),
 				inventory:     workerInventory(),
 				errorExpected: false,
@@ -1713,9 +1745,10 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusDisconnected,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
+				ntpSources:         []*models.NtpSource{{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable}},
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDR 5.6.7.0/24")),
+					"Host does not belong to machine network CIDR 5.6.7.0/24", "Host couldn't synchronize with any of the NTP sources")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1728,6 +1761,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDR "},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any of the NTP sources"},
 				}),
 				inventory:     workerInventory(),
 				errorExpected: false,
@@ -1738,11 +1772,13 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
+				ntpSources:         []*models.NtpSource{{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable}},
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Host does not belong to machine network CIDR 5.6.7.0/24",
 					"Require at least 4 CPU cores for master role, found only 2",
-					"Require at least 16 GiB RAM role master, found only 8")),
+					"Require at least 16 GiB RAM role master, found only 8",
+					"Host couldn't synchronize with any of the NTP sources")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1755,6 +1791,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDR "},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any of the NTP sources"},
 				}),
 				inventory:     workerInventory(),
 				errorExpected: false,
@@ -1765,6 +1802,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
 					"Platform OpenStack Compute is forbidden")),
@@ -1782,6 +1820,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
 					IsAPIVipConnected:    {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
 					IsPlatformValid:      {status: ValidationFailure, messagePattern: "Platform OpenStack Compute is forbidden"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:     inventoryWithUnauthorizedVendor(),
 				errorExpected: false,
@@ -1792,6 +1831,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Require at least 4 CPU cores for master role, found only 2", "Require at least 16 GiB RAM role master, found only 8")),
@@ -1806,6 +1846,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:     workerInventory(),
 				errorExpected: false,
@@ -1816,6 +1857,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusPendingForInput,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Require at least 4 CPU cores for master role, found only 2", "Require at least 16 GiB RAM role master, found only 8")),
@@ -1831,6 +1873,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				errorExpected: false,
 			},
@@ -1840,9 +1883,10 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
+				ntpSources:         []*models.NtpSource{{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable}},
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDR 5.6.7.0/24")),
+					"Host does not belong to machine network CIDR 5.6.7.0/24", "Host couldn't synchronize with any of the NTP sources")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1854,6 +1898,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDR"},
+					IsNTPSynced:          {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any of the NTP sources"},
 				}),
 				inventory:     masterInventory(),
 				errorExpected: false,
@@ -1864,9 +1909,10 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "5.6.7.0/24",
+				ntpSources:         []*models.NtpSource{{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable}},
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDR 5.6.7.0/24")),
+					"Host does not belong to machine network CIDR 5.6.7.0/24", "Host couldn't synchronize with any of the NTP sources")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1878,6 +1924,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDR"},
+					IsNTPSynced:          {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any of the NTP sources"},
 				}),
 				inventory:     masterInventory(),
 				errorExpected: false,
@@ -1888,6 +1935,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Hostname localhost is forbidden")),
@@ -1903,6 +1951,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsHostnameValid:      {status: ValidationFailure, messagePattern: "Hostname localhost is forbidden"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:     masterInventoryWithHostname("localhost"),
 				errorExpected: false,
@@ -1913,6 +1962,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusDiscovering,
 				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1928,6 +1978,7 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
 					IsAPIVipConnected:    {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:     masterInventory(),
 				errorExpected: false,
@@ -1938,6 +1989,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusInsufficient,
 				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1952,6 +2004,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:     masterInventory(),
 				errorExpected: false,
@@ -1962,6 +2015,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusPendingForInput,
 				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleWorker,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1976,6 +2030,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:     masterInventory(),
 				errorExpected: false,
@@ -1986,6 +2041,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusKnown,
 				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker:  makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2001,6 +2057,7 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
 					BelongsToMajorityGroup: {status: ValidationSuccess, messagePattern: "Host has connectivity to the majority of hosts in the cluster"},
+					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:     masterInventory(),
 				errorExpected: false,
@@ -2011,6 +2068,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:           models.HostStatusKnown,
 				dstState:           models.HostStatusInsufficient,
 				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"No connectivity to the majority of hosts in the cluster")),
@@ -2027,6 +2085,7 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
 					BelongsToMajorityGroup: {status: ValidationFailure, messagePattern: "No connectivity to the majority of hosts in the cluster"},
+					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:     masterInventory(),
 				connectivity:  fmt.Sprintf("{\"%s\":[]}", "1.2.3.0/24"),
@@ -2066,6 +2125,7 @@ var _ = Describe("Refresh Host", func() {
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
+				// Test setup - Host creation
 				hostCheckInAt := strfmt.DateTime(time.Now())
 				if !t.validCheckInTime {
 					// Timeout for checkin is 3 minutes so subtract 4 minutes from the current time
@@ -2077,7 +2137,12 @@ var _ = Describe("Refresh Host", func() {
 				host.Role = t.role
 				host.CheckedInAt = hostCheckInAt
 				host.Kind = swag.String(t.kind)
+				bytes, err := json.Marshal(t.ntpSources)
+				Expect(err).ShouldNot(HaveOccurred())
+				host.NtpSources = string(bytes)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				// Test setup - Cluster creation
 				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
 				if t.connectivity == "" {
 					cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", t.machineNetworkCidr, hostId.String())
@@ -2085,11 +2150,13 @@ var _ = Describe("Refresh Host", func() {
 					cluster.ConnectivityMajorityGroups = t.connectivity
 				}
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+				// Test definition
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
 						gomock.Any(), gomock.Any())
 				}
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err = hapi.RefreshStatus(ctx, &host, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
 				} else {
@@ -2158,25 +2225,34 @@ var _ = Describe("Refresh Host", func() {
 	Context("Unique hostname", func() {
 		var srcState string
 		var otherHostID strfmt.UUID
+		var ntpSources []*models.NtpSource
 
 		BeforeEach(func() {
 			otherHostID = strfmt.UUID(uuid.New().String())
+			ntpSources = defaultNTPSources
 		})
 
 		tests := []struct {
-			name                   string
-			srcState               string
-			inventory              string
-			role                   models.HostRole
-			machineNetworkCidr     string
-			dstState               string
-			requestedHostname      string
+			// Test parameters
+			name               string
+			statusInfoChecker  statusInfoChecker
+			validationsChecker *validationsChecker
+			errorExpected      bool
+
+			// Host fields
+			srcState          string
+			dstState          string
+			inventory         string
+			role              models.HostRole
+			requestedHostname string
+
+			// Cluster fields
+			machineNetworkCidr string
+
+			// 2nd Host fields
 			otherState             string
 			otherRequestedHostname string
 			otherInventory         string
-			statusInfoChecker      statusInfoChecker
-			validationsChecker     *validationsChecker
-			errorExpected          bool
 		}{
 			{
 				name:               "insufficient to known",
@@ -2197,6 +2273,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsAPIVipConnected:    {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
@@ -2223,6 +2300,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
@@ -2249,6 +2327,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				otherState:             models.HostStatusInsufficient,
@@ -2276,6 +2355,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:         masterInventoryWithHostname("first"),
 				requestedHostname: "second",
@@ -2303,6 +2383,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
@@ -2331,6 +2412,7 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsAPIVipConnected:    {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
@@ -2359,6 +2441,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
@@ -2385,6 +2468,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:      masterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
@@ -2411,6 +2495,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				otherState:             models.HostStatusInsufficient,
@@ -2438,6 +2523,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:         masterInventoryWithHostname("first"),
 				requestedHostname: "second",
@@ -2465,6 +2551,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationFailure, messagePattern: " is not unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
@@ -2490,6 +2577,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:              masterInventoryWithHostname("first"),
 				requestedHostname:      "third",
@@ -2503,20 +2591,31 @@ var _ = Describe("Refresh Host", func() {
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
+				// Test setup - Host creation
 				srcState = t.srcState
 				host = getTestHost(hostId, clusterId, srcState)
 				host.Inventory = t.inventory
 				host.Role = t.role
 				host.CheckedInAt = strfmt.DateTime(time.Now())
 				host.RequestedHostname = t.requestedHostname
+				bytes, err := json.Marshal(ntpSources)
+				Expect(err).ShouldNot(HaveOccurred())
+				host.NtpSources = string(bytes)
+
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				// Test setup - 2nd Host creation
 				otherHost := getTestHost(otherHostID, clusterId, t.otherState)
 				otherHost.RequestedHostname = t.otherRequestedHostname
 				otherHost.Inventory = t.otherInventory
 				Expect(db.Create(&otherHost).Error).ShouldNot(HaveOccurred())
+
+				// Test setup - Cluster creation
 				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
 				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", t.machineNetworkCidr, hostId.String())
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+				// Test definition
 				expectedSeverity := models.EventSeverityInfo
 				if t.dstState == models.HostStatusInsufficient {
 					expectedSeverity = models.EventSeverityWarning
@@ -2526,7 +2625,7 @@ var _ = Describe("Refresh Host", func() {
 						gomock.Any(), gomock.Any())
 				}
 
-				err := hapi.RefreshStatus(ctx, &host, db)
+				err = hapi.RefreshStatus(ctx, &host, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
 				} else {

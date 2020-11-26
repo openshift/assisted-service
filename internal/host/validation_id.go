@@ -26,11 +26,12 @@ const (
 	IsAPIVipConnected      = validationID(models.HostValidationIDAPIVipConnected)
 	BelongsToMajorityGroup = validationID(models.HostValidationIDBelongsToMajorityGroup)
 	IsPlatformValid        = validationID(models.HostValidationIDValidPlatform)
+	IsNTPSynced            = validationID(models.HostValidationIDNtpSynced)
 )
 
 func (v validationID) category() (string, error) {
 	switch v {
-	case IsConnected, IsMachineCidrDefined, BelongsToMachineCidr, IsAPIVipConnected, BelongsToMajorityGroup:
+	case IsConnected, IsMachineCidrDefined, BelongsToMachineCidr, IsAPIVipConnected, BelongsToMajorityGroup, IsNTPSynced:
 		return "network", nil
 	case HasInventory, HasMinCPUCores, HasMinValidDisks, HasMinMemory,
 		HasCPUCoresForRole, HasMemoryForRole, IsHostnameUnique, IsHostnameValid, IsPlatformValid:

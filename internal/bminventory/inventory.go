@@ -8,6 +8,7 @@ import (
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -73,6 +74,7 @@ var (
 	DefaultClusterNetworkCidr       = "10.128.0.0/14"
 	DefaultClusterNetworkHostPrefix = int64(23)
 	DefaultServiceNetworkCidr       = "172.30.0.0/16"
+	DefaultNTPSource                = `envconfig:"NTP_DEFAULT_SERVER" default:"0.rhel.pool.ntp.org"`
 )
 
 type Config struct {
@@ -130,6 +132,22 @@ S9K0JAcps2xdnGu0fkzhSQxY8GPQNFTlr6rYld5+ID/hHeS76gq0YG3q6RLWRkHf
 RxNEp7yHoXcwn+fXna+t5JWh1gxUZty3
 -----END CERTIFICATE-----`
 
+const selinuxPolicy = `
+module assisted 1.0;
+require {
+        type chronyd_t;
+        type container_file_t;
+        type spc_t;
+        class unix_dgram_socket sendto;
+        class dir search;
+        class sock_file write;
+}
+#============= chronyd_t ==============
+allow chronyd_t container_file_t:dir search;
+allow chronyd_t container_file_t:sock_file write;
+allow chronyd_t spc_t:unix_dgram_socket sendto;
+`
+
 const ignitionConfigFormat = `{
   "ignition": {
     "version": "3.1.0"{{if .PROXY_SETTINGS}},
@@ -145,7 +163,12 @@ const ignitionConfigFormat = `{
       "name": "agent.service",
       "enabled": true,
       "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitInterval=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}  {{if .HostCACertPath}}--cacert {{.HostCACertPath}}{{end}}\n\n[Install]\nWantedBy=multi-user.target"
-    }]
+	},
+	{
+		"name": "selinux.service",
+		"enabled": true,
+		"contents": "[Service]\nType=oneshot\nExecStartPre=checkmodule -M -m -o /root/assisted.mod /root/assisted.te\nExecStartPre=semodule_package -o /root/assisted.pp -m /root/assisted.mod\nExecStart=semodule -i /root/assisted.pp\n\n[Install]\nWantedBy=multi-user.target"
+	}]
   },
   "storage": {
     "files": [{
@@ -165,7 +188,16 @@ const ignitionConfigFormat = `{
 			"name": "root"
 		},
 		"contents": { "source": "data:,{{.PULL_SECRET}}" }
-	  }{{if .RH_ROOT_CA}},
+	},
+	{
+		"overwrite": true,
+		"path": "/root/assisted.te",
+		"mode": 420,
+		"user": {
+			"name": "root"
+		},
+		"contents": { "source": "data:text/plain;base64,{{.SELINUX_POLICY}}" }
+	}{{if .RH_ROOT_CA}},
 	{
 	  "overwrite": true,
 	  "path": "/etc/pki/ca-trust/source/anchors/rh-it-root-ca.crt",
@@ -309,6 +341,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"NoProxy":              cluster.NoProxy,
 		"SkipCertVerification": strconv.FormatBool(b.SkipCertVerification),
 		"AgentTimeoutStartSec": strconv.FormatInt(int64(b.AgentTimeoutStart.Seconds()), 10),
+		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
 	}
 	if safeForLogs {
 		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {
@@ -447,9 +480,20 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	if params.NewClusterParams.VipDhcpAllocation == nil {
 		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
 	}
-
 	if params.NewClusterParams.UserManagedNetworking == nil {
 		params.NewClusterParams.UserManagedNetworking = swag.Bool(false)
+	}
+
+	if params.NewClusterParams.AdditionalNtpSource == nil {
+		params.NewClusterParams.AdditionalNtpSource = &DefaultNTPSource
+	} else {
+		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
+
+		if ntpSource != "" && !validations.ValidateNTPSource(ntpSource) {
+			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
+			log.WithError(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	cluster := common.Cluster{Cluster: models.Cluster{
@@ -473,6 +517,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
 		VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
 		UserManagedNetworking:    params.NewClusterParams.UserManagedNetworking,
+		AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
 	}}
 
 	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
@@ -1507,6 +1552,17 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	if params.ClusterUpdateParams.NoProxy != nil {
 		updates["no_proxy"] = swag.StringValue(params.ClusterUpdateParams.NoProxy)
 	}
+	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
+		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
+
+		if ntpSource != "" && !validations.ValidateNTPSource(ntpSource) {
+			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
+			log.WithError(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		updates["additional_ntp_source"] = ntpSource
+	}
 	if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
 		vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
 		updates["vip_dhcp_allocation"] = vipDhcpAllocation
@@ -2160,6 +2216,19 @@ func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, 
 	return b.clusterApi.SetVipsData(ctx, &cluster, apiVip, ingressVip, dhcpAllocationReponse.APIVipLease, dhcpAllocationReponse.IngressVipLease, b.db)
 }
 
+func (b *bareMetalInventory) processNtpSynchronizerResponse(ctx context.Context, host *models.Host, ntpSynchronizerResponseStr string) error {
+	var ntpSynchronizerResponse models.NtpSynchronizationResponse
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if err := json.Unmarshal([]byte(ntpSynchronizerResponseStr), &ntpSynchronizerResponse); err != nil {
+		log.WithError(err).Warnf("Json unmarshal ntp synchronizer response from host %s", host.ID.String())
+		return err
+	}
+
+	return b.hostApi.UpdateNTP(ctx, host, ntpSynchronizerResponse.NtpSources, b.db)
+}
+
 func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {
 	var err error
 	switch params.Reply.StepType {
@@ -2173,6 +2242,8 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.updateFreeAddressesReport(ctx, &host, stepReply)
 	case models.StepTypeDhcpLeaseAllocate:
 		err = b.processDhcpAllocationResponse(ctx, &host, stepReply)
+	case models.StepTypeNtpSynchronizer:
+		err = b.processNtpSynchronizerResponse(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -2193,6 +2264,8 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.FreeNetworksAddresses{}, params.Reply.Output)
 	case models.StepTypeDhcpLeaseAllocate:
 		stepReply, err = filterReply(&models.DhcpAllocationResponse{}, params.Reply.Output)
+	case models.StepTypeNtpSynchronizer:
+		stepReply, err = filterReply(&models.NtpSynchronizationResponse{}, params.Reply.Output)
 	}
 
 	return stepReply, err

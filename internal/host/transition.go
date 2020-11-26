@@ -31,7 +31,7 @@ type transitionHandler struct {
 	eventsHandler events.Handler
 }
 
-var resetFields = [...]interface{}{"inventory", "", "bootstrap", false}
+var resetFields = [...]interface{}{"inventory", "", "bootstrap", false, "ntp_sources", ""}
 
 ////////////////////////////////////////////////////////////////////////////
 // RegisterHost

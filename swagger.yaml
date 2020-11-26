@@ -2675,6 +2675,10 @@ definitions:
       free_addresses:
         x-go-custom-tag: gorm:"type:text"
         type: string
+      ntp_sources:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
+        description: The configured NTP sources on the host.
       role:
         $ref: '#/definitions/host-role'
       bootstrap:
@@ -2901,6 +2905,11 @@ definitions:
         description: Indicate if the networking is managed by the user.
         x-nullable: true
         default: false
+      additional_ntp_source:
+        type: string
+        description: NTP source going to be added to all the hosts.
+        x-nullable: true
+        default: "clock.redhat.com"
 
   cluster-update-params:
     type: object
@@ -3007,6 +3016,10 @@ definitions:
         description: Indicate if the networking is managed by the user.
         x-nullable: true
         default: false
+      additional_ntp_source:
+        type: string
+        description: NTP source going to be added to all the hosts.
+        x-nullable: true
 
   add-hosts-cluster-create-params:
     type: object
@@ -3224,6 +3237,9 @@ definitions:
         type: boolean
         x-nullable: true
         description: Indicate if the networking is managed by the user.
+      additional_ntp_source:
+        type: string
+        description: NTP source going to be added to all the hosts.
 
   image_info:
     type: object
@@ -3652,6 +3668,7 @@ definitions:
       - 'api-vip-connected'
       - 'belongs-to-majority-group'
       - 'valid-platform'
+      - 'ntp-synced'
 
   dhcp_allocation_request:
     type: object

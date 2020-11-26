@@ -19,6 +19,9 @@ import (
 // swagger:model cluster-update-params
 type ClusterUpdateParams struct {
 
+	// NTP source going to be added to all the hosts.
+	AdditionalNtpSource *string `json:"additional_ntp_source,omitempty"`
+
 	// The virtual IP used to reach the OpenShift cluster's API.
 	// Pattern: ^(([0-9]{1,3}\.){3}[0-9]{1,3})?$
 	APIVip *string `json:"api_vip,omitempty"`

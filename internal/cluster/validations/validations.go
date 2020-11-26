@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -31,6 +32,7 @@ type Config struct {
 const (
 	clusterNameRegex    = "^([a-z]([-a-z0-9]*[a-z0-9])?)*$"
 	dnsNameRegex        = "^([a-z0-9]+(-[a-z0-9]+)*[.])+[a-z]{2,}$"
+	hostnameRegex       = `^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`
 	CloudOpenShiftCom   = "cloud.openshift.com"
 	sshPublicKeyRegex   = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
 	dockerHubRegistry   = "docker.io"
@@ -218,6 +220,29 @@ func ValidateBaseDNS(dnsDomainName, dnsDomainID, dnsProviderType string) error {
 		return nil
 	}
 	return validateBaseDNS(dnsDomainName, dnsDomainID, dnsProvider)
+}
+
+func ValidateHostname(name string) error {
+	matched, err := regexp.MatchString(hostnameRegex, name)
+	if err != nil {
+		return errors.Wrapf(err, "Hostname validation for %s", name)
+	}
+	if !matched {
+		return errors.Errorf("Hostname format mismatch: %s name is not valid", name)
+	}
+	return nil
+}
+
+func ValidateNTPSource(ntpSource string) bool {
+	if addr := net.ParseIP(ntpSource); addr != nil {
+		return true
+	}
+
+	if err := ValidateHostname(ntpSource); err == nil {
+		return true
+	}
+
+	return false
 }
 
 func validateBaseDNS(dnsDomainName, dnsDomainID string, dnsProvider dnsproviders.Provider) error {

@@ -504,3 +504,44 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status val
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
+
+func (v *validator) IsNTPSynced(c *validationContext) validationStatus {
+
+	var sources []*models.NtpSource
+
+	if c.host.NtpSources == "" {
+		return ValidationPending
+	}
+
+	if err := json.Unmarshal([]byte(c.host.NtpSources), &sources); err != nil {
+		v.log.WithError(err).Warn("Parse NTP sources")
+		return ValidationError
+	}
+
+	if len(sources) == 0 {
+		return ValidationPending
+	}
+
+	for _, source := range sources {
+		if source.SourceState == models.SourceStateSynced {
+			return ValidationSuccess
+		}
+	}
+
+	return ValidationFailure
+}
+
+func (v *validator) printNTPSynced(c *validationContext, status validationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "Host NTP is synced"
+	case ValidationFailure:
+		return "Host couldn't synchronize with any of the NTP sources"
+	case ValidationError:
+		return "Parse error for NTP sources"
+	case ValidationPending:
+		return "Missing NTP sources"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
