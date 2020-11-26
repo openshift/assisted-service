@@ -2909,7 +2909,6 @@ definitions:
         type: string
         description: NTP source going to be added to all the hosts.
         x-nullable: true
-        default: "clock.redhat.com"
 
   cluster-update-params:
     type: object

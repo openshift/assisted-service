@@ -33,6 +33,19 @@ var _ = Describe("chrony manifest", func() {
 	}
 
 	Context("Create Manifest", func() {
+		It("no_ntp_sources", func() {
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, &models.Host{})
+
+			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
+				Hosts: hosts,
+			}})
+			Expect(err).ShouldNot(HaveOccurred())
+
+			expectedContent := defaultChronyConf
+			Expect(response).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(expectedContent))))
+		})
+
 		It("same_ntp_source", func() {
 			toMarshal := []*models.NtpSource{
 				{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced},
