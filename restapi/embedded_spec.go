@@ -4091,7 +4091,6 @@ func init() {
         "additional_ntp_source": {
           "description": "NTP source going to be added to all the hosts.",
           "type": "string",
-          "default": "clock.redhat.com",
           "x-nullable": true
         },
         "base_dns_domain": {
@@ -9674,7 +9673,6 @@ func init() {
         "additional_ntp_source": {
           "description": "NTP source going to be added to all the hosts.",
           "type": "string",
-          "default": "clock.redhat.com",
           "x-nullable": true
         },
         "base_dns_domain": {

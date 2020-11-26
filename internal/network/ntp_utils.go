@@ -72,13 +72,13 @@ func createChronyManifestContent(c *common.Cluster) (string, error) {
 	sources := make([]string, 0)
 
 	for _, host := range c.Hosts {
-		if swag.StringValue(host.Status) == models.HostStatusDisabled {
+		if swag.StringValue(host.Status) == models.HostStatusDisabled || host.NtpSources == "" {
 			continue
 		}
 
 		var ntpSources []*models.NtpSource
 		if err := json.Unmarshal([]byte(host.NtpSources), &ntpSources); err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "Failed to unmarshal %s", host.NtpSources)
 		}
 
 		for _, source := range ntpSources {
@@ -95,20 +95,20 @@ func createChronyManifestContent(c *common.Cluster) (string, error) {
 	content := defaultChronyConf[:]
 
 	for _, source := range sources {
-		content += "\n" + fmt.Sprintf("server %s iburst", source)
+		content += fmt.Sprintf("\nserver %s iburst", source)
 	}
 
-	var ignitionParams = map[string]string{
+	var manifestParams = map[string]string{
 		"CHRONY_CONTENT": base64.StdEncoding.EncodeToString([]byte(content)),
 	}
 
 	tmpl, err := template.New("chronyManifest").Parse(machineConfigManifest)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "Failed to create template")
 	}
 	buf := &bytes.Buffer{}
-	if err = tmpl.Execute(buf, ignitionParams); err != nil {
-		return "", err
+	if err = tmpl.Execute(buf, manifestParams); err != nil {
+		return "", errors.Wrapf(err, "Failed to set manifest params %v to template", manifestParams)
 	}
 	return buf.String(), nil
 }
@@ -117,12 +117,11 @@ func (ntpUtils *NtpUtils) AddChronyManifest(ctx context.Context, log logrus.Fiel
 	content, err := createChronyManifestContent(c)
 
 	if err != nil {
-		log.WithError(err).Errorf("Failed to create chrony manifest content for cluster id %s", *c.ID)
-		return err
+		return errors.Wrapf(err, "Failed to create chrony manifest content for cluster id %s", *c.ID)
 	}
 
 	chronyManifestFileName := "masters-chrony-configuration.yaml"
-	folder := "openshift"
+	folder := models.ManifestFolderOpenshift
 	base64Content := base64.StdEncoding.EncodeToString([]byte(content))
 
 	response := ntpUtils.manifestsApi.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
