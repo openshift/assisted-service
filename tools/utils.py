@@ -55,7 +55,7 @@ def set_namespace_in_yaml_docs(docs, ns):
     for doc in docs:
         try:
             if 'namespace' in doc['metadata']:
-                doc['metadata']['namespace'] = ns
+                doc['metadata']['namespace'] = f'"{ns}"'
         except KeyError:
             continue
 
