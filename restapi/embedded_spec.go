@@ -5232,6 +5232,7 @@ func init() {
           "$ref": "#/definitions/cpu"
         },
         "disks": {
+          "description": "Disks that are candidates for installation, filtered",
           "type": "array",
           "items": {
             "$ref": "#/definitions/disk"
@@ -5254,6 +5255,13 @@ func init() {
         },
         "timestamp": {
           "type": "integer"
+        },
+        "unfiltered_disks": {
+          "description": "All disks found on the system, unfiltered",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/disk"
+          }
         }
       }
     },
@@ -10798,6 +10806,7 @@ func init() {
           "$ref": "#/definitions/cpu"
         },
         "disks": {
+          "description": "Disks that are candidates for installation, filtered",
           "type": "array",
           "items": {
             "$ref": "#/definitions/disk"
@@ -10820,6 +10829,13 @@ func init() {
         },
         "timestamp": {
           "type": "integer"
+        },
+        "unfiltered_disks": {
+          "description": "All disks found on the system, unfiltered",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/disk"
+          }
         }
       }
     },
