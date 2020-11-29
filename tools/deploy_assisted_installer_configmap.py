@@ -15,6 +15,8 @@ def handle_arguments():
     parser.add_argument("--ocp-release")
     parser.add_argument("--installation-timeout", type=int)
     parser.add_argument("--public-registries", default="")
+    parser.add_argument("--img-expr-time", default="")
+    parser.add_argument("--img-expr-interval", default="")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -93,6 +95,12 @@ def main():
             admins = get_admin_users()
             if admins:
                 y['data']['ADMIN_USERS'] = admins
+
+            if deploy_options.img_expr_time:
+                y['data']['IMAGE_EXPIRATION_TIME'] = deploy_options.img_expr_time
+
+            if deploy_options.img_expr_time:
+                y['data']['IMAGE_EXPIRATION_INTERVAL'] = deploy_options.img_expr_interval
 
             data = yaml.dump(y)
             dst.write(data)
