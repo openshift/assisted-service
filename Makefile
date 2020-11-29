@@ -10,6 +10,9 @@ PROFILE := $(or $(PROFILE),minikube)
 KUBECTL=kubectl -n $(NAMESPACE)
 
 ifeq ($(TARGET), minikube)
+ifdef E2E_TESTS_MODE
+E2E_TESTS_CONFIG = --img-expr-time=5m --img-expr-interval=5m
+endif
 define get_service
 minikube -p $(PROFILE) service --url $(1) -n $(NAMESPACE) | sed 's/http:\/\///g'
 endef # get_service
@@ -58,7 +61,6 @@ ifdef FOCUS
 endif
 REPORTS = $(ROOT_DIR)/reports
 TEST_PUBLISH_FLAGS = --junitfile-testsuite-name=relative --junitfile-testcase-classname=relative --junitfile $(REPORTS)/unittest.xml
-
 
 all: build
 
@@ -207,7 +209,8 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS) \
-		--ocp-release $(OPENSHIFT_INSTALL_RELEASE_IMAGE) --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)"
+		--ocp-release $(OPENSHIFT_INSTALL_RELEASE_IMAGE) --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
+		$(E2E_TESTS_CONFIG)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
