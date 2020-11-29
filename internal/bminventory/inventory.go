@@ -258,6 +258,10 @@ type bareMetalInventory struct {
 	secretValidator validations.PullSecretValidator
 }
 
+func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
+	panic("implement me")
+}
+
 var _ restapi.InstallerAPI = &bareMetalInventory{}
 
 func NewBareMetalInventory(
