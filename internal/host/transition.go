@@ -511,6 +511,9 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 		if err != nil {
 			return err
 		}
+		if sHost.host.Progress.CurrentStage == models.HostStageWritingImageToDisk {
+			template = statusInfoInstallationInProgressWritingImageToDiskTimedOut
+		}
 		template = strings.Replace(template, "$STAGE", string(sHost.host.Progress.CurrentStage), 1)
 		template = strings.Replace(template, "$MAX_TIME", InstallationProgressTimeout[sHost.host.Progress.CurrentStage].String(), 1)
 

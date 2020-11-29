@@ -25,21 +25,22 @@ import (
 )
 
 const (
-	statusInfoDisconnected                   = "Host has stopped communicating with the installation service"
-	statusInfoDisabled                       = "Host was manually disabled"
-	statusInfoDiscovering                    = "Waiting for host to send hardware details"
-	statusInfoInsufficientHardware           = "Host does not meet the minimum hardware requirements: $FAILING_VALIDATIONS"
-	statusInfoPendingForInput                = "Waiting for user input: $FAILING_VALIDATIONS"
-	statusInfoNotReadyForInstall             = "Host cannot be installed due to following failing validation(s): $FAILING_VALIDATIONS"
-	statusInfoKnown                          = "Host is ready to be installed"
-	statusInfoInstalling                     = "Installation is in progress"
-	statusInfoResettingPendingUserAction     = "Host requires booting into the discovery image to complete resetting the installation"
-	statusInfoPreparingForInstallation       = "Host is preparing for installation"
-	statusInfoPreparingTimedOut              = "Host failed to install because its preparation took longer than expected"
-	statusInfoAbortingDueClusterErrors       = "Host is part of a cluster that failed to install"
-	statusInfoInstallationTimedOut           = "Host failed to install due to timeout while starting installation"
-	statusInfoInstallationInProgressTimedOut = "Host failed to install because its installation stage $STAGE took longer than expected $MAX_TIME"
-	hostNotRespondingNotification            = ", Host is not responding, last respond was at "
+	statusInfoDisconnected                                     = "Host has stopped communicating with the installation service"
+	statusInfoDisabled                                         = "Host was manually disabled"
+	statusInfoDiscovering                                      = "Waiting for host to send hardware details"
+	statusInfoInsufficientHardware                             = "Host does not meet the minimum hardware requirements: $FAILING_VALIDATIONS"
+	statusInfoPendingForInput                                  = "Waiting for user input: $FAILING_VALIDATIONS"
+	statusInfoNotReadyForInstall                               = "Host cannot be installed due to following failing validation(s): $FAILING_VALIDATIONS"
+	statusInfoKnown                                            = "Host is ready to be installed"
+	statusInfoInstalling                                       = "Installation is in progress"
+	statusInfoResettingPendingUserAction                       = "Host requires booting into the discovery image to complete resetting the installation"
+	statusInfoPreparingForInstallation                         = "Host is preparing for installation"
+	statusInfoPreparingTimedOut                                = "Host failed to install because its preparation took longer than expected"
+	statusInfoAbortingDueClusterErrors                         = "Host is part of a cluster that failed to install"
+	statusInfoInstallationTimedOut                             = "Host failed to install due to timeout while starting installation"
+	statusInfoInstallationInProgressTimedOut                   = "Host failed to install because its installation stage $STAGE took longer than expected $MAX_TIME"
+	statusInfoInstallationInProgressWritingImageToDiskTimedOut = "Host failed to install because its installation stage $STAGE did not sufficiently progress in the last $MAX_TIME."
+	hostNotRespondingNotification                              = ", Host is not responding, last respond was at "
 )
 
 type UpdateReply struct {
