@@ -58,6 +58,7 @@ var _ = Describe("ClusterManifestTests", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+
 		manifestsAPI = manifests.NewManifestsAPI(db, getTestLog(), mockS3Client)
 	})
 
@@ -83,6 +84,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			CreateManifestParams: &models.CreateManifestParams{
 				Content:  &content,
 				FileName: &fileName,
+				Folder:   &folderName,
 			},
 		})
 		Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
@@ -204,24 +206,44 @@ var _ = Describe("ClusterManifestTests", func() {
 
 	Context("ListClusterManifests", func() {
 		It("lists manifest from different folders", func() {
-			clusterID := registerCluster().ID
-			mockUpload(3)
-			files := []string{
-				getObjectName(clusterID, validFolder, "file-1.yaml"),
-				getObjectName(clusterID, validFolder, "file-2.yaml"),
-				getObjectName(clusterID, defaultFolder, "file-3.yaml"),
+			manifests := []models.Manifest{
+				{
+					FileName: "file-1.yaml",
+					Folder:   validFolder,
+				},
+				{
+					FileName: "file-2.yaml",
+					Folder:   validFolder,
+				},
+				{
+					FileName: "file-3.yaml",
+					Folder:   defaultFolder,
+				},
 			}
+
+			clusterID := registerCluster().ID
+			files := make([]string, 0)
+
+			mockUpload(len(manifests))
+
+			for _, file := range manifests {
+				files = append(files, getObjectName(clusterID, file.Folder, file.FileName))
+				addManifestToCluster(clusterID, content, file.FileName, file.Folder)
+			}
+
 			mockListByPrefix(clusterID, files)
-			addManifestToCluster(clusterID, content, "file-1.yaml", validFolder)
-			addManifestToCluster(clusterID, content, "file-2.yaml", validFolder)
-			addManifestToCluster(clusterID, content, "file-1.yaml", defaultFolder)
+
 			response := manifestsAPI.ListClusterManifests(ctx, operations.ListClusterManifestsParams{
 				ClusterID: *clusterID,
 			})
 			Expect(response).Should(BeAssignableToTypeOf(operations.NewListClusterManifestsOK()))
 			responsePayload := response.(*operations.ListClusterManifestsOK)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
-			Expect(len(responsePayload.Payload)).To(Equal(3))
+			Expect(len(responsePayload.Payload)).To(Equal(len(manifests)))
+
+			for i := range manifests {
+				Expect(manifests).To(ContainElement(*responsePayload.Payload[i]))
+			}
 		})
 
 		It("list manifests for new cluster", func() {
