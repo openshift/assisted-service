@@ -14,8 +14,6 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
-
-	"github.com/openshift/assisted-service/models"
 )
 
 // NewUpdateClusterInstallProgressParams creates a new UpdateClusterInstallProgressParams object
@@ -34,11 +32,11 @@ type UpdateClusterInstallProgressParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*New progress value.
+	/*Cluster install progress value.
 	  Required: true
 	  In: body
 	*/
-	ClusterProgress *models.ClusterProgress
+	ClusterProgress string
 	/*The ID of the cluster to retrieve.
 	  Required: true
 	  In: path
@@ -57,7 +55,7 @@ func (o *UpdateClusterInstallProgressParams) BindRequest(r *http.Request, route 
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body models.ClusterProgress
+		var body string
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
 				res = append(res, errors.Required("clusterProgress", "body", ""))
@@ -65,14 +63,8 @@ func (o *UpdateClusterInstallProgressParams) BindRequest(r *http.Request, route 
 				res = append(res, errors.NewParseError("clusterProgress", "body", "", err))
 			}
 		} else {
-			// validate body object
-			if err := body.Validate(route.Formats); err != nil {
-				res = append(res, err)
-			}
-
-			if len(res) == 0 {
-				o.ClusterProgress = &body
-			}
+			// no validation required on inline body
+			o.ClusterProgress = body
 		}
 	} else {
 		res = append(res, errors.Required("clusterProgress", "body", ""))

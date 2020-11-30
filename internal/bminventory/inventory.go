@@ -259,7 +259,20 @@ type bareMetalInventory struct {
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
-	panic("implement me")
+	log := logutil.FromContext(ctx, b.log)
+
+	if err := b.clusterApi.UpdateInstallProgress(ctx, params.ClusterID, params.ClusterProgress, b.db); err != nil {
+		log.WithError(err).Errorf("failed to update cluster %s progress", params.ClusterID)
+		return installer.NewUpdateClusterInstallProgressInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	event := fmt.Sprintf("installation progress update %s:", params.ClusterProgress)
+	msg := fmt.Sprintf("Cluster %s: %s", params.ClusterID, event)
+	log.Info(msg)
+
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
+	return installer.NewUpdateClusterInstallProgressOK()
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}

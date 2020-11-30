@@ -92,6 +92,7 @@ type API interface {
 	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error
+	UpdateInstallProgress(ctx context.Context, clusterID strfmt.UUID, progress string, db *gorm.DB) error
 }
 
 type PrepareConfig struct {
@@ -739,4 +740,8 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt
 		m.eventsHandler.DeleteClusterEvents(*c.ID)
 	}
 	return nil
+}
+func (m Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UUID, progress string, db *gorm.DB) error {
+	_, err := updateClusterProgress(m.log, db, clusterID, progress)
+	return err
 }

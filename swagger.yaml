@@ -674,10 +674,10 @@ paths:
           required: true
         - in: body
           name: cluster-progress
-          description: New progress value.
+          description: Cluster install progress value.
           required: true
           schema:
-            $ref: '#/definitions/cluster-progress'
+            type: string
       responses:
         200:
           description: Update cluster install progress.
@@ -3457,15 +3457,6 @@ definitions:
         type: boolean
       error_info:
         type: string
-
-  cluster-progress:
-    type: object
-    required:
-      - progress_info
-    properties:
-      progress_info:
-        type: string
-        x-go-custom-tag: gorm:"type:varchar(2048)"
 
   host-progress:
     type: object

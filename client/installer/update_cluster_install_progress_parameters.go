@@ -14,8 +14,6 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-
-	"github.com/openshift/assisted-service/models"
 )
 
 // NewUpdateClusterInstallProgressParams creates a new UpdateClusterInstallProgressParams object
@@ -63,10 +61,10 @@ for the update cluster install progress operation typically these are written to
 type UpdateClusterInstallProgressParams struct {
 
 	/*ClusterProgress
-	  New progress value.
+	  Cluster install progress value.
 
 	*/
-	ClusterProgress *models.ClusterProgress
+	ClusterProgress string
 	/*ClusterID
 	  The ID of the cluster to retrieve.
 
@@ -112,13 +110,13 @@ func (o *UpdateClusterInstallProgressParams) SetHTTPClient(client *http.Client) 
 }
 
 // WithClusterProgress adds the clusterProgress to the update cluster install progress params
-func (o *UpdateClusterInstallProgressParams) WithClusterProgress(clusterProgress *models.ClusterProgress) *UpdateClusterInstallProgressParams {
+func (o *UpdateClusterInstallProgressParams) WithClusterProgress(clusterProgress string) *UpdateClusterInstallProgressParams {
 	o.SetClusterProgress(clusterProgress)
 	return o
 }
 
 // SetClusterProgress adds the clusterProgress to the update cluster install progress params
-func (o *UpdateClusterInstallProgressParams) SetClusterProgress(clusterProgress *models.ClusterProgress) {
+func (o *UpdateClusterInstallProgressParams) SetClusterProgress(clusterProgress string) {
 	o.ClusterProgress = clusterProgress
 }
 
@@ -141,10 +139,8 @@ func (o *UpdateClusterInstallProgressParams) WriteToRequest(r runtime.ClientRequ
 	}
 	var res []error
 
-	if o.ClusterProgress != nil {
-		if err := r.SetBodyParam(o.ClusterProgress); err != nil {
-			return err
-		}
+	if err := r.SetBodyParam(o.ClusterProgress); err != nil {
+		return err
 	}
 
 	// path param cluster_id
