@@ -14,19 +14,19 @@ def main():
         target=deploy_options.target,
         profile=deploy_options.profile
     )
-    print(utils.check_output(f'{kubectl_cmd} delete all --all -n {deploy_options.namespace} 1> /dev/null ; true'))
+    print(utils.check_output(f'{kubectl_cmd} delete all --all -n {deploy_options.namespace} --force --grace-period=0 1> /dev/null ; true'))
     # configmaps are not deleted with `delete all`
     print(utils.check_output(f"{kubectl_cmd} get configmap -o name -n {deploy_options.namespace} | " +
-                             f"xargs -r kubectl delete -n {deploy_options.namespace} 1> /dev/null ; true"))
+                             f"xargs -r {kubectl_cmd} delete -n {deploy_options.namespace} --force --grace-period=0 1> /dev/null ; true"))
     # ingress is not deleted with `delete all`
     print(utils.check_output(f"{kubectl_cmd} get ingress -o name -n {deploy_options.namespace} | " +
-                             f"xargs -r kubectl delete -n {deploy_options.namespace} 1> /dev/null ; true"))
+                             f"xargs -r {kubectl_cmd} delete -n {deploy_options.namespace} --force --grace-period=0 1> /dev/null ; true"))
 
     if deploy_options.delete_pvc:
-        print(utils.check_output(f"{kubectl_cmd} delete pvc --all -n {deploy_options.namespace} 1> /dev/null ; true"))
+        print(utils.check_output(f"{kubectl_cmd} delete pvc --all -n {deploy_options.namespace} --force --grace-period=0 1> /dev/null ; true"))
 
     if deploy_options.delete_namespace is True:
-        print(utils.check_output(f"{kubectl_cmd} delete namespace {deploy_options.namespace} 1> /dev/null ; true"))
+        print(utils.check_output(f"{kubectl_cmd} delete namespace {deploy_options.namespace} --force --grace-period=0 1> /dev/null ; true"))
 
 if __name__ == "__main__":
     main()
