@@ -36,7 +36,7 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 
 	// runs openshift-install to generate ignition files, then modifies them as necessary
 	var generator ignition.Generator
-	s3Client := s3wrapper.NewFSClient("/data", log)
+	s3Client := s3wrapper.NewFSClient(workDir, log)
 	if s3Client == nil {
 		log.Fatal("failed to create S3 file system client, ", err)
 	}

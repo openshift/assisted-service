@@ -93,7 +93,7 @@ func (m *Manifests) ListClusterManifests(ctx context.Context, params operations.
 
 	manifests := models.ListManifests{}
 	for _, file := range files {
-		parts := strings.Split(file, "/")
+		parts := strings.Split(strings.Trim(file, string(filepath.Separator)), string(filepath.Separator))
 		if len(parts) > 2 {
 			manifests = append(manifests, &models.Manifest{FileName: filepath.Join(parts[3:]...), Folder: parts[2]})
 		} else {
