@@ -43,6 +43,11 @@ const (
 	hostNotRespondingNotification                              = ", Host is not responding, last respond was at "
 )
 
+var hostStatusesBeforeInstallation = [...]string{
+	models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
+	models.HostStatusInsufficient, models.HostStatusPendingForInput,
+}
+
 type UpdateReply struct {
 	State     string
 	IsChanged bool
@@ -165,33 +170,22 @@ func indexOfStage(element models.HostStage, data []models.HostStage) int {
 }
 
 // update host role with an option to update only if the current role is srcRole to prevent races
-func updateRole(h *models.Host, role models.HostRole, db *gorm.DB, srcRole *string) error {
+func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, db *gorm.DB, srcRole *string) error {
 	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{
-		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
-		models.HostStatusInsufficient, models.HostStatusPendingForInput,
-	}
-	if !funk.ContainsString(allowedStatuses, hostStatus) {
+	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host is in %s state, host role can be set only in one of %s states",
-				hostStatus, allowedStatuses))
+				hostStatus, hostStatusesBeforeInstallation[:]))
 	}
 
-	h.Role = role
-	update := db.Model(h)
-	if srcRole != nil {
-		update = update.Where("role = ?", swag.StringValue(srcRole))
+	extras := append(make([]interface{}, 0), "role", role)
+
+	if IsDay2Host(h) && (h.MachineConfigPoolName == "" || h.MachineConfigPoolName == *srcRole) {
+		extras = append(extras, "machine_config_pool_name", role)
 	}
-	updateReply := update.Update("role", role)
-	if updateReply.RowsAffected == 0 {
-		return errors.Errorf("failed to update host %s from cluster %s role to %s - nothing changed",
-			h.ID.String(), h.ClusterID.String(), role)
-	}
-	if updateReply.Error != nil {
-		return errors.Wrapf(updateReply.Error, "failed to update host %s from cluster %s role to %s",
-			h.ID.String(), h.ClusterID.String(), role)
-	}
-	return nil
+
+	_, err := UpdateHost(log, db, h.ClusterID, *h.ID, *h.Status, extras...)
+	return err
 }
 
 func CreateUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs string, skipCertVerification, preservePreviousCommandReturnCode,

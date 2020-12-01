@@ -611,9 +611,10 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&newCluster.Cluster)
 }
 
-func (b *bareMetalInventory) formatNodeIgnitionFile(address string) ([]byte, error) {
+func (b *bareMetalInventory) formatNodeIgnitionFile(address string, machineConfigPoolName string) ([]byte, error) {
 	var ignitionParams = map[string]string{
-		"SOURCE": "http://" + address + ":22624/config/worker",
+		// https://github.com/openshift/machine-config-operator/blob/master/docs/MachineConfigServer.md#endpoint
+		"SOURCE": "http://" + address + fmt.Sprintf(":22624/config/%s", machineConfigPoolName),
 	}
 	tmpl, err := template.New("nodeIgnition").Parse(nodeIgnitionFormat)
 	if err != nil {
@@ -633,7 +634,7 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 	if address == "" {
 		address = swag.StringValue(cluster.APIVipDNSName)
 	}
-	ignitionBytes, err := b.formatNodeIgnitionFile(address)
+	ignitionBytes, err := b.formatNodeIgnitionFile(address, host.MachineConfigPoolName)
 	if err != nil {
 		return errors.Errorf("Failed to create ignition string for cluster %s", cluster.ID)
 	}
@@ -1642,7 +1643,7 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 			params.ClusterUpdateParams.HostsNames[i].ID, params.ClusterID).Error
 		if err != nil {
 			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
-				params.ClusterUpdateParams.HostsRoles[i].ID, params.ClusterID)
+				params.ClusterUpdateParams.HostsNames[i].ID, params.ClusterID)
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		if err = hostutil.ValidateHostname(params.ClusterUpdateParams.HostsNames[i].Hostname); err != nil {
@@ -1653,6 +1654,26 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 		if err != nil {
 			log.WithError(err).Errorf("failed to set hostname <%s> host <%s> in cluster <%s>",
 				params.ClusterUpdateParams.HostsNames[i].Hostname, params.ClusterUpdateParams.HostsNames[i].ID,
+				params.ClusterID)
+			return common.NewApiError(http.StatusConflict, err)
+		}
+	}
+
+	for i := range params.ClusterUpdateParams.HostsMachineConfigPoolNames {
+		log.Infof("Update host %s to machineConfigPoolName %s", params.ClusterUpdateParams.HostsMachineConfigPoolNames[i].ID,
+			params.ClusterUpdateParams.HostsMachineConfigPoolNames[i].MachineConfigPoolName)
+		var host models.Host
+		err := db.First(&host, "id = ? and cluster_id = ?",
+			params.ClusterUpdateParams.HostsMachineConfigPoolNames[i].ID, params.ClusterID).Error
+		if err != nil {
+			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
+				params.ClusterUpdateParams.HostsMachineConfigPoolNames[i].ID, params.ClusterID)
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		err = b.hostApi.UpdateMachineConfigPoolName(ctx, db, &host, params.ClusterUpdateParams.HostsMachineConfigPoolNames[i].MachineConfigPoolName)
+		if err != nil {
+			log.WithError(err).Errorf("failed to set machine config pool name <%s> host <%s> in cluster <%s>",
+				params.ClusterUpdateParams.HostsMachineConfigPoolNames[i].MachineConfigPoolName, params.ClusterUpdateParams.HostsMachineConfigPoolNames[i].ID,
 				params.ClusterID)
 			return common.NewApiError(http.StatusConflict, err)
 		}

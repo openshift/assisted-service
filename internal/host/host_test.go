@@ -171,6 +171,88 @@ var _ = Describe("update_role", func() {
 		h = getHost(id, clusterID, db)
 		Expect(h.Role).To(Equal(models.HostRoleWorker))
 	})
+
+	Context("update machine config pool", func() {
+		tests := []struct {
+			name                      string
+			day2                      bool
+			role                      models.HostRole
+			previousRole              models.HostRole
+			previousMachineConfigPool *string
+			expectedMachineConfigPool string
+		}{
+			{
+				name:                      "day1",
+				day2:                      false,
+				role:                      models.HostRoleMaster,
+				previousRole:              "",
+				expectedMachineConfigPool: "",
+			},
+			{
+				name:                      "day2-new-worker",
+				day2:                      true,
+				role:                      models.HostRoleWorker,
+				previousRole:              "",
+				expectedMachineConfigPool: string(models.HostRoleWorker),
+			},
+			{
+				name:                      "day2-new-master",
+				day2:                      true,
+				role:                      models.HostRoleMaster,
+				previousRole:              "",
+				expectedMachineConfigPool: string(models.HostRoleMaster),
+			},
+			{
+				name:                      "day2-update-auto-assign",
+				day2:                      true,
+				role:                      models.HostRoleMaster,
+				previousRole:              models.HostRoleAutoAssign,
+				expectedMachineConfigPool: string(models.HostRoleMaster),
+			},
+			{
+				name:                      "day2-update-worker",
+				day2:                      true,
+				role:                      models.HostRoleMaster,
+				previousRole:              models.HostRoleWorker,
+				expectedMachineConfigPool: string(models.HostRoleMaster),
+			},
+			{
+				name:                      "day2-customize-pool",
+				day2:                      true,
+				role:                      models.HostRoleMaster,
+				previousRole:              models.HostRoleWorker,
+				previousMachineConfigPool: swag.String("different_pool"),
+				expectedMachineConfigPool: "different_pool",
+			},
+		}
+
+		for _, t := range tests {
+			It(t.name, func() {
+				// Setup
+				if t.day2 {
+					host = getTestHostAddedToCluster(id, clusterID, models.HostStatusKnown)
+				} else {
+					host = getTestHost(id, clusterID, models.HostStatusKnown)
+				}
+
+				host.Role = t.previousRole
+
+				if t.previousMachineConfigPool != nil {
+					host.MachineConfigPoolName = swag.StringValue(t.previousMachineConfigPool)
+				} else {
+					host.MachineConfigPoolName = string(t.previousRole)
+				}
+
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				// Test
+				Expect(state.UpdateRole(ctx, &host, t.role, nil)).NotTo(HaveOccurred())
+				h := getHost(*host.ID, host.ClusterID, db)
+				Expect(h.Role).To(Equal(t.role))
+				Expect(h.MachineConfigPoolName).Should(Equal(t.expectedMachineConfigPool))
+			})
+		}
+	})
 })
 
 var _ = Describe("update_progress", func() {
@@ -1183,6 +1265,89 @@ var _ = Describe("UpdateNTP", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(h.NtpSources).Should(Equal(string(marshalled)))
+		})
+	}
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("UpdateMachineConfigPoolName", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		ctrl              *gomock.Controller
+		mockEvents        *events.MockHandler
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+		dbName            = "UpdateMachineConfigPoolName"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		dummy := &leader.DummyElector{}
+		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	tests := []struct {
+		name    string
+		day2    bool
+		status  string
+		isValid bool
+	}{
+		{
+			name:    "day1",
+			status:  models.HostStatusDiscovering,
+			day2:    false,
+			isValid: false,
+		},
+		{
+			name:    "day2_before_installation",
+			status:  models.HostStatusDiscovering,
+			day2:    true,
+			isValid: true,
+		},
+		{
+			name:    "day2_after_installation",
+			status:  models.HostStatusInstalled,
+			day2:    true,
+			isValid: false,
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			// Setup
+			if t.day2 {
+				host = getTestHostAddedToCluster(hostId, clusterId, t.status)
+			} else {
+				host = getTestHost(hostId, clusterId, t.status)
+			}
+
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			h := getHost(*host.ID, host.ClusterID, db)
+			Expect(h.MachineConfigPoolName).Should(BeEmpty())
+
+			// Test
+			err := hapi.UpdateMachineConfigPoolName(ctx, db, &host, t.name)
+			h = getHost(*host.ID, host.ClusterID, db)
+
+			if t.isValid {
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(h.MachineConfigPoolName).Should(Equal(t.name))
+			} else {
+				Expect(err).Should(HaveOccurred())
+				Expect(h.MachineConfigPoolName).Should(BeEmpty())
+			}
+
 		})
 	}
 

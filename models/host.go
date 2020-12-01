@@ -87,6 +87,9 @@ type Host struct {
 	// Format: datetime
 	LogsCollectedAt strfmt.DateTime `json:"logs_collected_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// machine config pool name
+	MachineConfigPoolName string `json:"machine_config_pool_name,omitempty"`
+
 	// The configured NTP sources on the host.
 	NtpSources string `json:"ntp_sources,omitempty" gorm:"type:text"`
 
