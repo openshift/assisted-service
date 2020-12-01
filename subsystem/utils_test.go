@@ -142,3 +142,9 @@ func generateNTPPostStepReply(ctx context.Context, h *models.Host, ntpSources []
 	})
 	Expect(err).ShouldNot(HaveOccurred())
 }
+
+func isJSON(s []byte) bool {
+	var js map[string]interface{}
+	return json.Unmarshal(s, &js) == nil
+
+}
