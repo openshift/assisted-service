@@ -106,6 +106,18 @@ func updateProgressWithInfo(hostID strfmt.UUID, clusterID strfmt.UUID, current_s
 	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
 }
 
+func updateClusterInstallProgressWithInfo(clusterID strfmt.UUID, info string) {
+	ctx := context.Background()
+
+	updateReply, err := agentBMClient.Installer.UpdateClusterInstallProgress(ctx, &installer.UpdateClusterInstallProgressParams{
+		ClusterID:       clusterID,
+		ClusterProgress: info,
+	})
+
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateClusterInstallProgressOK()))
+}
+
 func generateHWPostStepReply(ctx context.Context, h *models.Host, hwInfo *models.Inventory, hostname string) {
 	hwInfo.Hostname = hostname
 	hw, err := json.Marshal(&hwInfo)

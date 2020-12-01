@@ -1145,6 +1145,22 @@ var _ = Describe("cluster install", func() {
 				Expect(err).Should(HaveOccurred())
 			})
 
+			By("cluster_install_progress", func() {
+
+				// First update
+				installProgress := "Making progress!"
+				updateClusterInstallProgressWithInfo(clusterID, installProgress)
+				Expect(c.Progress.ProgressInfo).Should(Equal(installProgress))
+
+				// Second Update
+				firstUpdateTime := c.Progress.ProgressUpdatedAt
+				installProgress = "Making more progress!"
+				updateClusterInstallProgressWithInfo(clusterID, installProgress)
+				Expect(c.Progress.ProgressInfo).Should(Equal(installProgress))
+				secondUpdateTime := c.Progress.ProgressUpdatedAt
+				Expect(firstUpdateTime).ShouldNot(Equal(secondUpdateTime))
+			})
+
 			// Host #1
 
 			By("progress_to_other_host", func() {
