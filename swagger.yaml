@@ -3345,7 +3345,7 @@ definitions:
         description: NTP source going to be added to all the hosts.
       progress:
         $ref: '#/definitions/cluster-progress-info'
-        x-go-custom-tag: gorm:"type:varchar(2048)"
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:progress_"
 
   image_info:
     type: object

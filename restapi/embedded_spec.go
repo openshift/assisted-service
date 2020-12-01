@@ -3648,12 +3648,12 @@ func init() {
             "required": true
           },
           {
-            "description": "New progress value.",
+            "description": "Cluster install progress value.",
             "name": "cluster-progress",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/cluster-progress"
+              "type": "string"
             }
           }
         ],
@@ -4147,7 +4147,7 @@ func init() {
           "type": "string"
         },
         "progress": {
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
           "$ref": "#/definitions/cluster-progress-info"
         },
         "pull_secret_set": {
@@ -4313,18 +4313,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
-      }
-    },
-    "cluster-progress": {
-      "type": "object",
-      "required": [
-        "progress_info"
-      ],
-      "properties": {
-        "progress_info": {
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
-        }
       }
     },
     "cluster-progress-info": {
@@ -9373,12 +9361,12 @@ func init() {
             "required": true
           },
           {
-            "description": "New progress value.",
+            "description": "Cluster install progress value.",
             "name": "cluster-progress",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/cluster-progress"
+              "type": "string"
             }
           }
         ],
@@ -9927,7 +9915,7 @@ func init() {
           "type": "string"
         },
         "progress": {
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
           "$ref": "#/definitions/cluster-progress-info"
         },
         "pull_secret_set": {
@@ -10093,18 +10081,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
-      }
-    },
-    "cluster-progress": {
-      "type": "object",
-      "required": [
-        "progress_info"
-      ],
-      "properties": {
-        "progress_info": {
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
-        }
       }
     },
     "cluster-progress-info": {

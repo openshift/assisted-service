@@ -137,7 +137,7 @@ type Cluster struct {
 	OrgID string `json:"org_id,omitempty"`
 
 	// progress
-	Progress *ClusterProgressInfo `json:"progress,omitempty" gorm:"type:varchar(2048)"`
+	Progress *ClusterProgressInfo `json:"progress,omitempty" gorm:"embedded;embedded_prefix:progress_"`
 
 	// True if the pull secret has been added to the cluster.
 	PullSecretSet bool `json:"pull_secret_set,omitempty"`
