@@ -267,12 +267,11 @@ func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, p
 			common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	event := fmt.Sprintf("installation progress update %s:", params.ClusterProgress)
-	msg := fmt.Sprintf("Cluster %s: %s", params.ClusterID, event)
-	log.Info(msg)
+	event := fmt.Sprintf("Updated installation progress to: %s", params.ClusterProgress)
+	log.Infof("Cluster %s: %s", params.ClusterID, event)
 
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
-	return installer.NewUpdateClusterInstallProgressOK()
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, event, time.Now())
+	return installer.NewUpdateClusterInstallProgressNoContent()
 }
 
 var _ restapi.InstallerAPI = &bareMetalInventory{}

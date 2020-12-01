@@ -66,29 +66,6 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 	return cluster, nil
 }
 
-func updateClusterProgressDB(db *gorm.DB, clusterId strfmt.UUID, extra ...interface{}) (*common.Cluster, error) {
-	updates := make(map[string]interface{})
-
-	for i := 0; i < len(extra); i += 2 {
-		updates[extra[i].(string)] = extra[i+1]
-	}
-
-	// Query by <cluster-id, status>
-	dbReply := db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
-
-	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !clusterExistsInDB(db, clusterId, updates)) {
-		return nil, errors.Errorf("failed to update cluster %s. nothing has changed", clusterId)
-	}
-
-	var cluster common.Cluster
-
-	if err := db.Preload("Hosts").Take(&cluster, "id = ?", clusterId.String()).Error; err != nil {
-		return nil, errors.Wrapf(err, "failed to get cluster %s", clusterId.String())
-	}
-
-	return &cluster, nil
-}
-
 func updateClusterProgress(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, progress string,
 	extra ...interface{}) (*common.Cluster, error) {
 	var cluster *common.Cluster
@@ -99,7 +76,7 @@ func updateClusterProgress(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt
 	now := strfmt.DateTime(time.Now())
 	extra = append(extra, "progress_progress_updated_at", now)
 
-	if cluster, err = updateClusterProgressDB(db, clusterId, extra...); err != nil {
+	if cluster, err = UpdateCluster(log, db, clusterId, models.ClusterStatusInstalling, extra...); err != nil {
 		return nil, errors.Wrapf(err, "failed to update cluster %s installation progress with %s",
 			clusterId, progress)
 	}

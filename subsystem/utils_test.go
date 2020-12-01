@@ -115,7 +115,7 @@ func updateClusterInstallProgressWithInfo(clusterID strfmt.UUID, info string) {
 	})
 
 	Expect(err).ShouldNot(HaveOccurred())
-	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateClusterInstallProgressOK()))
+	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateClusterInstallProgressNoContent()))
 }
 
 func generateHWPostStepReply(ctx context.Context, h *models.Host, hwInfo *models.Inventory, hostname string) {

@@ -23,8 +23,8 @@ type UpdateClusterInstallProgressReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *UpdateClusterInstallProgressReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 200:
-		result := NewUpdateClusterInstallProgressOK()
+	case 204:
+		result := NewUpdateClusterInstallProgressNoContent()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -71,23 +71,23 @@ func (o *UpdateClusterInstallProgressReader) ReadResponse(response runtime.Clien
 	}
 }
 
-// NewUpdateClusterInstallProgressOK creates a UpdateClusterInstallProgressOK with default headers values
-func NewUpdateClusterInstallProgressOK() *UpdateClusterInstallProgressOK {
-	return &UpdateClusterInstallProgressOK{}
+// NewUpdateClusterInstallProgressNoContent creates a UpdateClusterInstallProgressNoContent with default headers values
+func NewUpdateClusterInstallProgressNoContent() *UpdateClusterInstallProgressNoContent {
+	return &UpdateClusterInstallProgressNoContent{}
 }
 
-/*UpdateClusterInstallProgressOK handles this case with default header values.
+/*UpdateClusterInstallProgressNoContent handles this case with default header values.
 
 Update cluster install progress.
 */
-type UpdateClusterInstallProgressOK struct {
+type UpdateClusterInstallProgressNoContent struct {
 }
 
-func (o *UpdateClusterInstallProgressOK) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/progress][%d] updateClusterInstallProgressOK ", 200)
+func (o *UpdateClusterInstallProgressNoContent) Error() string {
+	return fmt.Sprintf("[PUT /clusters/{cluster_id}/progress][%d] updateClusterInstallProgressNoContent ", 204)
 }
 
-func (o *UpdateClusterInstallProgressOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *UpdateClusterInstallProgressNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

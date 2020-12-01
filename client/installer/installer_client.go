@@ -128,7 +128,7 @@ type API interface {
 	UpdateClusterInstallConfig(ctx context.Context, params *UpdateClusterInstallConfigParams) (*UpdateClusterInstallConfigCreated, error)
 	/*
 	   UpdateClusterInstallProgress updates cluster installation progress*/
-	UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressOK, error)
+	UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressNoContent, error)
 	/*
 	   UpdateDiscoveryIgnition overrides values in the discovery ignition config*/
 	UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error)
@@ -1073,7 +1073,7 @@ func (a *Client) UpdateClusterInstallConfig(ctx context.Context, params *UpdateC
 /*
 UpdateClusterInstallProgress updates cluster installation progress
 */
-func (a *Client) UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressOK, error) {
+func (a *Client) UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressNoContent, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "UpdateClusterInstallProgress",
@@ -1091,7 +1091,7 @@ func (a *Client) UpdateClusterInstallProgress(ctx context.Context, params *Updat
 	if err != nil {
 		return nil, err
 	}
-	return result.(*UpdateClusterInstallProgressOK), nil
+	return result.(*UpdateClusterInstallProgressNoContent), nil
 
 }
 

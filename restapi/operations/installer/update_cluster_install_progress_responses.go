@@ -13,28 +13,28 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-// UpdateClusterInstallProgressOKCode is the HTTP code returned for type UpdateClusterInstallProgressOK
-const UpdateClusterInstallProgressOKCode int = 200
+// UpdateClusterInstallProgressNoContentCode is the HTTP code returned for type UpdateClusterInstallProgressNoContent
+const UpdateClusterInstallProgressNoContentCode int = 204
 
-/*UpdateClusterInstallProgressOK Update cluster install progress.
+/*UpdateClusterInstallProgressNoContent Update cluster install progress.
 
-swagger:response updateClusterInstallProgressOK
+swagger:response updateClusterInstallProgressNoContent
 */
-type UpdateClusterInstallProgressOK struct {
+type UpdateClusterInstallProgressNoContent struct {
 }
 
-// NewUpdateClusterInstallProgressOK creates UpdateClusterInstallProgressOK with default headers values
-func NewUpdateClusterInstallProgressOK() *UpdateClusterInstallProgressOK {
+// NewUpdateClusterInstallProgressNoContent creates UpdateClusterInstallProgressNoContent with default headers values
+func NewUpdateClusterInstallProgressNoContent() *UpdateClusterInstallProgressNoContent {
 
-	return &UpdateClusterInstallProgressOK{}
+	return &UpdateClusterInstallProgressNoContent{}
 }
 
 // WriteResponse to the client
-func (o *UpdateClusterInstallProgressOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *UpdateClusterInstallProgressNoContent) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
-	rw.WriteHeader(200)
+	rw.WriteHeader(204)
 }
 
 // UpdateClusterInstallProgressUnauthorizedCode is the HTTP code returned for type UpdateClusterInstallProgressUnauthorized

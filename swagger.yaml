@@ -679,7 +679,7 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        204:
           description: Update cluster install progress.
         401:
           description: Unauthorized.

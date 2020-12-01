@@ -3658,7 +3658,7 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Update cluster install progress."
           },
           "401": {
@@ -9371,7 +9371,7 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Update cluster install progress."
           },
           "401": {
