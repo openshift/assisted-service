@@ -2686,7 +2686,11 @@ var _ = Describe("Refresh Host", func() {
 
 func formatProgressTimedOutInfo(stage models.HostStage) string {
 	timeFormat := InstallationProgressTimeout[stage].String()
-	info := strings.Replace(statusInfoInstallationInProgressTimedOut, "$STAGE", string(stage), 1)
+	statusInfo := statusInfoInstallationInProgressTimedOut
+	if stage == models.HostStageWritingImageToDisk {
+		statusInfo = statusInfoInstallationInProgressWritingImageToDiskTimedOut
+	}
+	info := strings.Replace(statusInfo, "$STAGE", string(stage), 1)
 	info = strings.Replace(info, "$MAX_TIME", timeFormat, 1)
 	return info
 }
