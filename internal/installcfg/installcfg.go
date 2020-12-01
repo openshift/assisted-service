@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hostutil"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 
 	"github.com/sirupsen/logrus"
@@ -104,7 +105,17 @@ func getBMHName(host *models.Host, masterIdx, workerIdx *int) string {
 	return name
 }
 
-func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
+func getNetworkType(cluster *common.Cluster) string {
+	networkType := "OpenShiftSDN"
+	if network.IsIPv6CIDR(cluster.ClusterNetworkCidr) {
+		networkType = "OVNKubernetes"
+	}
+	return networkType
+}
+
+func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) *InstallerConfigBaremetal {
+	netwokType := getNetworkType(cluster)
+	log.Infof("Selected network type %s for cluster %s", netwokType, cluster.ID.String())
 	cfg := &InstallerConfigBaremetal{
 		APIVersion: "v1",
 		BaseDomain: cluster.BaseDNSDomain,
@@ -119,7 +130,7 @@ func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
 			} `yaml:"machineNetwork,omitempty"`
 			ServiceNetwork []string `yaml:"serviceNetwork"`
 		}{
-			NetworkType: "OpenShiftSDN",
+			NetworkType: netwokType,
 			ClusterNetwork: []struct {
 				Cidr       string `yaml:"cidr"`
 				HostPrefix int    `yaml:"hostPrefix"`
@@ -235,7 +246,7 @@ func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error
 }
 
 func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
-	cfg := getBasicInstallConfig(cluster)
+	cfg := getBasicInstallConfig(log, cluster)
 	if swag.BoolValue(cluster.UserManagedNetworking) {
 		cfg.Platform = platform{
 			Baremetal: nil,
