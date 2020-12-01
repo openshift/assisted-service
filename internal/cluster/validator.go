@@ -90,6 +90,9 @@ type clusterValidator struct {
 }
 
 func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) validationStatus {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return ValidationSuccess
+	}
 	return boolValue(c.cluster.MachineNetworkCidr != "")
 }
 
@@ -102,6 +105,9 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 			return "The Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs."
 		}
 	case ValidationSuccess:
+		if swag.BoolValue(context.cluster.UserManagedNetworking) {
+			return "No Machine Network CIDR needed: User Managed Networking"
+		}
 		return "The Machine Network CIDR is defined."
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
@@ -139,6 +145,9 @@ func (v *clusterValidator) printIsServiceCidrDefined(context *clusterPreprocessC
 }
 
 func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreprocessContext) validationStatus {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return ValidationSuccess
+	}
 	if c.cluster.APIVip == "" && c.cluster.IngressVip == "" {
 		return ValidationPending
 	}
@@ -152,6 +161,9 @@ func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clu
 	case ValidationPending:
 		return "The Machine Network CIDR, API virtual IP, or Ingress virtual IP is undefined."
 	case ValidationSuccess:
+		if swag.BoolValue(context.cluster.UserManagedNetworking) {
+			return "The Cluster Machine CIDR is not required: User Managed Networking"
+		}
 		return "The Cluster Machine CIDR is equivalent to the calculated CIDR."
 	case ValidationFailure:
 		return fmt.Sprintf("The Cluster Machine CIDR %s is different than the calculated CIDR %s.", context.cluster.MachineNetworkCidr, context.calculateCidr)
@@ -161,6 +173,9 @@ func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clu
 }
 
 func (v *clusterValidator) isApiVipDefined(c *clusterPreprocessContext) validationStatus {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return ValidationSuccess
+	}
 	if swag.BoolValue(c.cluster.VipDhcpAllocation) && c.cluster.MachineNetworkCidr == "" {
 		return ValidationPending
 	}
@@ -182,6 +197,9 @@ func (v *clusterValidator) printIsApiVipDefined(context *clusterPreprocessContex
 			return "The API virtual IP is undefined and must be provided."
 		}
 	case ValidationSuccess:
+		if swag.BoolValue(context.cluster.UserManagedNetworking) {
+			return "The API virtual IP is not required: User Managed Networking"
+		}
 		return "The API virtual IP is defined."
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
@@ -189,6 +207,9 @@ func (v *clusterValidator) printIsApiVipDefined(context *clusterPreprocessContex
 }
 
 func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) validationStatus {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return ValidationSuccess
+	}
 	if c.cluster.APIVip == "" {
 		return ValidationPending
 	}
@@ -202,6 +223,9 @@ func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext,
 	case ValidationPending:
 		return "The API virtual IP is undefined."
 	case ValidationSuccess:
+		if swag.BoolValue(context.cluster.UserManagedNetworking) {
+			return "The API virtual IP is not required: User Managed Networking"
+		}
 		return fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", ApiVipName, context.cluster.APIVip)
 	case ValidationFailure:
 		return fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", ApiVipName, context.cluster.APIVip)
@@ -211,6 +235,9 @@ func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext,
 }
 
 func (v *clusterValidator) isIngressVipDefined(c *clusterPreprocessContext) validationStatus {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return ValidationSuccess
+	}
 	if swag.BoolValue(c.cluster.VipDhcpAllocation) && c.cluster.MachineNetworkCidr == "" {
 		return ValidationPending
 	}
@@ -232,12 +259,18 @@ func (v *clusterValidator) printIsIngressVipDefined(context *clusterPreprocessCo
 			return "The Ingress virtual IP is undefined and must be provided."
 		}
 	case ValidationSuccess:
+		if swag.BoolValue(context.cluster.UserManagedNetworking) {
+			return "The Ingress virtual IP is not required: User Managed Networking"
+		}
 		return "The Ingress virtual IP is defined."
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
 	}
 }
 func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) validationStatus {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return ValidationSuccess
+	}
 	if c.cluster.IngressVip == "" {
 		return ValidationPending
 	}
@@ -251,6 +284,9 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 	case ValidationPending:
 		return "The Ingress virtual IP is undefined."
 	case ValidationSuccess:
+		if swag.BoolValue(context.cluster.UserManagedNetworking) {
+			return "The Ingress virtual IP is not required: User Managed Networking"
+		}
 		return fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", IngressVipName, context.cluster.IngressVip)
 	case ValidationFailure:
 		return fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", IngressVipName, context.cluster.IngressVip)
@@ -382,10 +418,16 @@ func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessCon
 }
 
 func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) validationStatus {
-	if c.cluster.MachineNetworkCidr == "" || c.cluster.ClusterNetworkCidr == "" || c.cluster.ServiceNetworkCidr == "" {
-		return ValidationPending
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		if c.cluster.ClusterNetworkCidr == "" || c.cluster.ServiceNetworkCidr == "" {
+			return ValidationPending
+		}
+	} else {
+		if c.cluster.MachineNetworkCidr == "" || c.cluster.ClusterNetworkCidr == "" || c.cluster.ServiceNetworkCidr == "" {
+			return ValidationPending
+		}
 	}
-	return boolValue(network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr) == nil)
+	return boolValue(network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr, swag.BoolValue(c.cluster.UserManagedNetworking)) == nil)
 }
 
 func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, status validationStatus) string {
@@ -393,11 +435,14 @@ func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, 
 	case ValidationSuccess:
 		return "No CIDRS are overlapping."
 	case ValidationFailure:
-		if err := network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr); err != nil {
+		if err := network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr, swag.BoolValue(c.cluster.UserManagedNetworking)); err != nil {
 			return fmt.Sprintf("CIDRS Overlapping: %s.", err.Error())
 		}
 		return ""
 	case ValidationPending:
+		if swag.BoolValue(c.cluster.UserManagedNetworking) {
+			return "At least one of the CIDRs (Cluster Network, Service Network) is undefined."
+		}
 		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)

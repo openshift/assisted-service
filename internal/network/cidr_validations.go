@@ -70,16 +70,18 @@ func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, num
 	return nil
 }
 
-func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string) error {
-	err := VerifyCIDRsNotOverlap(machineNetworkCidr, serviceNetworkCidr)
-	if err != nil {
-		return errors.Wrap(err, "MachineNetworkCIDR and ServiceNetworkCIDR")
+func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string, userManagedNetworking bool) error {
+	if !userManagedNetworking {
+		err := VerifyCIDRsNotOverlap(machineNetworkCidr, serviceNetworkCidr)
+		if err != nil {
+			return errors.Wrap(err, "MachineNetworkCIDR and ServiceNetworkCIDR")
+		}
+		err = VerifyCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr)
+		if err != nil {
+			return errors.Wrap(err, "MachineNetworkCIDR and ClusterNetworkCidr")
+		}
 	}
-	err = VerifyCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr)
-	if err != nil {
-		return errors.Wrap(err, "MachineNetworkCIDR and ClusterNetworkCidr")
-	}
-	err = VerifyCIDRsNotOverlap(serviceNetworkCidr, clusterNetworkCidr)
+	err := VerifyCIDRsNotOverlap(serviceNetworkCidr, clusterNetworkCidr)
 	if err != nil {
 		return errors.Wrap(err, "ServiceNetworkCidr and ClusterNetworkCidr")
 	}

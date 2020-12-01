@@ -22,7 +22,7 @@ type vips struct {
 }
 
 func generateOpenshiftDhcpParamFileContents(cluster *common.Cluster) ([]byte, error) {
-	if swag.BoolValue(cluster.VipDhcpAllocation) {
+	if swag.BoolValue(cluster.VipDhcpAllocation) && !swag.BoolValue(cluster.UserManagedNetworking) {
 		if cluster.APIVip != "" && cluster.IngressVip != "" {
 			v := vips{
 				APIVip: &vip{
