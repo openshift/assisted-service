@@ -9,21 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/assisted-service/pkg/thread"
-
-	"github.com/openshift/assisted-service/internal/assistedserviceiso"
-	"github.com/openshift/assisted-service/internal/imgexpirer"
-	"github.com/openshift/assisted-service/internal/network"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
@@ -33,9 +25,12 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/imgexpirer"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/migrations"
+	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/app"
@@ -50,10 +45,13 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
@@ -342,6 +340,7 @@ func main() {
 	apiEnabler := NewApiEnabler(h, log)
 	h = app.WithHealthMiddleware(apiEnabler)
 	h = requestid.Middleware(h)
+	h = spec.WithSpecMiddleware(h)
 
 	switch Options.DeployTarget {
 	case deployment_type_k8s:
