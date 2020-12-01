@@ -4,6 +4,7 @@ filters:
   .*:
     approvers:
       - code-reviewers
+      - romfreiman
     reviewers:
       - code-reviewers
   Jenkinsfile:
