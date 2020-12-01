@@ -3571,7 +3571,7 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 
 	log.Infof("Register OCP cluster: %s with id %s", clusterName, id.String())
 
-	apiVIP, baseDNSDomain, machineCidr, err := b.getInstallConfigParamsFromOCP(log)
+	apiVIP, baseDNSDomain, machineCidr, sshKey, err := b.getInstallConfigParamsFromOCP(log)
 	if err != nil {
 		return err
 	}
@@ -3594,6 +3594,7 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 		APIVip:             apiVIP,
 		BaseDNSDomain:      baseDNSDomain,
 		MachineNetworkCidr: machineCidr,
+		SSHPublicKey:       sshKey,
 	}}
 
 	err = b.setPullSecretFromOCP(&cluster, log)
@@ -3644,31 +3645,36 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 	return nil
 }
 
-func (b *bareMetalInventory) getInstallConfigParamsFromOCP(log logrus.FieldLogger) (string, string, string, error) {
+func (b *bareMetalInventory) getInstallConfigParamsFromOCP(log logrus.FieldLogger) (string, string, string, string, error) {
 	configMap, err := b.k8sClient.GetConfigMap("kube-system", "cluster-config-v1")
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get configmap cluster-config-v1 from namespace kube-system")
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 	apiVIP, err := k8sclient.GetApiVIP(configMap, log)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get api VIP from configmap cluster-config-v1 from namespace kube-system")
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 	log.Infof("apiVIP is %s", apiVIP)
 	baseDomain, err := k8sclient.GetBaseDNSDomain(configMap, log)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get base domain from configmap cluster-config-v1 from namespace kube-system")
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 	log.Infof("baseDomain is %s", baseDomain)
 	machineCidr, err := k8sclient.GetMachineNetworkCIDR(configMap, log)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get machineCidr from configmap cluster-config-v1 from namespace kube-system")
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 	log.Infof("machineCidr is %s", machineCidr)
-	return apiVIP, baseDomain, machineCidr, nil
+	sshKey, err := k8sclient.GetSSHPublicKey(configMap, log)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get ssh public key from configmap cluster-config-v1 from namespace kube-system")
+		return "", "", "", "", err
+	}
+	return apiVIP, baseDomain, machineCidr, sshKey, nil
 }
 
 func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) (string, error) {

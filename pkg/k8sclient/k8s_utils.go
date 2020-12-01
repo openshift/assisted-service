@@ -49,7 +49,7 @@ func GetBaseDNSDomain(configMap *v1.ConfigMap, log logrus.FieldLogger) (string, 
 	}
 	baseDomain, ok := configStruct["baseDomain"].(string)
 	if !ok {
-		err := fmt.Errorf("invalid or missing baseDomain  key in cluster-config-v1")
+		err := fmt.Errorf("invalid or missing baseDomain key in cluster-config-v1")
 		log.WithError(err).Errorf("invalid format for cluster-config-v1")
 		return "", err
 	}
@@ -88,6 +88,22 @@ func GetMachineNetworkCIDR(configMap *v1.ConfigMap, log logrus.FieldLogger) (str
 		return "", err
 	}
 	return cidr, nil
+}
+
+func GetSSHPublicKey(configMap *v1.ConfigMap, log logrus.FieldLogger) (string, error) {
+        configStruct := make(map[string]interface{})
+        err := yaml.Unmarshal([]byte(configMap.Data["install-config"]), configStruct)
+        if err != nil {
+                log.WithError(err).Errorf("Failed to unmarshal confimap cluster-config-v1 data: <%s>", configMap.Data["install-config"])
+                return "", err
+        }
+        sshKey, ok := configStruct["sshKey"].(string)
+        if !ok {
+                err := fmt.Errorf("invalid or missing sshKey key in cluster-config-v1")
+                log.WithError(err).Errorf("invalid format for cluster-config-v1")
+                return "", err
+        }
+        return sshKey, nil
 }
 
 func GetClusterVersion(clusterVersion *configv1.ClusterVersion) (string, error) {
