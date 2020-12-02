@@ -41,6 +41,9 @@ type ClusterUpdateParams struct {
 	// Minimum: 1
 	ClusterNetworkHostPrefix *int64 `json:"cluster_network_host_prefix,omitempty"`
 
+	// The desired machine config pool for hosts associated with the cluster.
+	HostsMachineConfigPoolNames []*ClusterUpdateParamsHostsMachineConfigPoolNamesItems0 `json:"hosts_machine_config_pool_names"`
+
 	// The desired hostname for hosts associated with the cluster.
 	HostsNames []*ClusterUpdateParamsHostsNamesItems0 `json:"hosts_names" gorm:"type:varchar(64)[]"`
 
@@ -101,6 +104,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateClusterNetworkHostPrefix(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateHostsMachineConfigPoolNames(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -168,6 +175,31 @@ func (m *ClusterUpdateParams) validateClusterNetworkHostPrefix(formats strfmt.Re
 
 	if err := validate.MaximumInt("cluster_network_host_prefix", "body", int64(*m.ClusterNetworkHostPrefix), 128, false); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateHostsMachineConfigPoolNames(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.HostsMachineConfigPoolNames) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.HostsMachineConfigPoolNames); i++ {
+		if swag.IsZero(m.HostsMachineConfigPoolNames[i]) { // not required
+			continue
+		}
+
+		if m.HostsMachineConfigPoolNames[i] != nil {
+			if err := m.HostsMachineConfigPoolNames[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("hosts_machine_config_pool_names" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -273,6 +305,64 @@ func (m *ClusterUpdateParams) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *ClusterUpdateParams) UnmarshalBinary(b []byte) error {
 	var res ClusterUpdateParams
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// ClusterUpdateParamsHostsMachineConfigPoolNamesItems0 cluster update params hosts machine config pool names items0
+//
+// swagger:model ClusterUpdateParamsHostsMachineConfigPoolNamesItems0
+type ClusterUpdateParamsHostsMachineConfigPoolNamesItems0 struct {
+
+	// id
+	// Format: uuid
+	ID strfmt.UUID `json:"id,omitempty"`
+
+	// machine config pool name
+	MachineConfigPoolName string `json:"machine_config_pool_name,omitempty"`
+}
+
+// Validate validates this cluster update params hosts machine config pool names items0
+func (m *ClusterUpdateParamsHostsMachineConfigPoolNamesItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ClusterUpdateParamsHostsMachineConfigPoolNamesItems0) validateID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *ClusterUpdateParamsHostsMachineConfigPoolNamesItems0) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *ClusterUpdateParamsHostsMachineConfigPoolNamesItems0) UnmarshalBinary(b []byte) error {
+	var res ClusterUpdateParamsHostsMachineConfigPoolNamesItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

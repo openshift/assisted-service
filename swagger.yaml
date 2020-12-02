@@ -2725,6 +2725,8 @@ definitions:
         example: '{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}'
       installer_args:
         type: string
+      machine_config_pool_name:
+        type: string
 
 
   installer-args-params:
@@ -3009,6 +3011,18 @@ definitions:
               type: string
               format: uuid
             hostname:
+              type: string
+      hosts_machine_config_pool_names:
+        type: array
+        description: The desired machine config pool for hosts associated with the cluster.
+        x-nullable: true
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            machine_config_pool_name:
               type: string
       user-managed-networking:
         type: boolean

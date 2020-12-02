@@ -116,6 +116,26 @@ var _ = Describe("Day2 cluster tests", func() {
 		Expect(h.RequestedHostname).Should(Equal("host2newname"))
 	})
 
+	It("cluster update machineConfigPool", func() {
+		host1 := &registerHost(clusterID).Host
+		host2 := &registerHost(clusterID).Host
+
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				HostsMachineConfigPoolNames: []*models.ClusterUpdateParamsHostsMachineConfigPoolNamesItems0{
+					{ID: *host1.ID, MachineConfigPoolName: "host1newpool"},
+					{ID: *host2.ID, MachineConfigPoolName: "host2newpool"},
+				},
+			},
+			ClusterID: clusterID,
+		})
+
+		h := getHost(clusterID, *host1.ID)
+		Expect(h.MachineConfigPoolName).Should(Equal("host1newpool"))
+		h = getHost(clusterID, *host2.ID)
+		Expect(h.MachineConfigPoolName).Should(Equal("host2newpool"))
+	})
+
 	It("check host states - one node", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)

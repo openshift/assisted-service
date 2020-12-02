@@ -86,19 +86,17 @@ type Config struct {
 
 //go:generate mockgen -source=host.go -package=host -aux_files=github.com/openshift/assisted-service/internal/host=instructionmanager.go -destination=mock_host_api.go
 type API interface {
+	InstructionApi
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	HandleInstallationFailure(ctx context.Context, h *models.Host) error
-	InstructionApi
 	UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	UpdateApiVipConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
-	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
-	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
 	CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	IsRequireUserActionReset(h *models.Host) bool
 	ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
@@ -109,9 +107,6 @@ type API interface {
 	EnableHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	// Install host - db is optional, for transactions
 	Install(ctx context.Context, h *models.Host, db *gorm.DB) error
-	// Set a new inventory information
-	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
-	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage
 	IsInstallable(h *models.Host) bool
 	PrepareForInstallation(ctx context.Context, h *models.Host, db *gorm.DB) error
@@ -121,6 +116,12 @@ type API interface {
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
 	PermanentHostsDeletion(olderThen strfmt.DateTime) error
+
+	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
+	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
+	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
+	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
+	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
 }
 
 type Manager struct {
@@ -207,10 +208,8 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
 	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{
-		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
-		models.HostStatusInsufficient, models.HostStatusPendingForInput, models.HostStatusInstallingInProgress,
-	}
+	allowedStatuses := append(hostStatusesBeforeInstallation[:], models.HostStatusInstallingInProgress)
+
 	if !funk.ContainsString(allowedStatuses, hostStatus) {
 		return common.NewApiError(http.StatusConflict,
 			errors.Errorf("Host is in %s state, host can be updated only in one of %s states",
@@ -383,7 +382,34 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.Ho
 	if db != nil {
 		cdb = db
 	}
-	return updateRole(h, role, cdb, nil)
+
+	if h.Role == "" {
+		return updateRole(m.log, h, role, cdb, nil)
+	} else {
+		return updateRole(m.log, h, role, cdb, swag.String(string(h.Role)))
+	}
+}
+
+func (m *Manager) UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error {
+	if !IsDay2Host(h) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host %s must be in day2 to update its machine config pool name to %s",
+				h.ID.String(), machineConfigPoolName))
+	}
+
+	hostStatus := swag.StringValue(h.Status)
+	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, host machine config poll can be set only in one of %s states",
+				hostStatus, hostStatusesBeforeInstallation[:]))
+	}
+
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+
+	return cdb.Model(h).Update("machine_config_pool_name", machineConfigPoolName).Error
 }
 
 func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {
@@ -397,14 +423,10 @@ func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*m
 
 func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
 	hostStatus := swag.StringValue(h.Status)
-	allowedStatuses := []string{
-		models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
-		models.HostStatusInsufficient, models.HostStatusPendingForInput,
-	}
-	if !funk.ContainsString(allowedStatuses, hostStatus) {
+	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host is in %s state, host name can be set only in one of %s states",
-				hostStatus, allowedStatuses))
+				hostStatus, hostStatusesBeforeInstallation[:]))
 	}
 
 	h.RequestedHostname = hostname
@@ -582,7 +604,7 @@ func (m *Manager) autoRoleSelection(ctx context.Context, h *models.Host, db *gor
 		return err
 	}
 	// use sourced role to prevent races with user role setting
-	if err := updateRole(h, role, db, swag.String(string(models.HostRoleAutoAssign))); err != nil {
+	if err := updateRole(m.log, h, role, db, swag.String(string(models.HostRoleAutoAssign))); err != nil {
 		log.WithError(err).Errorf("failed to update role %s for host %s cluster %s",
 			role, h.ID.String(), h.ClusterID.String())
 	}

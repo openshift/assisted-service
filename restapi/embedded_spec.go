@@ -4215,6 +4215,23 @@ func init() {
           "minimum": 1,
           "x-nullable": true
         },
+        "hosts_machine_config_pool_names": {
+          "description": "The desired machine config pool for hosts associated with the cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "machine_config_pool_name": {
+                "type": "string"
+              }
+            }
+          },
+          "x-nullable": true
+        },
         "hosts_names": {
           "description": "The desired hostname for hosts associated with the cluster.",
           "type": "array",
@@ -4807,6 +4824,9 @@ func init() {
           "type": "string",
           "format": "datetime",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "machine_config_pool_name": {
+          "type": "string"
         },
         "ntp_sources": {
           "description": "The configured NTP sources on the host.",
@@ -9295,6 +9315,18 @@ func init() {
     }
   },
   "definitions": {
+    "ClusterUpdateParamsHostsMachineConfigPoolNamesItems0": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "machine_config_pool_name": {
+          "type": "string"
+        }
+      }
+    },
     "ClusterUpdateParamsHostsNamesItems0": {
       "type": "object",
       "properties": {
@@ -9795,6 +9827,14 @@ func init() {
           "type": "integer",
           "maximum": 128,
           "minimum": 1,
+          "x-nullable": true
+        },
+        "hosts_machine_config_pool_names": {
+          "description": "The desired machine config pool for hosts associated with the cluster.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClusterUpdateParamsHostsMachineConfigPoolNamesItems0"
+          },
           "x-nullable": true
         },
         "hosts_names": {
@@ -10371,6 +10411,9 @@ func init() {
           "type": "string",
           "format": "datetime",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "machine_config_pool_name": {
+          "type": "string"
         },
         "ntp_sources": {
           "description": "The configured NTP sources on the host.",

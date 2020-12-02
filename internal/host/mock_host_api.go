@@ -38,6 +38,21 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
+// GetNextSteps mocks base method
+func (m *MockAPI) GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNextSteps", ctx, host)
+	ret0, _ := ret[0].(models.Steps)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNextSteps indicates an expected call of GetNextSteps
+func (mr *MockAPIMockRecorder) GetNextSteps(ctx, host interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextSteps", reflect.TypeOf((*MockAPI)(nil).GetNextSteps), ctx, host)
+}
+
 // RegisterHost mocks base method
 func (m *MockAPI) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	m.ctrl.T.Helper()
@@ -78,21 +93,6 @@ func (m *MockAPI) HandleInstallationFailure(ctx context.Context, h *models.Host)
 func (mr *MockAPIMockRecorder) HandleInstallationFailure(ctx, h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleInstallationFailure", reflect.TypeOf((*MockAPI)(nil).HandleInstallationFailure), ctx, h)
-}
-
-// GetNextSteps mocks base method
-func (m *MockAPI) GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNextSteps", ctx, host)
-	ret0, _ := ret[0].(models.Steps)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetNextSteps indicates an expected call of GetNextSteps
-func (mr *MockAPIMockRecorder) GetNextSteps(ctx, host interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextSteps", reflect.TypeOf((*MockAPI)(nil).GetNextSteps), ctx, host)
 }
 
 // UpdateInstallProgress mocks base method
@@ -175,34 +175,6 @@ func (m *MockAPI) HostMonitoring() {
 func (mr *MockAPIMockRecorder) HostMonitoring() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostMonitoring", reflect.TypeOf((*MockAPI)(nil).HostMonitoring))
-}
-
-// UpdateRole mocks base method
-func (m *MockAPI) UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateRole", ctx, h, role, db)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateRole indicates an expected call of UpdateRole
-func (mr *MockAPIMockRecorder) UpdateRole(ctx, h, role, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRole", reflect.TypeOf((*MockAPI)(nil).UpdateRole), ctx, h, role, db)
-}
-
-// UpdateHostname mocks base method
-func (m *MockAPI) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateHostname", ctx, h, hostname, db)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateHostname indicates an expected call of UpdateHostname
-func (mr *MockAPIMockRecorder) UpdateHostname(ctx, h, hostname, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostname", reflect.TypeOf((*MockAPI)(nil).UpdateHostname), ctx, h, hostname, db)
 }
 
 // CancelInstallation mocks base method
@@ -301,34 +273,6 @@ func (m *MockAPI) Install(ctx context.Context, h *models.Host, db *gorm.DB) erro
 func (mr *MockAPIMockRecorder) Install(ctx, h, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockAPI)(nil).Install), ctx, h, db)
-}
-
-// UpdateInventory mocks base method
-func (m *MockAPI) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateInventory", ctx, h, inventory)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateInventory indicates an expected call of UpdateInventory
-func (mr *MockAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockAPI)(nil).UpdateInventory), ctx, h, inventory)
-}
-
-// UpdateNTP mocks base method
-func (m *MockAPI) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateNTP", ctx, h, ntpSources, db)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateNTP indicates an expected call of UpdateNTP
-func (mr *MockAPIMockRecorder) UpdateNTP(ctx, h, ntpSources, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNTP", reflect.TypeOf((*MockAPI)(nil).UpdateNTP), ctx, h, ntpSources, db)
 }
 
 // GetStagesByRole mocks base method
@@ -442,4 +386,74 @@ func (m *MockAPI) PermanentHostsDeletion(olderThen strfmt.DateTime) error {
 func (mr *MockAPIMockRecorder) PermanentHostsDeletion(olderThen interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermanentHostsDeletion", reflect.TypeOf((*MockAPI)(nil).PermanentHostsDeletion), olderThen)
+}
+
+// UpdateRole mocks base method
+func (m *MockAPI) UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateRole", ctx, h, role, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateRole indicates an expected call of UpdateRole
+func (mr *MockAPIMockRecorder) UpdateRole(ctx, h, role, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRole", reflect.TypeOf((*MockAPI)(nil).UpdateRole), ctx, h, role, db)
+}
+
+// UpdateHostname mocks base method
+func (m *MockAPI) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHostname", ctx, h, hostname, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateHostname indicates an expected call of UpdateHostname
+func (mr *MockAPIMockRecorder) UpdateHostname(ctx, h, hostname, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostname", reflect.TypeOf((*MockAPI)(nil).UpdateHostname), ctx, h, hostname, db)
+}
+
+// UpdateInventory mocks base method
+func (m *MockAPI) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInventory", ctx, h, inventory)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateInventory indicates an expected call of UpdateInventory
+func (mr *MockAPIMockRecorder) UpdateInventory(ctx, h, inventory interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockAPI)(nil).UpdateInventory), ctx, h, inventory)
+}
+
+// UpdateNTP mocks base method
+func (m *MockAPI) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateNTP", ctx, h, ntpSources, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateNTP indicates an expected call of UpdateNTP
+func (mr *MockAPIMockRecorder) UpdateNTP(ctx, h, ntpSources, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNTP", reflect.TypeOf((*MockAPI)(nil).UpdateNTP), ctx, h, ntpSources, db)
+}
+
+// UpdateMachineConfigPoolName mocks base method
+func (m *MockAPI) UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMachineConfigPoolName", ctx, db, h, machineConfigPoolName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateMachineConfigPoolName indicates an expected call of UpdateMachineConfigPoolName
+func (mr *MockAPIMockRecorder) UpdateMachineConfigPoolName(ctx, db, h, machineConfigPoolName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMachineConfigPoolName", reflect.TypeOf((*MockAPI)(nil).UpdateMachineConfigPoolName), ctx, db, h, machineConfigPoolName)
 }
