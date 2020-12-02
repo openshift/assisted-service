@@ -133,6 +133,9 @@ type Cluster struct {
 	// Enum: [4.5 4.6 4.7]
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
+	// operators
+	Operators *Operators `json:"operators,omitempty" gorm:"embedded;embedded_prefix:operators_"`
+
 	// org id
 	OrgID string `json:"org_id,omitempty"`
 
@@ -252,6 +255,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateOperators(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -609,6 +616,24 @@ func (m *Cluster) validateOpenshiftVersion(formats strfmt.Registry) error {
 	// value enum
 	if err := m.validateOpenshiftVersionEnum("openshift_version", "body", m.OpenshiftVersion); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateOperators(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Operators) { // not required
+		return nil
+	}
+
+	if m.Operators != nil {
+		if err := m.Operators.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("operators")
+			}
+			return err
+		}
 	}
 
 	return nil

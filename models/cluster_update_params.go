@@ -76,6 +76,9 @@ type ClusterUpdateParams struct {
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
+	// operators
+	Operators *Operators `json:"operators,omitempty"`
+
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 	PullSecret *string `json:"pull_secret,omitempty"`
 
@@ -130,6 +133,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateName(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateOperators(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -299,6 +306,24 @@ func (m *ClusterUpdateParams) validateName(formats strfmt.Registry) error {
 
 	if err := validate.MaxLength("name", "body", string(*m.Name), 54); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateOperators(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Operators) { // not required
+		return nil
+	}
+
+	if m.Operators != nil {
+		if err := m.Operators.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("operators")
+			}
+			return err
+		}
 	}
 
 	return nil
