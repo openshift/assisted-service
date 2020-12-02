@@ -79,6 +79,11 @@
                     <li class="toctree-l1"><a class="reference internal" href="../deploy-on-OSP/">OCP Deployment on Openstack</a>
                     </li>
                 </ul>
+                <p class="caption"><span class="caption-text">OAS Development</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../dev/migrations/">Migrations</a>
+                    </li>
+                </ul>
       </div>
     </div>
     </nav>
@@ -117,25 +122,22 @@
               
                 <h1 id="how-to-deploy-oas-on-openshift">How to deploy OAS on OpenShift</h1>
 <p>Besides default minikube deployment, the service support deployment to OpenShift cluster using ingress as the access point to the service.</p>
-<pre><code class="shell">make deploy-all TARGET=oc-ingress
+<pre><code class="language-shell">make deploy-all TARGET=oc-ingress
 </code></pre>
-
 <p>This deployment option have multiple optional parameters that should be used in case you are not the Admin of the cluster:
 1. <code>APPLY_NAMESPACE</code> - True by default. Will try to deploy "assisted-installer" namespace, if you are not the Admin of the cluster or maybe you don't have permissions for this operation you may skip namespace deployment.
 1. <code>INGRESS_DOMAIN</code> - By default deployment script will try to get the domain prefix from OpenShift ingress controller. If you don't have access to it then you may specify the domain yourself. For example: <code>apps.ocp.prod.psi.redhat.com</code></p>
 <p>To set the parameters simply add them in the end of the command, for example</p>
-<pre><code class="shell">make deploy-all TARGET=oc-ingress APPLY_NAMESPACE=False INGRESS_DOMAIN=apps.ocp.prod.psi.redhat.com
+<pre><code class="language-shell">make deploy-all TARGET=oc-ingress APPLY_NAMESPACE=False INGRESS_DOMAIN=apps.ocp.prod.psi.redhat.com
 </code></pre>
-
 <p><em><strong>Note</strong>: All deployment configurations are under the <code>deploy</code> directory in case more detailed configuration is required.</em></p>
 <h2 id="deploying-the-ui">Deploying the UI</h2>
 <p>This service support optional UI deployment.</p>
-<pre><code class="shell">make deploy-ui TARGET=oc-ingress
+<pre><code class="language-shell">make deploy-ui TARGET=oc-ingress
 </code></pre>
-
 <h2 id="deploy-monitoring">Deploy Monitoring</h2>
 <p>This will allow you to deploy Prometheus and Grafana already integrated with Assisted installer:</p>
-<pre><code class="shell"># Step by step
+<pre><code class="language-shell"># Step by step
 make deploy-prometheus TARGET=oc-ingress APPLY_NAMESPACE=false
 make deploy-grafana TARGET=oc-ingress APPLY_NAMESPACE=false
 

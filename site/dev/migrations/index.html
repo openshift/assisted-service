@@ -9,7 +9,7 @@
   <meta name="author" content="Openshift Assisted Service Team">
   
   <link rel="shortcut icon" href="../../img/favicon.ico">
-  <title>OCP Deployment on Openstack - Openshift Assisted Service</title>
+  <title>Migrations - Openshift Assisted Service</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
   <link rel="stylesheet" href="../../css/theme.css" />
@@ -18,8 +18,8 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "OCP Deployment on Openstack";
-    var mkdocs_page_input_path = "user-guide/deploy-on-OSP.md";
+    var mkdocs_page_name = "Migrations";
+    var mkdocs_page_input_path = "dev/migrations.md";
     var mkdocs_page_url = null;
   </script>
   
@@ -53,31 +53,37 @@
                 </ul>
                 <p class="caption"><span class="caption-text">OAS Deployment</span></p>
                 <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../assisted-service-on-local/">OAS Running on Local</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-local/">OAS Running on Local</a>
                     </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../assisted-service-on-openshift/">OAS Running on Openshift</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/assisted-service-on-openshift/">OAS Running on Openshift</a>
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">Openshift Deployment</span></p>
-                <ul class="current">
-                    <li class="toctree-l1"><a class="reference internal" href="../user-guide/">User Guide Index</a>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/user-guide/">User Guide Index</a>
                     </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../deploy-on-local/">OCP Deployment on Local</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-local/">OCP Deployment on Local</a>
                     </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../deploy-on-bare-metal/">OCP Deployment on Bare Metal</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-bare-metal/">OCP Deployment on Bare Metal</a>
                     </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../deploy-on-vsphere/">OCP Deployment on vSphere</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-vsphere/">OCP Deployment on vSphere</a>
                     </li>
-                    <li class="toctree-l1"><a class="reference internal" href="../deploy-on-RHEV/">OCP Deployment on RHEV</a>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-RHEV/">OCP Deployment on RHEV</a>
                     </li>
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">OCP Deployment on Openstack</a>
-    <ul class="current">
-    </ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../../user-guide/deploy-on-OSP/">OCP Deployment on Openstack</a>
                     </li>
                 </ul>
                 <p class="caption"><span class="caption-text">OAS Development</span></p>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../../dev/migrations/">Migrations</a>
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Migrations</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#why">Why?</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#how">How?</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#adding-a-new-migration">Adding a new migration</a>
+    </li>
+    </ul>
                     </li>
                 </ul>
       </div>
@@ -101,11 +107,11 @@
     
       
         
-          <li>Openshift Deployment &raquo;</li>
+          <li>OAS Development &raquo;</li>
         
       
     
-    <li>OCP Deployment on Openstack</li>
+    <li>Migrations</li>
     <li class="wy-breadcrumbs-aside">
       
     </li>
@@ -116,8 +122,27 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="openshift-deployment-with-oas-on-openstack">Openshift deployment with OAS - On Openstack</h1>
-<p>work in progress...</p>
+                <h2 id="migrations">Migrations</h2>
+<h3 id="why">Why?</h3>
+<p>There are some database changes that GORM auto migration <a href="https://v1.gorm.io/docs/migration.html#Auto-Migration">will not handle for us</a>.
+These need to be dealt with separately.</p>
+<h3 id="how">How?</h3>
+<p>To do this we are using a migration module called <a href="https://pkg.go.dev/gopkg.in/gormigrate.v1">gormigrate</a>.
+Migrations are run at startup right after the automigration is run.</p>
+<h3 id="adding-a-new-migration">Adding a new migration</h3>
+<ul>
+<li>Each migration should have a separate file in <code>/internal/migrations</code> prefixed with a timestamp which will also be the migration ID</li>
+<li>Each migration should have a single function named to describe the change which returns a <code>*gormigrate.Migration</code><ul>
+<li>Both migrate (up) and rollback (down) should be implemented if possible</li>
+</ul>
+</li>
+<li>Every migration should have a corresponding test (especially for migrations which are changing data)</li>
+<li>A new migration scaffold can be created using <code>MIGRATION_NAME=someMigrationNameHere make generate-migration</code><ul>
+<li>This will give the migration files a proper timestamp as well as (empty) tests</li>
+</ul>
+</li>
+</ul>
+<p>To be run, every migration function should be added to the list in <code>migrations.all()</code></p>
               
             </div>
           </div>
@@ -125,10 +150,8 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../../dev/migrations/" class="btn btn-neutral float-right" title="Migrations">Next <span class="icon icon-circle-arrow-right"></span></a>
       
-      
-        <a href="../deploy-on-RHEV/" class="btn btn-neutral" title="OCP Deployment on RHEV"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../../user-guide/deploy-on-OSP/" class="btn btn-neutral" title="OCP Deployment on Openstack"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -156,10 +179,8 @@
           <a href="https://github.com/openshift/assisted-service" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../deploy-on-RHEV/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../../user-guide/deploy-on-OSP/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
-      
-        <span style="margin-left: 15px"><a href="../../dev/migrations/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>

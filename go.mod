@@ -26,6 +26,7 @@ require (
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/mock v1.4.3
 	github.com/google/uuid v1.1.1
+	github.com/iancoleman/strcase v0.1.2
 	github.com/jinzhu/gorm v1.9.12
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0

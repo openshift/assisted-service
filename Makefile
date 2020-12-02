@@ -112,6 +112,9 @@ generate-python-client: $(BUILD_FOLDER)
 generate-keys: $(BUILD_FOLDER)
 	cd tools && go run auth_keys_generator.go -keys-dir=$(BUILD_FOLDER)
 
+generate-migration:
+	go run tools/migration_generator/migration_generator.go -name=$(MIGRATION_NAME)
+
 ##################
 # Build & Update #
 ##################
