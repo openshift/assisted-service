@@ -36,7 +36,7 @@ type ImageInfo struct {
 	SizeBytes *int64 `json:"size_bytes,omitempty"`
 
 	// SSH public key for debugging the installation.
-	SSHPublicKey string `json:"ssh_public_key,omitempty" gorm:"type:varchar(1024)"`
+	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 }
 
 // Validate validates this image info

@@ -147,7 +147,7 @@ type Cluster struct {
 	ServiceNetworkCidr string `json:"service_network_cidr,omitempty"`
 
 	// SSH public key for debugging OpenShift nodes.
-	SSHPublicKey string `json:"ssh_public_key,omitempty" gorm:"type:varchar(1024)"`
+	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 
 	// Status of the OpenShift cluster.
 	// Required: true

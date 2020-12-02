@@ -3136,7 +3136,6 @@ definitions:
         description: The virtual IP used for cluster ingress traffic.
       ssh_public_key:
         type: string
-        x-go-custom-tag: gorm:"type:varchar(1024)"
         description: SSH public key for debugging OpenShift nodes.
       http_proxy:
         type: string
@@ -3259,7 +3258,6 @@ definitions:
     properties:
       ssh_public_key:
         type: string
-        x-go-custom-tag: gorm:"type:varchar(1024)"
         description: SSH public key for debugging the installation.
       size_bytes:
         type: integer
