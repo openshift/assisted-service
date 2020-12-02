@@ -76,7 +76,30 @@ var _ = Describe("system-test image tests", func() {
 			}
 		}
 		Expect(nRegisteredEvents).ShouldNot(Equal(0))
+	})
 
+	It("Image is removed after patching ignition", func() {
+		file, err := ioutil.TempFile("", "tmp")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.Remove(file.Name())
+
+		_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+			ClusterID:         clusterID,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		params := &installer.UpdateDiscoveryIgnitionParams{
+			ClusterID:               clusterID,
+			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"},
+		}
+		_, err = userBMClient.Installer.UpdateDiscoveryIgnition(ctx, params)
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: clusterID}, file)
+		Expect(err).To(BeAssignableToTypeOf(installer.NewDownloadClusterISONotFound()))
 	})
 })
 
