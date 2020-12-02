@@ -51,6 +51,7 @@ type Config struct {
 	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
 	SubsystemRun         bool   `envconfig:"SUBSYSTEM_RUN"`
 	ReleaseImage         string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
+	ReleaseImageMirror   string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	SkipCertVerification bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 	WorkDir              string `envconfig:"WORK_DIR" default:"/data/"`
 	DummyIgnition        bool   `envconfig:"DUMMY_IGNITION"`
@@ -332,7 +333,7 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 	if k.Config.DummyIgnition {
 		generator = ignition.NewDummyGenerator(workDir, &cluster, k.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, k.Config.ReleaseImage, k.Config.ServiceCACertPath, k.s3Client, log)
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, k.Config.ReleaseImage, "", k.Config.ServiceCACertPath, k.s3Client, log)
 	}
 	err = generator.Generate(ctx, cfg)
 	if err != nil {

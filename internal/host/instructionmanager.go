@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 
 	"github.com/openshift/assisted-service/internal/connectivity"
+	"github.com/openshift/assisted-service/internal/oc"
 
 	"github.com/jinzhu/gorm"
 
@@ -58,11 +59,13 @@ type InstructionConfig struct {
 	SkipCertVerification         bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 	SupportL2                    bool   `envconfig:"SUPPORT_L2" default:"true"`
 	InstallationTimeout          uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
+	ReleaseImage                 string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE" default:"quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3"`
+	ReleaseImageMirror           string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 }
 
-func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator, eventsHandler events.Handler) *InstructionManager {
+func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release, instructionConfig InstructionConfig, connectivityValidator connectivity.Validator, eventsHandler events.Handler) *InstructionManager {
 	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.ConnectivityCheckImage)
-	installCmd := NewInstallCmd(log, db, hwValidator, instructionConfig, eventsHandler)
+	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.InventoryImage)
 	freeAddressesCmd := NewFreeAddressesCmd(log, instructionConfig.FreeAddressesImage)
 	resetCmd := NewResetInstallationCmd(log)

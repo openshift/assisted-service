@@ -61,6 +61,7 @@ type installerGenerator struct {
 	workDir                 string
 	cluster                 *common.Cluster
 	releaseImage            string
+	releaseImageMirror      string
 	installerDir            string
 	serviceCACert           string
 	encodedDhcpFileContents string
@@ -68,16 +69,17 @@ type installerGenerator struct {
 }
 
 // NewGenerator returns a generator that can generate ignition files
-func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string,
+func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
 	return &installerGenerator{
-		cluster:       cluster,
-		log:           log,
-		releaseImage:  releaseImage,
-		workDir:       workDir,
-		installerDir:  installerDir,
-		serviceCACert: serviceCACert,
-		s3Client:      s3Client,
+		cluster:            cluster,
+		log:                log,
+		releaseImage:       releaseImage,
+		releaseImageMirror: releaseImageMirror,
+		workDir:            workDir,
+		installerDir:       installerDir,
+		serviceCACert:      serviceCACert,
+		s3Client:           s3Client,
 	}
 }
 
@@ -89,7 +91,7 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 
 // Generate generates ignition files and applies modifications.
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
-	installerPath, err := installercache.Get(g.releaseImage, g.installerDir, g.cluster.PullSecret, g.log)
+	installerPath, err := installercache.Get(g.releaseImage, g.releaseImageMirror, g.installerDir, g.cluster.PullSecret, g.log)
 	if err != nil {
 		return err
 	}

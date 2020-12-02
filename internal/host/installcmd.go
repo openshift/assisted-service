@@ -19,6 +19,7 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -26,15 +27,17 @@ type installCmd struct {
 	baseCmd
 	db                *gorm.DB
 	hwValidator       hardware.Validator
+	ocRelease         oc.Release
 	instructionConfig InstructionConfig
 	eventsHandler     events.Handler
 }
 
-func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, eventsHandler events.Handler) *installCmd {
+func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release, instructionConfig InstructionConfig, eventsHandler events.Handler) *installCmd {
 	return &installCmd{
 		baseCmd:           baseCmd{log: log},
 		db:                db,
 		hwValidator:       hwValidator,
+		ocRelease:         ocRelease,
 		instructionConfig: instructionConfig,
 		eventsHandler:     eventsHandler,
 	}
@@ -57,9 +60,14 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		role = models.HostRoleBootstrap
 	}
 
+	mcoImage, err := i.ocRelease.GetMCOImage(i.log, i.instructionConfig.ReleaseImage, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+	if err != nil {
+		return nil, err
+	}
+
 	cmdArgsTmpl := "podman run -v /dev:/dev:rw -v /opt:/opt:rw {{if .HOST_CA_CERT_PATH}}-v {{.HOST_CA_CERT_PATH}}:{{.HOST_CA_CERT_PATH}}:rw {{end}}-v /run/systemd/journal/socket:/run/systemd/journal/socket --privileged --pid=host --net=host " +
 		"-v /var/log:/var/log:rw --env PULL_SECRET_TOKEN --name assisted-installer {{.INSTALLER}} --role {{.ROLE}} --cluster-id {{.CLUSTER_ID}} " +
-		"--boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}} " +
+		"--boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}} --mco-image {{.MCO_IMAGE}} " +
 		"--controller-image {{.CONTROLLER_IMAGE}} --url {{.BASE_URL}} --insecure={{.SKIP_CERT_VERIFICATION}} --agent-image {{.AGENT_IMAGE}}"
 	data := map[string]string{
 		"BASE_URL":               strings.TrimSpace(i.instructionConfig.ServiceBaseURL),
@@ -70,6 +78,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		"CONTROLLER_IMAGE":       i.instructionConfig.ControllerImage,
 		"BOOT_DEVICE":            "",
 		"OPENSHIFT_VERSION":      cluster.OpenshiftVersion,
+		"MCO_IMAGE":              mcoImage,
 		"SKIP_CERT_VERIFICATION": strconv.FormatBool(i.instructionConfig.SkipCertVerification),
 		"AGENT_IMAGE":            i.instructionConfig.InventoryImage,
 	}
