@@ -103,7 +103,6 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 				Role:              models.HostRoleMaster,
 			},
 		}
-
 		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
 		err = g.updateBootstrap(examplePath)
 
@@ -700,4 +699,49 @@ var _ = Describe("Generator UploadToS3", func() {
 			Expect(err).Should(HaveOccurred())
 		})
 	})
+})
+
+var _ = Describe("Lso manifests creation Test", func() {
+	var (
+		lsoErr     error
+		lsoEnabled bool
+	)
+
+	BeforeEach(func() {
+
+		err := os.Mkdir("manifests", 0755) // Create a Temporary directory to test creation of Lso manifests
+		Expect(err).NotTo(HaveOccurred())
+
+	})
+	Describe("Lso Manifests", func() {
+		It("lsoEnabled", func() {
+			cluster.Operators = &models.Operators{
+				Lso: &models.Lso{
+					Enabled: swag.Bool(true),
+				},
+			}
+			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
+			lsoEnabled = g.checkLsoEnabled()
+			Expect(lsoEnabled).To(Equal(true))
+		})
+		It("lso manifests creation with lso enabled", func() {
+			cluster.Operators = &models.Operators{
+				Lso: &models.Lso{
+					Enabled: swag.Bool(true),
+				},
+			}
+			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
+			lsoErr = g.createLsoManifests()
+			Expect(lsoErr).NotTo(HaveOccurred())
+		})
+	})
+	It("lsoDisabled", func() {
+		g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
+		lsoEnabled = g.checkLsoEnabled()
+		Expect(lsoEnabled).To(Equal(false))
+	})
+})
+
+var _ = AfterEach(func() {
+	os.RemoveAll("manifests")
 })

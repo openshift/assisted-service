@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"golang.org/x/sync/errgroup"
@@ -88,6 +89,52 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
 }
+func (g *installerGenerator) checkLsoEnabled() bool {
+	return g.cluster.Operators != nil && g.cluster.Operators.Lso != nil && *g.cluster.Operators.Lso.Enabled
+}
+
+func (g *installerGenerator) createManifestDirectory(installerPath string, envVars []string) error {
+	err := g.runCreateCommand(installerPath, "manifests", envVars)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g *installerGenerator) createLsoManifests() error {
+	g.log.Info("Creating LSO Manifests")
+	manifests, err := lso.Manifests(g.cluster.Cluster.OpenshiftVersion)
+	if err != nil {
+		g.log.Error(err)
+		return err
+	}
+	manifestDirPath := filepath.Join(g.workDir, "manifests")
+	for name, manifest := range manifests {
+		manifestPath := filepath.Join(manifestDirPath, name)
+		err := ioutil.WriteFile(manifestPath, []byte(manifest), 0600)
+		if err != nil {
+			g.log.Errorf("Failed to write file %s %s", manifestPath, name)
+			return err
+		}
+	}
+	return nil
+}
+func (g *installerGenerator) generateLsoManifests(ctx context.Context, installerPath string, envVars []string) error {
+	if g.checkLsoEnabled() {
+		err := g.createManifestDirectory(installerPath, envVars)
+		if err != nil {
+			g.log.Error(err)
+			return err
+		}
+		err = g.createLsoManifests()
+		if err != nil {
+			g.log.Error(err)
+			return err
+		}
+	}
+
+	return nil
+}
 
 // Generate generates ignition files and applies modifications.
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
@@ -138,6 +185,11 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 				return err
 			}
 		}
+	}
+
+	err = g.generateLsoManifests(ctx, installerPath, envVars)
+	if err != nil {
+		return err
 	}
 
 	err = g.runCreateCommand(installerPath, "ignition-configs", envVars)
