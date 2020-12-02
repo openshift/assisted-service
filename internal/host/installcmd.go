@@ -3,10 +3,14 @@ package host
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
+
+	"github.com/openshift/assisted-service/internal/events"
 
 	"github.com/sirupsen/logrus"
 
@@ -23,14 +27,16 @@ type installCmd struct {
 	db                *gorm.DB
 	hwValidator       hardware.Validator
 	instructionConfig InstructionConfig
+	eventsHandler     events.Handler
 }
 
-func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig) *installCmd {
+func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, instructionConfig InstructionConfig, eventsHandler events.Handler) *installCmd {
 	return &installCmd{
 		baseCmd:           baseCmd{log: log},
 		db:                db,
 		hwValidator:       hwValidator,
 		instructionConfig: instructionConfig,
+		eventsHandler:     eventsHandler,
 	}
 }
 
@@ -120,10 +126,17 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	}
 
 	buf := &bytes.Buffer{}
-	if err := t.Execute(buf, data); err != nil {
+	if err = t.Execute(buf, data); err != nil {
 		return nil, err
 	}
 	step.Args = []string{"-c", buf.String()}
+
+	unbootableCmd, err := i.getDiskUnbootableCmd(ctx, *host)
+	if err != nil {
+		return nil, err
+	}
+
+	step.Args = []string{"-c", unbootableCmd + buf.String()}
 
 	if _, err := UpdateHost(i.log, i.db, host.ClusterID, *host.ID, *host.Status,
 		"installer_version", i.instructionConfig.InstallerImage, "installation_disk_path", bootdevice); err != nil {
@@ -149,4 +162,28 @@ func getBootDevice(log logrus.FieldLogger, hwValidator hardware.Validator, host 
 
 func GetDeviceFullName(name string) string {
 	return fmt.Sprintf("/dev/%s", name)
+}
+
+func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host) (string, error) {
+	var inventory models.Inventory
+	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+		i.log.Errorf("Failed to get inventory from host with id %s", host.ID)
+		return "", err
+	}
+	formatCmds := ""
+	for _, disk := range inventory.Disks {
+		isFcIscsi := strings.Contains(disk.ByPath, "-fc-") || strings.Contains(disk.ByPath, "-iscsi-")
+		if disk.Bootable && !isFcIscsi {
+			dev := GetDeviceFullName(disk.Name)
+			formatCmds += fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=1 ; ", dev)
+			i.eventsHandler.AddEvent(
+				ctx,
+				host.ClusterID,
+				host.ID,
+				models.EventSeverityInfo,
+				fmt.Sprintf("Removing master boot record from disk %s", dev),
+				time.Now())
+		}
+	}
+	return formatCmds, nil
 }
