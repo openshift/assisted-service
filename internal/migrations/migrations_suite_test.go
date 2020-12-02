@@ -8,11 +8,15 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/pkg/errors"
 	gormigrate "gopkg.in/gormigrate.v1"
 )
 
 func TestMigrations(t *testing.T) {
 	RegisterFailHandler(Fail)
+	common.InitializeDBTest()
+	defer common.TerminateDBTest()
 	RunSpecs(t, "Migrations Suite")
 }
 
@@ -40,4 +44,19 @@ func migrateToBefore(db *gorm.DB, migrationID string) error {
 func migrateTo(db *gorm.DB, migratoinID string) error {
 	gm := gormigrate.New(db, gormigrate.DefaultOptions, all())
 	return gm.MigrateTo(migratoinID)
+}
+
+func getColumnType(db *gorm.DB, model interface{}, column string) (string, error) {
+	rows, err := db.Model(model).Rows()
+	Expect(err).NotTo(HaveOccurred())
+
+	colTypes, err := rows.ColumnTypes()
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, colType := range colTypes {
+		if colType.Name() == column {
+			return colType.DatabaseTypeName(), nil
+		}
+	}
+	return "", errors.Errorf("Failed to find %s column in %T", column, model)
 }
