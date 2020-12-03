@@ -3211,8 +3211,6 @@ definitions:
       pull_secret_set:
         type: boolean
         description: True if the pull secret has been added to the cluster.
-      ignition_generator_version:
-        type: string
       vip_dhcp_allocation:
         type: boolean
         description: Indicate if virtual IP DHCP allocation mode is enabled.

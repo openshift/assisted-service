@@ -88,9 +88,6 @@ type Cluster struct {
 	// Json formatted string containing the user overrides for the initial ignition config
 	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty" gorm:"type:text"`
 
-	// ignition generator version
-	IgnitionGeneratorVersion string `json:"ignition_generator_version,omitempty"`
-
 	// image info
 	// Required: true
 	ImageInfo *ImageInfo `json:"image_info" gorm:"embedded;embedded_prefix:image_"`

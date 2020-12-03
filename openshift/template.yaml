@@ -54,9 +54,6 @@ parameters:
 - name: HW_VALIDATOR_MIN_DISK_SIZE_GIB
   value: ''
   required: true
-- name: IGNITION_GENERATE_IMAGE
-  value: ''
-  required: false
 - name: INSTALLER_IMAGE
   value: ''
   required: true
