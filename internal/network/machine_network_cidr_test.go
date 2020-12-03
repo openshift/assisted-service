@@ -23,6 +23,11 @@ var _ = Describe("inventory", func() {
 		}
 	}
 
+	addIPv6Addresses := func(nic *models.Interface, ipv6Addresses ...string) *models.Interface {
+		nic.IPV6Addresses = append([]string{}, ipv6Addresses...)
+		return nic
+	}
+
 	createInventory := func(interfaces ...*models.Interface) string {
 		inventory := models.Inventory{Interfaces: interfaces}
 		ret, _ := json.Marshal(&inventory)
@@ -225,6 +230,84 @@ var _ = Describe("inventory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("GetClusterNetworks", func() {
+
+		var log logrus.FieldLogger
+
+		BeforeEach(func() {
+			log = logrus.New()
+		})
+
+		It("No hosts", func() {
+			nets := GetClusterNetworks(createHosts(), log)
+			Expect(nets).To(BeEmpty())
+		})
+
+		It("Empty inventory", func() {
+			nets := GetClusterNetworks(createHosts(
+				"",
+				createInventory(createInterface("2.2.3.10/24"))), log)
+			Expect(nets).To(HaveLen(1))
+			Expect(nets[0]).To(Equal("2.2.3.0/24"))
+		})
+
+		It("Corrupted inventory", func() {
+			nets := GetClusterNetworks(createHosts(
+				"{\"interfaces:}",
+				createInventory(createInterface("1.2.3.5/28"))), log)
+			Expect(nets).To(HaveLen(1))
+			Expect(nets[0]).To(Equal("1.2.3.0/28"))
+		})
+
+		It("No interfaces", func() {
+			nets := GetClusterNetworks(createHosts(
+				createInventory(createInterface("10.2.3.20/24")),
+				createInventory()), log)
+			Expect(nets).To(HaveLen(1))
+			Expect(nets[0]).To(Equal("10.2.3.0/24"))
+		})
+
+		It("IPv4 only", func() {
+			nets := GetClusterNetworks(createHosts(
+				createInventory(createInterface("10.2.3.20/24", "1.2.3.4/28")),
+				createInventory(createInterface("198.2.3.10/28"))), log)
+			Expect(nets).To(HaveLen(3))
+			Expect(nets).To(ContainElements("10.2.3.0/24", "1.2.3.0/28", "198.2.3.0/28"))
+		})
+
+		It("IPv6 only", func() {
+			nets := GetClusterNetworks(createHosts(
+				createInventory(addIPv6Addresses(createInterface(), "2001:db8::a1/120")),
+				createInventory(addIPv6Addresses(createInterface(), "fe80:5054::4/120", "2002:db8::a1/120"))), log)
+			Expect(nets).To(HaveLen(3))
+			Expect(nets).To(ContainElements("2001:db8::/120", "fe80:5054::/120", "2002:db8::/120"))
+		})
+
+		It("Dual stack", func() {
+			nets := GetClusterNetworks(createHosts(
+				createInventory(addIPv6Addresses(createInterface("1.2.3.4/28"), "2001:db8::a1/120")),
+				createInventory(addIPv6Addresses(createInterface("10.2.3.20/24"), "fe80:5054::4/120"))), log)
+			Expect(nets).To(HaveLen(4))
+			Expect(nets).To(ContainElements("2001:db8::/120", "fe80:5054::/120", "10.2.3.0/24", "1.2.3.0/28"))
+		})
+
+		It("Invalid CIDR", func() {
+			nets := GetClusterNetworks(createHosts(
+				createInventory(addIPv6Addresses(createInterface("1.2.260.4/28"), "2001:db8::a1/120")),
+				createInventory(addIPv6Addresses(createInterface("10.2.3.20/24"), "fe80:5054::4"))), log)
+			Expect(nets).To(HaveLen(2))
+			Expect(nets).To(ContainElements("2001:db8::/120", "10.2.3.0/24"))
+		})
+
+		It("Same CIDR", func() {
+			nets := GetClusterNetworks(createHosts(
+				createInventory(addIPv6Addresses(createInterface("1.2.3.4/28"), "2001:db8::a1/120")),
+				createInventory(addIPv6Addresses(createInterface("1.2.3.10/28"), "2001:db8::5/120"))), log)
+			Expect(nets).To(HaveLen(2))
+			Expect(nets).To(ContainElements("2001:db8::/120", "1.2.3.0/28"))
 		})
 	})
 })

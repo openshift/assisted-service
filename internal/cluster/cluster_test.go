@@ -1085,7 +1085,7 @@ func addInstallationRequirements(clusterId strfmt.UUID, db *gorm.DB) {
 	Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.6"}).Error).To(Not(HaveOccurred()))
 }
 
-func addInstallationRequirementsWithConnectivity(clusterId strfmt.UUID, db *gorm.DB, outgoingIpAddresses ...string) {
+func addInstallationRequirementsWithConnectivity(clusterId strfmt.UUID, db *gorm.DB, remoteIpAddresses ...string) {
 	var hostId strfmt.UUID
 	var host models.Host
 	hostIds := []strfmt.UUID{
@@ -1101,10 +1101,10 @@ func addInstallationRequirementsWithConnectivity(clusterId strfmt.UUID, db *gorm
 		}
 		makeL2Connectivity := func() []*models.L2Connectivity {
 			ret := make([]*models.L2Connectivity, 0)
-			for _, o := range outgoingIpAddresses {
+			for _, r := range remoteIpAddresses {
 				ret = append(ret, &models.L2Connectivity{
-					Successful:        true,
-					OutgoingIPAddress: o,
+					Successful:      true,
+					RemoteIPAddress: r,
 				})
 			}
 			return ret
