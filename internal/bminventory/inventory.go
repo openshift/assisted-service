@@ -1511,12 +1511,12 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	hostNetworkPrefix := cluster.ClusterNetworkHostPrefix
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
 	userManagedNetworking := swag.BoolValue(cluster.UserManagedNetworking)
-	if params.ClusterUpdateParams.Name != nil {
-		updates["name"] = *params.ClusterUpdateParams.Name
-	}
-	if params.ClusterUpdateParams.BaseDNSDomain != nil {
-		updates["base_dns_domain"] = *params.ClusterUpdateParams.BaseDNSDomain
-	}
+	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
+	optionalParam(params.ClusterUpdateParams.BaseDNSDomain, "base_dns_domain", updates)
+	optionalParam(params.ClusterUpdateParams.HTTPProxy, "http_proxy", updates)
+	optionalParam(params.ClusterUpdateParams.HTTPSProxy, "https_proxy", updates)
+	optionalParam(params.ClusterUpdateParams.NoProxy, "no_proxy", updates)
+	optionalParam(params.ClusterUpdateParams.SSHPublicKey, "ssh_public_key", updates)
 	if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
 		if err = network.VerifySubnetCIDR(*params.ClusterUpdateParams.ClusterNetworkCidr); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
@@ -1543,15 +1543,6 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		}
 		serviceCidr = *params.ClusterUpdateParams.ServiceNetworkCidr
 		updates["service_network_cidr"] = serviceCidr
-	}
-	if params.ClusterUpdateParams.HTTPProxy != nil {
-		updates["http_proxy"] = swag.StringValue(params.ClusterUpdateParams.HTTPProxy)
-	}
-	if params.ClusterUpdateParams.HTTPSProxy != nil {
-		updates["https_proxy"] = swag.StringValue(params.ClusterUpdateParams.HTTPSProxy)
-	}
-	if params.ClusterUpdateParams.NoProxy != nil {
-		updates["no_proxy"] = swag.StringValue(params.ClusterUpdateParams.NoProxy)
 	}
 	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
 		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
@@ -1589,9 +1580,6 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if params.ClusterUpdateParams.SSHPublicKey != nil {
-		updates["ssh_public_key"] = *params.ClusterUpdateParams.SSHPublicKey
-	}
 
 	if params.ClusterUpdateParams.PullSecret != nil {
 		cluster.PullSecret = *params.ClusterUpdateParams.PullSecret
@@ -1612,6 +1600,12 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	}
 
 	return nil
+}
+
+func optionalParam(data *string, field string, updates map[string]interface{}) {
+	if data != nil {
+		updates[field] = swag.StringValue(data)
+	}
 }
 
 func (b *bareMetalInventory) updateHostsData(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
