@@ -323,6 +323,27 @@ var _ = Describe("Day2 cluster tests", func() {
 		Expect(*c.Status).Should(Equal("adding-hosts"))
 	})
 
+	It("check installation - install specific node", func() {
+		host := &registerHost(clusterID).Host
+		h := getHost(clusterID, *host.ID)
+		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
+		generateNTPPostStepReply(ctx, h, validNtpSources)
+		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
+		generateApiVipPostStepReply(h, true)
+		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
+		_, err := userBMClient.Installer.InstallHost(ctx, &installer.InstallHostParams{ClusterID: clusterID, HostID: *host.ID})
+		Expect(err).NotTo(HaveOccurred())
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("installing"))
+		Expect(h.Role).Should(Equal(models.HostRoleWorker))
+		updateProgress(*h.ID, clusterID, models.HostStageStartingInstallation)
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("installing-in-progress"))
+		updateProgress(*h.ID, clusterID, models.HostStageRebooting)
+		h = getHost(clusterID, *host.ID)
+		Expect(*h.Status).Should(Equal("added-to-existing-cluster"))
+	})
+
 	It("check installation - node registers after reboot", func() {
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)

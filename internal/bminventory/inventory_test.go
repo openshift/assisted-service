@@ -4207,6 +4207,107 @@ var _ = Describe("Reset Host test", func() {
 	})
 })
 
+var _ = Describe("Install Host test", func() {
+	var (
+		bm           *bareMetalInventory
+		cfg          Config
+		db           *gorm.DB
+		ctx          = context.Background()
+		ctrl         *gomock.Controller
+		clusterID    strfmt.UUID
+		hostID       strfmt.UUID
+		mockHostApi  *host.MockAPI
+		mockS3Client *s3wrapper.MockAPI
+		dbName       = "reset_host_cluster"
+		request      *http.Request
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db = common.PrepareTestDB(dbName)
+		ctrl = gomock.NewController(GinkgoT())
+		clusterID = strfmt.UUID(uuid.New().String())
+		hostID = strfmt.UUID(uuid.New().String())
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			Kind:             swag.String(models.ClusterKindAddHostsCluster),
+			OpenshiftVersion: "4.6",
+			Status:           swag.String(models.ClusterStatusAddingHosts),
+		}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		mockHostApi = host.NewMockAPI(ctrl)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("Install day2 host", func() {
+		params := installer.InstallHostParams{
+			HTTPRequest: request,
+			ClusterID:   clusterID,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		res := bm.InstallHost(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostAccepted()))
+	})
+
+	It("Install day2 host - host not found", func() {
+		params := installer.InstallHostParams{
+			HTTPRequest: request,
+			ClusterID:   clusterID,
+			HostID:      strfmt.UUID(uuid.New().String()),
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		res := bm.InstallHost(ctx, params)
+		verifyApiError(res, http.StatusNotFound)
+	})
+
+	It("Install day2 host - not a day2 host", func() {
+		params := installer.InstallHostParams{
+			HTTPRequest: request,
+			ClusterID:   clusterID,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		res := bm.InstallHost(ctx, params)
+		verifyApiError(res, http.StatusConflict)
+	})
+
+	It("Install day2 host - host not in known state", func() {
+		params := installer.InstallHostParams{
+			HTTPRequest: request,
+			ClusterID:   clusterID,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		res := bm.InstallHost(ctx, params)
+		verifyApiError(res, http.StatusConflict)
+	})
+
+	It("Install day2 host - ignition creation failed", func() {
+		params := installer.InstallHostParams{
+			HTTPRequest: request,
+			ClusterID:   clusterID,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
+		res := bm.InstallHost(ctx, params)
+		verifyApiError(res, http.StatusInternalServerError)
+	})
+})
+
 var _ = Describe("Install Hosts test", func() {
 
 	var (

@@ -371,6 +371,20 @@ func (mr *MockInstallerAPIMockRecorder) InstallCluster(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallCluster", reflect.TypeOf((*MockInstallerAPI)(nil).InstallCluster), arg0, arg1)
 }
 
+// InstallHost mocks base method
+func (m *MockInstallerAPI) InstallHost(arg0 context.Context, arg1 installer.InstallHostParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InstallHost", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// InstallHost indicates an expected call of InstallHost
+func (mr *MockInstallerAPIMockRecorder) InstallHost(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallHost", reflect.TypeOf((*MockInstallerAPI)(nil).InstallHost), arg0, arg1)
+}
+
 // InstallHosts mocks base method
 func (m *MockInstallerAPI) InstallHosts(arg0 context.Context, arg1 installer.InstallHostsParams) middleware.Responder {
 	m.ctrl.T.Helper()
