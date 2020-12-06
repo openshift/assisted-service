@@ -5,13 +5,16 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"testing"
 	"time"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	. "github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
 	"github.com/openshift/assisted-service/client"
 	clientInstaller "github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
@@ -21,20 +24,28 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 )
 
-func serv(server *http.Server) {
-	_ = server.ListenAndServe()
-}
+var _ = Describe("auth handler test", func() {
+	var (
+		log                = logrus.New()
+		ctrl               *gomock.Controller
+		server             *ghttp.Server
+		userToken, JwkCert = GetTokenAndCert()
+		agentKeyValue      = "fake_pull_secret"
+		userKeyValue       = "bearer " + userToken
+	)
 
-func TestAuth(t *testing.T) {
-	log := logrus.New()
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		server = ghttp.NewServer()
+	})
 
-	userToken, JwkCert := GetTokenAndCert()
-	agentKeyValue := "fake_pull_secret"
-	userKeyValue := "bearer " + userToken
-	t.Parallel()
+	AfterEach(func() {
+		ctrl.Finish()
+		server.Close()
+	})
+
 	tests := []struct {
 		name            string
 		authInfo        runtime.ClientAuthInfoWriter
@@ -127,9 +138,7 @@ func TestAuth(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+		It(tt.name, func() {
 			ocmAuth := ocm.NewMockOCMAuthentication(ctrl)
 			if tt.mockOcmAuth != nil {
 				tt.mockOcmAuth(ocmAuth)
@@ -171,7 +180,7 @@ func TestAuth(t *testing.T) {
 			cfg := client.Config{
 				URL: &url.URL{
 					Scheme: client.DefaultSchemes[0],
-					Host:   "localhost:8081",
+					Host:   server.Addr(),
 					Path:   client.DefaultBasePath,
 				},
 			}
@@ -180,10 +189,7 @@ func TestAuth(t *testing.T) {
 			}
 			bmclient := client.New(cfg)
 
-			server := &http.Server{Addr: "localhost:8081", Handler: h}
-			go serv(server)
-			defer server.Close()
-			time.Sleep(time.Second * 1) // Allow the server to start
+			server.AppendHandlers(h.ServeHTTP)
 
 			var e error
 			if tt.isListOperation {
@@ -196,14 +202,13 @@ func TestAuth(t *testing.T) {
 			}
 
 			if tt.expectedError != nil {
-				assert.Equal(t, reflect.TypeOf(e).String(), reflect.TypeOf(tt.expectedError).String())
+				gomega.Expect(reflect.TypeOf(e).String()).To(Equal(reflect.TypeOf(tt.expectedError).String()))
 			} else {
-				assert.Nil(t, e)
+				Expect(e).To(BeNil())
 			}
-
 		})
 	}
-}
+})
 
 var mockOcmAuthFailure = func(a *ocm.MockOCMAuthentication) {
 	a.EXPECT().AuthenticatePullSecret(gomock.Any(), gomock.Any()).

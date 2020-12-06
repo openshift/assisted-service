@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
-	"testing"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -16,6 +17,8 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/events"
 	"github.com/openshift/assisted-service/client/installer"
@@ -24,17 +27,15 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-	"github.com/stretchr/testify/assert"
-	"github.com/thoas/go-funk"
-
-	. "github.com/onsi/ginkgo"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
 )
 
-func TestAuthzEmailDomain(t *testing.T) {
+var _ = Describe("Authz email domain", func() {
 	tests := []struct {
 		name           string
 		email          string
@@ -63,20 +64,29 @@ func TestAuthzEmailDomain(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf("test %s", tt.name), func(t *testing.T) {
+		It(fmt.Sprintf("test %s", tt.name), func() {
 			payload := &ocm.AuthPayload{}
 			payload.Email = tt.email
 			ctx := context.Background()
 			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 			domain := EmailDomainFromContext(ctx)
-			assert.Equal(t, domain, tt.expectedDomain, true)
+			Expect(domain).To(Equal(tt.expectedDomain))
 		})
 	}
-}
+})
 
-func TestAuthz(t *testing.T) {
-	ctx := context.TODO()
-	log := logrus.New()
+var _ = Describe("authz", func() {
+	var (
+		server      *httptest.Server
+		userClient  *client.AssistedInstall
+		agentClient *client.AssistedInstall
+		ctx         = context.TODO()
+		log         = logrus.New()
+		t           = GinkgoT()
+		authzCache  = cache.New(time.Hour, 30*time.Minute)
+	)
+
+	log.SetOutput(ioutil.Discard)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -175,8 +185,6 @@ func TestAuthz(t *testing.T) {
 	}
 
 	userToken, JwkCert := GetTokenAndCert()
-
-	authzCache := cache.New(time.Hour, 30*time.Minute)
 	h, err := restapi.Handler(
 		restapi.Config{
 			AuthAgentAuth:       mockAgentAuth,
@@ -201,39 +209,31 @@ func TestAuthz(t *testing.T) {
 			ManagedDomainsAPI:     fakeManagedDomainsAPI{},
 			InnerMiddleware:       nil,
 		})
-	if err != nil {
-		panic(err)
-	}
-	// port must be differentiate from other suite tests ports in the project
-	// to avoid collision with other tests (logcontext_test uses port 8082) when
-	// running all tests in parallel.
-	srvAddr := "localhost:8083"
-	server := &http.Server{
-		Addr:    srvAddr,
-		Handler: h,
-	}
-	go serv(server)
-	defer func() {
-		if err := server.Close(); err != nil {
-			panic(err)
-		}
-	}()
+	Expect(err).To(BeNil())
 
-	srvUrl := &url.URL{
-		Scheme: client.DefaultSchemes[0],
-		Host:   srvAddr,
-		Path:   client.DefaultBasePath,
-	}
-	userClient := client.New(
-		client.Config{
-			URL:      srvUrl,
-			AuthInfo: UserAuthHeaderWriter("bearer " + userToken),
-		})
-	agentClient := client.New(
-		client.Config{
-			URL:      srvUrl,
-			AuthInfo: AgentAuthHeaderWriter("fake_pull_secret"),
-		})
+	BeforeEach(func() {
+		server = httptest.NewServer(h)
+
+		srvUrl := &url.URL{
+			Scheme: client.DefaultSchemes[0],
+			Host:   strings.TrimPrefix(server.URL, "http://"),
+			Path:   client.DefaultBasePath,
+		}
+		userClient = client.New(
+			client.Config{
+				URL:      srvUrl,
+				AuthInfo: UserAuthHeaderWriter("bearer " + userToken),
+			})
+		agentClient = client.New(
+			client.Config{
+				URL:      srvUrl,
+				AuthInfo: AgentAuthHeaderWriter("fake_pull_secret"),
+			})
+	})
+
+	AfterEach(func() {
+		server.Close()
+	})
 
 	verifyResponseErrorCode := func(err error, expectUnauthorizedCode bool) {
 		expectedCode := "403"
@@ -243,51 +243,35 @@ func TestAuthz(t *testing.T) {
 		assert.Contains(t, err.Error(), expectedCode)
 	}
 
-	waitForServerToBecomeReady := func(timeout time.Duration) {
-		start := time.Now()
-		passAccessReview(1)
-		passCapabilityReview(1)
-		for {
-			if err := listClusters(ctx, userClient); err == nil {
-				break
-			} else if time.Since(start) >= timeout {
-				panic(err)
-			}
-			time.Sleep(5 * time.Millisecond)
-		}
-		authzCache.Flush()
-	}
-	waitForServerToBecomeReady(5 * time.Second)
-
-	t.Run("should store payload in cache", func(t *testing.T) {
+	It("should store payload in cache", func() {
 		assert.Equal(t, shouldStorePayloadInCache(nil), true)
 		err := common.NewApiError(http.StatusUnauthorized, errors.New(""))
 		assert.Equal(t, shouldStorePayloadInCache(err), true)
 	})
 
-	t.Run("should not store payload in cache", func(t *testing.T) {
+	It("should not store payload in cache", func() {
 		err1 := common.NewApiError(http.StatusInternalServerError, errors.New(""))
 		assert.Equal(t, shouldStorePayloadInCache(err1), false)
 		err2 := errors.New("internal error")
 		assert.Equal(t, shouldStorePayloadInCache(err2), false)
 	})
 
-	t.Run("pass access review from cache", func(t *testing.T) {
+	It("pass access review from cache", func() {
 		By("get cluster first attempt, store user in cache", func() {
 			passAccessReview(1)
 			passCapabilityReview(1)
 			err := getCluster(ctx, userClient)
-			assert.Equal(t, err, nil)
+			Expect(err).To(BeNil())
 		})
 		By("get cluster second attempt, get user from cache", func() {
 			passCapabilityReview(1)
 			defer authzCache.Flush()
 			err := getCluster(ctx, userClient)
-			assert.Equal(t, err, nil)
+			Expect(err).To(BeNil())
 		})
 	})
 
-	t.Run("access review failure", func(t *testing.T) {
+	It("access review failure", func() {
 		failAccessReview(1)
 		passCapabilityReview(1)
 		defer authzCache.Flush()
@@ -502,7 +486,7 @@ func TestAuthz(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf("test %s", tt.name), func(t *testing.T) {
+		It(fmt.Sprintf("test %s", tt.name), func() {
 			userAuthSupport := len(tt.allowedRoles) > 0
 			By(fmt.Sprintf("%s: with user scope", tt.name), func() {
 				userRoleSupport := funk.Contains(tt.allowedRoles, ocm.UserRole)
@@ -573,7 +557,7 @@ func TestAuthz(t *testing.T) {
 			})
 		})
 	}
-}
+})
 
 func registerCluster(ctx context.Context, cli *client.AssistedInstall) error {
 	_, err := cli.Installer.RegisterCluster(

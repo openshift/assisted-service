@@ -4,34 +4,27 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
-	"time"
-
-	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/mocks"
-	. "github.com/openshift/assisted-service/pkg/context"
-
-	"github.com/go-openapi/strfmt"
-	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/runtime/security"
-
+	"github.com/go-openapi/strfmt"
+	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	clientInstaller "github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/mocks"
+	. "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
-	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
-
-func serv(server *http.Server) {
-	_ = server.ListenAndServe()
-}
 
 type AuthPayload struct {
 	Username string `json:"username"`
@@ -49,7 +42,7 @@ var authenticator = func(name string, _ string, authenticate security.TokenAuthe
 	})
 }
 
-func createServer(logger *logrus.Logger, installer *restapi.InstallerAPI) *http.Server {
+func createServer(logger *logrus.Logger, installer *restapi.InstallerAPI) *httptest.Server {
 	h, _ := restapi.Handler(restapi.Config{
 		AuthAgentAuth:       nil,
 		AuthUserAuth:        nil,
@@ -63,42 +56,20 @@ func createServer(logger *logrus.Logger, installer *restapi.InstallerAPI) *http.
 		InnerMiddleware:     ContextHandler(),
 	})
 
-	server := &http.Server{Addr: "localhost:8082", Handler: h}
-	go serv(server)
+	server := httptest.NewServer(h)
 	return server
 }
 
-func createClient() *client.AssistedInstall {
+func createClient(srvURL string) *client.AssistedInstall {
 	cfg := client.Config{
 		URL: &url.URL{
 			Scheme: client.DefaultSchemes[0],
-			// port must be differentiate from other suite tests ports in the project
-			// to avoid collision with other tests (authz_handler_test uses port 8083) when
-			// running all tests in parallel.
-			Host: "localhost:8082",
-			Path: client.DefaultBasePath,
+			Host:   strings.TrimPrefix(srvURL, "http://"),
+			Path:   client.DefaultBasePath,
 		},
 	}
 
 	return client.New(cfg)
-}
-
-func waitForServer(bmclient *client.AssistedInstall, mockInstallApi *mocks.MockInstallerAPI) {
-	var err error = errors.Errorf("start polling server...")
-	//loop up to a second to wait for the server to go up
-	mockInstallApi.EXPECT().ListClusters(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(ctx context.Context, params installer.ListClustersParams) middleware.Responder {
-			return installer.NewListClustersOK()
-		}).AnyTimes()
-	var i int
-	for i = 0; i < 100 && err != nil; i++ {
-		_, err = bmclient.Installer.ListClusters(context.TODO(), &clientInstaller.ListClustersParams{})
-		time.Sleep(time.Millisecond * 10)
-	}
-
-	if err != nil {
-		panic("server took too long to start " + err.Error())
-	}
 }
 
 func TestLogContext(t *testing.T) {
@@ -112,7 +83,7 @@ var _ = Describe("Log Fields on Context", func() {
 		mockInstallApi      *mocks.MockInstallerAPI
 		logger              *logrus.Logger
 		logOut              *bytes.Buffer
-		server              *http.Server
+		server              *httptest.Server
 		bmclient            *client.AssistedInstall
 		cluster_id, host_id strfmt.UUID
 	)
@@ -133,8 +104,7 @@ var _ = Describe("Log Fields on Context", func() {
 		//invoke an http server and a bare metal client
 		var installer restapi.InstallerAPI = restapi.InstallerAPI(mockInstallApi)
 		server = createServer(logger, &installer)
-		bmclient = createClient()
-		waitForServer(bmclient, mockInstallApi)
+		bmclient = createClient(server.URL)
 	})
 
 	AfterEach(func() {
