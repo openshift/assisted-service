@@ -52,7 +52,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/transaction"
-	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -259,22 +258,16 @@ type bareMetalInventory struct {
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-
-	if err := b.clusterApi.UpdateInstallProgress(ctx, params.ClusterID, params.ClusterProgress, b.db); err != nil {
-		log.WithError(err).Errorf("failed to update cluster %s progress", params.ClusterID)
-		return installer.NewUpdateClusterInstallProgressInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
+	c, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
 	}
-
-	event := fmt.Sprintf("Updated installation progress to: %s", params.ClusterProgress)
-	log.Infof("Cluster %s: %s", params.ClusterID, event)
-
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, event, time.Now())
+	if err := b.clusterApi.UpdateInstallProgress(ctx, c, params.ClusterProgress); err != nil {
+		b.log.WithError(err).Error("Failed to update install progress")
+		return common.GenerateErrorResponder(err)
+	}
 	return installer.NewUpdateClusterInstallProgressNoContent()
 }
-
-var _ restapi.InstallerAPI = &bareMetalInventory{}
 
 func NewBareMetalInventory(
 	db *gorm.DB,

@@ -92,7 +92,7 @@ type API interface {
 	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error
-	UpdateInstallProgress(ctx context.Context, clusterID strfmt.UUID, progress string, db *gorm.DB) error
+	UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse
 }
 
 type PrepareConfig struct {
@@ -438,6 +438,26 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 	return nil
 }
 
+func (m *Manager) UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse {
+	eventSeverity := models.EventSeverityInfo
+	eventInfo := "Update cluster installation progress"
+	defer func() {
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, eventSeverity, eventInfo, time.Now())
+	}()
+
+	err := m.sm.Run(TransitionTypeUpdateInstallationProgress, newStateCluster(c), &TransitionArgsUpdateInstallationProgress{
+		ctx:      ctx,
+		progress: progress,
+	})
+	if err != nil {
+		eventSeverity = models.EventSeverityError
+		eventInfo = fmt.Sprintf("Failed to update cluster installation progress. Error: %s", err.Error())
+		return common.NewApiError(http.StatusConflict, err)
+	}
+
+	return nil
+}
+
 func (m *Manager) ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	eventSeverity := models.EventSeverityInfo
 	eventInfo := "Reset cluster installation"
@@ -740,8 +760,4 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt
 		m.eventsHandler.DeleteClusterEvents(*c.ID)
 	}
 	return nil
-}
-func (m Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UUID, progress string, db *gorm.DB) error {
-	_, err := updateClusterProgress(m.log, db, clusterID, progress)
-	return err
 }
