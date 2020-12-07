@@ -22,16 +22,76 @@ func TestValidator(t *testing.T) {
 	RunSpecs(t, "Hardware Validator tests Suite")
 }
 
-var _ = Describe("hardware_validator", func() {
+var _ = Describe("Disk eligibility", func() {
 	var (
 		hwvalidator   Validator
-		host1         *models.Host
-		host2         *models.Host
-		host3         *models.Host
-		inventory     *models.Inventory
-		cluster       *common.Cluster
-		validDiskSize = int64(128849018880)
-		status        = models.HostStatusKnown
+		testDisk      models.Disk
+		bigEnoughSize int64
+		tooSmallSize  int64
+	)
+
+	BeforeEach(func() {
+		var cfg ValidatorCfg
+		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+		hwvalidator = NewValidator(logrus.New(), cfg)
+
+		bigEnoughSize = gbToBytes(cfg.MinDiskSizeGb) + 1
+		tooSmallSize = gbToBytes(cfg.MinDiskSizeGb) - 1
+
+		// Start off with an eligible default
+		testDisk = models.Disk{
+			DriveType: "SSD",
+			SizeBytes: bigEnoughSize,
+		}
+	})
+
+	It("Check if HDD is eligible", func() {
+		testDisk.DriveType = "SSD"
+		eligible, notEligibleReasons := hwvalidator.DiskIsEligible(&testDisk)
+		Expect(eligible).To(BeTrue())
+		Expect(notEligibleReasons).To(BeEmpty())
+	})
+
+	It("Check if SSD is eligible", func() {
+		testDisk.DriveType = "HDD"
+		eligible, notEligibleReasons := hwvalidator.DiskIsEligible(&testDisk)
+		Expect(eligible).To(BeTrue())
+		Expect(notEligibleReasons).To(BeEmpty())
+	})
+
+	It("Check that ODD is not eligible", func() {
+		testDisk.DriveType = "ODD"
+		eligible, notEligibleReasons := hwvalidator.DiskIsEligible(&testDisk)
+		Expect(eligible).To(BeFalse())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
+	})
+
+	It("Check that a big enough size is eligible", func() {
+		testDisk.SizeBytes = bigEnoughSize
+		eligible, notEligibleReasons := hwvalidator.DiskIsEligible(&testDisk)
+		Expect(eligible).To(BeTrue())
+		Expect(notEligibleReasons).To(BeEmpty())
+	})
+
+	It("Check that a small size is not eligible", func() {
+		testDisk.SizeBytes = tooSmallSize
+		eligible, notEligibleReasons := hwvalidator.DiskIsEligible(&testDisk)
+		Expect(eligible).To(BeFalse())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
+	})
+})
+
+var _ = Describe("hardware_validator", func() {
+	var (
+		hwvalidator         Validator
+		host1               *models.Host
+		host2               *models.Host
+		host3               *models.Host
+		inventory           *models.Inventory
+		cluster             *common.Cluster
+		eligibleEligibility = models.DiskInstallationEligibility{Eligible: true}
+		validDiskSize       = int64(128849018880)
+		status              = models.HostStatusKnown
 	)
 	BeforeEach(func() {
 		var cfg ValidatorCfg
@@ -55,8 +115,9 @@ var _ = Describe("hardware_validator", func() {
 				},
 			},
 			Disks: []*models.Disk{
-				{DriveType: "ODD", Name: "loop0", SizeBytes: validDiskSize},
-				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+				{DriveType: "ODD", Name: "loop0", InstallationEligibility: &eligibleEligibility},
+				{DriveType: "HDD", Name: "sdb", InstallationEligibility: &eligibleEligibility},
+			},
 		}
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                 &clusterID,
@@ -71,12 +132,18 @@ var _ = Describe("hardware_validator", func() {
 		nvmename := "nvme01fs"
 		inventory.Disks = []*models.Disk{
 			// Not disk type
-			{DriveType: "ODD", Name: "aaa", SizeBytes: validDiskSize},
-			{DriveType: "SSD", Name: nvmename, SizeBytes: validDiskSize + 1},
-			{DriveType: "SSD", Name: "stam", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize + 2},
-			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize + 100},
-			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize + 1},
+			{
+				DriveType: "ODD", Name: "aaa", InstallationEligibility: &models.DiskInstallationEligibility{
+					Eligible: false,
+					NotEligibleReasons: []string{
+						"Not HDD/SSD",
+					}},
+			},
+			{DriveType: "SSD", Name: nvmename, InstallationEligibility: &eligibleEligibility, SizeBytes: validDiskSize + 1},
+			{DriveType: "SSD", Name: "stam", InstallationEligibility: &eligibleEligibility, SizeBytes: validDiskSize},
+			{DriveType: "HDD", Name: "sdb", InstallationEligibility: &eligibleEligibility, SizeBytes: validDiskSize + 2},
+			{DriveType: "HDD", Name: "sda", InstallationEligibility: &eligibleEligibility, SizeBytes: validDiskSize + 100},
+			{DriveType: "HDD", Name: "sdh", InstallationEligibility: &eligibleEligibility, SizeBytes: validDiskSize + 1},
 		}
 		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
@@ -104,6 +171,9 @@ var _ = Describe("hardware_validator", func() {
 				Serial:    "",
 				Vendor:    "",
 				Wwn:       "",
+				InstallationEligibility: &models.DiskInstallationEligibility{
+					Eligible: true,
+				},
 			},
 		}
 		hw, err := json.Marshal(&inventory)

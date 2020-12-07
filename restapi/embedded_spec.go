@@ -514,8 +514,6 @@ func init() {
         "operationId": "UpdateCluster",
         "parameters": [
           {
-            "maxLength": 54,
-            "minLength": 1,
             "type": "string",
             "format": "uuid",
             "name": "cluster_id",
@@ -4449,6 +4447,8 @@ func init() {
         "name": {
           "description": "OpenShift cluster name.",
           "type": "string",
+          "maxLength": 54,
+          "minLength": 1,
           "x-nullable": true
         },
         "no_proxy": {
@@ -4732,6 +4732,22 @@ func init() {
         },
         "hctl": {
           "type": "string"
+        },
+        "installation_eligibility": {
+          "type": "object",
+          "properties": {
+            "eligible": {
+              "description": "Whether the disk is eligible for installation or not.",
+              "type": "boolean"
+            },
+            "not_eligible_reasons": {
+              "description": "Reasons for why this disk is not elligible for installation.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         },
         "model": {
           "type": "string"
@@ -6228,8 +6244,6 @@ func init() {
         "operationId": "UpdateCluster",
         "parameters": [
           {
-            "maxLength": 54,
-            "minLength": 1,
             "type": "string",
             "format": "uuid",
             "name": "cluster_id",
@@ -9645,6 +9659,22 @@ func init() {
         }
       }
     },
+    "DiskInstallationEligibility": {
+      "type": "object",
+      "properties": {
+        "eligible": {
+          "description": "Whether the disk is eligible for installation or not.",
+          "type": "boolean"
+        },
+        "not_eligible_reasons": {
+          "description": "Reasons for why this disk is not elligible for installation.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "HostRegistrationResponseAO1NextStepRunnerCommand": {
       "description": "Command for starting the next step runner",
       "type": "object",
@@ -10191,6 +10221,8 @@ func init() {
         "name": {
           "description": "OpenShift cluster name.",
           "type": "string",
+          "maxLength": 54,
+          "minLength": 1,
           "x-nullable": true
         },
         "no_proxy": {
@@ -10474,6 +10506,22 @@ func init() {
         },
         "hctl": {
           "type": "string"
+        },
+        "installation_eligibility": {
+          "type": "object",
+          "properties": {
+            "eligible": {
+              "description": "Whether the disk is eligible for installation or not.",
+              "type": "boolean"
+            },
+            "not_eligible_reasons": {
+              "description": "Reasons for why this disk is not elligible for installation.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         },
         "model": {
           "type": "string"

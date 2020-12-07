@@ -221,7 +221,7 @@ func (v *validator) hasMinValidDisks(c *validationContext) validationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	disks := hardware.ListValidDisks(c.inventory, gibToBytes(v.hwValidatorCfg.MinDiskSizeGb))
+	disks := hardware.ListValidDisks(c.inventory)
 	return boolValue(len(disks) > 0)
 }
 

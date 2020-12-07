@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/hardware"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -30,6 +32,9 @@ var defaultHwInfo = "default hw info" // invalid hw info used only for tests
 var defaultDisk = models.Disk{        // invalid disk used only for tests
 	Name:   "test-disk",
 	Serial: "test-serial",
+	InstallationEligibility: &models.DiskInstallationEligibility{
+		Eligible: false,
+	},
 }
 var defaultProgressStage = models.HostStage("default progress stage") // invalid progress stage used only for tests
 
@@ -822,6 +827,12 @@ func insufficientHWInventory() string {
 			{
 				SizeBytes: 130,
 				DriveType: "HDD",
+				InstallationEligibility: &models.DiskInstallationEligibility{
+					Eligible: false,
+					NotEligibleReasons: []string{
+						"Size too small",
+					},
+				},
 			},
 		},
 		Interfaces: []*models.Interface{
@@ -847,6 +858,9 @@ func inventoryWithUnauthorizedVendor() string {
 			{
 				SizeBytes: 128849018880,
 				DriveType: "HDD",
+				InstallationEligibility: &models.DiskInstallationEligibility{
+					Eligible: true,
+				},
 			},
 		},
 		Interfaces: []*models.Interface{
@@ -874,6 +888,9 @@ func workerInventory() string {
 			{
 				SizeBytes: 128849018880,
 				DriveType: "HDD",
+				InstallationEligibility: &models.DiskInstallationEligibility{
+					Eligible: true,
+				},
 			},
 		},
 		Interfaces: []*models.Interface{
@@ -903,6 +920,9 @@ func masterInventoryWithHostname(hostname string) string {
 			{
 				SizeBytes: 128849018880,
 				DriveType: "HDD",
+				InstallationEligibility: &models.DiskInstallationEligibility{
+					Eligible: true,
+				},
 			},
 		},
 		Interfaces: []*models.Interface{
@@ -928,6 +948,8 @@ var _ = Describe("UpdateInventory", func() {
 		ctx               = context.Background()
 		hapi              API
 		db                *gorm.DB
+		ctrl              *gomock.Controller
+		mockValidator     *hardware.MockValidator
 		hostId, clusterId strfmt.UUID
 		host              models.Host
 		dbName            = "update_inventory"
@@ -936,7 +958,10 @@ var _ = Describe("UpdateInventory", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		dummy := &leader.DummyElector{}
-		hapi = NewManager(getTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy)
+		ctrl = gomock.NewController(GinkgoT())
+		mockValidator = hardware.NewMockValidator(ctrl)
+		hapi = NewManager(getTestLog(), db, nil, mockValidator,
+			nil, createValidatorCfg(), nil, defaultConfig, dummy)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -945,16 +970,81 @@ var _ = Describe("UpdateInventory", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	Context("enable host", func() {
-		newInventory := "new inventory stuff"
-		success := func(reply error) {
-			Expect(reply).To(BeNil())
-			h := getHost(hostId, clusterId, db)
-			Expect(h.Inventory).To(Equal(newInventory))
+	It("Test populate eligibility", func() {
+		testDisks := make([]*models.Disk, 0)
+		expectedDisks := make([]*models.Disk, 0)
+
+		for _, test := range []struct {
+			agentDecision    bool
+			agentReasons     []string
+			serviceDecision  bool
+			serviceReasons   []string
+			expectedDecision bool
+			expectedReasons  []string
+		}{
+			{false, []string{}, true, []string{}, true, []string{}},
+			{false, []string{}, false, []string{"Service reason"}, false, []string{"Service reason"}},
+			{true, []string{}, true, []string{}, true, []string{}},
+			{true, []string{}, false, []string{"Service reason"}, false, []string{"Service reason"}},
+			{false, []string{"Agent reason"}, true, []string{}, false, []string{"Agent reason"}},
+			{false, []string{"Agent reason"}, false, []string{"Service reason"}, false, []string{"Agent reason", "Service reason"}},
+			{true, []string{"Agent reason"}, true, []string{}, true, []string{}},
+			{true, []string{"Agent reason"}, false, []string{"Service reason"}, false, []string{"Service reason"}},
+		} {
+			var agentEligibility = &models.DiskInstallationEligibility{Eligible: test.agentDecision, NotEligibleReasons: test.agentReasons}
+			if !test.agentDecision && len(test.agentReasons) == 0 {
+				// Simulate old agent version that's not aware of this struct
+				agentEligibility = nil
+			}
+
+			testDisk := &models.Disk{InstallationEligibility: agentEligibility}
+			testDisks = append(testDisks, testDisk)
+
+			var expectedEligibility = &models.DiskInstallationEligibility{Eligible: test.expectedDecision, NotEligibleReasons: test.expectedReasons}
+			expectedDisk := &models.Disk{InstallationEligibility: expectedEligibility}
+			expectedDisks = append(expectedDisks, expectedDisk)
+
+			mockValidator.EXPECT().DiskIsEligible(gomock.Any()).Return(test.serviceDecision, test.serviceReasons)
 		}
 
-		failure := func(reply error) {
-			Expect(reply).To(HaveOccurred())
+		testInventory, err := json.Marshal(&models.Inventory{Disks: testDisks})
+		Expect(err).To(BeNil())
+
+		var actualInventory models.Inventory
+		populated, err := hapi.(*Manager).populateDisksEligibility(string(testInventory))
+		Expect(err).To(BeNil())
+		err = json.Unmarshal([]byte(populated), &actualInventory)
+		Expect(err).To(BeNil())
+
+		Expect(actualInventory.Disks).Should(Equal(expectedDisks))
+	})
+
+	Context("enable host", func() {
+		var newInventoryBytes []byte
+
+		BeforeEach(func() {
+			// Create an inventory that is slightly arbitrarily different than the default one
+			// (in this case timestamp is set to some magic value other than the default 0)
+			// so we can check if UpdateInventory actually occurred
+			var newInventory models.Inventory
+			magicTimestamp := int64(0xcafecafe)
+			err := json.Unmarshal([]byte(defaultInventory()), &newInventory)
+			Expect(err).To(BeNil())
+			newInventory.Timestamp = magicTimestamp
+			newInventoryBytes, err = json.Marshal(&newInventory)
+			Expect(err).To(BeNil())
+
+			mockValidator.EXPECT().DiskIsEligible(gomock.Any())
+		})
+
+		success := func(err error) {
+			Expect(err).To(BeNil())
+			h := getHost(hostId, clusterId, db)
+			Expect(h.Inventory).To(Equal(string(newInventoryBytes)))
+		}
+
+		failure := func(err error) {
+			Expect(err).To(HaveOccurred())
 			h := getHost(hostId, clusterId, db)
 			Expect(h.Inventory).To(Equal(defaultInventory()))
 		}
@@ -1033,7 +1123,7 @@ var _ = Describe("UpdateInventory", func() {
 				host.Inventory = defaultInventory()
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				t.validation(hapi.UpdateInventory(ctx, &host, newInventory))
+				t.validation(hapi.UpdateInventory(ctx, &host, string(newInventoryBytes)))
 			})
 		}
 	})
