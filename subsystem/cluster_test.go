@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
@@ -363,6 +364,18 @@ func installCluster(clusterID strfmt.UUID) *models.Cluster {
 	return c
 }
 
+func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID) error {
+	ctx := context.Background()
+	isSuccess := true
+	_, err := client.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+		ClusterID: clusterID,
+		CompletionParams: &models.CompletionParams{
+			IsSuccess: &isSuccess,
+		},
+	})
+	return err
+}
+
 func installClusterAndComplete(clusterID strfmt.UUID) {
 	c := installCluster(clusterID)
 	Expect(len(c.Hosts)).Should(Equal(5))
@@ -376,9 +389,7 @@ func installClusterAndComplete(clusterID strfmt.UUID) {
 
 	waitForClusterState(context.Background(), clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 
-	success := true
-	_, err := agentBMClient.Installer.CompleteInstallation(context.Background(),
-		&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: ""}})
+	err := completeInstallation(agentBMClient, clusterID)
 	Expect(err).NotTo(HaveOccurred())
 
 }

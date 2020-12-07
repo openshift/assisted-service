@@ -27,17 +27,18 @@ var wiremock *WireMock
 var kubeClient k8sclient.Client
 
 var Options struct {
-	DBHost             string `envconfig:"DB_HOST"`
-	DBPort             string `envconfig:"DB_PORT"`
-	EnableAuth         bool   `envconfig:"ENABLE_AUTH"`
-	InventoryHost      string `envconfig:"INVENTORY"`
-	TestToken          string `envconfig:"TEST_TOKEN"`
-	TestTokenAdmin     string `envconfig:"TEST_TOKEN_ADMIN"`
-	TestTokenUnallowed string `envconfig:"TEST_TOKEN_UNALLOWED"`
-	OCMHost            string `envconfig:"OCM_HOST"`
-	DeployTarget       string `envconfig:"DEPLOY_TARGET" default:"k8s"`
-	Namespace          string `envconfig:"NAMESPACE" default:"assisted-installer"`
-	EnableKubeAPI      bool   `envconfig:"ENABLE_KUBE_API" default:"false"`
+	DBHost               string `envconfig:"DB_HOST"`
+	DBPort               string `envconfig:"DB_PORT"`
+	EnableAuth           bool   `envconfig:"ENABLE_AUTH"`
+	InventoryHost        string `envconfig:"INVENTORY"`
+	TestToken            string `envconfig:"TEST_TOKEN"`
+	TestTokenAdmin       string `envconfig:"TEST_TOKEN_ADMIN"`
+	TestTokenUnallowed   string `envconfig:"TEST_TOKEN_UNALLOWED"`
+	OCMHost              string `envconfig:"OCM_HOST"`
+	DeployTarget         string `envconfig:"DEPLOY_TARGET" default:"k8s"`
+	Namespace            string `envconfig:"NAMESPACE" default:"assisted-installer"`
+	EnableKubeAPI        bool   `envconfig:"ENABLE_KUBE_API" default:"false"`
+	WithAMSSubscriptions bool   `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
 }
 
 func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {

@@ -240,7 +240,7 @@ func (a AuthHandler) getRole(payload *ocm.AuthPayload) (ocm.RoleType, error) {
 
 func (a *AuthHandler) isReadOnlyAdmin(username string) (bool, error) {
 	return a.client.Authorization.CapabilityReview(
-		context.Background(), fmt.Sprint(username), CapabilityName, CapabilityType)
+		context.Background(), fmt.Sprint(username), ocm.CapabilityName, ocm.CapabilityType)
 }
 
 func (a *AuthHandler) isClusterOwnedByUser(clusterID string, payload *ocm.AuthPayload) (bool, error) {
@@ -278,7 +278,7 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 				a.log.Debug("API Key Authentication Disabled")
 				return true, &ocm.AuthPayload{
 					Role:     ocm.AdminRole, // auth disabled - behave as system-admin
-					Username: AdminUsername,
+					Username: ocm.AdminUsername,
 				}, nil
 			}
 			token := getToken(r)

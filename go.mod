@@ -40,7 +40,7 @@ require (
 	github.com/moby/moby v1.13.1
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
-	github.com/openshift-online/ocm-sdk-go v0.1.130
+	github.com/openshift-online/ocm-sdk-go v0.1.155
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
 	github.com/openshift/hive/pkg/apis v0.0.0

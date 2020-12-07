@@ -3,6 +3,7 @@ package common
 import (
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -29,4 +30,7 @@ type Cluster struct {
 
 	// Namespace of the KubeAPI resource
 	KubeKeyNamespace string `json:"kube_key_namespace"`
+
+	// The ID of the subscription created in AMS
+	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id"`
 }

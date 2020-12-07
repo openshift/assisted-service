@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
-	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/go-openapi/strfmt"
+	"github.com/openshift/assisted-service/pkg/ocm"
 )
 
 type StubDefinition struct {
@@ -37,18 +39,30 @@ type WireMock struct {
 	TestToken string
 }
 
+type subscription struct {
+	ID     strfmt.UUID `json:"id"`
+	Status string      `json:"status"`
+}
+
 const (
-	wiremockMappingsPath     string = "/__admin/mappings"
-	capabilityReviewPath     string = "/api/authorizations/v1/capability_review"
-	accessReviewPath         string = "/api/authorizations/v1/access_review"
-	pullAuthPath             string = "/api/accounts_mgmt/v1/token_authorization"
-	tokenPath                string = "/token"
-	fakePayloadUsername      string = "jdoe123@example.com"
-	fakePayloadAdmin         string = "admin@example.com"
-	fakePayloadUnallowedUser string = "unallowed@example.com"
-	FakePS                   string = "dXNlcjpwYXNzd29yZAo="
-	FakeAdminPS              string = "dXNlcjpwYXNzd29yZAy="
-	WrongPullSecret          string = "wrong_secret"
+	wiremockMappingsPath     string      = "/__admin/mappings"
+	capabilityReviewPath     string      = "/api/authorizations/v1/capability_review"
+	accessReviewPath         string      = "/api/authorizations/v1/access_review"
+	pullAuthPath             string      = "/api/accounts_mgmt/v1/token_authorization"
+	clusterAuthzPath         string      = "/api/accounts_mgmt/v1/cluster_authorizations"
+	subscriptionPrefix       string      = "/api/accounts_mgmt/v1/subscriptions/"
+	tokenPath                string      = "/token"
+	fakePayloadUsername      string      = "jdoe123@example.com"
+	fakePayloadAdmin         string      = "admin@example.com"
+	fakePayloadUnallowedUser string      = "unallowed@example.com"
+	FakePS                   string      = "dXNlcjpwYXNzd29yZAo="
+	FakeAdminPS              string      = "dXNlcjpwYXNzd29yZAy="
+	WrongPullSecret          string      = "wrong_secret"
+	FakeSubscriptionID       strfmt.UUID = "1h89fvtqeelulpo0fl5oddngj2ao7tt8"
+)
+
+var (
+	subscriptionPath string = filepath.Join(subscriptionPrefix, FakeSubscriptionID.String())
 )
 
 func (w *WireMock) CreateWiremockStubsForOCM() error {
@@ -72,6 +86,22 @@ func (w *WireMock) CreateWiremockStubsForOCM() error {
 		return err
 	}
 
+	if err := w.createStubsForCreatingAMSSubscription(http.StatusOK); err != nil {
+		return err
+	}
+
+	if err := w.createStubsForGettingAMSSubscription(http.StatusOK); err != nil {
+		return err
+	}
+
+	if err := w.createStubsForUpdatingAMSSubscription(http.StatusOK); err != nil {
+		return err
+	}
+
+	if err := w.createStubsForDeletingAMSSubscription(http.StatusOK); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -87,6 +117,113 @@ func (w *WireMock) createStubsForCapabilityReview() error {
 		return err
 	}
 	return nil
+}
+
+func (w *WireMock) createStubsForCreatingAMSSubscription(resStatus int) error {
+
+	type reservedResource struct{}
+
+	type clusterAuthorizationRequest struct {
+		AccountUsername string              `json:"account_username"`
+		ProductCategory string              `json:"product_category"`
+		ProductID       string              `json:"product_id"`
+		ClusterID       string              `json:"cluster_id"`
+		Managed         bool                `json:"managed"`
+		Resources       []*reservedResource `json:"resources"`
+		Reserve         bool                `json:"reserve"`
+	}
+
+	type clusterAuthorizationResponse struct {
+		Subscription subscription `json:"subscription"`
+	}
+
+	caRequest := clusterAuthorizationRequest{
+		AccountUsername: "${json-unit.any-string}",
+		ProductCategory: ocm.ProductCategoryAssistedInstall,
+		ProductID:       ocm.ProductIdOCP,
+		ClusterID:       "${json-unit.any-string}",
+		Managed:         false,
+		Resources:       []*reservedResource{},
+		Reserve:         true,
+	}
+
+	caResponse := clusterAuthorizationResponse{
+		Subscription: subscription{ID: FakeSubscriptionID},
+	}
+
+	var reqBody []byte
+	reqBody, err := json.Marshal(caRequest)
+	if err != nil {
+		return err
+	}
+
+	var resBody []byte
+	resBody, err = json.Marshal(caResponse)
+	if err != nil {
+		return err
+	}
+
+	amsSubscriptionStub := w.createStubDefinition(clusterAuthzPath, "POST", string(reqBody), string(resBody), resStatus)
+	_, err = w.addStub(amsSubscriptionStub)
+	return err
+}
+
+func (w *WireMock) createStubsForGettingAMSSubscription(resStatus int) error {
+
+	subResponse := subscription{
+		ID:     FakeSubscriptionID,
+		Status: ocm.SubscriptionStatusReserved,
+	}
+
+	var resBody []byte
+	resBody, err := json.Marshal(subResponse)
+	if err != nil {
+		return err
+	}
+
+	amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "GET", "", string(resBody), resStatus)
+	_, err = w.addStub(amsSubscriptionStub)
+	return err
+}
+
+func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int) error {
+
+	type subscriptionUpdateRequest struct {
+		ExternalClusterID strfmt.UUID `json:"external_cluster_id"`
+		Status            string      `json:"status"`
+	}
+
+	suRequest := subscriptionUpdateRequest{
+		ExternalClusterID: "${json-unit.any-string}",
+		Status:            ocm.SubscriptionStatusActive,
+	}
+
+	subResponse := subscription{
+		ID: FakeSubscriptionID,
+	}
+
+	var reqBody []byte
+	reqBody, err := json.Marshal(suRequest)
+	if err != nil {
+		return err
+	}
+
+	var resBody []byte
+	resBody, err = json.Marshal(subResponse)
+	if err != nil {
+		return err
+	}
+
+	amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+	_, err = w.addStub(amsSubscriptionStub)
+	return err
+}
+
+func (w *WireMock) createStubsForDeletingAMSSubscription(resStatus int) error {
+
+	amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "DELETE", "", "", resStatus)
+	_, err := w.addStub(amsSubscriptionStub)
+	return err
 }
 
 func (w *WireMock) createStubToken(testToken string) (string, error) {
@@ -138,8 +275,8 @@ func (w *WireMock) createStubCapabilityReview(username string, result bool) (str
 	}
 
 	capabilityRequest := CapabilityRequest{
-		Name:     auth.CapabilityName,
-		Type:     auth.CapabilityType,
+		Name:     ocm.CapabilityName,
+		Type:     ocm.CapabilityType,
 		Username: username,
 	}
 
@@ -176,8 +313,8 @@ func (w *WireMock) createStubAccessReview(username string, allowed bool) (string
 
 	capabilityRequest := CapabilityRequest{
 		Username:     username,
-		Action:       auth.AMSActionCreate,
-		ResourceType: auth.BareMetalClusterResource,
+		Action:       ocm.AMSActionCreate,
+		ResourceType: ocm.BareMetalClusterResource,
 	}
 
 	capabilityResponse := CapabilityResponse{
@@ -289,11 +426,10 @@ func (w *WireMock) createWrongStubTokenAuth(token string) (string, error) {
 }
 
 func (w *WireMock) createStubDefinition(url, method, reqBody, resBody string, resStatus int) *StubDefinition {
-	return &StubDefinition{
+	sd := &StubDefinition{
 		Request: &RequestDefinition{
-			URL:          url,
-			Method:       method,
-			BodyPatterns: []map[string]string{{"equalToJson": reqBody}},
+			URL:    url,
+			Method: method,
 		},
 		Response: &ResponseDefinition{
 			Status: resStatus,
@@ -303,6 +439,15 @@ func (w *WireMock) createStubDefinition(url, method, reqBody, resBody string, re
 			},
 		},
 	}
+	if reqBody != "" {
+		sd.Request.BodyPatterns = []map[string]string{
+			{
+				"equalToJson":         reqBody,
+				"ignoreExtraElements": "true",
+			},
+		}
+	}
+	return sd
 }
 
 func (w *WireMock) addStub(stub *StubDefinition) (string, error) {

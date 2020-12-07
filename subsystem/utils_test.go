@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -53,12 +55,34 @@ func getHost(clusterID, hostID strfmt.UUID) *models.Host {
 	return host.GetPayload()
 }
 
+func registerCluster(ctx context.Context, client *client.AssistedInstall, clusterName string, pullSecret string) (strfmt.UUID, error) {
+	var cluster, err = client.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		NewClusterParams: &models.ClusterCreateParams{
+			Name:             swag.String(clusterName),
+			OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+			PullSecret:       swag.String(pullSecret),
+			BaseDNSDomain:    "example.com",
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	return *cluster.GetPayload().ID, nil
+}
+
 func getCluster(clusterID strfmt.UUID) *models.Cluster {
 	cluster, err := userBMClient.Installer.GetCluster(context.Background(), &installer.GetClusterParams{
 		ClusterID: clusterID,
 	})
 	Expect(err).NotTo(HaveOccurred())
 	return cluster.GetPayload()
+}
+
+func getCommonCluster(ctx context.Context, clusterID strfmt.UUID) *common.Cluster {
+	var cluster common.Cluster
+	err := db.First(&cluster, "id = ?", clusterID).Error
+	Expect(err).ShouldNot(HaveOccurred())
+	return &cluster
 }
 
 func checkStepsInList(steps models.Steps, stepTypes []models.StepType, numSteps int) {

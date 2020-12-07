@@ -55,6 +55,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/transaction"
@@ -97,6 +98,7 @@ type Config struct {
 	DefaultClusterNetworkCidr       string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
 	DefaultClusterNetworkHostPrefix int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX" default:"23"`
 	DefaultServiceNetworkCidr       string            `envconfig:"SERVICE_NETWORK_CIDR" default:"172.30.0.0/16"`
+	WithAMSSubscriptions            bool              `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
 }
 
 const agentMessageOfTheDay = `
@@ -302,6 +304,7 @@ type bareMetalInventory struct {
 	generator        generator.ISOInstallConfigGenerator
 	authHandler      auth.AuthHandler
 	k8sClient        k8sclient.K8SClient
+	ocmClient        *ocm.Client
 	leaderElector    leader.Leader
 	secretValidator  validations.PullSecretValidator
 	versionsHandler  versions.Handler
@@ -332,6 +335,7 @@ func NewBareMetalInventory(
 	metricApi metrics.API,
 	authHandler auth.AuthHandler,
 	k8sClient k8sclient.K8SClient,
+	ocmClient *ocm.Client,
 	leaderElector leader.Leader,
 	pullSecretValidator validations.PullSecretValidator,
 	versionsHandler versions.Handler,
@@ -349,6 +353,7 @@ func NewBareMetalInventory(
 		metricApi:        metricApi,
 		authHandler:      authHandler,
 		k8sClient:        k8sClient,
+		ocmClient:        ocmClient,
 		leaderElector:    leaderElector,
 		secretValidator:  pullSecretValidator,
 		versionsHandler:  versionsHandler,
@@ -636,9 +641,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			ServiceNetworkCidr:       swag.StringValue(params.NewClusterParams.ServiceNetworkCidr),
 			SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
 			UpdatedAt:                strfmt.DateTime{},
-			UserName:                 auth.UserNameFromContext(ctx),
-			OrgID:                    auth.OrgIDFromContext(ctx),
-			EmailDomain:              auth.EmailDomainFromContext(ctx),
+			UserName:                 ocm.UserNameFromContext(ctx),
+			OrgID:                    ocm.OrgIDFromContext(ctx),
+			EmailDomain:              ocm.EmailDomainFromContext(ctx),
 			HTTPProxy:                swag.StringValue(params.NewClusterParams.HTTPProxy),
 			HTTPSProxy:               swag.StringValue(params.NewClusterParams.HTTPSProxy),
 			NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
@@ -662,7 +667,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
-	err := b.secretValidator.ValidatePullSecret(pullSecret, auth.UserNameFromContext(ctx), b.authHandler)
+	err := b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
 	if err != nil {
 		log.WithError(err).Errorf("Pull secret for new cluster is invalid")
 		return nil, common.NewApiError(http.StatusBadRequest, secretValidationToUserError(err))
@@ -692,9 +697,38 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
+		log.Infof("Creating AMS subscription for cluster %s", id)
+		if err := b.integrateWithAMS(ctx, &cluster); err != nil {
+			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS", id)
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+
 	success = true
 	b.metricApi.ClusterRegistered(swag.StringValue(params.NewClusterParams.OpenshiftVersion), *cluster.ID, cluster.EmailDomain)
 	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+}
+
+func (b *bareMetalInventory) integrateWithAMS(ctx context.Context, cluster *common.Cluster) error {
+	log := logutil.FromContext(ctx, b.log)
+	sub, err := b.ocmClient.AccountsMgmt.CreateSubscription(ctx, *cluster.ID)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to create AMS subscription for cluster %s, rolling back cluster registration", *cluster.ID)
+		if deregisterErr := b.clusterApi.DeregisterCluster(ctx, cluster); deregisterErr != nil {
+			log.WithError(deregisterErr).Errorf("Failed to rollback cluster %s registration", *cluster.ID)
+		}
+		return err
+	}
+	log.Infof("AMS subscription %s was created for cluster %s", sub.ID(), *cluster.ID)
+	if err := b.clusterApi.UpdateAmsSubscriptionID(ctx, *cluster.ID, strfmt.UUID(sub.ID())); err != nil {
+		log.WithError(err).Errorf("Failed to update ams_subscription_id in cluster %v, rolling back cluster registration", *cluster.ID)
+		if deregisterErr := b.clusterApi.DeregisterCluster(ctx, cluster); deregisterErr != nil {
+			log.WithError(deregisterErr).Errorf("Failed to rollback cluster %s registration", *cluster.ID)
+		}
+		return err
+	}
+	return nil
 }
 
 func convertFromClusterOperators(operators models.ListOperators) string {
@@ -753,9 +787,9 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 		Kind:             swag.String(models.ClusterKindAddHostsCluster),
 		Name:             clusterName,
 		OpenshiftVersion: openshiftVersion,
-		UserName:         auth.UserNameFromContext(ctx),
-		OrgID:            auth.OrgIDFromContext(ctx),
-		EmailDomain:      auth.EmailDomainFromContext(ctx),
+		UserName:         ocm.UserNameFromContext(ctx),
+		OrgID:            ocm.OrgIDFromContext(ctx),
+		EmailDomain:      ocm.EmailDomainFromContext(ctx),
 		UpdatedAt:        strfmt.DateTime{},
 		APIVipDNSName:    swag.String(apivipDnsname),
 	}}
@@ -824,6 +858,22 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params insta
 	return installer.NewDeregisterClusterNoContent()
 }
 
+func (b *bareMetalInventory) deleteReservedAMSSubscription(ctx context.Context, amsSubscriptionID strfmt.UUID) error {
+	log := logutil.FromContext(ctx, b.log)
+	sub, err := b.ocmClient.AccountsMgmt.GetSubscription(ctx, amsSubscriptionID)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get AMS subscription %s", amsSubscriptionID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if sub.Status() == ocm.SubscriptionStatusReserved {
+		if err = b.ocmClient.AccountsMgmt.DeleteSubscription(ctx, amsSubscriptionID); err != nil {
+			log.WithError(err).Errorf("Failed to delete AMS subscription %s", amsSubscriptionID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+	return nil
+}
+
 func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
@@ -833,13 +883,21 @@ func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, para
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 
+	// AMS subscription is created only for day1 clusters
+	if *cluster.Kind == models.ClusterKindCluster {
+		if err := b.deleteReservedAMSSubscription(ctx, cluster.AmsSubscriptionID); err != nil {
+			log.WithError(err).Errorf("Failed to delete AMS subscription %s for non-active cluster %s", cluster.AmsSubscriptionID, params.ClusterID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+
 	if err := b.deleteDNSRecordSets(ctx, cluster); err != nil {
 		log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
 	}
 
 	err := b.clusterApi.DeregisterCluster(ctx, &cluster)
 	if err != nil {
-		log.WithError(err).Errorf("failed to deregister cluster cluster %s", params.ClusterID)
+		log.WithError(err).Errorf("failed to deregister cluster %s", params.ClusterID)
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 	return nil
@@ -1615,7 +1673,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	var err error
 	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
-		err = b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, auth.UserNameFromContext(ctx), b.authHandler)
+		err = b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
 		if err != nil {
 			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
 			return nil, common.NewApiError(http.StatusBadRequest, secretValidationToUserError(err))
@@ -2286,7 +2344,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		ClusterID:             params.ClusterID,
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
-		UserName:              auth.UserNameFromContext(ctx),
+		UserName:              ocm.UserNameFromContext(ctx),
 		Role:                  models.HostRoleAutoAssign,
 	}
 
@@ -3627,6 +3685,14 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 		return common.GenerateErrorResponder(err)
 	}
 
+	if b.ocmClient != nil {
+		_, err := b.ocmClient.AccountsMgmt.UpdateSubscription(ctx, c.AmsSubscriptionID, c.OpenshiftClusterID)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to update AMS subscription for cluster %v", c.ID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+
 	return installer.NewCompleteInstallationAccepted().WithPayload(&c.Cluster)
 }
 
@@ -4151,9 +4217,9 @@ func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 		Kind:               swag.String(models.ClusterKindAddHostsOCPCluster),
 		Name:               clusterName,
 		OpenshiftVersion:   openshiftVersion,
-		UserName:           auth.UserNameFromContext(ctx),
-		OrgID:              auth.OrgIDFromContext(ctx),
-		EmailDomain:        auth.EmailDomainFromContext(ctx),
+		UserName:           ocm.UserNameFromContext(ctx),
+		OrgID:              ocm.OrgIDFromContext(ctx),
+		EmailDomain:        ocm.EmailDomainFromContext(ctx),
 		UpdatedAt:          strfmt.DateTime{},
 		APIVip:             apiVIP,
 		BaseDNSDomain:      baseDNSDomain,
@@ -4313,7 +4379,7 @@ func (b *bareMetalInventory) createInstalledOCPHosts(ctx context.Context, cluste
 			Kind:              swag.String(models.HostKindAddToExistingClusterOCPHost),
 			ClusterID:         *cluster.ID,
 			CheckedInAt:       strfmt.DateTime(time.Now()),
-			UserName:          auth.UserNameFromContext(ctx),
+			UserName:          ocm.UserNameFromContext(ctx),
 			Role:              role,
 			RequestedHostname: hostname,
 			Inventory:         inventory,
