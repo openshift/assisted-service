@@ -288,6 +288,8 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInstalling),
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
+			stateswitch.State(models.HostStatusResettingPendingUserAction),
+			stateswitch.State(models.HostStatusInstallingPendingUserAction),
 		},
 		Condition:        stateswitch.And(th.HasClusterError, stateswitch.Not(th.IsDay2Host)),
 		DestinationState: stateswitch.State(models.HostStatusError),
@@ -338,14 +340,6 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			SourceStates:     []stateswitch.State{state},
 			Condition:        stateswitch.Not(th.HasClusterError),
 			DestinationState: state,
-		})
-
-		sm.AddTransition(stateswitch.TransitionRule{
-			TransitionType:   TransitionTypeRefresh,
-			SourceStates:     []stateswitch.State{state},
-			Condition:        th.HasClusterError,
-			DestinationState: stateswitch.State(models.HostStatusError),
-			PostTransition:   th.PostRefreshHost(statusInfoAbortingDueClusterErrors),
 		})
 	}
 
