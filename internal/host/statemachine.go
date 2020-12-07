@@ -330,12 +330,22 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		stateswitch.State(models.HostStatusInstalling),
 		stateswitch.State(models.HostStatusInstallingInProgress),
 		stateswitch.State(models.HostStatusInstalled),
+		stateswitch.State(models.HostStatusInstallingPendingUserAction),
+		stateswitch.State(models.HostStatusResettingPendingUserAction),
 	} {
 		sm.AddTransition(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefresh,
 			SourceStates:     []stateswitch.State{state},
 			Condition:        stateswitch.Not(th.HasClusterError),
 			DestinationState: state,
+		})
+
+		sm.AddTransition(stateswitch.TransitionRule{
+			TransitionType:   TransitionTypeRefresh,
+			SourceStates:     []stateswitch.State{state},
+			Condition:        th.HasClusterError,
+			DestinationState: stateswitch.State(models.HostStatusError),
+			PostTransition:   th.PostRefreshHost(statusInfoAbortingDueClusterErrors),
 		})
 	}
 
@@ -452,8 +462,6 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		stateswitch.State(models.HostStatusDisabled),
 		stateswitch.State(models.HostStatusError),
 		stateswitch.State(models.HostStatusResetting),
-		stateswitch.State(models.HostStatusInstallingPendingUserAction),
-		stateswitch.State(models.HostStatusResettingPendingUserAction),
 	} {
 		sm.AddTransition(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefresh,

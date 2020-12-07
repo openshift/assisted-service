@@ -2676,6 +2676,8 @@ var _ = Describe("Refresh Host", func() {
 			models.HostStatusInstalling,
 			models.HostStatusInstallingInProgress,
 			models.HostStatusInstalled,
+			models.HostStatusInstallingPendingUserAction,
+			models.HostStatusResettingPendingUserAction,
 		} {
 			It(fmt.Sprintf("host src: %s cluster error: false", srcState), func() {
 				h := getTestHost(hostId, clusterId, srcState)
@@ -2696,7 +2698,7 @@ var _ = Describe("Refresh Host", func() {
 				c.Status = swag.String(models.ClusterStatusError)
 				Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityError,
-					"Host master-hostname: updated status from \"installed\" to \"error\" (Host is part of a cluster that failed to install)",
+					fmt.Sprintf("Host master-hostname: updated status from \"%s\" to \"error\" (Host is part of a cluster that failed to install)", srcState),
 					gomock.Any())
 				err := hapi.RefreshStatus(ctx, &h, db)
 				Expect(err).ShouldNot(HaveOccurred())
