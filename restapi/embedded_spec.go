@@ -3896,6 +3896,29 @@ func init() {
           }
         }
       }
+    },
+    "/openshift_versions": {
+      "get": {
+        "tags": [
+          "versions"
+        ],
+        "summary": "Retrieves the list of OpenShift supported versions",
+        "operationId": "ListSupportedOpenshiftVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -3923,10 +3946,7 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.6"
-          ]
+          "type": "string"
         }
       }
     },
@@ -4143,12 +4163,7 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.5",
-            "4.6",
-            "4.7"
-          ]
+          "type": "string"
         },
         "operators": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:operators_\"",
@@ -4287,12 +4302,7 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.5",
-            "4.6",
-            "4.7"
-          ]
+          "type": "string"
         },
         "operators": {
           "x-nullable": true,
@@ -5649,6 +5659,21 @@ func init() {
             "$ref": "#/definitions/ntp_source"
           }
         }
+      }
+    },
+    "openshift-version": {
+      "type": "object",
+      "properties": {
+        "release_image": {
+          "description": "The installation image of the OpenShift cluster.",
+          "type": "string"
+        }
+      }
+    },
+    "openshift-versions": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/openshift-version"
       }
     },
     "operators": {
@@ -9720,6 +9745,29 @@ func init() {
           }
         }
       }
+    },
+    "/openshift_versions": {
+      "get": {
+        "tags": [
+          "versions"
+        ],
+        "summary": "Retrieves the list of OpenShift supported versions",
+        "operationId": "ListSupportedOpenshiftVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -9818,10 +9866,7 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.6"
-          ]
+          "type": "string"
         }
       }
     },
@@ -10038,12 +10083,7 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.5",
-            "4.6",
-            "4.7"
-          ]
+          "type": "string"
         },
         "operators": {
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:operators_\"",
@@ -10182,12 +10222,7 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.5",
-            "4.6",
-            "4.7"
-          ]
+          "type": "string"
         },
         "operators": {
           "x-nullable": true,
@@ -11505,6 +11540,21 @@ func init() {
             "$ref": "#/definitions/ntp_source"
           }
         }
+      }
+    },
+    "openshift-version": {
+      "type": "object",
+      "properties": {
+        "release_image": {
+          "description": "The installation image of the OpenShift cluster.",
+          "type": "string"
+        }
+      }
+    },
+    "openshift-versions": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/openshift-version"
       }
     },
     "operators": {

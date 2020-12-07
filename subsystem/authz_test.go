@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -123,7 +124,7 @@ func registerCluster(ctx context.Context, client *client.AssistedInstall, cluste
 	var cluster, err = client.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
 			Name:             swag.String(clusterName),
-			OpenshiftVersion: swag.String("4.5"),
+			OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 			PullSecret:       swag.String(pullSecret),
 		},
 	})

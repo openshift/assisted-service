@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/versions"
 
 	"github.com/sirupsen/logrus"
 
@@ -30,9 +31,11 @@ type installCmd struct {
 	ocRelease         oc.Release
 	instructionConfig InstructionConfig
 	eventsHandler     events.Handler
+	versionsHandler   versions.Handler
 }
 
-func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release, instructionConfig InstructionConfig, eventsHandler events.Handler) *installCmd {
+func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
+	instructionConfig InstructionConfig, eventsHandler events.Handler, versionsHandler versions.Handler) *installCmd {
 	return &installCmd{
 		baseCmd:           baseCmd{log: log},
 		db:                db,
@@ -40,6 +43,7 @@ func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Val
 		ocRelease:         ocRelease,
 		instructionConfig: instructionConfig,
 		eventsHandler:     eventsHandler,
+		versionsHandler:   versionsHandler,
 	}
 }
 
@@ -60,7 +64,12 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		role = models.HostRoleBootstrap
 	}
 
-	mcoImage, err := i.ocRelease.GetMCOImage(i.log, i.instructionConfig.ReleaseImage, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+	releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	mcoImage, err := i.ocRelease.GetMCOImage(i.log, releaseImage, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
 	if err != nil {
 		return nil, err
 	}

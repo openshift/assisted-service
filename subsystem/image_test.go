@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/client/assisted_service_iso"
 	"github.com/openshift/assisted-service/client/events"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -35,7 +36,7 @@ var _ = Describe("system-test image tests", func() {
 		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String("4.5"),
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:       swag.String(pullSecret),
 			},
 		})
@@ -176,7 +177,7 @@ var _ = Describe("image tests", func() {
 		cluster, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String("4.5"),
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:       swag.String(pullSecret),
 			},
 		})
@@ -203,7 +204,7 @@ var _ = Describe("system-test proxy update tests", func() {
 		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String("4.5"),
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:       swag.String(pullSecret),
 			},
 		})

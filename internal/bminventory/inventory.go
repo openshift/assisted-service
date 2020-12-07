@@ -43,6 +43,7 @@ import (
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
@@ -372,6 +373,7 @@ type bareMetalInventory struct {
 	k8sClient       k8sclient.K8SClient
 	leaderElector   leader.Leader
 	secretValidator validations.PullSecretValidator
+	versionsHandler versions.Handler
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
@@ -400,6 +402,7 @@ func NewBareMetalInventory(
 	k8sClient k8sclient.K8SClient,
 	leaderElector leader.Leader,
 	pullSecretValidator validations.PullSecretValidator,
+	versionsHandler versions.Handler,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:              db,
@@ -415,6 +418,7 @@ func NewBareMetalInventory(
 		k8sClient:       k8sClient,
 		leaderElector:   leaderElector,
 		secretValidator: pullSecretValidator,
+		versionsHandler: versionsHandler,
 	}
 }
 
@@ -654,6 +658,11 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 			log.WithError(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
+	}
+
+	if !b.versionsHandler.IsOpenshiftVersionSupported(swag.StringValue(params.NewClusterParams.OpenshiftVersion)) {
+		return installer.NewRegisterClusterBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest,
+			errors.Errorf("Openshift version %s is not supported", swag.StringValue(params.NewClusterParams.OpenshiftVersion))))
 	}
 
 	cluster := common.Cluster{Cluster: models.Cluster{
@@ -1452,9 +1461,16 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
 
-	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg); err != nil {
-		log.WithError(err).Errorf("Failed generating kubeconfig files for cluster %s", cluster.ID)
-		return err
+	releaseImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
+
+	if err != nil {
+		log.WithError(err).Errorf("failed to get release image for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
+		return errors.Wrapf(err, "failed to get release image for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
+	}
+
+	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg, releaseImage); err != nil {
+		log.WithError(err).Errorf("failed generating kubeconfig files for cluster %s", cluster.ID)
+		return errors.Wrapf(err, "failed generating kubeconfig files for cluster %s", cluster.ID)
 	}
 
 	return nil

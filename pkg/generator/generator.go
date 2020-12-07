@@ -11,7 +11,7 @@ type ISOGenerator interface {
 }
 
 type InstallConfigGenerator interface {
-	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error
+	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error
 	AbortInstallConfig(ctx context.Context, cluster common.Cluster) error
 }
 

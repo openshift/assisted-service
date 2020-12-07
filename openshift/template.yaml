@@ -10,6 +10,9 @@ parameters:
   required: true
 - name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
   value: ''
+- name: OPENSHIFT_VERSIONS
+  value: ''
+  required: true
 - name: OPENSHIFT_INSTALL_RELEASE_IMAGE
   value: ''
   required: true
@@ -218,6 +221,8 @@ objects:
                 value: ${BASE_DNS_DOMAINS}
               - name: OPENSHIFT_INSTALL_RELEASE_IMAGE
                 value: ${OPENSHIFT_INSTALL_RELEASE_IMAGE}
+              - name: OPENSHIFT_VERSIONS
+                value: ${OPENSHIFT_VERSIONS}
               - name: ENABLE_AUTH
                 value: ${ENABLE_AUTH}
               - name: JWKS_URL

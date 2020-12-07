@@ -565,7 +565,7 @@ func registerCluster(ctx context.Context, cli *client.AssistedInstall) error {
 		&installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test"),
-				OpenshiftVersion: swag.String("4.5"),
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}`),
 			},
 		})
@@ -957,7 +957,7 @@ func registerAddHostsCluster(ctx context.Context, cli *client.AssistedInstall) e
 				APIVipDnsname:    swag.String("api-vip.redhat.com"),
 				ID:               &id,
 				Name:             swag.String("test"),
-				OpenshiftVersion: swag.String("4.6"),
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 			},
 		})
 	return err

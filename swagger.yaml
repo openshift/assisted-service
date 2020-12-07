@@ -2392,6 +2392,22 @@ paths:
           schema:
             $ref: '#/definitions/list-versions'
 
+  /openshift_versions:
+    get:
+      tags:
+        - versions
+      operationId: ListSupportedOpenshiftVersions
+      summary: Retrieves the list of OpenShift supported versions
+      responses:
+        200:
+          description: Success.
+          schema:
+            $ref: '#/definitions/openshift-versions'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
   /host_requirements:
     get:
       tags:
@@ -2593,6 +2609,11 @@ definitions:
     type: object
     additionalProperties:
       type: string
+
+  openshift-versions:
+    type: object
+    additionalProperties:
+      $ref: '#/definitions/openshift-version'
 
   host-requirements:
     type: object
@@ -2965,7 +2986,6 @@ definitions:
         description: Name of the OpenShift cluster.
       openshift_version:
         type: string
-        enum: ['4.5', '4.6', '4.7']
         description: Version of the OpenShift cluster.
       base_dns_domain:
         type: string
@@ -3190,7 +3210,6 @@ definitions:
         description: api vip domain.
       openshift_version:
         type: string
-        enum: ['4.6']
         description: Version of the OpenShift cluster.
 
   cluster:
@@ -3229,7 +3248,6 @@ definitions:
         type: string
       openshift_version:
         type: string
-        enum: ['4.5', '4.6', '4.7']
         description: Version of the OpenShift cluster.
       openshift_cluster_id:
         type: string
@@ -4026,3 +4044,10 @@ definitions:
         pattern: '^[0-9]|[1-2][0-9]|3[0-2]?$'
       dns:
         type: string
+
+  openshift-version:
+    type: object
+    properties:
+      release_image:
+        type: string
+        description: The installation image of the OpenShift cluster.
