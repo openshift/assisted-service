@@ -388,7 +388,7 @@ func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOPa
 	}
 	return fmt.Sprintf(`{
 		"name": "core",
-		"passwordHash": "$6$MWO4bibU8TIWG0XV$Hiuj40lWW7pHiwJmXA8MehuBhdxSswLgvGxEh8ByEzeX2D1dk87JILVUYS4JQOP45bxHRegAB9Fs/SWfszXa5.",
+		"passwordHash": "!",
 		"sshAuthorizedKeys": [
 		"%s"],
 		"groups": [ "sudo" ]}`, sshKey)
