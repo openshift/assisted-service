@@ -311,3 +311,8 @@ _NOTE: To use these features, you need to have mkdocs installed in your system, 
 
 Image in charge of generating the Fedora-coreOs image used to install the host with the relevant ignition file.\
 Image is uploaded to deployed S3 under the name template "installer-image-\<cluster-id\>".
+
+## Assisted Service on cloud.redhat.com
+The Assisted Installer is also available for users as a SAAS hosted in cloud.redhat.com.
+
+More information is available here: [Assisted Installer on cloud.redhat.com](docs/cloud.md)
