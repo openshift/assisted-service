@@ -4320,7 +4320,8 @@ func init() {
       "properties": {
         "progress_info": {
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "x-nullable": true
         },
         "progress_updated_at": {
           "description": "Time at which the cluster install progress was last updated.",
@@ -10085,7 +10086,8 @@ func init() {
       "properties": {
         "progress_info": {
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "x-nullable": true
         },
         "progress_updated_at": {
           "description": "Time at which the cluster install progress was last updated.",

@@ -18,7 +18,7 @@ import (
 type ClusterProgressInfo struct {
 
 	// progress info
-	ProgressInfo string `json:"progress_info,omitempty" gorm:"type:varchar(2048)"`
+	ProgressInfo *string `json:"progress_info,omitempty" gorm:"type:varchar(2048)"`
 
 	// Time at which the cluster install progress was last updated.
 	// Format: date-time
