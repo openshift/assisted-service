@@ -18,38 +18,59 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 3,
-      "iteration": 1607439328561,
+      "id": 27,
+      "iteration": 1606916480576,
       "links": [],
       "panels": [
         {
-          "aliasColors": {},
-          "bars": true,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
+          "collapsed": false,
+          "datasource": null,
           "gridPos": {
-            "h": 8,
+            "h": 1,
             "w": 24,
             "x": 0,
             "y": 0
           },
+          "id": 30,
+          "panels": [],
+          "title": "All Clusters & Hosts",
+          "type": "row"
+        },
+        {
+          "aliasColors": {
+            "Created clusters": "blue",
+            "Installation canceled": "yellow",
+            "Installation completed successfully": "green",
+            "Installation error": "red",
+            "Installation started": "orange"
+          },
+          "bars": true,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "$datasource",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "links": []
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 10,
+            "w": 10,
+            "x": 0,
+            "y": 1
+          },
           "hiddenSeries": false,
-          "id": 24,
+          "id": 14,
           "legend": {
             "alignAsTable": true,
-            "avg": true,
+            "avg": false,
             "current": true,
-            "max": true,
-            "min": true,
+            "max": false,
+            "min": false,
             "rightSide": true,
             "show": true,
             "total": false,
@@ -72,17 +93,46 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_sum{vendor=~\".+\",phase=\"Configuring\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_count{vendor=~\".+\",phase=\"Configuring\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_creations{clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "hide": false,
               "interval": "",
-              "legendFormat": "{{vendor}}",
+              "legendFormat": "Created clusters",
               "refId": "A"
+            },
+            {
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "Installation started",
+              "refId": "B"
+            },
+            {
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\", result=\"installed\"})[$__range:$__rate_interval])",
+              "hide": false,
+              "instant": true,
+              "interval": "",
+              "legendFormat": "Installation completed successfully",
+              "refId": "C"
+            },
+            {
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\", result=\"error\"})[$__range:$__rate_interval])",
+              "interval": "",
+              "legendFormat": "Installation error",
+              "refId": "D"
+            },
+            {
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\", result=\"canceled\"})[$__range:$__rate_interval])",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "Installation canceled",
+              "refId": "E"
             }
           ],
           "thresholds": [],
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "Average Phases Duration - Configuring",
+          "title": "Installations results",
           "tooltip": {
             "shared": false,
             "sort": 0,
@@ -93,15 +143,15 @@ data:
             "buckets": null,
             "mode": "series",
             "name": null,
-            "show": true,
+            "show": false,
             "values": [
               "current"
             ]
           },
           "yaxes": [
             {
-              "format": "s",
-              "label": null,
+              "format": "short",
+              "label": "",
               "logBase": 1,
               "max": null,
               "min": null,
@@ -109,7 +159,7 @@ data:
             },
             {
               "format": "short",
-              "label": null,
+              "label": "",
               "logBase": 1,
               "max": null,
               "min": null,
@@ -122,10 +172,86 @@ data:
           }
         },
         {
-          "aliasColors": {},
-          "bars": true,
-          "dashLength": 10,
-          "dashes": false,
+          "datasource": "$datasource",
+          "description": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 8,
+            "x": 10,
+            "y": 1
+          },
+          "id": 25,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "7.2.0",
+          "targets": [
+            {
+              "expr": "increase(sum(service_assisted_installer_cluster_hosts{clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"}))[$__range:$__rate_interval])",
+              "interval": "",
+              "legendFormat": "Hosts",
+              "refId": "C"
+            },
+            {
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started))[$__range:$__rate_interval])",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "Clusters",
+              "refId": "E"
+            },
+            {
+              "expr": "(increase(sum(service_assisted_installer_cluster_hosts{clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"}))[$__range:$__rate_interval]) + 1) / (increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started))[$__range:$__rate_interval]))",
+              "hide": false,
+              "instant": false,
+              "interval": "",
+              "legendFormat": "Average",
+              "refId": "F"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Average Hosts Per Cluster",
+          "type": "stat"
+        },
+        {
+          "aliasColors": {
+            "canceled": "#FADE2A",
+            "error": "#F2495C",
+            "installed": "#73BF69"
+          },
+          "breakPoint": "50%",
+          "cacheTimeout": null,
+          "combine": {
+            "label": "Others",
+            "threshold": 0
+          },
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
@@ -133,22 +259,229 @@ data:
             },
             "overrides": []
           },
-          "fill": 1,
-          "fillGradient": 0,
+          "fontSize": "80%",
+          "format": "short",
           "gridPos": {
-            "h": 7,
-            "w": 24,
-            "x": 0,
+            "h": 10,
+            "w": 6,
+            "x": 18,
+            "y": 1
+          },
+          "id": 39,
+          "interval": null,
+          "legend": {
+            "percentage": true,
+            "show": true,
+            "sideWidth": null,
+            "sort": "current",
+            "sortDesc": false,
+            "values": true
+          },
+          "legendType": "Under graph",
+          "links": [],
+          "nullPointMode": "connected",
+          "pieType": "pie",
+          "pluginVersion": "6.6.2",
+          "strokeWidth": 1,
+          "targets": [
+            {
+              "expr": "increase(sum by (result)(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "{{result}}",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Installations success rate",
+          "type": "grafana-piechart-panel",
+          "valueName": "current"
+        },
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 8,
+            "x": 10,
+            "y": 5
+          },
+          "id": 38,
+          "options": {
+            "content": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
+            "mode": "markdown"
+          },
+          "pluginVersion": "7.1.0",
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "",
+          "type": "text"
+        },
+        {
+          "datasource": "$datasource",
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "decimals": 3,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 4,
+            "x": 10,
             "y": 8
           },
+          "id": 40,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value"
+          },
+          "pluginVersion": "7.2.0",
+          "targets": [
+            {
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started))[$__range:$__rate_interval])",
+              "hide": true,
+              "interval": "",
+              "legendFormat": "Clusters",
+              "refId": "E"
+            },
+            {
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "hide": true,
+              "interval": "",
+              "legendFormat": "attempts",
+              "refId": "A"
+            },
+            {
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"})[$__range:$__rate_interval]) / increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started))[$__range:$__rate_interval])",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "avg",
+              "refId": "B"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Average Install Attempts Per  Cluster",
+          "type": "stat"
+        },
+        {
+          "datasource": "$datasource",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "displayName": "",
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 4,
+            "x": 14,
+            "y": 8
+          },
+          "id": 41,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "last"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "7.2.0",
+          "targets": [
+            {
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "interval": "",
+              "legendFormat": "",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Creation vs Installation rate",
+          "type": "stat"
+        },
+        {
+          "aliasColors": {},
+          "bars": true,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "$datasource",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "links": []
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 5,
+            "w": 10,
+            "x": 0,
+            "y": 11
+          },
           "hiddenSeries": false,
-          "id": 25,
+          "id": 2,
           "legend": {
             "alignAsTable": true,
-            "avg": true,
+            "avg": false,
             "current": true,
-            "max": true,
-            "min": true,
+            "max": false,
+            "min": false,
             "rightSide": true,
             "show": true,
             "total": false,
@@ -171,9 +504,10 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_sum{vendor=~\".+\",phase=\"Installing\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_count{vendor=~\".+\",phase=\"Installing\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_sum{clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_count{clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
+              "hide": false,
               "interval": "",
-              "legendFormat": "{{vendor}}",
+              "legendFormat": "{{phase}}",
               "refId": "A"
             }
           ],
@@ -181,10 +515,128 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "Average Phases Duration - Installing",
+          "title": "Average Phases duration (successful)",
           "tooltip": {
             "shared": false,
             "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "max": null,
+            "min": null,
+            "mode": "series",
+            "name": null,
+            "show": false,
+            "values": [
+              "current"
+            ]
+          },
+          "yaxes": [
+            {
+              "format": "s",
+              "label": "Count",
+              "logBase": 1,
+              "max": null,
+              "min": "0",
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": "",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": true,
+          "cacheTimeout": null,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "app-sre-prod-04-prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 5,
+            "w": 14,
+            "x": 10,
+            "y": 11
+          },
+          "hiddenSeries": false,
+          "id": 61,
+          "interval": null,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": true,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": false,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.2.0",
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "increase(count by (emailDomain)(service_assisted_installer_cluster_installation_started{emailDomain=~\".+\"})[$__range:$__rate_interval]) + 1",
+              "interval": "",
+              "legendFormat": "{{emailDomain}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Cluster Count by emailDomain",
+          "tooltip": {
+            "shared": false,
+            "sort": 2,
             "value_type": "individual"
           },
           "type": "graph",
@@ -199,7 +651,7 @@ data:
           },
           "yaxes": [
             {
-              "format": "s",
+              "format": "short",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -228,591 +680,1535 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {}
+              "custom": {},
+              "links": []
             },
             "overrides": []
           },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
-            "h": 7,
+            "h": 5,
+            "w": 10,
+            "x": 0,
+            "y": 16
+          },
+          "hiddenSeries": false,
+          "id": 15,
+          "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": true,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": false,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.2.0",
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "increase(sum by (role)(service_assisted_installer_cluster_hosts{clusterId=~\".+\", result=\"Failed\"})[$__range:$__rate_interval])",
+              "interval": "",
+              "legendFormat": "{{role}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Hosts failures by role",
+          "tooltip": {
+            "shared": false,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "max": null,
+            "min": null,
+            "mode": "series",
+            "name": null,
+            "show": true,
+            "values": [
+              "current"
+            ]
+          },
+          "yaxes": [
+            {
+              "format": "failues",
+              "label": "Count",
+              "logBase": 1,
+              "max": null,
+              "min": "0",
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": "",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {},
+          "breakPoint": "50%",
+          "cacheTimeout": null,
+          "combine": {
+            "label": "Others",
+            "threshold": 0
+          },
+          "datasource": "$datasource",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "fontSize": "80%",
+          "format": "short",
+          "gridPos": {
+            "h": 5,
+            "w": 14,
+            "x": 10,
+            "y": 16
+          },
+          "id": 31,
+          "interval": null,
+          "legend": {
+            "percentage": true,
+            "show": true,
+            "sideWidth": null,
+            "sort": "current",
+            "sortDesc": false,
+            "values": true
+          },
+          "legendType": "Right side",
+          "links": [],
+          "nullPointMode": "connected",
+          "pieType": "pie",
+          "pluginVersion": "6.6.2",
+          "strokeWidth": 1,
+          "targets": [
+            {
+              "expr": "increase(sum by (vendor,product)(service_assisted_installer_cluster_hosts{clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"}))[$__range:$__rate_interval])",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "{{vendor}} {{product}}",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Hosts By Vendor",
+          "type": "grafana-piechart-panel",
+          "valueName": "current"
+        },
+        {
+          "collapsed": true,
+          "datasource": null,
+          "gridPos": {
+            "h": 1,
             "w": 24,
             "x": 0,
-            "y": 15
+            "y": 21
           },
-          "hiddenSeries": false,
-          "id": 26,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": false,
-          "linewidth": 1,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "7.2.0",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
+          "id": 35,
+          "panels": [
             {
-              "expr": "increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_sum{vendor=~\".+\",phase=\"Joined\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_count{vendor=~\".+\",phase=\"Joined\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
-              "interval": "",
-              "legendFormat": "{{vendor}}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "Average Phases Duration - Joined",
-          "tooltip": {
-            "shared": false,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "series",
-            "name": null,
-            "show": true,
-            "values": [
-              "current"
-            ]
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
+              "aliasColors": {
+                "Created clusters": "blue",
+                "Installation canceled": "yellow",
+                "Installation completed successfully": "green",
+                "Installation error": "red",
+                "Installation started": "orange"
+              },
+              "bars": true,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "links": []
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 10,
+                "w": 10,
+                "x": 0,
+                "y": 30
+              },
+              "hiddenSeries": false,
+              "id": 36,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": false,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.2.0",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_creations{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Created clusters",
+                  "refId": "A"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Installation started",
+                  "refId": "B"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", result=\"installed\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "instant": true,
+                  "interval": "",
+                  "legendFormat": "Installation completed successfully",
+                  "refId": "C"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", result=\"error\"})[$__range:$__rate_interval])",
+                  "interval": "",
+                  "legendFormat": "Installation error",
+                  "refId": "D"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", result=\"canceled\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Installation canceled",
+                  "refId": "E"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Installations results",
+              "tooltip": {
+                "shared": false,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "series",
+                "name": null,
+                "show": false,
+                "values": [
+                  "current"
+                ]
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
             },
             {
+              "datasource": "$datasource",
+              "description": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 4,
+                "w": 8,
+                "x": 10,
+                "y": 30
+              },
+              "id": 37,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "auto"
+              },
+              "pluginVersion": "7.2.0",
+              "targets": [
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_hosts{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"}))[$__range:$__rate_interval])",
+                  "interval": "",
+                  "legendFormat": "Hosts",
+                  "refId": "C"
+                },
+                {
+                  "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Clusters",
+                  "refId": "E"
+                },
+                {
+                  "expr": "(increase(sum(service_assisted_installer_cluster_hosts{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"}))[$__range:$__rate_interval]) + 1) / (increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",}))[$__range:$__rate_interval]))",
+                  "hide": false,
+                  "instant": false,
+                  "interval": "",
+                  "legendFormat": "Average",
+                  "refId": "F"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Average Hosts Per Cluster",
+              "type": "stat"
+            },
+            {
+              "aliasColors": {
+                "canceled": "#FADE2A",
+                "error": "#F2495C",
+                "installed": "#73BF69"
+              },
+              "breakPoint": "50%",
+              "cacheTimeout": null,
+              "combine": {
+                "label": "Others",
+                "threshold": 0
+              },
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {}
+                },
+                "overrides": []
+              },
+              "fontSize": "80%",
               "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
+              "gridPos": {
+                "h": 10,
+                "w": 6,
+                "x": 18,
+                "y": 30
+              },
+              "id": 18,
+              "interval": null,
+              "legend": {
+                "percentage": true,
+                "show": true,
+                "sideWidth": null,
+                "sort": "current",
+                "sortDesc": false,
+                "values": true
+              },
+              "legendType": "Under graph",
+              "links": [],
+              "nullPointMode": "connected",
+              "pieType": "pie",
+              "pluginVersion": "6.6.2",
+              "strokeWidth": 1,
+              "targets": [
+                {
+                  "expr": "increase(sum by (result)(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "{{result}}",
+                  "refId": "A"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Installations success rate",
+              "type": "grafana-piechart-panel",
+              "valueName": "current"
+            },
+            {
+              "datasource": null,
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {}
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 8,
+                "x": 10,
+                "y": 34
+              },
+              "id": 56,
+              "options": {
+                "content": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
+                "mode": "markdown"
+              },
+              "pluginVersion": "7.1.0",
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "",
+              "type": "text"
+            },
+            {
+              "datasource": "$datasource",
+              "description": "",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "decimals": 3,
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  },
+                  "unit": "none"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 10,
+                "y": 37
+              },
+              "id": 26,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value"
+              },
+              "pluginVersion": "7.2.0",
+              "targets": [
+                {
+                  "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval])",
+                  "hide": true,
+                  "interval": "",
+                  "legendFormat": "Clusters",
+                  "refId": "E"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+                  "hide": true,
+                  "interval": "",
+                  "legendFormat": "attempts",
+                  "refId": "A"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval]) / increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "avg",
+                  "refId": "B"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Average Install Attempts Per  Cluster",
+              "type": "stat"
+            },
+            {
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "displayName": "",
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "percentunit"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 14,
+                "y": 37
+              },
+              "id": 17,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "auto"
+              },
+              "pluginVersion": "7.2.0",
+              "targets": [
+                {
+                  "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+                  "interval": "",
+                  "legendFormat": "",
+                  "refId": "A"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Creation vs Installation rate",
+              "type": "stat"
+            },
+            {
+              "aliasColors": {},
+              "bars": true,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "links": []
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 5,
+                "w": 10,
+                "x": 0,
+                "y": 40
+              },
+              "hiddenSeries": false,
+              "id": 44,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": false,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.2.0",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_sum{clusterId=~\".+\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_count{clusterId=~\".+\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\",result=\"Done\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "{{phase}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Average Phases duration (successful)",
+              "tooltip": {
+                "shared": false,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "max": null,
+                "min": null,
+                "mode": "series",
+                "name": null,
+                "show": false,
+                "values": [
+                  "current"
+                ]
+              },
+              "yaxes": [
+                {
+                  "format": "s",
+                  "label": "Count",
+                  "logBase": 1,
+                  "max": null,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "breakPoint": "50%",
+              "cacheTimeout": null,
+              "combine": {
+                "label": "Others",
+                "threshold": 0
+              },
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {}
+                },
+                "overrides": []
+              },
+              "fontSize": "80%",
+              "format": "short",
+              "gridPos": {
+                "h": 10,
+                "w": 14,
+                "x": 10,
+                "y": 40
+              },
+              "id": 53,
+              "interval": null,
+              "legend": {
+                "percentage": true,
+                "show": true,
+                "sideWidth": null,
+                "sort": "current",
+                "sortDesc": false,
+                "values": true
+              },
+              "legendType": "Right side",
+              "links": [],
+              "nullPointMode": "connected",
+              "pieType": "pie",
+              "pluginVersion": "6.6.2",
+              "strokeWidth": 1,
+              "targets": [
+                {
+                  "expr": "increase(sum by (vendor,product)(service_assisted_installer_cluster_hosts{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"}))[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "{{vendor}} {{product}}",
+                  "refId": "A"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Hosts By Vendor",
+              "type": "grafana-piechart-panel",
+              "valueName": "current"
+            },
+            {
+              "aliasColors": {},
+              "bars": true,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "links": []
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 5,
+                "w": 10,
+                "x": 0,
+                "y": 45
+              },
+              "hiddenSeries": false,
+              "id": 45,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": false,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.2.0",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "increase(sum by (role)(service_assisted_installer_cluster_hosts{clusterId=~\".+\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\", result=\"Failed\"})[$__range:$__rate_interval])",
+                  "interval": "",
+                  "legendFormat": "{{role}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Hosts failures by role",
+              "tooltip": {
+                "shared": false,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "max": null,
+                "min": null,
+                "mode": "series",
+                "name": null,
+                "show": true,
+                "values": [
+                  "current"
+                ]
+              },
+              "yaxes": [
+                {
+                  "format": "failues",
+                  "label": "Count",
+                  "logBase": 1,
+                  "max": null,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
             }
           ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
+          "title": "Internal Clusters & Hosts",
+          "type": "row"
         },
         {
-          "aliasColors": {},
-          "bars": true,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
+          "collapsed": true,
+          "datasource": null,
           "gridPos": {
-            "h": 7,
+            "h": 1,
             "w": 24,
             "x": 0,
             "y": 22
           },
-          "hiddenSeries": false,
-          "id": 27,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": false,
-          "linewidth": 1,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "7.2.0",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
+          "id": 50,
+          "panels": [
             {
-              "expr": "increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_sum{vendor=~\".+\",phase=\"Rebooting\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_count{vendor=~\".+\",phase=\"Rebooting\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
-              "interval": "",
-              "legendFormat": "{{vendor}}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "Average Phases Duration - Rebooting",
-          "tooltip": {
-            "shared": false,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "series",
-            "name": null,
-            "show": true,
-            "values": [
-              "current"
-            ]
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
+              "aliasColors": {
+                "Created clusters": "blue",
+                "Installation canceled": "yellow",
+                "Installation completed successfully": "green",
+                "Installation error": "red",
+                "Installation started": "orange"
+              },
+              "bars": true,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "links": []
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 10,
+                "w": 10,
+                "x": 0,
+                "y": 51
+              },
+              "hiddenSeries": false,
+              "id": 54,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": false,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.2.0",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_creations{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Created clusters",
+                  "refId": "A"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Installation started",
+                  "refId": "B"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", result=\"installed\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "instant": true,
+                  "interval": "",
+                  "legendFormat": "Installation completed successfully",
+                  "refId": "C"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", result=\"error\"})[$__range:$__rate_interval])",
+                  "interval": "",
+                  "legendFormat": "Installation error",
+                  "refId": "D"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", result=\"canceled\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Installation canceled",
+                  "refId": "E"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Installations results",
+              "tooltip": {
+                "shared": false,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "series",
+                "name": null,
+                "show": false,
+                "values": [
+                  "current"
+                ]
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
             },
             {
+              "datasource": "$datasource",
+              "description": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 4,
+                "w": 8,
+                "x": 10,
+                "y": 51
+              },
+              "id": 55,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "auto"
+              },
+              "pluginVersion": "7.2.0",
+              "targets": [
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_hosts{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"}))[$__range:$__rate_interval])",
+                  "interval": "",
+                  "legendFormat": "Hosts",
+                  "refId": "C"
+                },
+                {
+                  "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Clusters",
+                  "refId": "E"
+                },
+                {
+                  "expr": "(increase(sum(service_assisted_installer_cluster_hosts{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"}))[$__range:$__rate_interval]) + 1) / (increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval]))",
+                  "hide": false,
+                  "instant": false,
+                  "interval": "",
+                  "legendFormat": "Average",
+                  "refId": "F"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Average Hosts Per Cluster",
+              "type": "stat"
+            },
+            {
+              "aliasColors": {
+                "canceled": "#FADE2A",
+                "error": "#F2495C",
+                "installed": "#73BF69"
+              },
+              "breakPoint": "50%",
+              "cacheTimeout": null,
+              "combine": {
+                "label": "Others",
+                "threshold": 0
+              },
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {}
+                },
+                "overrides": []
+              },
+              "fontSize": "80%",
               "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": true,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 7,
-            "w": 24,
-            "x": 0,
-            "y": 29
-          },
-          "hiddenSeries": false,
-          "id": 28,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": false,
-          "linewidth": 1,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "7.2.0",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_sum{vendor=~\".+\",phase=\"Starting installation\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_count{vendor=~\".+\",phase=\"Starting installation\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
-              "interval": "",
-              "legendFormat": "{{vendor}}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "Average Phases Duration - Starting installation",
-          "tooltip": {
-            "shared": false,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "series",
-            "name": null,
-            "show": true,
-            "values": [
-              "current"
-            ]
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
+              "gridPos": {
+                "h": 10,
+                "w": 6,
+                "x": 18,
+                "y": 51
+              },
+              "id": 59,
+              "interval": null,
+              "legend": {
+                "percentage": true,
+                "show": true,
+                "sideWidth": null,
+                "sort": "current",
+                "sortDesc": false,
+                "values": true
+              },
+              "legendType": "Under graph",
+              "links": [],
+              "nullPointMode": "connected",
+              "pieType": "pie",
+              "pluginVersion": "6.6.2",
+              "strokeWidth": 1,
+              "targets": [
+                {
+                  "expr": "increase(sum by (result)(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "{{result}}",
+                  "refId": "A"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Installations success rate",
+              "type": "grafana-piechart-panel",
+              "valueName": "current"
             },
             {
+              "datasource": null,
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {}
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 8,
+                "x": 10,
+                "y": 55
+              },
+              "id": 33,
+              "options": {
+                "content": "* _Clusters_: We measure clusters count only for those ever started an install process at least once.\n\n* _Hosts_: We measure hosts count only if those belong to the clusters we measure as described above.",
+                "mode": "markdown"
+              },
+              "pluginVersion": "7.1.0",
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "",
+              "type": "text"
+            },
+            {
+              "datasource": "$datasource",
+              "description": "",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "decimals": 3,
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  },
+                  "unit": "none"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 10,
+                "y": 58
+              },
+              "id": 57,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value"
+              },
+              "pluginVersion": "7.2.0",
+              "targets": [
+                {
+                  "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval])",
+                  "hide": true,
+                  "interval": "",
+                  "legendFormat": "Clusters",
+                  "refId": "E"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+                  "hide": true,
+                  "interval": "",
+                  "legendFormat": "attempts",
+                  "refId": "A"
+                },
+                {
+                  "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"})[$__range:$__rate_interval]) / increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "avg",
+                  "refId": "B"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Average Install Attempts Per  Cluster",
+              "type": "stat"
+            },
+            {
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "displayName": "",
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "percentunit"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 14,
+                "y": 58
+              },
+              "id": 58,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "auto"
+              },
+              "pluginVersion": "7.2.0",
+              "targets": [
+                {
+                  "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\",emailDomain=~\".+\",})[$__range:$__rate_interval])",
+                  "interval": "",
+                  "legendFormat": "",
+                  "refId": "A"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Creation vs Installation rate",
+              "type": "stat"
+            },
+            {
+              "aliasColors": {},
+              "bars": true,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "links": []
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 5,
+                "w": 10,
+                "x": 0,
+                "y": 61
+              },
+              "hiddenSeries": false,
+              "id": 51,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": false,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.2.0",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_sum{clusterId=~\".+\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_count{clusterId=~\".+\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "{{phase}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Average Phases duration (successful)",
+              "tooltip": {
+                "shared": false,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "max": null,
+                "min": null,
+                "mode": "series",
+                "name": null,
+                "show": false,
+                "values": [
+                  "current"
+                ]
+              },
+              "yaxes": [
+                {
+                  "format": "s",
+                  "label": "Count",
+                  "logBase": 1,
+                  "max": null,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "breakPoint": "50%",
+              "cacheTimeout": null,
+              "combine": {
+                "label": "Others",
+                "threshold": 0
+              },
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {}
+                },
+                "overrides": []
+              },
+              "fontSize": "80%",
               "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": true,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 7,
-            "w": 24,
-            "x": 0,
-            "y": 36
-          },
-          "hiddenSeries": false,
-          "id": 29,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": false,
-          "linewidth": 1,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "7.2.0",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_sum{vendor=~\".+\",phase=\"Waiting for control plane\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_count{vendor=~\".+\",phase=\"Waiting for control plane\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
-              "interval": "",
-              "legendFormat": "{{vendor}}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "Average Phases Duration - Waiting for control plane",
-          "tooltip": {
-            "shared": false,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "series",
-            "name": null,
-            "show": true,
-            "values": [
-              "current"
-            ]
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
+              "gridPos": {
+                "h": 10,
+                "w": 14,
+                "x": 10,
+                "y": 61
+              },
+              "id": 46,
+              "interval": null,
+              "legend": {
+                "percentage": true,
+                "show": true,
+                "sideWidth": null,
+                "sort": "current",
+                "sortDesc": false,
+                "values": true
+              },
+              "legendType": "Right side",
+              "links": [],
+              "nullPointMode": "connected",
+              "pieType": "pie",
+              "pluginVersion": "6.6.2",
+              "strokeWidth": 1,
+              "targets": [
+                {
+                  "expr": "increase(sum by (vendor,product)(service_assisted_installer_cluster_hosts{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"}))[$__range:$__rate_interval])",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "{{vendor}} {{product}}",
+                  "refId": "A"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Hosts By Vendor",
+              "type": "grafana-piechart-panel",
+              "valueName": "current"
             },
             {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
+              "aliasColors": {},
+              "bars": true,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "$datasource",
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {},
+                  "links": []
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 5,
+                "w": 10,
+                "x": 0,
+                "y": 66
+              },
+              "hiddenSeries": false,
+              "id": 52,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": false,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.2.0",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "increase(sum by (role)(service_assisted_installer_cluster_hosts{clusterId=~\".+\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\", result=\"Failed\"})[$__range:$__rate_interval])",
+                  "interval": "",
+                  "legendFormat": "{{role}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Hosts failures by role",
+              "tooltip": {
+                "shared": false,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "max": null,
+                "min": null,
+                "mode": "series",
+                "name": null,
+                "show": true,
+                "values": [
+                  "current"
+                ]
+              },
+              "yaxes": [
+                {
+                  "format": "failues",
+                  "label": "Count",
+                  "logBase": 1,
+                  "max": null,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
             }
           ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": true,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 7,
-            "w": 24,
-            "x": 0,
-            "y": 43
-          },
-          "hiddenSeries": false,
-          "id": 30,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": false,
-          "linewidth": 1,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "7.2.0",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_sum{vendor=~\".+\",phase=\"Waiting for ignition\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_count{vendor=~\".+\",phase=\"Waiting for ignition\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
-              "interval": "",
-              "legendFormat": "{{vendor}}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "Average Phases Duration - Waiting for ignition",
-          "tooltip": {
-            "shared": false,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "series",
-            "name": null,
-            "show": true,
-            "values": [
-              "current"
-            ]
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": true,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 7,
-            "w": 24,
-            "x": 0,
-            "y": 50
-          },
-          "hiddenSeries": false,
-          "id": 31,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": false,
-          "linewidth": 1,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "7.2.0",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_sum{vendor=~\".+\",phase=\"Writing image to disk\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (vendor)(service_assisted_installer_host_installation_phase_seconds_count{vendor=~\".+\",phase=\"Writing image to disk\",clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
-              "interval": "",
-              "legendFormat": "{{vendor}}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "Average Phases Duration - Writing image to disk",
-          "tooltip": {
-            "shared": false,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "series",
-            "name": null,
-            "show": true,
-            "values": [
-              "current"
-            ]
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
+          "title": "External Clusters & Hosts",
+          "type": "row"
         }
       ],
       "refresh": false,
@@ -846,15 +2242,28 @@ data:
         "from": "now-7d",
         "to": "now"
       },
-      "timepicker": {},
+      "timepicker": {
+        "refresh_intervals": [
+          "5s",
+          "10s",
+          "30s",
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h",
+          "2h",
+          "1d"
+        ]
+      },
       "timezone": "",
-      "title": "Vendor Average Phases Duration",
-      "uid": "assisted-installer-vendor-phases",
-      "version": 78
+      "title": "General Overview",
+      "uid": "assisted-installer-overview",
+      "version": 4
     }
 kind: ConfigMap
 metadata:
-  name: assisted-installer-vendor-phases
+  name: assisted-installer-general-overview
   labels:
     grafana_dashboard: "true"
   annotations:
