@@ -66,6 +66,24 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 	return cluster, nil
 }
 
+func updateClusterProgress(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
+	progress string, extra ...interface{}) (*common.Cluster, error) {
+	var cluster *common.Cluster
+	var err error
+
+	extra = append(append(make([]interface{}, 0), "progress_progress_info", progress), extra...)
+
+	now := strfmt.DateTime(time.Now())
+	extra = append(extra, "progress_progress_updated_at", now)
+
+	if cluster, err = UpdateCluster(log, db, clusterId, srcStatus, extra...); err != nil {
+		return nil, err
+	}
+
+	log.Infof("cluster %s has been updated with the following updates %+v", clusterId, extra)
+	return cluster, nil
+}
+
 func ClusterExists(db *gorm.DB, clusterId strfmt.UUID) bool {
 	where := make(map[string]interface{})
 	return clusterExistsInDB(db, clusterId, where)

@@ -92,6 +92,7 @@ type API interface {
 	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error
+	UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse
 }
 
 type PrepareConfig struct {
@@ -434,6 +435,26 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 	}
 	//report installation finished metric
 	m.metricAPI.ClusterInstallationFinished(log, "canceled", c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
+	return nil
+}
+
+func (m *Manager) UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse {
+	eventSeverity := models.EventSeverityInfo
+	eventInfo := "Update cluster installation progress"
+	defer func() {
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, eventSeverity, eventInfo, time.Now())
+	}()
+
+	err := m.sm.Run(TransitionTypeUpdateInstallationProgress, newStateCluster(c), &TransitionArgsUpdateInstallationProgress{
+		ctx:      ctx,
+		progress: progress,
+	})
+	if err != nil {
+		eventSeverity = models.EventSeverityError
+		eventInfo = fmt.Sprintf("Failed to update cluster installation progress. Error: %s", err.Error())
+		return common.NewApiError(http.StatusConflict, err)
+	}
+
 	return nil
 }
 

@@ -1126,7 +1126,76 @@ var _ = Describe("cluster install", func() {
 		//	Expect(err).NotTo(HaveOccurred())
 		//})
 
-		It("[only_k8s]report_progress", func() {
+		It("report_cluster_progress", func() {
+			By("report_cluster_install_progress_before_install_starts")
+			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:            "example.com",
+					ClusterNetworkCidr:       &clusterCIDR,
+					ClusterNetworkHostPrefix: 23,
+					Name:                     swag.String("test-cluster"),
+					OpenshiftVersion:         swag.String("4.6"),
+					PullSecret:               swag.String(pullSecret),
+					ServiceNetworkCidr:       &serviceCIDR,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			updateReply, err := agentBMClient.Installer.UpdateClusterInstallProgress(ctx, &installer.UpdateClusterInstallProgressParams{
+				ClusterID:       *registerClusterReply.GetPayload().ID,
+				ClusterProgress: "This update should fail!",
+			})
+			Expect(err).Should(HaveOccurred())
+			Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateClusterInstallProgressNoContent()))
+
+			By("report_cluster_install_progress_during_install")
+			installCluster(clusterID)
+
+			// First update
+
+			installProgress := "Making progress!"
+			updateClusterInstallProgressWithInfo(clusterID, installProgress)
+			// Retrieve updated cluster details
+			c := getCluster(clusterID)
+
+			Expect(*c.Progress.ProgressInfo).Should(Equal(installProgress))
+
+			// Second Update
+
+			firstUpdateTime := c.Progress.ProgressUpdatedAt
+			installProgress = "Making more progress!"
+			updateClusterInstallProgressWithInfo(clusterID, installProgress)
+			// Retrieve updated cluster details
+			c = getCluster(clusterID)
+
+			Expect(*c.Progress.ProgressInfo).Should(Equal(installProgress))
+			Expect(c.Progress.ProgressUpdatedAt).ShouldNot(Equal(firstUpdateTime))
+
+			By("report_cluster_install_progress_while_in_error")
+			for _, host := range c.Hosts {
+				updateProgress(*host.ID, clusterID, models.HostStageDone)
+			}
+			waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+
+			success := false
+			_, err = agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+				ClusterID:        clusterID,
+				CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: "failed"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Make sure installation failed
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, clusterErrorInfo)
+
+			updateReply, err = agentBMClient.Installer.UpdateClusterInstallProgress(ctx, &installer.UpdateClusterInstallProgressParams{
+				ClusterID:       *registerClusterReply.GetPayload().ID,
+				ClusterProgress: "This update should fail!",
+			})
+			Expect(err).Should(HaveOccurred())
+			Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateClusterInstallProgressNoContent()))
+
+		})
+
+		It("[only_k8s]report_host_progress", func() {
 			c := installCluster(clusterID)
 			hosts := getClusterMasters(c)
 

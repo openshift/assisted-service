@@ -9,6 +9,7 @@ const (
 	TransitionTypeCancelInstallation         = "CancelInstallation"
 	TransitionTypeResetCluster               = "ResetCluster"
 	TransitionTypePrepareForInstallation     = "PrepareForInstallation"
+	TransitionTypeUpdateInstallationProgress = "UpdateInstallationProgress"
 	TransitionTypeCompleteInstallation       = "CompleteInstallation"
 	TransitionTypeHandlePreInstallationError = "Handle pre-installation-error"
 	TransitionTypeRefreshStatus              = "RefreshStatus"
@@ -51,6 +52,15 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		DestinationState: stateswitch.State(models.ClusterStatusPreparingForInstallation),
 		PostTransition:   th.PostPrepareForInstallation,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeUpdateInstallationProgress,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusInstalling),
+		},
+		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
+		PostTransition:   th.PostUpdateInstallationProgress,
 	})
 
 	sm.AddTransition(stateswitch.TransitionRule{

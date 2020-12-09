@@ -52,7 +52,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/transaction"
-	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -258,7 +257,17 @@ type bareMetalInventory struct {
 	secretValidator validations.PullSecretValidator
 }
 
-var _ restapi.InstallerAPI = &bareMetalInventory{}
+func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
+	c, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	if err := b.clusterApi.UpdateInstallProgress(ctx, c, params.ClusterProgress); err != nil {
+		b.log.WithError(err).Error("Failed to update install progress")
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewUpdateClusterInstallProgressNoContent()
+}
 
 func NewBareMetalInventory(
 	db *gorm.DB,
