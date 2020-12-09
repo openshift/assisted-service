@@ -4317,9 +4317,6 @@ func init() {
     },
     "cluster-progress-info": {
       "type": "object",
-      "required": [
-        "progress_info"
-      ],
       "properties": {
         "progress_info": {
           "type": "string",
@@ -10085,9 +10082,6 @@ func init() {
     },
     "cluster-progress-info": {
       "type": "object",
-      "required": [
-        "progress_info"
-      ],
       "properties": {
         "progress_info": {
           "type": "string",
