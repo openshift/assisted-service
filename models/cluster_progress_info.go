@@ -18,8 +18,7 @@ import (
 type ClusterProgressInfo struct {
 
 	// progress info
-	// Required: true
-	ProgressInfo *string `json:"progress_info" gorm:"type:varchar(2048)"`
+	ProgressInfo string `json:"progress_info,omitempty" gorm:"type:varchar(2048)"`
 
 	// Time at which the cluster install progress was last updated.
 	// Format: date-time
@@ -30,10 +29,6 @@ type ClusterProgressInfo struct {
 func (m *ClusterProgressInfo) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateProgressInfo(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateProgressUpdatedAt(formats); err != nil {
 		res = append(res, err)
 	}
@@ -41,15 +36,6 @@ func (m *ClusterProgressInfo) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *ClusterProgressInfo) validateProgressInfo(formats strfmt.Registry) error {
-
-	if err := validate.Required("progress_info", "body", m.ProgressInfo); err != nil {
-		return err
-	}
-
 	return nil
 }
 

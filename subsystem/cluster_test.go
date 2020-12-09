@@ -1157,7 +1157,7 @@ var _ = Describe("cluster install", func() {
 			// Retrieve updated cluster details
 			c := getCluster(clusterID)
 
-			Expect(*c.Progress.ProgressInfo).Should(Equal(installProgress))
+			Expect(c.Progress.ProgressInfo).Should(Equal(installProgress))
 
 			// Second Update
 
@@ -1167,7 +1167,7 @@ var _ = Describe("cluster install", func() {
 			// Retrieve updated cluster details
 			c = getCluster(clusterID)
 
-			Expect(*c.Progress.ProgressInfo).Should(Equal(installProgress))
+			Expect(c.Progress.ProgressInfo).Should(Equal(installProgress))
 			Expect(c.Progress.ProgressUpdatedAt).ShouldNot(Equal(firstUpdateTime))
 
 			By("report_cluster_install_progress_while_in_error")
