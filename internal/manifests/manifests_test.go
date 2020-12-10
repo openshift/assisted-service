@@ -274,7 +274,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			clusterID := registerCluster().ID
 			mockUpload(1)
 			mockObjectExists(true)
-			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, "file-1.yaml")).Return(nil)
+			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, "file-1.yaml")).Return(true, nil)
 			addManifestToCluster(clusterID, content, "file-1.yaml", defaultFolder)
 
 			response := manifestsAPI.DeleteClusterManifest(ctx, operations.DeleteClusterManifestParams{
@@ -288,7 +288,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			clusterID := registerCluster().ID
 			mockUpload(1)
 			mockObjectExists(true)
-			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, validFolder, "file-1.yaml")).Return(nil)
+			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, validFolder, "file-1.yaml")).Return(true, nil)
 			addManifestToCluster(clusterID, content, "file-1.yaml", validFolder)
 
 			response := manifestsAPI.DeleteClusterManifest(ctx, operations.DeleteClusterManifestParams{

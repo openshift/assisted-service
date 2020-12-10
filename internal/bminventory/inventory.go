@@ -446,14 +446,11 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params
 		return installer.NewUpdateDiscoveryIgnitionInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	exists, err := b.objectHandler.DoesObjectExist(ctx, getImageName(*c.ID))
+	existed, err := b.objectHandler.DeleteObject(ctx, getImageName(*c.ID))
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	if exists {
-		if err := b.objectHandler.DeleteObject(ctx, getImageName(*c.ID)); err != nil {
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
+	if existed {
 		b.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.", time.Now())
 	}
 

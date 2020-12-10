@@ -684,7 +684,8 @@ func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, obje
 	var failedToDelete []string
 	for _, file := range files {
 		log.Debugf("Deleting cluster %s S3 log file: %s", c.ID.String(), file)
-		if err := objectHandler.DeleteObject(ctx, file); err != nil {
+		_, err = objectHandler.DeleteObject(ctx, file)
+		if err != nil {
 			m.log.WithError(err).Errorf("failed deleting s3 log %s", file)
 			failedToDelete = append(failedToDelete, file)
 		}
@@ -714,7 +715,8 @@ func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, obj
 		if strings.Contains(fileName, "logs") {
 			continue
 		}
-		if err := objectHandler.DeleteObject(ctx, fileName); err != nil {
+		_, err := objectHandler.DeleteObject(ctx, fileName)
+		if err != nil {
 			m.log.WithError(err).Errorf("failed deleting s3 file %s", fileName)
 			failedToDelete = append(failedToDelete, fileName)
 		}

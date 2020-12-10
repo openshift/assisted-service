@@ -153,11 +153,12 @@ func (mr *MockAPIMockRecorder) DoesObjectExist(ctx, objectName interface{}) *gom
 }
 
 // DeleteObject mocks base method
-func (m *MockAPI) DeleteObject(ctx context.Context, objectName string) error {
+func (m *MockAPI) DeleteObject(ctx context.Context, objectName string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteObject", ctx, objectName)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // DeleteObject indicates an expected call of DeleteObject

@@ -97,7 +97,8 @@ var _ = Describe("s3filesystem", func() {
 		Expect(err).Should(BeNil())
 		Expect(exists).To(Equal(true))
 
-		err = client.DeleteObject(ctx, objKey)
+		existed, err := client.DeleteObject(ctx, objKey)
+		Expect(existed).To(Equal(true))
 		Expect(err).Should(BeNil())
 
 		exists, err = client.DoesObjectExist(ctx, objKey)
