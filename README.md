@@ -316,3 +316,8 @@ Image is uploaded to deployed S3 under the name template "installer-image-\<clus
 The Assisted Installer is also available for users as a SAAS hosted in cloud.redhat.com.
 
 More information is available here: [Assisted Installer on cloud.redhat.com](docs/cloud.md)
+
+## Setting a custom discovery ISO password
+It's possible to modify the discovery ISO (via the API) to enable password login for troubleshooting purposes.
+
+More information is available here: [Set discovery ISO user password example](docs/set_discovery_password.md)
