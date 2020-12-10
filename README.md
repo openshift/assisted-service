@@ -320,4 +320,4 @@ More information is available here: [Assisted Installer on cloud.redhat.com](doc
 ## Setting a custom discovery ISO password
 It's possible to modify the discovery ISO (via the API) to enable password login for troubleshooting purposes.
 
-More information is available here: [Set discovery ISO user password example](docs/set_discovery_password.md)
+More information is available here: [Set discovery ISO user password example](docs/set-discovery-password.md)
