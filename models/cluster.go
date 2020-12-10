@@ -130,7 +130,7 @@ type Cluster struct {
 	OpenshiftClusterID strfmt.UUID `json:"openshift_cluster_id,omitempty"`
 
 	// Version of the OpenShift cluster.
-	// Enum: [4.5 4.6]
+	// Enum: [4.5 4.6 4.7]
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
 	// org id
@@ -572,7 +572,7 @@ var clusterTypeOpenshiftVersionPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["4.5","4.6"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["4.5","4.6","4.7"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -587,6 +587,9 @@ const (
 
 	// ClusterOpenshiftVersionNr46 captures enum value "4.6"
 	ClusterOpenshiftVersionNr46 string = "4.6"
+
+	// ClusterOpenshiftVersionNr47 captures enum value "4.7"
+	ClusterOpenshiftVersionNr47 string = "4.7"
 )
 
 // prop value enum

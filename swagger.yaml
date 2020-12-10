@@ -2943,7 +2943,7 @@ definitions:
         description: Name of the OpenShift cluster.
       openshift_version:
         type: string
-        enum: ['4.5', '4.6']
+        enum: ['4.5', '4.6', '4.7']
         description: Version of the OpenShift cluster.
       base_dns_domain:
         type: string
@@ -3186,7 +3186,7 @@ definitions:
         type: string
       openshift_version:
         type: string
-        enum: ['4.5', '4.6']
+        enum: ['4.5', '4.6', '4.7']
         description: Version of the OpenShift cluster.
       openshift_cluster_id:
         type: string

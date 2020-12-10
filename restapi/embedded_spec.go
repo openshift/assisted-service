@@ -4140,7 +4140,8 @@ func init() {
           "type": "string",
           "enum": [
             "4.5",
-            "4.6"
+            "4.6",
+            "4.7"
           ]
         },
         "org_id": {
@@ -4278,7 +4279,8 @@ func init() {
           "type": "string",
           "enum": [
             "4.5",
-            "4.6"
+            "4.6",
+            "4.7"
           ]
         },
         "pull_secret": {
@@ -9905,7 +9907,8 @@ func init() {
           "type": "string",
           "enum": [
             "4.5",
-            "4.6"
+            "4.6",
+            "4.7"
           ]
         },
         "org_id": {
@@ -10043,7 +10046,8 @@ func init() {
           "type": "string",
           "enum": [
             "4.5",
-            "4.6"
+            "4.6",
+            "4.7"
           ]
         },
         "pull_secret": {
