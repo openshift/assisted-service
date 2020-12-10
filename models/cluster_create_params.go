@@ -59,7 +59,7 @@ type ClusterCreateParams struct {
 
 	// Version of the OpenShift cluster.
 	// Required: true
-	// Enum: [4.5 4.6]
+	// Enum: [4.5 4.6 4.7]
 	OpenshiftVersion *string `json:"openshift_version"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
@@ -182,7 +182,7 @@ var clusterCreateParamsTypeOpenshiftVersionPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["4.5","4.6"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["4.5","4.6","4.7"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -197,6 +197,9 @@ const (
 
 	// ClusterCreateParamsOpenshiftVersionNr46 captures enum value "4.6"
 	ClusterCreateParamsOpenshiftVersionNr46 string = "4.6"
+
+	// ClusterCreateParamsOpenshiftVersionNr47 captures enum value "4.7"
+	ClusterCreateParamsOpenshiftVersionNr47 string = "4.7"
 )
 
 // prop value enum
