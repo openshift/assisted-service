@@ -493,6 +493,19 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		params.NewClusterParams.UserManagedNetworking = swag.Bool(false)
 	}
 
+	if swag.BoolValue(params.NewClusterParams.UserManagedNetworking) {
+		if swag.BoolValue(params.NewClusterParams.VipDhcpAllocation) {
+			err := errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
+			log.WithError(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		if params.NewClusterParams.IngressVip != "" {
+			err := errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
+			log.WithError(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	if params.NewClusterParams.AdditionalNtpSource == nil {
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
 	} else {
@@ -1564,6 +1577,23 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 
 		updates["additional_ntp_source"] = ntpSource
 	}
+
+	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
+		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
+		updates["user_managed_networking"] = userManagedNetworking
+		if userManagedNetworking {
+			err = validateUserManagedNetworkConflicts(params.ClusterUpdateParams, log)
+			if err != nil {
+				return err
+			}
+			updates["vip_dhcp_allocation"] = false
+			vipDhcpAllocation = false
+			updates["api_vip"] = ""
+			updates["ingress_vip"] = ""
+			setMachineNetworkCIDRForUpdate(updates, "")
+		}
+	}
+
 	if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
 		vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
 		updates["vip_dhcp_allocation"] = vipDhcpAllocation
@@ -1572,18 +1602,15 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		machineCidr = ""
 		setMachineNetworkCIDRForUpdate(updates, machineCidr)
 	}
-	if vipDhcpAllocation {
-		err = b.updateDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
-	} else {
-		err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
-	}
-	if err != nil {
-		return err
-	}
-
-	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
-		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
-		updates["user_managed_networking"] = userManagedNetworking
+	if !userManagedNetworking {
+		if vipDhcpAllocation {
+			err = b.updateDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
+		} else {
+			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
@@ -1608,6 +1635,30 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", params.ClusterID))
 	}
 
+	return nil
+}
+
+func validateUserManagedNetworkConflicts(params *models.ClusterUpdateParams, log logrus.FieldLogger) error {
+	if params.VipDhcpAllocation != nil && swag.BoolValue(params.VipDhcpAllocation) {
+		err := errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
+		log.WithError(err)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	if params.IngressVip != nil {
+		err := errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
+		log.WithError(err)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	if params.APIVip != nil {
+		err := errors.Errorf("API VIP cannot be set with User Managed Networking")
+		log.WithError(err)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	if params.MachineNetworkCidr != nil {
+		err := errors.Errorf("Machine Network CIDR cannot be set with User Managed Networking")
+		log.WithError(err)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
 	return nil
 }
 
