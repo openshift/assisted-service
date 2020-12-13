@@ -3100,7 +3100,6 @@ definitions:
         x-nullable: true
       hosts_roles:
         type: array
-        x-go-custom-tag: gorm:"type:varchar(64)[]"
         description: The desired role for hosts associated with the cluster.
         x-nullable: true
         items:
@@ -3113,7 +3112,6 @@ definitions:
               $ref: '#/definitions/host-role-update-params'
       hosts_names:
         type: array
-        x-go-custom-tag: gorm:"type:varchar(64)[]"
         description: The desired hostname for hosts associated with the cluster.
         x-nullable: true
         items:
@@ -3124,6 +3122,21 @@ definitions:
               format: uuid
             hostname:
               type: string
+      disks_selected_config:
+        type: array
+        x-nullable: true
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            disks_config:
+              description: The desired disks parameters (such as the disk's role).
+              type: array
+              items:
+                $ref: '#/definitions/disk-config-params'
+              
       hosts_machine_config_pool_names:
         type: array
         description: The desired machine config pool for hosts associated with the cluster.
@@ -3777,6 +3790,22 @@ definitions:
         type: string
       console_url:
         type: string
+
+  disk-config-params:
+    type: object
+    required:
+      - 'id'
+    properties:
+      id:
+        type: string
+      role:
+        $ref: "#/definitions/disk-role"
+
+  disk-role:
+    type: string
+    enum:
+      - 'none'
+      - 'install'
 
   host-role-update-params:
     type: string
