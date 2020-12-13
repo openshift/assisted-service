@@ -1619,6 +1619,109 @@ var _ = Describe("cluster", func() {
 				Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 			})
 
+			It("Update UserManagedNetworking Unset non relevant parameters", func() {
+
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                 &clusterID,
+					MachineNetworkCidr: "10.12.0.0/16",
+					APIVip:             "10.11.12.15",
+					IngressVip:         "10.11.12.16",
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						UserManagedNetworking: swag.Bool(true),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				actual := reply.(*installer.UpdateClusterCreated)
+				Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
+				Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+				Expect(actual.Payload.APIVip).To(Equal(""))
+				Expect(actual.Payload.IngressVip).To(Equal(""))
+				Expect(actual.Payload.MachineNetworkCidr).To(Equal(""))
+			})
+
+			It("Fail Update UserManagedNetworking with VIP DHCP", func() {
+
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						UserManagedNetworking: swag.Bool(true),
+						VipDhcpAllocation:     swag.Bool(true),
+					},
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
+			It("Fail Update UserManagedNetworking with Ingress VIP ", func() {
+
+				clusterID = strfmt.UUID(uuid.New().String())
+				ingressVip := "10.35.20.10"
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						UserManagedNetworking: swag.Bool(true),
+						IngressVip:            &ingressVip,
+					},
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
+			It("Fail Update UserManagedNetworking with API VIP ", func() {
+
+				clusterID = strfmt.UUID(uuid.New().String())
+				apiVip := "10.35.20.10"
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						UserManagedNetworking: swag.Bool(true),
+						APIVip:                &apiVip,
+					},
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
+			It("Fail Update UserManagedNetworking with MachineNetworkCidr ", func() {
+
+				clusterID = strfmt.UUID(uuid.New().String())
+				machineNetworkCidr := "10.11.0.0/16"
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						UserManagedNetworking: swag.Bool(true),
+						MachineNetworkCidr:    &machineNetworkCidr,
+					},
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
 			Context("Update Proxy", func() {
 				const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
 				BeforeEach(func() {
@@ -4488,11 +4591,38 @@ var _ = Describe("TestRegisterCluster", func() {
 				OpenshiftVersion:      swag.String("4.6"),
 				PullSecret:            swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 				UserManagedNetworking: swag.Bool(true),
+				VipDhcpAllocation:     swag.Bool(false),
 			},
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 		actual := reply.(*installer.RegisterClusterCreated)
 		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
+	})
+
+	It("Fail UserManagedNetworking with VIP DHCP", func() {
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:                  swag.String("some-cluster-name"),
+				OpenshiftVersion:      swag.String("4.6"),
+				PullSecret:            swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				UserManagedNetworking: swag.Bool(true),
+				VipDhcpAllocation:     swag.Bool(true),
+			},
+		})
+		verifyApiError(reply, http.StatusBadRequest)
+	})
+
+	It("Fail UserManagedNetworking with Ingress Vip", func() {
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:                  swag.String("some-cluster-name"),
+				OpenshiftVersion:      swag.String("4.6"),
+				PullSecret:            swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				UserManagedNetworking: swag.Bool(true),
+				IngressVip:            "10.35.10.10",
+			},
+		})
+		verifyApiError(reply, http.StatusBadRequest)
 	})
 
 	It("NTPSource default value", func() {
