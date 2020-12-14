@@ -31,6 +31,9 @@ type Disk struct {
 	// installation eligibility
 	InstallationEligibility DiskInstallationEligibility `json:"installation_eligibility,omitempty"`
 
+	// io perf
+	IoPerf *IoPerf `json:"io_perf,omitempty"`
+
 	// model
 	Model string `json:"model,omitempty"`
 
@@ -64,6 +67,10 @@ func (m *Disk) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateIoPerf(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -81,6 +88,24 @@ func (m *Disk) validateInstallationEligibility(formats strfmt.Registry) error {
 			return ve.ValidateName("installation_eligibility")
 		}
 		return err
+	}
+
+	return nil
+}
+
+func (m *Disk) validateIoPerf(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.IoPerf) { // not required
+		return nil
+	}
+
+	if m.IoPerf != nil {
+		if err := m.IoPerf.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("io_perf")
+			}
+			return err
+		}
 	}
 
 	return nil

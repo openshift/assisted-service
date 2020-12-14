@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
+	internalhost "github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -269,6 +270,31 @@ var _ = Describe("Host tests", func() {
 		host = getHost(clusterID, *host.ID)
 		Expect(swag.StringValue(host.Status)).Should(Equal("error"))
 		Expect(swag.StringValue(host.StatusInfo)).Should(Equal("installation command failed"))
+
+	})
+
+	It("installation_fio_error_reply", func() {
+		host := &registerHost(clusterID).Host
+		Expect(db.Model(host).Update("status", "installing").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).Update("role", "worker").Error).NotTo(HaveOccurred())
+		reason := "Disk /dev/vda is not fast enough for installation."
+
+		_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+			ClusterID: clusterID,
+			HostID:    *host.ID,
+			Reply: &models.StepReply{
+				ExitCode: internalhost.FioPerfCheckCmdExitCode,
+				Output:   "Failed to install",
+				StepType: models.StepTypeInstall,
+				StepID:   "installCmd-" + string(models.StepTypeExecute),
+				Error:    reason,
+			},
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		host = getHost(clusterID, *host.ID)
+		Expect(swag.StringValue(host.Status)).Should(Equal("error"))
+		Expect(swag.StringValue(host.StatusInfo)).Should(Equal(reason))
 
 	})
 

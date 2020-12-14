@@ -84,6 +84,9 @@ parameters:
 - name: NTP_SYNCHRONIZER_IMAGE
   value: ''
   required: true
+- name: FIO_PERF_CHECK_IMAGE
+  value: ''
+  required: true
 - name: INSTALL_RH_CA
   value: "false"
   required: true

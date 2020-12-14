@@ -2905,6 +2905,7 @@ definitions:
       - dhcp-lease-allocate
       - api-vip-connectivity-check
       - ntp-synchronizer
+      - fio-perf-check
 
   step:
     type: object
@@ -3705,6 +3706,15 @@ definitions:
               type: string
       smart:
         type: string
+      io_perf:
+        $ref: '#/definitions/io_perf'
+
+  io_perf:
+    type: object
+    properties:
+      sync_duration:
+        type: integer
+        description: 99th percentile of fsync duration in milliseconds
 
   boot:
     type: object
@@ -3821,6 +3831,30 @@ definitions:
       is_success:
         type: boolean
         description: API VIP connecitivty check result.
+
+  fio_perf_check_request:
+    type: object
+    required:
+      - path
+      - duration_threshold
+      - exit_code
+    properties:
+      path:
+        type: string
+        description: --filename argument for fio (expects a file or a block device path).
+      duration_threshold:
+        type: integer
+        description: The maximal fdatasync duration that is considered acceptable.
+      exit_code:
+        type: integer
+        description: Exit code to return in case of an error.
+
+  fio_perf_check_response:
+    type: object
+    properties:
+      io_sync_duration:
+        type: integer
+        description: The 99th percentile of fdatasync durations in milliseconds.
 
   credentials:
     type: object
