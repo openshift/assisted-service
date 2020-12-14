@@ -514,6 +514,8 @@ func init() {
         "operationId": "UpdateCluster",
         "parameters": [
           {
+            "maxLength": 54,
+            "minLength": 1,
             "type": "string",
             "format": "uuid",
             "name": "cluster_id",
@@ -6226,6 +6228,8 @@ func init() {
         "operationId": "UpdateCluster",
         "parameters": [
           {
+            "maxLength": 54,
+            "minLength": 1,
             "type": "string",
             "format": "uuid",
             "name": "cluster_id",
