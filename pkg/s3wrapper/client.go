@@ -45,7 +45,7 @@ type API interface {
 	UploadISO(ctx context.Context, ignitionConfig, objectPrefix string) error
 	Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
-	DeleteObject(ctx context.Context, objectName string) error
+	DeleteObject(ctx context.Context, objectName string) (bool, error)
 	GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error)
 	GeneratePresignedDownloadURL(ctx context.Context, objectName string, downloadFilename string, duration time.Duration) (string, error)
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
@@ -223,7 +223,7 @@ func (c *S3Client) DoesObjectExist(ctx context.Context, objectName string) (bool
 	return true, nil
 }
 
-func (c *S3Client) DeleteObject(ctx context.Context, objectName string) error {
+func (c *S3Client) DeleteObject(ctx context.Context, objectName string) (bool, error) {
 	log := logutil.FromContext(ctx, c.log)
 	log.Infof("Deleting object %s from %s", objectName, c.cfg.S3Bucket)
 
@@ -235,14 +235,14 @@ func (c *S3Client) DeleteObject(ctx context.Context, objectName string) error {
 		if aerr, ok := err.(awserr.Error); ok {
 			if aerr.Code() == s3.ErrCodeNoSuchKey || aerr.Code() == "NotFound" {
 				log.Infof("Object %s does not exist in bucket %s", objectName, c.cfg.S3Bucket)
-				return nil
+				return false, nil
 			}
-			return errors.Wrap(err, fmt.Sprintf("Failed to delete object %s from bucket %s (code %s)", objectName, c.cfg.S3Bucket, aerr.Code()))
+			return false, errors.Wrap(err, fmt.Sprintf("Failed to delete object %s from bucket %s (code %s)", objectName, c.cfg.S3Bucket, aerr.Code()))
 		}
 	}
 
 	log.Infof("Deleted object %s from bucket %s", objectName, c.cfg.S3Bucket)
-	return nil
+	return true, nil
 }
 
 func (c *S3Client) UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error) {
@@ -355,7 +355,8 @@ func (c *S3Client) handleObject(ctx context.Context, log logrus.FieldLogger, obj
 	}
 
 	if now.After(creationTime.Add(deleteTime)) {
-		if err := c.DeleteObject(ctx, *object.Key); err != nil {
+		_, err := c.DeleteObject(ctx, *object.Key)
+		if err != nil {
 			log.WithError(err).Errorf("Error deleting expired object %s", *object.Key)
 			return
 		}

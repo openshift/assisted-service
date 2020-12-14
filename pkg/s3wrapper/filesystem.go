@@ -171,19 +171,19 @@ func (f *FSClient) DoesObjectExist(ctx context.Context, objectName string) (bool
 	return true, nil
 }
 
-func (f *FSClient) DeleteObject(ctx context.Context, objectName string) error {
+func (f *FSClient) DeleteObject(ctx context.Context, objectName string) (bool, error) {
 	log := logutil.FromContext(ctx, f.log)
 	filePath := filepath.Join(f.basedir, objectName)
 	err := os.Remove(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			return false, nil
 		}
-		return errors.Wrapf(err, "Failed to delete file %s", filePath)
+		return false, errors.Wrapf(err, "Failed to delete file %s", filePath)
 	}
 
 	log.Infof("Deleted file %s", filePath)
-	return nil
+	return true, nil
 }
 
 func (f *FSClient) GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error) {

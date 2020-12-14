@@ -76,7 +76,46 @@ var _ = Describe("system-test image tests", func() {
 			}
 		}
 		Expect(nRegisteredEvents).ShouldNot(Equal(0))
+	})
 
+	It("Image is removed after patching ignition", func() {
+		file, err := ioutil.TempFile("", "tmp")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.Remove(file.Name())
+
+		_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+			ClusterID:         clusterID,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		params := &installer.UpdateDiscoveryIgnitionParams{
+			ClusterID:               clusterID,
+			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"},
+		}
+		_, err = userBMClient.Installer.UpdateDiscoveryIgnition(ctx, params)
+		Expect(err).NotTo(HaveOccurred())
+
+		// test that the iso is no-longer available
+		_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: clusterID}, file)
+		Expect(err).To(BeAssignableToTypeOf(installer.NewDownloadClusterISONotFound()))
+
+		// test that an event was added
+		eventsReply, err := userBMClient.Events.ListEvents(context.TODO(), &events.ListEventsParams{
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(eventsReply.Payload).ShouldNot(HaveLen(0))
+		nRegisteredEvents := 0
+		for _, ev := range eventsReply.Payload {
+			Expect(ev.ClusterID.String()).Should(Equal(clusterID.String()))
+			if strings.Contains(*ev.Message, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.") {
+				nRegisteredEvents++
+			}
+		}
+		Expect(nRegisteredEvents).ShouldNot(Equal(0))
 	})
 })
 

@@ -425,7 +425,7 @@ func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params in
 func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	_, err := b.getCluster(ctx, params.ClusterID.String())
+	c, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -444,6 +444,14 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params
 	err = b.db.Model(&common.Cluster{}).Where(identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Update("ignition_config_overrides", params.DiscoveryIgnitionParams.Config).Error
 	if err != nil {
 		return installer.NewUpdateDiscoveryIgnitionInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	existed, err := b.objectHandler.DeleteObject(ctx, getImageName(*c.ID))
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if existed {
+		b.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.", time.Now())
 	}
 
 	return installer.NewUpdateDiscoveryIgnitionCreated()

@@ -1380,19 +1380,19 @@ var _ = Describe("cluster", func() {
 	}
 	setResetClusterSuccess := func() {
 		mockAbortInstallConfig(mockGenerator)
-		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		mockClusterApi.EXPECT().DeleteClusterFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
 	setResetClusterConflict := func() {
 		mockAbortInstallConfig(mockGenerator)
-		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusConflict, nil)).Times(1)
 	}
 	setResetClusterInternalServerError := func() {
 		mockAbortInstallConfig(mockGenerator)
-		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
 	}
 	mockAutoAssignFailed := func() {
@@ -3855,6 +3855,8 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		dbName              = "update_discovery_ignition"
 		ctrl                *gomock.Controller
 		mockSecretValidator *validations.MockPullSecretValidator
+		mockS3Client        *s3wrapper.MockAPI
+		mockEvents          *events.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -3862,7 +3864,9 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		mockEvents = events.NewMockHandler(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -3879,6 +3883,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 			ClusterID:               clusterID,
 			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
 		}
+		mockS3Client.EXPECT().DeleteObject(gomock.Any(), fmt.Sprintf("discovery-image-%s.iso", clusterID.String())).Return(false, nil)
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
 
@@ -3928,6 +3933,29 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		}
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionBadRequest{}))
+	})
+
+	It("returns an error if we fail to delete the iso", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateDiscoveryIgnitionParams{
+			ClusterID:               clusterID,
+			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		}
+		mockS3Client.EXPECT().DeleteObject(gomock.Any(), fmt.Sprintf("discovery-image-%s.iso", clusterID.String())).Return(false, fmt.Errorf("error"))
+		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		verifyApiError(response, http.StatusInternalServerError)
+	})
+
+	It("adds an event if an old iso was removed", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateDiscoveryIgnitionParams{
+			ClusterID:               clusterID,
+			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
+		}
+		mockS3Client.EXPECT().DeleteObject(gomock.Any(), fmt.Sprintf("discovery-image-%s.iso", clusterID.String())).Return(true, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.", gomock.Any())
+		response := bm.UpdateDiscoveryIgnition(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
 	})
 })
 

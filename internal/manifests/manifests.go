@@ -130,7 +130,8 @@ func (m *Manifests) DeleteClusterManifest(ctx context.Context, params operations
 		return operations.NewDeleteClusterManifestOK()
 	}
 
-	if err := m.objectHandler.DeleteObject(ctx, objectName); err != nil {
+	_, err = m.objectHandler.DeleteObject(ctx, objectName)
+	if err != nil {
 		return common.GenerateErrorResponder(errors.Errorf("failed to delete %s from s3", objectName))
 	}
 

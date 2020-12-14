@@ -2026,7 +2026,7 @@ var _ = Describe("Permanently delete clusters", func() {
 		Expect(db.First(&common.Cluster{}, "id = ?", c2.ID).RowsAffected).Should(Equal(int64(0)))
 		Expect(db.Unscoped().First(&common.Cluster{}, "id = ?", c2.ID).RowsAffected).Should(Equal(int64(1)))
 
-		mockS3Api.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockS3Api.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		mockS3Api.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{}, nil).AnyTimes()
 
 		Expect(state.PermanentClustersDeletion(ctx, strfmt.DateTime(time.Now()), mockS3Api)).ShouldNot(HaveOccurred())
