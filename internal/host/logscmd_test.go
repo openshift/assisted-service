@@ -2,11 +2,13 @@ package host
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/openshift/assisted-service/internal/common"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
@@ -46,6 +48,58 @@ var _ = Describe("upload_logs", func() {
 		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ShouldNot(HaveOccurred())
 		Expect(len(stepReply)).Should(Equal(0))
+	})
+	It("get_step logs Masters IPs", func() {
+		host.Bootstrap = true
+		db.Save(&host)
+		id = strfmt.UUID(uuid.New().String())
+		host2 := getTestHost(id, clusterId, models.HostStatusError)
+		host2.Inventory = defaultInventory()
+		host2.Role = models.HostRoleMaster
+		Expect(db.Create(&host2).Error).ToNot(HaveOccurred())
+		cluster := getTestCluster(clusterId, "1.2.3.0/24")
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
+		Expect(stepErr).ShouldNot(HaveOccurred())
+		Expect(stepReply[0].Args).Should(ContainElement("-masters-ips=1.2.3.4"))
+	})
+	It("get_step logs Masters IPs user-managed-networking ", func() {
+		host.Bootstrap = true
+		db.Save(&host)
+		id = strfmt.UUID(uuid.New().String())
+		host2 := getTestHost(id, clusterId, models.HostStatusError)
+		inventory := models.Inventory{
+			Interfaces: []*models.Interface{
+				{
+					Name: "eth0",
+					IPV4Addresses: []string{
+						"1.2.3.4/24",
+						"10.30.40.50/24",
+					},
+					IPV6Addresses: []string{
+						"2001:db8::/32",
+					},
+				},
+			},
+			Disks: []*models.Disk{
+				&defaultDisk,
+			},
+		}
+		b, err := json.Marshal(&inventory)
+		Expect(err).To(Not(HaveOccurred()))
+		host2.Inventory = string(b)
+		host2.Role = models.HostRoleMaster
+		Expect(db.Create(&host2).Error).ToNot(HaveOccurred())
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:                    &clusterId,
+				UserManagedNetworking: swag.Bool(true),
+			},
+		}
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
+		Expect(stepErr).ShouldNot(HaveOccurred())
+		Expect(stepReply[0].Args).Should(ContainElement("-masters-ips=1.2.3.4,10.30.40.50,2001:db8::"))
 	})
 
 	AfterEach(func() {
