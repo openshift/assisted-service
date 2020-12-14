@@ -15,7 +15,7 @@ RUN swagger generate client --template=stratoscale -f swagger.yaml --template-di
     && mv client /build
 
 # Build binaries
-FROM registry.svc.ci.openshift.org/openshift/release:golang-1.14 as builder
+FROM registry.svc.ci.openshift.org/openshift/release:golang-1.15 as builder
 COPY . .
 COPY --from=swagger_py /build build
 COPY --from=swagger_go /build/client client
@@ -25,7 +25,7 @@ RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service 
 RUN cd build && python3 setup.py sdist --dist-dir /assisted-service-client
 
 # Create final image
-FROM quay.io/app-sre/centos:8
+FROM quay.io/centos/centos:centos8
 
 # openshift-install requires this
 RUN yum install -y libvirt-libs && yum clean all

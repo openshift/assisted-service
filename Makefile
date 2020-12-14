@@ -320,7 +320,7 @@ unit-test: $(REPORTS)
 	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
 	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
 		quay.io/ocpmetal/postgres:12.3-alpine -c 'max_connections=10000'
-	timeout 1m bash -c "until PGPASSWORD=admin pg_isready -U admin --dbname postgres --host 127.0.0.1 --port 5432; do sleep 1; done"
+	timeout 5m ./hack/wait_for_postgres.sh
 	SKIP_UT_DB=1 gotestsum --format=pkgname $(TEST_PUBLISH_FLAGS) -- -cover -coverprofile=$(REPORTS)/coverage.out $(or ${TEST},${TEST},$(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
 		-ginkgo.v -timeout 30m -count=1 || (docker kill postgres && /bin/false)
 	gocov convert $(REPORTS)/coverage.out | gocov-xml > $(REPORTS)/coverage.xml
