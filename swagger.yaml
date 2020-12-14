@@ -3010,6 +3010,8 @@ definitions:
     properties:
       name:
         type: string
+        minLength: 1
+        maxLength: 54
         description: OpenShift cluster name.
         x-nullable: true
       base_dns_domain:

@@ -149,6 +149,16 @@ var _ = Describe("Cluster", func() {
 		Expect(c.Hosts[0].ID.String()).Should(Equal(h.ID.String()))
 	})
 
+	It("update cluster name exceed max length (54 characters)", func() {
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				Name: swag.String("loveisintheaireverywhereilookaroundloveisintheaireverysightandeverysound"),
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).Should(HaveOccurred())
+	})
+
 	It("cluster name exceed max length (54 characters)", func() {
 		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
 			ClusterID: clusterID,
