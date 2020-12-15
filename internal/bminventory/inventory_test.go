@@ -1557,6 +1557,73 @@ var _ = Describe("cluster", func() {
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 			})
 
+			It("LSO install default value", func() {
+				mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+				mockEvents.EXPECT().
+					AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+					Times(1)
+				mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+
+				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						Name:             swag.String("some-cluster-name"),
+						OpenshiftVersion: swag.String("4.6"),
+						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					},
+				})
+				Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+				actual := reply.(*installer.RegisterClusterCreated)
+				Expect(actual.Payload.Operators.Lso.Enabled).To(Equal(swag.Bool(false)))
+			})
+
+			It("LSO install non default value", func() {
+				mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+				mockEvents.EXPECT().
+					AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+					Times(1)
+				mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+
+				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						Name:             swag.String("some-cluster-name"),
+						OpenshiftVersion: swag.String("4.6"),
+						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+						Operators: &models.Operators{
+							Lso: &models.Lso{
+								Enabled: swag.Bool(true),
+							},
+						},
+					},
+				})
+				Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+				actual := reply.(*installer.RegisterClusterCreated)
+				Expect(actual.Payload.Operators.Lso.Enabled).To(Equal(swag.Bool(true)))
+			})
+
+			It("Update Install LSO", func() {
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						Operators: &models.Operators{
+							Lso: &models.Lso{
+								Enabled: swag.Bool(true),
+							},
+						},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				actual := reply.(*installer.UpdateClusterCreated)
+				Expect(actual.Payload.Operators.Lso.Enabled).To(Equal(swag.Bool(true)))
+			})
+
 			It("ssh key with newline", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{

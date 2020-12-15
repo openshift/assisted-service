@@ -62,6 +62,9 @@ type ClusterCreateParams struct {
 	// Enum: [4.5 4.6 4.7]
 	OpenshiftVersion *string `json:"openshift_version"`
 
+	// operators
+	Operators *Operators `json:"operators,omitempty"`
+
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 	// Required: true
 	PullSecret *string `json:"pull_secret"`
@@ -101,6 +104,10 @@ func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateOperators(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -219,6 +226,24 @@ func (m *ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) 
 	// value enum
 	if err := m.validateOpenshiftVersionEnum("openshift_version", "body", *m.OpenshiftVersion); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterCreateParams) validateOperators(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Operators) { // not required
+		return nil
+	}
+
+	if m.Operators != nil {
+		if err := m.Operators.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("operators")
+			}
+			return err
+		}
 	}
 
 	return nil

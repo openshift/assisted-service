@@ -513,6 +513,13 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
+	if params.NewClusterParams.Operators == nil || params.NewClusterParams.Operators.Lso == nil {
+		params.NewClusterParams.Operators = &models.Operators{
+			Lso: &models.Lso{
+				Enabled: swag.Bool(false),
+			},
+		}
+	}
 
 	if params.NewClusterParams.AdditionalNtpSource == nil {
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
@@ -548,6 +555,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
 		UserManagedNetworking:    params.NewClusterParams.UserManagedNetworking,
 		AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
+		Operators:                params.NewClusterParams.Operators,
 	}}
 
 	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
@@ -1623,6 +1631,11 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 
 	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if params.ClusterUpdateParams.Operators != nil && params.ClusterUpdateParams.Operators.Lso != nil {
+		updates["operators_lso_enabled"] = *params.ClusterUpdateParams.Operators.Lso.Enabled
+		cluster.Operators = params.ClusterUpdateParams.Operators
 	}
 
 	if params.ClusterUpdateParams.PullSecret != nil {

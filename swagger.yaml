@@ -2549,6 +2549,20 @@ paths:
             $ref: '#/definitions/error'
 
 definitions:
+  lso:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        default: false
+
+  operators:
+    type: object
+    properties:
+      lso:
+        $ref: '#/definitions/lso'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:lso_"
+
   list-managed-domains:
     type: array
     items:
@@ -3004,6 +3018,9 @@ definitions:
         type: string
         description: NTP source going to be added to all the hosts.
         x-nullable: true
+      operators:
+        $ref: '#/definitions/operators'
+        x-nullable: true        
 
   cluster-update-params:
     type: object
@@ -3128,6 +3145,9 @@ definitions:
         type: string
         description: NTP source going to be added to all the hosts.
         x-nullable: true
+      operators:
+        $ref: '#/definitions/operators'
+        x-nullable: true        
 
   add-hosts-cluster-create-params:
     type: object
@@ -3348,6 +3368,10 @@ definitions:
       progress:
         $ref: '#/definitions/cluster-progress-info'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:progress_"
+      operators:
+        $ref: '#/definitions/operators'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:operators_"
+        x-nullable: true        
 
   image_info:
     type: object
@@ -3955,4 +3979,3 @@ definitions:
     properties:
       config:
         type: string
-

@@ -4144,6 +4144,11 @@ func init() {
             "4.7"
           ]
         },
+        "operators": {
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:operators_\"",
+          "x-nullable": true,
+          "$ref": "#/definitions/operators"
+        },
         "org_id": {
           "type": "string"
         },
@@ -4282,6 +4287,10 @@ func init() {
             "4.6",
             "4.7"
           ]
+        },
+        "operators": {
+          "x-nullable": true,
+          "$ref": "#/definitions/operators"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -4455,6 +4464,10 @@ func init() {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
+        },
+        "operators": {
+          "x-nullable": true,
+          "$ref": "#/definitions/operators"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -5513,6 +5526,15 @@ func init() {
         ""
       ]
     },
+    "lso": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
     "managed-domain": {
       "type": "object",
       "properties": {
@@ -5587,6 +5609,15 @@ func init() {
           "items": {
             "$ref": "#/definitions/ntp_source"
           }
+        }
+      }
+    },
+    "operators": {
+      "type": "object",
+      "properties": {
+        "lso": {
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:lso_\"",
+          "$ref": "#/definitions/lso"
         }
       }
     },
@@ -9945,6 +9976,11 @@ func init() {
             "4.7"
           ]
         },
+        "operators": {
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:operators_\"",
+          "x-nullable": true,
+          "$ref": "#/definitions/operators"
+        },
         "org_id": {
           "type": "string"
         },
@@ -10083,6 +10119,10 @@ func init() {
             "4.6",
             "4.7"
           ]
+        },
+        "operators": {
+          "x-nullable": true,
+          "$ref": "#/definitions/operators"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -10229,6 +10269,10 @@ func init() {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
+        },
+        "operators": {
+          "x-nullable": true,
+          "$ref": "#/definitions/operators"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -11288,6 +11332,15 @@ func init() {
         ""
       ]
     },
+    "lso": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
     "managed-domain": {
       "type": "object",
       "properties": {
@@ -11362,6 +11415,15 @@ func init() {
           "items": {
             "$ref": "#/definitions/ntp_source"
           }
+        }
+      }
+    },
+    "operators": {
+      "type": "object",
+      "properties": {
+        "lso": {
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:lso_\"",
+          "$ref": "#/definitions/lso"
         }
       }
     },
