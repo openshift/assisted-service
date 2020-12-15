@@ -45,8 +45,8 @@ apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
   labels:
-    machineconfiguration.openshift.io/role: master
-  name: masters-chrony-configuration
+    machineconfiguration.openshift.io/role: {{.ROLE}}}
+  name: {{.ROLE}}}s-chrony-configuration
 spec:
   config:
     ignition:
@@ -68,7 +68,7 @@ spec:
   osImageURL: ""
 `
 
-func createChronyManifestContent(c *common.Cluster) (string, error) {
+func createChronyManifestContent(c *common.Cluster, role models.HostRole) (string, error) {
 	sources := make([]string, 0)
 
 	for _, host := range c.Hosts {
@@ -100,6 +100,7 @@ func createChronyManifestContent(c *common.Cluster) (string, error) {
 
 	var manifestParams = map[string]string{
 		"CHRONY_CONTENT": base64.StdEncoding.EncodeToString([]byte(content)),
+		"ROLE":           string(role),
 	}
 
 	tmpl, err := template.New("chronyManifest").Parse(machineConfigManifest)
@@ -114,31 +115,33 @@ func createChronyManifestContent(c *common.Cluster) (string, error) {
 }
 
 func (ntpUtils *NtpUtils) AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
-	content, err := createChronyManifestContent(c)
+	for _, role := range []models.HostRole{models.HostRoleMaster, models.HostRoleWorker} {
+		content, err := createChronyManifestContent(c, role)
 
-	if err != nil {
-		return errors.Wrapf(err, "Failed to create chrony manifest content for cluster id %s", *c.ID)
-	}
-
-	chronyManifestFileName := "masters-chrony-configuration.yaml"
-	folder := models.ManifestFolderOpenshift
-	base64Content := base64.StdEncoding.EncodeToString([]byte(content))
-
-	response := ntpUtils.manifestsApi.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
-		ClusterID: *c.ID,
-		CreateManifestParams: &models.CreateManifestParams{
-			Content:  &base64Content,
-			FileName: &chronyManifestFileName,
-			Folder:   &folder,
-		},
-	})
-
-	if _, ok := response.(*operations.CreateClusterManifestCreated); !ok {
-		if apiErr, ok := response.(*common.ApiErrorResponse); ok {
-			return errors.Wrapf(apiErr, "Failed to create manifest %s", chronyManifestFileName)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to create chrony manifest content for role %s cluster id %s", role, *c.ID)
 		}
 
-		return errors.Errorf("Failed to create manifest %s", chronyManifestFileName)
+		chronyManifestFileName := fmt.Sprintf("%ss-chrony-configuration.yaml", string(role))
+		folder := models.ManifestFolderOpenshift
+		base64Content := base64.StdEncoding.EncodeToString([]byte(content))
+
+		response := ntpUtils.manifestsApi.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+			ClusterID: *c.ID,
+			CreateManifestParams: &models.CreateManifestParams{
+				Content:  &base64Content,
+				FileName: &chronyManifestFileName,
+				Folder:   &folder,
+			},
+		})
+
+		if _, ok := response.(*operations.CreateClusterManifestCreated); !ok {
+			if apiErr, ok := response.(*common.ApiErrorResponse); ok {
+				return errors.Wrapf(apiErr, "Failed to create manifest %s", chronyManifestFileName)
+			}
+
+			return errors.Errorf("Failed to create manifest %s", chronyManifestFileName)
+		}
 	}
 
 	return nil
