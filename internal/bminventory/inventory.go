@@ -92,7 +92,7 @@ type Config struct {
 	AgentTimeoutStart        time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
 	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
 	DeletedUnregisteredAfter time.Duration     `envconfig:"DELETED_UNREGISTERED_AFTER" default:"168h"`
-	DefaultNTPSource         string            `envconfig:"NTP_DEFAULT_SERVER" default:"0.rhel.pool.ntp.org"`
+	DefaultNTPSource         string            `envconfig:"NTP_DEFAULT_SERVER"`
 }
 
 const agentMessageOfTheDay = `
