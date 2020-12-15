@@ -45,8 +45,8 @@ apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
   labels:
-    machineconfiguration.openshift.io/role: {{.ROLE}}}
-  name: {{.ROLE}}}s-chrony-configuration
+    machineconfiguration.openshift.io/role: {{.ROLE}}
+  name: {{.ROLE}}s-chrony-configuration
 spec:
   config:
     ignition:
