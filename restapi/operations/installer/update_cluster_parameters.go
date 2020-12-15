@@ -41,8 +41,6 @@ type UpdateClusterParams struct {
 	ClusterUpdateParams *models.ClusterUpdateParams
 	/*
 	  Required: true
-	  Max Length: 54
-	  Min Length: 1
 	  In: path
 	*/
 	ClusterID strfmt.UUID
@@ -116,14 +114,6 @@ func (o *UpdateClusterParams) bindClusterID(rawData []string, hasKey bool, forma
 
 // validateClusterID carries on validations for parameter ClusterID
 func (o *UpdateClusterParams) validateClusterID(formats strfmt.Registry) error {
-
-	if err := validate.MinLength("cluster_id", "path", o.ClusterID.String(), 1); err != nil {
-		return err
-	}
-
-	if err := validate.MaxLength("cluster_id", "path", o.ClusterID.String(), 54); err != nil {
-		return err
-	}
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err

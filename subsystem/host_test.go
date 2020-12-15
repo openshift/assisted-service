@@ -101,6 +101,10 @@ var _ = Describe("Host tests", func() {
 					Name:      "sda1",
 					DriveType: "HDD",
 					SizeBytes: int64(120) * (int64(1) << 30),
+					InstallationEligibility: &models.DiskInstallationEligibility{
+						Eligible:           true,
+						NotEligibleReasons: []string{},
+					},
 				},
 			},
 			Memory: &models.Memory{

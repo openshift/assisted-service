@@ -69,6 +69,8 @@ type ClusterUpdateParams struct {
 	MachineNetworkCidr *string `json:"machine_network_cidr,omitempty"`
 
 	// OpenShift cluster name.
+	// Max Length: 54
+	// Min Length: 1
 	Name *string `json:"name,omitempty"`
 
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
@@ -124,6 +126,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateMachineNetworkCidr(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateName(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -275,6 +281,23 @@ func (m *ClusterUpdateParams) validateMachineNetworkCidr(formats strfmt.Registry
 	}
 
 	if err := validate.Pattern("machine_network_cidr", "body", string(*m.MachineNetworkCidr), `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$`); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateName(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Name) { // not required
+		return nil
+	}
+
+	if err := validate.MinLength("name", "body", string(*m.Name), 1); err != nil {
+		return err
+	}
+
+	if err := validate.MaxLength("name", "body", string(*m.Name), 54); err != nil {
 		return err
 	}
 

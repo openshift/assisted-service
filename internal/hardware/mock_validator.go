@@ -5,10 +5,9 @@
 package hardware
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
+	reflect "reflect"
 )
 
 // MockValidator is a mock of Validator interface
@@ -61,4 +60,19 @@ func (m *MockValidator) GetHostRequirements(role models.HostRole) models.HostReq
 func (mr *MockValidatorMockRecorder) GetHostRequirements(role interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetHostRequirements), role)
+}
+
+// DiskIsEligible mocks base method
+func (m *MockValidator) DiskIsEligible(disk *models.Disk) (bool, []string) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DiskIsEligible", disk)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].([]string)
+	return ret0, ret1
+}
+
+// DiskIsEligible indicates an expected call of DiskIsEligible
+func (mr *MockValidatorMockRecorder) DiskIsEligible(disk interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskIsEligible", reflect.TypeOf((*MockValidator)(nil).DiskIsEligible), disk)
 }
