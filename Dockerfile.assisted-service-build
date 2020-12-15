@@ -3,7 +3,7 @@ FROM registry.svc.ci.openshift.org/openshift/release:golang-1.15
 ENV GO111MODULE=on
 ENV GOFLAGS=""
 
-RUN yum install -y docker libvirt-clients awscli python3-pip postgresql && \
+RUN yum install -y docker libvirt-clients awscli python3-pip postgresql genisoimage && \
     yum clean all
 RUN curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | \
     bash -s -- 3.8.8 && mv kustomize /usr/bin/
