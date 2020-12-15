@@ -104,3 +104,12 @@ func TarAwsFiles(ctx context.Context, tarName string, files, tarredFilenames []s
 	wg.Wait()
 	return err
 }
+
+func AllStrings(vs []string, f func(string) bool) bool {
+	for _, v := range vs {
+		if !f(v) {
+			return false
+		}
+	}
+	return true
+}

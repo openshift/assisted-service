@@ -595,6 +595,10 @@ var _ = Describe("NTP source", func() {
 			valid:     true,
 		},
 		{
+			ntpSource: "comma,separated,list",
+			valid:     true,
+		},
+		{
 			ntpSource: "!jkfd.com",
 			valid:     false,
 		},
@@ -602,9 +606,9 @@ var _ = Describe("NTP source", func() {
 	for _, t := range tests {
 		It(fmt.Sprintf("NTP source \"%s\"", t.ntpSource), func() {
 			if t.valid {
-				Expect(ValidateNTPSource(t.ntpSource)).To(BeTrue())
+				Expect(ValidateAdditionalNTPSource(t.ntpSource)).To(BeTrue())
 			} else {
-				Expect(ValidateNTPSource(t.ntpSource)).To(BeFalse())
+				Expect(ValidateAdditionalNTPSource(t.ntpSource)).To(BeFalse())
 			}
 		})
 	}

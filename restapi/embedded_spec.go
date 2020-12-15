@@ -3985,7 +3985,7 @@ func init() {
       ],
       "properties": {
         "additional_ntp_source": {
-          "description": "NTP source going to be added to all the hosts.",
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         },
         "api_vip": {
@@ -4232,7 +4232,7 @@ func init() {
       ],
       "properties": {
         "additional_ntp_source": {
-          "description": "NTP source going to be added to all the hosts.",
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string",
           "x-nullable": true
         },
@@ -4345,7 +4345,7 @@ func init() {
       "type": "object",
       "properties": {
         "additional_ntp_source": {
-          "description": "NTP source going to be added to all the hosts.",
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string",
           "x-nullable": true
         },
@@ -5581,7 +5581,7 @@ func init() {
       ],
       "properties": {
         "ntp_source": {
-          "description": "NTP source name or IP.",
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         }
       }
@@ -9785,7 +9785,7 @@ func init() {
       ],
       "properties": {
         "additional_ntp_source": {
-          "description": "NTP source going to be added to all the hosts.",
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         },
         "api_vip": {
@@ -10032,7 +10032,7 @@ func init() {
       ],
       "properties": {
         "additional_ntp_source": {
-          "description": "NTP source going to be added to all the hosts.",
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string",
           "x-nullable": true
         },
@@ -10145,7 +10145,7 @@ func init() {
       "type": "object",
       "properties": {
         "additional_ntp_source": {
-          "description": "NTP source going to be added to all the hosts.",
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string",
           "x-nullable": true
         },
@@ -11355,7 +11355,7 @@ func init() {
       ],
       "properties": {
         "ntp_source": {
-          "description": "NTP source name or IP.",
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         }
       }

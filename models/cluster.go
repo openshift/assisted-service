@@ -20,7 +20,7 @@ import (
 // swagger:model cluster
 type Cluster struct {
 
-	// NTP source going to be added to all the hosts.
+	// A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
 	AdditionalNtpSource string `json:"additional_ntp_source,omitempty"`
 
 	// The virtual IP used to reach the OpenShift cluster's API.

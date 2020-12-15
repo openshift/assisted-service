@@ -17,7 +17,7 @@ import (
 // swagger:model ntp_synchronization_request
 type NtpSynchronizationRequest struct {
 
-	// NTP source name or IP.
+	// A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
 	// Required: true
 	NtpSource *string `json:"ntp_source"`
 }

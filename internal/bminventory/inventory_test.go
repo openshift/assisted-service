@@ -2457,6 +2457,22 @@ var _ = Describe("cluster", func() {
 						Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
 					})
 
+					It("Valid comma-separated NTP sources", func() {
+						mockSuccess(1)
+
+						ntpSource := "clock.redhat.com,1.1.1.1"
+						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.ClusterUpdateParams{
+								AdditionalNtpSource: &ntpSource,
+							},
+						})
+
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+						actual := reply.(*installer.UpdateClusterCreated)
+						Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
+					})
+
 					It("Invalid NTP source", func() {
 						ntpSource := "inject'"
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{

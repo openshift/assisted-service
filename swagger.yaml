@@ -3016,7 +3016,7 @@ definitions:
         default: false
       additional_ntp_source:
         type: string
-        description: NTP source going to be added to all the hosts.
+        description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
         x-nullable: true
       operators:
         $ref: '#/definitions/operators'
@@ -3143,7 +3143,7 @@ definitions:
         default: false
       additional_ntp_source:
         type: string
-        description: NTP source going to be added to all the hosts.
+        description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
         x-nullable: true
       operators:
         $ref: '#/definitions/operators'
@@ -3364,7 +3364,7 @@ definitions:
         description: Indicate if the networking is managed by the user.
       additional_ntp_source:
         type: string
-        description: NTP source going to be added to all the hosts.
+        description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
       progress:
         $ref: '#/definitions/cluster-progress-info'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:progress_"
@@ -3866,7 +3866,7 @@ definitions:
     properties:
       ntp_source:
         type: string
-        description: NTP source name or IP.
+        description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
 
   ntp_synchronization_response:
     properties:
