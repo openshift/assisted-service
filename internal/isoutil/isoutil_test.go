@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	diskfs "github.com/diskfs/go-diskfs"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -16,7 +18,7 @@ func TestIsoUtil(t *testing.T) {
 	RunSpecs(t, "Iso Util")
 }
 
-var _ = Describe("Isoutil", func() {
+var _ = Context("with test files", func() {
 	var (
 		isoDir   string
 		isoFile  string
@@ -32,7 +34,7 @@ var _ = Describe("Isoutil", func() {
 		os.RemoveAll(isoDir)
 	})
 
-	Context("readFile", func() {
+	Describe("ReadFile", func() {
 		It("read existing file from ISO", func() {
 			h := NewHandler(isoFile, "").(*installerHandler)
 			reader, err := h.ReadFile("testdir/stuff")
@@ -47,6 +49,101 @@ var _ = Describe("Isoutil", func() {
 			reader, err := h.ReadFile("testdir/noexist")
 			Expect(err).To(HaveOccurred())
 			Expect(reader).To(BeNil())
+		})
+	})
+
+	Describe("Extract", func() {
+		It("extracts the files from an iso", func() {
+			dir, err := ioutil.TempDir("", "isotest")
+			Expect(err).ToNot(HaveOccurred())
+			defer os.RemoveAll(dir)
+
+			h := NewHandler(isoFile, dir)
+			Expect(h.Extract()).To(Succeed())
+
+			validateFileContent(filepath.Join(dir, "test"), "testcontent\n")
+			validateFileContent(filepath.Join(dir, "testdir/stuff"), "morecontent\n")
+		})
+	})
+
+	Describe("Create", func() {
+		It("generates an iso with the content in the given directory", func() {
+			dir, err := ioutil.TempDir("", "isotest")
+			Expect(err).ToNot(HaveOccurred())
+			defer os.RemoveAll(dir)
+			isoPath := filepath.Join(dir, "test.iso")
+
+			isoInfo, err := os.Stat(isoFile)
+			Expect(err).NotTo(HaveOccurred())
+
+			h := NewHandler("", filepath.Join(filesDir, "files"))
+			Expect(h.Create(isoPath, isoInfo.Size(), "my-vol")).To(Succeed())
+
+			d, err := diskfs.OpenWithMode(isoPath, diskfs.ReadOnly)
+			Expect(err).ToNot(HaveOccurred())
+			fs, err := d.GetFilesystem(0)
+			Expect(err).ToNot(HaveOccurred())
+
+			f, err := fs.OpenFile("/test", os.O_RDONLY)
+			Expect(err).ToNot(HaveOccurred())
+			content, err := ioutil.ReadAll(f)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(content)).To(Equal("testcontent\n"))
+
+			f, err = fs.OpenFile("/testdir/stuff", os.O_RDONLY)
+			Expect(err).ToNot(HaveOccurred())
+			content, err = ioutil.ReadAll(f)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(content)).To(Equal("morecontent\n"))
+		})
+	})
+
+	Describe("fileExists", func() {
+		var h *installerHandler
+		BeforeEach(func() {
+			h = NewHandler("", filepath.Join(filesDir, "files")).(*installerHandler)
+		})
+
+		It("returns true when file exists", func() {
+			exists, err := h.fileExists("test")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue())
+
+			exists, err = h.fileExists("testdir/stuff")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue())
+		})
+
+		It("returns false when file does not exist", func() {
+			exists, err := h.fileExists("asdf")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeFalse())
+
+			exists, err = h.fileExists("missingdir/things")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeFalse())
+		})
+	})
+
+	Describe("haveBootFiles", func() {
+		It("returns true when boot files are present", func() {
+			p, err := filepath.Abs(filepath.Join(filesDir, "boot_files"))
+			Expect(err).ToNot(HaveOccurred())
+			h := NewHandler("", p).(*installerHandler)
+
+			haveBootFiles, err := h.haveBootFiles()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(haveBootFiles).To(BeTrue())
+		})
+
+		It("returns false when boot files are not present", func() {
+			p, err := filepath.Abs(filepath.Join(filesDir, "files"))
+			Expect(err).ToNot(HaveOccurred())
+			h := NewHandler("", p).(*installerHandler)
+
+			haveBootFiles, err := h.haveBootFiles()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(haveBootFiles).To(BeFalse())
 		})
 	})
 })
@@ -84,4 +181,10 @@ func createIsoViaGenisoimage(volumeID string) (string, string, string) {
 	Expect(err).ToNot(HaveOccurred())
 
 	return filesDir, isoDir, isoFile
+}
+
+func validateFileContent(filename string, content string) {
+	fileContent, err := ioutil.ReadFile(filename)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(string(fileContent)).To(Equal(content))
 }
