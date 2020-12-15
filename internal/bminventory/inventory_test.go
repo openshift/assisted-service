@@ -4617,6 +4617,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	)
 
 	BeforeEach(func() {
+		cfg.DefaultNTPSource = ""
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
@@ -4720,24 +4721,52 @@ var _ = Describe("TestRegisterCluster", func() {
 		verifyApiError(reply, http.StatusBadRequest)
 	})
 
-	It("NTPSource default value", func() {
-		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
-		mockEvents.EXPECT().
-			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-			Times(1)
-		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	Context("NTPSource", func() {
+		It("NTPSource default value", func() {
+			defaultNtpSource := "clock.redhat.com"
+			bm.Config.DefaultNTPSource = defaultNtpSource
 
-		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String("4.6"),
-				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-			},
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			mockEvents.EXPECT().
+				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+				Times(1)
+			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String("4.6"),
+					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(actual.Payload.AdditionalNtpSource).To(Equal(defaultNtpSource))
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-		actual := reply.(*installer.RegisterClusterCreated)
-		Expect(actual.Payload.AdditionalNtpSource).To(Equal(bm.Config.DefaultNTPSource))
+
+		It("NTPSource non default value", func() {
+			newNtpSource := "new.ntp.source"
+
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			mockEvents.EXPECT().
+				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+				Times(1)
+			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:                swag.String("some-cluster-name"),
+					OpenshiftVersion:    swag.String("4.6"),
+					PullSecret:          swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+					AdditionalNtpSource: &newNtpSource,
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(actual.Payload.AdditionalNtpSource).To(Equal(newNtpSource))
+		})
 	})
 
 	It("cluster api failed to register", func() {
