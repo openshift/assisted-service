@@ -233,6 +233,10 @@ func ValidateHostname(name string) error {
 	return nil
 }
 
+func ValidateAdditionalNTPSource(commaSeparatedNTPSources string) bool {
+	return common.AllStrings(strings.Split(commaSeparatedNTPSources, ","), ValidateNTPSource)
+}
+
 func ValidateNTPSource(ntpSource string) bool {
 	if addr := net.ParseIP(ntpSource); addr != nil {
 		return true

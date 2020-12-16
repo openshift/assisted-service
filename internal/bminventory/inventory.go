@@ -526,7 +526,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	} else {
 		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
 
-		if ntpSource != "" && !validations.ValidateNTPSource(ntpSource) {
+		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
 			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
 			log.WithError(err)
 			return common.NewApiError(http.StatusBadRequest, err)
@@ -1585,7 +1585,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
 		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
 
-		if ntpSource != "" && !validations.ValidateNTPSource(ntpSource) {
+		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
 			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
 			log.WithError(err)
 			return common.NewApiError(http.StatusBadRequest, err)
