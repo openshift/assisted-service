@@ -39,8 +39,16 @@ var _ = Describe("connectivitycheckconvertor", func() {
 		}
 
 		interfaces = []*models.Interface{
-			{Name: "eth0", MacAddress: "44:85:00:80:12:a4", IPV4Addresses: []string{"10.0.0.1/24", "10.0.0.2", "10.0.0.3/24"}},
-			{Name: "eth1", MacAddress: "45:85:00:80:12:a4", IPV4Addresses: []string{"10.0.0.4", "10.0.0.5/24", "10.0.0.6", "10.0.0.7/24"}},
+			{
+				Name: "eth0", MacAddress: "44:85:00:80:12:a4",
+				IPV4Addresses: []string{"10.0.0.1/24", "10.0.0.2", "10.0.0.3/24"},
+				IPV6Addresses: []string{"2001:db8::4/120", "2001:db8::a"},
+			},
+			{
+				Name: "eth1", MacAddress: "45:85:00:80:12:a4",
+				IPV4Addresses: []string{"10.0.0.4", "10.0.0.5/24", "10.0.0.6", "10.0.0.7/24"},
+				IPV6Addresses: []string{"fe80:5054::1f", "fe80:5054::5/120", "fe80:5054::ff"},
+			},
 		}
 	})
 
@@ -48,8 +56,8 @@ var _ = Describe("connectivitycheckconvertor", func() {
 		connectivityParamsHost := convertInterfacesToConnectivityCheckHost(&currentHostId, interfaces)
 		Expect(connectivityParamsHost.HostID.String()).To(Equal(currentHostId.String()))
 		Expect(connectivityParamsHost.Nics).To(HaveLen(2))
-		Expect(connectivityParamsHost.Nics[0].IPAddresses).To(HaveLen(3))
-		Expect(connectivityParamsHost.Nics[1].IPAddresses).To(HaveLen(4))
+		Expect(connectivityParamsHost.Nics[0].IPAddresses).To(HaveLen(5))
+		Expect(connectivityParamsHost.Nics[1].IPAddresses).To(HaveLen(7))
 	})
 
 	It("convertHostsToConnectivityParamsHosts_success", func() {

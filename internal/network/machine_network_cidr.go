@@ -246,10 +246,20 @@ func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
 				continue
 			}
 			for _, inf := range inventory.Interfaces {
+
 				for _, ipv4 := range inf.IPV4Addresses {
 					_, cidr, err := net.ParseCIDR(ipv4)
 					if err != nil {
 						log.WithError(err).Warnf("Parse CIDR %s", ipv4)
+						continue
+					}
+					cidrs[cidr.String()] = true
+				}
+
+				for _, ipv6 := range inf.IPV6Addresses {
+					_, cidr, err := net.ParseCIDR(ipv6)
+					if err != nil {
+						log.WithError(err).Warnf("Parse CIDR %s", ipv6)
 						continue
 					}
 					cidrs[cidr.String()] = true

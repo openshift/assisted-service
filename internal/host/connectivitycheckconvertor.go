@@ -46,9 +46,15 @@ func convertInterfacesToConnectivityCheckHost(hostId *strfmt.UUID, interfaces []
 		var ipAddresses []string
 		connectivityNic.Mac = hostInterface.MacAddress
 		connectivityNic.Name = hostInterface.Name
+
 		for _, ip := range hostInterface.IPV4Addresses {
 			ipAddresses = append(ipAddresses, strings.Split(ip, "/")[0])
 		}
+
+		for _, ip := range hostInterface.IPV6Addresses {
+			ipAddresses = append(ipAddresses, strings.Split(ip, "/")[0])
+		}
+
 		connectivityNic.IPAddresses = ipAddresses
 		connectivityHost.Nics = append(connectivityHost.Nics, &connectivityNic)
 	}

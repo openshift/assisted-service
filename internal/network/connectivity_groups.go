@@ -256,7 +256,7 @@ func createMachineCidrConnectivityMap(cidr string, hosts []*models.Host, idToInd
 		}
 		for _, r := range connectivityReport.RemoteHosts {
 			for _, l2 := range r.L2Connectivity {
-				ip := net.ParseIP(l2.OutgoingIPAddress)
+				ip := net.ParseIP(l2.RemoteIPAddress)
 				if ip != nil && parsedCidr.Contains(ip) && l2.Successful {
 					toIndex, ok := idToIndex[r.HostID]
 					if ok {

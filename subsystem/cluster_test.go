@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"reflect"
@@ -2888,19 +2889,38 @@ func generateConnectivityPostStepReply(ctx context.Context, h *models.Host, conn
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func generateFullMeshConnectivity(ctx context.Context, outgoingAddress string, hosts ...*models.Host) {
+func generateFullMeshConnectivity(ctx context.Context, startIPAddress string, hosts ...*models.Host) {
+
+	ip := net.ParseIP(startIPAddress).To4()
+	hostToAddr := make(map[strfmt.UUID]string)
+
+	for _, h := range hosts {
+		hostToAddr[*h.ID] = ip.String()
+		ip[3]++
+	}
+
 	var connectivityReport models.ConnectivityReport
 	for _, h := range hosts {
+
+		l2Connectivity := make([]*models.L2Connectivity, 0)
+		for id, addr := range hostToAddr {
+
+			if id == *h.ID {
+				continue
+			}
+
+			l2Connectivity = append(l2Connectivity, &models.L2Connectivity{
+				RemoteIPAddress: addr,
+				Successful:      true,
+			})
+		}
+
 		connectivityReport.RemoteHosts = append(connectivityReport.RemoteHosts, &models.ConnectivityRemoteHost{
-			HostID: *h.ID,
-			L2Connectivity: []*models.L2Connectivity{
-				{
-					OutgoingIPAddress: outgoingAddress,
-					Successful:        true,
-				},
-			},
+			HostID:         *h.ID,
+			L2Connectivity: l2Connectivity,
 		})
 	}
+
 	for _, h := range hosts {
 		generateConnectivityPostStepReply(ctx, h, &connectivityReport)
 	}
