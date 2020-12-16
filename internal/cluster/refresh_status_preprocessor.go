@@ -1,8 +1,11 @@
 package cluster
 
 import (
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type validationResult struct {
@@ -32,6 +35,13 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API) *refreshPr
 func (r *refreshPreprocessor) preprocess(c *clusterPreprocessContext) (map[string]bool, map[string][]validationResult, error) {
 	stateMachineInput := make(map[string]bool)
 	validationsOutput := make(map[string][]validationResult)
+	checkValidationsInStatuses := []string{
+		models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput,
+	}
+	//if the cluster is not on discovery stages - skip the validations check
+	if !funk.ContainsString(checkValidationsInStatuses, swag.StringValue(c.cluster.Status)) {
+		return stateMachineInput, validationsOutput, nil
+	}
 	for _, v := range r.validations {
 		st := v.condition(c)
 		stateMachineInput[v.id.String()] = st == ValidationSuccess
