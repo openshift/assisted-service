@@ -23,7 +23,7 @@ func GenerateError(id int32, err error) *models.Error {
 
 func GenerateInternalFromError(err error) *models.Error {
 	return &models.Error{
-		Code:   swag.String(string(http.StatusInternalServerError)),
+		Code:   swag.String(strconv.Itoa(http.StatusInternalServerError)),
 		Href:   swag.String(""),
 		ID:     swag.Int32(http.StatusInternalServerError),
 		Kind:   swag.String("Error"),

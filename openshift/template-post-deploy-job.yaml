@@ -18,7 +18,7 @@ objects:
       spec:
         restartPolicy: Never
         containers:
-          - image: quay.io/app-sre/centos:8
+          - image: quay.io/centos/centos:centos8
             imagePullPolicy: Always
             name: assisted-service-post-deploy
             command:

@@ -1,6 +1,7 @@
-FROM        quay.io/app-sre/golang:1.14.3
+FROM        registry.svc.ci.openshift.org/openshift/release:golang-1.15
 
 ENV         GO111MODULE=on
+ENV         GOFLAGS=""
 
 WORKDIR     /assisted-service
 
