@@ -2,10 +2,13 @@ package host
 
 import (
 	"context"
+	"encoding/json"
+	"net"
 	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 
 	"github.com/sirupsen/logrus"
@@ -69,6 +72,13 @@ func (i *logsCmd) getNonBootstrapMastersIPsInHostCluster(ctx context.Context, ho
 		return nil, err
 	}
 
+	if swag.BoolValue(cluster.UserManagedNetworking) {
+		return i.getHostsIps(cluster)
+	}
+	return i.getHostsIpsfromMachineCIDR(cluster)
+}
+
+func (i *logsCmd) getHostsIpsfromMachineCIDR(cluster common.Cluster) ([]string, error) {
 	var ips []string
 	for _, h := range cluster.Hosts {
 		if h.Bootstrap || h.Role == models.HostRoleWorker {
@@ -76,10 +86,52 @@ func (i *logsCmd) getNonBootstrapMastersIPsInHostCluster(ctx context.Context, ho
 		}
 		ip, err := network.GetMachineCIDRIP(h, &cluster)
 		if err != nil {
-			i.log.WithError(err).Errorf("failed to get machine cidr IP for host %s", host.ID)
+			i.log.WithError(err).Errorf("failed to get machine cidr IP for host %s", h.ID)
 			return nil, err
 		}
 		ips = append(ips, ip)
 	}
 	return ips, nil
+}
+
+func (i *logsCmd) getHostsIps(cluster common.Cluster) ([]string, error) {
+	var ips []string
+	for _, h := range cluster.Hosts {
+		if h.Bootstrap || h.Role == models.HostRoleWorker {
+			continue
+		}
+		var inventory models.Inventory
+		err := json.Unmarshal([]byte(h.Inventory), &inventory)
+		if err != nil {
+			i.log.WithError(err).Warn("Fail to getHostsIps:  Inventory parse")
+			return nil, err
+		}
+		for _, intf := range inventory.Interfaces {
+			err = i.parseIps(intf.IPV4Addresses, &ips)
+			if err != nil {
+				i.log.WithError(err).Warn("Fail to getHostsIps IPV4: Cidr parse")
+				return nil, err
+			}
+			err = i.parseIps(intf.IPV6Addresses, &ips)
+			if err != nil {
+				i.log.WithError(err).Warn("Fail to getHostsIps IPV6: Cidr parse")
+				return nil, err
+			}
+		}
+
+	}
+	return ips, nil
+}
+
+func (i *logsCmd) parseIps(ipAddresses []string, ips *[]string) error {
+	for _, ipToParse := range ipAddresses {
+		var ip net.IP
+		ip, _, err := net.ParseCIDR(ipToParse)
+		if err != nil {
+			i.log.WithError(err).Warn("Cidr parse")
+			return err
+		}
+		*ips = append(*ips, ip.String())
+	}
+	return nil
 }
