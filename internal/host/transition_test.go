@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -53,7 +55,8 @@ var _ = Describe("RegisterHost", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		mockEvents = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -434,7 +437,8 @@ var _ = Describe("HostInstallationFailed", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, nil)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = getTestHost(hostId, clusterId, "")
@@ -476,7 +480,8 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, nil)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = getTestHost(hostId, clusterId, "")
@@ -509,7 +514,8 @@ var _ = Describe("Cancel host installation", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEventsHandler, nil, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		hapi = NewManager(getTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 	})
 
 	tests := []struct {
@@ -583,7 +589,8 @@ var _ = Describe("Reset host", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEventsHandler, nil, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		hapi = NewManager(getTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 	})
 
 	tests := []struct {
@@ -658,7 +665,8 @@ var _ = Describe("Install", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -811,7 +819,8 @@ var _ = Describe("Disable", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -942,7 +951,8 @@ var _ = Describe("Enable", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -1140,7 +1150,16 @@ var _ = Describe("Refresh Host", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		validatorCfg := createValidatorCfg()
+		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).DoAndReturn(func(inventory *models.Inventory) []*models.Disk {
+			// Mock the hwValidator behavior of performing simple filtering according to disk size, because these tests
+			// rely on small disks to get filtered out.
+			return funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
+				return disk.SizeBytes >= gibToBytes(validatorCfg.MinDiskSizeGb)
+			}).([]*models.Disk)
+		}).AnyTimes()
+		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})

@@ -16,10 +16,10 @@ type refreshPreprocessor struct {
 	validations []validation
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator) *refreshPreprocessor {
 	return &refreshPreprocessor{
 		log:         log,
-		validations: newValidations(log, hwValidatorCfg),
+		validations: newValidations(log, hwValidatorCfg, hwValidator),
 	}
 }
 
@@ -44,10 +44,11 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[validationID
 	return stateMachineInput, validationsOutput, nil
 }
 
-func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg) []validation {
+func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator) []validation {
 	v := validator{
 		log:            log,
 		hwValidatorCfg: hwValidatorCfg,
+		hwValidator:    hwValidator,
 	}
 	ret := []validation{
 		{

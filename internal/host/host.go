@@ -152,7 +152,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		hwValidator:    hwValidator,
 		eventsHandler:  eventsHandler,
 		sm:             NewHostStateMachine(th),
-		rp:             newRefreshPreprocessor(log, hwValidatorCfg),
+		rp:             newRefreshPreprocessor(log, hwValidatorCfg, hwValidator),
 		metricApi:      metricApi,
 		Config:         *config,
 		leaderElector:  leaderElector,
@@ -207,6 +207,39 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 	return err
 }
 
+// populateDisksEligibility updates an inventory json string by updating the eligibility
+// struct of each disk in the inventory with service-side checks for disk eligibility, in
+// addition to agent-side checks that have already been performed. The reason that some
+// checks are performed by the agent (and not the service) is because the agent has data
+// that is not available in the service.
+func (m *Manager) populateDisksEligibility(inventoryString string) (string, error) {
+	var inventory models.Inventory
+	if err := json.Unmarshal([]byte(inventoryString), &inventory); err != nil {
+		return "", err
+	}
+
+	for _, disk := range inventory.Disks {
+		if !hardware.DiskEligibilityInitialized(disk) {
+			// for backwards compatibility, pretend that the agent has decided that this disk is eligible
+			disk.InstallationEligibility.Eligible = true
+			disk.InstallationEligibility.NotEligibleReasons = make([]string, 0)
+		}
+
+		// Append to the existing reasons already filled in by the agent
+		disk.InstallationEligibility.NotEligibleReasons = append(disk.InstallationEligibility.NotEligibleReasons,
+			m.hwValidator.DiskIsEligible(disk)...)
+
+		disk.InstallationEligibility.Eligible = len(disk.InstallationEligibility.NotEligibleReasons) == 0
+	}
+
+	result, err := json.Marshal(inventory)
+	if err != nil {
+		return "", err
+	}
+
+	return string(result), nil
+}
+
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := append(hostStatusesBeforeInstallation[:], models.HostStatusInstallingInProgress)
@@ -216,8 +249,13 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 			errors.Errorf("Host is in %s state, host can be updated only in one of %s states",
 				hostStatus, allowedStatuses))
 	}
-	h.Inventory = inventory
-	return m.db.Model(h).Update("inventory", inventory).Error
+
+	var err error
+	if h.Inventory, err = m.populateDisksEligibility(inventory); err != nil {
+		return err
+	}
+
+	return m.db.Model(h).Update("inventory", h.Inventory).Error
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
