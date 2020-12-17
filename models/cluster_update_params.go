@@ -41,14 +41,17 @@ type ClusterUpdateParams struct {
 	// Minimum: 1
 	ClusterNetworkHostPrefix *int64 `json:"cluster_network_host_prefix,omitempty"`
 
+	// disks selected config
+	DisksSelectedConfig []*ClusterUpdateParamsDisksSelectedConfigItems0 `json:"disks_selected_config"`
+
 	// The desired machine config pool for hosts associated with the cluster.
 	HostsMachineConfigPoolNames []*ClusterUpdateParamsHostsMachineConfigPoolNamesItems0 `json:"hosts_machine_config_pool_names"`
 
 	// The desired hostname for hosts associated with the cluster.
-	HostsNames []*ClusterUpdateParamsHostsNamesItems0 `json:"hosts_names" gorm:"type:varchar(64)[]"`
+	HostsNames []*ClusterUpdateParamsHostsNamesItems0 `json:"hosts_names"`
 
 	// The desired role for hosts associated with the cluster.
-	HostsRoles []*ClusterUpdateParamsHostsRolesItems0 `json:"hosts_roles" gorm:"type:varchar(64)[]"`
+	HostsRoles []*ClusterUpdateParamsHostsRolesItems0 `json:"hosts_roles"`
 
 	// A proxy URL to use for creating HTTP connections outside the cluster.
 	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
@@ -109,6 +112,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateClusterNetworkHostPrefix(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateDisksSelectedConfig(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -188,6 +195,31 @@ func (m *ClusterUpdateParams) validateClusterNetworkHostPrefix(formats strfmt.Re
 
 	if err := validate.MaximumInt("cluster_network_host_prefix", "body", int64(*m.ClusterNetworkHostPrefix), 128, false); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateDisksSelectedConfig(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.DisksSelectedConfig) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.DisksSelectedConfig); i++ {
+		if swag.IsZero(m.DisksSelectedConfig[i]) { // not required
+			continue
+		}
+
+		if m.DisksSelectedConfig[i] != nil {
+			if err := m.DisksSelectedConfig[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -353,6 +385,93 @@ func (m *ClusterUpdateParams) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *ClusterUpdateParams) UnmarshalBinary(b []byte) error {
 	var res ClusterUpdateParams
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// ClusterUpdateParamsDisksSelectedConfigItems0 cluster update params disks selected config items0
+//
+// swagger:model ClusterUpdateParamsDisksSelectedConfigItems0
+type ClusterUpdateParamsDisksSelectedConfigItems0 struct {
+
+	// The desired disks parameters (such as the disk's role).
+	DisksConfig []*DiskConfigParams `json:"disks_config"`
+
+	// id
+	// Format: uuid
+	ID strfmt.UUID `json:"id,omitempty"`
+}
+
+// Validate validates this cluster update params disks selected config items0
+func (m *ClusterUpdateParamsDisksSelectedConfigItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateDisksConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ClusterUpdateParamsDisksSelectedConfigItems0) validateDisksConfig(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.DisksConfig) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.DisksConfig); i++ {
+		if swag.IsZero(m.DisksConfig[i]) { // not required
+			continue
+		}
+
+		if m.DisksConfig[i] != nil {
+			if err := m.DisksConfig[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("disks_config" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParamsDisksSelectedConfigItems0) validateID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *ClusterUpdateParamsDisksSelectedConfigItems0) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *ClusterUpdateParamsDisksSelectedConfigItems0) UnmarshalBinary(b []byte) error {
+	var res ClusterUpdateParamsDisksSelectedConfigItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

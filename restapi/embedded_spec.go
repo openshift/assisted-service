@@ -4378,6 +4378,26 @@ func init() {
           "minimum": 1,
           "x-nullable": true
         },
+        "disks_selected_config": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "disks_config": {
+                "description": "The desired disks parameters (such as the disk's role).",
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/disk-config-params"
+                }
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          "x-nullable": true
+        },
         "hosts_machine_config_pool_names": {
           "description": "The desired machine config pool for hosts associated with the cluster.",
           "type": "array",
@@ -4410,7 +4430,6 @@ func init() {
               }
             }
           },
-          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\"",
           "x-nullable": true
         },
         "hosts_roles": {
@@ -4428,7 +4447,6 @@ func init() {
               }
             }
           },
-          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\"",
           "x-nullable": true
         },
         "http_proxy": {
@@ -4771,6 +4789,27 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "disk-config-params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/definitions/disk-role"
+        }
+      }
+    },
+    "disk-role": {
+      "type": "string",
+      "enum": [
+        "none",
+        "install"
+      ]
     },
     "error": {
       "type": "object",
@@ -9638,6 +9677,22 @@ func init() {
     }
   },
   "definitions": {
+    "ClusterUpdateParamsDisksSelectedConfigItems0": {
+      "type": "object",
+      "properties": {
+        "disks_config": {
+          "description": "The desired disks parameters (such as the disk's role).",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/disk-config-params"
+          }
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
     "ClusterUpdateParamsHostsMachineConfigPoolNamesItems0": {
       "type": "object",
       "properties": {
@@ -10178,6 +10233,13 @@ func init() {
           "minimum": 1,
           "x-nullable": true
         },
+        "disks_selected_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClusterUpdateParamsDisksSelectedConfigItems0"
+          },
+          "x-nullable": true
+        },
         "hosts_machine_config_pool_names": {
           "description": "The desired machine config pool for hosts associated with the cluster.",
           "type": "array",
@@ -10192,7 +10254,6 @@ func init() {
           "items": {
             "$ref": "#/definitions/ClusterUpdateParamsHostsNamesItems0"
           },
-          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\"",
           "x-nullable": true
         },
         "hosts_roles": {
@@ -10201,7 +10262,6 @@ func init() {
           "items": {
             "$ref": "#/definitions/ClusterUpdateParamsHostsRolesItems0"
           },
-          "x-go-custom-tag": "gorm:\"type:varchar(64)[]\"",
           "x-nullable": true
         },
         "http_proxy": {
@@ -10544,6 +10604,27 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "disk-config-params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/definitions/disk-role"
+        }
+      }
+    },
+    "disk-role": {
+      "type": "string",
+      "enum": [
+        "none",
+        "install"
+      ]
     },
     "error": {
       "type": "object",
