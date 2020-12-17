@@ -53,6 +53,12 @@ func (o *UpdateClusterInstallProgressReader) ReadResponse(response runtime.Clien
 			return nil, err
 		}
 		return nil, result
+	case 409:
+		result := NewUpdateClusterInstallProgressConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 500:
 		result := NewUpdateClusterInstallProgressInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -213,6 +219,39 @@ func (o *UpdateClusterInstallProgressMethodNotAllowed) GetPayload() *models.Erro
 }
 
 func (o *UpdateClusterInstallProgressMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUpdateClusterInstallProgressConflict creates a UpdateClusterInstallProgressConflict with default headers values
+func NewUpdateClusterInstallProgressConflict() *UpdateClusterInstallProgressConflict {
+	return &UpdateClusterInstallProgressConflict{}
+}
+
+/*UpdateClusterInstallProgressConflict handles this case with default header values.
+
+Error.
+*/
+type UpdateClusterInstallProgressConflict struct {
+	Payload *models.Error
+}
+
+func (o *UpdateClusterInstallProgressConflict) Error() string {
+	return fmt.Sprintf("[PUT /clusters/{cluster_id}/progress][%d] updateClusterInstallProgressConflict  %+v", 409, o.Payload)
+}
+
+func (o *UpdateClusterInstallProgressConflict) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *UpdateClusterInstallProgressConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

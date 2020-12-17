@@ -1181,11 +1181,18 @@ var _ = Describe("cluster install", func() {
 			Expect(c.Progress.ProgressInfo).Should(Equal(installProgress))
 			Expect(c.Progress.ProgressUpdatedAt).ShouldNot(Equal(firstUpdateTime))
 
-			By("report_cluster_install_progress_while_in_error")
+			By("report_cluster_install_progress_while_in_finalizing")
 			for _, host := range c.Hosts {
 				updateProgress(*host.ID, clusterID, models.HostStageDone)
 			}
 			waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+			installProgress = "Making more progress, while cluster in finalizing state."
+			updateClusterInstallProgressWithInfo(clusterID, installProgress)
+			// Retrieve updated cluster details
+			c = getCluster(clusterID)
+			Expect(c.Progress.ProgressInfo).Should(Equal(installProgress))
+
+			By("report_cluster_install_progress_while_in_error")
 
 			success := false
 			_, err = agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
