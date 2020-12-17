@@ -59,11 +59,12 @@ const (
 	discoveryAgentVersionLabel = "discoveryAgentVersion"
 	hwVendorLabel              = "vendor"
 	hwProductLabel             = "product"
+	userManagedNetworkingLabel = "userManagedNetworking"
 )
 
 type API interface {
 	ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string)
-	InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string)
+	InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string)
 	Duration(operation string, duration time.Duration)
 	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
 	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
@@ -103,7 +104,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 				Subsystem: subsystem,
 				Name:      counterClusterInstallationStarted,
 				Help:      counterDescriptionClusterInstallationStarted,
-			}, []string{openshiftVersionLabel, clusterIdLabel, emailDomainLabel}),
+			}, []string{openshiftVersionLabel, clusterIdLabel, emailDomainLabel, userManagedNetworkingLabel}),
 
 		serviceLogicClusterInstallationSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -189,8 +190,8 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 func (m *MetricsManager) ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
 	m.serviceLogicClusterCreation.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Inc()
 }
-func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
-	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Inc()
+func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string) {
+	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion, clusterID.String(), emailDomain, userManagedNetworking).Inc()
 }
 
 func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
