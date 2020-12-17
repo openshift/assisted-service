@@ -49,15 +49,15 @@ func (mr *MockAPIMockRecorder) ClusterRegistered(clusterVersion, clusterID, emai
 }
 
 // InstallationStarted mocks base method
-func (m *MockAPI) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
+func (m *MockAPI) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain, userManagedNetworking string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "InstallationStarted", clusterVersion, clusterID, emailDomain)
+	m.ctrl.Call(m, "InstallationStarted", clusterVersion, clusterID, emailDomain, userManagedNetworking)
 }
 
 // InstallationStarted indicates an expected call of InstallationStarted
-func (mr *MockAPIMockRecorder) InstallationStarted(clusterVersion, clusterID, emailDomain interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) InstallationStarted(clusterVersion, clusterID, emailDomain, userManagedNetworking interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallationStarted", reflect.TypeOf((*MockAPI)(nil).InstallationStarted), clusterVersion, clusterID, emailDomain)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallationStarted", reflect.TypeOf((*MockAPI)(nil).InstallationStarted), clusterVersion, clusterID, emailDomain, userManagedNetworking)
 }
 
 // Duration mocks base method
