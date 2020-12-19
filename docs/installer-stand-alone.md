@@ -46,38 +46,31 @@ match your OpenShift Container Platform version if they are available.
 
 The first thing you will need to do is grab the
 [`onprem-environment`](https://raw.githubusercontent.com/openshift/assisted-service/master/onprem-environment)
-file. Once you have this file, and have modified it based on your needs -- if
-you need the Assisted Installer UI to run on a different port to avoid conflict
-with `httpd` as an example -- you should source it.
+file. Once you have this file, source it.
 
 ```
 source onprem-environment
 ```
 
 **NOTE**
-The remainder of this document relies on the values stored in
-`onprem-environment` being set in the shell.
+* The remainder of this document relies on the values stored in
+    `onprem-environment` being set in the shell.
+* The `SERVICE_BASE_URL` is the `ip:port` where the assisted-service
+    API is being served. The Assisted Installer's agent uses the
+    `SERVICE_BASE_URL` to talk back to the API.
+
 
 ## NGINX Configuration
 
-Once you have your environment setup, you will need to grab the
+Once you have sourced `onprem-environment`, you will need to grab the
 [`nginx.conf`](https://raw.githubusercontent.com/openshift/assisted-service/master/deploy/ui/nginx.conf)
-used to configure the Assisted Installer's UI. With the `nginx.conf` file in
-your current working directory, you will want to update it to reflect any
-changes you made to `onprem-environment` previously.
+used to configure the Assisted Installer's UI. There are two fields of note:
 
-```
-# Configure the port used to access the Assisted Installer UI
-sed -i "s|listen.*;|listen $UI_PORT;|" nginx.conf
-
-# Configure the port used by the Assisted Installer to acces the inventory
-sed -i "s|proxy_pass.*;|proxy_pass $SERVICE_BASE_URL;|" nginx.conf
-```
-
-**NOTE**
-The `SERVICE_BASE_URL` is the `ip:port` where the assisted-service API is being
-served. The Assisted Installer's agent uses the `SERVICE_BASE_URL` to talk back
-to the API.
+1. `listen 8080;` refers to the port used to access the Assisted Installer's UI.
+  As an example, if you wanted the UI to listen on port `9090` to avoid conflict
+  with a port already used on the host you would `sed -i "s|listen.*;|listen 9090;|" nginx.conf`.
+1. `proxy_pass http://localhost:8090;` is the default value of `SERVICE_BASE_URL`.
+  You could update this with, `sed -i "s|proxy_pass.*;|proxy_pass $SERVICE_BASE_URL;|" nginx.conf`.
 
 ## Create the Assisted Installer Pod
 
@@ -85,8 +78,17 @@ Once you have made any adjustments to ports as necessary, you can create the
 assisted-installer pod.
 
 ```
-podman pod create --name assisted-installer -p ${DB_PORT},${SERVICE_API_PORT},${UI_PORT}
+podman pod create --name assisted-installer -p 5432,8080,8090
 ```
+
+**NOTE**
+The ports allocated to the `assisted-installer` should be updated to reflect any
+changes required for your configuration.
+
+* `5432` is the port for Database communication
+* `8080` is the port for accessing the Assisted Installer's UI
+* `8090` is the port referenced in `SERVICE_BASE_URL`; the URL used by the
+    Assisted Installer's agent to talk back to the assisted-service.
 
 ## Start PostgreSQL
 
@@ -115,7 +117,7 @@ podman run -dt --pod assisted-installer \
   -v ${PWD}/livecd.iso:/data/livecd.iso:z \
   -v ${PWD}/coreos-installer:/data/coreos-installer:z \
   --restart always \
-  quay.io/ocpmetal/assisted-service:latest /assisted-service --port ${SERVICE_API_PORT}
+  quay.io/ocpmetal/assisted-service:latest /assisted-service
 ```
 
 **NOTE**
@@ -124,6 +126,7 @@ podman run -dt --pod assisted-installer \
     downloaded.
 * `$(PWD)/coreos-installer` is referencing the coreos-installer binary
     previously downloaded.
+* If you modified the port for `SERVICE_BASE_URL` you would add `--port ${SERVICE_API_PORT}`
 
 ## Start Assisted Installer UI
 
