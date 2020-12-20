@@ -213,6 +213,50 @@ func (o *UpdateClusterInstallProgressMethodNotAllowed) WriteResponse(rw http.Res
 	}
 }
 
+// UpdateClusterInstallProgressConflictCode is the HTTP code returned for type UpdateClusterInstallProgressConflict
+const UpdateClusterInstallProgressConflictCode int = 409
+
+/*UpdateClusterInstallProgressConflict Error.
+
+swagger:response updateClusterInstallProgressConflict
+*/
+type UpdateClusterInstallProgressConflict struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewUpdateClusterInstallProgressConflict creates UpdateClusterInstallProgressConflict with default headers values
+func NewUpdateClusterInstallProgressConflict() *UpdateClusterInstallProgressConflict {
+
+	return &UpdateClusterInstallProgressConflict{}
+}
+
+// WithPayload adds the payload to the update cluster install progress conflict response
+func (o *UpdateClusterInstallProgressConflict) WithPayload(payload *models.Error) *UpdateClusterInstallProgressConflict {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update cluster install progress conflict response
+func (o *UpdateClusterInstallProgressConflict) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *UpdateClusterInstallProgressConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(409)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // UpdateClusterInstallProgressInternalServerErrorCode is the HTTP code returned for type UpdateClusterInstallProgressInternalServerError
 const UpdateClusterInstallProgressInternalServerErrorCode int = 500
 
