@@ -49,7 +49,8 @@ PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 # We decided to have an option to change replicas count only while running in minikube
 # That line is checking if we run on minikube
 # check if SERVICE_REPLICAS_COUNT was set and if yes change default value to required one
-REPLICAS_COUNT = $(shell if ! [ "${TARGET}" = "minikube" ];then echo 3; else echo $(or ${SERVICE_REPLICAS_COUNT},3);fi)
+# Default for 1 replica
+REPLICAS_COUNT = $(shell if ! [ "${TARGET}" = "minikube" ];then echo 3; else echo $(or ${SERVICE_REPLICAS_COUNT},1);fi)
 
 ifdef INSTALLATION_TIMEOUT
         INSTALLATION_TIMEOUT_FLAG = --installation-timeout $(INSTALLATION_TIMEOUT)
