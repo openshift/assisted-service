@@ -1816,7 +1816,7 @@ func optionalParam(data *string, field string, updates map[string]interface{}) {
 	}
 }
 
-func (b *bareMetalInventory) updateHostsData(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateHostRoles(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	for i := range params.ClusterUpdateParams.HostsRoles {
 		log.Infof("Update host %s to role: %s", params.ClusterUpdateParams.HostsRoles[i].ID,
 			params.ClusterUpdateParams.HostsRoles[i].Role)
@@ -1836,7 +1836,10 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
+	return nil
+}
 
+func (b *bareMetalInventory) updateHostNames(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	for i := range params.ClusterUpdateParams.HostsNames {
 		log.Infof("Update host %s to request hostname %s", params.ClusterUpdateParams.HostsNames[i].ID,
 			params.ClusterUpdateParams.HostsNames[i].Hostname)
@@ -1860,7 +1863,46 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 			return common.NewApiError(http.StatusConflict, err)
 		}
 	}
+	return nil
+}
 
+func (b *bareMetalInventory) updateHostsDiskSelection(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+	for i := range params.ClusterUpdateParams.DisksSelectedConfig {
+		var host models.Host
+		err := db.First(&host, "id = ? and cluster_id = ?",
+			params.ClusterUpdateParams.DisksSelectedConfig[i].ID, params.ClusterID).Error
+		if err != nil {
+			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
+				params.ClusterUpdateParams.DisksSelectedConfig[i].ID, params.ClusterID)
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+
+		var installationDiskPath = ""
+		for _, diskConfig := range params.ClusterUpdateParams.DisksSelectedConfig[i].DisksConfig {
+			if models.DiskRoleInstall == diskConfig.Role {
+				if installationDiskPath != "" {
+					return common.NewApiError(http.StatusConflict,
+						fmt.Errorf("duplicate setting of installation path by the user"))
+				}
+				installationDiskPath = hostutil.FindDiskPathByID(*diskConfig.ID, &host)
+			}
+		}
+
+		log.Infof("Update host %s to install from path %s",
+			params.ClusterUpdateParams.DisksSelectedConfig[i].ID, installationDiskPath)
+		err = b.hostApi.UpdateInstallationDiskPath(ctx, db, &host, installationDiskPath)
+		if err != nil {
+			log.WithError(err).Errorf("failed to set installation disk path <%s> host <%s> in cluster <%s>",
+				installationDiskPath,
+				params.ClusterUpdateParams.DisksSelectedConfig[i].ID,
+				params.ClusterID)
+			return common.NewApiError(http.StatusConflict, err)
+		}
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostsMachineConfigPoolNames(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	for i := range params.ClusterUpdateParams.HostsMachineConfigPoolNames {
 		log.Infof("Update host %s to machineConfigPoolName %s", params.ClusterUpdateParams.HostsMachineConfigPoolNames[i].ID,
 			params.ClusterUpdateParams.HostsMachineConfigPoolNames[i].MachineConfigPoolName)
@@ -1879,6 +1921,25 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 				params.ClusterID)
 			return common.NewApiError(http.StatusConflict, err)
 		}
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostsData(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+	if err := b.updateHostRoles(ctx, params, db, log); err != nil {
+		return err
+	}
+
+	if err := b.updateHostNames(ctx, params, db, log); err != nil {
+		return err
+	}
+
+	if err := b.updateHostsDiskSelection(ctx, params, db, log); err != nil {
+		return err
+	}
+
+	if err := b.updateHostsMachineConfigPoolNames(ctx, params, db, log); err != nil {
+		return err
 	}
 
 	return nil

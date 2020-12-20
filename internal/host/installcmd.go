@@ -160,6 +160,10 @@ func (i *installCmd) hasCACert() bool {
 }
 
 func getBootDevice(log logrus.FieldLogger, hwValidator hardware.Validator, host models.Host) (string, error) {
+	if host.InstallationDiskPath != "" {
+		return host.InstallationDiskPath, nil
+	}
+
 	disks, err := hwValidator.GetHostValidDisks(&host)
 	if err != nil || len(disks) == 0 {
 		err := errors.Errorf("Failed to get valid disks on host with id %s", host.ID)

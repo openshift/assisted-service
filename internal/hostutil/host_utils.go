@@ -95,3 +95,13 @@ func ValidateInstallerArgs(args []string) error {
 
 	return nil
 }
+
+func FindDiskPathByID(ID string, host *models.Host) string {
+	//Currently, the disk is identified by its path. In the future, a disk may be
+	//identified by a UUID and then it should be looked up in the inventory
+	return ID
+}
+
+func GetDeviceFullName(name string) string {
+	return fmt.Sprintf("/dev/%s", name)
+}
