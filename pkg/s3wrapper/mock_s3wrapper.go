@@ -6,11 +6,12 @@ package s3wrapper
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
-	logrus "github.com/sirupsen/logrus"
 	io "io"
 	reflect "reflect"
 	time "time"
+
+	gomock "github.com/golang/mock/gomock"
+	logrus "github.com/sirupsen/logrus"
 )
 
 // MockAPI is a mock of API interface
