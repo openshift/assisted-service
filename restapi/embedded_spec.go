@@ -5324,6 +5324,12 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
+        },
+        "static_ips_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/static-ip-config"
+          }
         }
       }
     },
@@ -5352,6 +5358,10 @@ func init() {
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
+          "type": "string"
+        },
+        "static_ips_config": {
+          "description": "statip ips configuration string in the format expected by discovery ignition",
           "type": "string"
         }
       }
@@ -5671,6 +5681,30 @@ func init() {
         "variable",
         "unreachable"
       ]
+    },
+    "static-ip-config": {
+      "type": "object",
+      "properties": {
+        "dns": {
+          "type": "string"
+        },
+        "gateway": {
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
+        },
+        "ip": {
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
+        },
+        "mac": {
+          "type": "string",
+          "pattern": "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
+        },
+        "mask": {
+          "type": "string",
+          "pattern": "^[0-9]|[1-2][0-9]|3[0-2]?$"
+        }
+      }
     },
     "step": {
       "type": "object",
@@ -11145,6 +11179,12 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
+        },
+        "static_ips_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/static-ip-config"
+          }
         }
       }
     },
@@ -11174,6 +11214,10 @@ func init() {
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
+          "type": "string"
+        },
+        "static_ips_config": {
+          "description": "statip ips configuration string in the format expected by discovery ignition",
           "type": "string"
         }
       }
@@ -11493,6 +11537,30 @@ func init() {
         "variable",
         "unreachable"
       ]
+    },
+    "static-ip-config": {
+      "type": "object",
+      "properties": {
+        "dns": {
+          "type": "string"
+        },
+        "gateway": {
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
+        },
+        "ip": {
+          "type": "string",
+          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
+        },
+        "mac": {
+          "type": "string",
+          "pattern": "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
+        },
+        "mask": {
+          "type": "string",
+          "pattern": "^[0-9]|[1-2][0-9]|3[0-2]?$"
+        }
+      }
     },
     "step": {
       "type": "object",
