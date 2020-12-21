@@ -1411,7 +1411,9 @@ var _ = Describe("cluster", func() {
 	mockClusterIsReadyForInstallationSuccess := func() {
 		mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 	}
-
+	mockClusterClearLogsSuccess := func() {
+		mockClusterApi.EXPECT().ClearClusterLogs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	}
 	getInventoryStr := func(hostname, bootMode string, ipv4Addresses ...string) string {
 		inventory := models.Inventory{
 			Interfaces: []*models.Interface{
@@ -2553,6 +2555,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterClearLogsSuccess()
 				mockEvents.EXPECT().
 					AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					MinTimes(0)
@@ -2653,6 +2656,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterClearLogsSuccess()
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
 				})
@@ -2679,6 +2683,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterClearLogsSuccess()
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2702,6 +2707,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterClearLogsSuccess()
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2724,8 +2730,9 @@ var _ = Describe("cluster", func() {
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setIsReadyForInstallationTrue(mockClusterApi)
-
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterClearLogsSuccess()
+
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
 				})
@@ -2749,6 +2756,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterClearLogsSuccess()
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2757,7 +2765,6 @@ var _ = Describe("cluster", func() {
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
 				waitForDoneChannel()
 			})
-
 			It("get DNS domain success", func() {
 				bm.Config.BaseDNSDomains = map[string]string{
 					"dns.example.com": "abc/route53",

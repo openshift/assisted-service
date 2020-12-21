@@ -2070,3 +2070,92 @@ var _ = Describe("Permanently delete clusters", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 })
+
+var _ = Describe("Clear Cluster Logs", func() {
+	var (
+		ctx          = context.Background()
+		capi         API
+		db           *gorm.DB
+		clusterId    strfmt.UUID
+		c            common.Cluster
+		dbName       = "cluster_tar"
+		ctrl         *gomock.Controller
+		mockHostAPI  *host.MockAPI
+		mockS3Client *s3wrapper.MockAPI
+	)
+
+	createHostsWithLogs := func(nHosts int, clusterId strfmt.UUID) {
+		for i := 0; i < nHosts; i++ {
+			hostId := strfmt.UUID(uuid.New().String())
+			host := models.Host{
+				ID:              &hostId,
+				ClusterID:       clusterId,
+				Role:            models.HostRoleMaster,
+				Status:          swag.String(models.HostStatusKnown),
+				Inventory:       defaultInventory(),
+				LogsCollectedAt: strfmt.DateTime(time.Now()),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		}
+	}
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		cfg := Config{}
+		ctrl = gomock.NewController(GinkgoT())
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockEvents := events.NewMockHandler(ctrl)
+		dummy := &leader.DummyElector{}
+		capi = NewManager(cfg, getTestLog(), db, mockEvents, mockHostAPI, nil, nil, dummy)
+		clusterId = strfmt.UUID(uuid.New().String())
+		c = common.Cluster{
+			Cluster: models.Cluster{
+				ID:                        &clusterId,
+				Status:                    swag.String(models.ClusterStatusPreparingForInstallation),
+				StatusUpdatedAt:           strfmt.DateTime(time.Now()),
+				ControllerLogsCollectedAt: strfmt.DateTime(time.Now()),
+			},
+		}
+		Expect(db.Create(&c).Error).NotTo(HaveOccurred())
+		createHostsWithLogs(3, clusterId)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	})
+
+	It("logs flags are cleared test", func() {
+		mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{}, nil).AnyTimes()
+		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
+
+		Expect(db.Preload("Hosts").First(&c, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		err := capi.ClearClusterLogs(ctx, &c, mockS3Client, db)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(db.Preload("Hosts").First(&c, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		Expect(c.ControllerLogsCollectedAt).Should(Equal(strfmt.DateTime(time.Time{})))
+		Expect(len(c.Hosts)).Should(Equal(3))
+		for _, h := range c.Hosts {
+			Expect(h.LogsCollectedAt).Should(Equal(strfmt.DateTime(time.Time{})))
+		}
+	})
+
+	It("when logs flags are failed to be cleared - pass", func() {
+		mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{}, nil).AnyTimes()
+		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, errors.New("error")).AnyTimes()
+		Expect(db.Preload("Hosts").First(&c, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		err := capi.ClearClusterLogs(ctx, &c, mockS3Client, db)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var c2 common.Cluster
+		Expect(db.Preload("Hosts").First(&c2, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		Expect(c2.ControllerLogsCollectedAt).Should(Equal(c.ControllerLogsCollectedAt))
+		Expect(len(c.Hosts)).Should(Equal(3))
+		for _, h2 := range c2.Hosts {
+			Expect(h2.LogsCollectedAt).Should(Equal(h2.LogsCollectedAt))
+		}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+})

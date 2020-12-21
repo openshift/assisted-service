@@ -55,15 +55,6 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	})
 
 	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeUpdateInstallationProgress,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.ClusterStatusInstalling),
-		},
-		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
-		PostTransition:   th.PostUpdateInstallationProgress,
-	})
-
-	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeCompleteInstallation,
 		Condition:      th.isSuccess,
 		Transition: func(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -279,6 +270,17 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		DestinationState: stateswitch.State(models.ClusterStatusError),
 		PostTransition:   th.PostRefreshCluster(statusInfoError),
 	})
+
+	for _, state := range []stateswitch.State{
+		stateswitch.State(models.ClusterStatusInstalling),
+		stateswitch.State(models.ClusterStatusFinalizing)} {
+		sm.AddTransition(stateswitch.TransitionRule{
+			TransitionType:   TransitionTypeUpdateInstallationProgress,
+			SourceStates:     []stateswitch.State{state},
+			DestinationState: state,
+			PostTransition:   th.PostUpdateInstallationProgress,
+		})
+	}
 
 	// Noop transitions
 	for _, state := range []stateswitch.State{

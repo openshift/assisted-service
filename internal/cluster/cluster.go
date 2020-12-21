@@ -89,10 +89,11 @@ type API interface {
 	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
-	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error
 	UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse
+	ClearClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, db *gorm.DB) error
+	DeleteClusterLogsFromS3(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 }
 
 type PrepareConfig struct {
@@ -674,7 +675,28 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	return nil
 }
 
-func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+func (m *Manager) ClearClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, db *gorm.DB) error {
+	resetVal := strfmt.DateTime(time.Time{})
+	for _, h := range c.Hosts {
+		if h.LogsCollectedAt == resetVal {
+			continue
+		}
+		if err := db.Model(h).Update("logs_collected_at", resetVal).Error; err != nil {
+			return err
+		}
+	}
+	if c.ControllerLogsCollectedAt != resetVal {
+		if err := db.Model(c).Update("controller_logs_collected_at", resetVal).Error; err != nil {
+			return err
+		}
+	}
+	if err := m.DeleteClusterLogsFromS3(ctx, c, objectHandler); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) DeleteClusterLogsFromS3(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
 	log := logutil.FromContext(ctx, m.log)
 	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
 	if err != nil {
@@ -744,7 +766,7 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt
 			deleteFromDB = false
 			m.log.WithError(err).Warnf("Failed deleting s3 files of cluster %s", c.ID.String())
 		}
-		if err := m.DeleteClusterLogs(ctx, c, objectHandler); err != nil {
+		if err := m.DeleteClusterLogsFromS3(ctx, c, objectHandler); err != nil {
 			deleteFromDB = false
 			m.log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", c.ID.String())
 		}

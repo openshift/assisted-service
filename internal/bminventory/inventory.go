@@ -1160,6 +1160,11 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 			fmt.Sprintf("Updated status of cluster %s to installing", cluster.Name), time.Now())
 	}()
 
+	// Delete previews installation log files from object storage (if exist) and reset logs flags.
+	if err := b.clusterApi.ClearClusterLogs(ctx, &cluster, b.objectHandler, b.db); err != nil {
+		log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", cluster.ID.String())
+	}
+
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
 	return installer.NewInstallClusterAccepted().WithPayload(&cluster.Cluster)
 }

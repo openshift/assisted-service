@@ -476,20 +476,6 @@ func (mr *MockAPIMockRecorder) SetConnectivityMajorityGroupsForCluster(clusterID
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConnectivityMajorityGroupsForCluster", reflect.TypeOf((*MockAPI)(nil).SetConnectivityMajorityGroupsForCluster), clusterID, db)
 }
 
-// DeleteClusterLogs mocks base method
-func (m *MockAPI) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteClusterLogs", ctx, c, objectHandler)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteClusterLogs indicates an expected call of DeleteClusterLogs
-func (mr *MockAPIMockRecorder) DeleteClusterLogs(ctx, c, objectHandler interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterLogs", reflect.TypeOf((*MockAPI)(nil).DeleteClusterLogs), ctx, c, objectHandler)
-}
-
 // DeleteClusterFiles mocks base method
 func (m *MockAPI) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
 	m.ctrl.T.Helper()
@@ -530,4 +516,32 @@ func (m *MockAPI) UpdateInstallProgress(ctx context.Context, c *common.Cluster, 
 func (mr *MockAPIMockRecorder) UpdateInstallProgress(ctx, c, progress interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallProgress", reflect.TypeOf((*MockAPI)(nil).UpdateInstallProgress), ctx, c, progress)
+}
+
+// ClearClusterLogs mocks base method
+func (m *MockAPI) ClearClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearClusterLogs", ctx, c, objectHandler, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearClusterLogs indicates an expected call of ClearClusterLogs
+func (mr *MockAPIMockRecorder) ClearClusterLogs(ctx, c, objectHandler, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearClusterLogs", reflect.TypeOf((*MockAPI)(nil).ClearClusterLogs), ctx, c, objectHandler, db)
+}
+
+// DeleteClusterLogsFromS3 mocks base method
+func (m *MockAPI) DeleteClusterLogsFromS3(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteClusterLogsFromS3", ctx, c, objectHandler)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteClusterLogsFromS3 indicates an expected call of DeleteClusterLogsFromS3
+func (mr *MockAPIMockRecorder) DeleteClusterLogsFromS3(ctx, c, objectHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterLogsFromS3", reflect.TypeOf((*MockAPI)(nil).DeleteClusterLogsFromS3), ctx, c, objectHandler)
 }
