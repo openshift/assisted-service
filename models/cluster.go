@@ -130,7 +130,6 @@ type Cluster struct {
 	OpenshiftClusterID strfmt.UUID `json:"openshift_cluster_id,omitempty"`
 
 	// Version of the OpenShift cluster.
-	// Enum: [4.5 4.6 4.7]
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
 	// operators
@@ -251,10 +250,6 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftClusterID(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateOpenshiftVersion(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -569,52 +564,6 @@ func (m *Cluster) validateOpenshiftClusterID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("openshift_cluster_id", "body", "uuid", m.OpenshiftClusterID.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-var clusterTypeOpenshiftVersionPropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["4.5","4.6","4.7"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		clusterTypeOpenshiftVersionPropEnum = append(clusterTypeOpenshiftVersionPropEnum, v)
-	}
-}
-
-const (
-
-	// ClusterOpenshiftVersionNr45 captures enum value "4.5"
-	ClusterOpenshiftVersionNr45 string = "4.5"
-
-	// ClusterOpenshiftVersionNr46 captures enum value "4.6"
-	ClusterOpenshiftVersionNr46 string = "4.6"
-
-	// ClusterOpenshiftVersionNr47 captures enum value "4.7"
-	ClusterOpenshiftVersionNr47 string = "4.7"
-)
-
-// prop value enum
-func (m *Cluster) validateOpenshiftVersionEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, clusterTypeOpenshiftVersionPropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *Cluster) validateOpenshiftVersion(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.OpenshiftVersion) { // not required
-		return nil
-	}
-
-	// value enum
-	if err := m.validateOpenshiftVersionEnum("openshift_version", "body", m.OpenshiftVersion); err != nil {
 		return err
 	}
 

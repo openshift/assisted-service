@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -76,6 +78,7 @@ var Options struct {
 	S3Config                    s3wrapper.Config
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
+	OpenshiftVersions           string        `envconfig:"OPENSHIFT_VERSIONS"`
 	CreateS3Bucket              bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
 	ClusterConfig               cluster.Config
@@ -126,6 +129,14 @@ func main() {
 
 	log.Println("Starting bm service")
 
+	var openshiftVersionsMap models.OpenshiftVersions
+
+	if err = json.Unmarshal([]byte(Options.OpenshiftVersions), &openshiftVersionsMap); err != nil {
+		log.WithError(err).Fatalf("Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
+	}
+
+	log.Println(fmt.Sprintf("Started service with OCP versions %v", openshiftVersionsMap))
+
 	// Connect to db
 	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
@@ -155,15 +166,15 @@ func main() {
 	var autoMigrationLeader leader.ElectorInterface
 	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
 	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
-	versionHandler := versions.NewHandler(Options.Versions)
+	versionHandler := versions.NewHandler(Options.Versions, openshiftVersionsMap, os.Getenv("OPENSHIFT_INSTALL_RELEASE_IMAGE"))
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
-	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, oc.NewRelease(), Options.InstructionConfig, connectivityValidator, eventsHandler)
+	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
+		oc.NewRelease(), Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler)
 
-	pullSecretValidator, err := validations.NewPullSecretValidator(Options.ValidationsConfig, []string{
-		Options.JobConfig.ReleaseImage,
+	images := []string{
 		Options.JobConfig.ReleaseImageMirror,
 		Options.BMConfig.AgentDockerImg,
 		Options.InstructionConfig.InstallerImage,
@@ -173,9 +184,14 @@ func main() {
 		Options.InstructionConfig.FreeAddressesImage,
 		Options.InstructionConfig.DhcpLeaseAllocatorImage,
 		Options.InstructionConfig.APIVIPConnectivityCheckImage,
-		Options.InstructionConfig.ReleaseImage,
 		Options.InstructionConfig.ReleaseImageMirror,
-	}...)
+	}
+
+	for _, ocpVersion := range openshiftVersionsMap {
+		images = append(images, ocpVersion.ReleaseImage)
+	}
+
+	pullSecretValidator, err := validations.NewPullSecretValidator(Options.ValidationsConfig, images...)
 
 	if err != nil {
 		log.WithError(err).Fatalf("failed to create pull secret validator")
@@ -288,7 +304,7 @@ func main() {
 	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
-		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, lead, pullSecretValidator)
+		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, lead, pullSecretValidator, versionHandler)
 
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),

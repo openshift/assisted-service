@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/versions"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -30,7 +31,6 @@ var DefaultInstructionConfig = InstructionConfig{
 	ControllerImage:     "quay.io/ocpmetal/assisted-installer-controller:latest",
 	InventoryImage:      "quay.io/ocpmetal/assisted-installer-agent:latest",
 	InstallationTimeout: 120,
-	ReleaseImage:        "quay.io/openshift-release-dev/ocp-release@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3",
 	ReleaseImageMirror:  "local.registry:5000/ocp@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3",
 }
 
@@ -51,18 +51,18 @@ var _ = Describe("installcmd", func() {
 		disks             []*models.Disk
 		dbName            = "install_cmd"
 		validDiskSize     = int64(128849018880)
-		controller        *gomock.Controller
 		mockEvents        *events.MockHandler
+		mockVersions      *versions.MockHandler
 	)
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		instructionConfig = DefaultInstructionConfig
-		controller = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(controller)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockVersions = versions.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
-		installCmd = NewInstallCmd(getTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents)
+		installCmd = NewInstallCmd(getTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions)
 		cluster = createClusterInDb(db)
 		clusterId = *cluster.ID
 		host = createHostInDb(db, clusterId, models.HostRoleMaster, false, "")
@@ -73,19 +73,26 @@ var _ = Describe("installcmd", func() {
 		}
 	})
 
+	mockGetReleaseImage := func(times int) {
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return("releaseImage", nil).Times(times)
+	}
+
 	Context("negative", func() {
 		It("get_step_one_master", func() {
 			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, errors.New("error")).Times(1)
+			mockGetReleaseImage(1)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).Times(1)
 		})
 
 		It("get_step_one_master_no_disks", func() {
 			var emptydisks []*models.Disk
 			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(emptydisks, nil).Times(1)
+			mockGetReleaseImage(1)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).Times(1)
 		})
 
 		It("get_step_one_master_no_mco_image", func() {
+			mockGetReleaseImage(1)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("error")).Times(1)
 		})
 
@@ -101,6 +108,7 @@ var _ = Describe("installcmd", func() {
 
 	It("get_step_one_master_success", func() {
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		mockGetReleaseImage(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).Times(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
@@ -116,6 +124,7 @@ var _ = Describe("installcmd", func() {
 		host2 := createHostInDb(db, clusterId, models.HostRoleMaster, false, "")
 		host3 := createHostInDb(db, clusterId, models.HostRoleMaster, true, "some_hostname")
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(3)
+		mockGetReleaseImage(3)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).Times(3)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
@@ -130,6 +139,7 @@ var _ = Describe("installcmd", func() {
 	It("invalid_inventory", func() {
 		host.Inventory = "blah"
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		mockGetReleaseImage(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).Times(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(true, true, nil, stepErr, "")
@@ -149,6 +159,7 @@ var _ = Describe("installcmd", func() {
 		host.Inventory = string(b)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, "Removing master boot record from disk /dev/sda", gomock.Any())
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		mockGetReleaseImage(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).Times(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
@@ -178,6 +189,7 @@ var _ = Describe("installcmd", func() {
 		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, "Removing master boot record from disk /dev/sda", gomock.Any())
 		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, "Removing master boot record from disk /dev/sdc", gomock.Any())
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		mockGetReleaseImage(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).Times(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
@@ -204,6 +216,7 @@ var _ = Describe("installcmd", func() {
 		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, "Removing master boot record from disk /dev/sda", gomock.Any())
 		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, "Removing master boot record from disk /dev/sdc", gomock.Any())
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		mockGetReleaseImage(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).Times(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
@@ -226,14 +239,15 @@ var _ = Describe("installcmd", func() {
 var _ = Describe("installcmd arguments", func() {
 
 	var (
-		ctx         = context.Background()
-		host        models.Host
-		db          *gorm.DB
-		validator   *hardware.MockValidator
-		mockRelease *oc.MockRelease
-		dbName      = "installcmd_args"
-		controller  *gomock.Controller
-		mockEvents  *events.MockHandler
+		ctx          = context.Background()
+		host         models.Host
+		db           *gorm.DB
+		validator    *hardware.MockValidator
+		mockRelease  *oc.MockRelease
+		dbName       = "installcmd_args"
+		ctrl         *gomock.Controller
+		mockEvents   *events.MockHandler
+		mockVersions *versions.MockHandler
 	)
 
 	BeforeSuite(func() {
@@ -241,16 +255,18 @@ var _ = Describe("installcmd arguments", func() {
 		cluster := createClusterInDb(db)
 		host = createHostInDb(db, *cluster.ID, models.HostRoleMaster, false, "")
 		disks := []*models.Disk{{Name: "Disk1"}}
-		controller = gomock.NewController(GinkgoT())
-		validator = hardware.NewMockValidator(controller)
+		ctrl = gomock.NewController(GinkgoT())
+		validator = hardware.NewMockValidator(ctrl)
 		validator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
-		mockEvents = events.NewMockHandler(controller)
-		mockRelease = oc.NewMockRelease(controller)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockRelease = oc.NewMockRelease(ctrl)
+		mockVersions = versions.NewMockHandler(ctrl)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return("releaseImage", nil).AnyTimes()
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).AnyTimes()
 	})
 
 	AfterSuite(func() {
-		controller.Finish()
+		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
 
@@ -258,7 +274,7 @@ var _ = Describe("installcmd arguments", func() {
 
 		It("insecure_cert_is_false_by_default", func() {
 			config := &InstructionConfig{}
-			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents)
+			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
 			reply, err := installCmd.GetSteps(ctx, &host)
 			verifyStepArg(reply[0], err, `--insecure[ =\w]*`, "--insecure=false")
 		})
@@ -267,7 +283,7 @@ var _ = Describe("installcmd arguments", func() {
 			config := &InstructionConfig{
 				SkipCertVerification: false,
 			}
-			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents)
+			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
 			reply, err := installCmd.GetSteps(ctx, &host)
 			verifyStepArg(reply[0], err, `--insecure[ =\w]*`, "--insecure=false")
 		})
@@ -276,7 +292,7 @@ var _ = Describe("installcmd arguments", func() {
 			config := &InstructionConfig{
 				SkipCertVerification: true,
 			}
-			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents)
+			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
 			reply, err := installCmd.GetSteps(ctx, &host)
 			verifyStepArg(reply[0], err, `--insecure[ =\w]*`, "--insecure=true")
 		})
@@ -285,7 +301,7 @@ var _ = Describe("installcmd arguments", func() {
 			config := &InstructionConfig{
 				ServiceBaseURL: "ws://remote-host:8080",
 			}
-			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents)
+			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			verifyStepArg(stepReply[0], err, `-url [\w\d:/-]+`, fmt.Sprintf("-url %s", config.ServiceBaseURL))
 		})
@@ -306,7 +322,7 @@ func createClusterInDb(db *gorm.DB) common.Cluster {
 	clusterId := strfmt.UUID(uuid.New().String())
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:               &clusterId,
-		OpenshiftVersion: "4.5",
+		OpenshiftVersion: common.DefaultTestOpenShiftVersion,
 	}}
 	Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	return cluster
@@ -342,33 +358,27 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 }
 
 func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId string, hostId string, proxy string, bootableDisks []string) {
-	template := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
+	installCommand := "podman run -v /dev:/dev:rw -v /opt:/opt:rw -v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 		"--privileged --pid=host " +
 		"--net=host -v /var/log:/var/log:rw --env PULL_SECRET_TOKEN " +
-		"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s " +
-		"--cluster-id %s " +
-		"--boot-device /dev/sdb --host-id %s --openshift-version 4.5 --mco-image mcoImage " +
+		"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s --cluster-id %s " +
+		"--boot-device /dev/sdb --host-id %s --openshift-version %s --mco-image mcoImage " +
 		"--controller-image %s --url %s --insecure=false --agent-image %s --installation-timeout %s"
 
 	if proxy != "" {
-		installCommand := template + fmt.Sprintf(" %s", proxy)
-		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage,
-			strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)))))
+		installCommand += fmt.Sprintf(" %s", proxy)
 	} else if bootableDisks != nil {
 		formatCmds := ""
 		for _, dev := range bootableDisks {
 			formatCmds = formatCmds + fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=1 ; ", dev)
 		}
-		installCommand := formatCmds + template
-		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage,
-			strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)))))
-	} else {
-		installCommand := template
-		ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand, role, clusterId,
-			hostId, DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL,
-			DefaultInstructionConfig.InventoryImage, strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)))))
+		installCommand = formatCmds + installCommand
 	}
+
+	ExpectWithOffset(1, reply.Args[1]).Should(Equal(fmt.Sprintf(installCommand,
+		role, clusterId, hostId, common.DefaultTestOpenShiftVersion,
+		DefaultInstructionConfig.ControllerImage, DefaultInstructionConfig.ServiceBaseURL, DefaultInstructionConfig.InventoryImage,
+		strconv.Itoa(int(DefaultInstructionConfig.InstallationTimeout)))))
+
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
 }

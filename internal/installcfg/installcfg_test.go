@@ -29,7 +29,7 @@ var _ = Describe("installcfg", func() {
 		clusterId := strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:                     &clusterId,
-			OpenshiftVersion:       "4.5",
+			OpenshiftVersion:       common.DefaultTestOpenShiftVersion,
 			BaseDNSDomain:          "redhat.com",
 			APIVip:                 "102.345.34.34",
 			IngressVip:             "376.5.56.6",

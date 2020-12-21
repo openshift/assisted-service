@@ -6,8 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -34,7 +32,6 @@ type AddHostsClusterCreateParams struct {
 
 	// Version of the OpenShift cluster.
 	// Required: true
-	// Enum: [4.6]
 	OpenshiftVersion *string `json:"openshift_version"`
 }
 
@@ -95,40 +92,9 @@ func (m *AddHostsClusterCreateParams) validateName(formats strfmt.Registry) erro
 	return nil
 }
 
-var addHostsClusterCreateParamsTypeOpenshiftVersionPropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["4.6"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		addHostsClusterCreateParamsTypeOpenshiftVersionPropEnum = append(addHostsClusterCreateParamsTypeOpenshiftVersionPropEnum, v)
-	}
-}
-
-const (
-
-	// AddHostsClusterCreateParamsOpenshiftVersionNr46 captures enum value "4.6"
-	AddHostsClusterCreateParamsOpenshiftVersionNr46 string = "4.6"
-)
-
-// prop value enum
-func (m *AddHostsClusterCreateParams) validateOpenshiftVersionEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, addHostsClusterCreateParamsTypeOpenshiftVersionPropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (m *AddHostsClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
 
 	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
-		return err
-	}
-
-	// value enum
-	if err := m.validateOpenshiftVersionEnum("openshift_version", "body", *m.OpenshiftVersion); err != nil {
 		return err
 	}
 

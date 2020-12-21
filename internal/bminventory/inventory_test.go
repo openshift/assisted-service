@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
@@ -81,9 +82,10 @@ func strToUUID(s string) *strfmt.UUID {
 	return &u
 }
 
-func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator) {
+func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator, mockVersions *versions.MockHandler) {
 	if mockGenerator != nil {
-		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return("releaseImage", nil).Times(1)
+		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 }
 
@@ -427,7 +429,7 @@ var _ = Describe("GenerateClusterISO", func() {
 	Context("when kube job is used as generator", func() {
 		BeforeEach(func() {
 			mockGenerator := generator.NewMockISOInstallConfigGenerator(ctrl)
-			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		})
 		RunGenerateClusterISOTests()
 	})
@@ -647,7 +649,7 @@ var _ = Describe("RegisterHost", func() {
 		hostID = strfmt.UUID(uuid.New().String())
 		db = common.PrepareTestDB(dbName)
 		bm = NewBareMetalInventory(db, getTestLog(), mockHostAPI, mockClusterAPI, cfg, nil, mockEventsHandler,
-			nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+			nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 	})
 
 	AfterEach(func() {
@@ -785,7 +787,7 @@ var _ = Describe("GetNextSteps", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 	})
 
 	AfterEach(func() {
@@ -872,7 +874,7 @@ var _ = Describe("PostStepReply", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockClusterApi = cluster.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 	})
 
 	AfterEach(func() {
@@ -1165,7 +1167,7 @@ var _ = Describe("GetFreeAddresses", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 	})
 
 	AfterEach(func() {
@@ -1314,7 +1316,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		defaultProgressStage = "some progress"
 	})
 
@@ -1407,6 +1409,7 @@ var _ = Describe("cluster", func() {
 		mockSecretValidator *validations.MockPullSecretValidator
 		clusterID           strfmt.UUID
 		mockEvents          *events.MockHandler
+		mockVersions        *versions.MockHandler
 		mockMetric          *metrics.MockAPI
 		dbName              = "inventory_cluster"
 		ignitionReader      io.ReadCloser
@@ -1420,6 +1423,7 @@ var _ = Describe("cluster", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
+		mockVersions = versions.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 	})
@@ -1681,11 +1685,12 @@ var _ = Describe("cluster", func() {
 					AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 					Times(1)
 				mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+				mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
 				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						Name:             swag.String("some-cluster-name"),
-						OpenshiftVersion: swag.String("4.6"),
+						OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 					},
 				})
@@ -1700,11 +1705,12 @@ var _ = Describe("cluster", func() {
 					AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 					Times(1)
 				mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+				mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
 				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						Name:             swag.String("some-cluster-name"),
-						OpenshiftVersion: swag.String("4.6"),
+						OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 						Operators: &models.Operators{
 							Lso: &models.Lso{
@@ -2711,7 +2717,7 @@ var _ = Describe("cluster", func() {
 				mockAutoAssignSuccess(3)
 				mockClusterRefreshStatusSuccess()
 				mockClusterIsReadyForInstallationSuccess()
-				mockGenerateInstallConfigSuccess(mockGenerator)
+				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForRefresh(mockHostApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
@@ -2814,7 +2820,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatusSuccess()
 				mockClusterIsReadyForInstallationSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
-				mockGenerateInstallConfigSuccess(mockGenerator)
+				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 				mockHostPrepareForRefresh(mockHostApi)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
@@ -2836,7 +2842,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatusSuccess()
 				mockClusterIsReadyForInstallationSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
-				mockGenerateInstallConfigSuccess(mockGenerator)
+				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setDefaultInstall(mockClusterApi)
@@ -2863,7 +2869,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatusSuccess()
 				mockClusterIsReadyForInstallationSuccess()
 				mockHostPrepareForRefresh(mockHostApi)
-				mockGenerateInstallConfigSuccess(mockGenerator)
+				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setDefaultInstall(mockClusterApi)
@@ -2882,7 +2888,7 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("GetMasterNodesIds fails in the go routine", func() {
-				mockGenerateInstallConfigSuccess(mockGenerator)
+				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
 				setDefaultInstall(mockClusterApi)
 				mockAutoAssignSuccess(3)
@@ -2906,7 +2912,7 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("GetMasterNodesIds returns empty list", func() {
-				mockGenerateInstallConfigSuccess(mockGenerator)
+				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
@@ -3064,7 +3070,7 @@ var _ = Describe("cluster", func() {
 					"systemd":{}
 			}`))
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
-			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockGenerator, mockEvents, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator)
+			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockGenerator, mockEvents, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator, mockVersions)
 		})
 		RunClusterTests()
 	})
@@ -3096,7 +3102,7 @@ var _ = Describe("KubeConfig download", func() {
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil, nil, nil)
 
-		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -3223,7 +3229,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil, nil, nil)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -3397,7 +3403,7 @@ var _ = Describe("List unregistered clusters", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			Name:   "mycluster",
@@ -3441,7 +3447,7 @@ var _ = Describe("List unregistered clusters", func() {
 		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
 		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
 		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
-		Expect(reflect.TypeOf(resp)).Should(Equal(reflect.TypeOf(installer.NewListClustersForbidden())))
+		Expect(resp).Should(BeAssignableToTypeOf(installer.NewListClustersForbidden()))
 	})
 })
 
@@ -3474,7 +3480,7 @@ var _ = Describe("Get unregistered clusters", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			Name:   "mycluster",
@@ -3507,7 +3513,7 @@ var _ = Describe("Get unregistered clusters", func() {
 		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
 		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
 		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
-		Expect(reflect.TypeOf(resp)).Should(Equal(reflect.TypeOf(installer.NewGetClusterNotFound())))
+		Expect(resp).Should(BeAssignableToTypeOf(installer.NewGetClusterNotFound()))
 	})
 
 	It("Get unregistered clusters failure - not an admin user", func() {
@@ -3517,7 +3523,7 @@ var _ = Describe("Get unregistered clusters", func() {
 		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
 		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
 		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
-		Expect(reflect.TypeOf(resp)).Should(Equal(reflect.TypeOf(installer.NewGetClusterForbidden())))
+		Expect(resp).Should(BeAssignableToTypeOf(installer.NewGetClusterForbidden()))
 	})
 })
 
@@ -3553,7 +3559,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			Name:   "mycluster",
@@ -3909,7 +3915,7 @@ var _ = Describe("GetClusterInstallConfig", func() {
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:                     &clusterID,
 			BaseDNSDomain:          "example.com",
@@ -3964,7 +3970,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -4039,7 +4045,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:            &clusterID,
 			PullSecretSet: true,
@@ -4120,7 +4126,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -4332,7 +4338,7 @@ var _ = Describe("Register OCPCluster test", func() {
 		mockK8sClient = k8sclient.NewMockK8SClient(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), mockK8sClient, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), mockK8sClient, nil, mockSecretValidator, nil)
 		configMap.Data = make(map[string]string)
 		configMap.Data["install-config"] = "baseDomain: redhat.com\nnetworking:\n  machineNetwork:\n  - cidr: 192.168.126.0/24\nplatform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2\nsshKey: ssh-rsa kjfhkefkfsk"
 		pullSecret.Data = make(map[string][]byte)
@@ -4454,7 +4460,6 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		clusterID           strfmt.UUID
 		clusterName         string
 		apiVIPDnsname       string
-		openshiftVersion    string
 		mockClusterAPI      *cluster.MockAPI
 		mockHostApi         *host.MockAPI
 		mockS3Client        *s3wrapper.MockAPI
@@ -4469,14 +4474,13 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		db = common.PrepareTestDB("register_add_hosts_cluster")
 		clusterID = strfmt.UUID(uuid.New().String())
 		clusterName = "add-hosts-cluster"
-		openshiftVersion = "4.6"
 		apiVIPDnsname = "api-vip.redhat.com"
 		mockClusterAPI = cluster.NewMockAPI(ctrl)
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
 	})
@@ -4493,11 +4497,11 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				APIVipDnsname:    &apiVIPDnsname,
 				ID:               &clusterID,
 				Name:             &clusterName,
-				OpenshiftVersion: &openshiftVersion,
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 			},
 		}
 		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
-		mockMetric.EXPECT().ClusterRegistered(openshiftVersion, clusterID, "Unknown").Times(1)
+		mockMetric.EXPECT().ClusterRegistered(common.DefaultTestOpenShiftVersion, clusterID, "Unknown").Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
 	})
@@ -4509,13 +4513,13 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				APIVipDnsname:    &apiVIPDnsname,
 				ID:               &clusterID,
 				Name:             &clusterName,
-				OpenshiftVersion: &openshiftVersion,
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 			},
 		}
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			Kind:             swag.String(models.ClusterKindAddHostsCluster),
-			OpenshiftVersion: "4.6",
+			OpenshiftVersion: common.DefaultTestOpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusAddingHosts),
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -4547,12 +4551,12 @@ var _ = Describe("Reset Host test", func() {
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			Kind:             swag.String(models.ClusterKindAddHostsCluster),
-			OpenshiftVersion: "4.6",
+			OpenshiftVersion: common.DefaultTestOpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusAddingHosts),
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		mockHostApi = host.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, nil, nil)
 	})
 
 	AfterEach(func() {
@@ -4620,13 +4624,13 @@ var _ = Describe("Install Host test", func() {
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			Kind:             swag.String(models.ClusterKindAddHostsCluster),
-			OpenshiftVersion: "4.6",
+			OpenshiftVersion: common.DefaultTestOpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusAddingHosts),
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, nil, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, nil)
 	})
 
 	AfterEach(func() {
@@ -4722,7 +4726,7 @@ var _ = Describe("Install Hosts test", func() {
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			Kind:             swag.String(models.ClusterKindAddHostsCluster),
-			OpenshiftVersion: "4.6",
+			OpenshiftVersion: common.DefaultTestOpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusAddingHosts),
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -4731,7 +4735,7 @@ var _ = Describe("Install Hosts test", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
 		mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
@@ -4801,6 +4805,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		ctrl                *gomock.Controller
 		mockClusterApi      *cluster.MockAPI
 		mockEvents          *events.MockHandler
+		mockVersions        *versions.MockHandler
 		mockMetric          *metrics.MockAPI
 		mockSecretValidator *validations.MockPullSecretValidator
 		dbName              = "register_cluster_api"
@@ -4815,10 +4820,11 @@ var _ = Describe("TestRegisterCluster", func() {
 
 		mockClusterApi = cluster.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
+		mockVersions = versions.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, mockClusterApi, cfg, nil, mockEvents,
-			nil, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator)
+			nil, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator, mockVersions)
 	})
 
 	AfterEach(func() {
@@ -4833,15 +4839,16 @@ var _ = Describe("TestRegisterCluster", func() {
 			Times(1)
 		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String("4.6"),
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 			},
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 	})
 
 	It("UserManagedNetworking default value", func() {
@@ -4851,15 +4858,16 @@ var _ = Describe("TestRegisterCluster", func() {
 			Times(1)
 		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String("4.6"),
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 			},
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 		actual := reply.(*installer.RegisterClusterCreated)
 		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(false)))
 	})
@@ -4871,17 +4879,18 @@ var _ = Describe("TestRegisterCluster", func() {
 			Times(1)
 		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                  swag.String("some-cluster-name"),
-				OpenshiftVersion:      swag.String("4.6"),
+				OpenshiftVersion:      swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:            swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 				UserManagedNetworking: swag.Bool(true),
 				VipDhcpAllocation:     swag.Bool(false),
 			},
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
 		actual := reply.(*installer.RegisterClusterCreated)
 		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 	})
@@ -4890,7 +4899,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                  swag.String("some-cluster-name"),
-				OpenshiftVersion:      swag.String("4.6"),
+				OpenshiftVersion:      swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:            swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 				UserManagedNetworking: swag.Bool(true),
 				VipDhcpAllocation:     swag.Bool(true),
@@ -4903,7 +4912,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                  swag.String("some-cluster-name"),
-				OpenshiftVersion:      swag.String("4.6"),
+				OpenshiftVersion:      swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:            swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 				UserManagedNetworking: swag.Bool(true),
 				IngressVip:            "10.35.10.10",
@@ -4923,11 +4932,12 @@ var _ = Describe("TestRegisterCluster", func() {
 				Times(1)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("some-cluster-name"),
-					OpenshiftVersion: swag.String("4.6"),
+					OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 				},
 			})
@@ -4945,11 +4955,12 @@ var _ = Describe("TestRegisterCluster", func() {
 				Times(1)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                swag.String("some-cluster-name"),
-					OpenshiftVersion:    swag.String("4.6"),
+					OpenshiftVersion:    swag.String(common.DefaultTestOpenShiftVersion),
 					PullSecret:          swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
 					AdditionalNtpSource: &newNtpSource,
 				},
@@ -4963,29 +4974,44 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("cluster api failed to register", func() {
 		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(errors.Errorf("error")).Times(1)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String("4.6"),
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}`),
 			},
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterInternalServerError())))
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterInternalServerError()))
 	})
 
 	It("cluster api failed to register with invalid pull secret", func() {
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(errors.New("error")).Times(1)
+		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String("4.6"),
+				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 				PullSecret:       swag.String(""),
 			},
 		})
-		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterBadRequest())))
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterBadRequest()))
+	})
+
+	It("openshift version not supported", func() {
+		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(false).Times(1)
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				OpenshiftVersion: swag.String("999"),
+				PullSecret:       swag.String(""),
+			},
+		})
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterBadRequest()))
 	})
 })
 
@@ -5041,7 +5067,7 @@ var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, validations.NewMockPullSecretValidator(ctrl))
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, validations.NewMockPullSecretValidator(ctrl), nil)
 
 		// create a cluster
 		clusterID = strfmt.UUID(uuid.New().String())
@@ -5180,7 +5206,7 @@ var _ = Describe("UpdateHostIgnition", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, validations.NewMockPullSecretValidator(ctrl))
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, validations.NewMockPullSecretValidator(ctrl), nil)
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -5287,7 +5313,7 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, validations.NewMockPullSecretValidator(ctrl))
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, validations.NewMockPullSecretValidator(ctrl), nil)
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 

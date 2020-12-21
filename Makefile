@@ -33,7 +33,7 @@ CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${C
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
 RHCOS_VERSION := $(or ${RHCOS_VERSION},46.82.202009222340-0)
 BASE_OS_IMAGE := $(or ${BASE_OS_IMAGE},https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/${RHCOS_VERSION}/x86_64/rhcos-${RHCOS_VERSION}-live.x86_64.iso)
-OPENSHIFT_INSTALL_RELEASE_IMAGE := $(or ${OPENSHIFT_INSTALL_RELEASE_IMAGE},quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64)
+OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, {\"4.6\": {\"release_image\": \"quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64\"}})
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 PUBLISH_TAG := $(or ${GIT_REVISION})
@@ -213,7 +213,7 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS) \
-		--ocp-release $(OPENSHIFT_INSTALL_RELEASE_IMAGE) --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
+		--ocp-versions '$(OPENSHIFT_VERSIONS)' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		$(E2E_TESTS_CONFIG)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role
@@ -244,11 +244,11 @@ deploy-test: _verify_minikube generate-keys
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
 
 generate-onprem-environment:
-	sed -i "s|OPENSHIFT_INSTALL_RELEASE_IMAGE=.*|OPENSHIFT_INSTALL_RELEASE_IMAGE=${OPENSHIFT_INSTALL_RELEASE_IMAGE}|" onprem-environment
+	sed -i "s|OPENSHIFT_VERSIONS=.*|OPENSHIFT_VERSIONS=${OPENSHIFT_VERSIONS}|" onprem-environment
 	sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" onprem-environment
 
 generate-onprem-iso-ignition:
-	sed -i "s|OPENSHIFT_INSTALL_RELEASE_IMAGE=.*|OPENSHIFT_INSTALL_RELEASE_IMAGE=${OPENSHIFT_INSTALL_RELEASE_IMAGE}|" ./config/onprem-iso-fcc.yaml
+	sed -i "s|OPENSHIFT_VERSIONS=.*|OPENSHIFT_VERSIONS=${OPENSHIFT_VERSIONS}|" ./config/onprem-iso-fcc.yaml
 	sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" ./config/onprem-iso-fcc.yaml
 	podman run --rm -v ./config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > ./config/onprem-iso-config.ign
 

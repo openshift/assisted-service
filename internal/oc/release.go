@@ -65,7 +65,7 @@ func (r *release) GetMCOImage(log logrus.FieldLogger, releaseImage string, relea
 	var mcoImage string
 	var err error
 	if releaseImage == "" && releaseImageMirror == "" {
-		return "", errors.New("no releaseImage or releaseImageMirror provided")
+		return "", errors.New("no releaseImage nor releaseImageMirror provided")
 	}
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config

@@ -9,7 +9,7 @@ data:
   SERVICE_BASE_URL: REPLACE_BASE_URL
   NAMESPACE: REPLACE_NAMESPACE
   BASE_DNS_DOMAINS: REPLACE_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
-  OPENSHIFT_INSTALL_RELEASE_IMAGE: REPLACE_OPENSHIFT_INSTALL_RELEASE_IMAGE # https://quay.io/repository/ocpmetal/ocp-release 
+  OPENSHIFT_VERSIONS: REPLACE_OPENSHIFT_VERSIONS # https://quay.io/repository/ocpmetal/ocp-release 
   CREATE_S3_BUCKET: "true"
   ENABLE_AUTH: REPLACE_AUTH_ENABLED_FLAG
   JWKS_URL: REPLACE_JWKS_URL # example https://example.com/.well-known/jwks.json

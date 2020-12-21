@@ -25,7 +25,7 @@ func NewLocalJob(log logrus.FieldLogger, cfg Config) *localJob {
 }
 
 // GenerateInstallConfig creates install config and ignition files
-func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte) error {
+func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error {
 	log := logutil.FromContext(ctx, j.log)
 	workDir := filepath.Join(j.Config.WorkDir, cluster.ID.String())
 	installerCacheDir := filepath.Join(j.Config.WorkDir, "installercache")
@@ -43,7 +43,7 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 	if j.Config.DummyIgnition {
 		generator = ignition.NewDummyGenerator(workDir, &cluster, s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, j.Config.ReleaseImage, j.Config.ReleaseImageMirror, j.Config.ServiceCACertPath, s3Client, log)
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, j.Config.ReleaseImageMirror, j.Config.ServiceCACertPath, s3Client, log)
 	}
 	err = generator.Generate(ctx, cfg)
 	if err != nil {

@@ -127,7 +127,7 @@ storage:
                 SERVICE_BASE_URL=https://assisted-api.local.openshift.io:8443
                 DEPLOY_TARGET=onprem
                 SERVICE_CA_CERT_PATH=/data/nginx-selfsigned.crt
-                OPENSHIFT_INSTALL_RELEASE_IMAGE=quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64
+                OPENSHIFT_VERSIONS={"4.6": {"release_image": "quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64"}}
                 PUBLIC_CONTAINER_REGISTRIES=quay.io
         - path: /etc/assisted-service/nginx.conf
           mode: 0644

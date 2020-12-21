@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
+	"github.com/pkg/errors"
 )
 
 type Versions struct {
@@ -18,14 +19,27 @@ type Versions struct {
 	ReleaseTag      string `envconfig:"RELEASE_TAG" default:""`
 }
 
-func NewHandler(versions Versions) *handler {
-	return &handler{versions: versions}
+//go:generate mockgen -package versions -destination mock_versions.go . Handler
+type Handler interface {
+	restapi.VersionsAPI
+	GetReleaseImage(openshiftVersion string) (string, error)
+	IsOpenshiftVersionSupported(openshiftVersion string) bool
+}
+
+func NewHandler(versions Versions, openshiftVersions models.OpenshiftVersions, releaseImageOverride string) *handler {
+	return &handler{
+		versions:             versions,
+		openshiftVersions:    openshiftVersions,
+		releaseImageOverride: releaseImageOverride,
+	}
 }
 
 var _ restapi.VersionsAPI = (*handler)(nil)
 
 type handler struct {
-	versions Versions
+	versions             Versions
+	openshiftVersions    models.OpenshiftVersions
+	releaseImageOverride string
 }
 
 func (h *handler) ListComponentVersions(ctx context.Context, params operations.ListComponentVersionsParams) middleware.Responder {
@@ -40,4 +54,28 @@ func (h *handler) ListComponentVersions(ctx context.Context, params operations.L
 			},
 			ReleaseTag: h.versions.ReleaseTag,
 		})
+}
+
+func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params operations.ListSupportedOpenshiftVersionsParams) middleware.Responder {
+	return operations.NewListSupportedOpenshiftVersionsOK().WithPayload(h.openshiftVersions)
+}
+
+func (h *handler) GetReleaseImage(openshiftVersion string) (pullSpec string, err error) {
+	if h.releaseImageOverride != "" {
+		return h.releaseImageOverride, nil
+	}
+
+	if !h.IsOpenshiftVersionSupported(openshiftVersion) {
+		return "", errors.Errorf("No release image for openshift version %s", openshiftVersion)
+	}
+
+	return h.openshiftVersions[openshiftVersion].ReleaseImage, nil
+}
+
+func (h *handler) IsOpenshiftVersionSupported(openshiftVersion string) bool {
+	if _, ok := h.openshiftVersions[openshiftVersion]; !ok {
+		return false
+	}
+
+	return true
 }
