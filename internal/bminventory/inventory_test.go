@@ -1391,6 +1391,8 @@ var _ = Describe("cluster", func() {
 	masterHostId1 := strfmt.UUID(uuid.New().String())
 	masterHostId2 := strfmt.UUID(uuid.New().String())
 	masterHostId3 := strfmt.UUID(uuid.New().String())
+	diskID1 := "/dev/sda"
+	diskID2 := "/dev/sdb"
 
 	var (
 		bm                  *bareMetalInventory
@@ -1541,21 +1543,6 @@ var _ = Describe("cluster", func() {
 	}
 	mockClusterIsReadyForInstallationSuccess := func() {
 		mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
-	}
-
-	getInventoryStr := func(hostname, bootMode string, ipv4Addresses ...string) string {
-		inventory := models.Inventory{
-			Interfaces: []*models.Interface{
-				{
-					IPV4Addresses: append(make([]string, 0), ipv4Addresses...),
-					MacAddress:    "some MAC address",
-				},
-			},
-			Hostname: hostname,
-			Boot:     &models.Boot{CurrentBootMode: bootMode},
-		}
-		ret, _ := json.Marshal(&inventory)
-		return string(ret)
 	}
 
 	sortedHosts := func(arr []strfmt.UUID) []strfmt.UUID {
@@ -2085,6 +2072,59 @@ var _ = Describe("cluster", func() {
 							},
 						}})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				})
+			})
+
+			Context("Installation Disk Path", func() {
+				BeforeEach(func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID: &clusterID,
+					}}).Error
+					addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+					Expect(err).ShouldNot(HaveOccurred())
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				})
+
+				It("Valid selection of install disk", func() {
+					mockHostApi.EXPECT().UpdateInstallationDiskPath(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							DisksSelectedConfig: []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
+								{
+									DisksConfig: []*models.DiskConfigParams{
+										{ID: &diskID1, Role: models.DiskRoleInstall},
+										{ID: &diskID2, Role: models.DiskRoleNone},
+									},
+									ID: masterHostId1,
+								},
+							},
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				})
+
+				It("duplicate install selected", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							DisksSelectedConfig: []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
+								{
+									DisksConfig: []*models.DiskConfigParams{
+										{ID: &diskID1, Role: models.DiskRoleInstall},
+										{ID: &diskID2, Role: models.DiskRoleInstall},
+									},
+									ID: masterHostId1,
+								},
+							},
+						},
+					})
+					verifyApiError(reply, http.StatusConflict)
 				})
 			})
 
@@ -4202,6 +4242,10 @@ func getInventoryStr(hostname, bootMode string, ipv4Addresses ...string) string 
 		},
 		Hostname: hostname,
 		Boot:     &models.Boot{CurrentBootMode: bootMode},
+		Disks: []*models.Disk{
+			{Path: "/dev/sda", Bootable: true},
+			{Path: "/dev/sdb", Bootable: false},
+		},
 	}
 	ret, _ := json.Marshal(&inventory)
 	return string(ret)

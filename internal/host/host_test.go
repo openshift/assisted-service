@@ -19,6 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
@@ -1147,6 +1148,135 @@ var _ = Describe("Update hostname", func() {
 				host = getTestHost(hostId, clusterId, t.srcState)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				t.validation(hapi.UpdateHostname(ctx, &host, "my-hostname", db))
+			})
+		}
+	})
+})
+
+var _ = Describe("Update disk installation path", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+		ctrl              *gomock.Controller
+		mockValidator     *hardware.MockValidator
+		dbName            = "installation_path_db"
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		leader := &leader.DummyElector{}
+		mockValidator = hardware.NewMockValidator(ctrl)
+		logger := getTestLog()
+		hapi = NewManager(logger, db, nil, mockValidator, nil, createValidatorCfg(), nil, defaultConfig, leader)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.Disk{&defaultDisk}, nil).AnyTimes()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	success := func(reply error) {
+		Expect(reply).To(BeNil())
+		h := getHost(hostId, clusterId, db)
+		Expect(h.InstallationDiskPath).To(Equal("/dev/test-disk"))
+	}
+
+	failure := func(reply error) {
+		Expect(reply).To(HaveOccurred())
+		h := getHost(hostId, clusterId, db)
+		Expect(h.InstallationDiskPath).To(Equal(""))
+	}
+
+	Context("validate disk installation path", func() {
+		It("illegal disk installation path", func() {
+			host = getTestHost(hostId, clusterId, models.HostStatusKnown)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			failure(hapi.UpdateInstallationDiskPath(ctx, db, &host, "/no/such/disk"))
+		})
+		//happy flow is validated implicitly in the next test context
+	})
+
+	Context("validate host state before updating disk installation path", func() {
+		tests := []struct {
+			name       string
+			srcState   string
+			validation func(error)
+		}{
+			{
+				name:       models.HostStatusKnown,
+				srcState:   models.HostStatusKnown,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDisabled,
+				srcState:   models.HostStatusDisabled,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusDisconnected,
+				srcState:   models.HostStatusDisconnected,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusDiscovering,
+				srcState:   models.HostStatusDiscovering,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusError,
+				srcState:   models.HostStatusError,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstalled,
+				srcState:   models.HostStatusInstalled,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstalling,
+				srcState:   models.HostStatusInstalling,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInstallingInProgress,
+				srcState:   models.HostStatusInstallingInProgress,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusResettingPendingUserAction,
+				srcState:   models.HostStatusResettingPendingUserAction,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusInsufficient,
+				srcState:   models.HostStatusInsufficient,
+				validation: success,
+			},
+			{
+				name:       models.HostStatusResetting,
+				srcState:   models.HostStatusResetting,
+				validation: failure,
+			},
+			{
+				name:       models.HostStatusPendingForInput,
+				srcState:   models.HostStatusPendingForInput,
+				validation: success,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				host = getTestHost(hostId, clusterId, t.srcState)
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				t.validation(hapi.UpdateInstallationDiskPath(ctx, db, &host, "/dev/test-disk"))
 			})
 		}
 	})

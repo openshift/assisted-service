@@ -457,3 +457,17 @@ func (mr *MockAPIMockRecorder) UpdateMachineConfigPoolName(ctx, db, h, machineCo
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMachineConfigPoolName", reflect.TypeOf((*MockAPI)(nil).UpdateMachineConfigPoolName), ctx, db, h, machineConfigPoolName)
 }
+
+// UpdateInstallationDiskPath mocks base method
+func (m *MockAPI) UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInstallationDiskPath", ctx, db, h, installationDiskPath)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateInstallationDiskPath indicates an expected call of UpdateInstallationDiskPath
+func (mr *MockAPIMockRecorder) UpdateInstallationDiskPath(ctx, db, h, installationDiskPath interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallationDiskPath", reflect.TypeOf((*MockAPI)(nil).UpdateInstallationDiskPath), ctx, db, h, installationDiskPath)
+}

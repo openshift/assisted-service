@@ -122,6 +122,7 @@ type API interface {
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
+	UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error
 }
 
 type Manager struct {
@@ -435,6 +436,31 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 		cdb = db
 	}
 	return cdb.Model(h).Update("requested_hostname", hostname).Error
+}
+
+func (m *Manager) UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error {
+	hostStatus := swag.StringValue(h.Status)
+	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, host name can be set only in one of %s states",
+				hostStatus, hostStatusesBeforeInstallation[:]))
+	}
+
+	validDisks, _ := m.hwValidator.GetHostValidDisks(h)
+	matchedInstallationDisk := funk.Find(validDisks, func(disk *models.Disk) bool {
+		return hostutil.GetDeviceFullName(disk.Name) == installationDiskPath
+	})
+	if matchedInstallationDisk == nil {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Requested installation disk is not part of the host's valid disks"))
+	}
+
+	h.InstallationDiskPath = installationDiskPath
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+	return cdb.Model(h).Update("installation_disk_path", installationDiskPath).Error
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {

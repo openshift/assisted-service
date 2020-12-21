@@ -50,7 +50,7 @@ func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	}
 	disks := ListValidDisks(&inventory, gbToBytes(v.MinDiskSizeGb))
 	if len(disks) == 0 {
-		return nil, errors.Errorf("host %s doesn't have valid disks", host.ID)
+		return disks, errors.Errorf("host %s doesn't have valid disks", host.ID)
 	}
 	return disks, nil
 }
