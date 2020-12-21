@@ -167,12 +167,12 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB)
 
 	pHost := &host
 	if err != nil && gorm.IsRecordNotFoundError(err) {
-		// Delete any previews record of the host if it was soft deleted from the cluster,
+		// Delete any previous record of the host if it was soft deleted from the cluster,
 		// no error will be returned if the host was not existed.
 		if err := db.Unscoped().Delete(&host, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error; err != nil {
 			return errors.Wrapf(
 				err,
-				"error while trying to delete previews record from db (if exists) of host %s in cluster %s",
+				"error while trying to delete previous record from db (if exists) of host %s in cluster %s",
 				host.ID.String(), host.ClusterID.String())
 		}
 		pHost = h

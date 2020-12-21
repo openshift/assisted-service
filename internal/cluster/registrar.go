@@ -56,13 +56,13 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 		r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
 		return err
 	} else if gorm.IsRecordNotFoundError(err) {
-		// Delete any previews record of the cluster if it was soft deleted in the past,
+		// Delete any previous record of the cluster if it was soft deleted in the past,
 		// no error will be returned it wasn't existed.
 		if err := tx.Unscoped().Delete(&cluster, queryParams).Error; err != nil {
 			r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
 			return errors.Wrapf(
 				err,
-				"error while trying to delete previews record from db (if exists) of cluster %s",
+				"error while trying to delete previous record from db (if exists) of cluster %s",
 				cluster.ID.String())
 		}
 	}
