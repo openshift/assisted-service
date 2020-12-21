@@ -115,7 +115,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Subsystem: subsystem,
 			Name:      counterClusterHostInstallationCount,
 			Help:      counterDescriptionClusterHostInstallationCount,
-		}, []string{openshiftVersionLabel, clusterIdLabel, emailDomainLabel}),
+		}, []string{clusterIdLabel, emailDomainLabel}),
 
 		serviceLogicClusterInstallationSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
