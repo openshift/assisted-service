@@ -30,9 +30,14 @@ import (
 
 const awsEndpointSuffix = ".amazonaws.com"
 
-// TODO: Can we use RHCOS_VERSION or BASE_OS_IMAGE in the Makefile to set the value for
-// BaseObjectName?
-const BaseObjectName = "livecd-46.82.202009222340-0.iso"
+// TODO: Eventually we should make the base image piece managed out-of-band.
+// Here, we are providing a fallback in the case an image isn't provided.
+const RHCOSBaseURL = "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.1/rhcos-4.6.1-x86_64-live.x86_64.iso"
+const RHCOSBaseObjectName = "rhcos-46.82.202010091720-0.iso"
+
+// We will need to modify this based on whatever is provided to the
+// assisted-service at runtime.
+var BaseObjectName string
 
 //go:generate mockgen -source=client.go -package=s3wrapper -destination=mock_s3wrapper.go
 //go:generate mockgen -package s3wrapper -destination mock_s3iface.go github.com/aws/aws-sdk-go/service/s3/s3iface S3API

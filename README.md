@@ -11,6 +11,7 @@
 1. skipper <https://github.com/stratoscale/skipper>
 1. minikube (for tests)
 1. kubectl
+1. Python modules `pip install waiting`
 
 ## First Setup
 

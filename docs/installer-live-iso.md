@@ -39,27 +39,21 @@ sed -i 's#quay.io/ocpmetal/assisted-service:latest#'"${SERVICE}"'#' onprem-iso-c
 
 ### Download the base RHCOS live ISO
 
-The base live ISO is extracted from a container image. Run the container
-image containing the ISO, copy the ISO, and then stop and remove the container. 
-
 ````
-podman run --privileged --pull=always --rm \
-  -v .:/download -w /download \
-  --entrypoint /bin/bash \
-  quay.io/ocpmetal/assisted-iso-create:latest cp /data/livecd.iso /download/livecd.iso
+wget https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/latest/rhcos-live.x86_64.iso
 ````
 
 ### Create the assisted-service live ISO
 
-Finally, use the ignition config (onprem-iso-config.ign) and the base live ISO (livecd.iso) to
+Finally, use the ignition config (onprem-iso-config.ign) and the base live ISO (rhcos-live.x86_64.iso) to
 create the assisted-service live ISO.
 
 ````
 podman run --rm --privileged  -v /dev:/dev -v /run/udev:/run/udev -v .:/data  \
-  quay.io/coreos/coreos-installer:release iso ignition embed -i /data/onprem-iso-config.ign -o /data/assisted-service.iso /data/livecd.iso
+  quay.io/coreos/coreos-installer:release iso ignition embed -i /data/onprem-iso-config.ign -o /data/assisted-service.iso /data/rhcos-live.x86_64.iso
 ````
 
-The live ISO, **assisted-service.iso** (not livecd.iso), can then be used to deploy the installer. The live ISO storage system is emphemeral and its size depends on the amount of memory installed on the host. A minimum of 10GB of memory is required to deploy the installer, generate a single discovery ISO, and install an OCP cluster.
+The live ISO, **assisted-service.iso** (not rhcos-live.x86_64.iso), can then be used to deploy the installer. The live ISO storage system is emphemeral and its size depends on the amount of memory installed on the host. A minimum of 10GB of memory is required to deploy the installer, generate a single discovery ISO, and install an OCP cluster.
 
 After the live ISO boots, the UI should be accessible from the browser at
 

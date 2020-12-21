@@ -59,17 +59,6 @@ def main():
             service_container = spec["containers"][0]
             service_container["env"].append({'name': 'DEPLOY_TARGET', 'value': "ocp"})
 
-            # Copy livecd from 'assisted-iso-create' image
-            service_container["volumeMounts"].append({'name': 'iso', 'mountPath': "/data"})
-            spec["volumes"].append({'name': 'iso', 'emptyDir': {}})
-            spec["initContainers"] = [{
-                "name": "assisted-iso-create",
-                "image": "quay.io/ocpmetal/assisted-iso-create:latest",
-                "command": ["bash", "-c"],
-                "args": ["cp -r /data/* /iso-data"],
-                "volumeMounts": [{"mountPath": "/iso-data", "name": "iso"}]
-            }]
-
 
     with open(DST_FILE, "w+") as dst:
         yaml.dump(data, dst, default_flow_style=False)

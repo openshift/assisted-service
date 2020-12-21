@@ -63,7 +63,3 @@ func (j *localJob) AbortInstallConfig(ctx context.Context, cluster common.Cluste
 	// no job to abort
 	return nil
 }
-
-func (j *localJob) UploadBaseISO() error {
-	return nil
-}

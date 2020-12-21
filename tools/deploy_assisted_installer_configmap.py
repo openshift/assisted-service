@@ -57,10 +57,7 @@ def main():
             data = data.replace('REPLACE_OPENSHIFT_VERSIONS', '"{}"'.format(deploy_options.ocp_versions))
             data = data.replace('REPLACE_PUBLIC_CONTAINER_REGISTRIES', '"{}"'.format(deploy_options.public_registries))
 
-            subsystem_versions = {"IMAGE_BUILDER": "ISO_CREATION"}
-
-            versions = {"IMAGE_BUILDER": "assisted-iso-create",
-                        "INSTALLER_IMAGE": "assisted-installer",
+            versions = {"INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",
                         "AGENT_DOCKER_IMAGE": "assisted-installer-agent",
                         "CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent",
@@ -70,11 +67,7 @@ def main():
                         "API_VIP_CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent",
                         "NTP_SYNCHRONIZER_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
-                if deploy_options.subsystem_test and env_var_name in subsystem_versions.keys():
-                    image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, subsystem_versions[env_var_name])
-                else:
-                    image_fqdn = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
-                versions[env_var_name] = image_fqdn
+                versions[env_var_name] = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
 
             # Edge case for controller image override
             if os.environ.get("INSTALLER_IMAGE") and not os.environ.get("CONTROLLER_IMAGE"):

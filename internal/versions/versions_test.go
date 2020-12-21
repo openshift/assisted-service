@@ -37,8 +37,7 @@ var _ = Describe("list versions", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 			val, _ := reply.(*operations.ListComponentVersionsOK)
 			Expect(val.Payload.Versions["assisted-installer-service"]).
-				Should(Equal("quay.io/ocpmetal/assisted-iso-create:latest"))
-			Expect(val.Payload.Versions["image-builder"]).Should(Equal("quay.io/ocpmetal/assisted-iso-create:latest"))
+				Should(Equal("quay.io/ocpmetal/assisted-service:latest"))
 			Expect(val.Payload.Versions["discovery-agent"]).Should(Equal("quay.io/ocpmetal/agent:latest"))
 			Expect(val.Payload.Versions["assisted-installer"]).Should(Equal("quay.io/ocpmetal/assisted-installer:latest"))
 			Expect(val.Payload.ReleaseTag).Should(Equal(""))
@@ -46,7 +45,6 @@ var _ = Describe("list versions", func() {
 
 		It("mix default and non default", func() {
 			os.Setenv("SELF_VERSION", "self-version")
-			os.Setenv("IMAGE_BUILDER", "image-builder")
 			os.Setenv("AGENT_DOCKER_IMAGE", "agent-image")
 			os.Setenv("INSTALLER_IMAGE", "installer-image")
 			os.Setenv("CONTROLLER_IMAGE", "controller-image")
@@ -56,7 +54,6 @@ var _ = Describe("list versions", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 			val, _ := reply.(*operations.ListComponentVersionsOK)
 			Expect(val.Payload.Versions["assisted-installer-service"]).Should(Equal("self-version"))
-			Expect(val.Payload.Versions["image-builder"]).Should(Equal("image-builder"))
 			Expect(val.Payload.Versions["discovery-agent"]).Should(Equal("agent-image"))
 			Expect(val.Payload.Versions["assisted-installer"]).Should(Equal("installer-image"))
 			Expect(val.Payload.Versions["assisted-installer-controller"]).Should(Equal("controller-image"))
