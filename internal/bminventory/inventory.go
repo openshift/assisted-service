@@ -9,6 +9,7 @@ import (
 	"crypto/md5"
 	"crypto/x509"
 	"encoding/base64"
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -167,7 +168,12 @@ const ignitionConfigFormat = `{
 		"name": "selinux.service",
 		"enabled": true,
 		"contents": "[Service]\nType=oneshot\nExecStartPre=checkmodule -M -m -o /root/assisted.mod /root/assisted.te\nExecStartPre=semodule_package -o /root/assisted.pp -m /root/assisted.mod\nExecStart=semodule -i /root/assisted.pp\n\n[Install]\nWantedBy=multi-user.target"
-	}]
+	}{{if .StaticIPsData}},
+        {
+                "name": "configure-static-ip.service",
+                "enabled": true,
+                "contents": "[Unit]\nDescription=Static IP Configuration\nBefore=NetworkManager.service\nDefaultDependencies=no\n[Service]\nUser=root\nType=oneshot\nTimeoutSec=10\nExecStart=/bin/bash /var/tmp/configure-static-ip.sh\nRemainAfterExit=no\n[Install]\nWantedBy=multi-user.target"
+        }{{end}}]
   },
   "storage": {
     "files": [{
@@ -196,7 +202,25 @@ const ignitionConfigFormat = `{
 			"name": "root"
 		},
 		"contents": { "source": "data:text/plain;base64,{{.SELINUX_POLICY}}" }
-	}{{if .RH_ROOT_CA}},
+	}{{if .StaticIPsData}},
+	{
+		"path": "/var/tmp/static_ips_config.csv",
+		"mode": 420,
+		"overwrite": true,
+		"user": {
+			"name": "root"
+		},
+		"contents": { "source": "data:text/plain;base64,{{.StaticIPsData}}" }
+        },
+	{
+		"path": "/var/tmp/configure-static-ip.sh",
+		"mode": 493,
+		"overwrite": true,
+		"user": {
+			"name": "root"
+		},
+		"contents": { "source": "data:text/plain;base64,{{.StaticIPsConfigScript}}"}
+        }{{end}}{{if .RH_ROOT_CA}},
 	{
 	  "overwrite": true,
 	  "path": "/etc/pki/ca-trust/source/anchors/rh-it-root-ca.crt",
@@ -236,6 +260,99 @@ const nodeIgnitionFormat = `{
     }
   }
 }`
+
+// [TODO] - move to ignition once static ip for RHCOS is implemented
+const configStaticIpsScript = `
+#!/bin/bash
+
+function create_template_file() {
+    cat > "/var/tmp/template.connection" <<EOF
+[connection]
+id=\$FOUND_INTERFACE
+interface-name=\$FOUND_INTERFACE
+type=ethernet
+multi-connect=3
+autoconnect=true
+autoconnect-priority=1
+
+[ethernet]
+mac-address-blacklist=
+
+[ipv4]
+method=manual
+addr-gen-mode=eui64
+addresses=\$FOUND_IP/\$FOUND_MASK
+gateway=\$FOUND_GW
+dns=\$FOUND_DNS
+
+[ipv6]
+method=auto
+addr-gen-mode=eui64
+
+[802-3-ethernet]
+mac-address=\$FOUND_MAC
+EOF
+}
+
+function find_my_mac() {
+    MAC_TO_CHECK=${1}
+
+    for entry in $(cat "/var/tmp/static_ips_config.csv")
+    do
+        MAC=$(echo ${entry} | cut -f1 -d\;)
+        if [[ ! -z ${MAC} ]] && [[ -z ${FOUND_MAC} ]]; then
+            if [[ "${MAC}" == "${MAC_TO_CHECK}" ]]; then
+                export FOUND_INTERFACE=${INTERFACE}
+                export FOUND_MAC=${MAC}
+                export FOUND_IP=$(echo ${entry} | cut -f2 -d\;)
+                export FOUND_MASK=$(echo ${entry} | cut -f3 -d\;)
+                export FOUND_DNS=$(echo ${entry} | cut -f4 -d\;)
+                export FOUND_GW=$(echo ${entry} | cut -f5 -d\;)
+                break
+            fi
+        fi
+    done
+
+    if [[ -z ${FOUND_MAC} ]]; then
+        echo "Host MAC ${MAC_TO_CHECK} not found in the list" | systemd-cat -t configure-static-ip -p err
+    fi
+}
+
+function correlate_int_mac() {
+    # Correlate the Mac with the interface
+    for INTERFACE in $(find /sys/class/net -mindepth 1 -maxdepth 1 ! -name lo -printf "%P\n")
+    do
+        INT_MAC=$(cat /sys/class/net/${INTERFACE}/address)
+        if [[ ! -z ${INT_MAC} ]]; then
+            echo "MAC to check: ${INT_MAC}" | systemd-cat -t configure-static-ip -p debug
+            find_my_mac ${INT_MAC}
+            if [[ "${FOUND_MAC}" == "${INT_MAC}" ]];then
+                echo "MAC Found in the list, this is the Net data: " | systemd-cat -t configure-static-ip -p debug
+                echo "MAC: ${FOUND_MAC}" | systemd-cat -t configure-static-ip -p debug
+                echo "IP: ${FOUND_IP}" | systemd-cat -t configure-static-ip -p debug
+                echo "MASK: ${FOUND_MASK}" | systemd-cat -t configure-static-ip -p debug
+                echo "GW: ${FOUND_GW}" | systemd-cat -t configure-static-ip -p debug
+                echo "DNS: ${FOUND_DNS}" | systemd-cat -t configure-static-ip -p debug
+                break
+            fi
+        fi
+    done
+
+    if [[ -z ${FOUND_INTERFACE} ]];then
+        echo "Interface with MAC ${INT_MAC} address ${INT_MAC} not found" | systemd-cat -t configure-static-ip -p err
+        exit 1
+    else
+        echo "Configuring interface ${FOUND_INTERFACE}, mac address ${FOUND_MAC} with ip ${FOUND_IP}" | systemd-cat -t configure-static-ip -p debug
+    fi
+
+    export NM_KEY_FILE="/etc/NetworkManager/system-connections/${FOUND_INTERFACE}.nmconnection"
+    envsubst < "/var/tmp/template.connection" > ${NM_KEY_FILE}
+    chmod 600 ${NM_KEY_FILE}
+}
+
+create_template_file
+correlate_int_mac
+`
 
 type OCPClusterAPI interface {
 	RegisterOCPCluster(ctx context.Context) error
@@ -369,6 +486,12 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	if b.Config.ServiceIPs != "" {
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(ignition.GetServiceIPHostnames(b.Config.ServiceIPs)))
 	}
+
+	if cluster.ImageInfo.StaticIpsConfig != "" {
+		ignitionParams["StaticIPsData"] = b64.StdEncoding.EncodeToString([]byte(cluster.ImageInfo.StaticIpsConfig))
+		ignitionParams["StaticIPsConfigScript"] = b64.StdEncoding.EncodeToString([]byte(configStaticIpsScript))
+	}
+
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
 		return "", err
@@ -848,10 +971,13 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		return installer.NewGenerateClusterISOInternalServerError()
 	}
 
+	staticIpsConfig := b.configureStaticIPs(&cluster, params.ImageCreateParams.StaticIpsConfig)
+
 	var imageExists bool
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
 		cluster.ImageInfo.GeneratorVersion == b.Config.ImageBuilder &&
-		cluster.ProxyHash == clusterProxyHash {
+		cluster.ProxyHash == clusterProxyHash &&
+		cluster.ImageInfo.StaticIpsConfig == staticIpsConfig {
 		var err error
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
@@ -870,6 +996,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
 	updates["image_generator_version"] = b.Config.ImageBuilder
 	updates["image_download_url"] = ""
+	updates["image_static_ips_config"] = staticIpsConfig
 	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
@@ -3959,4 +4086,17 @@ func (b *bareMetalInventory) setPullSecretFromOCP(cluster *common.Cluster, log l
 	}
 	setPullSecret(cluster, pullSecret)
 	return nil
+}
+
+func (b *bareMetalInventory) configureStaticIPs(cluster *common.Cluster, staticIpsConfig []*models.StaticIPConfig) string {
+	lines := make([]string, len(staticIpsConfig))
+
+	// construct static IPs config string
+	for i, entry := range staticIpsConfig {
+		lines[i] = fmt.Sprintf("%s;%s;%s;%s;%s", entry.Mac, entry.IP, entry.Mask, entry.DNS, entry.Gateway)
+	}
+
+	sort.Strings(lines)
+
+	return strings.Join(lines, "\n")
 }
