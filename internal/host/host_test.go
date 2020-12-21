@@ -901,6 +901,10 @@ func masterInventory() string {
 	return masterInventoryWithHostname("master-hostname")
 }
 
+func masterInventoryV6() string {
+	return masterInventoryWithHostnameV6("master-hostname")
+}
+
 func masterInventoryWithHostname(hostname string) string {
 	inventory := models.Inventory{
 		CPU: &models.CPU{Count: 8},
@@ -915,6 +919,33 @@ func masterInventoryWithHostname(hostname string) string {
 				Name: "eth0",
 				IPV4Addresses: []string{
 					"1.2.3.4/24",
+				},
+			},
+		},
+		Memory:       &models.Memory{PhysicalBytes: gibToBytes(16)},
+		Hostname:     hostname,
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Timestamp:    1601835002,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func masterInventoryWithHostnameV6(hostname string) string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: 8},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+			},
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
 				},
 			},
 		},

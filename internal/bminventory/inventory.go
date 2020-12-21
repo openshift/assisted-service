@@ -1991,10 +1991,10 @@ func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*m
 			continue
 		}
 		for _, intf := range inventory.Interfaces {
-			for _, ipv4Address := range intf.IPV4Addresses {
-				_, ipnet, err := net.ParseCIDR(ipv4Address)
+			for _, address := range append(intf.IPV4Addresses, intf.IPV6Addresses...) {
+				_, ipnet, err := net.ParseCIDR(address)
 				if err != nil {
-					log.WithError(err).Warnf("Could not parse CIDR %s", ipv4Address)
+					log.WithError(err).Warnf("Could not parse CIDR %s", address)
 					continue
 				}
 				cidr := ipnet.String()

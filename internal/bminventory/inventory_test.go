@@ -1024,6 +1024,21 @@ var _ = Describe("PostStepReply", func() {
 			reply := bm.PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
 		})
+		It("Happy flow IPv6", func() {
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 clusterId,
+					VipDhcpAllocation:  swag.Bool(true),
+					MachineNetworkCidr: "1001:db8::/120",
+					Status:             swag.String(models.ClusterStatusInsufficient),
+				},
+			}
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			params := makeStepReply(*clusterId, *hostId, makeResponse("1001:db8::10", "1001:db8::11"))
+			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		})
 		It("DHCP not enabled", func() {
 			cluster := common.Cluster{
 				Cluster: models.Cluster{

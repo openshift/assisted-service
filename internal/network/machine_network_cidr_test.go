@@ -75,6 +75,16 @@ var _ = Describe("inventory", func() {
 			Expect(cidr).To(Equal("1.2.4.0/23"))
 		})
 
+		It("happpy flow IPv6", func() {
+			cluster := createCluster("1001:db8::64", "",
+				createInventory(addIPv6Addresses(createInterface(), "1001:db8::1/120")),
+				createInventory(addIPv6Addresses(createInterface(), "1001:db8::2/120")),
+				createInventory(addIPv6Addresses(createInterface(), "1001:db8::3/120")))
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(cidr).To(Equal("1001:db8::/120"))
+		})
+
 		It("Disabled", func() {
 			cluster := createDisabledCluster("1.2.5.6", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
