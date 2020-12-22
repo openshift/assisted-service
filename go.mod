@@ -3,7 +3,6 @@ module github.com/openshift/assisted-service
 go 1.13
 
 require (
-	github.com/Microsoft/go-winio v0.4.15-0.20200113171025-3fe6c5262873 // indirect
 	github.com/ajeddeloh/go-json v0.0.0-20200220154158-5ae607161559 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
 	github.com/alessio/shellescape v1.4.1
@@ -17,9 +16,9 @@ require (
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/diskfs/go-diskfs v1.1.2-0.20201217091417-af766c9708d3
-	github.com/docker/docker v17.12.0-ce-rc1.0.20200505174321-1655290016ac+incompatible // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
+	github.com/fsouza/go-dockerclient v1.6.6 // indirect
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/loads v0.19.5
 	github.com/go-openapi/runtime v0.19.20
@@ -29,8 +28,8 @@ require (
 	github.com/go-openapi/validate v0.19.10
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/mock v1.4.4
-	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/hashicorp/go-version v1.2.1
 	github.com/iancoleman/strcase v0.1.2
 	github.com/jinzhu/gorm v1.9.12
 	github.com/json-iterator/go v1.1.10 // indirect

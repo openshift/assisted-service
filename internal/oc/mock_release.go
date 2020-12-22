@@ -5,10 +5,9 @@
 package oc
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	logrus "github.com/sirupsen/logrus"
+	reflect "reflect"
 )
 
 // MockRelease is a mock of Release interface
@@ -47,6 +46,36 @@ func (m *MockRelease) GetMCOImage(log logrus.FieldLogger, releaseImage, releaseI
 func (mr *MockReleaseMockRecorder) GetMCOImage(log, releaseImage, releaseImageMirror, pullSecret interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMCOImage", reflect.TypeOf((*MockRelease)(nil).GetMCOImage), log, releaseImage, releaseImageMirror, pullSecret)
+}
+
+// GetOpenshiftVersion mocks base method
+func (m *MockRelease) GetOpenshiftVersion(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOpenshiftVersion", log, releaseImage, releaseImageMirror, pullSecret)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOpenshiftVersion indicates an expected call of GetOpenshiftVersion
+func (mr *MockReleaseMockRecorder) GetOpenshiftVersion(log, releaseImage, releaseImageMirror, pullSecret interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOpenshiftVersion", reflect.TypeOf((*MockRelease)(nil).GetOpenshiftVersion), log, releaseImage, releaseImageMirror, pullSecret)
+}
+
+// GetMajorMinorVersion mocks base method
+func (m *MockRelease) GetMajorMinorVersion(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMajorMinorVersion", log, releaseImage, releaseImageMirror, pullSecret)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMajorMinorVersion indicates an expected call of GetMajorMinorVersion
+func (mr *MockReleaseMockRecorder) GetMajorMinorVersion(log, releaseImage, releaseImageMirror, pullSecret interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMajorMinorVersion", reflect.TypeOf((*MockRelease)(nil).GetMajorMinorVersion), log, releaseImage, releaseImageMirror, pullSecret)
 }
 
 // Extract mocks base method
