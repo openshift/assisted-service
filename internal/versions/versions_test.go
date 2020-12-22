@@ -5,10 +5,13 @@ import (
 	"os"
 	"testing"
 
+	gomock "github.com/golang/mock/gomock"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/sirupsen/logrus"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 )
@@ -21,18 +24,24 @@ func TestHandler_ListComponentVersions(t *testing.T) {
 var _ = Describe("list versions", func() {
 	var (
 		h                 *handler
+		logger            logrus.FieldLogger
+		mockRelease       *oc.MockRelease
 		versions          Versions
 		openshiftVersions models.OpenshiftVersions
 	)
 
 	BeforeEach(func() {
+		ctrl := gomock.NewController(GinkgoT())
+		mockRelease = oc.NewMockRelease(ctrl)
+
+		logger = logrus.New()
 		openshiftVersions = make(models.OpenshiftVersions)
 	})
 
 	Context("ListComponentVersions", func() {
 		It("default values", func() {
 			Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
-			h = NewHandler(versions, openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
 			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 			val, _ := reply.(*operations.ListComponentVersionsOK)
@@ -49,7 +58,7 @@ var _ = Describe("list versions", func() {
 			os.Setenv("INSTALLER_IMAGE", "installer-image")
 			os.Setenv("CONTROLLER_IMAGE", "controller-image")
 			Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
-			h = NewHandler(versions, openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
 			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 			val, _ := reply.(*operations.ListComponentVersionsOK)
@@ -63,7 +72,7 @@ var _ = Describe("list versions", func() {
 
 	Context("ListSupportedOpenshiftVersions", func() {
 		It("empty", func() {
-			h = NewHandler(versions, openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
 
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListSupportedOpenshiftVersionsOK()))
@@ -76,8 +85,7 @@ var _ = Describe("list versions", func() {
 			openshiftVersions["4.5"] = models.OpenshiftVersion{ReleaseImage: "release_4.5"}
 			openshiftVersions["4.6"] = models.OpenshiftVersion{ReleaseImage: "release_4.6"}
 
-			h = NewHandler(versions, openshiftVersions, "")
-
+			h = NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListSupportedOpenshiftVersionsOK()))
 			val, _ := reply.(*operations.ListSupportedOpenshiftVersionsOK)
@@ -95,7 +103,7 @@ var _ = Describe("list versions", func() {
 			openshiftVersions["4.5"] = models.OpenshiftVersion{ReleaseImage: "release_4.5"}
 			openshiftVersions["4.6"] = models.OpenshiftVersion{ReleaseImage: "release_4.6"}
 
-			h = NewHandler(versions, openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
 		})
 
 		It("default", func() {
@@ -108,7 +116,7 @@ var _ = Describe("list versions", func() {
 
 		It("override_default", func() {
 			overrideRelaseImage := "override-release-image"
-			h = NewHandler(versions, openshiftVersions, overrideRelaseImage)
+			h = NewHandler(logger, mockRelease, versions, openshiftVersions, overrideRelaseImage, "")
 
 			for key := range openshiftVersions {
 				releaseImage, err := h.GetReleaseImage(key)
@@ -126,7 +134,7 @@ var _ = Describe("list versions", func() {
 
 	Context("IsOpenshiftVersionSupported", func() {
 		It("positive", func() {
-			h = NewHandler(versions, openshiftVersions, "")
+			h := NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
 
 			for key := range openshiftVersions {
 				Expect(h.IsOpenshiftVersionSupported(key)).Should(BeTrue())
@@ -134,7 +142,7 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("negative", func() {
-			h = NewHandler(versions, openshiftVersions, "")
+			h := NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
 			Expect(h.IsOpenshiftVersionSupported("unknown")).Should(BeFalse())
 		})
 	})

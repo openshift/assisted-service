@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type Versions struct {
@@ -25,7 +27,9 @@ type Handler interface {
 	IsOpenshiftVersionSupported(openshiftVersion string) bool
 }
 
-func NewHandler(versions Versions, openshiftVersions models.OpenshiftVersions, releaseImageOverride string) *handler {
+func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
+	versions Versions, openshiftVersions models.OpenshiftVersions,
+	releaseImageOverride string, releaseImageMirror string) *handler {
 	return &handler{
 		versions:             versions,
 		openshiftVersions:    openshiftVersions,
