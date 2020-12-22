@@ -31,7 +31,7 @@ CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${C
 
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
 RHCOS_BASE_ISO := $(or ${RHCOS_BASE_ISO},https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/latest/rhcos-live.x86_64.iso)
-OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, {\"4.6\": {\"release_image\": \"quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64\"}})
+OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(subst ",\",$(shell cat default_ocp_versions.json | tr -d "\n\t ")))
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 PUBLISH_TAG := $(or ${GIT_REVISION})

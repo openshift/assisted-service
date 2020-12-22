@@ -29,7 +29,7 @@
         "path": "/etc/assisted-service/environment",
         "contents": {
           "compression": "gzip",
-          "source": "data:;base64,H4sIAAAAAAAC/1SOXY+iMBiF7/kVhnuKHyxrSHpRoaskLO221c1cNY1UbYKFoZ2JE+N/n5A4jnP5vOfkeQ8lXKwZ5v8qWSCBVohjaKzzqm31EDylFHH+n7ACquZs7HOy5Zjdr8VKbggXcDb/DaZgCmbjhRIm4K9kMR/hZ3mUflON/j4/55jtyhzLcZPcsgqevO9dFsfKOeO8biLVG9B2e9WCrtfWnczBA9NlyyRZBAWmFXmRArE1FrCz/aDPD2WOZI6ZkBSJDYwb5VVsj8ZeIqfbgzNHqxuwH3xAKK75pvwj5A4zXpKaw2uYgDTMJtdw0K1WTktzVkcdZpPw9U19ANPFjzHRvRI1+j3u9v0XZwlIQRJdlqlMk/B2C+h2VZW5zEktUFljJhlel1ywEnN4twafAQAA//8OxvIhqgEAAA=="
+          "source": "data:;base64,H4sIAAAAAAAC/6SOUa+aMBiG7/kZXI8CpVQlabKKnZI4YG09y66aaqs2QWCWLWc58b8vJu7MXe/y/d43z/e0jZBrzsSXrVpRSZdUMOJ6P+mus9fgqW2pEF8bviLaXFz/3OwE44/raqk2jZAkhTOQgASk90vbcElylMF7+Hd8h/5NNf38/Fww/lKVTN2d1I5vyXmaRl/Esfbe+cmaSI8OdMNBd2AYbe/P7jgBNxRzhLJgxdpt801JytdMkqEfr/byjiypKhmXqqVyQ2KjJx33J9e/Rt52R+9OvTXgcJ2CpmW12FSfpHphXFRNLchbiAAOi7fwajurvVXuok82LMLvP/Qv4Ib4XSV6LCJjf8bDYfyTCwQwQNHrHCuMwtuHEIHZfwE/+rOGOS4gShfHxcFkVi/2Jk3RDKN5nuM8S1JosyTXxsIczmCamCyD+6Mx2OyNtnk23xuMw9staHfLbVWqsqklrWrGFWfrSkheMUEeQsHvAAAA//+4UbfXNAIAAA=="
         },
         "mode": 420
       },
