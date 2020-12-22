@@ -23,7 +23,7 @@ var _ = Describe("[minimal-set]test versions", func() {
 			&versions.ListSupportedOpenshiftVersionsParams{})
 		Expect(err).ShouldNot(HaveOccurred())
 
-		// 4.6
-		Expect(reply.GetPayload()).To(HaveLen(1))
+		// 4.6, 4.7
+		Expect(reply.GetPayload()).To(HaveLen(2))
 	})
 })
