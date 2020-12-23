@@ -1483,6 +1483,12 @@ var _ = Describe("cluster", func() {
 	setDefaultGetMasterNodesIds := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, nil).AnyTimes()
 	}
+	mockClusterDeleteLogsSuccess := func(mockClusterApi *cluster.MockAPI) {
+		mockClusterApi.EXPECT().DeleteClusterLogs(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	}
+	mockClusterDeleteLogsFailure := func(mockClusterApi *cluster.MockAPI) {
+		mockClusterApi.EXPECT().DeleteClusterLogs(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("error")).Times(1)
+	}
 	setDefaultHostInstall := func(mockClusterApi *cluster.MockAPI, done chan int) {
 		count := 0
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3).
@@ -2731,6 +2737,7 @@ var _ = Describe("cluster", func() {
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
+				mockClusterDeleteLogsSuccess(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				mockEvents.EXPECT().
 					AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -2832,6 +2839,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterDeleteLogsSuccess(mockClusterApi)
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
 				})
@@ -2858,6 +2866,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterDeleteLogsSuccess(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2881,6 +2890,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterDeleteLogsSuccess(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2903,6 +2913,7 @@ var _ = Describe("cluster", func() {
 				mockClusterPrepareForInstallationSuccess(mockClusterApi)
 				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 				setIsReadyForInstallationTrue(mockClusterApi)
+				mockClusterDeleteLogsSuccess(mockClusterApi)
 
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
@@ -2928,6 +2939,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				setIsReadyForInstallationTrue(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterDeleteLogsSuccess(mockClusterApi)
 
 				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 					ClusterID: clusterID,
@@ -2935,6 +2947,39 @@ var _ = Describe("cluster", func() {
 
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
 				waitForDoneChannel()
+			})
+
+			It("failed to delete logs", func() {
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
+				mockClusterIsReadyForInstallationSuccess()
+				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+				mockClusterPrepareForInstallationSuccess(mockClusterApi)
+				mockHostPrepareForRefresh(mockHostApi)
+				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
+				setDefaultInstall(mockClusterApi)
+				setDefaultGetMasterNodesIds(mockClusterApi)
+				setDefaultHostSetBootstrap(mockClusterApi)
+				setDefaultHostInstall(mockClusterApi, DoneChannel)
+				setDefaultMetricInstallationStarted(mockMetric)
+				setIsReadyForInstallationTrue(mockClusterApi)
+				mockClusterRefreshStatus(mockClusterApi)
+				setIsReadyForInstallationTrue(mockClusterApi)
+				mockClusterDeleteLogsFailure(mockClusterApi)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockEvents.EXPECT().
+					AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					MinTimes(0)
+
+				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+					ClusterID: clusterID,
+				})
+
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+				waitForDoneChannel()
+
+				count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
+				Expect(count).To(Equal(int64(1)))
 			})
 
 			It("get DNS domain success", func() {

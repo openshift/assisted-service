@@ -1255,6 +1255,11 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		return common.GenerateErrorResponder(err)
 	}
 
+	// Delete previews installation log files from object storage (if exist).
+	if err := b.clusterApi.DeleteClusterLogs(ctx, &cluster, b.objectHandler); err != nil {
+		log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", cluster.ID.String())
+	}
+
 	go func() {
 		var err error
 		asyncCtx := requestid.ToContext(context.Background(), requestid.FromContext(ctx))
