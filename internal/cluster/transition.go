@@ -103,7 +103,8 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 	}
 
 	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
-		statusInfoPreparingForInstallation, "install_started_at", strfmt.DateTime(time.Now()))
+		statusInfoPreparingForInstallation, "install_started_at", strfmt.DateTime(time.Now()),
+		"controller_logs_collected_at", strfmt.DateTime(time.Time{}))
 }
 
 ////////////////////////////////////////////////////////////////////////////

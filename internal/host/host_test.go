@@ -1510,6 +1510,7 @@ var _ = Describe("PrepareForInstallation", func() {
 
 	It("success", func() {
 		host = getTestHost(hostId, clusterId, models.HostStatusKnown)
+		host.LogsCollectedAt = strfmt.DateTime(time.Now())
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo,
 			fmt.Sprintf("Host %s: updated status from \"known\" to \"preparing-for-installation\" (Host is preparing for installation)", host.ID.String()),
 			gomock.Any())
@@ -1518,6 +1519,7 @@ var _ = Describe("PrepareForInstallation", func() {
 		h := getHost(hostId, clusterId, db)
 		Expect(swag.StringValue(h.Status)).To(Equal(models.HostStatusPreparingForInstallation))
 		Expect(swag.StringValue(h.StatusInfo)).To(Equal(statusInfoPreparingForInstallation))
+		Expect(h.LogsCollectedAt).To(Equal(strfmt.DateTime(time.Time{})))
 	})
 
 	It("failure - no role set", func() {

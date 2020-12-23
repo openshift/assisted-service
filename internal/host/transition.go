@@ -364,7 +364,7 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 	sHost, _ := sw.(*stateHost)
 	params, _ := args.(*TransitionArgsPrepareForInstallation)
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		statusInfoPreparingForInstallation)
+		statusInfoPreparingForInstallation, "logs_collected_at", strfmt.DateTime(time.Time{}))
 }
 
 func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, state *stateHost,

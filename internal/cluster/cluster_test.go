@@ -1228,6 +1228,7 @@ var _ = Describe("PrepareForInstallation", func() {
 		Expect(capi.PrepareForInstallation(ctx, cluster, db)).NotTo(HaveOccurred())
 		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.Status)).To(Equal(models.ClusterStatusPreparingForInstallation))
+		Expect(cluster.ControllerLogsCollectedAt).To(Equal(strfmt.DateTime(time.Time{})))
 	}
 
 	// status should not change
@@ -1236,6 +1237,7 @@ var _ = Describe("PrepareForInstallation", func() {
 		Expect(capi.PrepareForInstallation(ctx, cluster, db)).To(HaveOccurred())
 		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.Status)).Should(Equal(src))
+		Expect(cluster.ControllerLogsCollectedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 	}
 
 	tests := []struct {
@@ -1279,7 +1281,12 @@ var _ = Describe("PrepareForInstallation", func() {
 		t := tests[i]
 		It(t.name, func() {
 			ntpUtils.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.srcState)}}
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                        &clusterId,
+					Status:                    swag.String(t.srcState),
+					ControllerLogsCollectedAt: strfmt.DateTime(time.Now()),
+				}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			Expect(db.Take(&cluster, "id = ?", clusterId).Error).ShouldNot(HaveOccurred())
 			t.validation(&cluster)
@@ -1288,7 +1295,12 @@ var _ = Describe("PrepareForInstallation", func() {
 
 	It("Add manifest failure", func() {
 		ntpUtils.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error")).Times(1)
-		cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusReady)}}
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:                        &clusterId,
+				Status:                    swag.String(models.ClusterStatusReady),
+				ControllerLogsCollectedAt: strfmt.DateTime(time.Now()),
+			}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).ShouldNot(HaveOccurred())
 		failure(&cluster)
