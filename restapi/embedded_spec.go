@@ -4780,6 +4780,23 @@ func init() {
         "hctl": {
           "type": "string"
         },
+        "installation_eligibility": {
+          "type": "object",
+          "properties": {
+            "eligible": {
+              "description": "Whether the disk is eligible for installation or not.",
+              "type": "boolean"
+            },
+            "not_eligible_reasons": {
+              "description": "Reasons for why this disk is not elligible for installation.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "x-nullable": false
+        },
         "model": {
           "type": "string"
         },
@@ -9823,6 +9840,23 @@ func init() {
         }
       }
     },
+    "DiskInstallationEligibility": {
+      "type": "object",
+      "properties": {
+        "eligible": {
+          "description": "Whether the disk is eligible for installation or not.",
+          "type": "boolean"
+        },
+        "not_eligible_reasons": {
+          "description": "Reasons for why this disk is not elligible for installation.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "x-nullable": false
+    },
     "HostRegistrationResponseAO1NextStepRunnerCommand": {
       "description": "Command for starting the next step runner",
       "type": "object",
@@ -10659,6 +10693,23 @@ func init() {
         },
         "hctl": {
           "type": "string"
+        },
+        "installation_eligibility": {
+          "type": "object",
+          "properties": {
+            "eligible": {
+              "description": "Whether the disk is eligible for installation or not.",
+              "type": "boolean"
+            },
+            "not_eligible_reasons": {
+              "description": "Reasons for why this disk is not elligible for installation.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "x-nullable": false
         },
         "model": {
           "type": "string"

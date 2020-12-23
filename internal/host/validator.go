@@ -144,6 +144,7 @@ func boolValue(b bool) validationStatus {
 type validator struct {
 	log            logrus.FieldLogger
 	hwValidatorCfg *hardware.ValidatorCfg
+	hwValidator    hardware.Validator
 }
 
 func (v *validator) isConnected(c *validationContext) validationStatus {
@@ -221,7 +222,8 @@ func (v *validator) hasMinValidDisks(c *validationContext) validationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	disks := hardware.ListValidDisks(c.inventory, gibToBytes(v.hwValidatorCfg.MinDiskSizeGb))
+
+	disks := v.hwValidator.ListEligibleDisks(c.inventory)
 	return boolValue(len(disks) > 0)
 }
 

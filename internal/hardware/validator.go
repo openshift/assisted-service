@@ -2,8 +2,11 @@ package hardware
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/dustin/go-humanize"
 
 	"github.com/thoas/go-funk"
 
@@ -18,6 +21,8 @@ import (
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
+	DiskIsEligible(disk *models.Disk) []string
+	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 }
 
 func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg) Validator {
@@ -43,12 +48,17 @@ type validator struct {
 	log logrus.FieldLogger
 }
 
+// DiskEligibilityInitialized is used to detect inventories created by older versions of the agent/service
+func DiskEligibilityInitialized(disk *models.Disk) bool {
+	return disk.InstallationEligibility.Eligible || len(disk.InstallationEligibility.NotEligibleReasons) != 0
+}
+
 func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
 	var inventory models.Inventory
 	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		return nil, err
 	}
-	disks := ListValidDisks(&inventory, gbToBytes(v.MinDiskSizeGb))
+	disks := v.ListEligibleDisks(&inventory)
 	if len(disks) == 0 {
 		return disks, errors.Errorf("host %s doesn't have valid disks", host.ID)
 	}
@@ -63,31 +73,58 @@ func isNvme(name string) bool {
 	return strings.HasPrefix(name, "nvme")
 }
 
-func ListValidDisks(inventory *models.Inventory, minSizeRequiredInBytes int64) []*models.Disk {
-	var disks []*models.Disk
-	for _, disk := range inventory.Disks {
-		if disk.SizeBytes >= minSizeRequiredInBytes && funk.ContainsString([]string{"HDD", "SSD"}, disk.DriveType) {
-			disks = append(disks, disk)
-		}
+// DiskIsEligible checks if a disk is eligible for installation by testing
+// it against a list of predicates. Returns all the reasons the disk
+// was found to be not eligible, or an empty slice if it was found to
+// be eligible
+func (v *validator) DiskIsEligible(disk *models.Disk) []string {
+	var notEligibleReasons []string
+
+	if minSizeBytes := gbToBytes(v.MinDiskSizeGb); disk.SizeBytes < minSizeBytes {
+		notEligibleReasons = append(notEligibleReasons,
+			fmt.Sprintf(
+				"Disk is too small (disk only has %s, but %s are required)",
+				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
+	if allowedDriveTypes := []string{"HDD", "SSD"}; !funk.ContainsString(allowedDriveTypes, disk.DriveType) {
+		notEligibleReasons = append(notEligibleReasons,
+			fmt.Sprintf("Drive type is %s, it must be one of %s.",
+				disk.DriveType, strings.Join(allowedDriveTypes, ", ")))
+	}
+
+	return notEligibleReasons
+}
+
+func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Disk {
+	eligibleDisks := funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
+		// TODO: Remove this check in a future version once all inventories have been migrated
+		if !DiskEligibilityInitialized(disk) {
+			// That means that we haven't already checked the eligibility of this disk in UpdateInventory and we must check it now
+			return len(v.DiskIsEligible(disk)) == 0
+		}
+
+		return disk.InstallationEligibility.Eligible
+	}).([]*models.Disk)
+
 	// Sorting list by size increase
-	sort.Slice(disks, func(i, j int) bool {
-		isNvme1 := isNvme(disks[i].Name)
-		isNvme2 := isNvme(disks[j].Name)
+	sort.Slice(eligibleDisks, func(i, j int) bool {
+		isNvme1 := isNvme(eligibleDisks[i].Name)
+		isNvme2 := isNvme(eligibleDisks[j].Name)
 		if isNvme1 != isNvme2 {
 			return isNvme2
 		}
 
 		// HDD is before SSD
-		switch v := strings.Compare(disks[i].DriveType, disks[j].DriveType); v {
+		switch v := strings.Compare(eligibleDisks[i].DriveType, eligibleDisks[j].DriveType); v {
 		case 0:
-			return disks[i].SizeBytes < disks[j].SizeBytes
+			return eligibleDisks[i].SizeBytes < eligibleDisks[j].SizeBytes
 		default:
 			return v < 0
 		}
 	})
-	return disks
+
+	return eligibleDisks
 }
 
 func (v *validator) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {

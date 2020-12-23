@@ -2,6 +2,7 @@ package hardware
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/openshift/assisted-service/internal/common"
@@ -22,16 +23,66 @@ func TestValidator(t *testing.T) {
 	RunSpecs(t, "Hardware Validator tests Suite")
 }
 
-var _ = Describe("hardware_validator", func() {
+var _ = Describe("Disk eligibility", func() {
 	var (
 		hwvalidator   Validator
-		host1         *models.Host
-		host2         *models.Host
-		host3         *models.Host
-		inventory     *models.Inventory
-		cluster       *common.Cluster
-		validDiskSize = int64(128849018880)
-		status        = models.HostStatusKnown
+		testDisk      models.Disk
+		bigEnoughSize int64
+		tooSmallSize  int64
+	)
+
+	BeforeEach(func() {
+		var cfg ValidatorCfg
+		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+		hwvalidator = NewValidator(logrus.New(), cfg)
+
+		bigEnoughSize = gbToBytes(cfg.MinDiskSizeGb) + 1
+		tooSmallSize = gbToBytes(cfg.MinDiskSizeGb) - 1
+
+		// Start off with an eligible default
+		testDisk = models.Disk{
+			DriveType: "SSD",
+			SizeBytes: bigEnoughSize,
+		}
+	})
+
+	It("Check if SSD is eligible", func() {
+		testDisk.DriveType = "SSD"
+		Expect(hwvalidator.DiskIsEligible(&testDisk)).To(BeEmpty())
+	})
+
+	It("Check if HDD is eligible", func() {
+		testDisk.DriveType = "HDD"
+		Expect(hwvalidator.DiskIsEligible(&testDisk)).To(BeEmpty())
+	})
+
+	It("Check that ODD is not eligible", func() {
+		testDisk.DriveType = "ODD"
+		Expect(hwvalidator.DiskIsEligible(&testDisk)).ToNot(BeEmpty())
+	})
+
+	It("Check that a big enough size is eligible", func() {
+		testDisk.SizeBytes = bigEnoughSize
+		Expect(hwvalidator.DiskIsEligible(&testDisk)).To(BeEmpty())
+	})
+
+	It("Check that a small size is not eligible", func() {
+		testDisk.SizeBytes = tooSmallSize
+		Expect(hwvalidator.DiskIsEligible(&testDisk)).ToNot(BeEmpty())
+	})
+})
+
+var _ = Describe("hardware_validator", func() {
+	var (
+		hwvalidator     Validator
+		host1           *models.Host
+		host2           *models.Host
+		host3           *models.Host
+		inventory       *models.Inventory
+		cluster         *common.Cluster
+		validDiskSize   = int64(128849018880)
+		invalidDiskSize = int64(200)
+		status          = models.HostStatusKnown
 	)
 	BeforeEach(func() {
 		var cfg ValidatorCfg
@@ -55,8 +106,9 @@ var _ = Describe("hardware_validator", func() {
 				},
 			},
 			Disks: []*models.Disk{
-				{DriveType: "ODD", Name: "loop0", SizeBytes: validDiskSize},
-				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+				{DriveType: "ODD", Name: "loop0"},
+				{DriveType: "HDD", Name: "sdb"},
+			},
 		}
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                 &clusterID,
@@ -71,7 +123,9 @@ var _ = Describe("hardware_validator", func() {
 		nvmename := "nvme01fs"
 		inventory.Disks = []*models.Disk{
 			// Not disk type
-			{DriveType: "ODD", Name: "aaa", SizeBytes: validDiskSize},
+			{
+				DriveType: "ODD", Name: "aaa",
+			},
 			{DriveType: "SSD", Name: nvmename, SizeBytes: validDiskSize + 1},
 			{DriveType: "SSD", Name: "stam", SizeBytes: validDiskSize},
 			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize + 2},
@@ -89,6 +143,38 @@ var _ = Describe("hardware_validator", func() {
 		Expect(disks[3].DriveType).To(Equal("SSD"))
 		Expect(disks[4].DriveType).To(Equal("SSD"))
 		Expect(disks[4].Name).To(HavePrefix("nvme"))
+	})
+
+	It("validate_disk_old_inventory_backwards_compatibility", func() {
+		// Disks that don't have an eligibility struct should have their eligibility re-evaluated for backwards compat
+		validDiskJson := fmt.Sprintf(`
+		{
+			"name": "aValidDiskWithoutEligibility",
+			"drive_type": "HDD",
+			"size_bytes": %d
+		}`, validDiskSize)
+
+		invalidDiskJson := fmt.Sprintf(`
+		{
+			"name": "anInvalidDiskWithoutEligibility",
+			"drive_type": "SSD",
+			"size_bytes": %d
+		}`, invalidDiskSize)
+
+		host1.Inventory = fmt.Sprintf(`
+{
+	"disks": [
+		%s,
+		%s
+	]
+}`, validDiskJson, invalidDiskJson)
+
+		disks, err := hwvalidator.GetHostValidDisks(host1)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(disks)).Should(Equal(1))
+		Expect(disks[0].Name).Should(Equal("aValidDiskWithoutEligibility"))
+		Expect(disks[0].InstallationEligibility.Eligible).To(BeFalse())
+		Expect(disks[0].InstallationEligibility.NotEligibleReasons).To(BeEmpty())
 	})
 
 	It("validate_aws_disk_detected", func() {

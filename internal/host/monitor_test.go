@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/hardware"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -36,7 +38,9 @@ var _ = Describe("monitor_disconnection", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
-		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(),
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		state = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			nil, defaultConfig, dummy)
 		clusterID := strfmt.UUID(uuid.New().String())
 		host = getTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
@@ -127,7 +131,9 @@ var _ = Describe("TestHostMonitoring", func() {
 			AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			AnyTimes()
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
-		state = NewManager(getTestLog(), db, mockEvents, nil, nil, createValidatorCfg(),
+		mockHwValidator := hardware.NewMockValidator(ctrl)
+		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		state = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			nil, &cfg, &leader.DummyElector{})
 	})
 

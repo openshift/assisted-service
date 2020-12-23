@@ -3691,6 +3691,18 @@ definitions:
         type: integer
       bootable:
         type: boolean
+      installation_eligibility:
+        x-nullable: false
+        type: object
+        properties:
+          eligible:
+            type: boolean
+            description: Whether the disk is eligible for installation or not.
+          not_eligible_reasons:
+            type: array
+            description: Reasons for why this disk is not elligible for installation.
+            items:
+              type: string
       smart:
         type: string
 
