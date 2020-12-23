@@ -4,11 +4,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	"github.com/openshift/assisted-service/internal/isoutil"
 	"github.com/openshift/assisted-service/restapi/operations/bootfiles"
+
+	"github.com/cavaliercoder/go-cpio"
+	config_31 "github.com/coreos/ignition/v2/config/v3_1"
+	config_31_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
+	"github.com/vincent-petithory/dataurl"
 )
 
 const (
@@ -18,6 +25,7 @@ const (
 
 type Editor interface {
 	CreateMinimalISOTemplate(serviceBaseURL string) (string, error)
+	CreateClusterMinimalISO(ignition string) (string, error)
 }
 
 type rhcosEditor struct {
@@ -79,6 +87,115 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 
 	e.log.Info("Creating minimal ISO template")
 	return e.create()
+}
+
+// CreateClusterMinimalISO creates a new rhcos iso with cluser file customizations added
+// to the initrd image
+func (e *rhcosEditor) CreateClusterMinimalISO(ignition string) (string, error) {
+	if err := e.isoHandler.Extract(); err != nil {
+		return "", err
+	}
+	defer func() {
+		if err := e.isoHandler.CleanWorkDir(); err != nil {
+			e.log.WithError(err).Warnf("Failed to clean isoHandler work dir")
+		}
+	}()
+
+	if err := e.addIgnitionFiles(ignition); err != nil {
+		return "", err
+	}
+
+	return e.create()
+}
+
+func addFile(w *cpio.Writer, f config_31_types.File) error {
+	u, err := dataurl.DecodeString(f.Contents.Key())
+	if err != nil {
+		return err
+	}
+
+	var mode cpio.FileMode = 0644
+	if f.Mode != nil {
+		mode = cpio.FileMode(*f.Mode)
+	}
+
+	uid := 0
+	if f.User.ID != nil {
+		uid = *f.User.ID
+	}
+
+	gid := 0
+	if f.Group.ID != nil {
+		gid = *f.Group.ID
+	}
+
+	// add the file
+	hdr := &cpio.Header{
+		Name: f.Path,
+		Mode: mode,
+		UID:  uid,
+		GID:  gid,
+		Size: int64(len(u.Data)),
+	}
+	if err := w.WriteHeader(hdr); err != nil {
+		return err
+	}
+	if _, err := w.Write(u.Data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// addIgnitionFiles adds all files referenced in the given ignition config to
+// the initrd by creating an additional cpio archive
+func (e *rhcosEditor) addIgnitionFiles(ignition string) error {
+	config, _, err := config_31.Parse([]byte(ignition))
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(e.isoHandler.ExtractedPath("images/assisted_custom_files.img"))
+	if err != nil {
+		return fmt.Errorf("failed to open image file: %s", err)
+	}
+
+	w := cpio.NewWriter(f)
+	addedPaths := make([]string, 0)
+
+	// TODO: deal with config.Storage.Directories also?
+	for _, f := range config.Storage.Files {
+		if err = addFile(w, f); err != nil {
+			return fmt.Errorf("failed to add file %s to archive: %v", f.Path, err)
+		}
+
+		// Need to add all directories in the file path to ensure it can be created
+		// Many files may be in the same directory so we need to track which directories we add to ensure we only add them once
+		for dir := filepath.Dir(f.Path); dir != "" && dir != "/"; dir = filepath.Dir(dir) {
+			if !funk.Contains(addedPaths, dir) {
+				hdr := &cpio.Header{
+					Name: dir,
+					Mode: 040755,
+					Size: 0,
+				}
+				if err = w.WriteHeader(hdr); err != nil {
+					return err
+				}
+				addedPaths = append(addedPaths, dir)
+			}
+		}
+	}
+
+	if err = w.Close(); err != nil {
+		return err
+	}
+
+	// edit configs to add new image
+	err = editFile(e.isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), `(?m)^(\s+initrd) (.+| )+$`, "$1 $2 /images/assisted_custom_files.img")
+	if err != nil {
+		return err
+	}
+	return editFile(e.isoHandler.ExtractedPath("isolinux/isolinux.cfg"), `(?m)^(\s+append.*initrd=\S+) (.*)$`, "${1},/images/assisted_custom_files.img ${2}")
 }
 
 func (e *rhcosEditor) create() (string, error) {
