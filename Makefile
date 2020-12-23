@@ -1,5 +1,6 @@
 NAMESPACE := $(or ${NAMESPACE},assisted-installer)
 
+
 PWD = $(shell pwd)
 UID = $(shell id -u)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
