@@ -154,6 +154,9 @@ endef # publish_image
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
 
+build-openshift-ci-test-bin:
+	echo "placeholder for openshift ci image build steps"
+
 ##########
 # Deploy #
 ##########
@@ -266,6 +269,9 @@ deploy-onprem:
 deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
+deploy-on-openshift-ci:
+	echo "placeholder for deployment on openshift ci"
+
 docs:
 	mkdocs build
 
@@ -322,6 +328,9 @@ test-onprem:
 	DB_PORT=5432 \
 	DEPLOY_TARGET=onprem \
 	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
+
+test-on-openshift-ci:
+	echo "placeholder for testing on openshift ci"
 
 #########
 # Clean #
