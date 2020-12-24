@@ -44,6 +44,10 @@ DELETE_PVC := $(or ${DELETE_PVC},False)
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},quay.io)
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 
+ifdef ENABLE_KUBE_API
+	ENABLE_KUBE_API_CMD = --enable-kube-api true
+endif
+
 # We decided to have an option to change replicas count only while running in minikube
 # That line is checking if we run on minikube
 # check if SERVICE_REPLICAS_COUNT was set and if yes change default value to required one
@@ -205,14 +209,19 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 		--ocp-versions '$(OPENSHIFT_VERSIONS)' --ocp-override "$(OPENSHIFT_INSTALL_RELEASE_IMAGE)" --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		$(E2E_TESTS_CONFIG)
 
-deploy-service: deploy-namespace deploy-service-requirements deploy-role
+deploy-resources: manifests
+	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD)
+
+deploy-service: deploy-namespace deploy-service-requirements deploy-role deploy-resources
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
-		--profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT)
+		--profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
+		$(ENABLE_KUBE_API_CMD)
 	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" \
 		--profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)"
 
-deploy-role: deploy-namespace
-	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
+deploy-role: deploy-namespace manifests
+	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
+		$(ENABLE_KUBE_API_CMD)
 
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
@@ -361,3 +370,20 @@ delete-minikube-profile:
 
 delete-all-minikube-profiles:
 	minikube delete --all
+
+##############
+# Controller #
+##############
+
+CRD_OPTIONS ?= "crd:trivialVersions=true"
+CONTROLLER_CONFIG_PATH = internal/controller/config
+CONTROLLER_CRD_PATH = $(CONTROLLER_CONFIG_PATH)/crd
+CONTROLLER_RBAC_PATH = $(CONTROLLER_CONFIG_PATH)/rbac
+
+# Generate manifests e.g. CRD, RBAC etc.
+manifests: $(BUILD_FOLDER)
+ifdef ENABLE_KUBE_API
+	controller-gen $(CRD_OPTIONS) rbac:roleName=manager-role paths="./..." output:rbac:dir=$(CONTROLLER_RBAC_PATH) \
+		webhook paths="./..." output:crd:artifacts:config=$(CONTROLLER_CRD_PATH)/bases
+	kustomize build $(CONTROLLER_CRD_PATH) > $(BUILD_FOLDER)/resources.yaml
+endif

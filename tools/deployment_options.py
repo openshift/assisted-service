@@ -43,6 +43,13 @@ def load_deployment_options(parser=None):
         default=3
     )
 
+    parser.add_argument(
+        '--enable-kube-api',
+        help='Assisted service support k8s api',
+        type=bool,
+        default=False
+    )
+
     deploy_options = parser.add_mutually_exclusive_group()
     deploy_options.add_argument("--deploy-tag", help='Tag for all deployment images', type=str)
     deploy_options.add_argument("--deploy-manifest-tag", help='Tag of the assisted-installer-deployment repo to get the deployment images manifest from', type=str)
