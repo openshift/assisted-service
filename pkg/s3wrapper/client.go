@@ -82,6 +82,7 @@ const timestampTagKey = "create_sec_since_epoch"
 func NewS3Client(cfg *Config, logger logrus.FieldLogger) *S3Client {
 	awsSession, err := newS3Session(cfg)
 	if err != nil {
+		logger.WithError(err).Error("failed to create s3 session")
 		return nil
 	}
 
