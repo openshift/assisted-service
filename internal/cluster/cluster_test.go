@@ -1145,6 +1145,9 @@ func defaultInventory() string {
 				IPV4Addresses: []string{
 					"1.2.3.4/24",
 				},
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
 			},
 		},
 	}

@@ -59,6 +59,13 @@ func max(x, y int) int {
 	return y
 }
 
+func min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}
+
 func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, numberOfHosts int) error {
 	_, cidr, err := net.ParseCIDR(clusterNetworkCIDR)
 	if err != nil {
@@ -70,10 +77,11 @@ func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, num
 		return errors.Errorf("Host prefix, now %d, must be less than or equal to %d to allow at least 128 addresses", hostNetworkPrefix, bits-MinMaskDelta)
 	}
 	requestedNumHosts := max(4, numberOfHosts)
-	possibleNumHosts := uint64(1) << max(hostNetworkPrefix-clusterNetworkPrefix, 0)
+	// 63 to avoid overflow
+	possibleNumHosts := uint64(1) << min(63, max(hostNetworkPrefix-clusterNetworkPrefix, 0))
 	if uint64(requestedNumHosts) > possibleNumHosts {
 		return errors.Errorf("Cluster network CIDR prefix %d does not contain enough addresses for %d hosts each one with %d prefix (%d addresses)",
-			clusterNetworkPrefix, requestedNumHosts, hostNetworkPrefix, uint64(1)<<(bits-hostNetworkPrefix))
+			clusterNetworkPrefix, requestedNumHosts, hostNetworkPrefix, uint64(1)<<min(63, bits-hostNetworkPrefix))
 	}
 	return nil
 }

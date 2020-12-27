@@ -17,6 +17,8 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+const OvnKubernetes = "OVNKubernetes"
+
 var _ = Describe("installcfg", func() {
 	var (
 		host1   models.Host
@@ -33,7 +35,7 @@ var _ = Describe("installcfg", func() {
 			BaseDNSDomain:          "redhat.com",
 			APIVip:                 "102.345.34.34",
 			IngressVip:             "376.5.56.6",
-			InstallConfigOverrides: `{"networking":{"networkType": "OVN-Kubernetes"},"fips":true}`,
+			InstallConfigOverrides: `{"networking":{"networkType": "OVNKubernetes"},"fips":true}`,
 		}}
 		id := strfmt.UUID(uuid.New().String())
 		host1 = models.Host{
@@ -105,7 +107,7 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		// test that overrides worked
-		Expect(result.Networking.NetworkType).Should(Equal("OVN-Kubernetes"))
+		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
 		Expect(result.FIPS).Should(Equal(true))
 		// test that existing values are kept
 		Expect(result.APIVersion).Should(Equal("v1"))
@@ -120,6 +122,39 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Networking.NetworkType).Should(Equal("OpenShiftSDN"))
+	})
+
+	It("doesn't fail with empty overrides, IPv6 machine CIDR", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.MachineNetworkCidr = "1001:db8::/120"
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
+	})
+
+	It("doesn't fail with empty overrides, IPv6 cluster CIDR", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.ClusterNetworkCidr = "1001:db8::/120"
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
+	})
+
+	It("doesn't fail with empty overrides, IPv6 service CIDR", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.ServiceNetworkCidr = "1001:db8::/120"
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
 	})
 
 	It("CA AdditionalTrustBundle", func() {

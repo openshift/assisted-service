@@ -107,7 +107,7 @@ func getBMHName(host *models.Host, masterIdx, workerIdx *int) string {
 
 func getNetworkType(cluster *common.Cluster) string {
 	networkType := "OpenShiftSDN"
-	if network.IsIPv6CIDR(cluster.ClusterNetworkCidr) {
+	if network.IsIPv6CIDR(cluster.ClusterNetworkCidr) || network.IsIPv6CIDR(cluster.MachineNetworkCidr) || network.IsIPv6CIDR(cluster.ServiceNetworkCidr) {
 		networkType = "OVNKubernetes"
 	}
 	return networkType

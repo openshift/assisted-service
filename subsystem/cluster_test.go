@@ -634,11 +634,10 @@ var _ = Describe("cluster update - BaseDNS", func() {
 
 var _ = Describe("cluster install", func() {
 	var (
-		ctx           = context.Background()
-		cluster       *models.Cluster
-		validDiskSize = int64(128849018880)
-		clusterCIDR   = "10.128.0.0/14"
-		serviceCIDR   = "172.30.0.0/16"
+		ctx         = context.Background()
+		cluster     *models.Cluster
+		clusterCIDR = "10.128.0.0/14"
+		serviceCIDR = "172.30.0.0/16"
 	)
 
 	AfterEach(func() {
@@ -2897,12 +2896,12 @@ func generateConnectivityPostStepReply(ctx context.Context, h *models.Host, conn
 
 func generateFullMeshConnectivity(ctx context.Context, startIPAddress string, hosts ...*models.Host) {
 
-	ip := net.ParseIP(startIPAddress).To4()
+	ip := net.ParseIP(startIPAddress)
 	hostToAddr := make(map[strfmt.UUID]string)
 
 	for _, h := range hosts {
 		hostToAddr[*h.ID] = ip.String()
-		ip[3]++
+		ip[len(ip)-1]++
 	}
 
 	var connectivityReport models.ConnectivityReport
