@@ -51,7 +51,12 @@ def main():
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_ID', 'value': 'mock-ocm-client-id'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_SECRET', 'value': 'mock-ocm-client-secret'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'ENABLE_KUBE_API', 'value': str(deploy_options.enable_kube_api).lower()})
-            data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
+
+            if deploy_options.profile == utils.OPENSHIFT_CI:
+                # Images built on infra cluster but needed on ephemeral cluster
+                data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "IfNotPresent"
+            else:
+                data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
         else:
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Always"
         if deploy_options.target == utils.OCP_TARGET:
