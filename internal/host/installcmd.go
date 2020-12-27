@@ -147,14 +147,14 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	if err = t.Execute(buf, data); err != nil {
 		return nil, err
 	}
-	step.Args = []string{"-c", buf.String()}
 
 	unbootableCmd, err := i.getDiskUnbootableCmd(ctx, *host)
 	if err != nil {
 		return nil, err
 	}
 
-	step.Args = []string{"-c", unbootableCmd + buf.String()}
+	fioPerfCheckCmd := NewFioPerfCheckCmd(i.log, i.instructionConfig.FioPerfCheckImage, bootdevice, FioDurationThreshold)
+	step.Args = []string{"-c", unbootableCmd + fioPerfCheckCmd.GetCommandString() + buf.String()}
 
 	if _, err := UpdateHost(i.log, i.db, host.ClusterID, *host.ID, *host.Status,
 		"installer_version", i.instructionConfig.InstallerImage, "installation_disk_path", bootdevice); err != nil {

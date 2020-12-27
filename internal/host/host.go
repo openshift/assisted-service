@@ -91,6 +91,7 @@ type API interface {
 	RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	HandleInstallationFailure(ctx context.Context, h *models.Host) error
+	HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error
 	UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
@@ -238,6 +239,20 @@ func (m *Manager) populateDisksEligibility(inventoryString string) (string, erro
 	}
 
 	return string(result), nil
+}
+
+func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error {
+
+	lastStatusUpdateTime := h.StatusUpdatedAt
+	err := m.sm.Run(TransitionTypeHostInstallationFailed, newStateHost(h), &TransitionArgsHostInstallationFailed{
+		ctx:    ctx,
+		reason: reason,
+	})
+	if err == nil {
+		m.reportInstallationMetrics(ctx, h, &models.HostProgressInfo{CurrentStage: "installation command failed",
+			StageStartedAt: lastStatusUpdateTime}, models.HostStageFailed)
+	}
+	return err
 }
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {

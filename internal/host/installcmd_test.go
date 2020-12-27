@@ -30,6 +30,7 @@ var DefaultInstructionConfig = InstructionConfig{
 	InstallerImage:      "quay.io/ocpmetal/assisted-installer:latest",
 	ControllerImage:     "quay.io/ocpmetal/assisted-installer-controller:latest",
 	InventoryImage:      "quay.io/ocpmetal/assisted-installer-agent:latest",
+	FioPerfCheckImage:   "quay.io/ocpmetal/assisted-installer-agent:latest",
 	InstallationTimeout: 120,
 	ReleaseImageMirror:  "local.registry:5000/ocp@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3",
 }
@@ -364,6 +365,13 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 		"--name assisted-installer quay.io/ocpmetal/assisted-installer:latest --role %s --cluster-id %s " +
 		"--boot-device /dev/sdb --host-id %s --openshift-version %s --mco-image mcoImage " +
 		"--controller-image %s --url %s --insecure=false --agent-image %s --installation-timeout %s"
+
+	fioPerfCheckCmd := "podman run --privileged --net=host --rm --quiet -v /dev:/dev:rw -v /var/log:/var/log " +
+		"-v /run/systemd/journal/socket:/run/systemd/journal/socket " +
+		"quay.io/ocpmetal/assisted-installer-agent:latest fio_perf_check " +
+		"\"{\\\"duration_threshold\\\":20,\\\"exit_code\\\":222,\\\"path\\\":\\\"/dev/sdb\\\"}\" && "
+
+	installCommand = fioPerfCheckCmd + installCommand
 
 	if proxy != "" {
 		installCommand += fmt.Sprintf(" %s", proxy)

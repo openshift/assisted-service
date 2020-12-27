@@ -6,14 +6,13 @@ package host
 
 import (
 	context "context"
-	reflect "reflect"
-
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
+	reflect "reflect"
 )
 
 // MockAPI is a mock of API interface
@@ -94,6 +93,20 @@ func (m *MockAPI) HandleInstallationFailure(ctx context.Context, h *models.Host)
 func (mr *MockAPIMockRecorder) HandleInstallationFailure(ctx, h interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleInstallationFailure", reflect.TypeOf((*MockAPI)(nil).HandleInstallationFailure), ctx, h)
+}
+
+// HandlePrepareInstallationFailure mocks base method
+func (m *MockAPI) HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HandlePrepareInstallationFailure", ctx, h, reason)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// HandlePrepareInstallationFailure indicates an expected call of HandlePrepareInstallationFailure
+func (mr *MockAPIMockRecorder) HandlePrepareInstallationFailure(ctx, h, reason interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandlePrepareInstallationFailure", reflect.TypeOf((*MockAPI)(nil).HandlePrepareInstallationFailure), ctx, h, reason)
 }
 
 // UpdateInstallProgress mocks base method

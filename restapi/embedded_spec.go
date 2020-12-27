@@ -4797,6 +4797,9 @@ func init() {
           },
           "x-nullable": false
         },
+        "io_perf": {
+          "$ref": "#/definitions/io_perf"
+        },
         "model": {
           "type": "string"
         },
@@ -4931,6 +4934,37 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/event"
+      }
+    },
+    "fio_perf_check_request": {
+      "type": "object",
+      "required": [
+        "path",
+        "duration_threshold",
+        "exit_code"
+      ],
+      "properties": {
+        "duration_threshold": {
+          "description": "The maximal fdatasync duration that is considered acceptable.",
+          "type": "integer"
+        },
+        "exit_code": {
+          "description": "Exit code to return in case of an error.",
+          "type": "integer"
+        },
+        "path": {
+          "description": "--filename argument for fio (expects a file or a block device path).",
+          "type": "string"
+        }
+      }
+    },
+    "fio_perf_check_response": {
+      "type": "object",
+      "properties": {
+        "io_sync_duration": {
+          "description": "The 99th percentile of fdatasync durations in milliseconds.",
+          "type": "integer"
+        }
       }
     },
     "free-addresses-list": {
@@ -5526,6 +5560,15 @@ func init() {
         }
       }
     },
+    "io_perf": {
+      "type": "object",
+      "properties": {
+        "sync_duration": {
+          "description": "99th percentile of fsync duration in milliseconds",
+          "type": "integer"
+        }
+      }
+    },
     "l2-connectivity": {
       "type": "object",
       "properties": {
@@ -5799,7 +5842,8 @@ func init() {
         "reset-installation",
         "dhcp-lease-allocate",
         "api-vip-connectivity-check",
-        "ntp-synchronizer"
+        "ntp-synchronizer",
+        "fio-perf-check"
       ]
     },
     "steps": {
@@ -10711,6 +10755,9 @@ func init() {
           },
           "x-nullable": false
         },
+        "io_perf": {
+          "$ref": "#/definitions/io_perf"
+        },
         "model": {
           "type": "string"
         },
@@ -10845,6 +10892,37 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/event"
+      }
+    },
+    "fio_perf_check_request": {
+      "type": "object",
+      "required": [
+        "path",
+        "duration_threshold",
+        "exit_code"
+      ],
+      "properties": {
+        "duration_threshold": {
+          "description": "The maximal fdatasync duration that is considered acceptable.",
+          "type": "integer"
+        },
+        "exit_code": {
+          "description": "Exit code to return in case of an error.",
+          "type": "integer"
+        },
+        "path": {
+          "description": "--filename argument for fio (expects a file or a block device path).",
+          "type": "string"
+        }
+      }
+    },
+    "fio_perf_check_response": {
+      "type": "object",
+      "properties": {
+        "io_sync_duration": {
+          "description": "The 99th percentile of fdatasync durations in milliseconds.",
+          "type": "integer"
+        }
       }
     },
     "free-addresses-list": {
@@ -11441,6 +11519,15 @@ func init() {
         }
       }
     },
+    "io_perf": {
+      "type": "object",
+      "properties": {
+        "sync_duration": {
+          "description": "99th percentile of fsync duration in milliseconds",
+          "type": "integer"
+        }
+      }
+    },
     "l2-connectivity": {
       "type": "object",
       "properties": {
@@ -11714,7 +11801,8 @@ func init() {
         "reset-installation",
         "dhcp-lease-allocate",
         "api-vip-connectivity-check",
-        "ntp-synchronizer"
+        "ntp-synchronizer",
+        "fio-perf-check"
       ]
     },
     "steps": {
