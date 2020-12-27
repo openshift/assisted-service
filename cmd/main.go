@@ -125,6 +125,12 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
+	failOnError := func(err error, msg string, args ...interface{}) {
+		if err != nil {
+			log.WithError(err).Fatalf(msg, args...)
+		}
+	}
+
 	port := flag.String("port", "8090", "define port that the service will listen to")
 	flag.Parse()
 
@@ -132,35 +138,19 @@ func main() {
 
 	var openshiftVersionsMap models.OpenshiftVersions
 
-	if err = json.Unmarshal([]byte(Options.OpenshiftVersions), &openshiftVersionsMap); err != nil {
-		log.WithError(err).Fatalf("Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
-	}
+	failOnError(json.Unmarshal([]byte(Options.OpenshiftVersions), &openshiftVersionsMap),
+		"Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
 
 	log.Println(fmt.Sprintf("Started service with OCP versions %v", openshiftVersionsMap))
 
 	// Connect to db
-	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
-		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
-	db, err := gorm.Open("postgres", dbConnectionStr)
-	if err != nil {
-		log.Fatal("Fail to connect to DB, ", err)
-	}
+	db := setupDB(log)
 	defer db.Close()
-	db.DB().SetMaxIdleConns(0)
-	db.DB().SetMaxOpenConns(0)
-	db.DB().SetConnMaxLifetime(0)
 
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
 
-	var ocmClient *ocm.Client
-	if Options.Auth.EnableAuth {
-		ocmLog := logrus.New()
-		ocmClient, err = ocm.NewClient(Options.OCMConfig, ocmLog.WithField("pkg", "ocm"), metricsManager)
-		if err != nil {
-			log.Fatal("Failed to Create OCM Client, ", err)
-		}
-	}
+	ocmClient := getOCMClient(log, metricsManager)
 
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
@@ -193,27 +183,20 @@ func main() {
 	}
 
 	pullSecretValidator, err := validations.NewPullSecretValidator(Options.ValidationsConfig, images...)
-
-	if err != nil {
-		log.WithError(err).Fatalf("failed to create pull secret validator")
-	}
+	failOnError(err, "failed to create pull secret validator")
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
 
 	var newUrl string
-	if newUrl, err = s3wrapper.FixEndpointURL(Options.JobConfig.S3EndpointURL); err != nil {
-		log.WithError(err).Fatalf("failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
-	} else {
-		Options.JobConfig.S3EndpointURL = newUrl
-	}
+	newUrl, err = s3wrapper.FixEndpointURL(Options.JobConfig.S3EndpointURL)
+	failOnError(err, "failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
+	Options.JobConfig.S3EndpointURL = newUrl
 
 	var generator generator.ISOInstallConfigGenerator
 	var objectHandler s3wrapper.API
 
-	err = bmh_v1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	if err != nil {
-		log.Fatal("Failed to add BareMetalHost to scheme", err)
-	}
+	failOnError(bmh_v1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme),
+		"Failed to add BareMetalHost to scheme")
 
 	var ocpClient k8sclient.K8SClient = nil
 	switch Options.DeployTarget {
@@ -222,20 +205,16 @@ func main() {
 
 		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log)
 		if objectHandler == nil {
-			log.Fatal("failed to create S3 client, ", err)
+			log.Fatal("failed to create S3 client")
 		}
 		createS3Bucket(objectHandler)
 
 		kclient, err = client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
-		if err != nil {
-			log.Fatal("failed to create client:", err)
-		}
+		failOnError(err, "failed to create controller-runtime client")
 		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig)
 
 		cfg, cerr := clientcmd.BuildConfigFromFlags("", "")
-		if cerr != nil {
-			log.WithError(cerr).Fatalf("Failed to create kubernetes cluster config")
-		}
+		failOnError(cerr, "Failed to create kubernetes cluster config")
 		k8sClient = kubernetes.NewForConfigOrDie(cfg)
 
 		autoMigrationLeader = leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
@@ -246,40 +225,27 @@ func main() {
 		lead = leader.NewElector(k8sClient, Options.LeaderConfig, "assisted-service-leader-election-helper",
 			log.WithField("pkg", "monitor-runner"))
 
-		err = lead.StartLeaderElection(context.Background())
-		if err != nil {
-			log.WithError(err).Fatalf("Failed to start leader")
-		}
+		failOnError(lead.StartLeaderElection(context.Background()), "Failed to start leader")
 
 		ocpClient, err = k8sclient.NewK8SClient("", log)
-		if err != nil {
-			log.WithError(err).Fatalf("Failed to create client for OCP")
-		}
+		failOnError(err, "Failed to create client for OCP")
 
 	case deployment_type_onprem, deployment_type_ocp:
 		lead = &leader.DummyElector{}
 		autoMigrationLeader = lead
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
 		objectHandler = s3wrapper.NewFSClient("/data", log)
-		if objectHandler == nil {
-			log.Fatal("failed to create S3 file system client, ", err)
-		}
 		createS3Bucket(objectHandler)
 		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
 		if Options.DeployTarget == deployment_type_ocp {
 			ocpClient, err = k8sclient.NewK8SClient("", log)
-			if err != nil {
-				log.WithError(err).Fatalf("Failed to create client for OCP")
-			}
+			failOnError(err, "Failed to create client for OCP")
 		}
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
 
-	err = autoMigrationWithLeader(autoMigrationLeader, db, log)
-	if err != nil {
-		log.WithError(err).Fatal("Failed auto migration process")
-	}
+	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead)
@@ -298,11 +264,9 @@ func main() {
 	hostStateMonitor.Start()
 	defer hostStateMonitor.Stop()
 
-	if newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL); err != nil {
-		log.WithError(err).Fatalf("failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
-	} else {
-		Options.BMConfig.S3EndpointURL = newUrl
-	}
+	newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL)
+	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
+	Options.BMConfig.S3EndpointURL = newUrl
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, lead, pullSecretValidator, versionHandler)
@@ -346,9 +310,7 @@ func main() {
 		InnerMiddleware:       innerHandler(),
 		ManifestsAPI:          manifestsApi,
 	})
-	if err != nil {
-		log.Fatal("Failed to init rest handler,", err)
-	}
+	failOnError(err, "Failed to init rest handler")
 
 	if Options.Auth.AllowedDomains != "" {
 		allowedDomains := strings.Split(strings.ReplaceAll(Options.Auth.AllowedDomains, " ", ""), ",")
@@ -371,24 +333,45 @@ func main() {
 				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
 				"assisted-service-baseiso-helper",
 				log.WithField("pkg", "baseISOUploadLeader"))
-			err = uploadBaseISOWithLeader(baseISOUploadLeader, objectHandler, generator, log)
-			if err != nil {
-				log.WithError(err).Fatal("Failed uploading base ISO")
-			}
+			failOnError(uploadBaseISOWithLeader(baseISOUploadLeader, objectHandler, generator, log),
+				"Failed uploading base ISO")
 		}()
 	case deployment_type_ocp:
 		go func() {
 			defer apiEnabler.Enable()
-			err = bm.RegisterOCPCluster(context.Background())
-			if err != nil {
-				log.WithError(err).Fatal("Failed to create OCP cluster")
-			}
+			failOnError(bm.RegisterOCPCluster(context.Background()),
+				"Failed to create OCP cluster")
 		}()
 	default:
 		apiEnabler.Enable()
 	}
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
+}
+
+func setupDB(log logrus.FieldLogger) *gorm.DB {
+	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
+	db, err := gorm.Open("postgres", dbConnectionStr)
+	if err != nil {
+		log.WithError(err).Fatal("Fail to connect to DB")
+	}
+	db.DB().SetMaxIdleConns(0)
+	db.DB().SetMaxOpenConns(0)
+	db.DB().SetConnMaxLifetime(0)
+	return db
+}
+
+func getOCMClient(log logrus.FieldLogger, metrics metrics.API) *ocm.Client {
+	var ocmClient *ocm.Client
+	var err error
+	if Options.Auth.EnableAuth {
+		ocmClient, err = ocm.NewClient(Options.OCMConfig, log.WithField("pkg", "ocm"), metrics)
+		if err != nil {
+			log.WithError(err).Fatal("Failed to Create OCM Client")
+		}
+	}
+	return ocmClient
 }
 
 func createS3Bucket(objectHandler s3wrapper.API) {
