@@ -1,0 +1,68 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - adi.io.my.domain
+  resources:
+  - clusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - adi.io.my.domain
+  resources:
+  - clusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - adi.io.my.domain
+  resources:
+  - hosts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - adi.io.my.domain
+  resources:
+  - hosts/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - adi.io.my.domain
+  resources:
+  - images
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - adi.io.my.domain
+  resources:
+  - images/status
+  verbs:
+  - get
+  - patch
+  - update

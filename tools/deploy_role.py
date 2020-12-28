@@ -1,4 +1,5 @@
 import os
+import shutil
 import utils
 import deployment_options
 
@@ -28,6 +29,35 @@ def main():
         profile=deploy_options.profile,
         file=dst_file
     )
+
+    if deploy_options.enable_kube_api:
+        controller_roles_path = 'internal/controller/config/rbac'
+        src_file = os.path.join(os.getcwd(), controller_roles_path, 'kube_api_roles.yaml')
+        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'kube_api_roles.yaml')
+        with open(src_file, "r") as src:
+            with open(dst_file, "w+") as dst:
+                data = src.read()
+                data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
+                dst.write(data)
+
+        print("Deploying {}".format(dst_file))
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile,
+            file=dst_file
+        )
+
+        src_file = os.path.join(os.getcwd(), controller_roles_path, 'role.yaml')
+        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'controller_roles.yaml')
+        shutil.copy(src_file, dst_file)
+        print("Deploying {}".format(dst_file))
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile,
+            file=dst_file,
+        )
 
 
 if __name__ == "__main__":

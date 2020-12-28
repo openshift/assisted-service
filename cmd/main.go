@@ -23,6 +23,8 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/connectivity"
+	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/domains"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -52,11 +54,15 @@ import (
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 func init() {
@@ -91,6 +97,7 @@ var Options struct {
 	DeletionWorkerInterval      time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
 	ValidationsConfig           validations.Config
 	AssistedServiceISOConfig    assistedserviceiso.Config
+	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -146,6 +153,9 @@ func main() {
 	// Connect to db
 	db := setupDB(log)
 	defer db.Close()
+
+	ctrlMgr, err := createControllerManager()
+	failOnError(err, "failed to create controller manager")
 
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
@@ -346,6 +356,30 @@ func main() {
 		apiEnabler.Enable()
 	}
 
+	go func() {
+		if Options.EnableKubeAPI {
+			failOnError((&controllers.ImageReconciler{
+				Client: ctrlMgr.GetClient(),
+				Log:    log,
+				Scheme: ctrlMgr.GetScheme(),
+			}).SetupWithManager(ctrlMgr), "unable to create controller Image")
+
+			failOnError((&controllers.ClusterReconciler{
+				Client: ctrlMgr.GetClient(),
+				Log:    log,
+				Scheme: ctrlMgr.GetScheme(),
+			}).SetupWithManager(ctrlMgr), "unable to create controller Cluster")
+
+			failOnError((&controllers.HostReconciler{
+				Client: ctrlMgr.GetClient(),
+				Log:    log,
+				Scheme: ctrlMgr.GetScheme(),
+			}).SetupWithManager(ctrlMgr), "unable to create controller Host")
+
+			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
+		}
+	}()
+
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
 }
 
@@ -486,4 +520,20 @@ func uploadBaseISOWithLeader(uploadLeader leader.ElectorInterface, objectHandler
 
 		return objectHandler.UploadFile(ctx, Options.RHCOSBaseImage, s3wrapper.BaseObjectName)
 	})
+}
+
+func createControllerManager() (manager.Manager, error) {
+	if Options.EnableKubeAPI {
+		var schemes = runtime.NewScheme()
+		utilruntime.Must(scheme.AddToScheme(schemes))
+		utilruntime.Must(adiiov1alpha1.AddToScheme(schemes))
+
+		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+			Scheme:           schemes,
+			Port:             9443,
+			LeaderElection:   true,
+			LeaderElectionID: "77190dcb.my.domain",
+		})
+	}
+	return nil, nil
 }

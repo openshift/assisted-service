@@ -50,6 +50,7 @@ def main():
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_TOKEN_URL', 'value': 'http://wiremock.assisted-installer.svc.cluster.local:8080/token'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_ID', 'value': 'mock-ocm-client-id'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_SECRET', 'value': 'mock-ocm-client-secret'})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'ENABLE_KUBE_API', 'value': str(deploy_options.enable_kube_api).lower()})
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
         else:
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Always"
