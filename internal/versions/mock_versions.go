@@ -6,11 +6,10 @@ package versions
 
 import (
 	context "context"
-	reflect "reflect"
-
 	middleware "github.com/go-openapi/runtime/middleware"
 	gomock "github.com/golang/mock/gomock"
 	versions "github.com/openshift/assisted-service/restapi/operations/versions"
+	reflect "reflect"
 )
 
 // MockHandler is a mock of Handler interface

@@ -3049,7 +3049,7 @@ definitions:
         x-nullable: true
       operators:
         $ref: '#/definitions/operators'
-        x-nullable: true        
+        x-nullable: true
 
   cluster-update-params:
     type: object
@@ -3060,6 +3060,13 @@ definitions:
         maxLength: 54
         description: OpenShift cluster name.
         x-nullable: true
+      high_availability_mode:
+        type: string
+        enum: ['Full', 'None']
+        default: 'Full'
+        description: |
+          Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+          over multiple master nodes whereas 'None' installs a full cluster over one node.
       base_dns_domain:
         type: string
         description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
@@ -3165,7 +3172,7 @@ definitions:
               type: array
               items:
                 $ref: '#/definitions/disk-config-params'
-              
+
       hosts_machine_config_pool_names:
         type: array
         description: The desired machine config pool for hosts associated with the cluster.
@@ -3189,7 +3196,7 @@ definitions:
         x-nullable: true
       operators:
         $ref: '#/definitions/operators'
-        x-nullable: true        
+        x-nullable: true
 
   add-hosts-cluster-create-params:
     type: object
@@ -3227,9 +3234,16 @@ definitions:
         type: string
         enum: ['Cluster', 'AddHostsCluster', 'AddHostsOCPCluster']
         description: |
-          Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link,
-          'AddHostCluster' for cluster that add hosts to existing OCP cluster,
+          Indicates the type of this object. Will be 'Cluster' if this is a complete object,
+          'AddHostsCluster' for cluster that add hosts to existing OCP cluster,
           'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it
+      high_availability_mode:
+        type: string
+        enum: ['Full', 'None']
+        default: 'Full'
+        description: |
+          Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+          over multiple master nodes whereas 'None' installs a full cluster over one node.
       id:
         type: string
         format: uuid
@@ -3411,7 +3425,7 @@ definitions:
       operators:
         $ref: '#/definitions/operators'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:operators_"
-        x-nullable: true        
+        x-nullable: true
 
   image_info:
     type: object

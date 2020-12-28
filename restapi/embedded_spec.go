@@ -4065,6 +4065,15 @@ func init() {
         "email_domain": {
           "type": "string"
         },
+        "high_availability_mode": {
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
+        },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
           "type": "array",
@@ -4135,7 +4144,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link,\n'AddHostCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
           "type": "string",
           "enum": [
             "Cluster",
@@ -4413,6 +4422,15 @@ func init() {
             }
           },
           "x-nullable": true
+        },
+        "high_availability_mode": {
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
         },
         "hosts_machine_config_pool_names": {
           "description": "The desired machine config pool for hosts associated with the cluster.",
@@ -10063,6 +10081,15 @@ func init() {
         "email_domain": {
           "type": "string"
         },
+        "high_availability_mode": {
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
+        },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
           "type": "array",
@@ -10133,7 +10160,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object or 'ClusterLink' if it is just a link,\n'AddHostCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
           "type": "string",
           "enum": [
             "Cluster",
@@ -10398,6 +10425,15 @@ func init() {
             "$ref": "#/definitions/ClusterUpdateParamsDisksSelectedConfigItems0"
           },
           "x-nullable": true
+        },
+        "high_availability_mode": {
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
         },
         "hosts_machine_config_pool_names": {
           "description": "The desired machine config pool for hosts associated with the cluster.",

@@ -6,11 +6,10 @@ package network
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	logrus "github.com/sirupsen/logrus"
+	reflect "reflect"
 )
 
 // MockNtpUtilsAPI is a mock of NtpUtilsAPI interface
