@@ -52,7 +52,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	step.StepType = models.StepTypeInstall
 	step.Command = "bash"
 
-	//get openshift version
+	//get openshift version and HighAvailabilityMode
 	var cluster common.Cluster
 	if err := i.db.First(&cluster, "id = ?", host.ClusterID).Error; err != nil {
 		i.log.Errorf("failed to get cluster %s", host.ClusterID)
@@ -77,7 +77,9 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	cmdArgsTmpl := "podman run -v /dev:/dev:rw -v /opt:/opt:rw {{if .HOST_CA_CERT_PATH}}-v {{.HOST_CA_CERT_PATH}}:{{.HOST_CA_CERT_PATH}}:rw {{end}}-v /run/systemd/journal/socket:/run/systemd/journal/socket --privileged --pid=host --net=host " +
 		"-v /var/log:/var/log:rw --env PULL_SECRET_TOKEN --name assisted-installer {{.INSTALLER}} --role {{.ROLE}} --cluster-id {{.CLUSTER_ID}} " +
 		"--boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}} --mco-image {{.MCO_IMAGE}} " +
-		"--controller-image {{.CONTROLLER_IMAGE}} --url {{.BASE_URL}} --insecure={{.SKIP_CERT_VERIFICATION}} --agent-image {{.AGENT_IMAGE}}"
+		"--controller-image {{.CONTROLLER_IMAGE}} --url {{.BASE_URL}} --insecure={{.SKIP_CERT_VERIFICATION}} --agent-image {{.AGENT_IMAGE}} " +
+		"--high-availability-mode {{.HA_MODE}}"
+
 	data := map[string]string{
 		"BASE_URL":               strings.TrimSpace(i.instructionConfig.ServiceBaseURL),
 		"CLUSTER_ID":             string(host.ClusterID),
@@ -137,6 +139,12 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 	data["BOOT_DEVICE"] = bootdevice
+
+	haMode := models.ClusterHighAvailabilityModeFull
+	if cluster.HighAvailabilityMode != nil {
+		haMode = *cluster.HighAvailabilityMode
+	}
+	data["HA_MODE"] = haMode
 
 	t, err := template.New("cmd").Parse(cmdArgsTmpl)
 	if err != nil {
