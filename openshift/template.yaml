@@ -12,10 +12,10 @@ parameters:
   value: ''
 - name: OPENSHIFT_VERSIONS
   value: ''
-  required: true
+  required: false
 - name: OPENSHIFT_INSTALL_RELEASE_IMAGE
   value: ''
-  required: true
+  required: false
 - name: JWKS_URL # example https://example.com/.well-known/jwks.json
   value: ''
   required: true
