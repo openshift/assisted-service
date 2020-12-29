@@ -1,8 +1,12 @@
-import os
-import utils
 import argparse
+import json
+import os
+
 import yaml
+
 import deployment_options
+import utils
+from handle_ocp_versions import verify_ocp_versions
 
 
 def handle_arguments():
@@ -39,6 +43,7 @@ def get_deployment_tag(args):
 def main():
     log = utils.get_logger('deploy-service-configmap')
     utils.verify_build_directory(deploy_options.namespace)
+    verify_ocp_versions(json.loads(json.loads('"{}"'.format(deploy_options.ocp_versions))))
 
     with open(SRC_FILE, "r") as src:
         with open(DST_FILE, "w+") as dst:

@@ -69,6 +69,7 @@ all: build
 
 ci-lint:
 	${ROOT_DIR}/tools/check-commits.sh
+	${ROOT_DIR}/tools/handle_ocp_versions.py
 	$(MAKE) verify-latest-onprem-config
 
 lint:
