@@ -74,6 +74,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
+	i.log.Info("Install command releaseImage: %s, mcoImage: %s", releaseImage, mcoImage)
 	cmdArgsTmpl := "podman run -v /dev:/dev:rw -v /opt:/opt:rw {{if .HOST_CA_CERT_PATH}}-v {{.HOST_CA_CERT_PATH}}:{{.HOST_CA_CERT_PATH}}:rw {{end}}-v /run/systemd/journal/socket:/run/systemd/journal/socket --privileged --pid=host --net=host " +
 		"-v /var/log:/var/log:rw --env PULL_SECRET_TOKEN --name assisted-installer {{.INSTALLER}} --role {{.ROLE}} --cluster-id {{.CLUSTER_ID}} " +
 		"--boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}} --mco-image {{.MCO_IMAGE}} " +
