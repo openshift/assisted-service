@@ -16,6 +16,7 @@ endif
 define get_service
 minikube -p $(PROFILE) service --url $(1) -n $(NAMESPACE) | sed 's/http:\/\///g'
 endef # get_service
+VERIFY_MINIKUBE = _verify_minikube
 else
 define get_service
 kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}' | \
@@ -159,7 +160,7 @@ publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
 
 build-openshift-ci-test-bin:
-	echo "placeholder for openshift ci image build steps"
+	pip3 install pyyaml waiting
 
 ##########
 # Deploy #
@@ -232,7 +233,9 @@ deploy-service-on-ocp-cluster:
 deploy-ui-on-ocp-cluster:
 	export TARGET=ocp && $(MAKE) deploy-ui
 
-jenkins-deploy-for-subsystem: _verify_minikube generate-keys
+jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
+
+ci-deploy-for-subsystem: $(VERIFY_MINIKUBE) generate-keys
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
 	$(MAKE) deploy-wiremock deploy-all
 
@@ -279,7 +282,10 @@ deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
 deploy-on-openshift-ci:
-	echo "placeholder for deployment on openshift ci"
+	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
+	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && \
+	$(MAKE) ci-deploy-for-subsystem
+	oc get pods
 
 docs:
 	mkdocs build

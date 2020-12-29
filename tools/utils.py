@@ -11,6 +11,7 @@ from typing import Optional
 LOCAL_TARGET = 'minikube'
 INGRESS_REMOTE_TARGET = 'oc-ingress'
 OCP_TARGET = 'ocp'
+OPENSHIFT_CI = 'openshift-ci'
 
 MINIKUBE_CMD = 'minikube'
 KUBECTL_CMD = 'kubectl'
@@ -275,7 +276,7 @@ def get_kubectl_command(target=None, namespace=None, profile=None):
             kubeconfig = "build/kubeconfig"
         cmd += f' --kubeconfig {kubeconfig}'
         return cmd
-    if profile is None or target != LOCAL_TARGET:
+    if profile is None or profile == OPENSHIFT_CI or target != LOCAL_TARGET:
         return cmd
     server = get_minikube_server(profile) if target == LOCAL_TARGET else None
     cmd += f' --server https://{server}:8443'
