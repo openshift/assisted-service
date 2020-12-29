@@ -42,6 +42,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	paramctx "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/db"
+	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -85,6 +86,8 @@ var Options struct {
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
 	OpenshiftVersions           string        `envconfig:"OPENSHIFT_VERSIONS"`
+	ReleaseImageOverride        string        `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE"`
+	ReleaseImageMirror          string        `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	CreateS3Bucket              bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
 	ClusterConfig               cluster.Config
@@ -162,21 +165,26 @@ func main() {
 
 	ocmClient := getOCMClient(log, metricsManager)
 
+	Options.InstructionConfig.ReleaseImageMirror = Options.ReleaseImageMirror
+	Options.JobConfig.ReleaseImageMirror = Options.ReleaseImageMirror
+
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
 	var autoMigrationLeader leader.ElectorInterface
 	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
 	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
-	versionHandler := versions.NewHandler(Options.Versions, openshiftVersionsMap, os.Getenv("OPENSHIFT_INSTALL_RELEASE_IMAGE"))
+	releaseHandler := oc.NewRelease(&executer.CommonExecuter{})
+	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
+		Options.Versions, openshiftVersionsMap, Options.ReleaseImageOverride, Options.ReleaseImageMirror)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
-		oc.NewRelease(), Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler)
+		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler)
 
 	images := []string{
-		Options.JobConfig.ReleaseImageMirror,
+		Options.ReleaseImageMirror,
 		Options.BMConfig.AgentDockerImg,
 		Options.InstructionConfig.InstallerImage,
 		Options.InstructionConfig.ControllerImage,
@@ -185,7 +193,6 @@ func main() {
 		Options.InstructionConfig.FreeAddressesImage,
 		Options.InstructionConfig.DhcpLeaseAllocatorImage,
 		Options.InstructionConfig.APIVIPConnectivityCheckImage,
-		Options.InstructionConfig.ReleaseImageMirror,
 	}
 
 	for _, ocpVersion := range openshiftVersionsMap {

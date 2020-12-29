@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/openshift/assisted-service/internal/oc"
+	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,7 +47,7 @@ func Get(releaseID, releaseIDMirror, cacheDir, pullSecret string, log logrus.Fie
 	var err error
 	//cache miss
 	if r.path == "" {
-		path, err = oc.NewRelease().Extract(log, releaseID, releaseIDMirror, cacheDir, pullSecret)
+		path, err = oc.NewRelease(&executer.CommonExecuter{}).Extract(log, releaseID, releaseIDMirror, cacheDir, pullSecret)
 		if err != nil {
 			return "", err
 		}
