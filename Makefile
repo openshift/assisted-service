@@ -53,7 +53,7 @@ endif
 # That line is checking if we run on minikube
 # check if SERVICE_REPLICAS_COUNT was set and if yes change default value to required one
 # Default for 1 replica
-REPLICAS_COUNT = $(shell if ! [ "${TARGET}" = "minikube" ];then echo 3; else echo $(or ${SERVICE_REPLICAS_COUNT},1);fi)
+REPLICAS_COUNT = $(shell if ! [ "${TARGET}" = "minikube" ] && ! [ "${TARGET}" = "oc" ];then echo 3; else echo $(or ${SERVICE_REPLICAS_COUNT},1);fi)
 
 ifdef INSTALLATION_TIMEOUT
         INSTALLATION_TIMEOUT_FLAG = --installation-timeout $(INSTALLATION_TIMEOUT)
@@ -345,7 +345,8 @@ test-onprem:
 	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
 
 test-on-openshift-ci:
-	echo "placeholder for testing on openshift ci"
+	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && \
+	$(MAKE) test FOCUS="[minimal-set]"
 
 #########
 # Clean #

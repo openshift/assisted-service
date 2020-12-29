@@ -16,6 +16,7 @@ KEY_FILE = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'auth-te
 TEST_CLUSTER_MONITOR_INTERVAL = "1s"
 TEST_HOST_MONITOR_INTERVAL = "1s"
 
+WIREMOCK_SERVICE = "http://wiremock:8080"
 
 def load_key():
     try:
@@ -46,8 +47,8 @@ def main():
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'JWKS_CERT', 'value': load_key()})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'SUBSYSTEM_RUN', 'value': 'True'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'DUMMY_IGNITION', 'value': 'True'})
-            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_BASE_URL', 'value': 'http://wiremock.assisted-installer.svc.cluster.local:8080'})
-            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_TOKEN_URL', 'value': 'http://wiremock.assisted-installer.svc.cluster.local:8080/token'})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_BASE_URL', 'value': WIREMOCK_SERVICE})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_TOKEN_URL', 'value': WIREMOCK_SERVICE + '/token'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_ID', 'value': 'mock-ocm-client-id'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_SECRET', 'value': 'mock-ocm-client-secret'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'ENABLE_KUBE_API', 'value': str(deploy_options.enable_kube_api).lower()})

@@ -2,6 +2,7 @@ package subsystem
 
 import (
 	"context"
+	"os"
 	"os/user"
 	"path"
 	"time"
@@ -102,6 +103,14 @@ func verifySingleLeader(tests []*Test) {
 	Expect(count == 1).Should(Equal(true))
 }
 
+func getKubeconfig() string {
+	kcEnv := os.Getenv("KUBECONFIG")
+	if kcEnv != "" {
+		return kcEnv
+	}
+	return path.Join(getHomeDir(), ".kube/config")
+}
+
 func getHomeDir() string {
 	usr, err := user.Current()
 	if err != nil {
@@ -117,7 +126,8 @@ var _ = Describe("Leader tests", func() {
 	}
 
 	configMapName := "leader-test"
-	kubeconfig := path.Join(getHomeDir(), ".kube/config")
+
+	kubeconfig := getKubeconfig()
 	if kubeconfig == "" {
 		panic("--kubeconfig must be provided")
 	}
