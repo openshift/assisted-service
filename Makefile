@@ -394,4 +394,5 @@ ifdef ENABLE_KUBE_API
 	controller-gen $(CRD_OPTIONS) rbac:roleName=manager-role paths="./..." output:rbac:dir=$(CONTROLLER_RBAC_PATH) \
 		webhook paths="./..." output:crd:artifacts:config=$(CONTROLLER_CRD_PATH)/bases
 	kustomize build $(CONTROLLER_CRD_PATH) > $(BUILD_FOLDER)/resources.yaml
+	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
 endif
