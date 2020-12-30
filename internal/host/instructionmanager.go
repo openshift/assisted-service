@@ -61,7 +61,7 @@ type InstructionConfig struct {
 	SkipCertVerification         bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 	SupportL2                    bool   `envconfig:"SUPPORT_L2" default:"true"`
 	InstallationTimeout          uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
-	ReleaseImageMirror           string
+	ReleaseImageMirror           string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,

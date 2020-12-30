@@ -18,6 +18,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
 	github.com/fsouza/go-dockerclient v1.6.6 // indirect
+	github.com/go-logr/logr v0.1.0 // indirect
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/loads v0.19.5
 	github.com/go-openapi/runtime v0.19.20
@@ -28,7 +29,6 @@ require (
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.1.1
-	github.com/hashicorp/go-version v1.2.1
 	github.com/iancoleman/strcase v0.1.2
 	github.com/jinzhu/gorm v1.9.12
 	github.com/json-iterator/go v1.1.10 // indirect
@@ -42,11 +42,13 @@ require (
 	github.com/openshift-online/ocm-sdk-go v0.1.130
 	github.com/openshift/api v0.0.0-20200326152221-912866ddb162
 	github.com/openshift/client-go v0.0.0-20200422192633-6f6c07fc2a70
+	github.com/openshift/origin v0.0.0-20160503220234-8f127d736703 // indirect
 	github.com/ory/dockertest/v3 v3.6.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.6.0
+	github.com/prometheus/common v0.9.1 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/slok/go-http-metrics v0.8.0

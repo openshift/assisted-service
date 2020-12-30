@@ -42,8 +42,8 @@ type Config struct {
 	ServiceCACertPath   string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	ServiceIPs          string        `envconfig:"SERVICE_IPS" default:""`
 	//[TODO] -  change the default of Releae image to "", once everyine wll update their environment
-	SubsystemRun         bool `envconfig:"SUBSYSTEM_RUN"`
-	ReleaseImageMirror   string
+	SubsystemRun         bool   `envconfig:"SUBSYSTEM_RUN"`
+	ReleaseImageMirror   string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	SkipCertVerification bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 	WorkDir              string `envconfig:"WORK_DIR" default:"/data/"`
 	DummyIgnition        bool   `envconfig:"DUMMY_IGNITION"`
