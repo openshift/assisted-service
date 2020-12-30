@@ -1589,7 +1589,7 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 		return common.GenerateErrorResponder(err)
 	}
 
-	err = b.updateHostsData(ctx, params, tx, log)
+	err = b.updateHostsData(ctx, &cluster, params, tx, log)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -1944,7 +1944,19 @@ func (b *bareMetalInventory) updateHostsMachineConfigPoolNames(ctx context.Conte
 	return nil
 }
 
-func (b *bareMetalInventory) updateHostsData(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) resetHostsNTPSources(ctx context.Context, cluster *common.Cluster, db *gorm.DB, log logrus.FieldLogger) error {
+	for _, h := range cluster.Hosts {
+		log.Infof("Reset host %s ntp sources", *h.ID)
+		if err := b.hostApi.UpdateNTP(ctx, h, []*models.NtpSource{}, db); err != nil {
+			log.WithError(err).Errorf("failed to UpdateNTP for host %s ", *h.ID)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostsData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	if err := b.updateHostRoles(ctx, params, db, log); err != nil {
 		return err
 	}
@@ -1959,6 +1971,13 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 
 	if err := b.updateHostsMachineConfigPoolNames(ctx, params, db, log); err != nil {
 		return err
+	}
+
+	// Reset NTP sources after a new additionalNTPSource is set
+	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
+		if err := b.resetHostsNTPSources(ctx, cluster, db, log); err != nil {
+			return err
+		}
 	}
 
 	return nil

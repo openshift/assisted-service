@@ -1449,13 +1449,22 @@ var _ = Describe("cluster", func() {
 	})
 
 	addHost := func(hostId strfmt.UUID, role models.HostRole, state, kind string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
+		toMarshal := []*models.NtpSource{
+			{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced},
+			{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable},
+		}
+
+		marshalledNTPSources, err := json.Marshal(toMarshal)
+		Expect(err).ShouldNot(HaveOccurred())
+
 		host := models.Host{
-			ID:        &hostId,
-			ClusterID: clusterId,
-			Status:    swag.String(state),
-			Kind:      swag.String(kind),
-			Role:      role,
-			Inventory: inventory,
+			ID:         &hostId,
+			ClusterID:  clusterId,
+			Status:     swag.String(state),
+			Kind:       swag.String(kind),
+			Role:       role,
+			Inventory:  inventory,
+			NtpSources: string(marshalledNTPSources),
 		}
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		return host
@@ -2612,6 +2621,7 @@ var _ = Describe("cluster", func() {
 				Context("NTP", func() {
 					It("Empty NTP source", func() {
 						mockSuccess(1)
+						mockHostApi.EXPECT().UpdateNTP(gomock.Any(), gomock.Any(), []*models.NtpSource{}, gomock.Any()).Return(nil).Times(3)
 
 						ntpSource := ""
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -2627,6 +2637,7 @@ var _ = Describe("cluster", func() {
 
 					It("Valid IP NTP source", func() {
 						mockSuccess(1)
+						mockHostApi.EXPECT().UpdateNTP(gomock.Any(), gomock.Any(), []*models.NtpSource{}, gomock.Any()).Return(nil).Times(3)
 
 						ntpSource := "1.1.1.1"
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -2642,6 +2653,7 @@ var _ = Describe("cluster", func() {
 
 					It("Valid Hostname NTP source", func() {
 						mockSuccess(1)
+						mockHostApi.EXPECT().UpdateNTP(gomock.Any(), gomock.Any(), []*models.NtpSource{}, gomock.Any()).Return(nil).Times(3)
 
 						ntpSource := "clock.redhat.com"
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -2658,6 +2670,7 @@ var _ = Describe("cluster", func() {
 
 					It("Valid comma-separated NTP sources", func() {
 						mockSuccess(1)
+						mockHostApi.EXPECT().UpdateNTP(gomock.Any(), gomock.Any(), []*models.NtpSource{}, gomock.Any()).Return(nil).Times(3)
 
 						ntpSource := "clock.redhat.com,1.1.1.1"
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{

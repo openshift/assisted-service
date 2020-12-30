@@ -841,6 +841,14 @@ var _ = Describe("cluster install", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(reply.Payload.AdditionalNtpSource).Should(Equal(newSource))
 
+					emptyMarshalledNtpSources, err := json.Marshal([]*models.NtpSource{})
+					Expect(err).ShouldNot(HaveOccurred())
+
+					// Verify hosts NTP sources been resetted
+					for _, host := range reply.Payload.Hosts {
+						Expect(host.NtpSources).Should(Equal(string(emptyMarshalledNtpSources)))
+					}
+
 					step, ok := getStepInList(getNextSteps(clusterID, *hosts[0].ID), models.StepTypeNtpSynchronizer)
 					Expect(ok).Should(Equal(true))
 
