@@ -1701,6 +1701,48 @@ var _ = Describe("cluster", func() {
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 			})
 
+			It("update role in none ha mode, must fail", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				noneHaMode := models.ClusterHighAvailabilityModeNone
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                   &clusterID,
+					HighAvailabilityMode: &noneHaMode,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				testRole := models.ClusterUpdateParamsHostsRolesItems0{ID: masterHostId1, Role: models.HostRoleUpdateParamsMaster}
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{&testRole},
+					},
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
+			It("update usernetworkmode in none ha mode", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				noneHaMode := models.ClusterHighAvailabilityModeNone
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                   &clusterID,
+					HighAvailabilityMode: &noneHaMode,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("set false for usernetworkmode must fail")
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				userNetMode := false
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						UserManagedNetworking: &userNetMode,
+					},
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
 			It("LSO install default value", func() {
 				mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
 				mockEvents.EXPECT().

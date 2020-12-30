@@ -1502,6 +1502,22 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 	return nil
 }
 
+func (b *bareMetalInventory) noneHaModeClusterUpdateValidations(cluster *common.Cluster, params installer.UpdateClusterParams) error {
+	if swag.StringValue(cluster.HighAvailabilityMode) != models.ClusterHighAvailabilityModeNone {
+		return nil
+	}
+
+	if len(params.ClusterUpdateParams.HostsRoles) > 0 {
+		return errors.Errorf("setting host role is not allowed in single node mode")
+	}
+
+	if params.ClusterUpdateParams.UserManagedNetworking != nil && !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) {
+		return errors.Errorf("disabling UserManagedNetworking is not allowed in single node mode")
+	}
+
+	return nil
+}
+
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
@@ -1577,6 +1593,11 @@ func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer
 	if err = b.clusterApi.VerifyClusterUpdatability(&cluster); err != nil {
 		log.WithError(err).Errorf("cluster %s can't be updated in current state", params.ClusterID)
 		return installer.NewUpdateClusterConflict().WithPayload(common.GenerateError(http.StatusConflict, err))
+	}
+
+	if err = b.noneHaModeClusterUpdateValidations(&cluster, params); err != nil {
+		log.WithError(err).Warnf("Unsupported update params in none ha mode")
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if err = b.validateDNSDomain(params, log); err != nil {
@@ -1836,6 +1857,7 @@ func optionalParam(data *string, field string, updates map[string]interface{}) {
 }
 
 func (b *bareMetalInventory) updateHostRoles(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+
 	for i := range params.ClusterUpdateParams.HostsRoles {
 		log.Infof("Update host %s to role: %s", params.ClusterUpdateParams.HostsRoles[i].ID,
 			params.ClusterUpdateParams.HostsRoles[i].Role)
