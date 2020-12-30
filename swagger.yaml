@@ -2095,6 +2095,7 @@ paths:
       tags:
         - installer
       security:
+        - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
       summary: Downloads the customized ignition file for this host
       operationId: DownloadHostIgnition
