@@ -2297,6 +2297,13 @@ func init() {
       "get": {
         "security": [
           {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
             "agentAuth": []
           }
         ],
@@ -8224,6 +8231,13 @@ func init() {
     "/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition": {
       "get": {
         "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
           {
             "agentAuth": []
           }
