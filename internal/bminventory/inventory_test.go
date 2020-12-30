@@ -1667,7 +1667,7 @@ var _ = Describe("cluster", func() {
 						APIVip: &apiVip,
 					},
 				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterConflict()))
+				Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusConflict, errors.Errorf("error"))))
 			})
 
 			It("Invalid pull-secret", func() {
@@ -1678,7 +1678,7 @@ var _ = Describe("cluster", func() {
 						PullSecret: &pullSecret,
 					},
 				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterBadRequest()))
+				Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
 			})
 
 			It("pull-secret with newline", func() {
@@ -1850,7 +1850,7 @@ var _ = Describe("cluster", func() {
 						PullSecret: &pullSecret,
 					},
 				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterNotFound()))
+				Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
 			})
 
 			It("Update UserManagedNetworking", func() {
@@ -3617,7 +3617,7 @@ var _ = Describe("Get unregistered clusters", func() {
 		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
 		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
 		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
-		Expect(resp).Should(BeAssignableToTypeOf(installer.NewGetClusterNotFound()))
+		Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
 	})
 
 	It("Get unregistered clusters failure - not an admin user", func() {
@@ -3627,7 +3627,7 @@ var _ = Describe("Get unregistered clusters", func() {
 		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
 		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
 		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
-		Expect(resp).Should(BeAssignableToTypeOf(installer.NewGetClusterForbidden()))
+		Expect(resp).Should(BeAssignableToTypeOf(common.NewInfraError(http.StatusForbidden, errors.Errorf(""))))
 	})
 })
 
@@ -5087,7 +5087,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}`),
 			},
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterInternalServerError()))
+		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusInternalServerError, errors.Errorf("error"))))
 	})
 
 	It("cluster api failed to register with invalid pull secret", func() {
@@ -5102,7 +5102,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				PullSecret:       swag.String(""),
 			},
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterBadRequest()))
+		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
 
 	It("openshift version not supported", func() {
@@ -5115,7 +5115,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				PullSecret:       swag.String(""),
 			},
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterBadRequest()))
+		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
 })
 
