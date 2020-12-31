@@ -369,9 +369,9 @@ clear-images:
 	-docker rmi -f $(ISO_CREATION)
 
 clean-onprem:
-	podman pod rm -f assisted-installer | true
-	rm livecd.iso | true
-	rm coreos-installer | true
+	podman pod rm -f assisted-installer || true
+	rm livecd.iso || true
+	rm coreos-installer || true
 
 delete-minikube-profile:
 	minikube delete -p $(PROFILE)
