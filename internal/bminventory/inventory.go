@@ -4178,7 +4178,17 @@ func formatStaticIPs(staticIpsConfig []*models.StaticIPConfig) string {
 
 	// construct static IPs config string
 	for i, entry := range staticIpsConfig {
-		lines[i] = fmt.Sprintf("%s;%s;%s;%s;%s", entry.Mac, entry.IP, entry.Mask, entry.DNS, entry.Gateway)
+		elements := []string{
+			entry.Mac,
+			entry.IP,
+			entry.Mask,
+			entry.DNS,
+			entry.Gateway,
+			entry.IPV6,
+			entry.MaskV6,
+			entry.DNSV6,
+			entry.GatewayV6}
+		lines[i] = strings.Join(elements, ";")
 	}
 
 	sort.Strings(lines)
