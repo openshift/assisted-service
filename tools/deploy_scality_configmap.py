@@ -2,13 +2,13 @@ import os
 import utils
 import deployment_options
 
-def main():
+def deploy(src_file):
     deploy_options = deployment_options.load_deployment_options()
 
     utils.verify_build_directory(deploy_options.namespace)
 
-    src_file = os.path.join(os.getcwd(), 'deploy/s3/scality-secret.yaml')
-    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'scality-secret.yaml')
+    src_file = os.path.join(os.getcwd(), src_file)
+    dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, os.path.basename(src_file))
     scality_url = "http://cloudserver-front:8000"
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
@@ -24,6 +24,9 @@ def main():
         file=dst_file
     )
 
+def main():
+    deploy('deploy/s3/scality-secret.yaml')
+    deploy('deploy/s3/scality-public-secret.yaml')
 
 if __name__ == "__main__":
     main()

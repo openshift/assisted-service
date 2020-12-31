@@ -19,6 +19,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/bootfiles"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -89,7 +90,6 @@ var Options struct {
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
 	ClusterConfig               cluster.Config
 	DeployTarget                string `envconfig:"DEPLOY_TARGET" default:"k8s"`
-	RHCOSBaseImage              string `envconfig:"RHCOS_BASE_IMAGE" default:""`
 	OCMConfig                   ocm.Config
 	HostConfig                  host.Config
 	LogConfig                   logconfig.Config
@@ -251,6 +251,9 @@ func main() {
 			ocpClient, err = k8sclient.NewK8SClient("", log)
 			failOnError(err, "Failed to create client for OCP")
 		}
+
+		err = objectHandler.UploadBootFiles(context.Background())
+		failOnError(err, "Failed uploading boot files")
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
@@ -263,6 +266,7 @@ func main() {
 	ntpUtils := network.NewNtpUtils(manifestsApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		eventsHandler, hostApi, metricsManager, ntpUtils, lead)
+	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
 
 	clusterStateMonitor := thread.New(
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
@@ -319,6 +323,7 @@ func main() {
 		ManagedDomainsAPI:     domainHandler,
 		InnerMiddleware:       innerHandler(),
 		ManifestsAPI:          manifestsApi,
+		BootfilesAPI:          bootFilesApi,
 	})
 	failOnError(err, "Failed to init rest handler")
 
@@ -343,8 +348,10 @@ func main() {
 				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
 				"assisted-service-baseiso-helper",
 				log.WithField("pkg", "baseISOUploadLeader"))
-			failOnError(uploadBaseISOWithLeader(baseISOUploadLeader, objectHandler, generator, log),
-				"Failed uploading base ISO")
+
+			failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), func() error {
+				return objectHandler.UploadBootFiles(context.Background())
+			}), "Failed uploading boot files")
 		}()
 	case deployment_type_ocp:
 		go func() {
@@ -413,6 +420,9 @@ func createS3Bucket(objectHandler s3wrapper.API) {
 		if err := objectHandler.CreateBucket(); err != nil {
 			log.Fatal(err)
 		}
+		if err := objectHandler.CreatePublicBucket(); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -464,61 +474,6 @@ func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.D
 		log.Info("Finished manual migrations")
 
 		return nil
-	})
-}
-
-func uploadBaseISOWithLeader(uploadLeader leader.ElectorInterface, objectHandler s3wrapper.API, generator generator.ISOInstallConfigGenerator, log logrus.FieldLogger) error {
-
-	ctx := context.Background()
-
-	if Options.RHCOSBaseImage == "" {
-		s3wrapper.BaseObjectName = s3wrapper.RHCOSBaseObjectName
-	} else {
-		// Need to get the volume id from the ISO provided
-		iso, err := os.Open(Options.RHCOSBaseImage)
-		if err != nil {
-			log.WithError(err).Fatal("Failed to open provided base image for inspection")
-			return err
-		}
-		defer iso.Close()
-
-		// Need a method to identify the ISO provided
-		// The first 32768 bytes are unused by the ISO 9660 standard, typically for bootable media
-		// This is where the data area begins and the 32 byte string representing the volume identifier
-		// is offset 40 bytes into the primary volume descriptor
-		volumeId := make([]byte, 32)
-		_, err = iso.ReadAt(volumeId, 32808)
-		if err != nil {
-			log.WithError(err).Fatal("Failed to read volume id from provided base image")
-			return err
-		}
-		// TODO: Should we verify that the volume id is of the form `rhcos-<version>`?
-		s3wrapper.BaseObjectName = strings.TrimSpace(string(volumeId)) + ".iso"
-	}
-
-	return uploadLeader.RunWithLeader(ctx, func() error {
-		log.Info("Checking for Base ISO")
-		exists, err := objectHandler.DoesObjectExist(ctx, s3wrapper.BaseObjectName)
-		if err != nil {
-			return err
-		}
-		if exists {
-			log.Info("Base ISO exists, skipping upload job")
-			return nil
-		}
-
-		log.Info("Starting Base ISO upload")
-		// If not provided to the assisted-service, use fallback URL
-		if Options.RHCOSBaseImage == "" {
-			resp, err := http.Get(s3wrapper.RHCOSBaseURL)
-			if err != nil {
-				return err
-			}
-			defer resp.Body.Close()
-			return objectHandler.UploadStream(ctx, resp.Body, s3wrapper.BaseObjectName)
-		}
-
-		return objectHandler.UploadFile(ctx, Options.RHCOSBaseImage, s3wrapper.BaseObjectName)
 	})
 }
 

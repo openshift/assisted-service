@@ -30,17 +30,42 @@ spec:
                 secretKeyRef:
                   name: assisted-installer-s3
                   key: aws_access_key_id
-            - name: AWS_REGION
+            - name: S3_REGION
               valueFrom:
                 secretKeyRef:
                   name: assisted-installer-s3
                   key: aws_region
-            - name: BUCKET
+            - name: S3_BUCKET
               valueFrom:
                 secretKeyRef:
                   name: assisted-installer-s3
                   key: bucket
             - name: S3_ENDPOINT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: endpoint
+            - name: AWS_SECRET_ACCESS_KEY_PUBLIC
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: aws_secret_access_key
+            - name: AWS_ACCESS_KEY_ID_PUBLIC
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: aws_access_key_id
+            - name: S3_REGION_PUBLIC
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: aws_region
+            - name: S3_BUCKET_PUBLIC
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: bucket
+            - name: S3_ENDPOINT_URL_PUBLIC
               valueFrom:
                 secretKeyRef:
                   name: assisted-installer-s3

@@ -15,6 +15,7 @@ require (
 	github.com/coreos/ignition/v2 v2.6.0
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/diskfs/go-diskfs v1.1.2-0.20201217091417-af766c9708d3
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
 	github.com/fsouza/go-dockerclient v1.6.6 // indirect
@@ -48,7 +49,7 @@ require (
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.6.0
-	github.com/prometheus/common v0.9.1 // indirect
+	github.com/prometheus/common v0.9.1
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/slok/go-http-metrics v0.8.0

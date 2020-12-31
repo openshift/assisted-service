@@ -32,10 +32,11 @@ type ISOUploaderAPI interface {
 var _ ISOUploaderAPI = &ISOUploader{}
 
 type ISOUploader struct {
-	log       logrus.FieldLogger
-	s3client  s3iface.S3API
-	bucket    string
-	infoCache []isoInfo
+	log          logrus.FieldLogger
+	s3client     s3iface.S3API
+	bucket       string
+	publicBucket string
+	infoCache    []isoInfo
 }
 
 type isoInfo struct {
@@ -45,15 +46,15 @@ type isoInfo struct {
 	areaLengthBytes int64
 }
 
-func NewISOUploader(logger logrus.FieldLogger, s3Client s3iface.S3API, bucket string) *ISOUploader {
-	return &ISOUploader{log: logger, s3client: s3Client, bucket: bucket}
+func NewISOUploader(logger logrus.FieldLogger, s3Client s3iface.S3API, bucket, publicBucket string) *ISOUploader {
+	return &ISOUploader{log: logger, s3client: s3Client, bucket: bucket, publicBucket: publicBucket}
 }
 
 func (u *ISOUploader) UploadISO(ctx context.Context, ignitionConfig, objectName string) error {
 	log := logutil.FromContext(ctx, u.log)
 	log.Debugf("Started upload of ISO %s", objectName)
 
-	baseISOInfo, origContents, err := u.getISOInfo(BaseObjectName, log)
+	baseISOInfo, origContents, err := u.getISOInfo(RHCOSBaseObjectName, log)
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to fetch base ISO information")
 		log.Error(err)
@@ -66,7 +67,7 @@ func (u *ISOUploader) UploadISO(ctx context.Context, ignitionConfig, objectName 
 		uploader:        u,
 		isoInfo:         baseISOInfo,
 		origContents:    origContents,
-		sourceObjectKey: BaseObjectName,
+		sourceObjectKey: RHCOSBaseObjectName,
 		destObjectKey:   objectName,
 	}
 	err = upload.Upload(ignitionConfig)
@@ -84,7 +85,7 @@ func (u *ISOUploader) getISOInfo(baseObjectName string, log logrus.FieldLogger) 
 
 	// Get ETag from S3
 	headResp, err := u.s3client.HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(u.bucket),
+		Bucket: aws.String(u.publicBucket),
 		Key:    aws.String(baseObjectName),
 	})
 	if err != nil {
@@ -118,7 +119,7 @@ func (u *ISOUploader) getISOInfo(baseObjectName string, log logrus.FieldLogger) 
 
 		var getRest *s3.GetObjectOutput
 		getRest, err = u.s3client.GetObject(&s3.GetObjectInput{
-			Bucket: aws.String(u.bucket),
+			Bucket: aws.String(u.publicBucket),
 			Key:    aws.String(baseObjectName),
 			Range:  aws.String(fmt.Sprintf("bytes=%d-%d", offset, offset+minimumPartSizeBytes-1)),
 		})
@@ -158,17 +159,17 @@ func (u *ISOUploader) getISOInfo(baseObjectName string, log logrus.FieldLogger) 
 func (u *ISOUploader) getISOHeaderInfo(log logrus.FieldLogger, baseObjectName string, baseObjectSize int64) (offset int64, length int64, err error) {
 	// Download header of the live ISO (last 24 bytes of the first 32KB)
 	getResp, err := u.s3client.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(u.bucket),
+		Bucket: aws.String(u.publicBucket),
 		Key:    aws.String(baseObjectName),
 		Range:  aws.String("bytes=32744-32767"),
 	})
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get header of object %s from bucket %s", baseObjectName, u.bucket)
+		log.WithError(err).Errorf("Failed to get header of object %s from bucket %s", baseObjectName, u.publicBucket)
 		return
 	}
 	headerString, err := ioutil.ReadAll(getResp.Body)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to read header of object %s from bucket %s", baseObjectName, u.bucket)
+		log.WithError(err).Errorf("Failed to read header of object %s from bucket %s", baseObjectName, u.publicBucket)
 		return
 	}
 
@@ -368,7 +369,7 @@ func (m *multiUpload) uploadPartCopy(c chunk) error {
 	completedPartCopy, err := m.uploader.s3client.UploadPartCopyWithContext(m.ctx, &s3.UploadPartCopyInput{
 		Bucket:          aws.String(m.uploader.bucket),
 		Key:             aws.String(m.destObjectKey),
-		CopySource:      aws.String(fmt.Sprintf("/%s/%s", m.uploader.bucket, m.sourceObjectKey)),
+		CopySource:      aws.String(fmt.Sprintf("/%s/%s", m.uploader.publicBucket, m.sourceObjectKey)),
 		CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", c.sourceStartBytes, c.sourceEndBytes)),
 		PartNumber:      aws.Int64(c.partNum),
 		UploadId:        aws.String(m.uploadID),

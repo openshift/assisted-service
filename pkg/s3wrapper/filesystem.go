@@ -20,8 +20,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// baseISOName is the filename for the base ISO
-const baseISOName = "livecd.iso"
+// FSBaseISOName is the filename for the base ISO
+const FSBaseISOName = "livecd.iso"
 
 type FSClient struct {
 	log     logrus.FieldLogger
@@ -37,6 +37,10 @@ func (f *FSClient) IsAwsS3() bool {
 }
 
 func (f *FSClient) CreateBucket() error {
+	return nil
+}
+
+func (f *FSClient) CreatePublicBucket() error {
 	return nil
 }
 
@@ -68,10 +72,14 @@ func (f *FSClient) UploadFile(ctx context.Context, filePath, objectName string) 
 	return f.Upload(ctx, data, objectName)
 }
 
+func (f *FSClient) UploadFileToPublicBucket(ctx context.Context, filePath, objectName string) error {
+	return f.UploadFile(ctx, filePath, objectName)
+}
+
 func (f *FSClient) UploadISO(ctx context.Context, ignitionConfig, objectPrefix string) error {
 	log := logutil.FromContext(ctx, f.log)
 	resultFile := filepath.Join(f.basedir, fmt.Sprintf("%s.iso", objectPrefix))
-	baseFile := filepath.Join(f.basedir, baseISOName)
+	baseFile := filepath.Join(f.basedir, FSBaseISOName)
 	err := os.Remove(resultFile)
 	if err != nil && !os.IsNotExist(err) {
 		log.Error("error attempting to remove any pre-existing ISO")
@@ -115,23 +123,30 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 	}()
 	for {
 		length, err := reader.Read(buffer)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
+		if err != nil && err != io.EOF {
 			err = errors.Wrapf(err, "Unable to read data for upload to file %s", filePath)
 			log.Error(err)
 			return err
 		}
-		if _, err := fo.Write(buffer[0:length]); err != nil {
-			err = errors.Wrapf(err, "Unable to write data to file %s", filePath)
-			log.Error(err)
-			return err
+		if length > 0 {
+			if _, writeErr := fo.Write(buffer[0:length]); writeErr != nil {
+				writeErr = errors.Wrapf(err, "Unable to write data to file %s", filePath)
+				log.Error(writeErr)
+				return writeErr
+			}
+		}
+
+		if err == io.EOF {
+			break
 		}
 	}
 
 	log.Infof("Successfully uploaded file %s", objectName)
 	return nil
+}
+
+func (f *FSClient) UploadStreamToPublicBucket(ctx context.Context, reader io.Reader, objectName string) error {
+	return f.UploadStream(ctx, reader, objectName)
 }
 
 func (f *FSClient) Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
@@ -169,6 +184,10 @@ func (f *FSClient) DoesObjectExist(ctx context.Context, objectName string) (bool
 		return false, errors.New(fmt.Sprintf("Expected %s to be a file but found as directory", objectName))
 	}
 	return true, nil
+}
+
+func (f *FSClient) DoesPublicObjectExist(ctx context.Context, objectName string) (bool, error) {
+	return f.DoesObjectExist(ctx, objectName)
 }
 
 func (f *FSClient) DeleteObject(ctx context.Context, objectName string) (bool, error) {
@@ -275,4 +294,48 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 		return nil, err
 	}
 	return matches, nil
+}
+
+func (f *FSClient) UploadBootFiles(ctx context.Context) error {
+	log := logutil.FromContext(ctx, f.log)
+	isoObjectName := FSBaseISOName
+	isoURL := RHCOSBaseURL
+
+	exist, err := f.DoAllBootFilesExist(ctx)
+	if err != nil {
+		return err
+	}
+	if exist {
+		return nil
+	}
+
+	exists, err := f.DoesObjectExist(ctx, isoObjectName)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		err = UploadFromURLToPublicBucket(ctx, isoObjectName, isoURL, f)
+		if err != nil {
+			return err
+		}
+		log.Infof("Successfully uploaded object %s", isoObjectName)
+	}
+
+	isoFilePath := filepath.Join(f.basedir, isoObjectName)
+
+	return ExtractBootFilesFromISOAndUpload(ctx, log, isoFilePath, isoObjectName, isoURL, f)
+}
+
+func (f *FSClient) DoAllBootFilesExist(ctx context.Context) (bool, error) {
+	return DoAllBootFilesExist(ctx, FSBaseISOName, f)
+}
+
+func (f *FSClient) DownloadBootFile(ctx context.Context, fileType string) (io.ReadCloser, string, int64, error) {
+	objectName := BootFileTypeToObjectName(FSBaseISOName, fileType)
+	reader, contentLength, err := f.Download(ctx, objectName)
+	return reader, objectName, contentLength, err
+}
+
+func (f *FSClient) GetS3BootFileURL(fileType string) string {
+	return ""
 }

@@ -2473,6 +2473,44 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /boot-files:
+    get:
+      tags:
+        - bootfiles
+      security: []
+      summary: Downloads files used for booting servers.
+      operationId: DownloadBootFiles
+      produces:
+        - application/octet-stream
+      parameters:
+        - in: query
+          name: file_type
+          type: string
+          enum: [initrd.img, rootfs.img, vmlinuz]
+          required: true
+      responses:
+        200:
+          description: Success.
+          schema:
+            type: file
+        307:
+          description: Redirect.
+          headers:
+            Location:
+              type: string
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /assisted-service-iso:
     post:
       tags:
