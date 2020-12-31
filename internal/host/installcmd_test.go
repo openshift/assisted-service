@@ -377,7 +377,7 @@ func validateInstallCommand(reply *models.Step, role models.HostRole, clusterId 
 	fioPerfCheckCmd := "podman run --privileged --net=host --rm --quiet -v /dev:/dev:rw -v /var/log:/var/log " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 		"quay.io/ocpmetal/assisted-installer-agent:latest fio_perf_check " +
-		"\"{\\\"duration_threshold\\\":20,\\\"exit_code\\\":222,\\\"path\\\":\\\"/dev/sdb\\\"}\" && "
+		"\"{\\\"duration_threshold\\\":1000,\\\"exit_code\\\":222,\\\"path\\\":\\\"/dev/sdb\\\"}\" && "
 
 	installCommand = fioPerfCheckCmd + installCommand
 
