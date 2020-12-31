@@ -1,15 +1,14 @@
 package host
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
+	"github.com/alessio/shellescape"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/versions"
 
@@ -32,6 +31,15 @@ type installCmd struct {
 	instructionConfig InstructionConfig
 	eventsHandler     events.Handler
 	versionsHandler   versions.Handler
+}
+
+var podmanBaseCmd = [...]string{
+	"podman", "run", "--privileged", "--pid=host", "--net=host", "--name=assisted-installer",
+	"--volume", "/dev:/dev:rw",
+	"--volume", "/opt:/opt:rw",
+	"--volume", "/var/log:/var/log:rw",
+	"--volume", "/run/systemd/journal/socket:/run/systemd/journal/socket",
+	"--env=PULL_SECRET_TOKEN",
 }
 
 func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
@@ -59,101 +67,13 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	var role = host.Role
-	if host.Bootstrap {
-		role = models.HostRoleBootstrap
-	}
-
-	releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	mcoImage, err := i.ocRelease.GetMCOImage(i.log, releaseImage, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	i.log.Infof("Install command releaseImage: %s, mcoImage: %s", releaseImage, mcoImage)
-	cmdArgsTmpl := "podman run -v /dev:/dev:rw -v /opt:/opt:rw {{if .HOST_CA_CERT_PATH}}-v {{.HOST_CA_CERT_PATH}}:{{.HOST_CA_CERT_PATH}}:rw {{end}}-v /run/systemd/journal/socket:/run/systemd/journal/socket --privileged --pid=host --net=host " +
-		"-v /var/log:/var/log:rw --env PULL_SECRET_TOKEN --name assisted-installer {{.INSTALLER}} --role {{.ROLE}} --cluster-id {{.CLUSTER_ID}} " +
-		"--boot-device {{.BOOT_DEVICE}} --host-id {{.HOST_ID}} --openshift-version {{.OPENSHIFT_VERSION}} --mco-image {{.MCO_IMAGE}} " +
-		"--controller-image {{.CONTROLLER_IMAGE}} --url {{.BASE_URL}} --insecure={{.SKIP_CERT_VERIFICATION}} --agent-image {{.AGENT_IMAGE}} " +
-		"--high-availability-mode {{.HA_MODE}}"
-
-	data := map[string]string{
-		"BASE_URL":               strings.TrimSpace(i.instructionConfig.ServiceBaseURL),
-		"CLUSTER_ID":             string(host.ClusterID),
-		"HOST_ID":                string(*host.ID),
-		"ROLE":                   string(role),
-		"INSTALLER":              i.instructionConfig.InstallerImage,
-		"CONTROLLER_IMAGE":       i.instructionConfig.ControllerImage,
-		"BOOT_DEVICE":            "",
-		"OPENSHIFT_VERSION":      cluster.OpenshiftVersion,
-		"MCO_IMAGE":              mcoImage,
-		"SKIP_CERT_VERIFICATION": strconv.FormatBool(i.instructionConfig.SkipCertVerification),
-		"AGENT_IMAGE":            i.instructionConfig.InventoryImage,
-	}
-
-	if i.instructionConfig.InstallationTimeout != 0 {
-		cmdArgsTmpl = cmdArgsTmpl + " --installation-timeout {{.INSTALLATION_TIMEOUT}}"
-		data["INSTALLATION_TIMEOUT"] = strconv.Itoa(int(i.instructionConfig.InstallationTimeout))
-	}
-
-	if host.InstallerArgs != "" {
-		cmdArgsTmpl = cmdArgsTmpl + " --installer-args '{{.INSTALLER_ARGS}}'"
-		data["INSTALLER_ARGS"] = host.InstallerArgs
-	}
-
-	if cluster.HTTPProxy != "" || cluster.HTTPSProxy != "" {
-		if cluster.HTTPProxy != "" {
-			cmdArgsTmpl = cmdArgsTmpl + " --http-proxy {{.HTTP_PROXY}}"
-			data["HTTP_PROXY"] = cluster.HTTPProxy
-		}
-		if cluster.HTTPSProxy != "" {
-			cmdArgsTmpl = cmdArgsTmpl + " --https-proxy {{.HTTPS_PROXY}}"
-			data["HTTPS_PROXY"] = cluster.HTTPSProxy
-		}
-		cmdArgsTmpl = cmdArgsTmpl + " --no-proxy {{.NO_PROXY}}"
-		// if we set proxy we need to update assisted installer no proxy with no proxy params as installer.
-		// it must be able to connect to api int. Added this way for not to pass name and base domain
-		noProxy := []string{cluster.NoProxy, "127.0.0.1",
-			"localhost",
-			".svc",
-			".cluster.local",
-			fmt.Sprintf("api-int.%s.%s", cluster.Name, cluster.BaseDNSDomain)}
-		data["NO_PROXY"] = strings.Join(noProxy, ",")
-	}
-
-	if i.hasCACert() {
-		cmdArgsTmpl = cmdArgsTmpl + " --cacert {{.HOST_CA_CERT_PATH}}"
-		data["HOST_CA_CERT_PATH"] = common.HostCACertPath
-	}
-
-	if i.instructionConfig.ServiceIPs != "" {
-		cmdArgsTmpl = cmdArgsTmpl + " --service-ips '{{.SERVICE_IPS}}'"
-		data["SERVICE_IPS"] = strings.TrimSpace(i.instructionConfig.ServiceIPs)
-	}
-
 	bootdevice, err := getBootDevice(i.log, i.hwValidator, *host)
 	if err != nil {
 		return nil, err
 	}
-	data["BOOT_DEVICE"] = bootdevice
 
-	haMode := models.ClusterHighAvailabilityModeFull
-	if cluster.HighAvailabilityMode != nil {
-		haMode = *cluster.HighAvailabilityMode
-	}
-	data["HA_MODE"] = haMode
-
-	t, err := template.New("cmd").Parse(cmdArgsTmpl)
+	fullCmd, err := i.getFullInstallerCommand(&cluster, host, bootdevice)
 	if err != nil {
-		return nil, err
-	}
-
-	buf := &bytes.Buffer{}
-	if err = t.Execute(buf, data); err != nil {
 		return nil, err
 	}
 
@@ -163,7 +83,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	}
 
 	fioPerfCheckCmd := NewFioPerfCheckCmd(i.log, i.instructionConfig.FioPerfCheckImage, bootdevice, FioDurationThreshold)
-	step.Args = []string{"-c", unbootableCmd + fioPerfCheckCmd.GetCommandString() + buf.String()}
+	step.Args = []string{"-c", unbootableCmd + fioPerfCheckCmd.GetCommandString() + fullCmd}
 
 	if _, err := UpdateHost(i.log, i.db, host.ClusterID, *host.ID, *host.Status,
 		"installer_version", i.instructionConfig.InstallerImage, "installation_disk_path", bootdevice); err != nil {
@@ -171,6 +91,95 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	}
 
 	return []*models.Step{step}, nil
+}
+
+func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, bootdevice string) (string, error) {
+
+	role := host.Role
+	if host.Bootstrap {
+		role = models.HostRoleBootstrap
+	}
+
+	haMode := models.ClusterHighAvailabilityModeFull
+	if cluster.HighAvailabilityMode != nil {
+		haMode = *cluster.HighAvailabilityMode
+	}
+
+	releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
+	if err != nil {
+		return "", err
+	}
+
+	mcoImage, err := i.ocRelease.GetMCOImage(i.log, releaseImage, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+	if err != nil {
+		return "", err
+	}
+
+	i.log.Infof("Install command releaseImage: %s, mcoImage: %s", releaseImage, mcoImage)
+
+	podmanCmd := podmanBaseCmd[:]
+	installerCmd := []string{
+		"--role", string(role),
+		"--cluster-id", string(host.ClusterID),
+		"--host-id", string(*host.ID),
+		"--boot-device", bootdevice,
+		"--url", i.instructionConfig.ServiceBaseURL,
+		"--openshift-version", cluster.OpenshiftVersion,
+		"--high-availability-mode", haMode,
+		"--mco-image", mcoImage,
+		"--controller-image", i.instructionConfig.ControllerImage,
+		"--agent-image", i.instructionConfig.InventoryImage,
+		"--insecure", strconv.FormatBool(i.instructionConfig.SkipCertVerification),
+	}
+
+	if i.hasCACert() {
+		podmanCmd = append(podmanCmd, "--volume", fmt.Sprintf("%s:%s:rw", common.HostCACertPath, common.HostCACertPath))
+		installerCmd = append(installerCmd, "--cacert", common.HostCACertPath)
+	}
+
+	if i.instructionConfig.InstallationTimeout != 0 {
+		installerCmd = append(installerCmd, "--installation-timeout", strconv.Itoa(int(i.instructionConfig.InstallationTimeout)))
+	}
+
+	if host.InstallerArgs != "" {
+		installerCmd = append(installerCmd, "--installer-args", host.InstallerArgs)
+	}
+
+	noProxyArgs := i.getProxyArguments(cluster.Name, cluster.BaseDNSDomain, cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
+	if len(noProxyArgs) > 0 {
+		installerCmd = append(installerCmd, noProxyArgs...)
+	}
+
+	if i.instructionConfig.ServiceIPs != "" {
+		installerCmd = append(installerCmd, "--service-ips", i.instructionConfig.ServiceIPs)
+	}
+
+	return fmt.Sprintf("%s %s %s", shellescape.QuoteCommand(podmanCmd), i.instructionConfig.InstallerImage,
+		shellescape.QuoteCommand(installerCmd)), nil
+}
+
+func (i *installCmd) getProxyArguments(clusterName, baseDNSDomain, httpProxy, httpsProxy, noProxy string) []string {
+	cmd := make([]string, 0)
+
+	if httpProxy != "" || httpsProxy != "" {
+		if httpProxy != "" {
+			cmd = append(cmd, "--http-proxy", httpProxy)
+		}
+		if httpsProxy != "" {
+			cmd = append(cmd, "--https-proxy", httpsProxy)
+		}
+
+		// if we set proxy we need to update assisted installer no proxy with no proxy params as installer.
+		// it must be able to connect to api int. Added this way for not to pass name and base domain
+		noProxyUpdated := []string{noProxy, "127.0.0.1",
+			"localhost",
+			".svc",
+			".cluster.local",
+			fmt.Sprintf("api-int.%s.%s", clusterName, baseDNSDomain)}
+		cmd = append(cmd, "--no-proxy", strings.Join(noProxyUpdated, ","))
+	}
+
+	return cmd
 }
 
 func (i *installCmd) hasCACert() bool {
