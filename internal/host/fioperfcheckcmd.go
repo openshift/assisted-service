@@ -13,7 +13,7 @@ import (
 
 const (
 	FioPerfCheckCmdExitCode int64 = 222
-	FioDurationThreshold    int64 = 20
+	FioDurationThreshold    int64 = 1000
 )
 
 type fioPerfCheckCmd struct {
