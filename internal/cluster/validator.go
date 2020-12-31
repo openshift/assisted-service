@@ -299,6 +299,12 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 // 3. have at least 2 workers or auto-assign hosts that can become workers, if workers configured
 // 4. having more then 3 known masters is illegal
 func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) validationStatus {
+	minMastersNeededForInstallation := common.MinMasterHostsNeededForInstallation
+	nonHAMode := swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
+	if nonHAMode {
+		minMastersNeededForInstallation = common.AllowedNumberOfMasterHostsInNoneHaMode
+	}
+
 	knownHosts, ok := MapHostsByStatus(c.cluster)[models.HostStatusKnown]
 	if !ok { //if no known hosts exist, there is no sufficient master count
 		return boolValue(false)
@@ -325,7 +331,7 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) v
 	for _, h := range candidates {
 		//if allocated masters count is less than the desired count, find eligable hosts
 		//from the candidate pool to match the master count criteria, up to 3
-		if len(masters) < common.MinMasterHostsNeededForInstallation {
+		if len(masters) < minMastersNeededForInstallation {
 			if isValid, err := v.hostAPI.IsValidMasterCandidate(h, c.db, v.log); isValid && err == nil {
 				masters = append(masters, h)
 				continue
@@ -336,7 +342,7 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) v
 	}
 
 	//validate master candidates count
-	if len(masters) != common.MinMasterHostsNeededForInstallation {
+	if len(masters) != minMastersNeededForInstallation {
 		return boolValue(false)
 	}
 
@@ -345,14 +351,23 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) v
 		return boolValue(false)
 	}
 
+	// if non ha mode, none workers allowed
+	if nonHAMode && len(workers) != common.AllowedNumberOfWorkersInNoneHaMode {
+		return boolValue(false)
+	}
+
 	return boolValue(true)
 }
 
 func (v *clusterValidator) printSufficientMastersCount(context *clusterPreprocessContext, status validationStatus) string {
+	noneHAMode := swag.StringValue(context.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 	switch status {
 	case ValidationSuccess:
 		return "The cluster has a sufficient number of master candidates."
 	case ValidationFailure:
+		if noneHAMode {
+			return "Clusters in non ha mode must have only single master and no workers. Please verify you that you have single host"
+		}
 		return fmt.Sprintf("Clusters with less than %d dedicated masters or a single worker are not supported. Please either add hosts, or disable the worker host",
 			common.MinMasterHostsNeededForInstallation)
 	default:
