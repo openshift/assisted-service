@@ -36,13 +36,121 @@ spec:
           spec:
             description: ClusterSpec defines the desired state of Cluster
             properties:
-              foo:
-                description: Foo is an example field of Cluster. Edit Cluster_types.go
-                  to remove/update
+              additionalNtpSource:
                 type: string
+              apiVip:
+                type: string
+              apiVipDnsName:
+                type: string
+              approved:
+                description: Installation will start once cluster is in known state
+                  and approved
+                type: boolean
+              baseDnsDomain:
+                type: string
+              clusterNetworkCidr:
+                type: string
+              clusterNetworkHostPrefix:
+                format: int64
+                type: integer
+              httpProxy:
+                type: string
+              httpsProxy:
+                type: string
+              ingresVip:
+                type: string
+              installConfigOverrides:
+                type: string
+              machineNetworkCidr:
+                type: string
+              name:
+                description: Cluster name
+                type: string
+              noProxy:
+                type: string
+              openshiftVersion:
+                type: string
+              pullSecretName:
+                description: The name of the secret containing the pull secret
+                properties:
+                  name:
+                    description: Name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: Namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                type: object
+              serviceNetworkCidr:
+                type: string
+              sshPublicKey:
+                type: string
+              userManagedNetworking:
+                type: boolean
+              vipDhcpAllocation:
+                type: boolean
+            required:
+            - name
+            - openshiftVersion
+            - pullSecretName
             type: object
           status:
             description: ClusterStatus defines the observed state of Cluster
+            properties:
+              connectivityMajorityGroups:
+                type: string
+              controllerLogsCollectionTime:
+                format: date-time
+                type: string
+              error:
+                description: Display api errors
+                type: string
+              hostNetworks:
+                items:
+                  properties:
+                    cidr:
+                      description: cidr
+                      type: string
+                    hostIDs:
+                      description: host ids
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - hostIDs
+                  type: object
+                type: array
+              hosts:
+                type: integer
+              id:
+                description: 'Cluster ID TODO: probably need to work with labels'
+                type: string
+              installationCompletionTime:
+                format: date-time
+                type: string
+              installationStartTime:
+                type: string
+              lastUpdateTime:
+                format: date-time
+                type: string
+              progress:
+                properties:
+                  lastProgressUpdateTime:
+                    description: Time at which the cluster install progress was last
+                      updated.
+                    format: date-time
+                    type: string
+                  progressInfo:
+                    description: progress info
+                    type: string
+                type: object
+              state:
+                type: string
+              stateInfo:
+                type: string
+              validationsInfo:
+                type: string
             type: object
         type: object
     served: true
