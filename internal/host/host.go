@@ -241,6 +241,30 @@ func (m *Manager) populateDisksEligibility(inventoryString string) (string, erro
 	return string(result), nil
 }
 
+// determineDefaultInstallationDisk considers both the previously set installation disk and the current list of valid
+// disks to determine the current required installation disk.
+//
+// Once the installation disk has been set, we usually no longer change it, even when an inventory update occurs
+// that contains new disks that might be better "fit" for installation. This is because this field can also be set by
+// the user via the API, and we don't want inventory updates to override the user's choice. However, if the disk that
+// was set is no longer part of the inventory, the new installation disk is re-evaluated because it is not longer
+// a valid choice.
+func determineDefaultInstallationDisk(previousInstallationDisk string, validDisks []*models.Disk) string {
+	if previousInstallationDisk != "" {
+		if funk.Find(validDisks, func(disk *models.Disk) bool {
+			return hostutil.GetDeviceFullName(disk.Name) == previousInstallationDisk
+		}) != nil {
+			return previousInstallationDisk
+		}
+	}
+
+	if len(validDisks) == 0 {
+		return ""
+	}
+
+	return GetDeviceFullName(validDisks[0].Name)
+}
+
 func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error {
 
 	lastStatusUpdateTime := h.StatusUpdatedAt
@@ -270,7 +294,17 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 		return err
 	}
 
-	return m.db.Model(h).Update("inventory", h.Inventory).Error
+	validDisks, err := m.hwValidator.GetHostValidDisks(h)
+	if err != nil {
+		return err
+	}
+
+	h.InstallationDiskPath = determineDefaultInstallationDisk(h.InstallationDiskPath, validDisks)
+
+	return m.db.Model(h).Update(map[string]interface{}{
+		"inventory":              h.Inventory,
+		"installation_disk_path": h.InstallationDiskPath,
+	}).Error
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {

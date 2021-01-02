@@ -191,6 +191,11 @@ func getBootDevice(log logrus.FieldLogger, hwValidator hardware.Validator, host 
 		return host.InstallationDiskPath, nil
 	}
 
+	// TODO: We generally shouldn't reach this point on any version containing this comment.
+	//  It might happen a few times while this version is first rolled out. Remove the call to GetHostValidDisks when
+	//  that new version has been running for a sufficiently long time.
+	//  Note that instead of a call to GetHostValidDisks, an error should occur. That's because if the installation disk
+	//  path is empty, it means there are no valid disks to install on.
 	disks, err := hwValidator.GetHostValidDisks(&host)
 	if err != nil || len(disks) == 0 {
 		err := errors.Errorf("Failed to get valid disks on host with id %s", host.ID)
