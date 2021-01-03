@@ -1,6 +1,6 @@
 {
 	"4.6": {
-		"release_image": "quay.io/openshift-release-dev/ocp-release:4.6.8-x86_64"
+		"release_image": "quay.io/openshift-release-dev/ocp-release:4.6.9-x86_64"
 	},
 	"4.7": {
 		"release_image": "quay.io/openshift-release-dev/ocp-release@sha256:2419f9cd3ea9bd114764855653012e305ade2527210d332bfdd6dbdae538bd66"
