@@ -34,6 +34,9 @@ type Disk struct {
 	// io perf
 	IoPerf *IoPerf `json:"io_perf,omitempty"`
 
+	// Whether the disk appears to be an installation media or not
+	IsInstallationMedia bool `json:"is_installation_media,omitempty"`
+
 	// model
 	Model string `json:"model,omitempty"`
 
