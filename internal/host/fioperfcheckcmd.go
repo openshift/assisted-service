@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -16,19 +17,26 @@ const (
 	FioDurationThreshold    int64 = 1000
 )
 
-type fioPerfCheckCmd struct {
-	baseCmd
-	fioPerfCheckImage string
-	path              string
-	durationThreshold int64
+type FioPerfCheckConfig struct {
+	ServiceBaseURL       string
+	ClusterID            string
+	HostID               string
+	UseCustomCACert      bool
+	FioPerfCheckImage    string
+	SkipCertVerification bool
+	Path                 string
+	DurationThreshold    int64
 }
 
-func NewFioPerfCheckCmd(log logrus.FieldLogger, fioPerfCheckImage string, path string, durationThreshold int64) *fioPerfCheckCmd {
+type fioPerfCheckCmd struct {
+	baseCmd
+	config FioPerfCheckConfig
+}
+
+func NewFioPerfCheckCmd(log logrus.FieldLogger, config FioPerfCheckConfig) *fioPerfCheckCmd {
 	return &fioPerfCheckCmd{
-		baseCmd:           baseCmd{log: log},
-		fioPerfCheckImage: fioPerfCheckImage,
-		path:              path,
-		durationThreshold: durationThreshold,
+		baseCmd: baseCmd{log: log},
+		config:  config,
 	}
 }
 
@@ -49,8 +57,8 @@ func (c *fioPerfCheckCmd) GetSteps(ctx context.Context, host *models.Host) ([]*m
 func (c *fioPerfCheckCmd) GetArgs() ([]string, error) {
 	exitCode := FioPerfCheckCmdExitCode
 	request := models.FioPerfCheckRequest{
-		Path:              &c.path,
-		DurationThreshold: &c.durationThreshold,
+		Path:              &c.config.Path,
+		DurationThreshold: &c.config.DurationThreshold,
 		ExitCode:          &exitCode,
 	}
 	requestBytes, err := json.Marshal(request)
@@ -59,15 +67,32 @@ func (c *fioPerfCheckCmd) GetArgs() ([]string, error) {
 		return nil, err
 	}
 
-	return []string{
+	arguments := []string{
 		"run", "--privileged", "--net=host", "--rm", "--quiet",
 		"-v", "/dev:/dev:rw",
 		"-v", "/var/log:/var/log",
 		"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-		c.fioPerfCheckImage,
-		"fio_perf_check",
-		strconv.Quote(string(requestBytes)),
-	}, nil
+	}
+
+	if c.config.UseCustomCACert {
+		arguments = append(arguments, "-v", fmt.Sprintf("%s:%s", common.HostCACertPath, common.HostCACertPath))
+	}
+
+	arguments = append(arguments,
+		"--env", "PULL_SECRET_TOKEN",
+		"--env", "HTTP_PROXY", "--env", "HTTPS_PROXY", "--env", "NO_PROXY",
+		"--env", "http_proxy", "--env", "https_proxy", "--env", "no_proxy",
+		c.config.FioPerfCheckImage, "fio_perf_check",
+		"--url", strings.TrimSpace(c.config.ServiceBaseURL), "--cluster-id", c.config.ClusterID, "--host-id", c.config.HostID,
+		"--agent-version", c.config.FioPerfCheckImage, fmt.Sprintf("--insecure %s", strconv.FormatBool(c.config.SkipCertVerification)))
+
+	if c.config.UseCustomCACert {
+		arguments = append(arguments, "--cacert", common.HostCACertPath)
+	}
+
+	arguments = append(arguments, strconv.Quote(string(requestBytes)))
+
+	return arguments, nil
 }
 
 func (c *fioPerfCheckCmd) GetCommandString() string {
@@ -76,5 +101,5 @@ func (c *fioPerfCheckCmd) GetCommandString() string {
 		return ""
 	}
 
-	return fmt.Sprintf("podman %s && ", strings.Join(args, " "))
+	return fmt.Sprintf("podman %s ; ", strings.Join(args, " "))
 }

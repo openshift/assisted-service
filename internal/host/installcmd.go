@@ -82,7 +82,18 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	fioPerfCheckCmd := NewFioPerfCheckCmd(i.log, i.instructionConfig.FioPerfCheckImage, bootdevice, FioDurationThreshold)
+	config := FioPerfCheckConfig{
+		ServiceBaseURL:       i.instructionConfig.ServiceBaseURL,
+		ClusterID:            string(host.ClusterID),
+		HostID:               string(*host.ID),
+		UseCustomCACert:      i.hasCACert(),
+		FioPerfCheckImage:    i.instructionConfig.FioPerfCheckImage,
+		SkipCertVerification: i.instructionConfig.SkipCertVerification,
+		Path:                 bootdevice,
+		DurationThreshold:    FioDurationThreshold,
+	}
+
+	fioPerfCheckCmd := NewFioPerfCheckCmd(i.log, config)
 	step.Args = []string{"-c", unbootableCmd + fioPerfCheckCmd.GetCommandString() + fullCmd}
 
 	if _, err := UpdateHost(i.log, i.db, host.ClusterID, *host.ID, *host.Status,

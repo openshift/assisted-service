@@ -276,7 +276,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--insecure", strconv.FormatBool(false))
+			verifyArgInCommand(stepReply[0].Args[1], "--insecure", strconv.FormatBool(false), 2)
 		})
 
 		It("insecure_cert_is_set_to_false", func() {
@@ -287,7 +287,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--insecure", strconv.FormatBool(false))
+			verifyArgInCommand(stepReply[0].Args[1], "--insecure", strconv.FormatBool(false), 2)
 		})
 
 		It("insecure_cert_is_set_to_true", func() {
@@ -298,7 +298,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--insecure", strconv.FormatBool(true))
+			verifyArgInCommand(stepReply[0].Args[1], "--insecure", strconv.FormatBool(true), 2)
 		})
 
 		It("target_url_is_passed", func() {
@@ -309,7 +309,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--url", config.ServiceBaseURL)
+			verifyArgInCommand(stepReply[0].Args[1], "--url", config.ServiceBaseURL, 2)
 		})
 
 		It("verify high-availability-mode is None", func() {
@@ -317,7 +317,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--high-availability-mode", models.ClusterHighAvailabilityModeNone)
+			verifyArgInCommand(stepReply[0].Args[1], "--high-availability-mode", models.ClusterHighAvailabilityModeNone, 1)
 		})
 
 		It("verify empty value", func() {
@@ -328,7 +328,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--mco-image", "''")
+			verifyArgInCommand(stepReply[0].Args[1], "--mco-image", "''", 1)
 		})
 
 		It("verify escaped whitespace value", func() {
@@ -341,16 +341,16 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
 			fmt.Println(stepReply[0].Args[1])
-			verifyArgInCommand(stepReply[0].Args[1], "--mco-image", fmt.Sprintf("'%s'", value))
+			verifyArgInCommand(stepReply[0].Args[1], "--mco-image", fmt.Sprintf("'%s'", value), 1)
 		})
 	})
 })
 
-func verifyArgInCommand(command, key, value string) {
+func verifyArgInCommand(command, key, value string, count int) {
 	r := regexp.MustCompile(fmt.Sprintf(`%s ([^ ]+)`, key))
 	match := r.FindAllStringSubmatch(command, -1)
 	Expect(match).NotTo(BeNil())
-	Expect(match).To(HaveLen(1))
+	Expect(match).To(HaveLen(count))
 	Expect(strings.TrimSpace(match[0][1])).To(Equal(value))
 }
 
@@ -400,22 +400,24 @@ func validateInstallCommand(installCmd *installCmd, reply *models.Step, role mod
 
 	bootDevice := "/dev/sdb"
 
-	verifyArgInCommand(reply.Args[1], "--cluster-id", string(clusterId))
-	verifyArgInCommand(reply.Args[1], "--host-id", string(hostId))
-	verifyArgInCommand(reply.Args[1], "--high-availability-mode", haMode)
-	verifyArgInCommand(reply.Args[1], "--openshift-version", common.DefaultTestOpenShiftVersion)
-	verifyArgInCommand(reply.Args[1], "--role", string(role))
-	verifyArgInCommand(reply.Args[1], "--boot-device", bootDevice)
-	verifyArgInCommand(reply.Args[1], "--url", installCmd.instructionConfig.ServiceBaseURL)
-	verifyArgInCommand(reply.Args[1], "--mco-image", defaultMCOImage)
-	verifyArgInCommand(reply.Args[1], "--controller-image", installCmd.instructionConfig.ControllerImage)
-	verifyArgInCommand(reply.Args[1], "--agent-image", installCmd.instructionConfig.InventoryImage)
-	verifyArgInCommand(reply.Args[1], "--installation-timeout", strconv.Itoa(int(installCmd.instructionConfig.InstallationTimeout)))
+	verifyArgInCommand(reply.Args[1], "--cluster-id", string(clusterId), 2)
+	verifyArgInCommand(reply.Args[1], "--host-id", string(hostId), 2)
+	verifyArgInCommand(reply.Args[1], "--high-availability-mode", haMode, 1)
+	verifyArgInCommand(reply.Args[1], "--openshift-version", common.DefaultTestOpenShiftVersion, 1)
+	verifyArgInCommand(reply.Args[1], "--role", string(role), 1)
+	verifyArgInCommand(reply.Args[1], "--boot-device", bootDevice, 1)
+	verifyArgInCommand(reply.Args[1], "--url", installCmd.instructionConfig.ServiceBaseURL, 2)
+	verifyArgInCommand(reply.Args[1], "--mco-image", defaultMCOImage, 1)
+	verifyArgInCommand(reply.Args[1], "--controller-image", installCmd.instructionConfig.ControllerImage, 1)
+	verifyArgInCommand(reply.Args[1], "--agent-image", installCmd.instructionConfig.InventoryImage, 1)
+	verifyArgInCommand(reply.Args[1], "--installation-timeout", strconv.Itoa(int(installCmd.instructionConfig.InstallationTimeout)), 1)
 
 	fioPerfCheckCmd := "podman run --privileged --net=host --rm --quiet -v /dev:/dev:rw -v /var/log:/var/log " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket " +
+		"--env PULL_SECRET_TOKEN --env HTTP_PROXY --env HTTPS_PROXY --env NO_PROXY --env http_proxy --env https_proxy --env no_proxy " +
 		"quay.io/ocpmetal/assisted-installer-agent:latest fio_perf_check " +
-		fmt.Sprintf("\"{\\\"duration_threshold\\\":1000,\\\"exit_code\\\":222,\\\"path\\\":\\\"%s\\\"}\" && ", bootDevice)
+		fmt.Sprintf("--url %s --cluster-id %s --host-id %s --agent-version quay.io/ocpmetal/assisted-installer-agent:latest --insecure false ", installCmd.instructionConfig.ServiceBaseURL, string(clusterId), string(hostId)) +
+		fmt.Sprintf("\"{\\\"duration_threshold\\\":1000,\\\"exit_code\\\":222,\\\"path\\\":\\\"%s\\\"}\" ; ", bootDevice)
 
 	installCommandPrefix := fioPerfCheckCmd
 
