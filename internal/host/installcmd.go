@@ -212,7 +212,7 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 				host.ClusterID,
 				host.ID,
 				models.EventSeverityInfo,
-				fmt.Sprintf("Removing master boot record from disk %s", dev),
+				fmt.Sprintf("Performing quick format of disk %s", dev),
 				time.Now())
 		}
 	}
