@@ -239,6 +239,7 @@ var _ = Describe("installcmd arguments", func() {
 
 	var (
 		ctx          = context.Background()
+		cluster      common.Cluster
 		host         models.Host
 		db           *gorm.DB
 		validator    *hardware.MockValidator
@@ -251,7 +252,7 @@ var _ = Describe("installcmd arguments", func() {
 
 	BeforeSuite(func() {
 		db = common.PrepareTestDB(dbName)
-		cluster := createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
+		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
 		host = createHostInDb(db, *cluster.ID, models.HostRoleMaster, false, "")
 		disks := []*models.Disk{{Name: "Disk1"}}
 		ctrl = gomock.NewController(GinkgoT())
@@ -343,6 +344,60 @@ var _ = Describe("installcmd arguments", func() {
 			fmt.Println(stepReply[0].Args[1])
 			verifyArgInCommand(stepReply[0].Args[1], "--mco-image", fmt.Sprintf("'%s'", value))
 		})
+	})
+
+	Context("installer args", func() {
+		var (
+			installCmd        *installCmd
+			instructionConfig InstructionConfig
+		)
+
+		BeforeEach(func() {
+			instructionConfig = DefaultInstructionConfig
+			installCmd = NewInstallCmd(getTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions)
+		})
+
+		It("valid installer args", func() {
+			host.InstallerArgs = `["--append-karg","nameserver=8.8.8.8","-n"]`
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", host.InstallerArgs))
+		})
+		It("empty installer args", func() {
+			host.InstallerArgs = ""
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			Expect(strings.Contains(stepReply[0].Args[1], "--installer-args")).Should(BeFalse())
+		})
+
+		It("empty installer args with static ip config", func() {
+			db.Model(&cluster).Update("image_static_ips_config", "rkhkjgdfd")
+			host.InstallerArgs = ""
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", `["--copy-network"]`))
+		})
+
+		It("non-empty installer args with static ip config", func() {
+			db.Model(&cluster).Update("image_static_ips_config", "rkhkjgdfd")
+			host.InstallerArgs = `["--append-karg","nameserver=8.8.8.8","-n"]`
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", `["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`))
+		})
+		It("non-empty installer args with copy network  with static ip config", func() {
+			db.Model(&cluster).Update("image_static_ips_config", "rkhkjgdfd")
+			host.InstallerArgs = `["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", host.InstallerArgs))
+		})
+
 	})
 })
 

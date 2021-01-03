@@ -47,6 +47,7 @@ var _ = BeforeEach(func() {
 			ID: &clusterID,
 		},
 	}
+	cluster.ImageInfo = &models.ImageInfo{}
 })
 
 var _ = AfterEach(func() {
