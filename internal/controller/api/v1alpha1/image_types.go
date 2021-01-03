@@ -17,25 +17,27 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // ImageSpec defines the desired state of Image
 type ImageSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Image. Edit Image_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// The name of the Cluster CR
+	ClusterRef   *corev1.ObjectReference `json:"clusterRef"`
+	SSHPublicKey string                  `json:"sshPublicKey,omitempty"`
+	// The name of the secret containing the pull secret
+	PullSecretName        *corev1.SecretReference `json:"pullSecretName"`
+	IgnitionOverrides     string                  `json:"ignitionOverrides,omitempty"`
+	StaticIpConfiguration string                  `json:"staticIpConfiguration,omitempty"`
 }
 
 // ImageStatus defines the observed state of Image
 type ImageStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	State          string       `json:"state,omitempty"`
+	SizeBytes      int          `json:"sizeBytes,omitempty"`
+	DownloadUrl    int          `json:"downloadUrl,omitempty"`
+	ExpirationTime *metav1.Time `json:"expirationTimestamp,omitempty"`
 }
 
 // +kubebuilder:object:root=true
