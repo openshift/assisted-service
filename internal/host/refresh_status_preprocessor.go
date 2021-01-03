@@ -7,7 +7,7 @@ import (
 
 type validationResult struct {
 	ID      validationID     `json:"id"`
-	Status  validationStatus `json:"status"`
+	Status  ValidationStatus `json:"status"`
 	Message string           `json:"message"`
 }
 
