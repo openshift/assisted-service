@@ -6,10 +6,9 @@ package s3wrapper
 
 import (
 	context "context"
-	reflect "reflect"
-
 	s3manager "github.com/aws/aws-sdk-go/service/s3/s3manager"
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // MockUploaderAPI is a mock of UploaderAPI interface
