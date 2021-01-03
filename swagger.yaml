@@ -3024,6 +3024,13 @@ definitions:
         minLength: 1
         maxLength: 54
         description: Name of the OpenShift cluster.
+      high_availability_mode:
+        type: string
+        enum: ['Full', 'None']
+        default: 'Full'
+        description: |
+          Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+          over multiple master nodes whereas 'None' installs a full cluster over one node.
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
@@ -3099,13 +3106,6 @@ definitions:
         maxLength: 54
         description: OpenShift cluster name.
         x-nullable: true
-      high_availability_mode:
-        type: string
-        enum: ['Full', 'None']
-        default: 'Full'
-        description: |
-          Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
-          over multiple master nodes whereas 'None' installs a full cluster over one node.
       base_dns_domain:
         type: string
         description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.

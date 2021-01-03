@@ -6,7 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -44,12 +43,6 @@ type ClusterUpdateParams struct {
 
 	// disks selected config
 	DisksSelectedConfig []*ClusterUpdateParamsDisksSelectedConfigItems0 `json:"disks_selected_config"`
-
-	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
-	// over multiple master nodes whereas 'None' installs a full cluster over one node.
-	//
-	// Enum: [Full None]
-	HighAvailabilityMode *string `json:"high_availability_mode,omitempty"`
 
 	// The desired machine config pool for hosts associated with the cluster.
 	HostsMachineConfigPoolNames []*ClusterUpdateParamsHostsMachineConfigPoolNamesItems0 `json:"hosts_machine_config_pool_names"`
@@ -123,10 +116,6 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateDisksSelectedConfig(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateHighAvailabilityMode(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -231,49 +220,6 @@ func (m *ClusterUpdateParams) validateDisksSelectedConfig(formats strfmt.Registr
 			}
 		}
 
-	}
-
-	return nil
-}
-
-var clusterUpdateParamsTypeHighAvailabilityModePropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["Full","None"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		clusterUpdateParamsTypeHighAvailabilityModePropEnum = append(clusterUpdateParamsTypeHighAvailabilityModePropEnum, v)
-	}
-}
-
-const (
-
-	// ClusterUpdateParamsHighAvailabilityModeFull captures enum value "Full"
-	ClusterUpdateParamsHighAvailabilityModeFull string = "Full"
-
-	// ClusterUpdateParamsHighAvailabilityModeNone captures enum value "None"
-	ClusterUpdateParamsHighAvailabilityModeNone string = "None"
-)
-
-// prop value enum
-func (m *ClusterUpdateParams) validateHighAvailabilityModeEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, clusterUpdateParamsTypeHighAvailabilityModePropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *ClusterUpdateParams) validateHighAvailabilityMode(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.HighAvailabilityMode) { // not required
-		return nil
-	}
-
-	// value enum
-	if err := m.validateHighAvailabilityModeEnum("high_availability_mode", "body", *m.HighAvailabilityMode); err != nil {
-		return err
 	}
 
 	return nil

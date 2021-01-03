@@ -4350,6 +4350,15 @@ func init() {
           "maximum": 128,
           "minimum": 1
         },
+        "high_availability_mode": {
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
+        },
         "http_proxy": {
           "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
           "type": "string",
@@ -4489,15 +4498,6 @@ func init() {
             }
           },
           "x-nullable": true
-        },
-        "high_availability_mode": {
-          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
-          "type": "string",
-          "default": "Full",
-          "enum": [
-            "Full",
-            "None"
-          ]
         },
         "hosts_machine_config_pool_names": {
           "description": "The desired machine config pool for hosts associated with the cluster.",
@@ -10433,6 +10433,15 @@ func init() {
           "maximum": 128,
           "minimum": 1
         },
+        "high_availability_mode": {
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
+        },
         "http_proxy": {
           "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
           "type": "string",
@@ -10559,15 +10568,6 @@ func init() {
             "$ref": "#/definitions/ClusterUpdateParamsDisksSelectedConfigItems0"
           },
           "x-nullable": true
-        },
-        "high_availability_mode": {
-          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
-          "type": "string",
-          "default": "Full",
-          "enum": [
-            "Full",
-            "None"
-          ]
         },
         "hosts_machine_config_pool_names": {
           "description": "The desired machine config pool for hosts associated with the cluster.",
