@@ -117,6 +117,7 @@ type API interface {
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
 	PermanentHostsDeletion(olderThen strfmt.DateTime) error
+	ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error
 
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
@@ -696,6 +697,25 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 		boot = disks[0]
 	}
 	m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)
+}
+
+func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error {
+	log := logutil.FromContext(ctx, m.log)
+	var validationRes map[string][]validationResult
+	if h.ValidationsInfo != "" {
+		if err := json.Unmarshal([]byte(h.ValidationsInfo), &validationRes); err != nil {
+			log.WithError(err).Errorf("Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
+			return err
+		}
+	}
+	for _, vRes := range validationRes {
+		for _, v := range vRes {
+			if v.Status == ValidationFailure {
+				m.metricApi.HostValidationFailed(ocpVersion, h.ClusterID, emailDomain, models.HostValidationID(v.ID))
+			}
+		}
+	}
+	return nil
 }
 
 func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {

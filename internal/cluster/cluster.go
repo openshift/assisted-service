@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/kennygrant/sanitize"
 	"github.com/openshift/assisted-service/internal/hostutil"
@@ -177,6 +178,18 @@ func (m *Manager) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) err
 }
 
 func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
+
+	var metricsErr error
+	for _, h := range c.Hosts {
+		if err := m.hostAPI.ReportValidationFailedMetrics(ctx, h, c.OpenshiftVersion, c.EmailDomain); err != nil {
+			m.log.WithError(err).Errorf("Failed to report metrics for failed validations on host %s in cluster %s", h.ID, c.ID)
+			metricsErr = multierror.Append(metricsErr, err)
+		}
+	}
+	if metricsErr != nil {
+		return metricsErr
+	}
+
 	err := m.registrationAPI.DeregisterCluster(ctx, c)
 	if err != nil {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,

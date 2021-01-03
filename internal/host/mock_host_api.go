@@ -402,6 +402,20 @@ func (mr *MockAPIMockRecorder) PermanentHostsDeletion(olderThen interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermanentHostsDeletion", reflect.TypeOf((*MockAPI)(nil).PermanentHostsDeletion), olderThen)
 }
 
+// ReportValidationFailedMetrics mocks base method
+func (m *MockAPI) ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReportValidationFailedMetrics", ctx, h, ocpVersion, emailDomain)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReportValidationFailedMetrics indicates an expected call of ReportValidationFailedMetrics
+func (mr *MockAPIMockRecorder) ReportValidationFailedMetrics(ctx, h, ocpVersion, emailDomain interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportValidationFailedMetrics", reflect.TypeOf((*MockAPI)(nil).ReportValidationFailedMetrics), ctx, h, ocpVersion, emailDomain)
+}
+
 // UpdateRole mocks base method
 func (m *MockAPI) UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error {
 	m.ctrl.T.Helper()

@@ -48,6 +48,18 @@ func (mr *MockAPIMockRecorder) ClusterRegistered(clusterVersion, clusterID, emai
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterRegistered", reflect.TypeOf((*MockAPI)(nil).ClusterRegistered), clusterVersion, clusterID, emailDomain)
 }
 
+// HostValidationFailed mocks base method
+func (m *MockAPI) HostValidationFailed(clusterVersion string, clusterID strfmt.UUID, emailDomain string, hostValidationType models.HostValidationID) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "HostValidationFailed", clusterVersion, clusterID, emailDomain, hostValidationType)
+}
+
+// HostValidationFailed indicates an expected call of HostValidationFailed
+func (mr *MockAPIMockRecorder) HostValidationFailed(clusterVersion, clusterID, emailDomain, hostValidationType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostValidationFailed", reflect.TypeOf((*MockAPI)(nil).HostValidationFailed), clusterVersion, clusterID, emailDomain, hostValidationType)
+}
+
 // InstallationStarted mocks base method
 func (m *MockAPI) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain, userManagedNetworking string) {
 	m.ctrl.T.Helper()
