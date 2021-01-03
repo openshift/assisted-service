@@ -662,6 +662,12 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, params
 		}
 	}
 
+	if swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		log.Infof("HA mode is None, seeting UserManagedNetworking to true ")
+		userManagedNetworking := true
+		params.NewClusterParams.UserManagedNetworking = &userManagedNetworking
+	}
+
 	if params.NewClusterParams.AdditionalNtpSource == nil {
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
 	} else {
@@ -703,6 +709,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, params
 		UserManagedNetworking:    params.NewClusterParams.UserManagedNetworking,
 		AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
 		Operators:                params.NewClusterParams.Operators,
+		HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
 	}}
 
 	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,

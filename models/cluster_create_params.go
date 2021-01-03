@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -31,6 +33,12 @@ type ClusterCreateParams struct {
 	// Maximum: 128
 	// Minimum: 1
 	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
+
+	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+	// over multiple master nodes whereas 'None' installs a full cluster over one node.
+	//
+	// Enum: [Full None]
+	HighAvailabilityMode *string `json:"high_availability_mode,omitempty"`
 
 	// A proxy URL to use for creating HTTP connections outside the cluster.
 	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
@@ -92,6 +100,10 @@ func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateHighAvailabilityMode(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateIngressVip(formats); err != nil {
 		res = append(res, err)
 	}
@@ -146,6 +158,49 @@ func (m *ClusterCreateParams) validateClusterNetworkHostPrefix(formats strfmt.Re
 	}
 
 	if err := validate.MaximumInt("cluster_network_host_prefix", "body", int64(m.ClusterNetworkHostPrefix), 128, false); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var clusterCreateParamsTypeHighAvailabilityModePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["Full","None"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		clusterCreateParamsTypeHighAvailabilityModePropEnum = append(clusterCreateParamsTypeHighAvailabilityModePropEnum, v)
+	}
+}
+
+const (
+
+	// ClusterCreateParamsHighAvailabilityModeFull captures enum value "Full"
+	ClusterCreateParamsHighAvailabilityModeFull string = "Full"
+
+	// ClusterCreateParamsHighAvailabilityModeNone captures enum value "None"
+	ClusterCreateParamsHighAvailabilityModeNone string = "None"
+)
+
+// prop value enum
+func (m *ClusterCreateParams) validateHighAvailabilityModeEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, clusterCreateParamsTypeHighAvailabilityModePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *ClusterCreateParams) validateHighAvailabilityMode(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.HighAvailabilityMode) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateHighAvailabilityModeEnum("high_availability_mode", "body", *m.HighAvailabilityMode); err != nil {
 		return err
 	}
 
