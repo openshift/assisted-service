@@ -17,9 +17,9 @@ import (
 // swagger:model fio_perf_check_request
 type FioPerfCheckRequest struct {
 
-	// The maximal fdatasync duration that is considered acceptable.
+	// The maximal fdatasync duration in ms that is considered acceptable.
 	// Required: true
-	DurationThreshold *int64 `json:"duration_threshold"`
+	DurationThresholdMs *int64 `json:"duration_threshold_ms"`
 
 	// Exit code to return in case of an error.
 	// Required: true
@@ -34,7 +34,7 @@ type FioPerfCheckRequest struct {
 func (m *FioPerfCheckRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateDurationThreshold(formats); err != nil {
+	if err := m.validateDurationThresholdMs(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -52,9 +52,9 @@ func (m *FioPerfCheckRequest) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *FioPerfCheckRequest) validateDurationThreshold(formats strfmt.Registry) error {
+func (m *FioPerfCheckRequest) validateDurationThresholdMs(formats strfmt.Registry) error {
 
-	if err := validate.Required("duration_threshold", "body", m.DurationThreshold); err != nil {
+	if err := validate.Required("duration_threshold_ms", "body", m.DurationThresholdMs); err != nil {
 		return err
 	}
 

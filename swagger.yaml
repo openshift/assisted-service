@@ -4014,15 +4014,15 @@ definitions:
     type: object
     required:
       - path
-      - duration_threshold
+      - duration_threshold_ms
       - exit_code
     properties:
       path:
         type: string
         description: --filename argument for fio (expects a file or a block device path).
-      duration_threshold:
+      duration_threshold_ms:
         type: integer
-        description: The maximal fdatasync duration that is considered acceptable.
+        description: The maximal fdatasync duration in ms that is considered acceptable.
       exit_code:
         type: integer
         description: Exit code to return in case of an error.
