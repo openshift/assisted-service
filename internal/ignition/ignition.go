@@ -154,6 +154,10 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+g.releaseImage,
 		"OPENSHIFT_INSTALL_INVOKER=assisted-installer",
 	)
+	// TODO: Might need to remove this once installer support bootstrap-in-place https://github.com/openshift/installer/pull/4482
+	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		envVars = append(envVars, "OPENSHIFT_INSTALL_EXPERIMENTAL_BOOTSTRAP_IN_PLACE=true")
+	}
 
 	// write installConfig to install-config.yaml so openshift-install can read it
 	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
@@ -234,7 +238,15 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		g.log.Errorf("Failed to write file %s", installConfigPath)
 		return err
 	}
-
+	// TODO: remove this once installer support bootstrap-in-place https://github.com/openshift/installer/pull/4482
+	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		// In case of single node rename bootstrap Ignition file
+		err = os.Rename(filepath.Join(g.workDir, "bootstrap-in-place-for-live-iso.ign"), filepath.Join(g.workDir, "bootstrap.ign"))
+		if err != nil {
+			g.log.Errorf("Failed to rename bootstrap-in-place-for-live-iso.ign")
+			return err
+		}
+	}
 	err = os.Remove(filepath.Join(g.workDir, "auth"))
 	if err != nil {
 		return err
