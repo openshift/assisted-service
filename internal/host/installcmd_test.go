@@ -363,7 +363,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", host.InstallerArgs))
+			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", host.InstallerArgs), 1)
 		})
 		It("empty installer args", func() {
 			host.InstallerArgs = ""
@@ -379,7 +379,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", `["--copy-network"]`))
+			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", `["--copy-network"]`), 1)
 		})
 
 		It("non-empty installer args with static ip config", func() {
@@ -388,7 +388,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", `["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`))
+			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", `["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`), 1)
 		})
 		It("non-empty installer args with copy network  with static ip config", func() {
 			db.Model(&cluster).Update("image_static_ips_config", "rkhkjgdfd")
@@ -396,7 +396,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", host.InstallerArgs))
+			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", host.InstallerArgs), 1)
 		})
 
 	})
@@ -473,7 +473,7 @@ func validateInstallCommand(installCmd *installCmd, reply *models.Step, role mod
 		"--env PULL_SECRET_TOKEN --env HTTP_PROXY --env HTTPS_PROXY --env NO_PROXY --env http_proxy --env https_proxy --env no_proxy " +
 		"quay.io/ocpmetal/assisted-installer-agent:latest fio_perf_check " +
 		fmt.Sprintf("--url %s --cluster-id %s --host-id %s --agent-version quay.io/ocpmetal/assisted-installer-agent:latest --insecure false ", installCmd.instructionConfig.ServiceBaseURL, string(clusterId), string(hostId)) +
-		fmt.Sprintf("\"{\\\"duration_threshold_ms\\\":1000,\\\"exit_code\\\":222,\\\"path\\\":\\\"%s\\\"}\" ; ", bootDevice)
+		fmt.Sprintf("\"{\\\"duration_threshold_ms\\\":10,\\\"exit_code\\\":222,\\\"path\\\":\\\"%s\\\"}\" ; ", bootDevice)
 
 	installCommandPrefix := fioPerfCheckCmd
 
