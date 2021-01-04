@@ -2398,10 +2398,6 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 func (b *bareMetalInventory) handleReplyError(params installer.PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host) error {
 
 	if params.Reply.StepType == models.StepTypeInstall {
-		if params.Reply.ExitCode == host.FioPerfCheckCmdExitCode {
-			log.Warnf("FIO performance check: %s", params.Reply.Error)
-			return b.hostApi.HandlePrepareInstallationFailure(ctx, h, params.Reply.Error)
-		}
 		// Handle case of installation error due to an already running assisted-installer.
 		if params.Reply.ExitCode == ContainerAlreadyRunningExitCode && strings.Contains(params.Reply.Error, "the container name \"assisted-installer\" is already in use") {
 			log.Warnf("Install command failed due to an already running installation: %s", params.Reply.Error)
