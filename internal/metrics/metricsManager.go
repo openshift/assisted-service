@@ -67,7 +67,7 @@ const (
 type API interface {
 	ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string)
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string)
-	ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int)
+	ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string)
 	Duration(operation string, duration time.Duration)
 	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
 	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
@@ -115,7 +115,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Subsystem: subsystem,
 			Name:      counterClusterHostInstallationCount,
 			Help:      counterDescriptionClusterHostInstallationCount,
-		}, []string{clusterIdLabel, emailDomainLabel}),
+		}, []string{openshiftVersionLabel, clusterIdLabel, emailDomainLabel}),
 
 		serviceLogicClusterInstallationSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -205,8 +205,8 @@ func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID st
 	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion, clusterID.String(), emailDomain, userManagedNetworking).Inc()
 }
 
-func (m *MetricsManager) ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int) {
-	m.serviceLogicClusterHostInstallationCount.WithLabelValues(clusterID.String(), emailDomain).Observe(float64(hostCount))
+func (m *MetricsManager) ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string) {
+	m.serviceLogicClusterHostInstallationCount.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Observe(float64(hostCount))
 }
 
 func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
