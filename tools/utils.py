@@ -10,6 +10,7 @@ from typing import Optional
 
 LOCAL_TARGET = 'minikube'
 INGRESS_REMOTE_TARGET = 'oc-ingress'
+ONPREM_TARGET = 'onprem'
 OCP_TARGET = 'ocp'
 OPENSHIFT_CI = 'openshift-ci'
 
@@ -130,6 +131,8 @@ def get_service_url(
         domain = get_domain(domain, target, namespace, profile)
         service_host = f"assisted-installer.{domain}"
         return to_url(service_host, disable_tls)
+    elif target == ONPREM_TARGET:
+        return "http://127.0.0.1:8090"
     else:
         service_host = get_service_host(
             service,
