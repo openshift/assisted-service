@@ -80,8 +80,7 @@ $(BUILD_FOLDER):
 	mkdir -p $(BUILD_FOLDER)
 
 format:
-	goimports -w -l cmd/ internal/ subsystem/ pkg/
-	gofmt -w -l cmd/ internal/ subsystem/ pkg/
+	golangci-lint run --fix -v
 
 ############
 # Generate #
