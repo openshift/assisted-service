@@ -6,10 +6,11 @@ package bminventory
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	installer "github.com/openshift/assisted-service/restapi/operations/installer"
-	reflect "reflect"
 )
 
 // MockInstallerInternals is a mock of InstallerInternals interface

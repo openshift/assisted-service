@@ -4885,6 +4885,10 @@ func init() {
         "io_perf": {
           "$ref": "#/definitions/io_perf"
         },
+        "is_installation_media": {
+          "description": "Whether the disk appears to be an installation media or not",
+          "type": "boolean"
+        },
         "model": {
           "type": "string"
         },
@@ -10927,6 +10931,10 @@ func init() {
         },
         "io_perf": {
           "$ref": "#/definitions/io_perf"
+        },
+        "is_installation_media": {
+          "description": "Whether the disk appears to be an installation media or not",
+          "type": "boolean"
         },
         "model": {
           "type": "string"
