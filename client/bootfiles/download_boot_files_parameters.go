@@ -62,6 +62,8 @@ type DownloadBootFilesParams struct {
 
 	/*FileType*/
 	FileType string
+	/*OpenshiftVersion*/
+	OpenshiftVersion string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -112,6 +114,17 @@ func (o *DownloadBootFilesParams) SetFileType(fileType string) {
 	o.FileType = fileType
 }
 
+// WithOpenshiftVersion adds the openshiftVersion to the download boot files params
+func (o *DownloadBootFilesParams) WithOpenshiftVersion(openshiftVersion string) *DownloadBootFilesParams {
+	o.SetOpenshiftVersion(openshiftVersion)
+	return o
+}
+
+// SetOpenshiftVersion adds the openshiftVersion to the download boot files params
+func (o *DownloadBootFilesParams) SetOpenshiftVersion(openshiftVersion string) {
+	o.OpenshiftVersion = openshiftVersion
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *DownloadBootFilesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -125,6 +138,15 @@ func (o *DownloadBootFilesParams) WriteToRequest(r runtime.ClientRequest, reg st
 	qFileType := qrFileType
 	if qFileType != "" {
 		if err := r.SetQueryParam("file_type", qFileType); err != nil {
+			return err
+		}
+	}
+
+	// query param openshift_version
+	qrOpenshiftVersion := o.OpenshiftVersion
+	qOpenshiftVersion := qrOpenshiftVersion
+	if qOpenshiftVersion != "" {
+		if err := r.SetQueryParam("openshift_version", qOpenshiftVersion); err != nil {
 			return err
 		}
 	}

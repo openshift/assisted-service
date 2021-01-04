@@ -21,13 +21,18 @@ func TestHandler_ListComponentVersions(t *testing.T) {
 	RunSpecs(t, "versions")
 }
 
+var defaultOpenShiftVersions = models.OpenshiftVersions{
+	"4.5": models.OpenshiftVersion{DisplayName: "4.5.1", ReleaseImage: "release_4.5", RhcosImage: "rhcos_4.5"},
+	"4.6": models.OpenshiftVersion{DisplayName: "4.6-candidate", ReleaseImage: "release_4.6", RhcosImage: "rhcos_4.6"},
+}
+
 var _ = Describe("list versions", func() {
 	var (
 		h                 *handler
 		logger            logrus.FieldLogger
 		mockRelease       *oc.MockRelease
 		versions          Versions
-		openshiftVersions models.OpenshiftVersions
+		openshiftVersions *models.OpenshiftVersions
 	)
 
 	BeforeEach(func() {
@@ -35,13 +40,13 @@ var _ = Describe("list versions", func() {
 		mockRelease = oc.NewMockRelease(ctrl)
 
 		logger = logrus.New()
-		openshiftVersions = make(models.OpenshiftVersions)
+		openshiftVersions = &models.OpenshiftVersions{}
 	})
 
 	Context("ListComponentVersions", func() {
 		It("default values", func() {
 			Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
-			h = NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
 			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 			val, _ := reply.(*operations.ListComponentVersionsOK)
@@ -58,7 +63,7 @@ var _ = Describe("list versions", func() {
 			os.Setenv("INSTALLER_IMAGE", "installer-image")
 			os.Setenv("CONTROLLER_IMAGE", "controller-image")
 			Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
-			h = NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
 			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 			val, _ := reply.(*operations.ListComponentVersionsOK)
@@ -72,7 +77,7 @@ var _ = Describe("list versions", func() {
 
 	Context("ListSupportedOpenshiftVersions", func() {
 		It("empty", func() {
-			h = NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
 
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListSupportedOpenshiftVersionsOK()))
@@ -82,43 +87,40 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("get_defaults", func() {
-			openshiftVersions["4.5"] = models.OpenshiftVersion{ReleaseImage: "release_4.5"}
-			openshiftVersions["4.6"] = models.OpenshiftVersion{ReleaseImage: "release_4.6"}
+			openshiftVersions = &defaultOpenShiftVersions
 
-			h = NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListSupportedOpenshiftVersionsOK()))
 			val, _ := reply.(*operations.ListSupportedOpenshiftVersionsOK)
 
-			Expect(val.Payload).Should(HaveLen(len(openshiftVersions)))
+			Expect(val.Payload).Should(HaveLen(len(*openshiftVersions)))
 
 			for key, version := range val.Payload {
-				Expect(version).Should(Equal(openshiftVersions[key]))
+				Expect(version).Should(Equal((*openshiftVersions)[key]))
 			}
 		})
 	})
 
 	Context("GetReleaseImage", func() {
 		BeforeEach(func() {
-			openshiftVersions["4.5"] = models.OpenshiftVersion{ReleaseImage: "release_4.5"}
-			openshiftVersions["4.6"] = models.OpenshiftVersion{ReleaseImage: "release_4.6"}
-
-			h = NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
+			openshiftVersions = &defaultOpenShiftVersions
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
 		})
 
 		It("default", func() {
-			for key := range openshiftVersions {
+			for key := range *openshiftVersions {
 				releaseImage, err := h.GetReleaseImage(key)
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(releaseImage).Should(Equal(openshiftVersions[key].ReleaseImage))
+				Expect(releaseImage).Should(Equal((*openshiftVersions)[key].ReleaseImage))
 			}
 		})
 
 		It("override_default", func() {
 			overrideRelaseImage := "override-release-image"
-			h = NewHandler(logger, mockRelease, versions, openshiftVersions, overrideRelaseImage, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, overrideRelaseImage, "")
 
-			for key := range openshiftVersions {
+			for key := range *openshiftVersions {
 				releaseImage, err := h.GetReleaseImage(key)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(releaseImage).Should(Equal(overrideRelaseImage))
@@ -132,17 +134,38 @@ var _ = Describe("list versions", func() {
 		})
 	})
 
+	Context("GetRHCOSImage", func() {
+		BeforeEach(func() {
+			openshiftVersions = &defaultOpenShiftVersions
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
+		})
+
+		It("default", func() {
+			for key := range *openshiftVersions {
+				rhcosImage, err := h.GetRHCOSImage(key)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(rhcosImage).Should(Equal((*openshiftVersions)[key].RhcosImage))
+			}
+		})
+
+		It("unsupported_key", func() {
+			rhcosImage, err := h.GetRHCOSImage("unsupported")
+			Expect(err).Should(HaveOccurred())
+			Expect(rhcosImage).Should(BeEmpty())
+		})
+	})
+
 	Context("IsOpenshiftVersionSupported", func() {
 		It("positive", func() {
-			h := NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
+			h := NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
 
-			for key := range openshiftVersions {
+			for key := range *openshiftVersions {
 				Expect(h.IsOpenshiftVersionSupported(key)).Should(BeTrue())
 			}
 		})
 
 		It("negative", func() {
-			h := NewHandler(logger, mockRelease, versions, openshiftVersions, "", "")
+			h := NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
 			Expect(h.IsOpenshiftVersionSupported("unknown")).Should(BeFalse())
 		})
 	})

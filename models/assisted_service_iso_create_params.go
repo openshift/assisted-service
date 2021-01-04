@@ -15,6 +15,9 @@ import (
 // swagger:model assisted-service-iso-create-params
 type AssistedServiceIsoCreateParams struct {
 
+	// Version of the OpenShift cluster.
+	OpenshiftVersion string `json:"openshift_version,omitempty"`
+
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 	PullSecret string `json:"pull_secret,omitempty"`
 

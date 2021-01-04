@@ -253,6 +253,12 @@ func init() {
         "operationId": "DownloadBootFiles",
         "parameters": [
           {
+            "type": "string",
+            "name": "openshift_version",
+            "in": "query",
+            "required": true
+          },
+          {
             "enum": [
               "initrd.img",
               "rootfs.img",
@@ -4045,6 +4051,10 @@ func init() {
     "assisted-service-iso-create-params": {
       "type": "object",
       "properties": {
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string"
@@ -5813,9 +5823,25 @@ func init() {
     "openshift-version": {
       "type": "object",
       "properties": {
+        "display_name": {
+          "description": "Name of the version to be presented to the user.",
+          "type": "string"
+        },
         "release_image": {
           "description": "The installation image of the OpenShift cluster.",
           "type": "string"
+        },
+        "rhcos_image": {
+          "description": "The base RHCOS image used for the discovery iso.",
+          "type": "string"
+        },
+        "support_level": {
+          "description": "Level of support of the version.",
+          "type": "string",
+          "enum": [
+            "beta",
+            "production"
+          ]
         }
       }
     },
@@ -6251,6 +6277,12 @@ func init() {
         "summary": "Downloads files used for booting servers.",
         "operationId": "DownloadBootFiles",
         "parameters": [
+          {
+            "type": "string",
+            "name": "openshift_version",
+            "in": "query",
+            "required": true
+          },
           {
             "enum": [
               "initrd.img",
@@ -10132,6 +10164,10 @@ func init() {
     "assisted-service-iso-create-params": {
       "type": "object",
       "properties": {
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string"
@@ -11861,9 +11897,25 @@ func init() {
     "openshift-version": {
       "type": "object",
       "properties": {
+        "display_name": {
+          "description": "Name of the version to be presented to the user.",
+          "type": "string"
+        },
         "release_image": {
           "description": "The installation image of the OpenShift cluster.",
           "type": "string"
+        },
+        "rhcos_image": {
+          "description": "The base RHCOS image used for the discovery iso.",
+          "type": "string"
+        },
+        "support_level": {
+          "description": "Level of support of the version.",
+          "type": "string",
+          "enum": [
+            "beta",
+            "production"
+          ]
         }
       }
     },

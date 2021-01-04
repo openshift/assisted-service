@@ -16,6 +16,10 @@ func TestJob(t *testing.T) {
 	RunSpecs(t, "Util")
 }
 
+const (
+	defaultTestRhcosURL = "rhcosURL"
+)
+
 var _ = Describe("FixEndpointURL", func() {
 	It("returns the original string with a valid http URL", func() {
 		endpoint := "http://example.com/stuff"
@@ -74,10 +78,10 @@ var _ = Describe("UploadBootFiles", func() {
 	})
 
 	It("all files already uploaded", func() {
-		mockS3Client.EXPECT().DoesPublicObjectExist(ctx, BootFileTypeToObjectName(RHCOSBaseObjectName, "initrd.img")).Return(true, nil)
-		mockS3Client.EXPECT().DoesPublicObjectExist(ctx, BootFileTypeToObjectName(RHCOSBaseObjectName, "rootfs.img")).Return(true, nil)
-		mockS3Client.EXPECT().DoesPublicObjectExist(ctx, BootFileTypeToObjectName(RHCOSBaseObjectName, "vmlinuz")).Return(true, nil)
-		err := ExtractBootFilesFromISOAndUpload(ctx, log, "/unused/file", RHCOSBaseObjectName, RHCOSBaseURL, mockS3Client)
+		mockS3Client.EXPECT().DoesPublicObjectExist(ctx, BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img")).Return(true, nil)
+		mockS3Client.EXPECT().DoesPublicObjectExist(ctx, BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img")).Return(true, nil)
+		mockS3Client.EXPECT().DoesPublicObjectExist(ctx, BootFileTypeToObjectName(defaultTestRhcosObject, "vmlinuz")).Return(true, nil)
+		err := ExtractBootFilesFromISOAndUpload(ctx, log, "/unused/file", defaultTestRhcosObject, defaultTestRhcosURL, mockS3Client)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

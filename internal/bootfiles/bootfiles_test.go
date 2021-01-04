@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/golang/mock/gomock"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 
@@ -32,6 +33,11 @@ func getTestLog() logrus.FieldLogger {
 	return l
 }
 
+var (
+	defaultURL     = "http://foo.com/file"
+	defaultBaseIso = "baseiso"
+)
+
 var _ = Describe("BootFilesTests", func() {
 	var (
 		bootfilesAPI *bootfiles.BootFiles
@@ -51,29 +57,42 @@ var _ = Describe("BootFilesTests", func() {
 		ctrl.Finish()
 	})
 
+	downloadBootFiles := func(isAws bool, fileType string) middleware.Responder {
+		mockS3Client.EXPECT().IsAwsS3().Return(isAws).Times(1)
+		mockS3Client.EXPECT().GetBaseIsoObject(common.DefaultTestOpenShiftVersion).Return(defaultBaseIso).Times(1)
+
+		if isAws {
+			mockS3Client.EXPECT().GetS3BootFileURL(defaultBaseIso, fileType).Return(defaultURL).Times(1)
+		} else {
+			mockS3Client.EXPECT().DownloadBootFile(ctx, defaultBaseIso, fileType).Times(1)
+		}
+
+		return bootfilesAPI.DownloadBootFiles(ctx, operations.DownloadBootFilesParams{
+			FileType: fileType, OpenshiftVersion: common.DefaultTestOpenShiftVersion,
+		})
+	}
+
 	Context("DownloadBootFiles", func() {
 		It("download initrd aws", func() {
-			fileType := "initrd.img"
-			url := "http://foo.com/file"
-			mockS3Client.EXPECT().IsAwsS3().Return(true)
-			mockS3Client.EXPECT().GetS3BootFileURL(fileType).Return(url)
-			response := bootfilesAPI.DownloadBootFiles(ctx, operations.DownloadBootFilesParams{FileType: fileType})
+			response := downloadBootFiles(true, "initrd.img")
 			Expect(response).To(BeAssignableToTypeOf(&operations.DownloadBootFilesTemporaryRedirect{}))
 			responsePayload := response.(*operations.DownloadBootFilesTemporaryRedirect)
-			Expect(responsePayload.Location).To(Equal(url))
+			Expect(responsePayload.Location).To(Equal(defaultURL))
 			//Expect(response).Should(BeAssignableToTypeOf(filemiddleware.NewResponder(nil, "", int64(0))))
 		})
 		It("download vmlinuz onprem", func() {
-			fileType := "vmlinuz"
-			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().DownloadBootFile(ctx, fileType)
-			response := bootfilesAPI.DownloadBootFiles(ctx, operations.DownloadBootFilesParams{FileType: fileType})
+			response := downloadBootFiles(false, "vmlinuz")
 			Expect(response).Should(BeAssignableToTypeOf(filemiddleware.NewResponder(nil, "", int64(0))))
 		})
 		It("download failed", func() {
+			fileType := "vmlinuz"
+			baseIso := "livecd.iso"
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().DownloadBootFile(ctx, "vmlinuz").Return(nil, "", int64(0), errors.New("Whoops"))
-			response := bootfilesAPI.DownloadBootFiles(ctx, operations.DownloadBootFilesParams{FileType: "vmlinuz"})
+			mockS3Client.EXPECT().GetBaseIsoObject(common.DefaultTestOpenShiftVersion).Return(baseIso)
+			mockS3Client.EXPECT().DownloadBootFile(ctx, baseIso, fileType).Return(nil, "", int64(0), errors.New("Whoops"))
+			response := bootfilesAPI.DownloadBootFiles(ctx, operations.DownloadBootFilesParams{
+				FileType: fileType, OpenshiftVersion: common.DefaultTestOpenShiftVersion,
+			})
 			apiErr, ok := response.(*common.ApiErrorResponse)
 			Expect(ok).Should(BeTrue())
 			Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusInternalServerError)))

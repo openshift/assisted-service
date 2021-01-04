@@ -6,11 +6,10 @@ package versions
 
 import (
 	context "context"
-	reflect "reflect"
-
 	middleware "github.com/go-openapi/runtime/middleware"
 	gomock "github.com/golang/mock/gomock"
 	versions "github.com/openshift/assisted-service/restapi/operations/versions"
+	reflect "reflect"
 )
 
 // MockHandler is a mock of Handler interface
@@ -34,6 +33,21 @@ func NewMockHandler(ctrl *gomock.Controller) *MockHandler {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return m.recorder
+}
+
+// GetRHCOSImage mocks base method
+func (m *MockHandler) GetRHCOSImage(arg0 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRHCOSImage", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRHCOSImage indicates an expected call of GetRHCOSImage
+func (mr *MockHandlerMockRecorder) GetRHCOSImage(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRHCOSImage", reflect.TypeOf((*MockHandler)(nil).GetRHCOSImage), arg0)
 }
 
 // GetReleaseImage mocks base method

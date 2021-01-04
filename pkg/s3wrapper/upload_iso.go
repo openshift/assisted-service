@@ -26,7 +26,7 @@ const copyPartChunkSizeBytes = 64 * 1024 * 1024 // 64MB
 const coreISOMagic = "coreiso+"
 
 type ISOUploaderAPI interface {
-	UploadISO(ctx context.Context, ignitionConfig, objectName string) error
+	UploadISO(ctx context.Context, ignitionConfig, srcObjectName, destObjectName string) error
 }
 
 var _ ISOUploaderAPI = &ISOUploader{}
@@ -50,11 +50,11 @@ func NewISOUploader(logger logrus.FieldLogger, s3Client s3iface.S3API, bucket, p
 	return &ISOUploader{log: logger, s3client: s3Client, bucket: bucket, publicBucket: publicBucket}
 }
 
-func (u *ISOUploader) UploadISO(ctx context.Context, ignitionConfig, objectName string) error {
+func (u *ISOUploader) UploadISO(ctx context.Context, ignitionConfig, srcObjectName, destObjectName string) error {
 	log := logutil.FromContext(ctx, u.log)
-	log.Debugf("Started upload of ISO %s", objectName)
+	log.Debugf("Started upload of ISO %s", destObjectName)
 
-	baseISOInfo, origContents, err := u.getISOInfo(RHCOSBaseObjectName, log)
+	baseISOInfo, origContents, err := u.getISOInfo(srcObjectName, log)
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to fetch base ISO information")
 		log.Error(err)
@@ -67,12 +67,12 @@ func (u *ISOUploader) UploadISO(ctx context.Context, ignitionConfig, objectName 
 		uploader:        u,
 		isoInfo:         baseISOInfo,
 		origContents:    origContents,
-		sourceObjectKey: RHCOSBaseObjectName,
-		destObjectKey:   objectName,
+		sourceObjectKey: srcObjectName,
+		destObjectKey:   destObjectName,
 	}
 	err = upload.Upload(ignitionConfig)
 	if err != nil {
-		err = errors.Wrapf(err, "Failed to create ISO %s", objectName)
+		err = errors.Wrapf(err, "Failed to create ISO %s", destObjectName)
 		log.Error(err)
 		return err
 	}

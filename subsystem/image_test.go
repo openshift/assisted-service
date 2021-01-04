@@ -136,8 +136,9 @@ var _ = Describe("system-test assisted-service live ISO image tests", func() {
 		defer os.Remove(file.Name())
 
 		ignitionParams := models.AssistedServiceIsoCreateParams{
-			SSHPublicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDgj9Pc6dmIAZvxvC1q4K05lUqd/Qy73JEGP/THZEdlLif825SPyMe9NGe8UxNiS4AvYJoLcplMVztQjInVf6s3C0EtlvyrfzdoCCONNBtgItU0gxG+GxneNJs/MKhlUBh6QWg52cBwiaTIxrGlbM/qLfzSX6k5WtZV/yH1TVVrFOpDxtOfR5RZ/GmI97pJIOhxEdw9aT3FydbFtuNwTyNxo0YGMk6Mp89qlUx20u4aK1HXn67I3+2xtpzPSiH6TwRPX3vb/qdWJ4/YaKOHwf/FnIg3FXQXVxRCBijDF0cCUmKWcdrs59JopGMFKDXwHHCdfMjtnfBvA/WOlBs0NKpoFIEuufL3gBuahBRvMKnOXD1gwD8WkaOa+B5BxutZ+/zXAPX3faXRdMGPfHRDam+rNR8KkbYl+3Y2C/W1APMLopLt5kKit64E4rHTwbYwB1Si770O+I/KTcAwnRo1j0K9m7ahz2YXK3fiqieh7awhkiosTsDHLAZDs+YTi9tfBQ8= me@tester",
-			PullSecret:   pullSecret,
+			SSHPublicKey:     "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDgj9Pc6dmIAZvxvC1q4K05lUqd/Qy73JEGP/THZEdlLif825SPyMe9NGe8UxNiS4AvYJoLcplMVztQjInVf6s3C0EtlvyrfzdoCCONNBtgItU0gxG+GxneNJs/MKhlUBh6QWg52cBwiaTIxrGlbM/qLfzSX6k5WtZV/yH1TVVrFOpDxtOfR5RZ/GmI97pJIOhxEdw9aT3FydbFtuNwTyNxo0YGMk6Mp89qlUx20u4aK1HXn67I3+2xtpzPSiH6TwRPX3vb/qdWJ4/YaKOHwf/FnIg3FXQXVxRCBijDF0cCUmKWcdrs59JopGMFKDXwHHCdfMjtnfBvA/WOlBs0NKpoFIEuufL3gBuahBRvMKnOXD1gwD8WkaOa+B5BxutZ+/zXAPX3faXRdMGPfHRDam+rNR8KkbYl+3Y2C/W1APMLopLt5kKit64E4rHTwbYwB1Si770O+I/KTcAwnRo1j0K9m7ahz2YXK3fiqieh7awhkiosTsDHLAZDs+YTi9tfBQ8= me@tester",
+			PullSecret:       pullSecret,
+			OpenshiftVersion: common.DefaultTestOpenShiftVersion,
 		}
 		_, err = userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
 			AssistedServiceIsoCreateParams: &ignitionParams,

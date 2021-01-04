@@ -13,7 +13,8 @@ import (
 
 // DownloadBootFilesURL generates an URL for the download boot files operation
 type DownloadBootFilesURL struct {
-	FileType string
+	FileType         string
+	OpenshiftVersion string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -52,6 +53,11 @@ func (o *DownloadBootFilesURL) Build() (*url.URL, error) {
 	fileTypeQ := o.FileType
 	if fileTypeQ != "" {
 		qs.Set("file_type", fileTypeQ)
+	}
+
+	openshiftVersionQ := o.OpenshiftVersion
+	if openshiftVersionQ != "" {
+		qs.Set("openshift_version", openshiftVersionQ)
 	}
 
 	_result.RawQuery = qs.Encode()

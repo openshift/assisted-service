@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -14,13 +15,15 @@ import (
 
 type localJob struct {
 	Config
-	log logrus.FieldLogger
+	log            logrus.FieldLogger
+	versionHandler versions.Handler
 }
 
-func NewLocalJob(log logrus.FieldLogger, cfg Config) *localJob {
+func NewLocalJob(log logrus.FieldLogger, cfg Config, versionHandler versions.Handler) *localJob {
 	return &localJob{
-		Config: cfg,
-		log:    log,
+		Config:         cfg,
+		log:            log,
+		versionHandler: versionHandler,
 	}
 }
 
@@ -36,7 +39,7 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 
 	// runs openshift-install to generate ignition files, then modifies them as necessary
 	var generator ignition.Generator
-	s3Client := s3wrapper.NewFSClient(workDir, log)
+	s3Client := s3wrapper.NewFSClient(workDir, log, j.versionHandler)
 	if s3Client == nil {
 		log.Fatal("failed to create S3 file system client, ", err)
 	}
