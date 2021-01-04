@@ -246,7 +246,7 @@ deploy-test: _verify_minikube generate-keys
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
 
 update-ocp-version:
-	sed -i "s|value: '' # openshift version|value: '${OPENSHIFT_VERSIONS}' # openshift version|" openshift/template.yaml
+	sed -i "s|value: '.*' # openshift version|value: '${OPENSHIFT_VERSIONS}' # openshift version|" openshift/template.yaml
 
 generate-onprem-environment:
 	sed -i "s|OPENSHIFT_VERSIONS=.*|OPENSHIFT_VERSIONS=${OPENSHIFT_VERSIONS}|" onprem-environment
