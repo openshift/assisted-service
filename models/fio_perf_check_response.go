@@ -17,6 +17,9 @@ type FioPerfCheckResponse struct {
 
 	// The 99th percentile of fdatasync durations in milliseconds.
 	IoSyncDuration int64 `json:"io_sync_duration,omitempty"`
+
+	// the device path.
+	Path string `json:"path,omitempty"`
 }
 
 // Validate validates this fio perf check response

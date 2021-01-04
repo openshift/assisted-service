@@ -3908,6 +3908,9 @@ definitions:
       io_sync_duration:
         type: integer
         description: The 99th percentile of fdatasync durations in milliseconds.
+      path:
+        type: string
+        description: The device path.
 
   credentials:
     type: object

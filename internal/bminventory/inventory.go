@@ -2535,6 +2535,27 @@ func (b *bareMetalInventory) processNtpSynchronizerResponse(ctx context.Context,
 	return b.hostApi.UpdateNTP(ctx, host, ntpSynchronizerResponse.NtpSources, b.db)
 }
 
+func (b *bareMetalInventory) processFioPerfCheckResponse(ctx context.Context, h *models.Host, fioPerfCheckResponseStr string) error {
+	var fioPerfCheckResponse models.FioPerfCheckResponse
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if err := json.Unmarshal([]byte(fioPerfCheckResponseStr), &fioPerfCheckResponse); err != nil {
+		log.WithError(err).Warnf("Json unmarshal FIO perf check response from host %s", h.ID.String())
+		return err
+	}
+
+	if fioPerfCheckResponse.IoSyncDuration > host.FioDurationThreshold {
+		// If the 99th percentile of fdatasync durations is more than 10ms, it's not fast enough for etcd.
+		// See: https://www.ibm.com/cloud/blog/using-fio-to-tell-whether-your-storage-is-fast-enough-for-etcd
+		msg := fmt.Sprintf("Host's disk %s is not fast enough for installation (fdatasync duration: %d)",
+			fioPerfCheckResponse.Path, fioPerfCheckResponse.IoSyncDuration)
+		log.Warnf(msg)
+		b.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, msg, time.Now())
+	}
+	return nil
+}
+
 func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {
 	var err error
 	switch params.Reply.StepType {
@@ -2550,6 +2571,8 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.processDhcpAllocationResponse(ctx, &host, stepReply)
 	case models.StepTypeNtpSynchronizer:
 		err = b.processNtpSynchronizerResponse(ctx, &host, stepReply)
+	case models.StepTypeFioPerfCheck:
+		err = b.processFioPerfCheckResponse(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -2572,6 +2595,8 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.DhcpAllocationResponse{}, params.Reply.Output)
 	case models.StepTypeNtpSynchronizer:
 		stepReply, err = filterReply(&models.NtpSynchronizationResponse{}, params.Reply.Output)
+	case models.StepTypeFioPerfCheck:
+		stepReply, err = filterReply(&models.FioPerfCheckResponse{}, params.Reply.Output)
 	}
 
 	return stepReply, err

@@ -240,6 +240,66 @@ func init() {
         }
       }
     },
+    "/boot-files": {
+      "get": {
+        "security": [],
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "bootfiles"
+        ],
+        "summary": "Downloads files used for booting servers.",
+        "operationId": "DownloadBootFiles",
+        "parameters": [
+          {
+            "enum": [
+              "initrd.img",
+              "rootfs.img",
+              "vmlinuz"
+            ],
+            "type": "string",
+            "name": "file_type",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "307": {
+            "description": "Redirect.",
+            "headers": {
+              "Location": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters": {
       "get": {
         "security": [
@@ -4989,6 +5049,10 @@ func init() {
         "io_sync_duration": {
           "description": "The 99th percentile of fdatasync durations in milliseconds.",
           "type": "integer"
+        },
+        "path": {
+          "description": "the device path.",
+          "type": "string"
         }
       }
     },
@@ -6164,6 +6228,66 @@ func init() {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/boot-files": {
+      "get": {
+        "security": [],
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "bootfiles"
+        ],
+        "summary": "Downloads files used for booting servers.",
+        "operationId": "DownloadBootFiles",
+        "parameters": [
+          {
+            "enum": [
+              "initrd.img",
+              "rootfs.img",
+              "vmlinuz"
+            ],
+            "type": "string",
+            "name": "file_type",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "307": {
+            "description": "Redirect.",
+            "headers": {
+              "Location": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
             }
           },
           "500": {
@@ -10972,6 +11096,10 @@ func init() {
         "io_sync_duration": {
           "description": "The 99th percentile of fdatasync durations in milliseconds.",
           "type": "integer"
+        },
+        "path": {
+          "description": "the device path.",
+          "type": "string"
         }
       }
     },
