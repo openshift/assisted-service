@@ -330,8 +330,8 @@ func (in *ImageSpec) DeepCopyInto(out *ImageSpec) {
 		*out = new(v1.ObjectReference)
 		**out = **in
 	}
-	if in.PullSecretName != nil {
-		in, out := &in.PullSecretName, &out.PullSecretName
+	if in.PullSecretRef != nil {
+		in, out := &in.PullSecretRef, &out.PullSecretRef
 		*out = new(v1.SecretReference)
 		**out = **in
 	}

@@ -27,7 +27,7 @@ type ImageSpec struct {
 	ClusterRef   *corev1.ObjectReference `json:"clusterRef"`
 	SSHPublicKey string                  `json:"sshPublicKey,omitempty"`
 	// The name of the secret containing the pull secret
-	PullSecretName        *corev1.SecretReference `json:"pullSecretName"`
+	PullSecretRef         *corev1.SecretReference `json:"pullSecretRef"`
 	IgnitionOverrides     string                  `json:"ignitionOverrides,omitempty"`
 	StaticIpConfiguration string                  `json:"staticIpConfiguration,omitempty"`
 }
@@ -36,8 +36,8 @@ type ImageSpec struct {
 type ImageStatus struct {
 	State          string       `json:"state,omitempty"`
 	SizeBytes      int          `json:"sizeBytes,omitempty"`
-	DownloadUrl    int          `json:"downloadUrl,omitempty"`
-	ExpirationTime *metav1.Time `json:"expirationTimestamp,omitempty"`
+	DownloadUrl    string       `json:"downloadUrl,omitempty"`
+	ExpirationTime *metav1.Time `json:"expirationTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
