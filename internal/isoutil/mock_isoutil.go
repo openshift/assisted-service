@@ -33,6 +33,34 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return m.recorder
 }
 
+// Create mocks base method
+func (m *MockHandler) Create(arg0 string, arg1 int64, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create
+func (mr *MockHandlerMockRecorder) Create(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockHandler)(nil).Create), arg0, arg1, arg2)
+}
+
+// Extract mocks base method
+func (m *MockHandler) Extract() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Extract")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Extract indicates an expected call of Extract
+func (mr *MockHandlerMockRecorder) Extract() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockHandler)(nil).Extract))
+}
+
 // ReadFile mocks base method
 func (m *MockHandler) ReadFile(arg0 string) (io.ReadWriteSeeker, error) {
 	m.ctrl.T.Helper()

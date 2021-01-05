@@ -18,7 +18,6 @@ require (
 	github.com/diskfs/go-diskfs v1.1.2-0.20201217091417-af766c9708d3
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
-	github.com/fsouza/go-dockerclient v1.6.6 // indirect
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/loads v0.19.5
 	github.com/go-openapi/runtime v0.19.20
