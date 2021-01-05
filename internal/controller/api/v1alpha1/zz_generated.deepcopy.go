@@ -133,6 +133,10 @@ func (in *ClusterStatus) DeepCopyInto(out *ClusterStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.InstallationStartTime != nil {
+		in, out := &in.InstallationStartTime, &out.InstallationStartTime
+		*out = (*in).DeepCopy()
+	}
 	if in.InstallationCompletionTime != nil {
 		in, out := &in.InstallationCompletionTime, &out.InstallationCompletionTime
 		*out = (*in).DeepCopy()
