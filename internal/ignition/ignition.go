@@ -200,6 +200,15 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	if err != nil {
 		return err
 	}
+	// TODO: remove this once installer support bootstrap-in-place https://github.com/openshift/installer/pull/4482
+	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		// In case of single node rename bootstrap Ignition file
+		err = os.Rename(filepath.Join(g.workDir, "bootstrap-in-place-for-live-iso.ign"), filepath.Join(g.workDir, "bootstrap.ign"))
+		if err != nil {
+			g.log.Errorf("Failed to rename bootstrap-in-place-for-live-iso.ign")
+			return err
+		}
+	}
 
 	// parse ignition and update BareMetalHosts
 	bootstrapPath := filepath.Join(g.workDir, "bootstrap.ign")
@@ -238,15 +247,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		g.log.Errorf("Failed to write file %s", installConfigPath)
 		return err
 	}
-	// TODO: remove this once installer support bootstrap-in-place https://github.com/openshift/installer/pull/4482
-	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-		// In case of single node rename bootstrap Ignition file
-		err = os.Rename(filepath.Join(g.workDir, "bootstrap-in-place-for-live-iso.ign"), filepath.Join(g.workDir, "bootstrap.ign"))
-		if err != nil {
-			g.log.Errorf("Failed to rename bootstrap-in-place-for-live-iso.ign")
-			return err
-		}
-	}
+
 	err = os.Remove(filepath.Join(g.workDir, "auth"))
 	if err != nil {
 		return err
