@@ -228,7 +228,6 @@ func If(id stringer) stateswitch.Condition {
 //check if we should move to finalizing state
 func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
-
 	installedStatus := []string{models.HostStatusInstalled}
 
 	// Move to finalizing state when 3 masters and at least 1 worker (if workers are given) moved to installed state
@@ -243,7 +242,6 @@ func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args state
 //check if we should stay in installing state
 func (th *transitionHandler) IsInstalling(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, _ := sw.(*stateCluster)
-
 	installingStatuses := []string{models.HostStatusInstalling, models.HostStatusInstallingInProgress,
 		models.HostStatusInstalled, models.HostStatusInstallingPendingUserAction}
 	return th.enoughMastersAndWorkers(sCluster, installingStatuses), nil
@@ -275,9 +273,13 @@ func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, sta
 	}
 
 	numberOfExpectedWorkers := NumberOfWorkers(sCluster.cluster)
+	minRequiredMasterNodes := MinMastersNeededForInstallation
+	if swag.StringValue(sCluster.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		minRequiredMasterNodes = 1
+	}
 
 	// to be installed cluster need 3 master and at least 1 worker(if workers were given)
-	if mastersInSomeInstallingStatus >= MinMastersNeededForInstallation &&
+	if mastersInSomeInstallingStatus >= minRequiredMasterNodes &&
 		(numberOfExpectedWorkers == 0 || workersInSomeInstallingStatus >= MinWorkersNeededForInstallation) {
 		return true
 	}
