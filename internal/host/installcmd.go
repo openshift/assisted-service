@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
+	"github.com/thoas/go-funk"
 )
 
 type installCmd struct {
@@ -94,7 +95,6 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 }
 
 func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, bootdevice string) (string, error) {
-
 	role := host.Role
 	if host.Bootstrap {
 		role = models.HostRoleBootstrap
@@ -129,7 +129,6 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		"--mco-image", mcoImage,
 		"--controller-image", i.instructionConfig.ControllerImage,
 		"--agent-image", i.instructionConfig.InventoryImage,
-		"--insecure", strconv.FormatBool(i.instructionConfig.SkipCertVerification),
 	}
 
 	if i.hasCACert() {
@@ -141,8 +140,13 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		installerCmd = append(installerCmd, "--installation-timeout", strconv.Itoa(int(i.instructionConfig.InstallationTimeout)))
 	}
 
-	if host.InstallerArgs != "" {
-		installerCmd = append(installerCmd, "--installer-args", host.InstallerArgs)
+	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host)
+	if err != nil {
+		return "", err
+	}
+
+	if hostInstallerArgs != "" {
+		installerCmd = append(installerCmd, "--installer-args", hostInstallerArgs)
 	}
 
 	noProxyArgs := i.getProxyArguments(cluster.Name, cluster.BaseDNSDomain, cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
@@ -153,6 +157,13 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	if i.instructionConfig.ServiceIPs != "" {
 		installerCmd = append(installerCmd, "--service-ips", i.instructionConfig.ServiceIPs)
 	}
+
+	/*
+	  Setting the insecure flag last, since currently there is an issue with flag package: when processing
+	  input arguments, in case the argument is boolean and comes in the form of "--arg-name arg-value", the processing
+	  stops right after it and the rest of the flag are not processed. "--arg-name=arg-value" form does not have this issue
+	*/
+	installerCmd = append(installerCmd, "--insecure", strconv.FormatBool(i.instructionConfig.SkipCertVerification))
 
 	return fmt.Sprintf("%s %s %s", shellescape.QuoteCommand(podmanCmd), i.instructionConfig.InstallerImage,
 		shellescape.QuoteCommand(installerCmd)), nil
@@ -226,4 +237,42 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 		}
 	}
 	return formatCmds, nil
+}
+
+/*
+	This function combines existing InstallerArgs ( set by user for his own reasons ) with the
+	--copy-nework argument needed by the static ips configuration. In case user has also
+	set --copy-nework, function will set only one such argument
+*/
+func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host) (string, error) {
+	if cluster.ImageInfo.StaticIpsConfig == "" {
+		return host.InstallerArgs, nil
+	}
+
+	if host.InstallerArgs == "" {
+		newArgs := []string{"--copy-network"}
+		argsBytes, err := json.Marshal(newArgs)
+		if err != nil {
+			return "", err
+		}
+		return string(argsBytes), nil
+	}
+
+	var currentInstallerArgs []string
+	err := json.Unmarshal([]byte(host.InstallerArgs), &currentInstallerArgs)
+	if err != nil {
+		return "", err
+	}
+
+	// installer args already contain  command for network configuration
+	if funk.Contains(currentInstallerArgs, "--copy-network") {
+		return host.InstallerArgs, nil
+	}
+
+	currentInstallerArgs = append(currentInstallerArgs, "--copy-network")
+	argsBytes, err := json.Marshal(currentInstallerArgs)
+	if err != nil {
+		return "", err
+	}
+	return string(argsBytes), nil
 }

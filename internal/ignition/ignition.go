@@ -40,6 +40,95 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const ConfigStaticIpsScript = `
+#!/bin/bash
+
+function create_template_file() {
+    echo "creating /var/tmp/template.connection file" | systemd-cat -t configure-static-ip -p debug
+    cat > "/var/tmp/template.connection" <<EOF
+[connection]
+id=\$FOUND_INTERFACE
+interface-name=\$FOUND_INTERFACE
+type=ethernet
+multi-connect=3
+autoconnect=true
+autoconnect-priority=1
+
+[ethernet]
+mac-address-blacklist=
+
+[ipv4]
+method=manual
+addr-gen-mode=eui64
+addresses=\$FOUND_IP/\$FOUND_MASK
+gateway=\$FOUND_GW
+dns=\$FOUND_DNS
+
+[ipv6]
+method=auto
+addr-gen-mode=eui64
+
+[802-3-ethernet]
+mac-address=\$FOUND_MAC
+EOF
+}
+
+function find_my_mac() {
+    MAC_TO_CHECK=${1}
+
+    unset FOUND_MAC
+    for entry in $(cat "/etc/static_ips_config.csv")
+    do
+        MAC=$(echo ${entry} | cut -f1 -d\;)
+        if [[ ! -z ${MAC} ]] && [[ -z ${FOUND_MAC} ]]; then
+            if [[ "${MAC}" == "${MAC_TO_CHECK}" ]]; then
+                export FOUND_INTERFACE=${INTERFACE}
+                export FOUND_MAC=${MAC}
+                export FOUND_IP=$(echo ${entry} | cut -f2 -d\;)
+                export FOUND_MASK=$(echo ${entry} | cut -f3 -d\;)
+                export FOUND_DNS=$(echo ${entry} | cut -f4 -d\;)
+                export FOUND_GW=$(echo ${entry} | cut -f5 -d\;)
+                break
+            fi
+        fi
+    done
+
+    if [[ -z ${FOUND_MAC} ]]; then
+        echo "Host MAC ${MAC_TO_CHECK} not found in the list" | systemd-cat -t configure-static-ip -p err
+    fi
+}
+
+function correlate_int_mac() {
+    # Correlate the Mac with the interface
+    for INTERFACE in $(find /sys/class/net -mindepth 1 -maxdepth 1 ! -name lo -printf "%P\n")
+    do
+        INT_MAC=$(cat /sys/class/net/${INTERFACE}/address)
+        if [[ ! -z ${INT_MAC} ]]; then
+            echo "MAC to check: ${INT_MAC}" | systemd-cat -t configure-static-ip -p debug
+            find_my_mac ${INT_MAC}
+            if [[ "${FOUND_MAC}" == "${INT_MAC}" ]];then
+                echo "MAC Found in the list, this is the Net data: " | systemd-cat -t configure-static-ip -p debug
+                echo "MAC: ${FOUND_MAC}" | systemd-cat -t configure-static-ip -p debug
+                echo "IP: ${FOUND_IP}" | systemd-cat -t configure-static-ip -p debug
+                echo "MASK: ${FOUND_MASK}" | systemd-cat -t configure-static-ip -p debug
+                echo "GW: ${FOUND_GW}" | systemd-cat -t configure-static-ip -p debug
+                echo "DNS: ${FOUND_DNS}" | systemd-cat -t configure-static-ip -p debug
+                
+		echo "Configuring interface ${FOUND_INTERFACE}, mac address ${FOUND_MAC} with ip ${FOUND_IP}" | systemd-cat -t configure-static-ip -p debug
+                export NM_KEY_FILE="/etc/NetworkManager/system-connections/${FOUND_INTERFACE}.nmconnection"
+                envsubst < "/var/tmp/template.connection" > ${NM_KEY_FILE}
+                chmod 600 ${NM_KEY_FILE}
+            fi
+        else
+            echo "Could not extract mac from interface ${INTERFACE}" | systemd-cat -t configure-static-ip -p debug
+        fi
+    done
+}
+
+create_template_file
+correlate_int_mac
+`
+
 var fileNames = [...]string{
 	"bootstrap.ign",
 	"master.ign",
