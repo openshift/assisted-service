@@ -107,3 +107,15 @@ func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(log, clusterVersion
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportHostInstallationMetrics", reflect.TypeOf((*MockAPI)(nil).ReportHostInstallationMetrics), log, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage)
 }
+
+// DiskSyncDuration mocks base method
+func (m *MockAPI) DiskSyncDuration(clusterID, hostID strfmt.UUID, diskPath string, syncDuration int64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "DiskSyncDuration", clusterID, hostID, diskPath, syncDuration)
+}
+
+// DiskSyncDuration indicates an expected call of DiskSyncDuration
+func (mr *MockAPIMockRecorder) DiskSyncDuration(clusterID, hostID, diskPath, syncDuration interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskSyncDuration", reflect.TypeOf((*MockAPI)(nil).DiskSyncDuration), clusterID, hostID, diskPath, syncDuration)
+}

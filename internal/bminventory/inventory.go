@@ -2518,6 +2518,9 @@ func (b *bareMetalInventory) processFioPerfCheckResponse(ctx context.Context, h 
 		log.Warnf(msg)
 		b.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, msg, time.Now())
 	}
+
+	b.metricApi.DiskSyncDuration(h.ClusterID, *h.ID, fioPerfCheckResponse.Path, fioPerfCheckResponse.IoSyncDuration)
+
 	return nil
 }
 

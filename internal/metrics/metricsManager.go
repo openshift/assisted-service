@@ -19,31 +19,33 @@ import (
 // counters name and description
 /////////////////////////////////////////
 const (
-	counterClusterCreation              = "assisted_installer_cluster_creations"
-	counterClusterInstallationStarted   = "assisted_installer_cluster_installation_started"
-	counterClusterInstallationSeconds   = "assisted_installer_cluster_installation_seconds"
-	counterOperationDurationMiliSeconds = "assisted_installer_operation_duration_miliseconds"
-	counterHostInstallationPhaseSeconds = "assisted_installer_host_installation_phase_seconds"
-	counterClusterHosts                 = "assisted_installer_cluster_hosts"
-	counterClusterHostCores             = "assisted_installer_cluster_host_cores"
-	counterClusterHostRAMGb             = "assisted_installer_cluster_host_ram_gb"
-	counterClusterHostDiskGb            = "assisted_installer_cluster_host_disk_gb"
-	counterClusterHostNicGb             = "assisted_installer_cluster_host_nic_gb"
-	counterClusterHostInstallationCount = "assisted_installer_cluster_host_installation_count"
+	counterClusterCreation                        = "assisted_installer_cluster_creations"
+	counterClusterInstallationStarted             = "assisted_installer_cluster_installation_started"
+	counterClusterInstallationSeconds             = "assisted_installer_cluster_installation_seconds"
+	counterOperationDurationMiliSeconds           = "assisted_installer_operation_duration_miliseconds"
+	counterHostInstallationPhaseSeconds           = "assisted_installer_host_installation_phase_seconds"
+	counterClusterHosts                           = "assisted_installer_cluster_hosts"
+	counterClusterHostCores                       = "assisted_installer_cluster_host_cores"
+	counterClusterHostRAMGb                       = "assisted_installer_cluster_host_ram_gb"
+	counterClusterHostDiskGb                      = "assisted_installer_cluster_host_disk_gb"
+	counterClusterHostNicGb                       = "assisted_installer_cluster_host_nic_gb"
+	counterClusterHostInstallationCount           = "assisted_installer_cluster_host_installation_count"
+	counterClusterHostDiskSyncDurationMiliSeconds = "assisted_installer_cluster_host_disk_sync_duration_ms"
 )
 
 const (
-	counterDescriptionClusterCreation              = "Number of cluster resources created, by version"
-	counterDescriptionClusterInstallationStarted   = "Number of clusters that entered installing state, by version"
-	counterDescriptionClusterHostInstallationCount = "Number of hosts per cluster"
-	counterDescriptionClusterInstallationSeconds   = "Histogram/sum/count of installation time for completed clusters, by result and OCP version"
-	counterDescriptionOperationDurationMiliSeconds = "Histogram/sum/count of operation time for specific operation, by name"
-	counterDescriptionHostInstallationPhaseSeconds = "Histogram/sum/count of time for each phase, by phase, final install result, and OCP version"
-	counterDescriptionClusterHosts                 = "Number of hosts for completed clusters, by role, result, and OCP version"
-	counterDescriptionClusterHostCores             = "Histogram/sum/count of CPU cores in hosts of completed clusters, by role, result, and OCP version"
-	counterDescriptionClusterHostRAMGb             = "Histogram/sum/count of physical RAM in hosts of completed clusters, by role, result, and OCP version"
-	counterDescriptionClusterHostDiskGb            = "Histogram/sum/count of installation disk capacity in hosts of completed clusters, by type, raid (level), role, result, and OCP version"
-	counterDescriptionClusterHostNicGb             = "Histogram/sum/count of management network NIC speed in hosts of completed clusters, by role, result, and OCP version"
+	counterDescriptionClusterCreation                        = "Number of cluster resources created, by version"
+	counterDescriptionClusterInstallationStarted             = "Number of clusters that entered installing state, by version"
+	counterDescriptionClusterHostInstallationCount           = "Number of hosts per cluster"
+	counterDescriptionClusterInstallationSeconds             = "Histogram/sum/count of installation time for completed clusters, by result and OCP version"
+	counterDescriptionOperationDurationMiliSeconds           = "Histogram/sum/count of operation time for specific operation, by name"
+	counterDescriptionHostInstallationPhaseSeconds           = "Histogram/sum/count of time for each phase, by phase, final install result, and OCP version"
+	counterDescriptionClusterHosts                           = "Number of hosts for completed clusters, by role, result, and OCP version"
+	counterDescriptionClusterHostCores                       = "Histogram/sum/count of CPU cores in hosts of completed clusters, by role, result, and OCP version"
+	counterDescriptionClusterHostRAMGb                       = "Histogram/sum/count of physical RAM in hosts of completed clusters, by role, result, and OCP version"
+	counterDescriptionClusterHostDiskGb                      = "Histogram/sum/count of installation disk capacity in hosts of completed clusters, by type, raid (level), role, result, and OCP version"
+	counterDescriptionClusterHostNicGb                       = "Histogram/sum/count of management network NIC speed in hosts of completed clusters, by role, result, and OCP version"
+	counterDescriptionClusterHostDiskSyncDurationMiliSeconds = "Histogram/sum/count of the disk's fdatasync duration (fetched from fio)"
 )
 
 const (
@@ -52,12 +54,14 @@ const (
 	UnknownHWValue             = "Unknown"
 	openshiftVersionLabel      = "openshiftVersion"
 	clusterIdLabel             = "clusterId"
+	hostIdLabel                = "hostId"
 	emailDomainLabel           = "emailDomain"
 	resultLabel                = "result"
 	operation                  = "operation"
 	phaseLabel                 = "phase"
 	roleLabel                  = "role"
 	diskTypeLabel              = "diskType"
+	diskPathLabel              = "diskPathLabel"
 	discoveryAgentVersionLabel = "discoveryAgentVersion"
 	hwVendorLabel              = "vendor"
 	hwProductLabel             = "product"
@@ -71,22 +75,24 @@ type API interface {
 	Duration(operation string, duration time.Duration)
 	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
 	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
+	DiskSyncDuration(clusterID strfmt.UUID, hostID strfmt.UUID, diskPath string, syncDuration int64)
 }
 
 type MetricsManager struct {
 	registry prometheus.Registerer
 
-	serviceLogicClusterCreation              *prometheus.CounterVec
-	serviceLogicClusterInstallationStarted   *prometheus.CounterVec
-	serviceLogicClusterHostInstallationCount *prometheus.HistogramVec
-	serviceLogicClusterInstallationSeconds   *prometheus.HistogramVec
-	serviceLogicOperationDurationMiliSeconds *prometheus.HistogramVec
-	serviceLogicHostInstallationPhaseSeconds *prometheus.HistogramVec
-	serviceLogicClusterHosts                 *prometheus.CounterVec
-	serviceLogicClusterHostCores             *prometheus.HistogramVec
-	serviceLogicClusterHostRAMGb             *prometheus.HistogramVec
-	serviceLogicClusterHostDiskGb            *prometheus.HistogramVec
-	serviceLogicClusterHostNicGb             *prometheus.HistogramVec
+	serviceLogicClusterCreation                        *prometheus.CounterVec
+	serviceLogicClusterInstallationStarted             *prometheus.CounterVec
+	serviceLogicClusterHostInstallationCount           *prometheus.HistogramVec
+	serviceLogicClusterInstallationSeconds             *prometheus.HistogramVec
+	serviceLogicOperationDurationMiliSeconds           *prometheus.HistogramVec
+	serviceLogicHostInstallationPhaseSeconds           *prometheus.HistogramVec
+	serviceLogicClusterHosts                           *prometheus.CounterVec
+	serviceLogicClusterHostCores                       *prometheus.HistogramVec
+	serviceLogicClusterHostRAMGb                       *prometheus.HistogramVec
+	serviceLogicClusterHostDiskGb                      *prometheus.HistogramVec
+	serviceLogicClusterHostNicGb                       *prometheus.HistogramVec
+	serviceLogicClusterHostDiskSyncDurationMiliSeconds *prometheus.HistogramVec
 }
 
 func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
@@ -181,6 +187,14 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Help:      counterDescriptionClusterHostNicGb,
 			Buckets:   []float64{1, 10, 20, 40, 100},
 		}, []string{roleLabel, resultLabel, openshiftVersionLabel, clusterIdLabel, emailDomainLabel}),
+
+		serviceLogicClusterHostDiskSyncDurationMiliSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      counterClusterHostDiskSyncDurationMiliSeconds,
+			Help:      counterDescriptionClusterHostDiskSyncDurationMiliSeconds,
+			Buckets:   []float64{1, 5, 10, 15, 20},
+		}, []string{diskPathLabel, clusterIdLabel, hostIdLabel}),
 	}
 
 	registry.MustRegister(
@@ -194,6 +208,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 		m.serviceLogicClusterHostRAMGb,
 		m.serviceLogicClusterHostDiskGb,
 		m.serviceLogicClusterHostNicGb,
+		m.serviceLogicClusterHostDiskSyncDurationMiliSeconds,
 	)
 	return m
 }
@@ -217,6 +232,10 @@ func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, res
 
 func (m *MetricsManager) Duration(operation string, duration time.Duration) {
 	m.serviceLogicOperationDurationMiliSeconds.WithLabelValues(operation).Observe(float64(duration.Milliseconds()))
+}
+
+func (m *MetricsManager) DiskSyncDuration(clusterID strfmt.UUID, hostID strfmt.UUID, diskPath string, syncDuration int64) {
+	m.serviceLogicClusterHostDiskSyncDurationMiliSeconds.WithLabelValues(diskPath, clusterID.String(), hostID.String()).Observe(float64(syncDuration))
 }
 
 func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk,
