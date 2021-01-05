@@ -2,35 +2,43 @@ package s3wrapper
 
 import (
 	"context"
+	"errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("s3filesystem", func() {
 	var (
-		ctx        = context.Background()
-		log        = logrus.New()
-		deleteTime time.Duration
-		client     *FSClient
-		now        time.Time
-		baseDir    string
-		dataStr    = "hello world"
-		objKey     = "discovery-image-d183c403-d27b-42e1-b0a4-1274ea1a5d77.iso"
-		objKey2    = "discovery-image-f318a87b-ba57-4c7e-ae5f-ee562a6d1e8c.iso"
+		ctx          = context.Background()
+		log          = logrus.New()
+		deleteTime   time.Duration
+		client       *FSClient
+		ctrl         *gomock.Controller
+		mockVersions *versions.MockHandler
+		now          time.Time
+		baseDir      string
+		dataStr      = "hello world"
+		objKey       = "discovery-image-d183c403-d27b-42e1-b0a4-1274ea1a5d77.iso"
+		objKey2      = "discovery-image-f318a87b-ba57-4c7e-ae5f-ee562a6d1e8c.iso"
 	)
 	BeforeEach(func() {
 		log.SetOutput(ioutil.Discard)
 		var err error
 		baseDir, err = ioutil.TempDir("", "test")
 		Expect(err).Should(BeNil())
-		client = &FSClient{basedir: baseDir, log: log}
+
+		ctrl = gomock.NewController(GinkgoT())
+		mockVersions = versions.NewMockHandler(ctrl)
+		client = &FSClient{basedir: baseDir, log: log, versionsHandler: mockVersions}
 		deleteTime, _ = time.ParseDuration("60m")
 		now, _ = time.Parse(time.RFC3339, "2020-01-01T10:00:00+00:00")
 	})
@@ -148,11 +156,20 @@ var _ = Describe("s3filesystem", func() {
 	Context("upload boot files", func() {
 		It("all exist", func() {
 			for _, fileType := range BootFileExtensions {
-				err := ioutil.WriteFile(filepath.Join(baseDir, BootFileTypeToObjectName(FSBaseISOName, fileType)), []byte("Hello world"), 0600)
+				err := ioutil.WriteFile(filepath.Join(baseDir, BootFileTypeToObjectName(client.GetBaseIsoObject(defaultTestOpenShiftVersion), fileType)),
+					[]byte("Hello world"), 0600)
 				Expect(err).Should(BeNil())
 			}
-			err := client.UploadBootFiles(ctx)
+
+			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
+			err := client.UploadBootFiles(ctx, defaultTestOpenShiftVersion)
 			Expect(err).ToNot(HaveOccurred())
+		})
+		It("unsupported openshift version", func() {
+			unsupportedVersion := "999"
+			mockVersions.EXPECT().GetRHCOSImage(unsupportedVersion).Return("", errors.New("unsupported")).Times(1)
+			err := client.UploadBootFiles(ctx, unsupportedVersion)
+			Expect(err).To(HaveOccurred())
 		})
 		It("iso exists", func() {
 			err := os.MkdirAll(filepath.Join(baseDir, "files/images/pxeboot"), 0755)
@@ -163,17 +180,18 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/pxeboot/vmlinuz"), []byte("this is vmlinuz"), 0664)
 			Expect(err).ToNot(HaveOccurred())
-			isoPath := filepath.Join(baseDir, FSBaseISOName)
+			isoPath := filepath.Join(baseDir, client.GetBaseIsoObject(defaultTestOpenShiftVersion))
 			cmd := exec.Command("genisoimage", "-rational-rock", "-J", "-joliet-long", "-V", "volumeID", "-o", isoPath, filepath.Join(baseDir, "files"))
 			err = cmd.Run()
 			Expect(err).ToNot(HaveOccurred())
 			err = os.RemoveAll(filepath.Join(baseDir, "files"))
 			Expect(err).ToNot(HaveOccurred())
 
-			err = client.UploadBootFiles(ctx)
+			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
+			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion)
 			Expect(err).ToNot(HaveOccurred())
 
-			data, err := ioutil.ReadFile(filepath.Join(baseDir, BootFileTypeToObjectName(FSBaseISOName, "rootfs.img")))
+			data, err := ioutil.ReadFile(filepath.Join(baseDir, BootFileTypeToObjectName(client.GetBaseIsoObject(defaultTestOpenShiftVersion), "rootfs.img")))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(data)).To(Equal("this is rootfs"))
 		})

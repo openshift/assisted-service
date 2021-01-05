@@ -978,7 +978,8 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if err := b.objectHandler.UploadISO(ctx, ignitionConfig, fmt.Sprintf("discovery-image-%s", cluster.ID.String())); err != nil {
+	if err := b.objectHandler.UploadISO(ctx, ignitionConfig, b.objectHandler.GetBaseIsoObject(cluster.OpenshiftVersion),
+		fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())); err != nil {
 		log.WithError(err).Errorf("Upload ISO failed for cluster %s", cluster.ID)
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
 		return installer.NewGenerateClusterISOInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
@@ -1014,7 +1015,7 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 }
 
 func getImageName(clusterID strfmt.UUID) string {
-	return fmt.Sprintf("discovery-image-%s.iso", clusterID.String())
+	return fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))
 }
 
 type clusterInstaller struct {

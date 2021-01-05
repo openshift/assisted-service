@@ -24,6 +24,7 @@ type Versions struct {
 type Handler interface {
 	restapi.VersionsAPI
 	GetReleaseImage(openshiftVersion string) (string, error)
+	GetRHCOSImage(openshiftVersion string) (string, error)
 	IsOpenshiftVersionSupported(openshiftVersion string) bool
 }
 
@@ -72,6 +73,14 @@ func (h *handler) GetReleaseImage(openshiftVersion string) (pullSpec string, err
 	}
 
 	return h.openshiftVersions[openshiftVersion].ReleaseImage, nil
+}
+
+func (h *handler) GetRHCOSImage(openshiftVersion string) (pullSpec string, err error) {
+	if !h.IsOpenshiftVersionSupported(openshiftVersion) {
+		return "", errors.Errorf("No rhcos image for openshift version %s", openshiftVersion)
+	}
+
+	return h.openshiftVersions[openshiftVersion].RhcosImage, nil
 }
 
 func (h *handler) IsOpenshiftVersionSupported(openshiftVersion string) bool {

@@ -5,10 +5,9 @@
 package executer
 
 import (
+	gomock "github.com/golang/mock/gomock"
 	os "os"
 	reflect "reflect"
-
-	gomock "github.com/golang/mock/gomock"
 )
 
 // MockExecuter is a mock of Executer interface

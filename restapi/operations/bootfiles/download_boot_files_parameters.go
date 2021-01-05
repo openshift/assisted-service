@@ -36,6 +36,11 @@ type DownloadBootFilesParams struct {
 	  In: query
 	*/
 	FileType string
+	/*
+	  Required: true
+	  In: query
+	*/
+	OpenshiftVersion string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -51,6 +56,11 @@ func (o *DownloadBootFilesParams) BindRequest(r *http.Request, route *middleware
 
 	qFileType, qhkFileType, _ := qs.GetOK("file_type")
 	if err := o.bindFileType(qFileType, qhkFileType, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qOpenshiftVersion, qhkOpenshiftVersion, _ := qs.GetOK("openshift_version")
+	if err := o.bindOpenshiftVersion(qOpenshiftVersion, qhkOpenshiftVersion, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -91,6 +101,27 @@ func (o *DownloadBootFilesParams) validateFileType(formats strfmt.Registry) erro
 	if err := validate.EnumCase("file_type", "query", o.FileType, []interface{}{"initrd.img", "rootfs.img", "vmlinuz"}, true); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// bindOpenshiftVersion binds and validates parameter OpenshiftVersion from query.
+func (o *DownloadBootFilesParams) bindOpenshiftVersion(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	if !hasKey {
+		return errors.Required("openshift_version", "query", rawData)
+	}
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: true
+	// AllowEmptyValue: false
+	if err := validate.RequiredString("openshift_version", "query", raw); err != nil {
+		return err
+	}
+
+	o.OpenshiftVersion = raw
 
 	return nil
 }

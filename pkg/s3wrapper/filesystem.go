@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 
 	"github.com/moby/moby/pkg/ioutils"
@@ -20,16 +21,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// FSBaseISOName is the filename for the base ISO
-const FSBaseISOName = "livecd.iso"
+const (
+	// fsBaseISOName is the filename for the base ISO
+	fsBaseISOName = "livecd.iso"
+)
 
 type FSClient struct {
-	log     logrus.FieldLogger
-	basedir string
+	log             logrus.FieldLogger
+	basedir         string
+	versionsHandler versions.Handler
 }
 
-func NewFSClient(basedir string, logger logrus.FieldLogger) *FSClient {
-	return &FSClient{log: logger, basedir: basedir}
+func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler versions.Handler) *FSClient {
+	return &FSClient{log: logger, basedir: basedir, versionsHandler: versionsHandler}
 }
 
 func (f *FSClient) IsAwsS3() bool {
@@ -76,10 +80,10 @@ func (f *FSClient) UploadFileToPublicBucket(ctx context.Context, filePath, objec
 	return f.UploadFile(ctx, filePath, objectName)
 }
 
-func (f *FSClient) UploadISO(ctx context.Context, ignitionConfig, objectPrefix string) error {
+func (f *FSClient) UploadISO(ctx context.Context, ignitionConfig, srcObject, destObjectPrefix string) error {
 	log := logutil.FromContext(ctx, f.log)
-	resultFile := filepath.Join(f.basedir, fmt.Sprintf("%s.iso", objectPrefix))
-	baseFile := filepath.Join(f.basedir, FSBaseISOName)
+	resultFile := filepath.Join(f.basedir, fmt.Sprintf("%s.iso", destObjectPrefix))
+	baseFile := filepath.Join(f.basedir, srcObject)
 	err := os.Remove(resultFile)
 	if err != nil && !os.IsNotExist(err) {
 		log.Error("error attempting to remove any pre-existing ISO")
@@ -296,12 +300,16 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return matches, nil
 }
 
-func (f *FSClient) UploadBootFiles(ctx context.Context) error {
+func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion string) error {
 	log := logutil.FromContext(ctx, f.log)
-	isoObjectName := FSBaseISOName
-	isoURL := RHCOSBaseURL
+	isoObjectName := f.GetBaseIsoObject(openshiftVersion)
 
-	exist, err := f.DoAllBootFilesExist(ctx)
+	rhcosImageURL, err := f.versionsHandler.GetRHCOSImage(openshiftVersion)
+	if err != nil {
+		return err
+	}
+
+	exist, err := f.DoAllBootFilesExist(ctx, openshiftVersion)
 	if err != nil {
 		return err
 	}
@@ -314,7 +322,7 @@ func (f *FSClient) UploadBootFiles(ctx context.Context) error {
 		return err
 	}
 	if !exists {
-		err = UploadFromURLToPublicBucket(ctx, isoObjectName, isoURL, f)
+		err = UploadFromURLToPublicBucket(ctx, isoObjectName, rhcosImageURL, f)
 		if err != nil {
 			return err
 		}
@@ -323,19 +331,24 @@ func (f *FSClient) UploadBootFiles(ctx context.Context) error {
 
 	isoFilePath := filepath.Join(f.basedir, isoObjectName)
 
-	return ExtractBootFilesFromISOAndUpload(ctx, log, isoFilePath, isoObjectName, isoURL, f)
+	return ExtractBootFilesFromISOAndUpload(ctx, log, isoFilePath, isoObjectName, rhcosImageURL, f)
 }
 
-func (f *FSClient) DoAllBootFilesExist(ctx context.Context) (bool, error) {
-	return DoAllBootFilesExist(ctx, FSBaseISOName, f)
+func (f *FSClient) DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error) {
+	return DoAllBootFilesExist(ctx, isoObjectName, f)
 }
 
-func (f *FSClient) DownloadBootFile(ctx context.Context, fileType string) (io.ReadCloser, string, int64, error) {
-	objectName := BootFileTypeToObjectName(FSBaseISOName, fileType)
+func (f *FSClient) DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error) {
+	objectName := BootFileTypeToObjectName(isoObjectName, fileType)
 	reader, contentLength, err := f.Download(ctx, objectName)
 	return reader, objectName, contentLength, err
 }
 
-func (f *FSClient) GetS3BootFileURL(fileType string) string {
+func (f *FSClient) GetS3BootFileURL(isoObjectName, fileType string) string {
 	return ""
+}
+
+func (f *FSClient) GetBaseIsoObject(openshiftVersion string) string {
+	// TODO: Need to support different versions
+	return fsBaseISOName
 }

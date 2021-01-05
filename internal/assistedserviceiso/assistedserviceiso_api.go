@@ -89,9 +89,10 @@ func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, para
 	ignitionConfig := reIgnition.Replace(ignitionConfigSource)
 
 	username := auth.UserNameFromContext(ctx)
-	isoName := fmt.Sprintf("%s%s", imgexpirer.AssistedServiceLiveISOPrefix, username)
+	srcISOName := a.objectHandler.GetBaseIsoObject(params.AssistedServiceIsoCreateParams.OpenshiftVersion)
+	destISOName := fmt.Sprintf("%s%s", imgexpirer.AssistedServiceLiveISOPrefix, username)
 
-	if err = a.objectHandler.UploadISO(ctx, ignitionConfig, isoName); err != nil {
+	if err = a.objectHandler.UploadISO(ctx, ignitionConfig, srcISOName, destISOName); err != nil {
 		log.WithError(err).Errorf("Failed to generate Assisted Service ISO")
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}

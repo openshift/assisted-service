@@ -32,14 +32,16 @@ type BootFiles struct {
 func (b *BootFiles) DownloadBootFiles(ctx context.Context, params operations.DownloadBootFilesParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
+	srcObjectName := b.objectHandler.GetBaseIsoObject(params.OpenshiftVersion)
+
 	// If we're working with AWS, redirect to download directly from there
 	if b.objectHandler.IsAwsS3() {
-		return operations.NewDownloadBootFilesTemporaryRedirect().WithLocation(b.objectHandler.GetS3BootFileURL(params.FileType))
+		return operations.NewDownloadBootFilesTemporaryRedirect().WithLocation(b.objectHandler.GetS3BootFileURL(srcObjectName, params.FileType))
 	}
 
-	reader, objectName, contentLength, err := b.objectHandler.DownloadBootFile(ctx, params.FileType)
+	reader, objectName, contentLength, err := b.objectHandler.DownloadBootFile(ctx, srcObjectName, params.FileType)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get %s PXE artifact", params.FileType)
+		log.WithError(err).Errorf("Failed to get %s PXE artifact from object %s", params.FileType, srcObjectName)
 		return common.GenerateErrorResponder(err)
 	}
 

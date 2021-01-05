@@ -2597,6 +2597,10 @@ paths:
         - application/octet-stream
       parameters:
         - in: query
+          name: openshift_version
+          type: string
+          required: true
+        - in: query
           name: file_type
           description: The file type to download.
           type: string
@@ -2838,6 +2842,9 @@ definitions:
   assisted-service-iso-create-params:
     type: object
     properties:
+      openshift_version:
+        type: string
+        description: Version of the OpenShift cluster.
       ssh_public_key:
         type: string
         description: SSH public key for debugging the installation.
@@ -4265,6 +4272,16 @@ definitions:
   openshift-version:
     type: object
     properties:
+      display_name:
+        type: string
+        description: Name of the version to be presented to the user.
       release_image:
         type: string
         description: The installation image of the OpenShift cluster.
+      rhcos_image:
+        type: string
+        description: The base RHCOS image used for the discovery iso.
+      support_level:
+        type: string
+        enum: [beta, production]
+        description: Level of support of the version.

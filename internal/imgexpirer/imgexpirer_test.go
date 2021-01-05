@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openshift/assisted-service/pkg/leader"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
@@ -45,11 +46,11 @@ var _ = Describe("imgexpirer", func() {
 	It("callback_valid_objname", func() {
 		clusterId := "53116787-3eb0-4211-93ac-611d5cedaa30"
 		mockEvents.EXPECT().AddEvent(gomock.Any(), strfmt.UUID(clusterId), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
-		imgExp.DeletedImageCallback(ctx, log, fmt.Sprintf("discovery-image-%s.iso", clusterId))
+		imgExp.DeletedImageCallback(ctx, log, fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterId)))
 	})
 	It("callback_invalid_objname", func() {
 		clusterId := "53116787-3eb0-4211-93ac-611d5cedaa30"
-		imgExp.DeletedImageCallback(ctx, log, fmt.Sprintf("discovery-image-%s", clusterId))
+		imgExp.DeletedImageCallback(ctx, log, fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterId))
 	})
 
 	AfterEach(func() {

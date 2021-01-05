@@ -53,8 +53,10 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -219,7 +221,7 @@ func main() {
 	case deployment_type_k8s:
 		var kclient client.Client
 
-		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log)
+		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log, versionHandler)
 		if objectHandler == nil {
 			log.Fatal("failed to create S3 client")
 		}
@@ -250,16 +252,13 @@ func main() {
 		lead = &leader.DummyElector{}
 		autoMigrationLeader = lead
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
-		objectHandler = s3wrapper.NewFSClient("/data", log)
+		objectHandler = s3wrapper.NewFSClient("/data", log, versionHandler)
 		createS3Bucket(objectHandler)
-		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig)
+		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig, versionHandler)
 		if Options.DeployTarget == deployment_type_ocp {
 			ocpClient, err = k8sclient.NewK8SClient("", log)
 			failOnError(err, "Failed to create client for OCP")
 		}
-
-		err = objectHandler.UploadBootFiles(context.Background())
-		failOnError(err, "Failed uploading boot files")
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
@@ -346,28 +345,49 @@ func main() {
 	h = requestid.Middleware(h)
 	h = spec.WithSpecMiddleware(h)
 
-	switch Options.DeployTarget {
-	case deployment_type_k8s:
-		go func() {
-			defer apiEnabler.Enable()
+	go func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		errs, _ := errgroup.WithContext(ctx)
+		//cancel the context in case this method ends
+		defer cancel()
+
+		switch Options.DeployTarget {
+		case deployment_type_k8s:
 			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
 				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
 				"assisted-service-baseiso-helper",
 				log.WithField("pkg", "baseISOUploadLeader"))
 
-			failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), func() error {
-				return objectHandler.UploadBootFiles(context.Background())
-			}), "Failed uploading boot files")
-		}()
-	case deployment_type_ocp:
-		go func() {
-			defer apiEnabler.Enable()
-			failOnError(bm.RegisterOCPCluster(context.Background()),
-				"Failed to create OCP cluster")
-		}()
-	default:
+			for version := range openshiftVersionsMap {
+				currVresion := version
+				errs.Go(func() error {
+					return errors.Wrapf(baseISOUploadLeader.RunWithLeader(context.Background(), func() error {
+						return objectHandler.UploadBootFiles(context.Background(), currVresion)
+					}), "Failed uploading boot files for OCP version %s", currVresion)
+				})
+			}
+		case deployment_type_onprem, deployment_type_ocp:
+			for version := range openshiftVersionsMap {
+				currVresion := version
+				errs.Go(func() error {
+					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVresion),
+						"Failed uploading boot files for OCP version %s", currVresion)
+				})
+			}
+
+			if Options.DeployTarget == deployment_type_ocp {
+				errs.Go(func() error {
+					return errors.Wrapf(bm.RegisterOCPCluster(context.Background()), "Failed to create OCP cluster")
+				})
+			}
+		}
+
+		if err = errs.Wait(); err != nil {
+			failOnError(err, "Failed to make API ready")
+		}
+
 		apiEnabler.Enable()
-	}
+	}()
 
 	go func() {
 		if Options.EnableKubeAPI {
