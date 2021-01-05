@@ -511,11 +511,15 @@ func createControllerManager() (manager.Manager, error) {
 		utilruntime.Must(scheme.AddToScheme(schemes))
 		utilruntime.Must(adiiov1alpha1.AddToScheme(schemes))
 
+		syncPeriod := 10 * time.Second
+
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:           schemes,
 			Port:             9443,
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.my.domain",
+			// TODO: remove it after we have backend notifications
+			SyncPeriod: &syncPeriod,
 		})
 	}
 	return nil, nil

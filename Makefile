@@ -402,6 +402,5 @@ ifdef ENABLE_KUBE_API
 		webhook paths="./..." output:crd:artifacts:config=$(CONTROLLER_CRD_PATH)/bases
 	kustomize build $(CONTROLLER_CRD_PATH) > $(BUILD_FOLDER)/resources.yaml
 	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
-	cat $(CONTROLLER_RBAC_PATH)/secret_patch.yaml >> $(CONTROLLER_RBAC_PATH)/role.yaml
 	goimports -w  $(CONTROLLER_PATH)
 endif

@@ -84,17 +84,29 @@ spec:
                     dns:
                       description: dns
                       type: string
+                    dns_v6:
+                      description: dns v6
+                      type: string
                     gateway:
                       description: 'gateway Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}$'
                       type: string
+                    gateway_v6:
+                      description: 'gateway v6 Pattern: ^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$'
+                      type: string
                     ip:
                       description: 'ip Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}$'
+                      type: string
+                    ip_v6:
+                      description: 'ip v6 Pattern: ^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$'
                       type: string
                     mac:
                       description: 'mac Pattern: ^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
                       type: string
                     mask:
                       description: 'mask Pattern: ^[0-9]|[1-2][0-9]|3[0-2]?$'
+                      type: string
+                    mask_v6:
+                      description: 'mask v6 Pattern: ^([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$'
                       type: string
                   type: object
                 type: array
