@@ -34,17 +34,17 @@ type UpdateHostInstallerArgsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host whose installer arguments should be updated.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The host whose installer arguments should be updated.
 	  Required: true
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*
+	/*The updated installer arguments.
 	  Required: true
 	  In: body
 	*/

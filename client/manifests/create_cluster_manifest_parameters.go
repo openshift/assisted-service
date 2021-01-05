@@ -62,9 +62,15 @@ for the create cluster manifest operation typically these are written to a http.
 */
 type CreateClusterManifestParams struct {
 
-	/*CreateManifestParams*/
+	/*CreateManifestParams
+	  The new manifest to create.
+
+	*/
 	CreateManifestParams *models.CreateManifestParams
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster for which a new manifest should be created.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

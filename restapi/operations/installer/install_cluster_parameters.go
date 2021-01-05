@@ -30,7 +30,7 @@ type InstallClusterParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster to be installed.
 	  Required: true
 	  In: path
 	*/

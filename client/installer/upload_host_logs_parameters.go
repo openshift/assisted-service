@@ -60,16 +60,25 @@ for the upload host logs operation typically these are written to a http.Request
 */
 type UploadHostLogsParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host whose logs should be uploaded.
+
+	*/
 	ClusterID strfmt.UUID
 	/*DiscoveryAgentVersion
-	  The file to upload.
+	  The software version of the discovery agent that is uploading the logs.
 
 	*/
 	DiscoveryAgentVersion *string
-	/*HostID*/
+	/*HostID
+	  The host whose logs should be uploaded.
+
+	*/
 	HostID strfmt.UUID
-	/*Upfile*/
+	/*Upfile
+	  The log file to be uploaded.
+
+	*/
 	Upfile runtime.NamedReadCloser
 
 	timeout    time.Duration

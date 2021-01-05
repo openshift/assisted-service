@@ -31,7 +31,7 @@ type DownloadBootFilesParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The file type to download.
 	  Required: true
 	  In: query
 	*/

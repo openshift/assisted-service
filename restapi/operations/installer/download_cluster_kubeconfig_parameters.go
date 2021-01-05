@@ -30,7 +30,7 @@ type DownloadClusterKubeconfigParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose kubeconfig should be downloaded.
 	  Required: true
 	  In: path
 	*/

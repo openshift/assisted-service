@@ -30,7 +30,7 @@ type GetCredentialsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose admin credentials should be retrieved.
 	  Required: true
 	  In: path
 	*/

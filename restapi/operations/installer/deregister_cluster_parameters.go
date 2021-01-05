@@ -30,7 +30,7 @@ type DeregisterClusterParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster to be deregistered.
 	  Required: true
 	  In: path
 	*/

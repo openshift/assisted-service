@@ -67,7 +67,10 @@ type UpdateHostInstallProgressParams struct {
 
 	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion*/
+	/*DiscoveryAgentVersion
+	  The software version of the discovery agent that is updating progress.
+
+	*/
 	DiscoveryAgentVersion *string
 	/*HostProgress
 	  New progress value.

@@ -31,7 +31,7 @@ func NewInstallHosts(ctx *middleware.Context, handler InstallHostsHandler) *Inst
 
 /*InstallHosts swagger:route POST /clusters/{cluster_id}/actions/install_hosts installer installHosts
 
-Installs the OpenShift bare metal cluster.
+Installs the OpenShift cluster.
 
 */
 type InstallHosts struct {

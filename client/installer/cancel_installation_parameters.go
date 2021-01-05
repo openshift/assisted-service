@@ -60,7 +60,10 @@ for the cancel installation operation typically these are written to a http.Requ
 */
 type CancelInstallationParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose installation is to be canceled.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

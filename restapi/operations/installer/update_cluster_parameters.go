@@ -34,12 +34,12 @@ type UpdateClusterParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The properties to update.
 	  Required: true
 	  In: body
 	*/
 	ClusterUpdateParams *models.ClusterUpdateParams
-	/*
+	/*The cluster to be updated.
 	  Required: true
 	  In: path
 	*/

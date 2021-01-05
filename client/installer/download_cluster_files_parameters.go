@@ -60,11 +60,20 @@ for the download cluster files operation typically these are written to a http.R
 */
 type DownloadClusterFilesParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster that owns the file that should be downloaded.
+
+	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion*/
+	/*DiscoveryAgentVersion
+	  The software version of the discovery agent that is downloading the file.
+
+	*/
 	DiscoveryAgentVersion *string
-	/*FileName*/
+	/*FileName
+	  The file to be downloaded.
+
+	*/
 	FileName string
 
 	timeout    time.Duration

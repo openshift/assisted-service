@@ -40,25 +40,25 @@ type GetFreeAddressesParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster to return free addresses for.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The maximum number of free addresses to return.
 	  Maximum: 8000
 	  Minimum: 1
 	  In: query
 	  Default: 8000
 	*/
 	Limit *int64
-	/*
+	/*The cluster network to return free addresses for.
 	  Required: true
 	  Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$
 	  In: query
 	*/
 	Network string
-	/*
+	/*A prefix for the free addresses to return.
 	  In: query
 	*/
 	Prefix *string

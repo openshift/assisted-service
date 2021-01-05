@@ -68,10 +68,10 @@ type InstallerAPI interface {
 	/* CompleteInstallation Agent API to mark a finalizing installation as complete. */
 	CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder
 
-	/* DeregisterCluster Deletes an OpenShift bare metal cluster definition. */
+	/* DeregisterCluster Deletes an OpenShift cluster definition. */
 	DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder
 
-	/* DeregisterHost Deregisters an OpenShift bare metal host. */
+	/* DeregisterHost Deregisters an OpenShift host. */
 	DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder
 
 	/* DisableHost Disables a host for inclusion in the cluster. */
@@ -101,7 +101,7 @@ type InstallerAPI interface {
 	/* GenerateClusterISO Creates a new OpenShift per-cluster Discovery ISO. */
 	GenerateClusterISO(ctx context.Context, params installer.GenerateClusterISOParams) middleware.Responder
 
-	/* GetCluster Retrieves the details of the OpenShift bare metal cluster. */
+	/* GetCluster Retrieves the details of the OpenShift cluster. */
 	GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder
 
 	/* GetClusterInstallConfig Get the cluster's install config YAML. */
@@ -116,7 +116,7 @@ type InstallerAPI interface {
 	/* GetFreeAddresses Retrieves the free address list for a network. */
 	GetFreeAddresses(ctx context.Context, params installer.GetFreeAddressesParams) middleware.Responder
 
-	/* GetHost Retrieves the details of the OpenShift bare metal host. */
+	/* GetHost Retrieves the details of the OpenShift host. */
 	GetHost(ctx context.Context, params installer.GetHostParams) middleware.Responder
 
 	/* GetHostIgnition Get the customized ignition file for this host */
@@ -131,31 +131,31 @@ type InstallerAPI interface {
 	/* GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files. */
 	GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder
 
-	/* InstallCluster Installs the OpenShift bare metal cluster. */
+	/* InstallCluster Installs the OpenShift cluster. */
 	InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder
 
 	/* InstallHost install specific host for day2 cluster. */
 	InstallHost(ctx context.Context, params installer.InstallHostParams) middleware.Responder
 
-	/* InstallHosts Installs the OpenShift bare metal cluster. */
+	/* InstallHosts Installs the OpenShift cluster. */
 	InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder
 
-	/* ListClusters Retrieves the list of OpenShift bare metal clusters. */
+	/* ListClusters Retrieves the list of OpenShift clusters. */
 	ListClusters(ctx context.Context, params installer.ListClustersParams) middleware.Responder
 
-	/* ListHosts Retrieves the list of OpenShift bare metal hosts. */
+	/* ListHosts Retrieves the list of OpenShift hosts. */
 	ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder
 
 	/* PostStepReply Posts the result of the operations from the host agent. */
 	PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder
 
-	/* RegisterAddHostsCluster Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster. */
+	/* RegisterAddHostsCluster Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster. */
 	RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder
 
-	/* RegisterCluster Creates a new OpenShift bare metal cluster definition. */
+	/* RegisterCluster Creates a new OpenShift cluster definition. */
 	RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder
 
-	/* RegisterHost Registers a new OpenShift bare metal host. */
+	/* RegisterHost Registers a new OpenShift host. */
 	RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder
 
 	/* ResetCluster Resets a failed installation. */
@@ -164,7 +164,7 @@ type InstallerAPI interface {
 	/* ResetHost reset a failed host for day2 cluster. */
 	ResetHost(ctx context.Context, params installer.ResetHostParams) middleware.Responder
 
-	/* UpdateCluster Updates an OpenShift bare metal cluster definition. */
+	/* UpdateCluster Updates an OpenShift cluster definition. */
 	UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder
 
 	/* UpdateClusterInstallConfig Override values in the install config. */
@@ -182,7 +182,7 @@ type InstallerAPI interface {
 	/* UpdateHostInstallProgress Update installation progress. */
 	UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder
 
-	/* UpdateHostInstallerArgs Updates an OpenShift bare metal host. */
+	/* UpdateHostInstallerArgs Updates a host's installer arguments. */
 	UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder
 
 	/* UploadClusterIngressCert Transfer the ingress certificate for the cluster. */

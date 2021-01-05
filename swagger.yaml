@@ -3,11 +3,28 @@ info:
   description: 'Assisted installation'
   version: 1.0.0
   title: AssistedInstall
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
 host: api.openshift.com
 basePath: /api/assisted-install/v1
 tags:
   - name: Assisted installation
-    description: Assisted bare metal installation
+    description: Agent-driven installation
+  - name: assisted-service-iso
+    description: ISO that contains the Assisted Service.
+  - name: bootfiles
+    description: Non-customized files used to boot hosts.
+  - name: events
+    description: Events related to a cluster installation.
+  - name: installer
+    description: General OpenShift cluster installation APIs.
+  - name: managed_domains
+    description: Managed dns domains for a cluster installation.
+  - name: manifests
+    description: Manifests for customizing a cluster installation.
+  - name: versions
+    description: Information regarding versions.
 
 schemes:
   - http
@@ -35,36 +52,37 @@ paths:
     post:
       tags:
         - installer
-      summary: Creates a new OpenShift bare metal cluster definition.
+      description: Creates a new OpenShift cluster definition.
       operationId: RegisterCluster
       parameters:
         - in: body
           name: new-cluster-params
+          description: The properties describing the new cluster.
           required: true
           schema:
             $ref: '#/definitions/cluster-create-params'
       responses:
-        201:
+        "201":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -74,41 +92,43 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Retrieves the list of OpenShift bare metal clusters.
+      description: Retrieves the list of OpenShift clusters.
       operationId: ListClusters
       parameters:
         - in: header
           name: get_unregistered_clusters
+          description: Whether to return clusters that have been unregistered.
           type: boolean
           required: false
           default: false
         - in: query
           name: openshift_cluster_id
+          description: A specific cluster to retrieve.
           type: string
           format: uuid
           required: false
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/cluster-list'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -120,49 +140,52 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
-      summary: Retrieves the details of the OpenShift bare metal cluster.
+      description: Retrieves the details of the OpenShift cluster.
       operationId: GetCluster
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster to be retrieved.
           type: string
           format: uuid
           required: true
         - in: header
           name: discovery_agent_version
+          description: The software version of the discovery agent that is retreiving the cluster details.
           type: string
           required: false
         - in: header
           name: get_unregistered_clusters
+          description: Whether to return clusters that have been unregistered.
           type: boolean
           required: false
           default: false
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -170,49 +193,51 @@ paths:
     patch:
       tags:
         - installer
-      summary: Updates an OpenShift bare metal cluster definition.
+      description: Updates an OpenShift cluster definition.
       operationId: UpdateCluster
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster to be updated.
           type: string
           format: uuid
           required: true
         - in: body
           name: cluster-update-params
+          description: The properties to update.
           required: true
           schema:
             $ref: '#/definitions/cluster-update-params'
       responses:
-        201:
+        "201":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -220,38 +245,39 @@ paths:
     delete:
       tags:
         - installer
-      summary: Deletes an OpenShift bare metal cluster definition.
+      description: Deletes an OpenShift cluster definition.
       operationId: DeregisterCluster
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster to be deregistered.
           format: uuid
           type: string
           required: true
       responses:
-        204:
+        "204":
           description: Success.
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -260,49 +286,51 @@ paths:
     post:
       tags:
         - installer
-      summary: Creates a new OpenShift per-cluster Discovery ISO.
+      description: Creates a new OpenShift per-cluster Discovery ISO.
       operationId: GenerateClusterISO
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose ISO should be generated.
           type: string
           format: uuid
           required: true
         - in: body
           name: image-create-params
+          description: The parameters for the generated ISO.
           required: true
           schema:
             $ref: '#/definitions/image-create-params'
       responses:
-        201:
+        "201":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -310,7 +338,7 @@ paths:
     get:
       tags:
         - installer
-      summary: Downloads the OpenShift per-cluster Discovery ISO.
+      description: Downloads the OpenShift per-cluster Discovery ISO.
       security:
         - userAuth: [admin, read-only-admin, user]
       operationId: DownloadClusterISO
@@ -320,38 +348,39 @@ paths:
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose ISO should be downloaded.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             type: string
             format: binary
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -363,55 +392,58 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
-      summary: Downloads files relating to the installed/installing cluster.
+      description: Downloads files relating to the installed/installing cluster.
       operationId: DownloadClusterFiles
       produces:
         - application/octet-stream
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster that owns the file that should be downloaded.
           type: string
           format: uuid
           required: true
         - in: query
           name: file_name
+          description: The file to be downloaded.
           type: string
           enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, discovery.ign]
           required: true
         - in: header
           name: discovery_agent_version
+          description: The software version of the discovery agent that is downloading the file.
           type: string
           required: false
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             type: file
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -422,63 +454,68 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Retrieves a pre-signed S3 URL for downloading cluster files.
+      description: Retrieves a pre-signed S3 URL for downloading cluster files.
       operationId: GetPresignedForClusterFiles
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster that owns the file that should be downloaded.
           type: string
           format: uuid
           required: true
         - in: query
           name: file_name
+          description: The file to be downloaded.
           type: string
           enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, logs, manifests]
           required: true
         - in: query
           name: logs_type
+          description: If downloading logs, the type of logs to download.
           type: string
           enum: ["host", "controller", "all"]
           required: false
         - in: query
           name: host_id
+          description: If downloading a file related to a host, the relevant host.
           type: string
           format: uuid
           required: false
         - in: query
           name: additional_name
+          description: If downloading a manifest, the file name, prefaced with folder name, for example, openshift/99-openshift-xyz.yaml.
           type: string
           required: false
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/presigned'
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -489,40 +526,41 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Get the cluster admin credentials.
+      description: Get the cluster admin credentials.
       operationId: GetCredentials
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose admin credentials should be retrieved.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/credentials'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -533,43 +571,44 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Downloads the kubeconfig file for this cluster.
+      description: Downloads the kubeconfig file for this cluster.
       operationId: DownloadClusterKubeconfig
       produces:
         - application/octet-stream
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose kubeconfig should be downloaded.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             type: string
             format: binary
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -580,79 +619,82 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Get the cluster's install config YAML.
+      description: Get the cluster's install config YAML.
       operationId: GetClusterInstallConfig
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose install config is being retrieved.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             type: string
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
     patch:
       tags:
         - installer
-      summary: Override values in the install config.
+      description: Override values in the install config.
       operationId: UpdateClusterInstallConfig
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose install config is being updated.
           type: string
           format: uuid
           required: true
         - in: body
           name: install-config-params
+          description: Install config overrides.
           required: true
           schema:
             type: string
       responses:
-        201:
+        "201":
           description: Success.
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -663,12 +705,12 @@ paths:
         - installer
       security:
         - agentAuth: []
-      summary: Update cluster installation progress.
+      description: Update cluster installation progress.
       operationId: UpdateClusterInstallProgress
       parameters:
         - in: path
           name: cluster_id
-          description: The ID of the cluster to retrieve.
+          description: The cluster whose progress is being updated.
           type: string
           format: uuid
           required: true
@@ -679,33 +721,33 @@ paths:
           schema:
             type: string
       responses:
-        204:
+        "204":
           description: Update cluster install progress.
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -716,79 +758,82 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Get the cluster discovery ignition config
+      description: Get the cluster discovery ignition config
       operationId: GetDiscoveryIgnition
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster for which the discovery ignition config should be retrieved.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/discovery-ignition-params'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
     patch:
       tags:
         - installer
-      summary: Override values in the discovery ignition config
+      description: Override values in the discovery ignition config
       operationId: UpdateDiscoveryIgnition
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster for which the discovery ignition config should be updated.
           type: string
           format: uuid
           required: true
         - in: body
           name: discovery-ignition-params
+          description: Overrides for the discovery ignition config.
           required: true
           schema:
             $ref: '#/definitions/discovery-ignition-params'
       responses:
-        201:
+        "201":
           description: Success.
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -799,40 +844,41 @@ paths:
         - manifests
       security:
         - userAuth: []
-      summary: Lists manifests for customizing cluster installation.
+      description: Lists manifests for customizing cluster installation.
       operationId: ListClusterManifests
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster for which the manifests should be listed.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/list-manifests'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -842,49 +888,51 @@ paths:
         - manifests
       security:
         - userAuth: []
-      summary: Creates a manifest for customizing cluster installation.
+      description: Creates a manifest for customizing cluster installation.
       operationId: CreateClusterManifest
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster for which a new manifest should be created.
           type: string
           format: uuid
           required: true
         - in: body
           name: CreateManifestParams
+          description: The new manifest to create.
           required: true
           schema:
             $ref: '#/definitions/create-manifest-params'
       responses:
-        201:
+        "201":
           description: Success.
           schema:
             $ref: '#/definitions/manifest'
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -892,11 +940,12 @@ paths:
     delete:
       tags:
         - manifests
-      summary: Deletes a manifest from the cluster.
+      description: Deletes a manifest from the cluster.
       operationId: DeleteClusterManifest
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose manifest should be deleted.
           type: string
           format: uuid
           required: true
@@ -913,29 +962,29 @@ paths:
           type: string
           required: true
       responses:
-        200:
+        "200":
           description: Success.
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -946,13 +995,14 @@ paths:
         - manifests
       security:
         - userAuth: []
-      summary: Downloads cluster manifest.
+      description: Downloads cluster manifest.
       operationId: DownloadClusterManifest
       produces:
         - application/octet-stream
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose manifest should be downloaded.
           type: string
           format: uuid
           required: true
@@ -969,31 +1019,31 @@ paths:
           type: string
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             type: file
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1004,51 +1054,54 @@ paths:
         - installer
       security:
         - agentAuth: []
-      summary: Transfer the ingress certificate for the cluster.
+      description: Transfer the ingress certificate for the cluster.
       operationId: UploadClusterIngressCert
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster to associate with the ingress certificate.
           type: string
           format: uuid
           required: true
         - in: body
           name: ingress-cert-params
+          description: The ingress certificate.
           required: true
           schema:
             $ref: '#/definitions/ingress-cert-params'
         - in: header
           name: discovery_agent_version
+          description: The software version of the discovery agent that is uploading the ingress certificate.
           type: string
           required: false
       responses:
-        201:
+        "201":
           description: Success.
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -1057,44 +1110,45 @@ paths:
     post:
       tags:
         - installer
-      summary: Installs the OpenShift bare metal cluster.
+      description: Installs the OpenShift cluster.
       operationId: InstallCluster
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster to be installed.
           type: string
           format: uuid
           required: true
       responses:
-        202:
+        "202":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1103,40 +1157,41 @@ paths:
     post:
       tags:
         - installer
-      summary: Cancels an ongoing installation.
+      description: Cancels an ongoing installation.
       operationId: CancelInstallation
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose installation is to be canceled.
           type: string
           format: uuid
           required: true
       responses:
-        202:
+        "202":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1145,44 +1200,45 @@ paths:
     post:
       tags:
         - installer
-      summary: Installs the OpenShift bare metal cluster.
+      description: Installs the OpenShift cluster.
       operationId: InstallHosts
       parameters:
         - in: path
           name: cluster_id
+          description: The existing cluster whose hosts should be added.
           type: string
           format: uuid
           required: true
       responses:
-        202:
+        "202":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1191,40 +1247,41 @@ paths:
     post:
       tags:
         - installer
-      summary: Resets a failed installation.
+      description: Resets a failed installation.
       operationId: ResetCluster
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose installation is to be reset.
           type: string
           format: uuid
           required: true
       responses:
-        202:
+        "202":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1235,53 +1292,56 @@ paths:
         - installer
       security:
         - agentAuth: []
-      summary: Agent API to mark a finalizing installation as complete.
+      description: Agent API to mark a finalizing installation as complete.
       operationId: CompleteInstallation
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose installation is being completing.
           type: string
           format: uuid
           required: true
         - in: body
           name: completion-params
+          description: The final status of the cluster installationthe cluster installation.
           required: true
           schema:
             $ref: '#/definitions/completion-params'
         - in: header
           name: discovery_agent_version
+          description: The software version of the discovery agent that is completing the installation.
           type: string
           required: false
       responses:
-        202:
+        "202":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -1292,57 +1352,60 @@ paths:
         - installer
       security:
         - agentAuth: []
-      summary: Registers a new OpenShift bare metal host.
+      description: Registers a new OpenShift host.
       operationId: RegisterHost
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster into which the host should be registered.
           type: string
           format: uuid
           required: true
         - in: body
           name: new-host-params
+          description: The description of the host being registered.
           required: true
           schema:
             $ref: '#/definitions/host-create-params'
         - in: header
           name: discovery_agent_version
+          description: The software version of the discovery agent that is registering the host.
           type: string
           required: false
       responses:
-        201:
+        "201":
           description: Success.
           schema:
             $ref: '#/definitions/host_registration_response'
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Cluster cannot accept new hosts due to its current state.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -1353,40 +1416,42 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
-      summary: Retrieves the list of OpenShift bare metal hosts.
+      description: Retrieves the list of OpenShift hosts.
       operationId: ListHosts
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose hosts should be listed.
           type: string
           format: uuid
           required: true
         - in: header
           name: discovery_agent_version
+          description: The software version of the discovery agent that is listing hosts.
           type: string
           required: false
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/host-list'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -1397,41 +1462,43 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Retrieves the details of the OpenShift bare metal host.
+      description: Retrieves the details of the OpenShift host.
       operationId: GetHost
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host that should be retreived.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host that should be retreived.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/host'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1439,43 +1506,45 @@ paths:
     delete:
       tags:
         - installer
-      summary: Deregisters an OpenShift bare metal host.
+      description: Deregisters an OpenShift host.
       operationId: DeregisterHost
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host that should be deregistered.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host that should be deregistered.
           type: string
           format: uuid
           required: true
       responses:
-        204:
+        "204":
           description: Success.
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1484,54 +1553,57 @@ paths:
     patch:
       tags:
         - installer
-      summary: Updates an OpenShift bare metal host.
+      description: Updates a host's installer arguments.
       operationId: UpdateHostInstallerArgs
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host whose installer arguments should be updated.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host whose installer arguments should be updated.
           type: string
           format: uuid
           required: true
         - in: body
           name: installer-args-params
+          description: The updated installer arguments.
           required: true
           schema:
             $ref: '#/definitions/installer-args-params'
       responses:
-        201:
+        "201":
           description: Success.
           schema:
             $ref: '#/definitions/host'
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1542,11 +1614,12 @@ paths:
         - installer
       security:
         - agentAuth: []
-      summary: Update installation progress.
+      description: Update installation progress.
       operationId: UpdateHostInstallProgress
       parameters:
         - in: header
           name: discovery_agent_version
+          description: The software version of the discovery agent that is updating progress.
           type: string
           required: false
         - in: path
@@ -1568,29 +1641,29 @@ paths:
           schema:
             $ref: '#/definitions/host-progress'
       responses:
-        200:
+        "200":
           description: Update install progress.
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -1599,45 +1672,47 @@ paths:
     post:
       tags:
         - installer
-      summary: Enables a host for inclusion in the cluster.
+      description: Enables a host for inclusion in the cluster.
       operationId: EnableHost
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host that is being enabled.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host that is being enabled.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1645,45 +1720,47 @@ paths:
     delete:
       tags:
         - installer
-      summary: Disables a host for inclusion in the cluster.
+      description: Disables a host for inclusion in the cluster.
       operationId: DisableHost
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host that is being disabled.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host that is being disabled.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1692,41 +1769,43 @@ paths:
     post:
       tags:
         - installer
-      summary: install specific host for day2 cluster.
+      description: install specific host for day2 cluster.
       operationId: InstallHost
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host that is being installed.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host that is being installed.
           type: string
           format: uuid
           required: true
       responses:
-        202:
+        "202":
           description: Success.
           schema:
             $ref: '#/definitions/host'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1735,41 +1814,43 @@ paths:
     post:
       tags:
         - installer
-      summary: reset a failed host for day2 cluster.
+      description: reset a failed host for day2 cluster.
       operationId: ResetHost
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host that is being reset.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host that is being reset.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/host'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1780,49 +1861,52 @@ paths:
         - installer
       security:
         - agentAuth: []
-      summary: Retrieves the next operations that the host agent needs to perform.
+      description: Retrieves the next operations that the host agent needs to perform.
       operationId: GetNextSteps
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host that is retreiving instructions.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host that is retreiving instructions.
           type: string
           format: uuid
           required: true
         - in: header
           name: discovery_agent_version
+          description: The software version of the discovery agent that is retrieving instructions.
           type: string
           required: false
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/steps'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -1832,55 +1916,59 @@ paths:
         - installer
       security:
         - agentAuth: []
-      summary: Posts the result of the operations from the host agent.
+      description: Posts the result of the operations from the host agent.
       operationId: PostStepReply
       parameters:
         - in: header
           name: discovery_agent_version
+          description: The software version of the discovery agent that is posting results.
           type: string
           required: false
         - in: path
           name: cluster_id
+          description: The cluster of the host that is posting results.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host that is posting results.
           type: string
           format: uuid
           required: true
         - name: reply
+          description: The results to be posted.
           in: body
           schema:
             $ref: '#/definitions/step-reply'
       responses:
-        204:
+        "204":
           description: Success.
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -1891,7 +1979,7 @@ paths:
         - installer
       security:
         - agentAuth: []
-      summary: Agent API to upload logs.
+      description: Agent API to upload logs.
       deprecated: true
       operationId: UploadHostLogs
       consumes:
@@ -1899,47 +1987,50 @@ paths:
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host whose logs should be uploaded.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host whose logs should be uploaded.
           type: string
           format: uuid
           required: true
         - in: formData
           name: upfile
-          type: file
-          required: false
-        - in: header
-          name: discovery_agent_version
-          type: string
-          required: false
+          description: The log file to be uploaded.
           # TODO return after fix in go-swagger and moving to 0.25 or o.26
           # https://github.com/go-swagger/go-swagger/issues/2362
           # maxLength: 20971520  #20MB
-          description: The file to upload.
+          type: file
+          required: false
           x-mimetype: application/zip
+        - in: header
+          name: discovery_agent_version
+          description: The software version of the discovery agent that is uploading the logs.
+          type: string
+          required: false
       responses:
-        204:
+        "204":
           description: Success.
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -1947,7 +2038,7 @@ paths:
     get:
       tags:
         - installer
-      summary: Download host logs.
+      description: Download host logs.
       deprecated: true
       security:
         - userAuth: [admin, read-only-admin, user]
@@ -1957,40 +2048,42 @@ paths:
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host whose logs should be downloaded.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host whose logs should be downloaded.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             type: file
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -1999,93 +2092,98 @@ paths:
     get:
       tags:
         - installer
-      summary: Get the customized ignition file for this host
+      description: Get the customized ignition file for this host
       operationId: GetHostIgnition
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host whose customized ignition file should be retrieved.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host whose customized ignition file should be retrieved.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/host-ignition-params'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
     patch:
       tags:
         - installer
-      summary: Patch the ignition file for this host
+      description: Patch the ignition file for this host
       operationId: UpdateHostIgnition
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host whose ignition file should be updated.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host whose ignition file should be updated.
           type: string
           format: uuid
           required: true
         - in: body
           name: host-ignition-params
+          description: Ignition config overrides.
           required: true
           schema:
             $ref: '#/definitions/host-ignition-params'
       responses:
-        201:
+        "201":
           description: Success.
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -2097,51 +2195,53 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
-      summary: Downloads the customized ignition file for this host
+      description: Downloads the customized ignition file for this host
       operationId: DownloadHostIgnition
       produces:
         - application/octet-stream
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster of the host whose ignition file should be downloaded.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
+          description: The host whose ignition file should be downloaded.
           type: string
           format: uuid
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             type: file
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -2153,53 +2253,56 @@ paths:
         - installer
       security:
         - agentAuth: []
-      summary: Agent API to upload logs.
+      description: Agent API to upload logs.
       operationId: UploadLogs
       consumes:
         - multipart/form-data
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose logs should be uploaded.
           type: string
           format: uuid
           required: true
         - in: formData
           name: upfile
+          description: The log file to be uploaded.
           type: file
           required: false
           maxLength: 104857600  #100MB
-          description: The file to upload.
           x-mimetype: application/zip
         - in: query
           name: logs_type
+          description: The type of log file to be uploaded.
           type: string
           enum: ['host', 'controller']
           required: true
         - in: query
           name: host_id
+          description: The host whose logs should be uploaded.
           type: string
           format: uuid
           required: false
       responses:
-        204:
+        "204":
           description: Success.
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -2207,7 +2310,7 @@ paths:
     get:
       tags:
         - installer
-      summary: Download cluster logs.
+      description: Download cluster logs.
       security:
         - userAuth: [admin, read-only-admin, user]
       operationId: DownloadClusterLogs
@@ -2216,45 +2319,48 @@ paths:
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster whose logs should be downloaded.
           type: string
           format: uuid
           required: true
         - in: query
           name: logs_type
+          description: The type of logs to be downloaded.
           type: string
           enum: ['host', 'controller', 'all']
           required: false
         - in: query
           name: host_id
+          description: A specific host in the cluster whose logs should be downloaded.
           type: string
           format: uuid
           required: false
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             type: file
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        409:
+        "409":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -2266,21 +2372,24 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Retrieves the free address list for a network.
+      description: Retrieves the free address list for a network.
       operationId: GetFreeAddresses
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster to return free addresses for.
           type: string
           format: uuid
           required: true
         - in: query
           name: network
+          description: The cluster network to return free addresses for.
           type: string
           pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]|[1-2][0-9]|3[0-2]?$'
           required: true
         - in: query
           name: limit
+          description: The maximum number of free addresses to return.
           type: integer
           minimum: 1
           maximum: 8000
@@ -2288,30 +2397,31 @@ paths:
           required: false
         - in: query
           name: prefix
+          description: A prefix for the free addresses to return.
           type: string
           required: false
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/free-addresses-list'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -2322,41 +2432,43 @@ paths:
         - events
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Lists events for a cluster.
+      description: Lists events for a cluster.
       operationId: ListEvents
       parameters:
         - in: path
           name: cluster_id
+          description: The cluster to return events for.
           type: string
           format: uuid
           required: true
         - in: query
           name: host_id
+          description: A host in the specified cluster to return events for.
           type: string
           format: uuid
           required: false
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/event-list'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -2367,14 +2479,14 @@ paths:
         - managed_domains
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: List of managed DNS domains.
+      description: List of managed DNS domains.
       operationId: ListManagedDomains
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/list-managed-domains'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -2385,10 +2497,10 @@ paths:
         - versions
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: List of component versions.
+      description: List of component versions.
       operationId: ListComponentVersions
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/list-versions'
@@ -2398,13 +2510,13 @@ paths:
       tags:
         - versions
       operationId: ListSupportedOpenshiftVersions
-      summary: Retrieves the list of OpenShift supported versions
+      description: Retrieves the list of OpenShift supported versions
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/openshift-versions'
-        503:
+        "503":
           description: Unavailable.
           schema:
             $ref: '#/definitions/error'
@@ -2415,26 +2527,26 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Get minimum host requirements.
+      description: Get minimum host requirements.
       operationId: GetHostRequirements
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/host-requirements'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        405:
+        "405":
           description: Method Not Allowed.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -2443,32 +2555,33 @@ paths:
     post:
       tags:
         - installer
-      summary: Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster.
+      description: Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.
       operationId: RegisterAddHostsCluster
       parameters:
         - in: body
           name: new-add-hosts-cluster-params
+          description: Parameters for creating a new cluster for adding nodes.
           required: true
           schema:
             $ref: '#/definitions/add-hosts-cluster-create-params'
       responses:
-        201:
+        "201":
           description: Success.
           schema:
             $ref: '#/definitions/cluster'
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -2478,35 +2591,36 @@ paths:
       tags:
         - bootfiles
       security: []
-      summary: Downloads files used for booting servers.
+      description: Downloads files used for booting servers.
       operationId: DownloadBootFiles
       produces:
         - application/octet-stream
       parameters:
         - in: query
           name: file_type
+          description: The file type to download.
           type: string
           enum: [initrd.img, rootfs.img, vmlinuz]
           required: true
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             type: file
-        307:
+        "307":
           description: Redirect.
           headers:
             Location:
               type: string
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -2515,30 +2629,31 @@ paths:
     post:
       tags:
         - assisted-service-iso
-      summary: Creates ISO for the user and uploads to S3.
+      description: Creates ISO for the user and uploads to S3.
       operationId: CreateISOAndUploadToS3
       parameters:
         - in: body
           name: assisted-service-iso-create-params
           required: true
+          description: Parameters for creating an Assisted Service ISO.
           schema:
             $ref: '#/definitions/assisted-service-iso-create-params'
       responses:
-        201:
+        "201":
           description: Success.
-        400:
+        "400":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -2547,7 +2662,7 @@ paths:
     get:
       tags:
         - assisted-service-iso
-      summary: Downloads the Assisted Service ISO.
+      description: Downloads the Assisted Service ISO.
       security:
         - userAuth: [admin, read-only-admin, user]
       operationId: DownloadISO
@@ -2555,24 +2670,24 @@ paths:
         # application/vnd.efi.iso is not supported
         - application/octet-stream
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             type: string
             format: binary
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'
@@ -2583,26 +2698,26 @@ paths:
         - assisted-service-iso
       security:
         - userAuth: [admin, read-only-admin, user]
-      summary: Retrieves a pre-signed S3 URL for downloading assisted-service ISO.
+      description: Retrieves a pre-signed S3 URL for downloading assisted-service ISO.
       operationId: GetPresignedForAssistedServiceISO
       responses:
-        200:
+        "200":
           description: Success.
           schema:
             $ref: '#/definitions/presigned'
-        401:
+        "401":
           description: Unauthorized.
           schema:
             $ref: '#/definitions/infra_error'
-        403:
+        "403":
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        404:
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        500:
+        "500":
           description: Error.
           schema:
             $ref: '#/definitions/error'

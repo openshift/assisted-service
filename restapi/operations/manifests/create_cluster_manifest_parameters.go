@@ -34,12 +34,12 @@ type CreateClusterManifestParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The new manifest to create.
 	  Required: true
 	  In: body
 	*/
 	CreateManifestParams *models.CreateManifestParams
-	/*
+	/*The cluster for which a new manifest should be created.
 	  Required: true
 	  In: path
 	*/

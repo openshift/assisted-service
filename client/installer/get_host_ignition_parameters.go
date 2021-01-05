@@ -60,9 +60,15 @@ for the get host ignition operation typically these are written to a http.Reques
 */
 type GetHostIgnitionParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host whose customized ignition file should be retrieved.
+
+	*/
 	ClusterID strfmt.UUID
-	/*HostID*/
+	/*HostID
+	  The host whose customized ignition file should be retrieved.
+
+	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration

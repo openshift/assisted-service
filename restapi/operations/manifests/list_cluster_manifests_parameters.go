@@ -30,7 +30,7 @@ type ListClusterManifestsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster for which the manifests should be listed.
 	  Required: true
 	  In: path
 	*/

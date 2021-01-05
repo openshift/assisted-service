@@ -60,7 +60,10 @@ for the reset cluster operation typically these are written to a http.Request
 */
 type ResetClusterParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose installation is to be reset.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

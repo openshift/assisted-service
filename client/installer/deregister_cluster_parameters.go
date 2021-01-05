@@ -60,7 +60,10 @@ for the deregister cluster operation typically these are written to a http.Reque
 */
 type DeregisterClusterParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster to be deregistered.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

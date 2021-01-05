@@ -73,13 +73,25 @@ for the get free addresses operation typically these are written to a http.Reque
 */
 type GetFreeAddressesParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster to return free addresses for.
+
+	*/
 	ClusterID strfmt.UUID
-	/*Limit*/
+	/*Limit
+	  The maximum number of free addresses to return.
+
+	*/
 	Limit *int64
-	/*Network*/
+	/*Network
+	  The cluster network to return free addresses for.
+
+	*/
 	Network string
-	/*Prefix*/
+	/*Prefix
+	  A prefix for the free addresses to return.
+
+	*/
 	Prefix *string
 
 	timeout    time.Duration

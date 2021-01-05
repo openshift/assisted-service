@@ -60,9 +60,15 @@ for the enable host operation typically these are written to a http.Request
 */
 type EnableHostParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host that is being enabled.
+
+	*/
 	ClusterID strfmt.UUID
-	/*HostID*/
+	/*HostID
+	  The host that is being enabled.
+
+	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration

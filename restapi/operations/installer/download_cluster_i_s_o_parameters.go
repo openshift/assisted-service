@@ -30,7 +30,7 @@ type DownloadClusterISOParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose ISO should be downloaded.
 	  Required: true
 	  In: path
 	*/

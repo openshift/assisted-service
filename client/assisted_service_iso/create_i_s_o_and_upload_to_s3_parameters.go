@@ -62,7 +62,10 @@ for the create i s o and upload to s3 operation typically these are written to a
 */
 type CreateISOAndUploadToS3Params struct {
 
-	/*AssistedServiceIsoCreateParams*/
+	/*AssistedServiceIsoCreateParams
+	  Parameters for creating an Assisted Service ISO.
+
+	*/
 	AssistedServiceIsoCreateParams *models.AssistedServiceIsoCreateParams
 
 	timeout    time.Duration

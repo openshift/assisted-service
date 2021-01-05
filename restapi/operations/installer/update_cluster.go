@@ -31,7 +31,7 @@ func NewUpdateCluster(ctx *middleware.Context, handler UpdateClusterHandler) *Up
 
 /*UpdateCluster swagger:route PATCH /clusters/{cluster_id} installer updateCluster
 
-Updates an OpenShift bare metal cluster definition.
+Updates an OpenShift cluster definition.
 
 */
 type UpdateCluster struct {

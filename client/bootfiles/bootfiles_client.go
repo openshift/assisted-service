@@ -19,7 +19,7 @@ import (
 // API is the interface of the bootfiles client
 type API interface {
 	/*
-	   DownloadBootFiles downloads files used for booting servers*/
+	   DownloadBootFiles Downloads files used for booting servers.*/
 	DownloadBootFiles(ctx context.Context, params *DownloadBootFilesParams, writer io.Writer) (*DownloadBootFilesOK, error)
 }
 
@@ -42,7 +42,7 @@ type Client struct {
 }
 
 /*
-DownloadBootFiles downloads files used for booting servers
+DownloadBootFiles Downloads files used for booting servers.
 */
 func (a *Client) DownloadBootFiles(ctx context.Context, params *DownloadBootFilesParams, writer io.Writer) (*DownloadBootFilesOK, error) {
 

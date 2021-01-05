@@ -31,7 +31,7 @@ func NewGetCluster(ctx *middleware.Context, handler GetClusterHandler) *GetClust
 
 /*GetCluster swagger:route GET /clusters/{cluster_id} installer getCluster
 
-Retrieves the details of the OpenShift bare metal cluster.
+Retrieves the details of the OpenShift cluster.
 
 */
 type GetCluster struct {

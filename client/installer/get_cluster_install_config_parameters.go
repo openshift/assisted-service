@@ -60,7 +60,10 @@ for the get cluster install config operation typically these are written to a ht
 */
 type GetClusterInstallConfigParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose install config is being retrieved.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

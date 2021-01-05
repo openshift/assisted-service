@@ -39,7 +39,7 @@ type DeleteClusterManifestParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose manifest should be deleted.
 	  Required: true
 	  In: path
 	*/

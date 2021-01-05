@@ -60,9 +60,15 @@ for the update cluster install config operation typically these are written to a
 */
 type UpdateClusterInstallConfigParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose install config is being updated.
+
+	*/
 	ClusterID strfmt.UUID
-	/*InstallConfigParams*/
+	/*InstallConfigParams
+	  Install config overrides.
+
+	*/
 	InstallConfigParams string
 
 	timeout    time.Duration

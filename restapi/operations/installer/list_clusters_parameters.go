@@ -40,12 +40,12 @@ type ListClustersParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*Whether to return clusters that have been unregistered.
 	  In: header
 	  Default: false
 	*/
 	GetUnregisteredClusters *bool
-	/*
+	/*A specific cluster to retrieve.
 	  In: query
 	*/
 	OpenshiftClusterID *strfmt.UUID

@@ -62,7 +62,10 @@ for the register cluster operation typically these are written to a http.Request
 */
 type RegisterClusterParams struct {
 
-	/*NewClusterParams*/
+	/*NewClusterParams
+	  The properties describing the new cluster.
+
+	*/
 	NewClusterParams *models.ClusterCreateParams
 
 	timeout    time.Duration

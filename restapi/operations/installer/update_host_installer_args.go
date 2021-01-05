@@ -31,7 +31,7 @@ func NewUpdateHostInstallerArgs(ctx *middleware.Context, handler UpdateHostInsta
 
 /*UpdateHostInstallerArgs swagger:route PATCH /clusters/{cluster_id}/hosts/{host_id}/installer-args installer updateHostInstallerArgs
 
-Updates an OpenShift bare metal host.
+Updates a host's installer arguments.
 
 */
 type UpdateHostInstallerArgs struct {

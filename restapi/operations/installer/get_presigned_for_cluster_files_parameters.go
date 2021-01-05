@@ -31,25 +31,25 @@ type GetPresignedForClusterFilesParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*If downloading a manifest, the file name, prefaced with folder name, for example, openshift/99-openshift-xyz.yaml.
 	  In: query
 	*/
 	AdditionalName *string
-	/*
+	/*The cluster that owns the file that should be downloaded.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The file to be downloaded.
 	  Required: true
 	  In: query
 	*/
 	FileName string
-	/*
+	/*If downloading a file related to a host, the relevant host.
 	  In: query
 	*/
 	HostID *strfmt.UUID
-	/*
+	/*If downloading logs, the type of logs to download.
 	  In: query
 	*/
 	LogsType *string

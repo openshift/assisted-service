@@ -34,16 +34,16 @@ type RegisterHostParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster into which the host should be registered.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The software version of the discovery agent that is registering the host.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-	/*
+	/*The description of the host being registered.
 	  Required: true
 	  In: body
 	*/

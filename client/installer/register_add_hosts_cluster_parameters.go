@@ -62,7 +62,10 @@ for the register add hosts cluster operation typically these are written to a ht
 */
 type RegisterAddHostsClusterParams struct {
 
-	/*NewAddHostsClusterParams*/
+	/*NewAddHostsClusterParams
+	  Parameters for creating a new cluster for adding nodes.
+
+	*/
 	NewAddHostsClusterParams *models.AddHostsClusterCreateParams
 
 	timeout    time.Duration

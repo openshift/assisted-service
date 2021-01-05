@@ -60,11 +60,20 @@ for the get next steps operation typically these are written to a http.Request
 */
 type GetNextStepsParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host that is retreiving instructions.
+
+	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion*/
+	/*DiscoveryAgentVersion
+	  The software version of the discovery agent that is retrieving instructions.
+
+	*/
 	DiscoveryAgentVersion *string
-	/*HostID*/
+	/*HostID
+	  The host that is retreiving instructions.
+
+	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration

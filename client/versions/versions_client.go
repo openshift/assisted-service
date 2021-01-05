@@ -18,10 +18,10 @@ import (
 // API is the interface of the versions client
 type API interface {
 	/*
-	   ListComponentVersions lists of component versions*/
+	   ListComponentVersions List of component versions.*/
 	ListComponentVersions(ctx context.Context, params *ListComponentVersionsParams) (*ListComponentVersionsOK, error)
 	/*
-	   ListSupportedOpenshiftVersions retrieves the list of open shift supported versions*/
+	   ListSupportedOpenshiftVersions Retrieves the list of OpenShift supported versions*/
 	ListSupportedOpenshiftVersions(ctx context.Context, params *ListSupportedOpenshiftVersionsParams) (*ListSupportedOpenshiftVersionsOK, error)
 }
 
@@ -44,7 +44,7 @@ type Client struct {
 }
 
 /*
-ListComponentVersions lists of component versions
+ListComponentVersions List of component versions.
 */
 func (a *Client) ListComponentVersions(ctx context.Context, params *ListComponentVersionsParams) (*ListComponentVersionsOK, error) {
 
@@ -69,7 +69,7 @@ func (a *Client) ListComponentVersions(ctx context.Context, params *ListComponen
 }
 
 /*
-ListSupportedOpenshiftVersions retrieves the list of open shift supported versions
+ListSupportedOpenshiftVersions Retrieves the list of OpenShift supported versions
 */
 func (a *Client) ListSupportedOpenshiftVersions(ctx context.Context, params *ListSupportedOpenshiftVersionsParams) (*ListSupportedOpenshiftVersionsOK, error) {
 

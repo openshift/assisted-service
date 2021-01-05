@@ -30,12 +30,12 @@ type GetHostIgnitionParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host whose customized ignition file should be retrieved.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The host whose customized ignition file should be retrieved.
 	  Required: true
 	  In: path
 	*/

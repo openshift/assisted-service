@@ -30,12 +30,12 @@ type ListHostsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose hosts should be listed.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The software version of the discovery agent that is listing hosts.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string

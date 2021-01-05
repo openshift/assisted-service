@@ -34,16 +34,16 @@ type UploadClusterIngressCertParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster to associate with the ingress certificate.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The software version of the discovery agent that is uploading the ingress certificate.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-	/*
+	/*The ingress certificate.
 	  Required: true
 	  In: body
 	*/

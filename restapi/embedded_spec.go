@@ -32,6 +32,10 @@ func init() {
   "info": {
     "description": "Assisted installation",
     "title": "AssistedInstall",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
     "version": "1.0.0"
   },
   "host": "api.openshift.com",
@@ -39,13 +43,14 @@ func init() {
   "paths": {
     "/add_hosts_clusters": {
       "post": {
+        "description": "Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster.",
         "operationId": "RegisterAddHostsCluster",
         "parameters": [
           {
+            "description": "Parameters for creating a new cluster for adding nodes.",
             "name": "new-add-hosts-cluster-params",
             "in": "body",
             "required": true,
@@ -90,13 +95,14 @@ func init() {
     },
     "/assisted-service-iso": {
       "post": {
+        "description": "Creates ISO for the user and uploads to S3.",
         "tags": [
           "assisted-service-iso"
         ],
-        "summary": "Creates ISO for the user and uploads to S3.",
         "operationId": "CreateISOAndUploadToS3",
         "parameters": [
           {
+            "description": "Parameters for creating an Assisted Service ISO.",
             "name": "assisted-service-iso-create-params",
             "in": "body",
             "required": true,
@@ -147,13 +153,13 @@ func init() {
             ]
           }
         ],
+        "description": "Downloads the Assisted Service ISO.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "assisted-service-iso"
         ],
-        "summary": "Downloads the Assisted Service ISO.",
         "operationId": "DownloadISO",
         "responses": {
           "200": {
@@ -201,10 +207,10 @@ func init() {
             ]
           }
         ],
+        "description": "Retrieves a pre-signed S3 URL for downloading assisted-service ISO.",
         "tags": [
           "assisted-service-iso"
         ],
-        "summary": "Retrieves a pre-signed S3 URL for downloading assisted-service ISO.",
         "operationId": "GetPresignedForAssistedServiceISO",
         "responses": {
           "200": {
@@ -243,13 +249,13 @@ func init() {
     "/boot-files": {
       "get": {
         "security": [],
+        "description": "Downloads files used for booting servers.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "bootfiles"
         ],
-        "summary": "Downloads files used for booting servers.",
         "operationId": "DownloadBootFiles",
         "parameters": [
           {
@@ -259,6 +265,7 @@ func init() {
               "vmlinuz"
             ],
             "type": "string",
+            "description": "The file type to download.",
             "name": "file_type",
             "in": "query",
             "required": true
@@ -311,21 +318,23 @@ func init() {
             ]
           }
         ],
+        "description": "Retrieves the list of OpenShift clusters.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the list of OpenShift bare metal clusters.",
         "operationId": "ListClusters",
         "parameters": [
           {
             "type": "boolean",
             "default": false,
+            "description": "Whether to return clusters that have been unregistered.",
             "name": "get_unregistered_clusters",
             "in": "header"
           },
           {
             "type": "string",
             "format": "uuid",
+            "description": "A specific cluster to retrieve.",
             "name": "openshift_cluster_id",
             "in": "query"
           }
@@ -370,13 +379,14 @@ func init() {
         }
       },
       "post": {
+        "description": "Creates a new OpenShift cluster definition.",
         "tags": [
           "installer"
         ],
-        "summary": "Creates a new OpenShift bare metal cluster definition.",
         "operationId": "RegisterCluster",
         "parameters": [
           {
+            "description": "The properties describing the new cluster.",
             "name": "new-cluster-params",
             "in": "body",
             "required": true,
@@ -439,27 +449,30 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Retrieves the details of the OpenShift cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the details of the OpenShift bare metal cluster.",
         "operationId": "GetCluster",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to be retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is retreiving the cluster details.",
             "name": "discovery_agent_version",
             "in": "header"
           },
           {
             "type": "boolean",
             "default": false,
+            "description": "Whether to return clusters that have been unregistered.",
             "name": "get_unregistered_clusters",
             "in": "header"
           }
@@ -510,15 +523,16 @@ func init() {
         }
       },
       "delete": {
+        "description": "Deletes an OpenShift cluster definition.",
         "tags": [
           "installer"
         ],
-        "summary": "Deletes an OpenShift bare metal cluster definition.",
         "operationId": "DeregisterCluster",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to be deregistered.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -567,20 +581,22 @@ func init() {
         }
       },
       "patch": {
+        "description": "Updates an OpenShift cluster definition.",
         "tags": [
           "installer"
         ],
-        "summary": "Updates an OpenShift bare metal cluster definition.",
         "operationId": "UpdateCluster",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to be updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The properties to update.",
             "name": "cluster-update-params",
             "in": "body",
             "required": true,
@@ -643,15 +659,16 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/cancel": {
       "post": {
+        "description": "Cancels an ongoing installation.",
         "tags": [
           "installer"
         ],
-        "summary": "Cancels an ongoing installation.",
         "operationId": "CancelInstallation",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose installation is to be canceled.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -710,20 +727,22 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Agent API to mark a finalizing installation as complete.",
         "tags": [
           "installer"
         ],
-        "summary": "Agent API to mark a finalizing installation as complete.",
         "operationId": "CompleteInstallation",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose installation is being completing.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The final status of the cluster installationthe cluster installation.",
             "name": "completion-params",
             "in": "body",
             "required": true,
@@ -733,6 +752,7 @@ func init() {
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is completing the installation.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -791,15 +811,16 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/install": {
       "post": {
+        "description": "Installs the OpenShift cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Installs the OpenShift bare metal cluster.",
         "operationId": "InstallCluster",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to be installed.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -859,15 +880,16 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/install_hosts": {
       "post": {
+        "description": "Installs the OpenShift cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Installs the OpenShift bare metal cluster.",
         "operationId": "InstallHosts",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The existing cluster whose hosts should be added.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -927,15 +949,16 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/reset": {
       "post": {
+        "description": "Resets a failed installation.",
         "tags": [
           "installer"
         ],
-        "summary": "Resets a failed installation.",
         "operationId": "ResetCluster",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose installation is to be reset.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -998,15 +1021,16 @@ func init() {
             ]
           }
         ],
+        "description": "Get the cluster admin credentials.",
         "tags": [
           "installer"
         ],
-        "summary": "Get the cluster admin credentials.",
         "operationId": "GetCredentials",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose admin credentials should be retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -1069,15 +1093,16 @@ func init() {
             ]
           }
         ],
+        "description": "Get the cluster discovery ignition config",
         "tags": [
           "installer"
         ],
-        "summary": "Get the cluster discovery ignition config",
         "operationId": "GetDiscoveryIgnition",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster for which the discovery ignition config should be retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -1123,20 +1148,22 @@ func init() {
         }
       },
       "patch": {
+        "description": "Override values in the discovery ignition config",
         "tags": [
           "installer"
         ],
-        "summary": "Override values in the discovery ignition config",
         "operationId": "UpdateDiscoveryIgnition",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster for which the discovery ignition config should be updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "Overrides for the discovery ignition config.",
             "name": "discovery-ignition-params",
             "in": "body",
             "required": true,
@@ -1202,18 +1229,19 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Downloads files relating to the installed/installing cluster.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Downloads files relating to the installed/installing cluster.",
         "operationId": "DownloadClusterFiles",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster that owns the file that should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -1231,12 +1259,14 @@ func init() {
               "discovery.ign"
             ],
             "type": "string",
+            "description": "The file to be downloaded.",
             "name": "file_name",
             "in": "query",
             "required": true
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is downloading the file.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -1304,15 +1334,16 @@ func init() {
             ]
           }
         ],
+        "description": "Retrieves a pre-signed S3 URL for downloading cluster files.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves a pre-signed S3 URL for downloading cluster files.",
         "operationId": "GetPresignedForClusterFiles",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster that owns the file that should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -1331,6 +1362,7 @@ func init() {
               "manifests"
             ],
             "type": "string",
+            "description": "The file to be downloaded.",
             "name": "file_name",
             "in": "query",
             "required": true
@@ -1342,17 +1374,20 @@ func init() {
               "all"
             ],
             "type": "string",
+            "description": "If downloading logs, the type of logs to download.",
             "name": "logs_type",
             "in": "query"
           },
           {
             "type": "string",
             "format": "uuid",
+            "description": "If downloading a file related to a host, the relevant host.",
             "name": "host_id",
             "in": "query"
           },
           {
             "type": "string",
+            "description": "If downloading a manifest, the file name, prefaced with folder name, for example, openshift/99-openshift-xyz.yaml.",
             "name": "additional_name",
             "in": "query"
           }
@@ -1420,18 +1455,19 @@ func init() {
             ]
           }
         ],
+        "description": "Downloads the OpenShift per-cluster Discovery ISO.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Downloads the OpenShift per-cluster Discovery ISO.",
         "operationId": "DownloadClusterISO",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose ISO should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -1487,20 +1523,22 @@ func init() {
         }
       },
       "post": {
+        "description": "Creates a new OpenShift per-cluster Discovery ISO.",
         "tags": [
           "installer"
         ],
-        "summary": "Creates a new OpenShift per-cluster Discovery ISO.",
         "operationId": "GenerateClusterISO",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose ISO should be generated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The parameters for the generated ISO.",
             "name": "image-create-params",
             "in": "body",
             "required": true,
@@ -1572,18 +1610,19 @@ func init() {
             ]
           }
         ],
+        "description": "Downloads the kubeconfig file for this cluster.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Downloads the kubeconfig file for this cluster.",
         "operationId": "DownloadClusterKubeconfig",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose kubeconfig should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -1647,15 +1686,16 @@ func init() {
             ]
           }
         ],
+        "description": "Lists events for a cluster.",
         "tags": [
           "events"
         ],
-        "summary": "Lists events for a cluster.",
         "operationId": "ListEvents",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to return events for.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -1663,6 +1703,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "A host in the specified cluster to return events for.",
             "name": "host_id",
             "in": "query"
           }
@@ -1718,15 +1759,16 @@ func init() {
             ]
           }
         ],
+        "description": "Retrieves the free address list for a network.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the free address list for a network.",
         "operationId": "GetFreeAddresses",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to return free addresses for.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -1734,6 +1776,7 @@ func init() {
           {
             "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$",
             "type": "string",
+            "description": "The cluster network to return free addresses for.",
             "name": "network",
             "in": "query",
             "required": true
@@ -1743,11 +1786,13 @@ func init() {
             "minimum": 1,
             "type": "integer",
             "default": 8000,
+            "description": "The maximum number of free addresses to return.",
             "name": "limit",
             "in": "query"
           },
           {
             "type": "string",
+            "description": "A prefix for the free addresses to return.",
             "name": "prefix",
             "in": "query"
           }
@@ -1806,21 +1851,23 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Retrieves the list of OpenShift hosts.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the list of OpenShift bare metal hosts.",
         "operationId": "ListHosts",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose hosts should be listed.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is listing hosts.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -1870,20 +1917,22 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Registers a new OpenShift host.",
         "tags": [
           "installer"
         ],
-        "summary": "Registers a new OpenShift bare metal host.",
         "operationId": "RegisterHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster into which the host should be registered.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The description of the host being registered.",
             "name": "new-host-params",
             "in": "body",
             "required": true,
@@ -1893,6 +1942,7 @@ func init() {
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is registering the host.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -1966,15 +2016,16 @@ func init() {
             ]
           }
         ],
+        "description": "Retrieves the details of the OpenShift host.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the details of the OpenShift bare metal host.",
         "operationId": "GetHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that should be retreived.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -1982,6 +2033,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that should be retreived.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -2027,15 +2079,16 @@ func init() {
         }
       },
       "delete": {
+        "description": "Deregisters an OpenShift host.",
         "tags": [
           "installer"
         ],
-        "summary": "Deregisters an OpenShift bare metal host.",
         "operationId": "DeregisterHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that should be deregistered.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2043,6 +2096,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that should be deregistered.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -2093,15 +2147,16 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
       "post": {
+        "description": "Enables a host for inclusion in the cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Enables a host for inclusion in the cluster.",
         "operationId": "EnableHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is being enabled.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2109,6 +2164,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is being enabled.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -2160,15 +2216,16 @@ func init() {
         }
       },
       "delete": {
+        "description": "Disables a host for inclusion in the cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Disables a host for inclusion in the cluster.",
         "operationId": "DisableHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is being disabled.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2176,6 +2233,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is being disabled.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -2229,15 +2287,16 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/actions/install": {
       "post": {
+        "description": "install specific host for day2 cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "install specific host for day2 cluster.",
         "operationId": "InstallHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is being installed.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2245,6 +2304,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is being installed.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -2292,15 +2352,16 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/actions/reset": {
       "post": {
+        "description": "reset a failed host for day2 cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "reset a failed host for day2 cluster.",
         "operationId": "ResetHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is being reset.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2308,6 +2369,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is being reset.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -2367,18 +2429,19 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Downloads the customized ignition file for this host",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Downloads the customized ignition file for this host",
         "operationId": "DownloadHostIgnition",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose ignition file should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2386,6 +2449,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose ignition file should be downloaded.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -2445,15 +2509,16 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/ignition": {
       "get": {
+        "description": "Get the customized ignition file for this host",
         "tags": [
           "installer"
         ],
-        "summary": "Get the customized ignition file for this host",
         "operationId": "GetHostIgnition",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose customized ignition file should be retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2461,6 +2526,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose customized ignition file should be retrieved.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -2512,15 +2578,16 @@ func init() {
         }
       },
       "patch": {
+        "description": "Patch the ignition file for this host",
         "tags": [
           "installer"
         ],
-        "summary": "Patch the ignition file for this host",
         "operationId": "UpdateHostIgnition",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose ignition file should be updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2528,11 +2595,13 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose ignition file should be updated.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "Ignition config overrides.",
             "name": "host-ignition-params",
             "in": "body",
             "required": true,
@@ -2586,15 +2655,16 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/installer-args": {
       "patch": {
+        "description": "Updates a host's installer arguments.",
         "tags": [
           "installer"
         ],
-        "summary": "Updates an OpenShift bare metal host.",
         "operationId": "UpdateHostInstallerArgs",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose installer arguments should be updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2602,11 +2672,13 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose installer arguments should be updated.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The updated installer arguments.",
             "name": "installer-args-params",
             "in": "body",
             "required": true,
@@ -2674,15 +2746,16 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Retrieves the next operations that the host agent needs to perform.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the next operations that the host agent needs to perform.",
         "operationId": "GetNextSteps",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is retreiving instructions.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2690,12 +2763,14 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is retreiving instructions.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is retrieving instructions.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -2751,20 +2826,22 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Posts the result of the operations from the host agent.",
         "tags": [
           "installer"
         ],
-        "summary": "Posts the result of the operations from the host agent.",
         "operationId": "PostStepReply",
         "parameters": [
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is posting results.",
             "name": "discovery_agent_version",
             "in": "header"
           },
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is posting results.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2772,11 +2849,13 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is posting results.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The results to be posted.",
             "name": "reply",
             "in": "body",
             "schema": {
@@ -2844,19 +2923,20 @@ func init() {
             ]
           }
         ],
+        "description": "Download host logs.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Download host logs.",
         "operationId": "DownloadHostLogs",
         "deprecated": true,
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose logs should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2864,6 +2944,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose logs should be downloaded.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -2920,19 +3001,20 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Agent API to upload logs.",
         "consumes": [
           "multipart/form-data"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Agent API to upload logs.",
         "operationId": "UploadHostLogs",
         "deprecated": true,
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose logs should be uploaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2940,19 +3022,21 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose logs should be uploaded.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
             "type": "file",
+            "x-mimetype": "application/zip",
+            "description": "The log file to be uploaded.",
             "name": "upfile",
             "in": "formData"
           },
           {
             "type": "string",
-            "x-mimetype": "application/zip",
-            "description": "The file to upload.",
+            "description": "The software version of the discovery agent that is uploading the logs.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -3001,14 +3085,15 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Update installation progress.",
         "tags": [
           "installer"
         ],
-        "summary": "Update installation progress.",
         "operationId": "UpdateHostInstallProgress",
         "parameters": [
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is updating progress.",
             "name": "discovery_agent_version",
             "in": "header"
           },
@@ -3092,15 +3177,16 @@ func init() {
             ]
           }
         ],
+        "description": "Get the cluster's install config YAML.",
         "tags": [
           "installer"
         ],
-        "summary": "Get the cluster's install config YAML.",
         "operationId": "GetClusterInstallConfig",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose install config is being retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -3146,20 +3232,22 @@ func init() {
         }
       },
       "patch": {
+        "description": "Override values in the install config.",
         "tags": [
           "installer"
         ],
-        "summary": "Override values in the install config.",
         "operationId": "UpdateClusterInstallConfig",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose install config is being updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "Install config overrides.",
             "name": "install-config-params",
             "in": "body",
             "required": true,
@@ -3222,18 +3310,19 @@ func init() {
             ]
           }
         ],
+        "description": "Download cluster logs.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Download cluster logs.",
         "operationId": "DownloadClusterLogs",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose logs should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -3245,12 +3334,14 @@ func init() {
               "all"
             ],
             "type": "string",
+            "description": "The type of logs to be downloaded.",
             "name": "logs_type",
             "in": "query"
           },
           {
             "type": "string",
             "format": "uuid",
+            "description": "A specific host in the cluster whose logs should be downloaded.",
             "name": "host_id",
             "in": "query"
           }
@@ -3306,18 +3397,19 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Agent API to upload logs.",
         "consumes": [
           "multipart/form-data"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Agent API to upload logs.",
         "operationId": "UploadLogs",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose logs should be uploaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -3326,7 +3418,7 @@ func init() {
             "maxLength": 104857600,
             "type": "file",
             "x-mimetype": "application/zip",
-            "description": "The file to upload.",
+            "description": "The log file to be uploaded.",
             "name": "upfile",
             "in": "formData"
           },
@@ -3336,6 +3428,7 @@ func init() {
               "controller"
             ],
             "type": "string",
+            "description": "The type of log file to be uploaded.",
             "name": "logs_type",
             "in": "query",
             "required": true
@@ -3343,6 +3436,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose logs should be uploaded.",
             "name": "host_id",
             "in": "query"
           }
@@ -3391,15 +3485,16 @@ func init() {
             "userAuth": []
           }
         ],
+        "description": "Lists manifests for customizing cluster installation.",
         "tags": [
           "manifests"
         ],
-        "summary": "Lists manifests for customizing cluster installation.",
         "operationId": "ListClusterManifests",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster for which the manifests should be listed.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -3456,20 +3551,22 @@ func init() {
             "userAuth": []
           }
         ],
+        "description": "Creates a manifest for customizing cluster installation.",
         "tags": [
           "manifests"
         ],
-        "summary": "Creates a manifest for customizing cluster installation.",
         "operationId": "CreateClusterManifest",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster for which a new manifest should be created.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The new manifest to create.",
             "name": "CreateManifestParams",
             "in": "body",
             "required": true,
@@ -3530,15 +3627,16 @@ func init() {
         }
       },
       "delete": {
+        "description": "Deletes a manifest from the cluster.",
         "tags": [
           "manifests"
         ],
-        "summary": "Deletes a manifest from the cluster.",
         "operationId": "DeleteClusterManifest",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose manifest should be deleted.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -3612,18 +3710,19 @@ func init() {
             "userAuth": []
           }
         ],
+        "description": "Downloads cluster manifest.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "manifests"
         ],
-        "summary": "Downloads cluster manifest.",
         "operationId": "DownloadClusterManifest",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose manifest should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -3700,16 +3799,16 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Update cluster installation progress.",
         "tags": [
           "installer"
         ],
-        "summary": "Update cluster installation progress.",
         "operationId": "UpdateClusterInstallProgress",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
-            "description": "The ID of the cluster to retrieve.",
+            "description": "The cluster whose progress is being updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -3780,20 +3879,22 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Transfer the ingress certificate for the cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Transfer the ingress certificate for the cluster.",
         "operationId": "UploadClusterIngressCert",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to associate with the ingress certificate.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The ingress certificate.",
             "name": "ingress-cert-params",
             "in": "body",
             "required": true,
@@ -3803,6 +3904,7 @@ func init() {
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is uploading the ingress certificate.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -3867,10 +3969,10 @@ func init() {
             ]
           }
         ],
+        "description": "List of component versions.",
         "tags": [
           "versions"
         ],
-        "summary": "List of component versions.",
         "operationId": "ListComponentVersions",
         "responses": {
           "200": {
@@ -3893,10 +3995,10 @@ func init() {
             ]
           }
         ],
+        "description": "List of managed DNS domains.",
         "tags": [
           "managed_domains"
         ],
-        "summary": "List of managed DNS domains.",
         "operationId": "ListManagedDomains",
         "responses": {
           "200": {
@@ -3925,10 +4027,10 @@ func init() {
             ]
           }
         ],
+        "description": "Get minimum host requirements.",
         "tags": [
           "installer"
         ],
-        "summary": "Get minimum host requirements.",
         "operationId": "GetHostRequirements",
         "responses": {
           "200": {
@@ -3966,10 +4068,10 @@ func init() {
     },
     "/openshift_versions": {
       "get": {
+        "description": "Retrieves the list of OpenShift supported versions",
         "tags": [
           "versions"
         ],
-        "summary": "Retrieves the list of OpenShift supported versions",
         "operationId": "ListSupportedOpenshiftVersions",
         "responses": {
           "200": {
@@ -6011,8 +6113,36 @@ func init() {
   ],
   "tags": [
     {
-      "description": "Assisted bare metal installation",
+      "description": "Agent-driven installation",
       "name": "Assisted installation"
+    },
+    {
+      "description": "ISO that contains the Assisted Service.",
+      "name": "assisted-service-iso"
+    },
+    {
+      "description": "Non-customized files used to boot hosts.",
+      "name": "bootfiles"
+    },
+    {
+      "description": "Events related to a cluster installation.",
+      "name": "events"
+    },
+    {
+      "description": "General OpenShift cluster installation APIs.",
+      "name": "installer"
+    },
+    {
+      "description": "Managed dns domains for a cluster installation.",
+      "name": "managed_domains"
+    },
+    {
+      "description": "Manifests for customizing a cluster installation.",
+      "name": "manifests"
+    },
+    {
+      "description": "Information regarding versions.",
+      "name": "versions"
     }
   ]
 }`))
@@ -6031,6 +6161,10 @@ func init() {
   "info": {
     "description": "Assisted installation",
     "title": "AssistedInstall",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
     "version": "1.0.0"
   },
   "host": "api.openshift.com",
@@ -6038,13 +6172,14 @@ func init() {
   "paths": {
     "/add_hosts_clusters": {
       "post": {
+        "description": "Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster.",
         "operationId": "RegisterAddHostsCluster",
         "parameters": [
           {
+            "description": "Parameters for creating a new cluster for adding nodes.",
             "name": "new-add-hosts-cluster-params",
             "in": "body",
             "required": true,
@@ -6089,13 +6224,14 @@ func init() {
     },
     "/assisted-service-iso": {
       "post": {
+        "description": "Creates ISO for the user and uploads to S3.",
         "tags": [
           "assisted-service-iso"
         ],
-        "summary": "Creates ISO for the user and uploads to S3.",
         "operationId": "CreateISOAndUploadToS3",
         "parameters": [
           {
+            "description": "Parameters for creating an Assisted Service ISO.",
             "name": "assisted-service-iso-create-params",
             "in": "body",
             "required": true,
@@ -6146,13 +6282,13 @@ func init() {
             ]
           }
         ],
+        "description": "Downloads the Assisted Service ISO.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "assisted-service-iso"
         ],
-        "summary": "Downloads the Assisted Service ISO.",
         "operationId": "DownloadISO",
         "responses": {
           "200": {
@@ -6200,10 +6336,10 @@ func init() {
             ]
           }
         ],
+        "description": "Retrieves a pre-signed S3 URL for downloading assisted-service ISO.",
         "tags": [
           "assisted-service-iso"
         ],
-        "summary": "Retrieves a pre-signed S3 URL for downloading assisted-service ISO.",
         "operationId": "GetPresignedForAssistedServiceISO",
         "responses": {
           "200": {
@@ -6242,13 +6378,13 @@ func init() {
     "/boot-files": {
       "get": {
         "security": [],
+        "description": "Downloads files used for booting servers.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "bootfiles"
         ],
-        "summary": "Downloads files used for booting servers.",
         "operationId": "DownloadBootFiles",
         "parameters": [
           {
@@ -6258,6 +6394,7 @@ func init() {
               "vmlinuz"
             ],
             "type": "string",
+            "description": "The file type to download.",
             "name": "file_type",
             "in": "query",
             "required": true
@@ -6310,21 +6447,23 @@ func init() {
             ]
           }
         ],
+        "description": "Retrieves the list of OpenShift clusters.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the list of OpenShift bare metal clusters.",
         "operationId": "ListClusters",
         "parameters": [
           {
             "type": "boolean",
             "default": false,
+            "description": "Whether to return clusters that have been unregistered.",
             "name": "get_unregistered_clusters",
             "in": "header"
           },
           {
             "type": "string",
             "format": "uuid",
+            "description": "A specific cluster to retrieve.",
             "name": "openshift_cluster_id",
             "in": "query"
           }
@@ -6369,13 +6508,14 @@ func init() {
         }
       },
       "post": {
+        "description": "Creates a new OpenShift cluster definition.",
         "tags": [
           "installer"
         ],
-        "summary": "Creates a new OpenShift bare metal cluster definition.",
         "operationId": "RegisterCluster",
         "parameters": [
           {
+            "description": "The properties describing the new cluster.",
             "name": "new-cluster-params",
             "in": "body",
             "required": true,
@@ -6438,27 +6578,30 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Retrieves the details of the OpenShift cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the details of the OpenShift bare metal cluster.",
         "operationId": "GetCluster",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to be retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is retreiving the cluster details.",
             "name": "discovery_agent_version",
             "in": "header"
           },
           {
             "type": "boolean",
             "default": false,
+            "description": "Whether to return clusters that have been unregistered.",
             "name": "get_unregistered_clusters",
             "in": "header"
           }
@@ -6509,15 +6652,16 @@ func init() {
         }
       },
       "delete": {
+        "description": "Deletes an OpenShift cluster definition.",
         "tags": [
           "installer"
         ],
-        "summary": "Deletes an OpenShift bare metal cluster definition.",
         "operationId": "DeregisterCluster",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to be deregistered.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -6566,20 +6710,22 @@ func init() {
         }
       },
       "patch": {
+        "description": "Updates an OpenShift cluster definition.",
         "tags": [
           "installer"
         ],
-        "summary": "Updates an OpenShift bare metal cluster definition.",
         "operationId": "UpdateCluster",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to be updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The properties to update.",
             "name": "cluster-update-params",
             "in": "body",
             "required": true,
@@ -6642,15 +6788,16 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/cancel": {
       "post": {
+        "description": "Cancels an ongoing installation.",
         "tags": [
           "installer"
         ],
-        "summary": "Cancels an ongoing installation.",
         "operationId": "CancelInstallation",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose installation is to be canceled.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -6709,20 +6856,22 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Agent API to mark a finalizing installation as complete.",
         "tags": [
           "installer"
         ],
-        "summary": "Agent API to mark a finalizing installation as complete.",
         "operationId": "CompleteInstallation",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose installation is being completing.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The final status of the cluster installationthe cluster installation.",
             "name": "completion-params",
             "in": "body",
             "required": true,
@@ -6732,6 +6881,7 @@ func init() {
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is completing the installation.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -6790,15 +6940,16 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/install": {
       "post": {
+        "description": "Installs the OpenShift cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Installs the OpenShift bare metal cluster.",
         "operationId": "InstallCluster",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to be installed.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -6858,15 +7009,16 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/install_hosts": {
       "post": {
+        "description": "Installs the OpenShift cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Installs the OpenShift bare metal cluster.",
         "operationId": "InstallHosts",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The existing cluster whose hosts should be added.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -6926,15 +7078,16 @@ func init() {
     },
     "/clusters/{cluster_id}/actions/reset": {
       "post": {
+        "description": "Resets a failed installation.",
         "tags": [
           "installer"
         ],
-        "summary": "Resets a failed installation.",
         "operationId": "ResetCluster",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose installation is to be reset.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -6997,15 +7150,16 @@ func init() {
             ]
           }
         ],
+        "description": "Get the cluster admin credentials.",
         "tags": [
           "installer"
         ],
-        "summary": "Get the cluster admin credentials.",
         "operationId": "GetCredentials",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose admin credentials should be retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -7068,15 +7222,16 @@ func init() {
             ]
           }
         ],
+        "description": "Get the cluster discovery ignition config",
         "tags": [
           "installer"
         ],
-        "summary": "Get the cluster discovery ignition config",
         "operationId": "GetDiscoveryIgnition",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster for which the discovery ignition config should be retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -7122,20 +7277,22 @@ func init() {
         }
       },
       "patch": {
+        "description": "Override values in the discovery ignition config",
         "tags": [
           "installer"
         ],
-        "summary": "Override values in the discovery ignition config",
         "operationId": "UpdateDiscoveryIgnition",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster for which the discovery ignition config should be updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "Overrides for the discovery ignition config.",
             "name": "discovery-ignition-params",
             "in": "body",
             "required": true,
@@ -7201,18 +7358,19 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Downloads files relating to the installed/installing cluster.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Downloads files relating to the installed/installing cluster.",
         "operationId": "DownloadClusterFiles",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster that owns the file that should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -7230,12 +7388,14 @@ func init() {
               "discovery.ign"
             ],
             "type": "string",
+            "description": "The file to be downloaded.",
             "name": "file_name",
             "in": "query",
             "required": true
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is downloading the file.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -7303,15 +7463,16 @@ func init() {
             ]
           }
         ],
+        "description": "Retrieves a pre-signed S3 URL for downloading cluster files.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves a pre-signed S3 URL for downloading cluster files.",
         "operationId": "GetPresignedForClusterFiles",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster that owns the file that should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -7330,6 +7491,7 @@ func init() {
               "manifests"
             ],
             "type": "string",
+            "description": "The file to be downloaded.",
             "name": "file_name",
             "in": "query",
             "required": true
@@ -7341,17 +7503,20 @@ func init() {
               "all"
             ],
             "type": "string",
+            "description": "If downloading logs, the type of logs to download.",
             "name": "logs_type",
             "in": "query"
           },
           {
             "type": "string",
             "format": "uuid",
+            "description": "If downloading a file related to a host, the relevant host.",
             "name": "host_id",
             "in": "query"
           },
           {
             "type": "string",
+            "description": "If downloading a manifest, the file name, prefaced with folder name, for example, openshift/99-openshift-xyz.yaml.",
             "name": "additional_name",
             "in": "query"
           }
@@ -7419,18 +7584,19 @@ func init() {
             ]
           }
         ],
+        "description": "Downloads the OpenShift per-cluster Discovery ISO.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Downloads the OpenShift per-cluster Discovery ISO.",
         "operationId": "DownloadClusterISO",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose ISO should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -7486,20 +7652,22 @@ func init() {
         }
       },
       "post": {
+        "description": "Creates a new OpenShift per-cluster Discovery ISO.",
         "tags": [
           "installer"
         ],
-        "summary": "Creates a new OpenShift per-cluster Discovery ISO.",
         "operationId": "GenerateClusterISO",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose ISO should be generated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The parameters for the generated ISO.",
             "name": "image-create-params",
             "in": "body",
             "required": true,
@@ -7571,18 +7739,19 @@ func init() {
             ]
           }
         ],
+        "description": "Downloads the kubeconfig file for this cluster.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Downloads the kubeconfig file for this cluster.",
         "operationId": "DownloadClusterKubeconfig",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose kubeconfig should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -7646,15 +7815,16 @@ func init() {
             ]
           }
         ],
+        "description": "Lists events for a cluster.",
         "tags": [
           "events"
         ],
-        "summary": "Lists events for a cluster.",
         "operationId": "ListEvents",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to return events for.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -7662,6 +7832,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "A host in the specified cluster to return events for.",
             "name": "host_id",
             "in": "query"
           }
@@ -7717,15 +7888,16 @@ func init() {
             ]
           }
         ],
+        "description": "Retrieves the free address list for a network.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the free address list for a network.",
         "operationId": "GetFreeAddresses",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to return free addresses for.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -7733,6 +7905,7 @@ func init() {
           {
             "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}\\/[0-9]|[1-2][0-9]|3[0-2]?$",
             "type": "string",
+            "description": "The cluster network to return free addresses for.",
             "name": "network",
             "in": "query",
             "required": true
@@ -7742,11 +7915,13 @@ func init() {
             "minimum": 1,
             "type": "integer",
             "default": 8000,
+            "description": "The maximum number of free addresses to return.",
             "name": "limit",
             "in": "query"
           },
           {
             "type": "string",
+            "description": "A prefix for the free addresses to return.",
             "name": "prefix",
             "in": "query"
           }
@@ -7805,21 +7980,23 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Retrieves the list of OpenShift hosts.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the list of OpenShift bare metal hosts.",
         "operationId": "ListHosts",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose hosts should be listed.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is listing hosts.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -7869,20 +8046,22 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Registers a new OpenShift host.",
         "tags": [
           "installer"
         ],
-        "summary": "Registers a new OpenShift bare metal host.",
         "operationId": "RegisterHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster into which the host should be registered.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The description of the host being registered.",
             "name": "new-host-params",
             "in": "body",
             "required": true,
@@ -7892,6 +8071,7 @@ func init() {
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is registering the host.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -7965,15 +8145,16 @@ func init() {
             ]
           }
         ],
+        "description": "Retrieves the details of the OpenShift host.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the details of the OpenShift bare metal host.",
         "operationId": "GetHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that should be retreived.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -7981,6 +8162,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that should be retreived.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -8026,15 +8208,16 @@ func init() {
         }
       },
       "delete": {
+        "description": "Deregisters an OpenShift host.",
         "tags": [
           "installer"
         ],
-        "summary": "Deregisters an OpenShift bare metal host.",
         "operationId": "DeregisterHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that should be deregistered.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8042,6 +8225,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that should be deregistered.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -8092,15 +8276,16 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
       "post": {
+        "description": "Enables a host for inclusion in the cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Enables a host for inclusion in the cluster.",
         "operationId": "EnableHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is being enabled.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8108,6 +8293,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is being enabled.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -8159,15 +8345,16 @@ func init() {
         }
       },
       "delete": {
+        "description": "Disables a host for inclusion in the cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Disables a host for inclusion in the cluster.",
         "operationId": "DisableHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is being disabled.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8175,6 +8362,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is being disabled.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -8228,15 +8416,16 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/actions/install": {
       "post": {
+        "description": "install specific host for day2 cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "install specific host for day2 cluster.",
         "operationId": "InstallHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is being installed.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8244,6 +8433,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is being installed.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -8291,15 +8481,16 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/actions/reset": {
       "post": {
+        "description": "reset a failed host for day2 cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "reset a failed host for day2 cluster.",
         "operationId": "ResetHost",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is being reset.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8307,6 +8498,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is being reset.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -8366,18 +8558,19 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Downloads the customized ignition file for this host",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Downloads the customized ignition file for this host",
         "operationId": "DownloadHostIgnition",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose ignition file should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8385,6 +8578,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose ignition file should be downloaded.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -8444,15 +8638,16 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/ignition": {
       "get": {
+        "description": "Get the customized ignition file for this host",
         "tags": [
           "installer"
         ],
-        "summary": "Get the customized ignition file for this host",
         "operationId": "GetHostIgnition",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose customized ignition file should be retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8460,6 +8655,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose customized ignition file should be retrieved.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -8511,15 +8707,16 @@ func init() {
         }
       },
       "patch": {
+        "description": "Patch the ignition file for this host",
         "tags": [
           "installer"
         ],
-        "summary": "Patch the ignition file for this host",
         "operationId": "UpdateHostIgnition",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose ignition file should be updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8527,11 +8724,13 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose ignition file should be updated.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "Ignition config overrides.",
             "name": "host-ignition-params",
             "in": "body",
             "required": true,
@@ -8585,15 +8784,16 @@ func init() {
     },
     "/clusters/{cluster_id}/hosts/{host_id}/installer-args": {
       "patch": {
+        "description": "Updates a host's installer arguments.",
         "tags": [
           "installer"
         ],
-        "summary": "Updates an OpenShift bare metal host.",
         "operationId": "UpdateHostInstallerArgs",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose installer arguments should be updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8601,11 +8801,13 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose installer arguments should be updated.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The updated installer arguments.",
             "name": "installer-args-params",
             "in": "body",
             "required": true,
@@ -8673,15 +8875,16 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Retrieves the next operations that the host agent needs to perform.",
         "tags": [
           "installer"
         ],
-        "summary": "Retrieves the next operations that the host agent needs to perform.",
         "operationId": "GetNextSteps",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is retreiving instructions.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8689,12 +8892,14 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is retreiving instructions.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is retrieving instructions.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -8750,20 +8955,22 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Posts the result of the operations from the host agent.",
         "tags": [
           "installer"
         ],
-        "summary": "Posts the result of the operations from the host agent.",
         "operationId": "PostStepReply",
         "parameters": [
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is posting results.",
             "name": "discovery_agent_version",
             "in": "header"
           },
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host that is posting results.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8771,11 +8978,13 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host that is posting results.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The results to be posted.",
             "name": "reply",
             "in": "body",
             "schema": {
@@ -8843,19 +9052,20 @@ func init() {
             ]
           }
         ],
+        "description": "Download host logs.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Download host logs.",
         "operationId": "DownloadHostLogs",
         "deprecated": true,
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose logs should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8863,6 +9073,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose logs should be downloaded.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -8919,19 +9130,20 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Agent API to upload logs.",
         "consumes": [
           "multipart/form-data"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Agent API to upload logs.",
         "operationId": "UploadHostLogs",
         "deprecated": true,
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster of the host whose logs should be uploaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8939,19 +9151,21 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose logs should be uploaded.",
             "name": "host_id",
             "in": "path",
             "required": true
           },
           {
             "type": "file",
+            "x-mimetype": "application/zip",
+            "description": "The log file to be uploaded.",
             "name": "upfile",
             "in": "formData"
           },
           {
             "type": "string",
-            "x-mimetype": "application/zip",
-            "description": "The file to upload.",
+            "description": "The software version of the discovery agent that is uploading the logs.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -9000,14 +9214,15 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Update installation progress.",
         "tags": [
           "installer"
         ],
-        "summary": "Update installation progress.",
         "operationId": "UpdateHostInstallProgress",
         "parameters": [
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is updating progress.",
             "name": "discovery_agent_version",
             "in": "header"
           },
@@ -9091,15 +9306,16 @@ func init() {
             ]
           }
         ],
+        "description": "Get the cluster's install config YAML.",
         "tags": [
           "installer"
         ],
-        "summary": "Get the cluster's install config YAML.",
         "operationId": "GetClusterInstallConfig",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose install config is being retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -9145,20 +9361,22 @@ func init() {
         }
       },
       "patch": {
+        "description": "Override values in the install config.",
         "tags": [
           "installer"
         ],
-        "summary": "Override values in the install config.",
         "operationId": "UpdateClusterInstallConfig",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose install config is being updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "Install config overrides.",
             "name": "install-config-params",
             "in": "body",
             "required": true,
@@ -9221,18 +9439,19 @@ func init() {
             ]
           }
         ],
+        "description": "Download cluster logs.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Download cluster logs.",
         "operationId": "DownloadClusterLogs",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose logs should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -9244,12 +9463,14 @@ func init() {
               "all"
             ],
             "type": "string",
+            "description": "The type of logs to be downloaded.",
             "name": "logs_type",
             "in": "query"
           },
           {
             "type": "string",
             "format": "uuid",
+            "description": "A specific host in the cluster whose logs should be downloaded.",
             "name": "host_id",
             "in": "query"
           }
@@ -9305,18 +9526,19 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Agent API to upload logs.",
         "consumes": [
           "multipart/form-data"
         ],
         "tags": [
           "installer"
         ],
-        "summary": "Agent API to upload logs.",
         "operationId": "UploadLogs",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose logs should be uploaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -9325,7 +9547,7 @@ func init() {
             "maxLength": 104857600,
             "type": "file",
             "x-mimetype": "application/zip",
-            "description": "The file to upload.",
+            "description": "The log file to be uploaded.",
             "name": "upfile",
             "in": "formData"
           },
@@ -9335,6 +9557,7 @@ func init() {
               "controller"
             ],
             "type": "string",
+            "description": "The type of log file to be uploaded.",
             "name": "logs_type",
             "in": "query",
             "required": true
@@ -9342,6 +9565,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
+            "description": "The host whose logs should be uploaded.",
             "name": "host_id",
             "in": "query"
           }
@@ -9390,15 +9614,16 @@ func init() {
             "userAuth": []
           }
         ],
+        "description": "Lists manifests for customizing cluster installation.",
         "tags": [
           "manifests"
         ],
-        "summary": "Lists manifests for customizing cluster installation.",
         "operationId": "ListClusterManifests",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster for which the manifests should be listed.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -9455,20 +9680,22 @@ func init() {
             "userAuth": []
           }
         ],
+        "description": "Creates a manifest for customizing cluster installation.",
         "tags": [
           "manifests"
         ],
-        "summary": "Creates a manifest for customizing cluster installation.",
         "operationId": "CreateClusterManifest",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster for which a new manifest should be created.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The new manifest to create.",
             "name": "CreateManifestParams",
             "in": "body",
             "required": true,
@@ -9529,15 +9756,16 @@ func init() {
         }
       },
       "delete": {
+        "description": "Deletes a manifest from the cluster.",
         "tags": [
           "manifests"
         ],
-        "summary": "Deletes a manifest from the cluster.",
         "operationId": "DeleteClusterManifest",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose manifest should be deleted.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -9611,18 +9839,19 @@ func init() {
             "userAuth": []
           }
         ],
+        "description": "Downloads cluster manifest.",
         "produces": [
           "application/octet-stream"
         ],
         "tags": [
           "manifests"
         ],
-        "summary": "Downloads cluster manifest.",
         "operationId": "DownloadClusterManifest",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster whose manifest should be downloaded.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -9699,16 +9928,16 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Update cluster installation progress.",
         "tags": [
           "installer"
         ],
-        "summary": "Update cluster installation progress.",
         "operationId": "UpdateClusterInstallProgress",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
-            "description": "The ID of the cluster to retrieve.",
+            "description": "The cluster whose progress is being updated.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -9779,20 +10008,22 @@ func init() {
             "agentAuth": []
           }
         ],
+        "description": "Transfer the ingress certificate for the cluster.",
         "tags": [
           "installer"
         ],
-        "summary": "Transfer the ingress certificate for the cluster.",
         "operationId": "UploadClusterIngressCert",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
+            "description": "The cluster to associate with the ingress certificate.",
             "name": "cluster_id",
             "in": "path",
             "required": true
           },
           {
+            "description": "The ingress certificate.",
             "name": "ingress-cert-params",
             "in": "body",
             "required": true,
@@ -9802,6 +10033,7 @@ func init() {
           },
           {
             "type": "string",
+            "description": "The software version of the discovery agent that is uploading the ingress certificate.",
             "name": "discovery_agent_version",
             "in": "header"
           }
@@ -9866,10 +10098,10 @@ func init() {
             ]
           }
         ],
+        "description": "List of component versions.",
         "tags": [
           "versions"
         ],
-        "summary": "List of component versions.",
         "operationId": "ListComponentVersions",
         "responses": {
           "200": {
@@ -9892,10 +10124,10 @@ func init() {
             ]
           }
         ],
+        "description": "List of managed DNS domains.",
         "tags": [
           "managed_domains"
         ],
-        "summary": "List of managed DNS domains.",
         "operationId": "ListManagedDomains",
         "responses": {
           "200": {
@@ -9924,10 +10156,10 @@ func init() {
             ]
           }
         ],
+        "description": "Get minimum host requirements.",
         "tags": [
           "installer"
         ],
-        "summary": "Get minimum host requirements.",
         "operationId": "GetHostRequirements",
         "responses": {
           "200": {
@@ -9965,10 +10197,10 @@ func init() {
     },
     "/openshift_versions": {
       "get": {
+        "description": "Retrieves the list of OpenShift supported versions",
         "tags": [
           "versions"
         ],
-        "summary": "Retrieves the list of OpenShift supported versions",
         "operationId": "ListSupportedOpenshiftVersions",
         "responses": {
           "200": {
@@ -12059,8 +12291,36 @@ func init() {
   ],
   "tags": [
     {
-      "description": "Assisted bare metal installation",
+      "description": "Agent-driven installation",
       "name": "Assisted installation"
+    },
+    {
+      "description": "ISO that contains the Assisted Service.",
+      "name": "assisted-service-iso"
+    },
+    {
+      "description": "Non-customized files used to boot hosts.",
+      "name": "bootfiles"
+    },
+    {
+      "description": "Events related to a cluster installation.",
+      "name": "events"
+    },
+    {
+      "description": "General OpenShift cluster installation APIs.",
+      "name": "installer"
+    },
+    {
+      "description": "Managed dns domains for a cluster installation.",
+      "name": "managed_domains"
+    },
+    {
+      "description": "Manifests for customizing a cluster installation.",
+      "name": "manifests"
+    },
+    {
+      "description": "Information regarding versions.",
+      "name": "versions"
     }
   ]
 }`))

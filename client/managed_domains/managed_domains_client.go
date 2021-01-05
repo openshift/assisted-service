@@ -18,7 +18,7 @@ import (
 // API is the interface of the managed domains client
 type API interface {
 	/*
-	   ListManagedDomains lists of managed DNS domains*/
+	   ListManagedDomains List of managed DNS domains.*/
 	ListManagedDomains(ctx context.Context, params *ListManagedDomainsParams) (*ListManagedDomainsOK, error)
 }
 
@@ -41,7 +41,7 @@ type Client struct {
 }
 
 /*
-ListManagedDomains lists of managed DNS domains
+ListManagedDomains List of managed DNS domains.
 */
 func (a *Client) ListManagedDomains(ctx context.Context, params *ListManagedDomainsParams) (*ListManagedDomainsOK, error) {
 

@@ -37,7 +37,7 @@ type UpdateClusterInstallProgressParams struct {
 	  In: body
 	*/
 	ClusterProgress string
-	/*The ID of the cluster to retrieve.
+	/*The cluster whose progress is being updated.
 	  Required: true
 	  In: path
 	*/

@@ -19,16 +19,16 @@ import (
 // API is the interface of the manifests client
 type API interface {
 	/*
-	   CreateClusterManifest creates a manifest for customizing cluster installation*/
+	   CreateClusterManifest Creates a manifest for customizing cluster installation.*/
 	CreateClusterManifest(ctx context.Context, params *CreateClusterManifestParams) (*CreateClusterManifestCreated, error)
 	/*
-	   DeleteClusterManifest deletes a manifest from the cluster*/
+	   DeleteClusterManifest Deletes a manifest from the cluster.*/
 	DeleteClusterManifest(ctx context.Context, params *DeleteClusterManifestParams) (*DeleteClusterManifestOK, error)
 	/*
-	   DownloadClusterManifest downloads cluster manifest*/
+	   DownloadClusterManifest Downloads cluster manifest.*/
 	DownloadClusterManifest(ctx context.Context, params *DownloadClusterManifestParams, writer io.Writer) (*DownloadClusterManifestOK, error)
 	/*
-	   ListClusterManifests lists manifests for customizing cluster installation*/
+	   ListClusterManifests Lists manifests for customizing cluster installation.*/
 	ListClusterManifests(ctx context.Context, params *ListClusterManifestsParams) (*ListClusterManifestsOK, error)
 }
 
@@ -51,7 +51,7 @@ type Client struct {
 }
 
 /*
-CreateClusterManifest creates a manifest for customizing cluster installation
+CreateClusterManifest Creates a manifest for customizing cluster installation.
 */
 func (a *Client) CreateClusterManifest(ctx context.Context, params *CreateClusterManifestParams) (*CreateClusterManifestCreated, error) {
 
@@ -76,7 +76,7 @@ func (a *Client) CreateClusterManifest(ctx context.Context, params *CreateCluste
 }
 
 /*
-DeleteClusterManifest deletes a manifest from the cluster
+DeleteClusterManifest Deletes a manifest from the cluster.
 */
 func (a *Client) DeleteClusterManifest(ctx context.Context, params *DeleteClusterManifestParams) (*DeleteClusterManifestOK, error) {
 
@@ -101,7 +101,7 @@ func (a *Client) DeleteClusterManifest(ctx context.Context, params *DeleteCluste
 }
 
 /*
-DownloadClusterManifest downloads cluster manifest
+DownloadClusterManifest Downloads cluster manifest.
 */
 func (a *Client) DownloadClusterManifest(ctx context.Context, params *DownloadClusterManifestParams, writer io.Writer) (*DownloadClusterManifestOK, error) {
 
@@ -126,7 +126,7 @@ func (a *Client) DownloadClusterManifest(ctx context.Context, params *DownloadCl
 }
 
 /*
-ListClusterManifests lists manifests for customizing cluster installation
+ListClusterManifests Lists manifests for customizing cluster installation.
 */
 func (a *Client) ListClusterManifests(ctx context.Context, params *ListClusterManifestsParams) (*ListClusterManifestsOK, error) {
 

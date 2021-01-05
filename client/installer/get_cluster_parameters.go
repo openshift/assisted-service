@@ -73,11 +73,20 @@ for the get cluster operation typically these are written to a http.Request
 */
 type GetClusterParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster to be retrieved.
+
+	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion*/
+	/*DiscoveryAgentVersion
+	  The software version of the discovery agent that is retreiving the cluster details.
+
+	*/
 	DiscoveryAgentVersion *string
-	/*GetUnregisteredClusters*/
+	/*GetUnregisteredClusters
+	  Whether to return clusters that have been unregistered.
+
+	*/
 	GetUnregisteredClusters *bool
 
 	timeout    time.Duration

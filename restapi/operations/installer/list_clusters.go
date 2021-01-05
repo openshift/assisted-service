@@ -31,7 +31,7 @@ func NewListClusters(ctx *middleware.Context, handler ListClustersHandler) *List
 
 /*ListClusters swagger:route GET /clusters installer listClusters
 
-Retrieves the list of OpenShift bare metal clusters.
+Retrieves the list of OpenShift clusters.
 
 */
 type ListClusters struct {

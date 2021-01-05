@@ -60,9 +60,15 @@ for the disable host operation typically these are written to a http.Request
 */
 type DisableHostParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host that is being disabled.
+
+	*/
 	ClusterID strfmt.UUID
-	/*HostID*/
+	/*HostID
+	  The host that is being disabled.
+
+	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration

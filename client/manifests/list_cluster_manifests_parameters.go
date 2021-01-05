@@ -60,7 +60,10 @@ for the list cluster manifests operation typically these are written to a http.R
 */
 type ListClusterManifestsParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster for which the manifests should be listed.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

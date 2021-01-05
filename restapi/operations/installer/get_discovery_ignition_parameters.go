@@ -30,7 +30,7 @@ type GetDiscoveryIgnitionParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster for which the discovery ignition config should be retrieved.
 	  Required: true
 	  In: path
 	*/

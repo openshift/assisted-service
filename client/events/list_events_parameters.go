@@ -60,9 +60,15 @@ for the list events operation typically these are written to a http.Request
 */
 type ListEventsParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster to return events for.
+
+	*/
 	ClusterID strfmt.UUID
-	/*HostID*/
+	/*HostID
+	  A host in the specified cluster to return events for.
+
+	*/
 	HostID *strfmt.UUID
 
 	timeout    time.Duration

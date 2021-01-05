@@ -62,9 +62,15 @@ for the update cluster operation typically these are written to a http.Request
 */
 type UpdateClusterParams struct {
 
-	/*ClusterUpdateParams*/
+	/*ClusterUpdateParams
+	  The properties to update.
+
+	*/
 	ClusterUpdateParams *models.ClusterUpdateParams
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster to be updated.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

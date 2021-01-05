@@ -39,7 +39,7 @@ type DownloadClusterManifestParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose manifest should be downloaded.
 	  Required: true
 	  In: path
 	*/

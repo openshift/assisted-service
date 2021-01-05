@@ -60,7 +60,10 @@ for the download cluster kubeconfig operation typically these are written to a h
 */
 type DownloadClusterKubeconfigParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose kubeconfig should be downloaded.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

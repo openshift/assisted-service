@@ -62,11 +62,20 @@ for the update host ignition operation typically these are written to a http.Req
 */
 type UpdateHostIgnitionParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host whose ignition file should be updated.
+
+	*/
 	ClusterID strfmt.UUID
-	/*HostIgnitionParams*/
+	/*HostIgnitionParams
+	  Ignition config overrides.
+
+	*/
 	HostIgnitionParams *models.HostIgnitionParams
-	/*HostID*/
+	/*HostID
+	  The host whose ignition file should be updated.
+
+	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration

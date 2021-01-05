@@ -60,14 +60,23 @@ for the upload logs operation typically these are written to a http.Request
 */
 type UploadLogsParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose logs should be uploaded.
+
+	*/
 	ClusterID strfmt.UUID
-	/*HostID*/
+	/*HostID
+	  The host whose logs should be uploaded.
+
+	*/
 	HostID *strfmt.UUID
-	/*LogsType*/
+	/*LogsType
+	  The type of log file to be uploaded.
+
+	*/
 	LogsType string
 	/*Upfile
-	  The file to upload.
+	  The log file to be uploaded.
 
 	*/
 	Upfile runtime.NamedReadCloser

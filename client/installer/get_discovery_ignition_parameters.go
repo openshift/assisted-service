@@ -60,7 +60,10 @@ for the get discovery ignition operation typically these are written to a http.R
 */
 type GetDiscoveryIgnitionParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster for which the discovery ignition config should be retrieved.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration
