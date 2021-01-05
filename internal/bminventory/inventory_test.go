@@ -4402,6 +4402,26 @@ func getInventoryStr(hostname, bootMode string, ipv4Addresses ...string) string 
 	return string(ret)
 }
 
+func getInventoryStrWithIPv6(hostname, bootMode string, ipv4Addresses []string, ipv6Addresses []string) string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				IPV4Addresses: ipv4Addresses,
+				IPV6Addresses: ipv6Addresses,
+				MacAddress:    "some MAC address",
+			},
+		},
+		Hostname: hostname,
+		Boot:     &models.Boot{CurrentBootMode: bootMode},
+		Disks: []*models.Disk{
+			{Path: "/dev/sda", Bootable: true},
+			{Path: "/dev/sdb", Bootable: false},
+		},
+	}
+	ret, _ := json.Marshal(&inventory)
+	return string(ret)
+}
+
 var _ = Describe("proxySettingsForIgnition", func() {
 
 	Context("test proxy settings in discovery ignition", func() {
@@ -5523,6 +5543,45 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 		}
 		response := bm.UpdateHostInstallerArgs(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostInstallerArgsBadRequest{}))
+	})
+})
+
+var _ = Describe("Calculate host networks", func() {
+	var (
+		db        *gorm.DB
+		clusterID strfmt.UUID
+		hostID    strfmt.UUID
+		dbName    = "calculate_host_networks"
+	)
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// add a host
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID,
+			getInventoryStrWithIPv6("host", "bios", []string{
+				"1.1.1.1/24",
+				"1.1.1.2/24",
+			}, []string{
+				"fe80::1/64",
+				"fe80::2/64",
+			}), db)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+	It("Duplicates and IPv6", func() {
+		var cluster common.Cluster
+		Expect(db.Preload("Hosts").Take(&cluster, "id = ?", clusterID.String()).Error).ToNot(HaveOccurred())
+		networks := calculateHostNetworks(logrus.New(), &cluster)
+		Expect(len(networks)).To(Equal(1))
+		Expect(networks[0].Cidr).To(Equal("1.1.1.0/24"))
+		Expect(len(networks[0].HostIds)).To(Equal(1))
+		Expect(networks[0].HostIds[0]).To(Equal(hostID))
 	})
 })
 

@@ -1937,7 +1937,7 @@ func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cl
 }
 
 func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*models.HostNetwork {
-	cidrHostsMap := make(map[string][]strfmt.UUID)
+	cidrHostsMap := make(map[string]map[strfmt.UUID]bool)
 	for _, h := range cluster.Hosts {
 		if h.Inventory == "" {
 			continue
@@ -1949,22 +1949,31 @@ func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*m
 			continue
 		}
 		for _, intf := range inventory.Interfaces {
-			for _, address := range append(intf.IPV4Addresses, intf.IPV6Addresses...) {
+			for _, address := range intf.IPV4Addresses {
 				_, ipnet, err := net.ParseCIDR(address)
 				if err != nil {
 					log.WithError(err).Warnf("Could not parse CIDR %s", address)
 					continue
 				}
 				cidr := ipnet.String()
-				cidrHostsMap[cidr] = append(cidrHostsMap[cidr], *h.ID)
+				uuidSet, ok := cidrHostsMap[cidr]
+				if !ok {
+					uuidSet = make(map[strfmt.UUID]bool)
+				}
+				uuidSet[*h.ID] = true
+				cidrHostsMap[cidr] = uuidSet
 			}
 		}
 	}
 	ret := make([]*models.HostNetwork, 0)
 	for k, v := range cidrHostsMap {
+		slice := make([]strfmt.UUID, 0)
+		for k := range v {
+			slice = append(slice, k)
+		}
 		ret = append(ret, &models.HostNetwork{
 			Cidr:    k,
-			HostIds: v,
+			HostIds: slice,
 		})
 	}
 	return ret
