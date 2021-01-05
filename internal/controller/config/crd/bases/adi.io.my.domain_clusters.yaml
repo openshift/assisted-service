@@ -70,8 +70,8 @@ spec:
                 type: string
               openshiftVersion:
                 type: string
-              pullSecretName:
-                description: The name of the secret containing the pull secret
+              pullSecretRef:
+                description: A reference to the secret containing the pull secret
                 properties:
                   name:
                     description: Name is unique within a namespace to reference a
@@ -93,7 +93,7 @@ spec:
             required:
             - name
             - openshiftVersion
-            - pullSecretName
+            - pullSecretRef
             type: object
           status:
             description: ClusterStatus defines the observed state of Cluster

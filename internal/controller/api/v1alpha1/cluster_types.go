@@ -47,8 +47,8 @@ type ClusterSpec struct {
 	UserManagedNetworking    bool   `json:"userManagedNetworking,omitempty"`
 	AdditionalNtpSource      string `json:"additionalNtpSource,omitempty"`
 	InstallConfigOverrides   string `json:"installConfigOverrides,omitempty"`
-	// The name of the secret containing the pull secret
-	PullSecretName corev1.SecretReference `json:"pullSecretName"`
+	// A reference to the secret containing the pull secret
+	PullSecretRef *corev1.SecretReference `json:"pullSecretRef"`
 }
 
 type ClusterProgressInfo struct {

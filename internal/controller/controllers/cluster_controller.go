@@ -90,7 +90,7 @@ func (r *ClusterReconciler) getPullSecret(ctx context.Context, name, namespace s
 func (r *ClusterReconciler) createNewCluster(ctx context.Context, cluster *adiiov1alpha1.Cluster) (ctrl.Result, error) {
 	spec := cluster.Spec
 
-	pullSecret, err := r.getPullSecret(ctx, spec.PullSecretName.Name, spec.PullSecretName.Namespace)
+	pullSecret, err := r.getPullSecret(ctx, spec.PullSecretRef.Name, spec.PullSecretRef.Namespace)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to get pull secret")
 	}

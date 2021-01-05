@@ -60,7 +60,7 @@ var _ = Describe("cluster reconcile", func() {
 	defaultClusterSpec := v1alpha1.ClusterSpec{
 		Name:             clusterName,
 		OpenshiftVersion: "4.7",
-		PullSecretName: v1.SecretReference{
+		PullSecretRef: &v1.SecretReference{
 			Name:      pullSecretName,
 			Namespace: testNamespace,
 		},
