@@ -820,6 +820,23 @@ func defaultInventory() string {
 	return string(b)
 }
 
+// alternativeInventory returns an inventory that is arbitrarily slightly different than
+// the default inventory. Useful in some tests.
+func alternativeInventory() []byte {
+	// Create an inventory that is slightly arbitrarily different than the default one
+	// (in this case timestamp is set to some magic value other than the default 0)
+	// so we can check if UpdateInventory actually occurred
+	var newInventory models.Inventory
+	magicTimestamp := int64(0xcafecafe)
+	err := json.Unmarshal([]byte(defaultInventory()), &newInventory)
+	Expect(err).To(BeNil())
+	newInventory.Timestamp = magicTimestamp
+	newInventoryBytes, err := json.Marshal(&newInventory)
+	Expect(err).To(BeNil())
+
+	return newInventoryBytes
+}
+
 func insufficientHWInventory() string {
 	inventory := models.Inventory{
 		CPU: &models.CPU{Count: 2},
@@ -1056,20 +1073,98 @@ var _ = Describe("UpdateInventory", func() {
 		}
 	})
 
+	Context("Test update default installation disk", func() {
+		const (
+			diskName      = "FirstDisk"
+			otherDiskName = "SecondDisk"
+		)
+
+		It("Make sure UpdateInventory uses determineDefaultInstallationDisk to update the db", func() {
+			host = getTestHost(hostId, clusterId, models.HostStatusDiscovering)
+			host.Inventory = defaultInventory()
+			host.InstallationDiskPath = ""
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			mockValidator.EXPECT().DiskIsEligible(gomock.Any())
+			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(
+				[]*models.Disk{{Name: diskName}}, nil,
+			)
+
+			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
+
+			h := getHost(hostId, clusterId, db)
+			Expect(h.InstallationDiskPath).To(Equal(GetDeviceFullName(diskName)))
+
+			// Now make sure it gets removed if the disk is no longer in the inventory
+
+			mockValidator.EXPECT().DiskIsEligible(gomock.Any())
+			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(
+				[]*models.Disk{}, nil,
+			)
+
+			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
+
+			h = getHost(hostId, clusterId, db)
+			Expect(h.InstallationDiskPath).To(Equal(""))
+		})
+
+		for _, test := range []struct {
+			testName                 string
+			currentInstallationDisk  string
+			inventoryDisks           []*models.Disk
+			expectedInstallationDisk string
+		}{
+			{testName: "No previous installation disk, no disks in inventory",
+				currentInstallationDisk:  "",
+				inventoryDisks:           []*models.Disk{},
+				expectedInstallationDisk: ""},
+			{testName: "No previous installation disk, one disk in inventory",
+				currentInstallationDisk:  "",
+				inventoryDisks:           []*models.Disk{{Name: diskName}},
+				expectedInstallationDisk: GetDeviceFullName(diskName)},
+			{testName: "No previous installation disk, two disks in inventory",
+				currentInstallationDisk:  "",
+				inventoryDisks:           []*models.Disk{{Name: diskName}, {Name: otherDiskName}},
+				expectedInstallationDisk: GetDeviceFullName(diskName)},
+			{testName: "Previous installation disk is set, new inventory still contains that disk",
+				currentInstallationDisk:  GetDeviceFullName(diskName),
+				inventoryDisks:           []*models.Disk{{Name: diskName}},
+				expectedInstallationDisk: GetDeviceFullName(diskName)},
+			{testName: "Previous installation disk is set, new inventory still contains that disk, but there's another",
+				currentInstallationDisk:  GetDeviceFullName(diskName),
+				inventoryDisks:           []*models.Disk{{Name: diskName}, {Name: otherDiskName}},
+				expectedInstallationDisk: GetDeviceFullName(diskName)},
+			{testName: `Previous installation disk is set, new inventory still contains that disk, but there's another
+						disk with higher priority`,
+				currentInstallationDisk:  GetDeviceFullName(diskName),
+				inventoryDisks:           []*models.Disk{{Name: otherDiskName}, {Name: diskName}},
+				expectedInstallationDisk: GetDeviceFullName(diskName)},
+			{testName: "Previous installation disk is set, new inventory doesn't contain any disk",
+				currentInstallationDisk:  GetDeviceFullName(diskName),
+				inventoryDisks:           []*models.Disk{},
+				expectedInstallationDisk: ""},
+			{testName: "Previous installation disk is set, new inventory only contains a different disk",
+				currentInstallationDisk:  GetDeviceFullName(diskName),
+				inventoryDisks:           []*models.Disk{{Name: otherDiskName}},
+				expectedInstallationDisk: GetDeviceFullName(otherDiskName)},
+		} {
+			It(test.testName, func() {
+				Expect(
+					determineDefaultInstallationDisk(
+						test.currentInstallationDisk,
+						test.inventoryDisks,
+					)).To(Equal(test.expectedInstallationDisk))
+			})
+		}
+	})
+
 	Context("enable host", func() {
 		var newInventoryBytes []byte
 
 		BeforeEach(func() {
 			// Create an inventory that is slightly arbitrarily different than the default one
-			// (in this case timestamp is set to some magic value other than the default 0)
-			// so we can check if UpdateInventory actually occurred
-			var newInventory models.Inventory
-			magicTimestamp := int64(0xcafecafe)
-			err := json.Unmarshal([]byte(defaultInventory()), &newInventory)
-			Expect(err).To(BeNil())
-			newInventory.Timestamp = magicTimestamp
-			newInventoryBytes, err = json.Marshal(&newInventory)
-			Expect(err).To(BeNil())
+			// so we can make sure an update actually occurred.
+			newInventoryBytes = alternativeInventory()
 
 			mockValidator.EXPECT().DiskIsEligible(gomock.Any())
 		})
@@ -1158,6 +1253,8 @@ var _ = Describe("UpdateInventory", func() {
 			It(t.name, func() {
 				host = getTestHost(hostId, clusterId, t.srcState)
 				host.Inventory = defaultInventory()
+
+				mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil)
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				t.validation(hapi.UpdateInventory(ctx, &host, string(newInventoryBytes)))
