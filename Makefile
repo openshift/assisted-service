@@ -387,7 +387,8 @@ delete-all-minikube-profiles:
 ##############
 
 CRD_OPTIONS ?= "crd:trivialVersions=true"
-CONTROLLER_CONFIG_PATH = internal/controller/config
+CONTROLLER_PATH = internal/controller
+CONTROLLER_CONFIG_PATH = $(CONTROLLER_PATH)/config
 CONTROLLER_CRD_PATH = $(CONTROLLER_CONFIG_PATH)/crd
 CONTROLLER_RBAC_PATH = $(CONTROLLER_CONFIG_PATH)/rbac
 
@@ -399,4 +400,5 @@ ifdef ENABLE_KUBE_API
 	kustomize build $(CONTROLLER_CRD_PATH) > $(BUILD_FOLDER)/resources.yaml
 	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
 	cat $(CONTROLLER_RBAC_PATH)/secret_patch.yaml >> $(CONTROLLER_RBAC_PATH)/role.yaml
+	goimports -w  $(CONTROLLER_PATH)
 endif
