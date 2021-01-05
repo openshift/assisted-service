@@ -6,3 +6,27 @@ rules:
   operation-default-response: off
   operation-description: error
   oas2-parameter-description: error
+
+  description-start-capital-letter:
+    description: Description should start with a capital letter.
+    severity: error
+    type: style
+    formats: ["oas2"]
+    given: "$..parameters[?(@.in)]"
+    then:
+      field: "description"
+      function: pattern
+      functionOptions:
+        match: "^[A-Z]"
+
+  description-ends-with-period:
+    description: Description should end with a period.
+    severity: error
+    type: style
+    formats: ["oas2"]
+    given: "$..parameters[?(@.in)]"
+    then:
+      field: "description"
+      function: pattern
+      functionOptions:
+        match: ".+\\.$"
