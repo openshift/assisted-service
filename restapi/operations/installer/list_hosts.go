@@ -31,7 +31,7 @@ func NewListHosts(ctx *middleware.Context, handler ListHostsHandler) *ListHosts 
 
 /*ListHosts swagger:route GET /clusters/{cluster_id}/hosts installer listHosts
 
-Retrieves the list of OpenShift bare metal hosts.
+Retrieves the list of OpenShift hosts.
 
 */
 type ListHosts struct {

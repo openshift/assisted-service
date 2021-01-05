@@ -30,12 +30,12 @@ type DisableHostParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host that is being disabled.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The host that is being disabled.
 	  Required: true
 	  In: path
 	*/

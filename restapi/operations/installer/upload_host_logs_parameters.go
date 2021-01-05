@@ -33,21 +33,21 @@ type UploadHostLogsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host whose logs should be uploaded.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*The file to upload.
+	/*The software version of the discovery agent that is uploading the logs.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-	/*
+	/*The host whose logs should be uploaded.
 	  Required: true
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*
+	/*The log file to be uploaded.
 	  In: formData
 	*/
 	Upfile io.ReadCloser

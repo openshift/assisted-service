@@ -60,9 +60,15 @@ for the reset host operation typically these are written to a http.Request
 */
 type ResetHostParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host that is being reset.
+
+	*/
 	ClusterID strfmt.UUID
-	/*HostID*/
+	/*HostID
+	  The host that is being reset.
+
+	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration

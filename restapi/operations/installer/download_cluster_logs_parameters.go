@@ -31,16 +31,16 @@ type DownloadClusterLogsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose logs should be downloaded.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*A specific host in the cluster whose logs should be downloaded.
 	  In: query
 	*/
 	HostID *strfmt.UUID
-	/*
+	/*The type of logs to be downloaded.
 	  In: query
 	*/
 	LogsType *string

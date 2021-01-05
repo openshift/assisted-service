@@ -32,7 +32,7 @@ type RegisterClusterParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The properties describing the new cluster.
 	  Required: true
 	  In: body
 	*/

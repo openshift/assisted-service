@@ -60,9 +60,15 @@ for the download host logs operation typically these are written to a http.Reque
 */
 type DownloadHostLogsParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host whose logs should be downloaded.
+
+	*/
 	ClusterID strfmt.UUID
-	/*HostID*/
+	/*HostID
+	  The host whose logs should be downloaded.
+
+	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration

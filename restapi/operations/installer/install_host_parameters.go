@@ -30,12 +30,12 @@ type InstallHostParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host that is being installed.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The host that is being installed.
 	  Required: true
 	  In: path
 	*/

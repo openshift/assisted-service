@@ -39,7 +39,7 @@ type UpdateHostInstallProgressParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The software version of the discovery agent that is updating progress.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string

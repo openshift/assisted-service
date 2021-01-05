@@ -60,7 +60,10 @@ for the download boot files operation typically these are written to a http.Requ
 */
 type DownloadBootFilesParams struct {
 
-	/*FileType*/
+	/*FileType
+	  The file type to download.
+
+	*/
 	FileType string
 
 	timeout    time.Duration

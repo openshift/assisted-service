@@ -62,11 +62,20 @@ for the update host installer args operation typically these are written to a ht
 */
 type UpdateHostInstallerArgsParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host whose installer arguments should be updated.
+
+	*/
 	ClusterID strfmt.UUID
-	/*HostID*/
+	/*HostID
+	  The host whose installer arguments should be updated.
+
+	*/
 	HostID strfmt.UUID
-	/*InstallerArgsParams*/
+	/*InstallerArgsParams
+	  The updated installer arguments.
+
+	*/
 	InstallerArgsParams *models.InstallerArgsParams
 
 	timeout    time.Duration

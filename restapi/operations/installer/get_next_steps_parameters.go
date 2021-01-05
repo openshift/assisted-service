@@ -30,16 +30,16 @@ type GetNextStepsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host that is retreiving instructions.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The software version of the discovery agent that is retrieving instructions.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-	/*
+	/*The host that is retreiving instructions.
 	  Required: true
 	  In: path
 	*/

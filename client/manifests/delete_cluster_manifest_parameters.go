@@ -72,7 +72,10 @@ for the delete cluster manifest operation typically these are written to a http.
 */
 type DeleteClusterManifestParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose manifest should be deleted.
+
+	*/
 	ClusterID strfmt.UUID
 	/*FileName
 	  The manifest file name to delete from the cluster.

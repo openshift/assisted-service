@@ -30,12 +30,12 @@ type DownloadHostLogsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host whose logs should be downloaded.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The host whose logs should be downloaded.
 	  Required: true
 	  In: path
 	*/

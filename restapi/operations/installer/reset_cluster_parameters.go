@@ -30,7 +30,7 @@ type ResetClusterParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose installation is to be reset.
 	  Required: true
 	  In: path
 	*/

@@ -32,12 +32,12 @@ type UpdateClusterInstallConfigParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose install config is being updated.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*Install config overrides.
 	  Required: true
 	  In: body
 	*/

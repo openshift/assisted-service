@@ -30,7 +30,7 @@ type InstallHostsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The existing cluster whose hosts should be added.
 	  Required: true
 	  In: path
 	*/

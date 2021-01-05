@@ -62,11 +62,20 @@ for the complete installation operation typically these are written to a http.Re
 */
 type CompleteInstallationParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose installation is being completing.
+
+	*/
 	ClusterID strfmt.UUID
-	/*CompletionParams*/
+	/*CompletionParams
+	  The final status of the cluster installationthe cluster installation.
+
+	*/
 	CompletionParams *models.CompletionParams
-	/*DiscoveryAgentVersion*/
+	/*DiscoveryAgentVersion
+	  The software version of the discovery agent that is completing the installation.
+
+	*/
 	DiscoveryAgentVersion *string
 
 	timeout    time.Duration

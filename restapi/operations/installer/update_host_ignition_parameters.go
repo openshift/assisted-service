@@ -34,17 +34,17 @@ type UpdateHostIgnitionParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host whose ignition file should be updated.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*Ignition config overrides.
 	  Required: true
 	  In: body
 	*/
 	HostIgnitionParams *models.HostIgnitionParams
-	/*
+	/*The host whose ignition file should be updated.
 	  Required: true
 	  In: path
 	*/

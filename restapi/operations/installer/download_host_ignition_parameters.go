@@ -30,12 +30,12 @@ type DownloadHostIgnitionParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host whose ignition file should be downloaded.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The host whose ignition file should be downloaded.
 	  Required: true
 	  In: path
 	*/

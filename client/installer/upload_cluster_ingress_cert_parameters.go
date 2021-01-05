@@ -62,11 +62,20 @@ for the upload cluster ingress cert operation typically these are written to a h
 */
 type UploadClusterIngressCertParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster to associate with the ingress certificate.
+
+	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion*/
+	/*DiscoveryAgentVersion
+	  The software version of the discovery agent that is uploading the ingress certificate.
+
+	*/
 	DiscoveryAgentVersion *string
-	/*IngressCertParams*/
+	/*IngressCertParams
+	  The ingress certificate.
+
+	*/
 	IngressCertParams models.IngressCertParams
 
 	timeout    time.Duration

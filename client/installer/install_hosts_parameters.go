@@ -60,7 +60,10 @@ for the install hosts operation typically these are written to a http.Request
 */
 type InstallHostsParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The existing cluster whose hosts should be added.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

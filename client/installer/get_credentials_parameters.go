@@ -60,7 +60,10 @@ for the get credentials operation typically these are written to a http.Request
 */
 type GetCredentialsParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose admin credentials should be retrieved.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

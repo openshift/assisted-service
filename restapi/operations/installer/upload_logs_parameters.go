@@ -33,21 +33,21 @@ type UploadLogsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose logs should be uploaded.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The host whose logs should be uploaded.
 	  In: query
 	*/
 	HostID *strfmt.UUID
-	/*
+	/*The type of log file to be uploaded.
 	  Required: true
 	  In: query
 	*/
 	LogsType string
-	/*The file to upload.
+	/*The log file to be uploaded.
 	  Max Length: 104857600
 	  In: formData
 	*/

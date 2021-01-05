@@ -89,7 +89,10 @@ format:
 generate:
 	go generate $(shell go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi')
 
-generate-from-swagger: generate-go-client generate-go-server
+lint-swagger:
+	spectral lint swagger.yaml
+
+generate-from-swagger: lint-swagger generate-go-client generate-go-server
 
 generate-go-server:
 	rm -rf restapi

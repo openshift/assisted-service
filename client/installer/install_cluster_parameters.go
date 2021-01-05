@@ -60,7 +60,10 @@ for the install cluster operation typically these are written to a http.Request
 */
 type InstallClusterParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster to be installed.
+
+	*/
 	ClusterID strfmt.UUID
 
 	timeout    time.Duration

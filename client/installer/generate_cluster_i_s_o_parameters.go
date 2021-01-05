@@ -62,9 +62,15 @@ for the generate cluster i s o operation typically these are written to a http.R
 */
 type GenerateClusterISOParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose ISO should be generated.
+
+	*/
 	ClusterID strfmt.UUID
-	/*ImageCreateParams*/
+	/*ImageCreateParams
+	  The parameters for the generated ISO.
+
+	*/
 	ImageCreateParams *models.ImageCreateParams
 
 	timeout    time.Duration

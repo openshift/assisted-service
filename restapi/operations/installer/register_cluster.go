@@ -31,7 +31,7 @@ func NewRegisterCluster(ctx *middleware.Context, handler RegisterClusterHandler)
 
 /*RegisterCluster swagger:route POST /clusters installer registerCluster
 
-Creates a new OpenShift bare metal cluster definition.
+Creates a new OpenShift cluster definition.
 
 */
 type RegisterCluster struct {

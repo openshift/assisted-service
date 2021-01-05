@@ -66,7 +66,7 @@ type UpdateClusterInstallProgressParams struct {
 	*/
 	ClusterProgress string
 	/*ClusterID
-	  The ID of the cluster to retrieve.
+	  The cluster whose progress is being updated.
 
 	*/
 	ClusterID strfmt.UUID

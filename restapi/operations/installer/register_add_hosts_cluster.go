@@ -31,7 +31,7 @@ func NewRegisterAddHostsCluster(ctx *middleware.Context, handler RegisterAddHost
 
 /*RegisterAddHostsCluster swagger:route POST /add_hosts_clusters installer registerAddHostsCluster
 
-Creates a new OpenShift bare metal cluster definition for adding nodes to and existing OCP cluster.
+Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.
 
 */
 type RegisterAddHostsCluster struct {

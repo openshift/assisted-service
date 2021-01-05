@@ -30,7 +30,7 @@ type GetClusterInstallConfigParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose install config is being retrieved.
 	  Required: true
 	  In: path
 	*/

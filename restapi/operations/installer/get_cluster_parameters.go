@@ -39,16 +39,16 @@ type GetClusterParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster to be retrieved.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The software version of the discovery agent that is retreiving the cluster details.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-	/*
+	/*Whether to return clusters that have been unregistered.
 	  In: header
 	  Default: false
 	*/

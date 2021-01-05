@@ -31,12 +31,12 @@ type ListEventsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster to return events for.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*A host in the specified cluster to return events for.
 	  In: query
 	*/
 	HostID *strfmt.UUID

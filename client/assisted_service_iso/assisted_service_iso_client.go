@@ -19,13 +19,13 @@ import (
 // API is the interface of the assisted service iso client
 type API interface {
 	/*
-	   CreateISOAndUploadToS3 creates i s o for the user and uploads to s3*/
+	   CreateISOAndUploadToS3 Creates ISO for the user and uploads to S3.*/
 	CreateISOAndUploadToS3(ctx context.Context, params *CreateISOAndUploadToS3Params) (*CreateISOAndUploadToS3Created, error)
 	/*
-	   DownloadISO downloads the assisted service i s o*/
+	   DownloadISO Downloads the Assisted Service ISO.*/
 	DownloadISO(ctx context.Context, params *DownloadISOParams, writer io.Writer) (*DownloadISOOK, error)
 	/*
-	   GetPresignedForAssistedServiceISO retrieves a pre signed s3 URL for downloading assisted service i s o*/
+	   GetPresignedForAssistedServiceISO Retrieves a pre-signed S3 URL for downloading assisted-service ISO.*/
 	GetPresignedForAssistedServiceISO(ctx context.Context, params *GetPresignedForAssistedServiceISOParams) (*GetPresignedForAssistedServiceISOOK, error)
 }
 
@@ -48,7 +48,7 @@ type Client struct {
 }
 
 /*
-CreateISOAndUploadToS3 creates i s o for the user and uploads to s3
+CreateISOAndUploadToS3 Creates ISO for the user and uploads to S3.
 */
 func (a *Client) CreateISOAndUploadToS3(ctx context.Context, params *CreateISOAndUploadToS3Params) (*CreateISOAndUploadToS3Created, error) {
 
@@ -73,7 +73,7 @@ func (a *Client) CreateISOAndUploadToS3(ctx context.Context, params *CreateISOAn
 }
 
 /*
-DownloadISO downloads the assisted service i s o
+DownloadISO Downloads the Assisted Service ISO.
 */
 func (a *Client) DownloadISO(ctx context.Context, params *DownloadISOParams, writer io.Writer) (*DownloadISOOK, error) {
 
@@ -98,7 +98,7 @@ func (a *Client) DownloadISO(ctx context.Context, params *DownloadISOParams, wri
 }
 
 /*
-GetPresignedForAssistedServiceISO retrieves a pre signed s3 URL for downloading assisted service i s o
+GetPresignedForAssistedServiceISO Retrieves a pre-signed S3 URL for downloading assisted-service ISO.
 */
 func (a *Client) GetPresignedForAssistedServiceISO(ctx context.Context, params *GetPresignedForAssistedServiceISOParams) (*GetPresignedForAssistedServiceISOOK, error) {
 

@@ -30,12 +30,12 @@ type DeregisterHostParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host that should be deregistered.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The host that should be deregistered.
 	  Required: true
 	  In: path
 	*/

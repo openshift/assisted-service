@@ -62,9 +62,15 @@ for the update discovery ignition operation typically these are written to a htt
 */
 type UpdateDiscoveryIgnitionParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster for which the discovery ignition config should be updated.
+
+	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryIgnitionParams*/
+	/*DiscoveryIgnitionParams
+	  Overrides for the discovery ignition config.
+
+	*/
 	DiscoveryIgnitionParams *models.DiscoveryIgnitionParams
 
 	timeout    time.Duration

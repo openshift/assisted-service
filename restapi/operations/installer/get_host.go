@@ -31,7 +31,7 @@ func NewGetHost(ctx *middleware.Context, handler GetHostHandler) *GetHost {
 
 /*GetHost swagger:route GET /clusters/{cluster_id}/hosts/{host_id} installer getHost
 
-Retrieves the details of the OpenShift bare metal host.
+Retrieves the details of the OpenShift host.
 
 */
 type GetHost struct {

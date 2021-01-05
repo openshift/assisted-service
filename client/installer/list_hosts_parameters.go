@@ -60,9 +60,15 @@ for the list hosts operation typically these are written to a http.Request
 */
 type ListHostsParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose hosts should be listed.
+
+	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion*/
+	/*DiscoveryAgentVersion
+	  The software version of the discovery agent that is listing hosts.
+
+	*/
 	DiscoveryAgentVersion *string
 
 	timeout    time.Duration

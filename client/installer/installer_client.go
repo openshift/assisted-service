@@ -19,136 +19,136 @@ import (
 // API is the interface of the installer client
 type API interface {
 	/*
-	   CancelInstallation cancels an ongoing installation*/
+	   CancelInstallation Cancels an ongoing installation.*/
 	CancelInstallation(ctx context.Context, params *CancelInstallationParams) (*CancelInstallationAccepted, error)
 	/*
-	   CompleteInstallation agents API to mark a finalizing installation as complete*/
+	   CompleteInstallation Agent API to mark a finalizing installation as complete.*/
 	CompleteInstallation(ctx context.Context, params *CompleteInstallationParams) (*CompleteInstallationAccepted, error)
 	/*
-	   DeregisterCluster deletes an open shift bare metal cluster definition*/
+	   DeregisterCluster Deletes an OpenShift cluster definition.*/
 	DeregisterCluster(ctx context.Context, params *DeregisterClusterParams) (*DeregisterClusterNoContent, error)
 	/*
-	   DeregisterHost deregisters an open shift bare metal host*/
+	   DeregisterHost Deregisters an OpenShift host.*/
 	DeregisterHost(ctx context.Context, params *DeregisterHostParams) (*DeregisterHostNoContent, error)
 	/*
-	   DisableHost disables a host for inclusion in the cluster*/
+	   DisableHost Disables a host for inclusion in the cluster.*/
 	DisableHost(ctx context.Context, params *DisableHostParams) (*DisableHostOK, error)
 	/*
-	   DownloadClusterFiles downloads files relating to the installed installing cluster*/
+	   DownloadClusterFiles Downloads files relating to the installed/installing cluster.*/
 	DownloadClusterFiles(ctx context.Context, params *DownloadClusterFilesParams, writer io.Writer) (*DownloadClusterFilesOK, error)
 	/*
-	   DownloadClusterISO downloads the open shift per cluster discovery i s o*/
+	   DownloadClusterISO Downloads the OpenShift per-cluster Discovery ISO.*/
 	DownloadClusterISO(ctx context.Context, params *DownloadClusterISOParams, writer io.Writer) (*DownloadClusterISOOK, error)
 	/*
-	   DownloadClusterKubeconfig downloads the kubeconfig file for this cluster*/
+	   DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster.*/
 	DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error)
 	/*
-	   DownloadClusterLogs downloads cluster logs*/
+	   DownloadClusterLogs Download cluster logs.*/
 	DownloadClusterLogs(ctx context.Context, params *DownloadClusterLogsParams, writer io.Writer) (*DownloadClusterLogsOK, error)
 	/*
-	   DownloadHostIgnition downloads the customized ignition file for this host*/
+	   DownloadHostIgnition Downloads the customized ignition file for this host*/
 	DownloadHostIgnition(ctx context.Context, params *DownloadHostIgnitionParams, writer io.Writer) (*DownloadHostIgnitionOK, error)
 	/*
-	   DownloadHostLogs downloads host logs*/
+	   DownloadHostLogs Download host logs.*/
 	DownloadHostLogs(ctx context.Context, params *DownloadHostLogsParams, writer io.Writer) (*DownloadHostLogsOK, error)
 	/*
-	   EnableHost enables a host for inclusion in the cluster*/
+	   EnableHost Enables a host for inclusion in the cluster.*/
 	EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostOK, error)
 	/*
-	   GenerateClusterISO creates a new open shift per cluster discovery i s o*/
+	   GenerateClusterISO Creates a new OpenShift per-cluster Discovery ISO.*/
 	GenerateClusterISO(ctx context.Context, params *GenerateClusterISOParams) (*GenerateClusterISOCreated, error)
 	/*
-	   GetCluster retrieves the details of the open shift bare metal cluster*/
+	   GetCluster Retrieves the details of the OpenShift cluster.*/
 	GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error)
 	/*
-	   GetClusterInstallConfig gets the cluster s install config y a m l*/
+	   GetClusterInstallConfig Get the cluster's install config YAML.*/
 	GetClusterInstallConfig(ctx context.Context, params *GetClusterInstallConfigParams) (*GetClusterInstallConfigOK, error)
 	/*
-	   GetCredentials gets the cluster admin credentials*/
+	   GetCredentials Get the cluster admin credentials.*/
 	GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error)
 	/*
-	   GetDiscoveryIgnition gets the cluster discovery ignition config*/
+	   GetDiscoveryIgnition Get the cluster discovery ignition config*/
 	GetDiscoveryIgnition(ctx context.Context, params *GetDiscoveryIgnitionParams) (*GetDiscoveryIgnitionOK, error)
 	/*
-	   GetFreeAddresses retrieves the free address list for a network*/
+	   GetFreeAddresses Retrieves the free address list for a network.*/
 	GetFreeAddresses(ctx context.Context, params *GetFreeAddressesParams) (*GetFreeAddressesOK, error)
 	/*
-	   GetHost retrieves the details of the open shift bare metal host*/
+	   GetHost Retrieves the details of the OpenShift host.*/
 	GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error)
 	/*
-	   GetHostIgnition gets the customized ignition file for this host*/
+	   GetHostIgnition Get the customized ignition file for this host*/
 	GetHostIgnition(ctx context.Context, params *GetHostIgnitionParams) (*GetHostIgnitionOK, error)
 	/*
-	   GetHostRequirements gets minimum host requirements*/
+	   GetHostRequirements Get minimum host requirements.*/
 	GetHostRequirements(ctx context.Context, params *GetHostRequirementsParams) (*GetHostRequirementsOK, error)
 	/*
-	   GetNextSteps retrieves the next operations that the host agent needs to perform*/
+	   GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
 	/*
-	   GetPresignedForClusterFiles retrieves a pre signed s3 URL for downloading cluster files*/
+	   GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files.*/
 	GetPresignedForClusterFiles(ctx context.Context, params *GetPresignedForClusterFilesParams) (*GetPresignedForClusterFilesOK, error)
 	/*
-	   InstallCluster installs the open shift bare metal cluster*/
+	   InstallCluster Installs the OpenShift cluster.*/
 	InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterAccepted, error)
 	/*
-	   InstallHost installs specific host for day2 cluster*/
+	   InstallHost install specific host for day2 cluster.*/
 	InstallHost(ctx context.Context, params *InstallHostParams) (*InstallHostAccepted, error)
 	/*
-	   InstallHosts installs the open shift bare metal cluster*/
+	   InstallHosts Installs the OpenShift cluster.*/
 	InstallHosts(ctx context.Context, params *InstallHostsParams) (*InstallHostsAccepted, error)
 	/*
-	   ListClusters retrieves the list of open shift bare metal clusters*/
+	   ListClusters Retrieves the list of OpenShift clusters.*/
 	ListClusters(ctx context.Context, params *ListClustersParams) (*ListClustersOK, error)
 	/*
-	   ListHosts retrieves the list of open shift bare metal hosts*/
+	   ListHosts Retrieves the list of OpenShift hosts.*/
 	ListHosts(ctx context.Context, params *ListHostsParams) (*ListHostsOK, error)
 	/*
-	   PostStepReply posts the result of the operations from the host agent*/
+	   PostStepReply Posts the result of the operations from the host agent.*/
 	PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error)
 	/*
-	   RegisterAddHostsCluster creates a new open shift bare metal cluster definition for adding nodes to and existing o c p cluster*/
+	   RegisterAddHostsCluster Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.*/
 	RegisterAddHostsCluster(ctx context.Context, params *RegisterAddHostsClusterParams) (*RegisterAddHostsClusterCreated, error)
 	/*
-	   RegisterCluster creates a new open shift bare metal cluster definition*/
+	   RegisterCluster Creates a new OpenShift cluster definition.*/
 	RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error)
 	/*
-	   RegisterHost registers a new open shift bare metal host*/
+	   RegisterHost Registers a new OpenShift host.*/
 	RegisterHost(ctx context.Context, params *RegisterHostParams) (*RegisterHostCreated, error)
 	/*
-	   ResetCluster resets a failed installation*/
+	   ResetCluster Resets a failed installation.*/
 	ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error)
 	/*
-	   ResetHost resets a failed host for day2 cluster*/
+	   ResetHost reset a failed host for day2 cluster.*/
 	ResetHost(ctx context.Context, params *ResetHostParams) (*ResetHostOK, error)
 	/*
-	   UpdateCluster updates an open shift bare metal cluster definition*/
+	   UpdateCluster Updates an OpenShift cluster definition.*/
 	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
 	/*
-	   UpdateClusterInstallConfig overrides values in the install config*/
+	   UpdateClusterInstallConfig Override values in the install config.*/
 	UpdateClusterInstallConfig(ctx context.Context, params *UpdateClusterInstallConfigParams) (*UpdateClusterInstallConfigCreated, error)
 	/*
-	   UpdateClusterInstallProgress updates cluster installation progress*/
+	   UpdateClusterInstallProgress Update cluster installation progress.*/
 	UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressNoContent, error)
 	/*
-	   UpdateDiscoveryIgnition overrides values in the discovery ignition config*/
+	   UpdateDiscoveryIgnition Override values in the discovery ignition config*/
 	UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error)
 	/*
-	   UpdateHostIgnition patches the ignition file for this host*/
+	   UpdateHostIgnition Patch the ignition file for this host*/
 	UpdateHostIgnition(ctx context.Context, params *UpdateHostIgnitionParams) (*UpdateHostIgnitionCreated, error)
 	/*
-	   UpdateHostInstallProgress updates installation progress*/
+	   UpdateHostInstallProgress Update installation progress.*/
 	UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error)
 	/*
-	   UpdateHostInstallerArgs updates an open shift bare metal host*/
+	   UpdateHostInstallerArgs Updates a host's installer arguments.*/
 	UpdateHostInstallerArgs(ctx context.Context, params *UpdateHostInstallerArgsParams) (*UpdateHostInstallerArgsCreated, error)
 	/*
-	   UploadClusterIngressCert transfers the ingress certificate for the cluster*/
+	   UploadClusterIngressCert Transfer the ingress certificate for the cluster.*/
 	UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error)
 	/*
-	   UploadHostLogs agents API to upload logs*/
+	   UploadHostLogs Agent API to upload logs.*/
 	UploadHostLogs(ctx context.Context, params *UploadHostLogsParams) (*UploadHostLogsNoContent, error)
 	/*
-	   UploadLogs agents API to upload logs*/
+	   UploadLogs Agent API to upload logs.*/
 	UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error)
 }
 
@@ -171,7 +171,7 @@ type Client struct {
 }
 
 /*
-CancelInstallation cancels an ongoing installation
+CancelInstallation Cancels an ongoing installation.
 */
 func (a *Client) CancelInstallation(ctx context.Context, params *CancelInstallationParams) (*CancelInstallationAccepted, error) {
 
@@ -196,7 +196,7 @@ func (a *Client) CancelInstallation(ctx context.Context, params *CancelInstallat
 }
 
 /*
-CompleteInstallation agents API to mark a finalizing installation as complete
+CompleteInstallation Agent API to mark a finalizing installation as complete.
 */
 func (a *Client) CompleteInstallation(ctx context.Context, params *CompleteInstallationParams) (*CompleteInstallationAccepted, error) {
 
@@ -221,7 +221,7 @@ func (a *Client) CompleteInstallation(ctx context.Context, params *CompleteInsta
 }
 
 /*
-DeregisterCluster deletes an open shift bare metal cluster definition
+DeregisterCluster Deletes an OpenShift cluster definition.
 */
 func (a *Client) DeregisterCluster(ctx context.Context, params *DeregisterClusterParams) (*DeregisterClusterNoContent, error) {
 
@@ -246,7 +246,7 @@ func (a *Client) DeregisterCluster(ctx context.Context, params *DeregisterCluste
 }
 
 /*
-DeregisterHost deregisters an open shift bare metal host
+DeregisterHost Deregisters an OpenShift host.
 */
 func (a *Client) DeregisterHost(ctx context.Context, params *DeregisterHostParams) (*DeregisterHostNoContent, error) {
 
@@ -271,7 +271,7 @@ func (a *Client) DeregisterHost(ctx context.Context, params *DeregisterHostParam
 }
 
 /*
-DisableHost disables a host for inclusion in the cluster
+DisableHost Disables a host for inclusion in the cluster.
 */
 func (a *Client) DisableHost(ctx context.Context, params *DisableHostParams) (*DisableHostOK, error) {
 
@@ -296,7 +296,7 @@ func (a *Client) DisableHost(ctx context.Context, params *DisableHostParams) (*D
 }
 
 /*
-DownloadClusterFiles downloads files relating to the installed installing cluster
+DownloadClusterFiles Downloads files relating to the installed/installing cluster.
 */
 func (a *Client) DownloadClusterFiles(ctx context.Context, params *DownloadClusterFilesParams, writer io.Writer) (*DownloadClusterFilesOK, error) {
 
@@ -321,7 +321,7 @@ func (a *Client) DownloadClusterFiles(ctx context.Context, params *DownloadClust
 }
 
 /*
-DownloadClusterISO downloads the open shift per cluster discovery i s o
+DownloadClusterISO Downloads the OpenShift per-cluster Discovery ISO.
 */
 func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadClusterISOParams, writer io.Writer) (*DownloadClusterISOOK, error) {
 
@@ -346,7 +346,7 @@ func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadCluster
 }
 
 /*
-DownloadClusterKubeconfig downloads the kubeconfig file for this cluster
+DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster.
 */
 func (a *Client) DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error) {
 
@@ -371,7 +371,7 @@ func (a *Client) DownloadClusterKubeconfig(ctx context.Context, params *Download
 }
 
 /*
-DownloadClusterLogs downloads cluster logs
+DownloadClusterLogs Download cluster logs.
 */
 func (a *Client) DownloadClusterLogs(ctx context.Context, params *DownloadClusterLogsParams, writer io.Writer) (*DownloadClusterLogsOK, error) {
 
@@ -396,7 +396,7 @@ func (a *Client) DownloadClusterLogs(ctx context.Context, params *DownloadCluste
 }
 
 /*
-DownloadHostIgnition downloads the customized ignition file for this host
+DownloadHostIgnition Downloads the customized ignition file for this host
 */
 func (a *Client) DownloadHostIgnition(ctx context.Context, params *DownloadHostIgnitionParams, writer io.Writer) (*DownloadHostIgnitionOK, error) {
 
@@ -421,7 +421,7 @@ func (a *Client) DownloadHostIgnition(ctx context.Context, params *DownloadHostI
 }
 
 /*
-DownloadHostLogs downloads host logs
+DownloadHostLogs Download host logs.
 */
 func (a *Client) DownloadHostLogs(ctx context.Context, params *DownloadHostLogsParams, writer io.Writer) (*DownloadHostLogsOK, error) {
 
@@ -446,7 +446,7 @@ func (a *Client) DownloadHostLogs(ctx context.Context, params *DownloadHostLogsP
 }
 
 /*
-EnableHost enables a host for inclusion in the cluster
+EnableHost Enables a host for inclusion in the cluster.
 */
 func (a *Client) EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostOK, error) {
 
@@ -471,7 +471,7 @@ func (a *Client) EnableHost(ctx context.Context, params *EnableHostParams) (*Ena
 }
 
 /*
-GenerateClusterISO creates a new open shift per cluster discovery i s o
+GenerateClusterISO Creates a new OpenShift per-cluster Discovery ISO.
 */
 func (a *Client) GenerateClusterISO(ctx context.Context, params *GenerateClusterISOParams) (*GenerateClusterISOCreated, error) {
 
@@ -496,7 +496,7 @@ func (a *Client) GenerateClusterISO(ctx context.Context, params *GenerateCluster
 }
 
 /*
-GetCluster retrieves the details of the open shift bare metal cluster
+GetCluster Retrieves the details of the OpenShift cluster.
 */
 func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error) {
 
@@ -521,7 +521,7 @@ func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*Get
 }
 
 /*
-GetClusterInstallConfig gets the cluster s install config y a m l
+GetClusterInstallConfig Get the cluster's install config YAML.
 */
 func (a *Client) GetClusterInstallConfig(ctx context.Context, params *GetClusterInstallConfigParams) (*GetClusterInstallConfigOK, error) {
 
@@ -546,7 +546,7 @@ func (a *Client) GetClusterInstallConfig(ctx context.Context, params *GetCluster
 }
 
 /*
-GetCredentials gets the cluster admin credentials
+GetCredentials Get the cluster admin credentials.
 */
 func (a *Client) GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error) {
 
@@ -571,7 +571,7 @@ func (a *Client) GetCredentials(ctx context.Context, params *GetCredentialsParam
 }
 
 /*
-GetDiscoveryIgnition gets the cluster discovery ignition config
+GetDiscoveryIgnition Get the cluster discovery ignition config
 */
 func (a *Client) GetDiscoveryIgnition(ctx context.Context, params *GetDiscoveryIgnitionParams) (*GetDiscoveryIgnitionOK, error) {
 
@@ -596,7 +596,7 @@ func (a *Client) GetDiscoveryIgnition(ctx context.Context, params *GetDiscoveryI
 }
 
 /*
-GetFreeAddresses retrieves the free address list for a network
+GetFreeAddresses Retrieves the free address list for a network.
 */
 func (a *Client) GetFreeAddresses(ctx context.Context, params *GetFreeAddressesParams) (*GetFreeAddressesOK, error) {
 
@@ -621,7 +621,7 @@ func (a *Client) GetFreeAddresses(ctx context.Context, params *GetFreeAddressesP
 }
 
 /*
-GetHost retrieves the details of the open shift bare metal host
+GetHost Retrieves the details of the OpenShift host.
 */
 func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK, error) {
 
@@ -646,7 +646,7 @@ func (a *Client) GetHost(ctx context.Context, params *GetHostParams) (*GetHostOK
 }
 
 /*
-GetHostIgnition gets the customized ignition file for this host
+GetHostIgnition Get the customized ignition file for this host
 */
 func (a *Client) GetHostIgnition(ctx context.Context, params *GetHostIgnitionParams) (*GetHostIgnitionOK, error) {
 
@@ -671,7 +671,7 @@ func (a *Client) GetHostIgnition(ctx context.Context, params *GetHostIgnitionPar
 }
 
 /*
-GetHostRequirements gets minimum host requirements
+GetHostRequirements Get minimum host requirements.
 */
 func (a *Client) GetHostRequirements(ctx context.Context, params *GetHostRequirementsParams) (*GetHostRequirementsOK, error) {
 
@@ -696,7 +696,7 @@ func (a *Client) GetHostRequirements(ctx context.Context, params *GetHostRequire
 }
 
 /*
-GetNextSteps retrieves the next operations that the host agent needs to perform
+GetNextSteps Retrieves the next operations that the host agent needs to perform.
 */
 func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error) {
 
@@ -721,7 +721,7 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 }
 
 /*
-GetPresignedForClusterFiles retrieves a pre signed s3 URL for downloading cluster files
+GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files.
 */
 func (a *Client) GetPresignedForClusterFiles(ctx context.Context, params *GetPresignedForClusterFilesParams) (*GetPresignedForClusterFilesOK, error) {
 
@@ -746,7 +746,7 @@ func (a *Client) GetPresignedForClusterFiles(ctx context.Context, params *GetPre
 }
 
 /*
-InstallCluster installs the open shift bare metal cluster
+InstallCluster Installs the OpenShift cluster.
 */
 func (a *Client) InstallCluster(ctx context.Context, params *InstallClusterParams) (*InstallClusterAccepted, error) {
 
@@ -771,7 +771,7 @@ func (a *Client) InstallCluster(ctx context.Context, params *InstallClusterParam
 }
 
 /*
-InstallHost installs specific host for day2 cluster
+InstallHost install specific host for day2 cluster.
 */
 func (a *Client) InstallHost(ctx context.Context, params *InstallHostParams) (*InstallHostAccepted, error) {
 
@@ -796,7 +796,7 @@ func (a *Client) InstallHost(ctx context.Context, params *InstallHostParams) (*I
 }
 
 /*
-InstallHosts installs the open shift bare metal cluster
+InstallHosts Installs the OpenShift cluster.
 */
 func (a *Client) InstallHosts(ctx context.Context, params *InstallHostsParams) (*InstallHostsAccepted, error) {
 
@@ -821,7 +821,7 @@ func (a *Client) InstallHosts(ctx context.Context, params *InstallHostsParams) (
 }
 
 /*
-ListClusters retrieves the list of open shift bare metal clusters
+ListClusters Retrieves the list of OpenShift clusters.
 */
 func (a *Client) ListClusters(ctx context.Context, params *ListClustersParams) (*ListClustersOK, error) {
 
@@ -846,7 +846,7 @@ func (a *Client) ListClusters(ctx context.Context, params *ListClustersParams) (
 }
 
 /*
-ListHosts retrieves the list of open shift bare metal hosts
+ListHosts Retrieves the list of OpenShift hosts.
 */
 func (a *Client) ListHosts(ctx context.Context, params *ListHostsParams) (*ListHostsOK, error) {
 
@@ -871,7 +871,7 @@ func (a *Client) ListHosts(ctx context.Context, params *ListHostsParams) (*ListH
 }
 
 /*
-PostStepReply posts the result of the operations from the host agent
+PostStepReply Posts the result of the operations from the host agent.
 */
 func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error) {
 
@@ -896,7 +896,7 @@ func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams)
 }
 
 /*
-RegisterAddHostsCluster creates a new open shift bare metal cluster definition for adding nodes to and existing o c p cluster
+RegisterAddHostsCluster Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.
 */
 func (a *Client) RegisterAddHostsCluster(ctx context.Context, params *RegisterAddHostsClusterParams) (*RegisterAddHostsClusterCreated, error) {
 
@@ -921,7 +921,7 @@ func (a *Client) RegisterAddHostsCluster(ctx context.Context, params *RegisterAd
 }
 
 /*
-RegisterCluster creates a new open shift bare metal cluster definition
+RegisterCluster Creates a new OpenShift cluster definition.
 */
 func (a *Client) RegisterCluster(ctx context.Context, params *RegisterClusterParams) (*RegisterClusterCreated, error) {
 
@@ -946,7 +946,7 @@ func (a *Client) RegisterCluster(ctx context.Context, params *RegisterClusterPar
 }
 
 /*
-RegisterHost registers a new open shift bare metal host
+RegisterHost Registers a new OpenShift host.
 */
 func (a *Client) RegisterHost(ctx context.Context, params *RegisterHostParams) (*RegisterHostCreated, error) {
 
@@ -971,7 +971,7 @@ func (a *Client) RegisterHost(ctx context.Context, params *RegisterHostParams) (
 }
 
 /*
-ResetCluster resets a failed installation
+ResetCluster Resets a failed installation.
 */
 func (a *Client) ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error) {
 
@@ -996,7 +996,7 @@ func (a *Client) ResetCluster(ctx context.Context, params *ResetClusterParams) (
 }
 
 /*
-ResetHost resets a failed host for day2 cluster
+ResetHost reset a failed host for day2 cluster.
 */
 func (a *Client) ResetHost(ctx context.Context, params *ResetHostParams) (*ResetHostOK, error) {
 
@@ -1021,7 +1021,7 @@ func (a *Client) ResetHost(ctx context.Context, params *ResetHostParams) (*Reset
 }
 
 /*
-UpdateCluster updates an open shift bare metal cluster definition
+UpdateCluster Updates an OpenShift cluster definition.
 */
 func (a *Client) UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error) {
 
@@ -1046,7 +1046,7 @@ func (a *Client) UpdateCluster(ctx context.Context, params *UpdateClusterParams)
 }
 
 /*
-UpdateClusterInstallConfig overrides values in the install config
+UpdateClusterInstallConfig Override values in the install config.
 */
 func (a *Client) UpdateClusterInstallConfig(ctx context.Context, params *UpdateClusterInstallConfigParams) (*UpdateClusterInstallConfigCreated, error) {
 
@@ -1071,7 +1071,7 @@ func (a *Client) UpdateClusterInstallConfig(ctx context.Context, params *UpdateC
 }
 
 /*
-UpdateClusterInstallProgress updates cluster installation progress
+UpdateClusterInstallProgress Update cluster installation progress.
 */
 func (a *Client) UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressNoContent, error) {
 
@@ -1096,7 +1096,7 @@ func (a *Client) UpdateClusterInstallProgress(ctx context.Context, params *Updat
 }
 
 /*
-UpdateDiscoveryIgnition overrides values in the discovery ignition config
+UpdateDiscoveryIgnition Override values in the discovery ignition config
 */
 func (a *Client) UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error) {
 
@@ -1121,7 +1121,7 @@ func (a *Client) UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDisc
 }
 
 /*
-UpdateHostIgnition patches the ignition file for this host
+UpdateHostIgnition Patch the ignition file for this host
 */
 func (a *Client) UpdateHostIgnition(ctx context.Context, params *UpdateHostIgnitionParams) (*UpdateHostIgnitionCreated, error) {
 
@@ -1146,7 +1146,7 @@ func (a *Client) UpdateHostIgnition(ctx context.Context, params *UpdateHostIgnit
 }
 
 /*
-UpdateHostInstallProgress updates installation progress
+UpdateHostInstallProgress Update installation progress.
 */
 func (a *Client) UpdateHostInstallProgress(ctx context.Context, params *UpdateHostInstallProgressParams) (*UpdateHostInstallProgressOK, error) {
 
@@ -1171,7 +1171,7 @@ func (a *Client) UpdateHostInstallProgress(ctx context.Context, params *UpdateHo
 }
 
 /*
-UpdateHostInstallerArgs updates an open shift bare metal host
+UpdateHostInstallerArgs Updates a host's installer arguments.
 */
 func (a *Client) UpdateHostInstallerArgs(ctx context.Context, params *UpdateHostInstallerArgsParams) (*UpdateHostInstallerArgsCreated, error) {
 
@@ -1196,7 +1196,7 @@ func (a *Client) UpdateHostInstallerArgs(ctx context.Context, params *UpdateHost
 }
 
 /*
-UploadClusterIngressCert transfers the ingress certificate for the cluster
+UploadClusterIngressCert Transfer the ingress certificate for the cluster.
 */
 func (a *Client) UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error) {
 
@@ -1221,7 +1221,7 @@ func (a *Client) UploadClusterIngressCert(ctx context.Context, params *UploadClu
 }
 
 /*
-UploadHostLogs agents API to upload logs
+UploadHostLogs Agent API to upload logs.
 */
 func (a *Client) UploadHostLogs(ctx context.Context, params *UploadHostLogsParams) (*UploadHostLogsNoContent, error) {
 
@@ -1246,7 +1246,7 @@ func (a *Client) UploadHostLogs(ctx context.Context, params *UploadHostLogsParam
 }
 
 /*
-UploadLogs agents API to upload logs
+UploadLogs Agent API to upload logs.
 */
 func (a *Client) UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error) {
 

@@ -60,9 +60,15 @@ for the deregister host operation typically these are written to a http.Request
 */
 type DeregisterHostParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host that should be deregistered.
+
+	*/
 	ClusterID strfmt.UUID
-	/*HostID*/
+	/*HostID
+	  The host that should be deregistered.
+
+	*/
 	HostID strfmt.UUID
 
 	timeout    time.Duration

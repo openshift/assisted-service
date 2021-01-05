@@ -62,11 +62,20 @@ for the register host operation typically these are written to a http.Request
 */
 type RegisterHostParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster into which the host should be registered.
+
+	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion*/
+	/*DiscoveryAgentVersion
+	  The software version of the discovery agent that is registering the host.
+
+	*/
 	DiscoveryAgentVersion *string
-	/*NewHostParams*/
+	/*NewHostParams
+	  The description of the host being registered.
+
+	*/
 	NewHostParams *models.HostCreateParams
 
 	timeout    time.Duration

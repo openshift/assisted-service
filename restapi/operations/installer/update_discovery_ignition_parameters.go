@@ -34,12 +34,12 @@ type UpdateDiscoveryIgnitionParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster for which the discovery ignition config should be updated.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*Overrides for the discovery ignition config.
 	  Required: true
 	  In: body
 	*/

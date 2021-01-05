@@ -60,15 +60,30 @@ for the get presigned for cluster files operation typically these are written to
 */
 type GetPresignedForClusterFilesParams struct {
 
-	/*AdditionalName*/
+	/*AdditionalName
+	  If downloading a manifest, the file name, prefaced with folder name, for example, openshift/99-openshift-xyz.yaml.
+
+	*/
 	AdditionalName *string
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster that owns the file that should be downloaded.
+
+	*/
 	ClusterID strfmt.UUID
-	/*FileName*/
+	/*FileName
+	  The file to be downloaded.
+
+	*/
 	FileName string
-	/*HostID*/
+	/*HostID
+	  If downloading a file related to a host, the relevant host.
+
+	*/
 	HostID *strfmt.UUID
-	/*LogsType*/
+	/*LogsType
+	  If downloading logs, the type of logs to download.
+
+	*/
 	LogsType *string
 
 	timeout    time.Duration

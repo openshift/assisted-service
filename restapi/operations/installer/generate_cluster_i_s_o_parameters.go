@@ -34,12 +34,12 @@ type GenerateClusterISOParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose ISO should be generated.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The parameters for the generated ISO.
 	  Required: true
 	  In: body
 	*/

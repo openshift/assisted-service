@@ -18,7 +18,7 @@ import (
 // API is the interface of the events client
 type API interface {
 	/*
-	   ListEvents lists events for a cluster*/
+	   ListEvents Lists events for a cluster.*/
 	ListEvents(ctx context.Context, params *ListEventsParams) (*ListEventsOK, error)
 }
 
@@ -41,7 +41,7 @@ type Client struct {
 }
 
 /*
-ListEvents lists events for a cluster
+ListEvents Lists events for a cluster.
 */
 func (a *Client) ListEvents(ctx context.Context, params *ListEventsParams) (*ListEventsOK, error) {
 

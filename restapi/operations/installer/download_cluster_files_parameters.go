@@ -31,16 +31,16 @@ type DownloadClusterFilesParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster that owns the file that should be downloaded.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The software version of the discovery agent that is downloading the file.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-	/*
+	/*The file to be downloaded.
 	  Required: true
 	  In: query
 	*/

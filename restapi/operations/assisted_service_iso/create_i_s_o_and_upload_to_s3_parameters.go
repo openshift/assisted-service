@@ -32,7 +32,7 @@ type CreateISOAndUploadToS3Params struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*Parameters for creating an Assisted Service ISO.
 	  Required: true
 	  In: body
 	*/

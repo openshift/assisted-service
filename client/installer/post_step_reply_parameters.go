@@ -62,13 +62,25 @@ for the post step reply operation typically these are written to a http.Request
 */
 type PostStepReplyParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster of the host that is posting results.
+
+	*/
 	ClusterID strfmt.UUID
-	/*DiscoveryAgentVersion*/
+	/*DiscoveryAgentVersion
+	  The software version of the discovery agent that is posting results.
+
+	*/
 	DiscoveryAgentVersion *string
-	/*HostID*/
+	/*HostID
+	  The host that is posting results.
+
+	*/
 	HostID strfmt.UUID
-	/*Reply*/
+	/*Reply
+	  The results to be posted.
+
+	*/
 	Reply *models.StepReply
 
 	timeout    time.Duration

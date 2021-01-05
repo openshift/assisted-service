@@ -72,7 +72,10 @@ for the download cluster manifest operation typically these are written to a htt
 */
 type DownloadClusterManifestParams struct {
 
-	/*ClusterID*/
+	/*ClusterID
+	  The cluster whose manifest should be downloaded.
+
+	*/
 	ClusterID strfmt.UUID
 	/*FileName
 	  The manifest file name to download.

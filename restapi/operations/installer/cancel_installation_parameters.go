@@ -30,7 +30,7 @@ type CancelInstallationParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose installation is to be canceled.
 	  Required: true
 	  In: path
 	*/

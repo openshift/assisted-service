@@ -33,21 +33,21 @@ type PostStepReplyParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster of the host that is posting results.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The software version of the discovery agent that is posting results.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-	/*
+	/*The host that is posting results.
 	  Required: true
 	  In: path
 	*/
 	HostID strfmt.UUID
-	/*
+	/*The results to be posted.
 	  In: body
 	*/
 	Reply *models.StepReply

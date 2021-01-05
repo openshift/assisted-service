@@ -34,17 +34,17 @@ type CompleteInstallationParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*
+	/*The cluster whose installation is being completing.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*
+	/*The final status of the cluster installationthe cluster installation.
 	  Required: true
 	  In: body
 	*/
 	CompletionParams *models.CompletionParams
-	/*
+	/*The software version of the discovery agent that is completing the installation.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string

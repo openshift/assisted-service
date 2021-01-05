@@ -73,9 +73,15 @@ for the list clusters operation typically these are written to a http.Request
 */
 type ListClustersParams struct {
 
-	/*GetUnregisteredClusters*/
+	/*GetUnregisteredClusters
+	  Whether to return clusters that have been unregistered.
+
+	*/
 	GetUnregisteredClusters *bool
-	/*OpenshiftClusterID*/
+	/*OpenshiftClusterID
+	  A specific cluster to retrieve.
+
+	*/
 	OpenshiftClusterID *strfmt.UUID
 
 	timeout    time.Duration
