@@ -280,6 +280,7 @@ deploy-onprem:
 		-v ./livecd.iso:/data/livecd.iso:z \
 		-v ./coreos-installer:/data/coreos-installer:z \
 		--restart always --name installer $(SERVICE)
+	./hack/retry.sh 30 2 "curl http://127.0.0.1:8090/ready"
 
 deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
