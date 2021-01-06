@@ -30,6 +30,7 @@ const (
 	counterClusterHostDiskGb                      = "assisted_installer_cluster_host_disk_gb"
 	counterClusterHostNicGb                       = "assisted_installer_cluster_host_nic_gb"
 	counterClusterHostInstallationCount           = "assisted_installer_cluster_host_installation_count"
+	counterClusterHostNTPFailuresCount            = "assisted_installer_cluster_host_ntp_failures"
 	counterClusterHostDiskSyncDurationMiliSeconds = "assisted_installer_cluster_host_disk_sync_duration_ms"
 )
 
@@ -37,6 +38,7 @@ const (
 	counterDescriptionClusterCreation                        = "Number of cluster resources created, by version"
 	counterDescriptionClusterInstallationStarted             = "Number of clusters that entered installing state, by version"
 	counterDescriptionClusterHostInstallationCount           = "Number of hosts per cluster"
+	counterDescriptionClusterHostNTPFailuresCount            = "Number of NTP failures per cluster"
 	counterDescriptionClusterInstallationSeconds             = "Histogram/sum/count of installation time for completed clusters, by result and OCP version"
 	counterDescriptionOperationDurationMiliSeconds           = "Histogram/sum/count of operation time for specific operation, by name"
 	counterDescriptionHostInstallationPhaseSeconds           = "Histogram/sum/count of time for each phase, by phase, final install result, and OCP version"
@@ -72,6 +74,7 @@ type API interface {
 	ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string)
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string)
 	ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string)
+	ClusterHostsNTPFailures(clusterID strfmt.UUID, emailDomain string, hostNTPFailureCount int)
 	Duration(operation string, duration time.Duration)
 	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
 	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
@@ -84,6 +87,7 @@ type MetricsManager struct {
 	serviceLogicClusterCreation                        *prometheus.CounterVec
 	serviceLogicClusterInstallationStarted             *prometheus.CounterVec
 	serviceLogicClusterHostInstallationCount           *prometheus.HistogramVec
+	serviceLogicClusterHostNTPFailuresCount            *prometheus.HistogramVec
 	serviceLogicClusterInstallationSeconds             *prometheus.HistogramVec
 	serviceLogicOperationDurationMiliSeconds           *prometheus.HistogramVec
 	serviceLogicHostInstallationPhaseSeconds           *prometheus.HistogramVec
@@ -122,6 +126,13 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Name:      counterClusterHostInstallationCount,
 			Help:      counterDescriptionClusterHostInstallationCount,
 		}, []string{openshiftVersionLabel, clusterIdLabel, emailDomainLabel}),
+
+		serviceLogicClusterHostNTPFailuresCount: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      counterClusterHostNTPFailuresCount,
+			Help:      counterDescriptionClusterHostNTPFailuresCount,
+		}, []string{clusterIdLabel, emailDomainLabel}),
 
 		serviceLogicClusterInstallationSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -222,6 +233,10 @@ func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID st
 
 func (m *MetricsManager) ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string) {
 	m.serviceLogicClusterHostInstallationCount.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Observe(float64(hostCount))
+}
+
+func (m *MetricsManager) ClusterHostsNTPFailures(clusterID strfmt.UUID, emailDomain string, hostNTPFailureCount int) {
+	m.serviceLogicClusterHostNTPFailuresCount.WithLabelValues(clusterID.String(), emailDomain).Observe(float64(hostNTPFailureCount))
 }
 
 func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {

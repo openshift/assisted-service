@@ -505,9 +505,10 @@ func (m *Manager) CompleteInstallation(ctx context.Context, c *common.Cluster, s
 func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
 	err := m.sm.Run(TransitionTypePrepareForInstallation, newStateCluster(c),
 		&TransitionArgsPrepareForInstallation{
-			ctx:      ctx,
-			db:       db,
-			ntpUtils: m.ntpUtils,
+			ctx:       ctx,
+			db:        db,
+			ntpUtils:  m.ntpUtils,
+			metricApi: m.metricAPI,
 		},
 	)
 	return err

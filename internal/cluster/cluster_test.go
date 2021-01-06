@@ -1208,22 +1208,26 @@ func nonDefaultInventory() string {
 
 var _ = Describe("PrepareForInstallation", func() {
 	var (
-		ctx       = context.Background()
-		capi      API
-		db        *gorm.DB
-		clusterId strfmt.UUID
-		dbName    = "cluster_prepare_for_installation"
-		ctrl      *gomock.Controller
-		ntpUtils  *network.MockNtpUtilsAPI
+		ctx        = context.Background()
+		capi       API
+		db         *gorm.DB
+		clusterId  strfmt.UUID
+		dbName     = "cluster_prepare_for_installation"
+		ctrl       *gomock.Controller
+		ntpUtils   *network.MockNtpUtilsAPI
+		mockMetric *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		ntpUtils = network.NewMockNtpUtilsAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		dummy := &leader.DummyElector{}
-		capi = NewManager(getDefaultConfig(), getTestLog(), db, nil, nil, nil, ntpUtils, dummy)
+		capi = NewManager(getDefaultConfig(), getTestLog(), db, nil, nil, mockMetric, ntpUtils, dummy)
 		clusterId = strfmt.UUID(uuid.New().String())
+
+		mockMetric.EXPECT().ClusterHostsNTPFailures(gomock.Any(), gomock.Any(), gomock.Any())
 	})
 
 	// state changes to preparing-for-installation

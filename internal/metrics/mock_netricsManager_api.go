@@ -13,96 +13,108 @@ import (
 	time "time"
 )
 
-// MockAPI is a mock of API interface.
+// MockAPI is a mock of API interface
 type MockAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockAPIMockRecorder
 }
 
-// MockAPIMockRecorder is the mock recorder for MockAPI.
+// MockAPIMockRecorder is the mock recorder for MockAPI
 type MockAPIMockRecorder struct {
 	mock *MockAPI
 }
 
-// NewMockAPI creates a new mock instance.
+// NewMockAPI creates a new mock instance
 func NewMockAPI(ctrl *gomock.Controller) *MockAPI {
 	mock := &MockAPI{ctrl: ctrl}
 	mock.recorder = &MockAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
-// ClusterRegistered mocks base method.
+// ClusterRegistered mocks base method
 func (m *MockAPI) ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ClusterRegistered", clusterVersion, clusterID, emailDomain)
 }
 
-// ClusterRegistered indicates an expected call of ClusterRegistered.
+// ClusterRegistered indicates an expected call of ClusterRegistered
 func (mr *MockAPIMockRecorder) ClusterRegistered(clusterVersion, clusterID, emailDomain interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterRegistered", reflect.TypeOf((*MockAPI)(nil).ClusterRegistered), clusterVersion, clusterID, emailDomain)
 }
 
-// InstallationStarted mocks base method.
+// InstallationStarted mocks base method
 func (m *MockAPI) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain, userManagedNetworking string) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "InstallationStarted", clusterVersion, clusterID, emailDomain, userManagedNetworking)
 }
 
-// InstallationStarted indicates an expected call of InstallationStarted.
+// InstallationStarted indicates an expected call of InstallationStarted
 func (mr *MockAPIMockRecorder) InstallationStarted(clusterVersion, clusterID, emailDomain, userManagedNetworking interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallationStarted", reflect.TypeOf((*MockAPI)(nil).InstallationStarted), clusterVersion, clusterID, emailDomain, userManagedNetworking)
 }
 
-// ClusterHostInstallationCount mocks base method.
+// ClusterHostInstallationCount mocks base method
 func (m *MockAPI) ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ClusterHostInstallationCount", clusterID, emailDomain, hostCount, clusterVersion)
 }
 
-// ClusterHostInstallationCount indicates an expected call of ClusterHostInstallationCount.
+// ClusterHostInstallationCount indicates an expected call of ClusterHostInstallationCount
 func (mr *MockAPIMockRecorder) ClusterHostInstallationCount(clusterID, emailDomain, hostCount, clusterVersion interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterHostInstallationCount", reflect.TypeOf((*MockAPI)(nil).ClusterHostInstallationCount), clusterID, emailDomain, hostCount, clusterVersion)
 }
 
-// Duration mocks base method.
+// ClusterHostsNTPFailures mocks base method
+func (m *MockAPI) ClusterHostsNTPFailures(clusterID strfmt.UUID, emailDomain string, hostNTPFailureCount int) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClusterHostsNTPFailures", clusterID, emailDomain, hostNTPFailureCount)
+}
+
+// ClusterHostsNTPFailures indicates an expected call of ClusterHostsNTPFailures
+func (mr *MockAPIMockRecorder) ClusterHostsNTPFailures(clusterID, emailDomain, hostNTPFailureCount interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterHostsNTPFailures", reflect.TypeOf((*MockAPI)(nil).ClusterHostsNTPFailures), clusterID, emailDomain, hostNTPFailureCount)
+}
+
+// Duration mocks base method
 func (m *MockAPI) Duration(operation string, duration time.Duration) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Duration", operation, duration)
 }
 
-// Duration indicates an expected call of Duration.
+// Duration indicates an expected call of Duration
 func (mr *MockAPIMockRecorder) Duration(operation, duration interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Duration", reflect.TypeOf((*MockAPI)(nil).Duration), operation, duration)
 }
 
-// ClusterInstallationFinished mocks base method.
+// ClusterInstallationFinished mocks base method
 func (m *MockAPI) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ClusterInstallationFinished", log, result, clusterVersion, clusterID, emailDomain, installationStartedTime)
 }
 
-// ClusterInstallationFinished indicates an expected call of ClusterInstallationFinished.
+// ClusterInstallationFinished indicates an expected call of ClusterInstallationFinished
 func (mr *MockAPIMockRecorder) ClusterInstallationFinished(log, result, clusterVersion, clusterID, emailDomain, installationStartedTime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterInstallationFinished", reflect.TypeOf((*MockAPI)(nil).ClusterInstallationFinished), log, result, clusterVersion, clusterID, emailDomain, installationStartedTime)
 }
 
-// ReportHostInstallationMetrics mocks base method.
+// ReportHostInstallationMetrics mocks base method
 func (m *MockAPI) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ReportHostInstallationMetrics", log, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage)
 }
 
-// ReportHostInstallationMetrics indicates an expected call of ReportHostInstallationMetrics.
+// ReportHostInstallationMetrics indicates an expected call of ReportHostInstallationMetrics
 func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(log, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportHostInstallationMetrics", reflect.TypeOf((*MockAPI)(nil).ReportHostInstallationMetrics), log, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage)

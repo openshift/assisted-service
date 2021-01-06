@@ -83,9 +83,10 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 ////////////////////////////////////////////////////////////////////////////
 
 type TransitionArgsPrepareForInstallation struct {
-	ctx      context.Context
-	db       *gorm.DB
-	ntpUtils network.NtpUtilsAPI
+	ctx       context.Context
+	db        *gorm.DB
+	ntpUtils  network.NtpUtilsAPI
+	metricApi metrics.API
 }
 
 func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -102,9 +103,42 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 		return errors.Wrap(err, "PostPrepareForInstallation failed to add chrony manifest")
 	}
 
+	sendNTPMetric(logutil.FromContext(params.ctx, th.log), params.metricApi, sCluster.cluster)
+
 	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
 		statusInfoPreparingForInstallation, "install_started_at", strfmt.DateTime(time.Now()),
 		"controller_logs_collected_at", strfmt.DateTime(time.Time{}))
+}
+
+func sendNTPMetric(log logrus.FieldLogger, metricApi metrics.API, cluster *common.Cluster) {
+	ntpFailures := 0
+
+	for _, host := range cluster.Hosts {
+		if swag.StringValue(host.Status) == models.HostStatusDisabled || host.NtpSources == "" {
+			continue
+		}
+
+		var ntpSources []*models.NtpSource
+		if err := json.Unmarshal([]byte(host.NtpSources), &ntpSources); err != nil {
+			log.Error(errors.Wrapf(err, "Failed to unmarshal %s", host.NtpSources))
+			continue
+		}
+
+		isHostSynced := false
+
+		for _, source := range ntpSources {
+			if source.SourceState == models.SourceStateSynced {
+				isHostSynced = true
+				break
+			}
+		}
+
+		if !isHostSynced {
+			ntpFailures += 1
+		}
+	}
+
+	metricApi.ClusterHostsNTPFailures(*cluster.ID, cluster.EmailDomain, ntpFailures)
 }
 
 ////////////////////////////////////////////////////////////////////////////
