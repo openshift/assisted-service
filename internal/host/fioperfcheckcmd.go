@@ -68,7 +68,7 @@ func (c *fioPerfCheckCmd) GetArgs() ([]string, error) {
 	}
 
 	arguments := []string{
-		"run", "--privileged", "--net=host", "--rm", "--quiet",
+		"run", "--privileged", "--net=host", "--rm", "--quiet", "--name=assisted-installer",
 		"-v", "/dev:/dev:rw",
 		"-v", "/var/log:/var/log",
 		"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
