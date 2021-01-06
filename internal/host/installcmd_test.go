@@ -468,7 +468,7 @@ func validateInstallCommand(installCmd *installCmd, reply *models.Step, role mod
 	verifyArgInCommand(reply.Args[1], "--agent-image", installCmd.instructionConfig.InventoryImage, 1)
 	verifyArgInCommand(reply.Args[1], "--installation-timeout", strconv.Itoa(int(installCmd.instructionConfig.InstallationTimeout)), 1)
 
-	fioPerfCheckCmd := "podman run --privileged --net=host --rm --quiet -v /dev:/dev:rw -v /var/log:/var/log " +
+	fioPerfCheckCmd := "podman run --privileged --net=host --rm --quiet --name=assisted-installer -v /dev:/dev:rw -v /var/log:/var/log " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 		"--env PULL_SECRET_TOKEN --env HTTP_PROXY --env HTTPS_PROXY --env NO_PROXY --env http_proxy --env https_proxy --env no_proxy " +
 		"quay.io/ocpmetal/assisted-installer-agent:latest fio_perf_check " +
