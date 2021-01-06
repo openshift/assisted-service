@@ -260,6 +260,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "description": "The corresponding OpenShift version for the boot file.",
             "name": "openshift_version",
             "in": "query",
             "required": true
@@ -5141,12 +5142,12 @@ func init() {
       "type": "object",
       "required": [
         "path",
-        "duration_threshold",
+        "duration_threshold_ms",
         "exit_code"
       ],
       "properties": {
-        "duration_threshold": {
-          "description": "The maximal fdatasync duration that is considered acceptable.",
+        "duration_threshold_ms": {
+          "description": "The maximal fdatasync duration in ms that is considered acceptable.",
           "type": "integer"
         },
         "exit_code": {
@@ -5165,6 +5166,10 @@ func init() {
         "io_sync_duration": {
           "description": "The 99th percentile of fdatasync durations in milliseconds.",
           "type": "integer"
+        },
+        "path": {
+          "description": "The device path.",
+          "type": "string"
         }
       }
     },
@@ -6415,6 +6420,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
+            "description": "The corresponding OpenShift version for the boot file.",
             "name": "openshift_version",
             "in": "query",
             "required": true
@@ -11344,12 +11350,12 @@ func init() {
       "type": "object",
       "required": [
         "path",
-        "duration_threshold",
+        "duration_threshold_ms",
         "exit_code"
       ],
       "properties": {
-        "duration_threshold": {
-          "description": "The maximal fdatasync duration that is considered acceptable.",
+        "duration_threshold_ms": {
+          "description": "The maximal fdatasync duration in ms that is considered acceptable.",
           "type": "integer"
         },
         "exit_code": {
@@ -11368,6 +11374,10 @@ func init() {
         "io_sync_duration": {
           "description": "The 99th percentile of fdatasync durations in milliseconds.",
           "type": "integer"
+        },
+        "path": {
+          "description": "The device path.",
+          "type": "string"
         }
       }
     },

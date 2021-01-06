@@ -65,7 +65,10 @@ type DownloadBootFilesParams struct {
 
 	*/
 	FileType string
-	/*OpenshiftVersion*/
+	/*OpenshiftVersion
+	  The corresponding OpenShift version for the boot file.
+
+	*/
 	OpenshiftVersion string
 
 	timeout    time.Duration
