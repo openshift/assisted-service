@@ -36,7 +36,7 @@ type DownloadBootFilesParams struct {
 	  In: query
 	*/
 	FileType string
-	/*
+	/*The corresponding OpenShift version for the boot file.
 	  Required: true
 	  In: query
 	*/
