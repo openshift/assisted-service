@@ -4720,7 +4720,6 @@ func init() {
         "user-managed-networking": {
           "description": "Indicate if the networking is managed by the user.",
           "type": "boolean",
-          "default": false,
           "x-nullable": true
         },
         "vip_dhcp_allocation": {
@@ -10943,7 +10942,6 @@ func init() {
         "user-managed-networking": {
           "description": "Indicate if the networking is managed by the user.",
           "type": "boolean",
-          "default": false,
           "x-nullable": true
         },
         "vip_dhcp_allocation": {

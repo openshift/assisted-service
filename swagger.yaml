@@ -3334,7 +3334,6 @@ definitions:
               type: array
               items:
                 $ref: '#/definitions/disk-config-params'
-
       hosts_machine_config_pool_names:
         type: array
         description: The desired machine config pool for hosts associated with the cluster.
@@ -3351,7 +3350,6 @@ definitions:
         type: boolean
         description: Indicate if the networking is managed by the user.
         x-nullable: true
-        default: false
       additional_ntp_source:
         type: string
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
