@@ -2598,6 +2598,7 @@ paths:
       parameters:
         - in: query
           name: openshift_version
+          description: The corresponding OpenShift version for the boot file.
           type: string
           required: true
         - in: query
