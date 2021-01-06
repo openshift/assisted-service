@@ -297,6 +297,8 @@ objects:
                 value: ${API_VIP_CONNECTIVITY_CHECK_IMAGE}
               - name: NTP_SYNCHRONIZER_IMAGE
                 value: ${NTP_SYNCHRONIZER_IMAGE}
+              - name: FIO_PERF_CHECK_IMAGE
+                value: ${FIO_PERF_CHECK_IMAGE}
               - name: SUPPORT_L2
                 value: ${SUPPORT_L2}
               - name: LOG_LEVEL
