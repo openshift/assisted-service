@@ -67,12 +67,6 @@ var _ = Describe("IPv6 installation", func() {
 	})
 	It("install_cluster IPv6 happy flow", func() {
 		_ = registerHostsAndSetRolesV6(clusterID, 5)
-		clusterReply, getErr := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
-			ClusterID: clusterID,
-		})
-		Expect(getErr).ToNot(HaveOccurred())
-		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
-		Expect(clusterReply.Payload.HostNetworks[0].Cidr).To(Equal("1001:db8::/120"))
 		By("Installing cluster till finalize")
 		c := installCluster(clusterID)
 		Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
