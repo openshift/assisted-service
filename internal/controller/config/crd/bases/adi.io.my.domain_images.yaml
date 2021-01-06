@@ -97,9 +97,10 @@ spec:
           status:
             description: ImageStatus defines the observed state of Image
             properties:
-              downloadUrl:
+              downloadURL:
                 type: string
               expirationTime:
+                description: 'Name in REST API: expires_at'
                 format: date-time
                 type: string
               sizeBytes:

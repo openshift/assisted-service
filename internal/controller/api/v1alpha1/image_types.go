@@ -27,16 +27,17 @@ type ImageSpec struct {
 	ClusterRef   *corev1.ObjectReference `json:"clusterRef"`
 	SSHPublicKey string                  `json:"sshPublicKey,omitempty"`
 	// The name of the secret containing the pull secret
-	PullSecretRef         *corev1.SecretReference `json:"pullSecretRef"`
-	IgnitionOverrides     string                  `json:"ignitionOverrides,omitempty"`
-	StaticIpConfiguration string                  `json:"staticIpConfiguration,omitempty"`
+	PullSecretRef     *corev1.SecretReference `json:"pullSecretRef"`
+	IgnitionOverrides string                  `json:"ignitionOverrides,omitempty"`
+	StaticIpsConfig   string                  `json:"staticIpConfiguration,omitempty"`
 }
 
 // ImageStatus defines the observed state of Image
 type ImageStatus struct {
-	State          string       `json:"state,omitempty"`
-	SizeBytes      int          `json:"sizeBytes,omitempty"`
-	DownloadUrl    string       `json:"downloadUrl,omitempty"`
+	State       string `json:"state,omitempty"`
+	SizeBytes   int    `json:"sizeBytes,omitempty"`
+	DownloadURL string `json:"downloadURL,omitempty"`
+	// Name in REST API: expires_at
 	ExpirationTime *metav1.Time `json:"expirationTime,omitempty"`
 }
 
