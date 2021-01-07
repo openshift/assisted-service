@@ -286,17 +286,17 @@ func (mr *MockAPIMockRecorder) Upload(arg0, arg1, arg2 interface{}) *gomock.Call
 }
 
 // UploadBootFiles mocks base method
-func (m *MockAPI) UploadBootFiles(arg0 context.Context, arg1 string) error {
+func (m *MockAPI) UploadBootFiles(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadBootFiles", arg0, arg1)
+	ret := m.ctrl.Call(m, "UploadBootFiles", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UploadBootFiles indicates an expected call of UploadBootFiles
-func (mr *MockAPIMockRecorder) UploadBootFiles(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) UploadBootFiles(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadBootFiles", reflect.TypeOf((*MockAPI)(nil).UploadBootFiles), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadBootFiles", reflect.TypeOf((*MockAPI)(nil).UploadBootFiles), arg0, arg1, arg2)
 }
 
 // UploadFile mocks base method

@@ -21,6 +21,7 @@ type Handler interface {
 	Create(outPath string, volumeLabel string) error
 	ReadFile(filePath string) (io.ReadWriteSeeker, error)
 	VolumeIdentifier() (string, error)
+	CleanWorkDir() error
 }
 
 type installerHandler struct {
@@ -254,4 +255,8 @@ func (h *installerHandler) VolumeIdentifier() (string, error) {
 	}
 
 	return strings.TrimSpace(string(volumeId)), nil
+}
+
+func (h *installerHandler) CleanWorkDir() error {
+	return os.RemoveAll(h.workDir)
 }

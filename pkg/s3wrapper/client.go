@@ -31,9 +31,10 @@ import (
 )
 
 const (
-	awsEndpointSuffix      = ".amazonaws.com"
-	rhcosObjectTemplate    = "rhcos-%s.iso"
-	DiscoveryImageTemplate = "discovery-image-%s"
+	awsEndpointSuffix          = ".amazonaws.com"
+	rhcosObjectTemplate        = "rhcos-%s.iso"
+	rhcosMinimalObjectTemplate = "rhcos-%s-minimal.iso"
+	DiscoveryImageTemplate     = "discovery-image-%s"
 )
 
 //go:generate mockgen -package=s3wrapper -destination=mock_s3wrapper.go . API
@@ -54,7 +55,7 @@ type API interface {
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
-	UploadBootFiles(ctx context.Context, openshiftVersion string) error
+	UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string) error
 	DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error)
 	DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error)
 	GetS3BootFileURL(isoObjectName, fileType string) string
@@ -471,48 +472,65 @@ func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return objects, nil
 }
 
-func (c *S3Client) UploadBootFiles(ctx context.Context, openshiftVersion string) error {
+func (c *S3Client) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string) error {
 	rhcosImage, err := c.versionsHandler.GetRHCOSImage(openshiftVersion)
-
 	if err != nil {
 		return err
 	}
 
-	return c.uploadBootFiles(ctx, c.GetBaseIsoObject(openshiftVersion), rhcosImage)
+	baseIsoObject := c.GetBaseIsoObject(openshiftVersion)
+	minimalIsoObject := GetMinimalIsoObjectName(openshiftVersion)
+	return c.uploadBootFiles(ctx, baseIsoObject, minimalIsoObject, rhcosImage, openshiftVersion, serviceBaseURL)
 }
 
-func (c *S3Client) uploadBootFiles(ctx context.Context, isoObjectName, isoURL string) error {
+func (c *S3Client) uploadBootFiles(ctx context.Context, isoObjectName, minimalIsoObject, isoURL, openshiftVersion, serviceBaseURL string) error {
 	log := logutil.FromContext(ctx, c.log)
 
-	exist, err := c.DoAllBootFilesExist(ctx, isoObjectName)
+	baseExists, err := c.DoAllBootFilesExist(ctx, isoObjectName)
 	if err != nil {
 		return err
 	}
-	if exist {
+	minimalExists, err := c.DoesPublicObjectExist(ctx, minimalIsoObject)
+	if err != nil {
+		return err
+	}
+	if baseExists && minimalExists {
 		return nil
 	}
 
 	log.Infof("Starting Base ISO download for %s", isoObjectName)
-	tmpfile, err := DownloadURLToTemporaryFile(isoURL)
+	baseIsoPath, err := DownloadURLToTemporaryFile(isoURL)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
-	defer os.Remove(tmpfile)
+	defer os.Remove(baseIsoPath)
 
-	exists, err := c.DoesPublicObjectExist(ctx, isoObjectName)
+	existsInBucket, err := c.DoesPublicObjectExist(ctx, isoObjectName)
 	if err != nil {
 		return err
 	}
-	if !exists {
-		err = c.UploadFileToPublicBucket(ctx, tmpfile, isoObjectName)
+	if !existsInBucket {
+		err = c.UploadFileToPublicBucket(ctx, baseIsoPath, isoObjectName)
 		if err != nil {
 			return err
 		}
 		log.Infof("Successfully uploaded object %s", isoObjectName)
 	}
 
-	return ExtractBootFilesFromISOAndUpload(ctx, log, tmpfile, isoObjectName, isoURL, c)
+	if !baseExists {
+		if err = ExtractBootFilesFromISOAndUpload(ctx, log, baseIsoPath, isoObjectName, isoURL, c); err != nil {
+			return err
+		}
+	}
+
+	if !minimalExists {
+		if err = CreateAndUploadMinimalIso(ctx, log, baseIsoPath, minimalIsoObject, openshiftVersion, serviceBaseURL, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (c *S3Client) DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error) {
@@ -536,4 +554,8 @@ func (c *S3Client) GetS3BootFileURL(isoObjectName, fileType string) string {
 
 func (c *S3Client) GetBaseIsoObject(openshiftVersion string) string {
 	return fmt.Sprintf(rhcosObjectTemplate, openshiftVersion)
+}
+
+func GetMinimalIsoObjectName(openshiftVersion string) string {
+	return fmt.Sprintf(rhcosMinimalObjectTemplate, openshiftVersion)
 }

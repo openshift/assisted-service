@@ -28,8 +28,10 @@ import (
 )
 
 const (
-	defaultTestOpenShiftVersion = "4.6"
-	defaultTestRhcosObject      = "rhcos-4.6.iso"
+	defaultTestOpenShiftVersion   = "4.6"
+	defaultTestRhcosObject        = "rhcos-4.6.iso"
+	defaultTestRhcosObjectMinimal = "rhcos-4.6-minimal.iso"
+	defaultTestServiceBaseURL     = "http://1.1.1.1:6000"
 )
 
 var _ = Describe("s3client", func() {
@@ -327,6 +329,8 @@ var _ = Describe("s3client", func() {
 	})
 	Context("upload boot files", func() {
 		It("all exist", func() {
+			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &publicBucket, Key: aws.String(defaultTestRhcosObjectMinimal)}).
+				Return(&s3.HeadObjectOutput{}, nil)
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &publicBucket, Key: aws.String(defaultTestRhcosObject)}).
 				Return(&s3.HeadObjectOutput{}, nil)
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
@@ -343,13 +347,13 @@ var _ = Describe("s3client", func() {
 				Return(&s3.HeadObjectOutput{}, nil)
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
 
-			err := client.UploadBootFiles(ctx, defaultTestOpenShiftVersion)
+			err := client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("unsupported openshift version", func() {
 			unsupportedVersion := "999"
 			mockVersions.EXPECT().GetRHCOSImage(unsupportedVersion).Return("", errors.New("unsupported")).Times(1)
-			err := client.UploadBootFiles(ctx, unsupportedVersion)
+			err := client.UploadBootFiles(ctx, unsupportedVersion, defaultTestServiceBaseURL)
 			Expect(err).To(HaveOccurred())
 		})
 		It("missing iso and rootfs", func() {
@@ -359,6 +363,14 @@ var _ = Describe("s3client", func() {
 				err = os.MkdirAll(filepath.Join(filesDir, "files/images/pxeboot"), 0755)
 				Expect(err).ToNot(HaveOccurred())
 				err = ioutil.WriteFile(filepath.Join(filesDir, "files/images/pxeboot/rootfs.img"), []byte("this is rootfs"), 0664)
+				Expect(err).ToNot(HaveOccurred())
+				err = os.MkdirAll(filepath.Join(filesDir, "files/EFI/redhat"), 0755)
+				Expect(err).ToNot(HaveOccurred())
+				err = ioutil.WriteFile(filepath.Join(filesDir, "files/EFI/redhat/grub.cfg"), []byte(" linux /images/pxeboot/vmlinuz"), 0664)
+				Expect(err).ToNot(HaveOccurred())
+				err = os.MkdirAll(filepath.Join(filesDir, "files/isolinux"), 0755)
+				Expect(err).ToNot(HaveOccurred())
+				err = ioutil.WriteFile(filepath.Join(filesDir, "files/isolinux/isolinux.cfg"), []byte(" append initrd=/images/pxeboot/initrd.img"), 0664)
 				Expect(err).ToNot(HaveOccurred())
 				isoPath := filepath.Join(filesDir, "file.iso")
 				cmd := exec.Command("genisoimage", "-rational-rock", "-J", "-joliet-long", "-V", "volumeID", "-o", isoPath, filepath.Join(filesDir, "files"))
@@ -378,6 +390,10 @@ var _ = Describe("s3client", func() {
 				Return(nil, awserr.New("NotFound", "NotFound", errors.New("NotFound"))).Times(2)
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
 				Bucket: &publicBucket,
+				Key:    aws.String(defaultTestRhcosObjectMinimal)}).
+				Return(nil, awserr.New("NotFound", "NotFound", errors.New("NotFound"))).Times(1)
+			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
+				Bucket: &publicBucket,
 				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img"))}).
 				Return(&s3.HeadObjectOutput{}, nil)
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
@@ -388,9 +404,9 @@ var _ = Describe("s3client", func() {
 				Bucket: &publicBucket,
 				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "vmlinuz"))}).
 				Return(&s3.HeadObjectOutput{}, nil)
-			publicUploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(2)
+			publicUploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(3)
 
-			err := client.uploadBootFiles(ctx, defaultTestRhcosObject, ts.URL)
+			err := client.uploadBootFiles(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})

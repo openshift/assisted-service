@@ -24,6 +24,8 @@ import (
 const (
 	// fsBaseISOName is the filename for the base ISO
 	fsBaseISOName = "livecd.iso"
+	// fsMinimalBaseISOName is the filename for the minimal base ISO
+	fsMinimalBaseISOName = "livecd-%s-minimal.iso"
 )
 
 type FSClient struct {
@@ -300,28 +302,33 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return matches, nil
 }
 
-func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion string) error {
+func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string) error {
 	log := logutil.FromContext(ctx, f.log)
 	isoObjectName := f.GetBaseIsoObject(openshiftVersion)
+	minimalIsoObject := f.GetMinimalIsoObjectName(openshiftVersion)
 
 	rhcosImageURL, err := f.versionsHandler.GetRHCOSImage(openshiftVersion)
 	if err != nil {
 		return err
 	}
 
-	exist, err := f.DoAllBootFilesExist(ctx, openshiftVersion)
+	baseExists, err := f.DoAllBootFilesExist(ctx, isoObjectName)
 	if err != nil {
 		return err
 	}
-	if exist {
+	minimalExists, err := f.DoesPublicObjectExist(ctx, minimalIsoObject)
+	if err != nil {
+		return err
+	}
+	if baseExists && minimalExists {
 		return nil
 	}
 
-	exists, err := f.DoesObjectExist(ctx, isoObjectName)
+	existsInBucket, err := f.DoesObjectExist(ctx, isoObjectName)
 	if err != nil {
 		return err
 	}
-	if !exists {
+	if !existsInBucket {
 		err = UploadFromURLToPublicBucket(ctx, isoObjectName, rhcosImageURL, f)
 		if err != nil {
 			return err
@@ -331,7 +338,19 @@ func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion string)
 
 	isoFilePath := filepath.Join(f.basedir, isoObjectName)
 
-	return ExtractBootFilesFromISOAndUpload(ctx, log, isoFilePath, isoObjectName, rhcosImageURL, f)
+	if !baseExists {
+		if err = ExtractBootFilesFromISOAndUpload(ctx, log, isoFilePath, isoObjectName, rhcosImageURL, f); err != nil {
+			return err
+		}
+	}
+
+	if !minimalExists {
+		if err = CreateAndUploadMinimalIso(ctx, log, isoFilePath, minimalIsoObject, openshiftVersion, serviceBaseURL, f); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (f *FSClient) DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error) {
@@ -351,4 +370,8 @@ func (f *FSClient) GetS3BootFileURL(isoObjectName, fileType string) string {
 func (f *FSClient) GetBaseIsoObject(openshiftVersion string) string {
 	// TODO: Need to support different versions
 	return fsBaseISOName
+}
+
+func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion string) string {
+	return fmt.Sprintf(fsMinimalBaseISOName, openshiftVersion)
 }

@@ -160,15 +160,17 @@ var _ = Describe("s3filesystem", func() {
 					[]byte("Hello world"), 0600)
 				Expect(err).Should(BeNil())
 			}
-
+			err := ioutil.WriteFile(filepath.Join(baseDir, client.GetMinimalIsoObjectName(defaultTestOpenShiftVersion)),
+				[]byte("minimal iso"), 0600)
+			Expect(err).Should(BeNil())
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
-			err := client.UploadBootFiles(ctx, defaultTestOpenShiftVersion)
+			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("unsupported openshift version", func() {
 			unsupportedVersion := "999"
 			mockVersions.EXPECT().GetRHCOSImage(unsupportedVersion).Return("", errors.New("unsupported")).Times(1)
-			err := client.UploadBootFiles(ctx, unsupportedVersion)
+			err := client.UploadBootFiles(ctx, unsupportedVersion, defaultTestServiceBaseURL)
 			Expect(err).To(HaveOccurred())
 		})
 		It("iso exists", func() {
@@ -180,6 +182,14 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/pxeboot/vmlinuz"), []byte("this is vmlinuz"), 0664)
 			Expect(err).ToNot(HaveOccurred())
+			err = os.MkdirAll(filepath.Join(baseDir, "files/EFI/redhat"), 0755)
+			Expect(err).ToNot(HaveOccurred())
+			err = ioutil.WriteFile(filepath.Join(baseDir, "files/EFI/redhat/grub.cfg"), []byte(" linux /images/pxeboot/vmlinuz"), 0664)
+			Expect(err).ToNot(HaveOccurred())
+			err = os.MkdirAll(filepath.Join(baseDir, "files/isolinux"), 0755)
+			Expect(err).ToNot(HaveOccurred())
+			err = ioutil.WriteFile(filepath.Join(baseDir, "files/isolinux/isolinux.cfg"), []byte(" append initrd=/images/pxeboot/initrd.img"), 0664)
+			Expect(err).ToNot(HaveOccurred())
 			isoPath := filepath.Join(baseDir, client.GetBaseIsoObject(defaultTestOpenShiftVersion))
 			cmd := exec.Command("genisoimage", "-rational-rock", "-J", "-joliet-long", "-V", "volumeID", "-o", isoPath, filepath.Join(baseDir, "files"))
 			err = cmd.Run()
@@ -188,7 +198,7 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
-			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion)
+			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 
 			data, err := ioutil.ReadFile(filepath.Join(baseDir, BootFileTypeToObjectName(client.GetBaseIsoObject(defaultTestOpenShiftVersion), "rootfs.img")))
