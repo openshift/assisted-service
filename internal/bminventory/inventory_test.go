@@ -269,7 +269,7 @@ var _ = Describe("GenerateClusterISO", func() {
 				ClusterID:         strfmt.UUID(uuid.New().String()),
 				ImageCreateParams: &models.ImageCreateParams{},
 			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISONotFound()))
+			verifyApiError(generateReply, http.StatusNotFound)
 		})
 
 		It("failed_to_upload_iso", func() {
@@ -282,7 +282,7 @@ var _ = Describe("GenerateClusterISO", func() {
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{},
 			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOInternalServerError()))
+			verifyApiError(generateReply, http.StatusInternalServerError)
 		})
 
 		It("failed_missing_pull_secret", func() {
@@ -291,7 +291,7 @@ var _ = Describe("GenerateClusterISO", func() {
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{},
 			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOBadRequest()))
+			verifyApiError(generateReply, http.StatusBadRequest)
 		})
 
 		It("failed_missing_openshift_token", func() {
@@ -305,7 +305,7 @@ var _ = Describe("GenerateClusterISO", func() {
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{},
 			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOInternalServerError()))
+			verifyApiError(generateReply, http.StatusInternalServerError)
 		})
 
 		It("fails when the ignition upload fails", func() {

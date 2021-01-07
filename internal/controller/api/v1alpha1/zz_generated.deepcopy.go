@@ -21,6 +21,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/openshift/assisted-service/models"
 	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -334,10 +335,16 @@ func (in *ImageSpec) DeepCopyInto(out *ImageSpec) {
 		*out = new(v1.ObjectReference)
 		**out = **in
 	}
-	if in.PullSecretRef != nil {
-		in, out := &in.PullSecretRef, &out.PullSecretRef
-		*out = new(v1.SecretReference)
-		**out = **in
+	if in.StaticIpConfiguration != nil {
+		in, out := &in.StaticIpConfiguration, &out.StaticIpConfiguration
+		*out = make([]*models.StaticIPConfig, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(models.StaticIPConfig)
+				**out = **in
+			}
+		}
 	}
 }
 

@@ -46,6 +46,19 @@ func newCluster(name, namespace string, spec v1alpha1.ClusterSpec) *v1alpha1.Clu
 	}
 }
 
+func getDefaultClusterSpec(clusterName, pullSecretName string) v1alpha1.ClusterSpec {
+	return v1alpha1.ClusterSpec{
+		Name:             clusterName,
+		OpenshiftVersion: "4.7",
+		PullSecretRef: &v1.SecretReference{
+			Name:      pullSecretName,
+			Namespace: testNamespace,
+		},
+		ClusterNetworkCidr:       "10.128.0.0/14",
+		ClusterNetworkHostPrefix: 23,
+	}
+}
+
 var _ = Describe("cluster reconcile", func() {
 	var (
 		c                     client.Client
@@ -57,16 +70,7 @@ var _ = Describe("cluster reconcile", func() {
 		pullSecretName        = "pull-secret"
 	)
 
-	defaultClusterSpec := v1alpha1.ClusterSpec{
-		Name:             clusterName,
-		OpenshiftVersion: "4.7",
-		PullSecretRef: &v1.SecretReference{
-			Name:      pullSecretName,
-			Namespace: testNamespace,
-		},
-		ClusterNetworkCidr:       "10.128.0.0/14",
-		ClusterNetworkHostPrefix: 23,
-	}
+	defaultClusterSpec := getDefaultClusterSpec(clusterName, pullSecretName)
 
 	BeforeEach(func() {
 		c = fakeclient.NewFakeClientWithScheme(scheme.Scheme)
