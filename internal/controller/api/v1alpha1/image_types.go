@@ -17,8 +17,14 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/openshift/assisted-service/models"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	ImageStateCreated        = "Image has been created"
+	ImageStateFailedToCreate = "Failed to create image"
 )
 
 // ImageSpec defines the desired state of Image
@@ -27,9 +33,8 @@ type ImageSpec struct {
 	ClusterRef   *corev1.ObjectReference `json:"clusterRef"`
 	SSHPublicKey string                  `json:"sshPublicKey,omitempty"`
 	// The name of the secret containing the pull secret
-	PullSecretRef         *corev1.SecretReference `json:"pullSecretRef"`
-	IgnitionOverrides     string                  `json:"ignitionOverrides,omitempty"`
-	StaticIpConfiguration string                  `json:"staticIpConfiguration,omitempty"`
+	IgnitionOverrides     string                   `json:"ignitionOverrides,omitempty"`
+	StaticIpConfiguration []*models.StaticIPConfig `json:"staticIpConfiguration,omitempty"`
 }
 
 // ImageStatus defines the observed state of Image
