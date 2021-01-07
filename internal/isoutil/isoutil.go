@@ -17,8 +17,8 @@ import (
 //go:generate mockgen -package=isoutil -destination=mock_isoutil.go . Handler
 type Handler interface {
 	Extract() error
-	Create(outPath string, size int64, volumeLabel string) error
 	ExtractedPath(rel string) string
+	Create(outPath string, volumeLabel string) error
 	ReadFile(filePath string) (io.ReadWriteSeeker, error)
 	VolumeIdentifier() (string, error)
 }
@@ -126,10 +126,15 @@ func copyAll(fs filesystem.FileSystem, fsDir string, infos []os.FileInfo, target
 	return nil
 }
 
-// Create builds an iso file at outPath with the given size and volumeLabel using the contents
-// of the working directory
-func (h *installerHandler) Create(outPath string, size int64, volumeLabel string) error {
-	d, err := diskfs.Create(outPath, size, diskfs.Raw)
+// Create builds an iso file at outPath with the given volumeLabel using the contents of the working directory
+func (h *installerHandler) Create(outPath string, volumeLabel string) error {
+	// Use the minimum iso size that will satisfy diskfs validations here.
+	// This value doesn't determine the final image size, but is used
+	// to truncate the initial file. This value would be relevant if
+	// we were writing to a particular partition on a device, but we are
+	// not so the minimum iso size will work for us here
+	minISOSize := 38 * 1024
+	d, err := diskfs.Create(outPath, int64(minISOSize), diskfs.Raw)
 	if err != nil {
 		return err
 	}

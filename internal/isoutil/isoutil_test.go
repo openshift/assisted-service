@@ -73,11 +73,8 @@ var _ = Context("with test files", func() {
 			defer os.RemoveAll(dir)
 			isoPath := filepath.Join(dir, "test.iso")
 
-			isoInfo, err := os.Stat(isoFile)
-			Expect(err).NotTo(HaveOccurred())
-
 			h := NewHandler("", filepath.Join(filesDir, "files"))
-			Expect(h.Create(isoPath, isoInfo.Size(), "my-vol")).To(Succeed())
+			Expect(h.Create(isoPath, "my-vol")).To(Succeed())
 
 			d, err := diskfs.OpenWithMode(isoPath, diskfs.ReadOnly)
 			Expect(err).ToNot(HaveOccurred())
