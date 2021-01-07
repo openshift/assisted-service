@@ -34,17 +34,17 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 }
 
 // Create mocks base method
-func (m *MockHandler) Create(arg0 string, arg1 int64, arg2 string) error {
+func (m *MockHandler) Create(arg0, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Create", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Create indicates an expected call of Create
-func (mr *MockHandlerMockRecorder) Create(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockHandler)(nil).Create), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockHandler)(nil).Create), arg0, arg1)
 }
 
 // Extract mocks base method
@@ -61,6 +61,20 @@ func (mr *MockHandlerMockRecorder) Extract() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockHandler)(nil).Extract))
 }
 
+// ExtractedPath mocks base method
+func (m *MockHandler) ExtractedPath(arg0 string) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExtractedPath", arg0)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// ExtractedPath indicates an expected call of ExtractedPath
+func (mr *MockHandlerMockRecorder) ExtractedPath(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractedPath", reflect.TypeOf((*MockHandler)(nil).ExtractedPath), arg0)
+}
+
 // ReadFile mocks base method
 func (m *MockHandler) ReadFile(arg0 string) (io.ReadWriteSeeker, error) {
 	m.ctrl.T.Helper()
@@ -74,4 +88,19 @@ func (m *MockHandler) ReadFile(arg0 string) (io.ReadWriteSeeker, error) {
 func (mr *MockHandlerMockRecorder) ReadFile(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadFile", reflect.TypeOf((*MockHandler)(nil).ReadFile), arg0)
+}
+
+// VolumeIdentifier mocks base method
+func (m *MockHandler) VolumeIdentifier() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VolumeIdentifier")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// VolumeIdentifier indicates an expected call of VolumeIdentifier
+func (mr *MockHandlerMockRecorder) VolumeIdentifier() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VolumeIdentifier", reflect.TypeOf((*MockHandler)(nil).VolumeIdentifier))
 }
