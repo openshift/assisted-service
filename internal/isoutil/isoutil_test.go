@@ -146,6 +146,15 @@ var _ = Context("with test files", func() {
 			Expect(haveBootFiles).To(BeFalse())
 		})
 	})
+
+	Describe("VolumeIdentifier", func() {
+		It("returns the correct value", func() {
+			h := NewHandler(isoFile, "")
+			id, err := h.VolumeIdentifier()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(id).To(Equal(volumeID))
+		})
+	})
 })
 
 func createIsoViaGenisoimage(volumeID string) (string, string, string) {

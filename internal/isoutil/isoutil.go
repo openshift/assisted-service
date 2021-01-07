@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	diskfs "github.com/diskfs/go-diskfs"
 	"github.com/diskfs/go-diskfs/disk"
@@ -18,6 +19,7 @@ type Handler interface {
 	Extract() error
 	Create(outPath string, size int64, volumeLabel string) error
 	ReadFile(filePath string) (io.ReadWriteSeeker, error)
+	VolumeIdentifier() (string, error)
 }
 
 type installerHandler struct {
@@ -221,4 +223,25 @@ func (h *installerHandler) fileExists(relName string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (h *installerHandler) VolumeIdentifier() (string, error) {
+	// Need to get the volume id from the ISO provided
+	iso, err := os.Open(h.isoPath)
+	if err != nil {
+		return "", err
+	}
+	defer iso.Close()
+
+	// Need a method to identify the ISO provided
+	// The first 32768 bytes are unused by the ISO 9660 standard, typically for bootable media
+	// This is where the data area begins and the 32 byte string representing the volume identifier
+	// is offset 40 bytes into the primary volume descriptor
+	volumeId := make([]byte, 32)
+	_, err = iso.ReadAt(volumeId, 32808)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(volumeId)), nil
 }
