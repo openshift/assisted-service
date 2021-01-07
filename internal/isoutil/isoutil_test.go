@@ -61,8 +61,8 @@ var _ = Context("with test files", func() {
 			h := NewHandler(isoFile, dir)
 			Expect(h.Extract()).To(Succeed())
 
-			validateFileContent(filepath.Join(dir, "test"), "testcontent\n")
-			validateFileContent(filepath.Join(dir, "testdir/stuff"), "morecontent\n")
+			validateFileContent(h.ExtractedPath("test"), "testcontent\n")
+			validateFileContent(h.ExtractedPath("testdir/stuff"), "morecontent\n")
 		})
 	})
 

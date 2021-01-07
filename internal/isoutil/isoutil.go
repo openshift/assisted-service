@@ -18,6 +18,7 @@ import (
 type Handler interface {
 	Extract() error
 	Create(outPath string, size int64, volumeLabel string) error
+	ExtractedPath(rel string) string
 	ReadFile(filePath string) (io.ReadWriteSeeker, error)
 	VolumeIdentifier() (string, error)
 }
@@ -58,6 +59,10 @@ func (h *installerHandler) ReadFile(filePath string) (io.ReadWriteSeeker, error)
 	}
 
 	return fsFile, nil
+}
+
+func (h *installerHandler) ExtractedPath(rel string) string {
+	return filepath.Join(h.workDir, rel)
 }
 
 // Extract unpacks the iso contents into the working directory
