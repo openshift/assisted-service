@@ -5995,13 +5995,24 @@ func init() {
         "dns": {
           "type": "string"
         },
+        "dns_v6": {
+          "type": "string"
+        },
         "gateway": {
           "type": "string",
           "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
         },
+        "gateway_v6": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$"
+        },
         "ip": {
           "type": "string",
           "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
+        },
+        "ip_v6": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$"
         },
         "mac": {
           "type": "string",
@@ -6010,6 +6021,10 @@ func init() {
         "mask": {
           "type": "string",
           "pattern": "^[0-9]|[1-2][0-9]|3[0-2]?$"
+        },
+        "mask_v6": {
+          "type": "string",
+          "pattern": "^([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$"
         }
       }
     },
@@ -12204,13 +12219,24 @@ func init() {
         "dns": {
           "type": "string"
         },
+        "dns_v6": {
+          "type": "string"
+        },
         "gateway": {
           "type": "string",
           "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
         },
+        "gateway_v6": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$"
+        },
         "ip": {
           "type": "string",
           "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
+        },
+        "ip_v6": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$"
         },
         "mac": {
           "type": "string",
@@ -12219,6 +12245,10 @@ func init() {
         "mask": {
           "type": "string",
           "pattern": "^[0-9]|[1-2][0-9]|3[0-2]?$"
+        },
+        "mask_v6": {
+          "type": "string",
+          "pattern": "^([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$"
         }
       }
     },

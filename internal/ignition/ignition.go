@@ -58,15 +58,18 @@ autoconnect-priority=1
 mac-address-blacklist=
 
 [ipv4]
-method=manual
+method=\$METHOD4
 addr-gen-mode=eui64
-addresses=\$FOUND_IP/\$FOUND_MASK
-gateway=\$FOUND_GW
-dns=\$FOUND_DNS
+addresses=\$FOUND_IP4/\$FOUND_MASK4
+dns=\$FOUND_DNS4
+gateway=\$FOUND_GW4
 
 [ipv6]
-method=auto
+method=\$METHOD6
 addr-gen-mode=eui64
+addresses=\$FOUND_IP6/\$FOUND_MASK6
+dns=\$FOUND_DNS6
+gateway=\$FOUND_GW6
 
 [802-3-ethernet]
 mac-address=\$FOUND_MAC
@@ -81,13 +84,32 @@ function find_my_mac() {
     do
         MAC=$(echo ${entry} | cut -f1 -d\;)
         if [[ ! -z ${MAC} ]] && [[ -z ${FOUND_MAC} ]]; then
-            if [[ "${MAC}" == "${MAC_TO_CHECK}" ]]; then
+            if [[ "${MAC,,}" == "${MAC_TO_CHECK,,}" ]]; then
                 export FOUND_INTERFACE=${INTERFACE}
                 export FOUND_MAC=${MAC}
-                export FOUND_IP=$(echo ${entry} | cut -f2 -d\;)
-                export FOUND_MASK=$(echo ${entry} | cut -f3 -d\;)
-                export FOUND_DNS=$(echo ${entry} | cut -f4 -d\;)
-                export FOUND_GW=$(echo ${entry} | cut -f5 -d\;)
+
+                IPV4=$(echo ${entry} | cut -f2 -d\;)
+                if [[ ! -z ${IPV4} ]]; then
+                    export METHOD4="manual"
+                    export FOUND_IP4=${IPV4}
+                    export FOUND_MASK4=$(echo ${entry} | cut -f3 -d\;)
+                    export FOUND_DNS4=$(echo ${entry} | cut -f4 -d\;)
+                    export FOUND_GW4=$(echo ${entry} | cut -f5 -d\;)
+                else
+                    export METHOD4="auto"
+                fi
+
+                IPV6=$(echo ${entry} | cut -f6 -d\;)
+                if [[ ! -z ${IPV6} ]]; then
+                    export METHOD6="manual"
+                    export FOUND_IP6=${IPV6}
+                    export FOUND_MASK6=$(echo ${entry} | cut -f7 -d\;)
+                    export FOUND_DNS6=$(echo ${entry} | cut -f8 -d\;)
+                    export FOUND_GW6=$(echo ${entry} | cut -f9 -d\;)
+                else
+                    export METHOD6="auto"
+                fi
+
                 break
             fi
         fi
@@ -106,21 +128,25 @@ function correlate_int_mac() {
         if [[ ! -z ${INT_MAC} ]]; then
             echo "MAC to check: ${INT_MAC}" | systemd-cat -t configure-static-ip -p debug
             find_my_mac ${INT_MAC}
-            if [[ "${FOUND_MAC}" == "${INT_MAC}" ]];then
+            if [[ "${FOUND_MAC,,}" == "${INT_MAC,,}" ]]; then
                 echo "MAC Found in the list, this is the Net data: " | systemd-cat -t configure-static-ip -p debug
                 echo "MAC: ${FOUND_MAC}" | systemd-cat -t configure-static-ip -p debug
-                echo "IP: ${FOUND_IP}" | systemd-cat -t configure-static-ip -p debug
-                echo "MASK: ${FOUND_MASK}" | systemd-cat -t configure-static-ip -p debug
-                echo "GW: ${FOUND_GW}" | systemd-cat -t configure-static-ip -p debug
-                echo "DNS: ${FOUND_DNS}" | systemd-cat -t configure-static-ip -p debug
-                
-		echo "Configuring interface ${FOUND_INTERFACE}, mac address ${FOUND_MAC} with ip ${FOUND_IP}" | systemd-cat -t configure-static-ip -p debug
+                echo "IPv4 Address: ${FOUND_IP4}" | systemd-cat -t configure-static-ip -p debug
+                echo "IPv4 MASK: ${FOUND_MASK4}" | systemd-cat -t configure-static-ip -p debug
+                echo "IPv4 GW: ${FOUND_GW4}" | systemd-cat -t configure-static-ip -p debug
+                echo "IPv4 DNS: ${FOUND_DNS4}" | systemd-cat -t configure-static-ip -p debug
+                echo "IPv6 IP: ${FOUND_IP6}" | systemd-cat -t configure-static-ip -p debug
+                echo "IPv6 MASK: ${FOUND_MASK6}" | systemd-cat -t configure-static-ip -p debug
+                echo "IPv6 GW: ${FOUND_GW6}" | systemd-cat -t configure-static-ip -p debug
+                echo "IPv6 DNS: ${FOUND_DNS6}" | systemd-cat -t configure-static-ip -p debug
+
+                echo "Configuring interface ${FOUND_INTERFACE}, MAC address ${FOUND_MAC} with IPv4: ${FOUND_IP4}, IPv6: ${FOUND_IP6}" | systemd-cat -t configure-static-ip -p debug
                 export NM_KEY_FILE="/etc/NetworkManager/system-connections/${FOUND_INTERFACE}.nmconnection"
                 envsubst < "/var/tmp/template.connection" > ${NM_KEY_FILE}
                 chmod 600 ${NM_KEY_FILE}
             fi
         else
-            echo "Could not extract mac from interface ${INTERFACE}" | systemd-cat -t configure-static-ip -p debug
+            echo "Could not extract MAC address from interface ${INTERFACE}" | systemd-cat -t configure-static-ip -p debug
         fi
     done
 }
