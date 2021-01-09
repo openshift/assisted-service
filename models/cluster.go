@@ -121,6 +121,12 @@ type Cluster struct {
 	// Enum: [Cluster AddHostsCluster AddHostsOCPCluster]
 	Kind *string `json:"kind"`
 
+	// Name of the KubeAPI resource.
+	KubeAPIName *string `json:"kubeAPIName,omitempty"`
+
+	// Namespace of the KubeAPI resource.
+	KubeAPINamespace *string `json:"kubeAPINamespace,omitempty"`
+
 	// A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	MachineNetworkCidr string `json:"machine_network_cidr,omitempty"`

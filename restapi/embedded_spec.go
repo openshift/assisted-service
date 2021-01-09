@@ -4332,6 +4332,16 @@ func init() {
             "AddHostsOCPCluster"
           ]
         },
+        "kubeAPIName": {
+          "description": "Name of the KubeAPI resource.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "kubeAPINamespace": {
+          "description": "Namespace of the KubeAPI resource.",
+          "type": "string",
+          "x-nullable": true
+        },
         "machine_network_cidr": {
           "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
           "type": "string",
@@ -10594,6 +10604,16 @@ func init() {
             "AddHostsCluster",
             "AddHostsOCPCluster"
           ]
+        },
+        "kubeAPIName": {
+          "description": "Name of the KubeAPI resource.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "kubeAPINamespace": {
+          "description": "Namespace of the KubeAPI resource.",
+          "type": "string",
+          "x-nullable": true
         },
         "machine_network_cidr": {
           "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",

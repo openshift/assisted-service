@@ -3588,6 +3588,14 @@ definitions:
         $ref: '#/definitions/operators'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:operators_"
         x-nullable: true
+      kubeAPIName:
+        type: string
+        description: Name of the KubeAPI resource.
+        x-nullable: true
+      kubeAPINamespace:
+        type: string
+        description: Namespace of the KubeAPI resource.
+        x-nullable: true
 
   image_info:
     type: object
