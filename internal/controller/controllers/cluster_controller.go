@@ -63,7 +63,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// check if new cluster
 	if cluster.Status.ID == "" {
-		return r.createNewCluster(ctx, cluster)
+		return r.createNewCluster(ctx, cluster, req.NamespacedName)
 	}
 
 	return ctrl.Result{}, nil
@@ -87,7 +87,7 @@ func (r *ClusterReconciler) getPullSecret(ctx context.Context, name, namespace s
 	return string(data), nil
 }
 
-func (r *ClusterReconciler) createNewCluster(ctx context.Context, cluster *adiiov1alpha1.Cluster) (ctrl.Result, error) {
+func (r *ClusterReconciler) createNewCluster(ctx context.Context, cluster *adiiov1alpha1.Cluster, key types.NamespacedName) (ctrl.Result, error) {
 	spec := cluster.Spec
 
 	pullSecret, err := r.getPullSecret(ctx, spec.PullSecretRef.Name, spec.PullSecretRef.Namespace)
@@ -114,7 +114,7 @@ func (r *ClusterReconciler) createNewCluster(ctx context.Context, cluster *adiio
 			UserManagedNetworking:    swag.Bool(spec.UserManagedNetworking),
 			VipDhcpAllocation:        swag.Bool(spec.VipDhcpAllocation),
 		},
-	})
+	}, &key)
 	// TODO: handle specific errors, 5XX retry, 4XX update status with the error
 	if err != nil {
 		cluster.Status.Error = err.Error()

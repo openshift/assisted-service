@@ -103,7 +103,7 @@ var _ = Describe("cluster reconcile", func() {
 					ID:         &id,
 				},
 			}
-			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(clusterReply, nil)
 
 			cluster := newCluster(clusterName, testNamespace, defaultClusterSpec)
@@ -126,7 +126,7 @@ var _ = Describe("cluster reconcile", func() {
 
 		It("create new cluster backend failure", func() {
 			expectedError := errors.Errorf("internal error")
-			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(nil, expectedError)
 
 			cluster := newCluster(clusterName, testNamespace, defaultClusterSpec)

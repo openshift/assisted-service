@@ -5,6 +5,8 @@ import (
 	"context"
 	"io"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
@@ -267,7 +269,7 @@ type OCPClusterAPI interface {
 
 //go:generate mockgen -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
-	RegisterClusterInternal(ctx context.Context, params installer.RegisterClusterParams) (*common.Cluster, error)
+	RegisterClusterInternal(ctx context.Context, params installer.RegisterClusterParams, kubeAPIKey *types.NamespacedName) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error)
 	UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
@@ -499,14 +501,18 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
-	c, err := b.RegisterClusterInternal(ctx, params)
+	c, err := b.RegisterClusterInternal(ctx, params, nil)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewRegisterClusterCreated().WithPayload(&c.Cluster)
 }
 
-func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, params installer.RegisterClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) RegisterClusterInternal(
+	ctx context.Context,
+	params installer.RegisterClusterParams,
+	kubeAPIKey *types.NamespacedName) (*common.Cluster, error) {
+
 	log := logutil.FromContext(ctx, b.log)
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
@@ -594,6 +600,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, params
 				swag.StringValue(params.NewClusterParams.OpenshiftVersion)))
 	}
 
+	if kubeAPIKey == nil {
+		kubeAPIKey = &types.NamespacedName{Namespace: "", Name: ""}
+	}
+
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:                       &id,
 		Href:                     swag.String(url.String()),
@@ -618,6 +628,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, params
 		AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
 		Operators:                params.NewClusterParams.Operators,
 		HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
+		KubeAPIName:              &kubeAPIKey.Name,
+		KubeAPINamespace:         &kubeAPIKey.Namespace,
 	}}
 
 	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
