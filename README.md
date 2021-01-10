@@ -1,4 +1,5 @@
 # assisted-service
+i
 
 [![Swagger API](https://raw.githubusercontent.com/swagger-api/swagger-ui/master/src/img/logo_small.png)](https://generator.swagger.io/?url=https://raw.githubusercontent.com/openshift/assisted-service/master/swagger.yaml)
 
