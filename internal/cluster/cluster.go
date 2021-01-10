@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/google/uuid"
 
 	"github.com/kennygrant/sanitize"
@@ -93,6 +95,7 @@ type API interface {
 	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error
 	UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse
+	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 }
 
 type PrepareConfig struct {
@@ -763,4 +766,12 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt
 		m.eventsHandler.DeleteClusterEvents(*c.ID)
 	}
 	return nil
+}
+
+func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
+	c := &common.Cluster{}
+	if err := m.db.Take(c, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace).Error; err != nil {
+		return nil, err
+	}
+	return c, nil
 }

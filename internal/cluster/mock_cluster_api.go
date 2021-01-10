@@ -11,6 +11,7 @@ import (
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
+	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
 )
 
@@ -530,4 +531,19 @@ func (m *MockAPI) UpdateInstallProgress(ctx context.Context, c *common.Cluster, 
 func (mr *MockAPIMockRecorder) UpdateInstallProgress(ctx, c, progress interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallProgress", reflect.TypeOf((*MockAPI)(nil).UpdateInstallProgress), ctx, c, progress)
+}
+
+// GetClusterByKubeKey mocks base method
+func (m *MockAPI) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClusterByKubeKey", key)
+	ret0, _ := ret[0].(*common.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClusterByKubeKey indicates an expected call of GetClusterByKubeKey
+func (mr *MockAPIMockRecorder) GetClusterByKubeKey(key interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterByKubeKey", reflect.TypeOf((*MockAPI)(nil).GetClusterByKubeKey), key)
 }

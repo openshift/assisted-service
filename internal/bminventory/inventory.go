@@ -273,6 +273,7 @@ type InstallerInternals interface {
 	GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error)
 	UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
+	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 }
 
 type bareMetalInventory struct {
@@ -4208,4 +4209,8 @@ func formatStaticIPs(staticIpsConfig []*models.StaticIPConfig) string {
 	sort.Strings(lines)
 
 	return strings.Join(lines, "\n")
+}
+
+func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
+	return b.clusterApi.GetClusterByKubeKey(key)
 }
