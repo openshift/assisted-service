@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 
@@ -5582,6 +5584,42 @@ var _ = Describe("Calculate host networks", func() {
 		Expect(networks[0].Cidr).To(Equal("1.1.1.0/24"))
 		Expect(len(networks[0].HostIds)).To(Equal(1))
 		Expect(networks[0].HostIds[0]).To(Equal(hostID))
+	})
+})
+
+var _ = Describe("Get Cluster by Kube Key", func() {
+	var (
+		ctrl        *gomock.Controller
+		mockCluster *cluster.MockAPI
+		bm          *bareMetalInventory
+		cfg         Config
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockCluster = cluster.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(
+			nil, getTestLog(), nil, mockCluster, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil,
+			validations.NewMockPullSecretValidator(ctrl), nil)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("get cluster by kube key success", func() {
+		mockCluster.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+		cluster, err := bm.GetClusterByKubeKey(types.NamespacedName{Name: "name", Namespace: "namespace"})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(cluster).Should(Equal(&common.Cluster{}))
+	})
+
+	It("get cluster by kube key failure", func() {
+		mockCluster.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		cluster, err := bm.GetClusterByKubeKey(types.NamespacedName{Name: "name", Namespace: "namespace"})
+		Expect(err).Should(HaveOccurred())
+		Expect(gorm.IsRecordNotFoundError(err)).Should(Equal(true))
+		Expect(cluster).Should(BeNil())
 	})
 })
 

@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -2082,6 +2084,57 @@ var _ = Describe("Permanently delete clusters", func() {
 		c3Events, err3 := eventsHandler.GetEvents(*c3.ID, c3.ID)
 		Expect(err3).ShouldNot(HaveOccurred())
 		Expect(len(c3Events)).ShouldNot(Equal(0))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("Get cluster by Kube key", func() {
+	var (
+		state            API
+		ctrl             *gomock.Controller
+		db               *gorm.DB
+		eventsHandler    events.Handler
+		key              types.NamespacedName
+		dbName           = "get_cluster_by_kube_key"
+		kubeKeyName      = "test-kube-name"
+		kubeKeyNamespace = "test-kube-namespace"
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		eventsHandler = events.New(db, logrus.New())
+		dummy := &leader.DummyElector{}
+		state = NewManager(getDefaultConfig(), getTestLog(), db, eventsHandler, nil, nil, nil, dummy)
+		key = types.NamespacedName{
+			Namespace: kubeKeyNamespace,
+			Name:      kubeKeyName,
+		}
+	})
+
+	It("cluster not exist", func() {
+		c, err := state.GetClusterByKubeKey(key)
+		Expect(err).Should(HaveOccurred())
+		Expect(gorm.IsRecordNotFoundError(err)).Should(Equal(true))
+		Expect(c).Should(BeNil())
+	})
+
+	It("get cluster by kube key success", func() {
+		id := strfmt.UUID(uuid.New().String())
+		c1 := common.Cluster{
+			KubeKeyName:      kubeKeyName,
+			KubeKeyNamespace: kubeKeyNamespace,
+			Cluster:          models.Cluster{ID: &id},
+		}
+		Expect(db.Create(&c1).Error).ShouldNot(HaveOccurred())
+
+		c2, err := state.GetClusterByKubeKey(key)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(c2.ID.String()).Should(Equal(c1.ID.String()))
 	})
 
 	AfterEach(func() {

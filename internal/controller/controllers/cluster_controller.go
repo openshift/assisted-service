@@ -63,7 +63,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// check if new cluster
 	if cluster.Status.ID == "" {
-		return r.createNewCluster(ctx, cluster)
+		return r.createNewCluster(ctx, req.NamespacedName, cluster)
 	}
 
 	return ctrl.Result{}, nil
@@ -87,7 +87,11 @@ func (r *ClusterReconciler) getPullSecret(ctx context.Context, name, namespace s
 	return string(data), nil
 }
 
-func (r *ClusterReconciler) createNewCluster(ctx context.Context, cluster *adiiov1alpha1.Cluster) (ctrl.Result, error) {
+func (r *ClusterReconciler) createNewCluster(
+	ctx context.Context,
+	key types.NamespacedName,
+	cluster *adiiov1alpha1.Cluster) (ctrl.Result, error) {
+
 	spec := cluster.Spec
 
 	pullSecret, err := r.getPullSecret(ctx, spec.PullSecretRef.Name, spec.PullSecretRef.Namespace)
@@ -95,7 +99,7 @@ func (r *ClusterReconciler) createNewCluster(ctx context.Context, cluster *adiio
 		return ctrl.Result{}, errors.Wrap(err, "failed to get pull secret")
 	}
 
-	c, err := r.Installer.RegisterClusterInternal(ctx, installer.RegisterClusterParams{
+	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
 			AdditionalNtpSource:      swag.String(spec.AdditionalNtpSource),
 			BaseDNSDomain:            spec.BaseDNSDomain,
