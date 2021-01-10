@@ -23,4 +23,10 @@ type Cluster struct {
 
 	// The lease acquired for API vip
 	IngressVipLease string `gorm:"type:text"`
+
+	// Name of the KubeAPI resource
+	KubeKeyName string `json:"kube_key_name"`
+
+	// Namespace of the KubeAPI resource
+	KubeKeyNamespace string `json:"kube_key_namespace"`
 }

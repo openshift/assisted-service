@@ -5,6 +5,8 @@ import (
 	"context"
 	"io"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
@@ -267,7 +269,7 @@ type OCPClusterAPI interface {
 
 //go:generate mockgen -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
-	RegisterClusterInternal(ctx context.Context, params installer.RegisterClusterParams) (*common.Cluster, error)
+	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterClusterParams) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error)
 	UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
@@ -499,14 +501,18 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
-	c, err := b.RegisterClusterInternal(ctx, params)
+	c, err := b.RegisterClusterInternal(ctx, nil, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewRegisterClusterCreated().WithPayload(&c.Cluster)
 }
 
-func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, params installer.RegisterClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) RegisterClusterInternal(
+	ctx context.Context,
+	kubeKey *types.NamespacedName,
+	params installer.RegisterClusterParams) (*common.Cluster, error) {
+
 	log := logutil.FromContext(ctx, b.log)
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
@@ -594,31 +600,39 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, params
 				swag.StringValue(params.NewClusterParams.OpenshiftVersion)))
 	}
 
-	cluster := common.Cluster{Cluster: models.Cluster{
-		ID:                       &id,
-		Href:                     swag.String(url.String()),
-		Kind:                     swag.String(models.ClusterKindCluster),
-		BaseDNSDomain:            params.NewClusterParams.BaseDNSDomain,
-		ClusterNetworkCidr:       swag.StringValue(params.NewClusterParams.ClusterNetworkCidr),
-		ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
-		IngressVip:               params.NewClusterParams.IngressVip,
-		Name:                     swag.StringValue(params.NewClusterParams.Name),
-		OpenshiftVersion:         swag.StringValue(params.NewClusterParams.OpenshiftVersion),
-		ServiceNetworkCidr:       swag.StringValue(params.NewClusterParams.ServiceNetworkCidr),
-		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
-		UpdatedAt:                strfmt.DateTime{},
-		UserName:                 auth.UserNameFromContext(ctx),
-		OrgID:                    auth.OrgIDFromContext(ctx),
-		EmailDomain:              auth.EmailDomainFromContext(ctx),
-		HTTPProxy:                swag.StringValue(params.NewClusterParams.HTTPProxy),
-		HTTPSProxy:               swag.StringValue(params.NewClusterParams.HTTPSProxy),
-		NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
-		VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
-		UserManagedNetworking:    params.NewClusterParams.UserManagedNetworking,
-		AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
-		Operators:                params.NewClusterParams.Operators,
-		HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
-	}}
+	if kubeKey == nil {
+		kubeKey = &types.NamespacedName{}
+	}
+
+	cluster := common.Cluster{
+		Cluster: models.Cluster{
+			ID:                       &id,
+			Href:                     swag.String(url.String()),
+			Kind:                     swag.String(models.ClusterKindCluster),
+			BaseDNSDomain:            params.NewClusterParams.BaseDNSDomain,
+			ClusterNetworkCidr:       swag.StringValue(params.NewClusterParams.ClusterNetworkCidr),
+			ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
+			IngressVip:               params.NewClusterParams.IngressVip,
+			Name:                     swag.StringValue(params.NewClusterParams.Name),
+			OpenshiftVersion:         swag.StringValue(params.NewClusterParams.OpenshiftVersion),
+			ServiceNetworkCidr:       swag.StringValue(params.NewClusterParams.ServiceNetworkCidr),
+			SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
+			UpdatedAt:                strfmt.DateTime{},
+			UserName:                 auth.UserNameFromContext(ctx),
+			OrgID:                    auth.OrgIDFromContext(ctx),
+			EmailDomain:              auth.EmailDomainFromContext(ctx),
+			HTTPProxy:                swag.StringValue(params.NewClusterParams.HTTPProxy),
+			HTTPSProxy:               swag.StringValue(params.NewClusterParams.HTTPSProxy),
+			NoProxy:                  swag.StringValue(params.NewClusterParams.NoProxy),
+			VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
+			UserManagedNetworking:    params.NewClusterParams.UserManagedNetworking,
+			AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
+			Operators:                params.NewClusterParams.Operators,
+			HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
+		},
+		KubeKeyName:      kubeKey.Name,
+		KubeKeyNamespace: kubeKey.Namespace,
+	}
 
 	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
 		params.NewClusterParams.HTTPSProxy,
