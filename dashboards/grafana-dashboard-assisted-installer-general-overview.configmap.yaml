@@ -18,8 +18,7 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 39,
-      "iteration": 1607953120767,
+      "iteration": 1609836796310,
       "links": [],
       "panels": [
         {
@@ -83,7 +82,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -93,27 +92,27 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_creations{clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_creations{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Created clusters",
               "refId": "A"
             },
             {
-              "expr": "increase(count(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/downloads/image\",method=\"POST\"})[$__range:$__rate_interval])",
+              "expr": "increase(count(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/downloads/image\",method=\"POST\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_creations{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".+\"}))[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "ISO generated",
               "refId": "F"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Installation started",
               "refId": "B"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\", result=\"installed\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\", result=\"installed\"})[$__range:$__rate_interval])",
               "hide": false,
               "instant": true,
               "interval": "",
@@ -121,13 +120,13 @@ data:
               "refId": "C"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\", result=\"error\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\", result=\"error\"})[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "Installation error",
               "refId": "D"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\", result=\"canceled\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\", result=\"canceled\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Installation canceled",
@@ -217,23 +216,23 @@ data:
             },
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_hosts{clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"}))[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_hosts{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "Hosts",
               "refId": "C"
             },
             {
-              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started))[$__range:$__rate_interval])",
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Clusters",
               "refId": "E"
             },
             {
-              "expr": "(increase(sum(service_assisted_installer_cluster_hosts{clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"}))[$__range:$__rate_interval]) + 1) / (increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started))[$__range:$__rate_interval]))",
+              "expr": "(increase(sum(service_assisted_installer_cluster_hosts{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval]) + 1) / (increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval]))",
               "hide": false,
               "instant": false,
               "interval": "",
@@ -291,7 +290,7 @@ data:
           "strokeWidth": 1,
           "targets": [
             {
-              "expr": "increase(sum by (result)(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum by (result)(service_assisted_installer_cluster_installation_seconds_count{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "{{result}}",
@@ -371,24 +370,24 @@ data:
             },
             "textMode": "value"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started))[$__range:$__rate_interval])",
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
               "hide": true,
               "interval": "",
               "legendFormat": "Clusters",
               "refId": "E"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": true,
               "interval": "",
               "legendFormat": "attempts",
               "refId": "A"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"})[$__range:$__rate_interval]) / increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started))[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval]) / increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "avg",
@@ -445,10 +444,10 @@ data:
             },
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "",
               "refId": "A"
@@ -500,7 +499,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -510,7 +509,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_sum{clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_count{clusterId=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_sum{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_count{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",result=\"Done\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "{{phase}}",
@@ -619,7 +618,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -629,7 +628,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(count by (emailDomain)(service_assisted_installer_cluster_installation_started{emailDomain=~\".+\"})[$__range:$__rate_interval]) + 1",
+              "expr": "increase(count by (emailDomain)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".+\"})[$__range:$__rate_interval]) + 1",
               "interval": "",
               "legendFormat": "{{emailDomain}}",
               "refId": "A"
@@ -719,7 +718,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -729,7 +728,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum by (role)(service_assisted_installer_cluster_hosts{clusterId=~\".+\", result=\"Failed\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum by (role)(service_assisted_installer_cluster_hosts{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\", result=\"Failed\"})[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "{{role}}",
               "refId": "A"
@@ -821,7 +820,7 @@ data:
           "strokeWidth": 1,
           "targets": [
             {
-              "expr": "increase(sum by (vendor,product)(service_assisted_installer_cluster_hosts{clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{clusterId=~\".+\"}))[$__range:$__rate_interval])",
+              "expr": "increase(sum by (vendor,product)(service_assisted_installer_cluster_hosts{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "{{vendor}} {{product}}",
@@ -895,7 +894,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -905,27 +904,27 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_creations{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_creations{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Created clusters",
               "refId": "A"
             },
             {
-              "expr": "increase(count(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/downloads/image\",method=\"POST\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_creations{clusterId=~\".+\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\"}))[$__range:$__rate_interval])",
+              "expr": "increase(count(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/downloads/image\",method=\"POST\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_creations{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\"}))[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "ISO generated",
               "refId": "F"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Installation started",
               "refId": "B"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", result=\"installed\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\", result=\"installed\"})[$__range:$__rate_interval])",
               "hide": false,
               "instant": true,
               "interval": "",
@@ -933,13 +932,13 @@ data:
               "refId": "C"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", result=\"error\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\", result=\"error\"})[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "Installation error",
               "refId": "D"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", result=\"canceled\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\", result=\"canceled\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Installation canceled",
@@ -1029,23 +1028,23 @@ data:
             },
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_hosts{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"}))[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_hosts{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "Hosts",
               "refId": "C"
             },
             {
-              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval])",
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Clusters",
               "refId": "E"
             },
             {
-              "expr": "(increase(sum(service_assisted_installer_cluster_hosts{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"}))[$__range:$__rate_interval]) + 1) / (increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",}))[$__range:$__rate_interval]))",
+              "expr": "(increase(sum(service_assisted_installer_cluster_hosts{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval]) + 1) / (increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\",}))[$__range:$__rate_interval]))",
               "hide": false,
               "instant": false,
               "interval": "",
@@ -1103,7 +1102,7 @@ data:
           "strokeWidth": 1,
           "targets": [
             {
-              "expr": "increase(sum by (result)(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum by (result)(service_assisted_installer_cluster_installation_seconds_count{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "{{result}}",
@@ -1183,24 +1182,24 @@ data:
             },
             "textMode": "value"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval])",
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval])",
               "hide": true,
               "interval": "",
               "legendFormat": "Clusters",
               "refId": "E"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": true,
               "interval": "",
               "legendFormat": "attempts",
               "refId": "A"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval]) / increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval]) / increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "avg",
@@ -1257,10 +1256,10 @@ data:
             },
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\"}))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "",
               "refId": "A"
@@ -1312,7 +1311,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1322,7 +1321,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_sum{clusterId=~\".+\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_count{clusterId=~\".+\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\",result=\"Done\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_sum{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_count{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\",result=\"Done\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "{{phase}}",
@@ -1415,7 +1414,7 @@ data:
           "strokeWidth": 1,
           "targets": [
             {
-              "expr": "increase(sum by (vendor,product)(service_assisted_installer_cluster_hosts{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\"}))[$__range:$__rate_interval])",
+              "expr": "increase(sum by (vendor,product)(service_assisted_installer_cluster_hosts{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain=~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "{{vendor}} {{product}}",
@@ -1469,7 +1468,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1479,7 +1478,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum by (role)(service_assisted_installer_cluster_hosts{clusterId=~\".+\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\", result=\"Failed\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum by (role)(service_assisted_installer_cluster_hosts{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".*redhat.com.*|.*ibm.com.*\", result=\"Failed\"})[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "{{role}}",
               "refId": "A"
@@ -1591,7 +1590,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1601,27 +1600,27 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_creations{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_creations{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Created clusters",
               "refId": "A"
             },
             {
-              "expr": "increase(count(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/downloads/image\",method=\"POST\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_creations{clusterId=~\".+\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\"}))[$__range:$__rate_interval])",
+              "expr": "increase(count(http_request_duration_seconds_count{endpoint=\"assisted-svc\",handler=\"/api/assisted-install/v1/clusters/{cluster_id}/downloads/image\",method=\"POST\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_creations{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\"}))[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "ISO generated",
               "refId": "F"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Installation started",
               "refId": "B"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", result=\"installed\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\", result=\"installed\"})[$__range:$__rate_interval])",
               "hide": false,
               "instant": true,
               "interval": "",
@@ -1629,13 +1628,13 @@ data:
               "refId": "C"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", result=\"error\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\", result=\"error\"})[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "Installation error",
               "refId": "D"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", result=\"canceled\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\", result=\"canceled\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Installation canceled",
@@ -1725,23 +1724,23 @@ data:
             },
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_hosts{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"}))[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_hosts{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "Hosts",
               "refId": "C"
             },
             {
-              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval])",
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "Clusters",
               "refId": "E"
             },
             {
-              "expr": "(increase(sum(service_assisted_installer_cluster_hosts{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"}))[$__range:$__rate_interval]) + 1) / (increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval]))",
+              "expr": "(increase(sum(service_assisted_installer_cluster_hosts{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval]) + 1) / (increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval]))",
               "hide": false,
               "instant": false,
               "interval": "",
@@ -1799,7 +1798,7 @@ data:
           "strokeWidth": 1,
           "targets": [
             {
-              "expr": "increase(sum by (result)(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum by (result)(service_assisted_installer_cluster_installation_seconds_count{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "{{result}}",
@@ -1879,7 +1878,7 @@ data:
             },
             "textMode": "value"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
               "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval])",
@@ -1889,14 +1888,14 @@ data:
               "refId": "E"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval])",
               "hide": true,
               "interval": "",
               "legendFormat": "attempts",
               "refId": "A"
             },
             {
-              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"})[$__range:$__rate_interval]) / increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval])",
+              "expr": "increase(sum(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"})[$__range:$__rate_interval]) / increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "avg",
@@ -1953,10 +1952,10 @@ data:
             },
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\",emailDomain=~\".+\",})[$__range:$__rate_interval])",
+              "expr": "increase(count(count by (clusterId)(service_assisted_installer_cluster_installation_started{openshiftVersion=~\"$OpenShift_Version\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",}))[$__range:$__rate_interval]) / increase(sum(service_assisted_installer_cluster_creations{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain=~\".+\",})[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "",
               "refId": "A"
@@ -2008,7 +2007,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -2018,7 +2017,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_sum{clusterId=~\".+\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_count{clusterId=~\".+\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_sum{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",result=\"Done\"})[$__range:$__rate_interval]) / increase(sum by (phase)(service_assisted_installer_host_installation_phase_seconds_count{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",result=\"Done\"})[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "{{phase}}",
@@ -2111,7 +2110,7 @@ data:
           "strokeWidth": 1,
           "targets": [
             {
-              "expr": "increase(sum by (vendor,product)(service_assisted_installer_cluster_hosts{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\"}))[$__range:$__rate_interval])",
+              "expr": "increase(sum by (vendor,product)(service_assisted_installer_cluster_hosts{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"} * on(clusterId) group_left() count by (clusterId)(service_assisted_installer_cluster_installation_started{emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\",clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\"}))[$__range:$__rate_interval])",
               "hide": false,
               "interval": "",
               "legendFormat": "{{vendor}} {{product}}",
@@ -2165,7 +2164,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -2175,7 +2174,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "increase(sum by (role)(service_assisted_installer_cluster_hosts{clusterId=~\".+\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\", result=\"Failed\"})[$__range:$__rate_interval])",
+              "expr": "increase(sum by (role)(service_assisted_installer_cluster_hosts{clusterId=~\".+\", openshiftVersion=~\"$OpenShift_Version\",emailDomain!~\".*redhat.com.*|.*ibm.com.*\",emailDomain=~\".+\", result=\"Failed\"})[$__range:$__rate_interval])",
               "interval": "",
               "legendFormat": "{{role}}",
               "refId": "A"
@@ -2251,6 +2250,26 @@ data:
             "regex": "",
             "skipUrlSync": false,
             "type": "datasource"
+          },
+          {
+            "current": {
+              "selected": false,
+              "text": ".*",
+              "value": ".*"
+            },
+            "hide": 0,
+            "label": "OpenShift_Version",
+            "name": "OpenShift_Version",
+            "options": [
+              {
+                "selected": true,
+                "text": ".*",
+                "value": ".*"
+              }
+            ],
+            "query": ".*",
+            "skipUrlSync": false,
+            "type": "textbox"
           }
         ]
       },
@@ -2275,7 +2294,7 @@ data:
       "timezone": "",
       "title": "General Overview",
       "uid": "assisted-installer-overview",
-      "version": 4
+      "version": 1
     }
 kind: ConfigMap
 metadata:
