@@ -17,22 +17,104 @@ import (
 	"github.com/openshift/assisted-service/client/assisted_service_iso"
 	"github.com/openshift/assisted-service/client/events"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/client/versions"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("system-test image tests", func() {
-	ctx := context.Background()
-	var cluster *installer.RegisterClusterCreated
-	var clusterID strfmt.UUID
-	pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
+	var (
+		ctx       = context.Background()
+		cluster   *installer.RegisterClusterCreated
+		clusterID strfmt.UUID
+	)
 
 	AfterEach(func() {
 		clearDB()
 	})
 
+	versions, err := userBMClient.Versions.ListSupportedOpenshiftVersions(ctx, &versions.ListSupportedOpenshiftVersionsParams{})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(versions.Payload).ShouldNot(BeEmpty())
+
+	for ocpVersion := range versions.Payload {
+		It(fmt.Sprintf("[only_k8s][minimal-set][ocp-%s]create_and_get_image", ocpVersion), func() {
+			By("Register Cluster", func() {
+				cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						Name:             swag.String("test-cluster"),
+						OpenshiftVersion: swag.String(ocpVersion),
+						PullSecret:       swag.String(pullSecret),
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+				clusterID = *cluster.GetPayload().ID
+			})
+
+			By("Generate ISO", func() {
+				_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+					ClusterID:         clusterID,
+					ImageCreateParams: &models.ImageCreateParams{},
+				})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			By("Download ISO", func() {
+				downloadClusterIso(ctx, clusterID)
+			})
+
+			By("Verify events", func() {
+				verifyEventExistence(clusterID, "Registered cluster")
+			})
+		})
+
+		It(fmt.Sprintf("[only_k8s][ocp-%s]create_and_download_live_iso", ocpVersion), func() {
+			By("Create ISO", func() {
+				ignitionParams := models.AssistedServiceIsoCreateParams{
+					SSHPublicKey:     sshPublicKey,
+					PullSecret:       pullSecret,
+					OpenshiftVersion: ocpVersion,
+				}
+				_, err = userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
+					AssistedServiceIsoCreateParams: &ignitionParams,
+				})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			By("Download ISO", func() {
+				file, err := ioutil.TempFile("", "tmp")
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer os.Remove(file.Name())
+
+				_, err = userBMClient.AssistedServiceIso.DownloadISO(ctx, &assisted_service_iso.DownloadISOParams{}, file)
+				Expect(err).NotTo(HaveOccurred())
+				verifyFileNotEmpty(file)
+			})
+		})
+	}
+})
+
+var _ = Describe("image tests", func() {
+	var (
+		ctx     = context.Background()
+		file    *os.File
+		err     error
+		cluster *installer.RegisterClusterCreated
+	)
+
+	AfterEach(func() {
+		clearDB()
+		os.Remove(file.Name())
+	})
+
 	BeforeEach(func() {
-		var err error
+		file, err = ioutil.TempFile("", "tmp")
+		Expect(err).To(BeNil())
+	})
+
+	It("Image is removed after patching ignition", func() {
 		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
@@ -41,50 +123,7 @@ var _ = Describe("system-test image tests", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		clusterID = *cluster.GetPayload().ID
-	})
-
-	It("[only_k8s][minimal-set]create_and_get_image", func() {
-		file, err := ioutil.TempFile("", "tmp")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.Remove(file.Name())
-
-		_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
-			ClusterID:         clusterID,
-			ImageCreateParams: &models.ImageCreateParams{},
-		})
-		Expect(err).NotTo(HaveOccurred())
-		_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
-			ClusterID: clusterID,
-		}, file)
-		Expect(err).NotTo(HaveOccurred())
-		s, err := file.Stat()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(s.Size()).ShouldNot(Equal(0))
-		eventsReply, err := userBMClient.Events.ListEvents(context.TODO(), &events.ListEventsParams{
-			ClusterID: clusterID,
-		})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(eventsReply.Payload).ShouldNot(HaveLen(0))
-		nRegisteredEvents := 0
-		for _, ev := range eventsReply.Payload {
-			fmt.Printf("EntityID:%s, Message:%s\n", ev.ClusterID, *ev.Message)
-			Expect(ev.ClusterID.String()).Should(Equal(clusterID.String()))
-			if strings.Contains(*ev.Message, "Registered cluster") {
-				nRegisteredEvents++
-			}
-		}
-		Expect(nRegisteredEvents).ShouldNot(Equal(0))
-	})
-
-	It("Image is removed after patching ignition", func() {
-		file, err := ioutil.TempFile("", "tmp")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.Remove(file.Name())
+		clusterID := *cluster.GetPayload().ID
 
 		_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
 			ClusterID:         clusterID,
@@ -104,69 +143,8 @@ var _ = Describe("system-test image tests", func() {
 		Expect(err).To(BeAssignableToTypeOf(installer.NewDownloadClusterISONotFound()))
 
 		// test that an event was added
-		eventsReply, err := userBMClient.Events.ListEvents(context.TODO(), &events.ListEventsParams{
-			ClusterID: clusterID,
-		})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(eventsReply.Payload).ShouldNot(HaveLen(0))
-		nRegisteredEvents := 0
-		for _, ev := range eventsReply.Payload {
-			Expect(ev.ClusterID.String()).Should(Equal(clusterID.String()))
-			if strings.Contains(*ev.Message, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.") {
-				nRegisteredEvents++
-			}
-		}
-		Expect(nRegisteredEvents).ShouldNot(Equal(0))
-	})
-})
-
-var _ = Describe("system-test assisted-service live ISO image tests", func() {
-	ctx := context.Background()
-	pullSecret := "{\"auths\": {\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
-
-	AfterEach(func() {
-		clearDB()
-	})
-
-	It("[only_k8s]create_and_download_live_iso", func() {
-		file, err := ioutil.TempFile("", "tmp")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.Remove(file.Name())
-
-		ignitionParams := models.AssistedServiceIsoCreateParams{
-			SSHPublicKey:     "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDgj9Pc6dmIAZvxvC1q4K05lUqd/Qy73JEGP/THZEdlLif825SPyMe9NGe8UxNiS4AvYJoLcplMVztQjInVf6s3C0EtlvyrfzdoCCONNBtgItU0gxG+GxneNJs/MKhlUBh6QWg52cBwiaTIxrGlbM/qLfzSX6k5WtZV/yH1TVVrFOpDxtOfR5RZ/GmI97pJIOhxEdw9aT3FydbFtuNwTyNxo0YGMk6Mp89qlUx20u4aK1HXn67I3+2xtpzPSiH6TwRPX3vb/qdWJ4/YaKOHwf/FnIg3FXQXVxRCBijDF0cCUmKWcdrs59JopGMFKDXwHHCdfMjtnfBvA/WOlBs0NKpoFIEuufL3gBuahBRvMKnOXD1gwD8WkaOa+B5BxutZ+/zXAPX3faXRdMGPfHRDam+rNR8KkbYl+3Y2C/W1APMLopLt5kKit64E4rHTwbYwB1Si770O+I/KTcAwnRo1j0K9m7ahz2YXK3fiqieh7awhkiosTsDHLAZDs+YTi9tfBQ8= me@tester",
-			PullSecret:       pullSecret,
-			OpenshiftVersion: common.DefaultTestOpenShiftVersion,
-		}
-		_, err = userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
-			AssistedServiceIsoCreateParams: &ignitionParams,
-		})
-
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = userBMClient.AssistedServiceIso.DownloadISO(ctx, &assisted_service_iso.DownloadISOParams{}, file)
-		Expect(err).NotTo(HaveOccurred())
-		s, err := file.Stat()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(s.Size()).ShouldNot(Equal(0))
-	})
-})
-
-var _ = Describe("image tests", func() {
-	ctx := context.Background()
-	var file *os.File
-	var err error
-
-	AfterEach(func() {
-		clearDB()
-		os.Remove(file.Name())
-	})
-
-	BeforeEach(func() {
-		file, err = ioutil.TempFile("", "tmp")
-		Expect(err).To(BeNil())
+		msg := "Deleted image from backend because its ignition was updated. The image may be regenerated at any time."
+		verifyEventExistence(clusterID, msg)
 	})
 
 	It("download_non_existing_cluster", func() {
@@ -191,10 +169,11 @@ var _ = Describe("image tests", func() {
 })
 
 var _ = Describe("system-test proxy update tests", func() {
-	ctx := context.Background()
-	var cluster *installer.RegisterClusterCreated
-	var clusterID strfmt.UUID
-	pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
+	var (
+		ctx       = context.Background()
+		cluster   *installer.RegisterClusterCreated
+		clusterID strfmt.UUID
+	)
 
 	AfterEach(func() {
 		clearDB()
@@ -271,4 +250,24 @@ func verifyEventExistence(ClusterID strfmt.UUID, message string) {
 		}
 	}
 	Expect(nEvents).ShouldNot(Equal(0))
+}
+
+func downloadClusterIso(ctx context.Context, clusterID strfmt.UUID) {
+	file, err := ioutil.TempFile("", "tmp")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.Remove(file.Name())
+
+	_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
+		ClusterID: clusterID,
+	}, file)
+	Expect(err).NotTo(HaveOccurred())
+	verifyFileNotEmpty(file)
+}
+
+func verifyFileNotEmpty(file *os.File) {
+	s, err := file.Stat()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(s.Size()).ShouldNot(Equal(0))
 }
