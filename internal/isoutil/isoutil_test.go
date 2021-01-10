@@ -61,8 +61,8 @@ var _ = Context("with test files", func() {
 			h := NewHandler(isoFile, dir)
 			Expect(h.Extract()).To(Succeed())
 
-			validateFileContent(filepath.Join(dir, "test"), "testcontent\n")
-			validateFileContent(filepath.Join(dir, "testdir/stuff"), "morecontent\n")
+			validateFileContent(h.ExtractedPath("test"), "testcontent\n")
+			validateFileContent(h.ExtractedPath("testdir/stuff"), "morecontent\n")
 		})
 	})
 
@@ -73,11 +73,8 @@ var _ = Context("with test files", func() {
 			defer os.RemoveAll(dir)
 			isoPath := filepath.Join(dir, "test.iso")
 
-			isoInfo, err := os.Stat(isoFile)
-			Expect(err).NotTo(HaveOccurred())
-
 			h := NewHandler("", filepath.Join(filesDir, "files"))
-			Expect(h.Create(isoPath, isoInfo.Size(), "my-vol")).To(Succeed())
+			Expect(h.Create(isoPath, "my-vol")).To(Succeed())
 
 			d, err := diskfs.OpenWithMode(isoPath, diskfs.ReadOnly)
 			Expect(err).ToNot(HaveOccurred())
@@ -144,6 +141,15 @@ var _ = Context("with test files", func() {
 			haveBootFiles, err := h.haveBootFiles()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(haveBootFiles).To(BeFalse())
+		})
+	})
+
+	Describe("VolumeIdentifier", func() {
+		It("returns the correct value", func() {
+			h := NewHandler(isoFile, "")
+			id, err := h.VolumeIdentifier()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(id).To(Equal(volumeID))
 		})
 	})
 })

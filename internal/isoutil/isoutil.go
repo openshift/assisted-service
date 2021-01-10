@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	diskfs "github.com/diskfs/go-diskfs"
 	"github.com/diskfs/go-diskfs/disk"
@@ -16,8 +17,10 @@ import (
 //go:generate mockgen -package=isoutil -destination=mock_isoutil.go . Handler
 type Handler interface {
 	Extract() error
-	Create(outPath string, size int64, volumeLabel string) error
+	ExtractedPath(rel string) string
+	Create(outPath string, volumeLabel string) error
 	ReadFile(filePath string) (io.ReadWriteSeeker, error)
+	VolumeIdentifier() (string, error)
 }
 
 type installerHandler struct {
@@ -56,6 +59,10 @@ func (h *installerHandler) ReadFile(filePath string) (io.ReadWriteSeeker, error)
 	}
 
 	return fsFile, nil
+}
+
+func (h *installerHandler) ExtractedPath(rel string) string {
+	return filepath.Join(h.workDir, rel)
 }
 
 // Extract unpacks the iso contents into the working directory
@@ -119,10 +126,15 @@ func copyAll(fs filesystem.FileSystem, fsDir string, infos []os.FileInfo, target
 	return nil
 }
 
-// Create builds an iso file at outPath with the given size and volumeLabel using the contents
-// of the working directory
-func (h *installerHandler) Create(outPath string, size int64, volumeLabel string) error {
-	d, err := diskfs.Create(outPath, size, diskfs.Raw)
+// Create builds an iso file at outPath with the given volumeLabel using the contents of the working directory
+func (h *installerHandler) Create(outPath string, volumeLabel string) error {
+	// Use the minimum iso size that will satisfy diskfs validations here.
+	// This value doesn't determine the final image size, but is used
+	// to truncate the initial file. This value would be relevant if
+	// we were writing to a particular partition on a device, but we are
+	// not so the minimum iso size will work for us here
+	minISOSize := 38 * 1024
+	d, err := diskfs.Create(outPath, int64(minISOSize), diskfs.Raw)
 	if err != nil {
 		return err
 	}
@@ -221,4 +233,25 @@ func (h *installerHandler) fileExists(relName string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (h *installerHandler) VolumeIdentifier() (string, error) {
+	// Need to get the volume id from the ISO provided
+	iso, err := os.Open(h.isoPath)
+	if err != nil {
+		return "", err
+	}
+	defer iso.Close()
+
+	// Need a method to identify the ISO provided
+	// The first 32768 bytes are unused by the ISO 9660 standard, typically for bootable media
+	// This is where the data area begins and the 32 byte string representing the volume identifier
+	// is offset 40 bytes into the primary volume descriptor
+	volumeId := make([]byte, 32)
+	_, err = iso.ReadAt(volumeId, 32808)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(volumeId)), nil
 }
