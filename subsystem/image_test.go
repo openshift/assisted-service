@@ -38,7 +38,7 @@ var _ = Describe("system-test image tests", func() {
 	Expect(versions.Payload).ShouldNot(BeEmpty())
 
 	for ocpVersion := range versions.Payload {
-		It(fmt.Sprintf("[only_k8s][minimal-set][ocp-%s]create_and_get_image", ocpVersion), func() {
+		It(fmt.Sprintf("[minimal-set][ocp-%s]create_and_get_image", ocpVersion), func() {
 			By("Register Cluster", func() {
 				cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
@@ -68,7 +68,7 @@ var _ = Describe("system-test image tests", func() {
 			})
 		})
 
-		It(fmt.Sprintf("[only_k8s][ocp-%s]create_and_download_live_iso", ocpVersion), func() {
+		It(fmt.Sprintf("[ocp-%s]create_and_download_live_iso", ocpVersion), func() {
 			By("Create ISO", func() {
 				ignitionParams := models.AssistedServiceIsoCreateParams{
 					SSHPublicKey:     sshPublicKey,
@@ -152,7 +152,7 @@ var _ = Describe("image tests", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 
-	It("[only_k8s]download_non_existing_image", func() {
+	It("download_non_existing_image", func() {
 		cluster, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
@@ -192,7 +192,7 @@ var _ = Describe("system-test proxy update tests", func() {
 		clusterID = *cluster.GetPayload().ID
 	})
 
-	It("[only_k8s]generate_image_after_proxy_was_set", func() {
+	It("generate_image_after_proxy_was_set", func() {
 		// Generate ISO of registered cluster without proxy configured
 		_, err := userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
 			ClusterID:         clusterID,
