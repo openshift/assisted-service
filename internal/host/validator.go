@@ -524,16 +524,12 @@ func (v *validator) IsNTPSynced(c *validationContext) validationStatus {
 	var sources []*models.NtpSource
 
 	if c.host.NtpSources == "" {
-		return ValidationPending
+		return ValidationFailure
 	}
 
 	if err := json.Unmarshal([]byte(c.host.NtpSources), &sources); err != nil {
 		v.log.WithError(err).Warn("Parse NTP sources")
 		return ValidationError
-	}
-
-	if len(sources) == 0 {
-		return ValidationPending
 	}
 
 	for _, source := range sources {
@@ -550,11 +546,9 @@ func (v *validator) printNTPSynced(c *validationContext, status validationStatus
 	case ValidationSuccess:
 		return "Host NTP is synced"
 	case ValidationFailure:
-		return "Host couldn't synchronize with any of the NTP sources"
+		return "Host couldn't synchronize with any NTP server"
 	case ValidationError:
 		return "Parse error for NTP sources"
-	case ValidationPending:
-		return "Missing NTP sources"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
