@@ -84,7 +84,10 @@ func (c *fioPerfCheckCmd) GetArgs() ([]string, error) {
 		"--env", "http_proxy", "--env", "https_proxy", "--env", "no_proxy",
 		c.config.FioPerfCheckImage, "fio_perf_check",
 		"--url", strings.TrimSpace(c.config.ServiceBaseURL), "--cluster-id", c.config.ClusterID, "--host-id", c.config.HostID,
-		"--agent-version", c.config.FioPerfCheckImage, fmt.Sprintf("--insecure %s", strconv.FormatBool(c.config.SkipCertVerification)))
+		"--agent-version", c.config.FioPerfCheckImage)
+	if c.config.SkipCertVerification {
+		arguments = append(arguments, "--insecure")
+	}
 
 	if c.config.UseCustomCACert {
 		arguments = append(arguments, "--cacert", common.HostCACertPath)
