@@ -31,18 +31,18 @@ type ClusterSpec struct {
 	// Installation will start once cluster is in known state and approved
 	Approved                 bool   `json:"approved,omitempty"`
 	OpenshiftVersion         string `json:"openshiftVersion"`
-	BaseDnsDomain            string `json:"baseDnsDomain,omitempty"`
-	ClusterNetworkCidr       string `json:"clusterNetworkCidr,omitempty"`
+	BaseDNSDomain            string `json:"baseDNSDomain,omitempty"`
+	ClusterNetworkCidr       string `json:"clusterNetworkCIDR,omitempty"`
 	ClusterNetworkHostPrefix int64  `json:"clusterNetworkHostPrefix,omitempty"`
-	ServiceNetworkCidr       string `json:"serviceNetworkCidr,omitempty"`
-	ApiVip                   string `json:"apiVip,omitempty"`
-	ApiVipDnsName            string `json:"apiVipDnsName,omitempty"`
-	IngressVip               string `json:"ingresVip,omitempty"`
-	MachineNetworkCidr       string `json:"machineNetworkCidr,omitempty"`
-	SshPublicKey             string `json:"sshPublicKey,omitempty"`
-	VipDhcpAllocation        bool   `json:"vipDhcpAllocation,omitempty"`
-	HttpProxy                string `json:"httpProxy,omitempty"`
-	HttpsProxy               string `json:"httpsProxy,omitempty"`
+	ServiceNetworkCidr       string `json:"serviceNetworkCIDR,omitempty"`
+	APIVip                   string `json:"apiVIP,omitempty"`
+	APIVipDNSName            string `json:"apiVIPdnsName,omitempty"`
+	IngressVip               string `json:"ingressVIP,omitempty"`
+	MachineNetworkCidr       string `json:"machineNetworkCIDR,omitempty"`
+	SSHPublicKey             string `json:"sshPublicKey,omitempty"`
+	VIPDhcpAllocation        bool   `json:"vipDHCPAllocation,omitempty"`
+	HTTPProxy                string `json:"httpProxy,omitempty"`
+	HTTPSProxy               string `json:"httpsProxy,omitempty"`
 	NoProxy                  string `json:"noProxy,omitempty"`
 	UserManagedNetworking    bool   `json:"userManagedNetworking,omitempty"`
 	AdditionalNtpSource      string `json:"additionalNtpSource,omitempty"`
@@ -70,7 +70,7 @@ type ClusterStatus struct {
 	State                        string              `json:"state,omitempty"`
 	StateInfo                    string              `json:"stateInfo,omitempty"`
 	HostNetworks                 []HostNetwork       `json:"hostNetworks,omitempty"`
-	InstallationStartTime        string              `json:"installationStartTime,omitempty"`
+	InstallationStartTime        *metav1.Time        `json:"installationStartTime,omitempty"`
 	InstallationCompletionTime   *metav1.Time        `json:"installationCompletionTime,omitempty"`
 	Hosts                        int                 `json:"hosts,omitempty"`
 	Progress                     ClusterProgressInfo `json:"progress,omitempty"`

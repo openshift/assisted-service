@@ -98,11 +98,11 @@ func (r *ClusterReconciler) createNewCluster(ctx context.Context, cluster *adiio
 	c, err := r.Installer.RegisterClusterInternal(ctx, installer.RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
 			AdditionalNtpSource:      swag.String(spec.AdditionalNtpSource),
-			BaseDNSDomain:            spec.BaseDnsDomain,
+			BaseDNSDomain:            spec.BaseDNSDomain,
 			ClusterNetworkCidr:       swag.String(spec.ClusterNetworkCidr),
 			ClusterNetworkHostPrefix: spec.ClusterNetworkHostPrefix,
-			HTTPProxy:                swag.String(spec.HttpProxy),
-			HTTPSProxy:               swag.String(spec.HttpsProxy),
+			HTTPProxy:                swag.String(spec.HTTPProxy),
+			HTTPSProxy:               swag.String(spec.HTTPSProxy),
 			IngressVip:               spec.IngressVip,
 			Name:                     swag.String(spec.Name),
 			NoProxy:                  swag.String(spec.NoProxy),
@@ -110,9 +110,9 @@ func (r *ClusterReconciler) createNewCluster(ctx context.Context, cluster *adiio
 			Operators:                nil, // TODO: handle operators
 			PullSecret:               swag.String(pullSecret),
 			ServiceNetworkCidr:       swag.String(spec.ServiceNetworkCidr),
-			SSHPublicKey:             spec.SshPublicKey,
+			SSHPublicKey:             spec.SSHPublicKey,
 			UserManagedNetworking:    swag.Bool(spec.UserManagedNetworking),
-			VipDhcpAllocation:        swag.Bool(spec.VipDhcpAllocation),
+			VipDhcpAllocation:        swag.Bool(spec.VIPDhcpAllocation),
 		},
 	})
 	// TODO: handle specific errors, 5XX retry, 4XX update status with the error

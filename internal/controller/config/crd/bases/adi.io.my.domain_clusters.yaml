@@ -38,17 +38,17 @@ spec:
             properties:
               additionalNtpSource:
                 type: string
-              apiVip:
+              apiVIP:
                 type: string
-              apiVipDnsName:
+              apiVIPdnsName:
                 type: string
               approved:
                 description: Installation will start once cluster is in known state
                   and approved
                 type: boolean
-              baseDnsDomain:
+              baseDNSDomain:
                 type: string
-              clusterNetworkCidr:
+              clusterNetworkCIDR:
                 type: string
               clusterNetworkHostPrefix:
                 format: int64
@@ -57,11 +57,11 @@ spec:
                 type: string
               httpsProxy:
                 type: string
-              ingresVip:
+              ingressVIP:
                 type: string
               installConfigOverrides:
                 type: string
-              machineNetworkCidr:
+              machineNetworkCIDR:
                 type: string
               name:
                 description: Cluster name
@@ -82,13 +82,13 @@ spec:
                       name must be unique.
                     type: string
                 type: object
-              serviceNetworkCidr:
+              serviceNetworkCIDR:
                 type: string
               sshPublicKey:
                 type: string
               userManagedNetworking:
                 type: boolean
-              vipDhcpAllocation:
+              vipDHCPAllocation:
                 type: boolean
             required:
             - name
@@ -130,6 +130,7 @@ spec:
                 format: date-time
                 type: string
               installationStartTime:
+                format: date-time
                 type: string
               lastUpdateTime:
                 format: date-time
