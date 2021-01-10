@@ -161,6 +161,11 @@ func main() {
 	ctrlMgr, err := createControllerManager()
 	failOnError(err, "failed to create controller manager")
 
+	var ctrlReader client.Reader
+	if Options.EnableKubeAPI {
+		ctrlReader = ctrlMgr.GetAPIReader()
+	}
+
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
 
@@ -270,7 +275,7 @@ func main() {
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
 	ntpUtils := network.NewNtpUtils(manifestsApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, ntpUtils, lead)
+		eventsHandler, hostApi, metricsManager, ntpUtils, lead, ctrlReader)
 	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
 
 	clusterStateMonitor := thread.New(

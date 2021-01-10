@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/google/uuid"
 
 	"github.com/kennygrant/sanitize"
@@ -33,6 +36,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const DhcpLeaseTimeoutMinutes = 2
@@ -93,6 +97,7 @@ type API interface {
 	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error
 	UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse
+	GetK8SClusterObject(ctx context.Context, c *common.Cluster) (*v1alpha1.Cluster, error)
 }
 
 type PrepareConfig struct {
@@ -101,7 +106,8 @@ type PrepareConfig struct {
 
 type Config struct {
 	PrepareConfig    PrepareConfig
-	MonitorBatchSize int `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
+	MonitorBatchSize int  `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
+	EnableKubeAPI    bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 }
 
 type Manager struct {
@@ -118,11 +124,12 @@ type Manager struct {
 	rp                   *refreshPreprocessor
 	leaderElector        leader.Leader
 	prevMonitorInvokedAt time.Time
+	k8sReader            client.Reader
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler,
 	hostAPI host.API, metricApi metrics.API, ntpUtils network.NtpUtilsAPI,
-	leaderElector leader.Leader) *Manager {
+	leaderElector leader.Leader, k8sReader client.Reader) *Manager {
 	th := &transitionHandler{
 		log:           log,
 		db:            db,
@@ -142,6 +149,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		hostAPI:              hostAPI,
 		leaderElector:        leaderElector,
 		prevMonitorInvokedAt: time.Now(),
+		k8sReader:            k8sReader,
 	}
 }
 
@@ -763,4 +771,20 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt
 		m.eventsHandler.DeleteClusterEvents(*c.ID)
 	}
 	return nil
+}
+
+func (m *Manager) GetK8SClusterObject(ctx context.Context, c *common.Cluster) (*v1alpha1.Cluster, error) {
+	if !m.EnableKubeAPI {
+		return nil, nil
+	}
+	if c.KubeAPIName == nil || c.KubeAPINamespace == nil {
+		return nil, errors.Errorf("missing KubeAPIName or KubeAPINamespace in cluster %s", c.ID.String())
+	}
+	key := types.NamespacedName{
+		Name:      swag.StringValue(c.KubeAPIName),
+		Namespace: swag.StringValue(c.KubeAPINamespace),
+	}
+	k8sCluster := &v1alpha1.Cluster{}
+	err := m.k8sReader.Get(ctx, key, k8sCluster)
+	return k8sCluster, err
 }

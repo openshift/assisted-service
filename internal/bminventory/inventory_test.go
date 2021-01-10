@@ -3242,7 +3242,7 @@ var _ = Describe("KubeConfig download", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil, nil, nil)
+			db, nil, nil, nil, nil, nil, nil)
 
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -3370,7 +3370,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil, nil, nil)
+			db, nil, nil, nil, nil, nil, nil)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,

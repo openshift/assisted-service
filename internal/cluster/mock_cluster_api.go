@@ -10,6 +10,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
+	v1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 	reflect "reflect"
 )
@@ -530,4 +531,19 @@ func (m *MockAPI) UpdateInstallProgress(ctx context.Context, c *common.Cluster, 
 func (mr *MockAPIMockRecorder) UpdateInstallProgress(ctx, c, progress interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallProgress", reflect.TypeOf((*MockAPI)(nil).UpdateInstallProgress), ctx, c, progress)
+}
+
+// GetK8SClusterObject mocks base method
+func (m *MockAPI) GetK8SClusterObject(ctx context.Context, c *common.Cluster) (*v1alpha1.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetK8SClusterObject", ctx, c)
+	ret0, _ := ret[0].(*v1alpha1.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetK8SClusterObject indicates an expected call of GetK8SClusterObject
+func (mr *MockAPIMockRecorder) GetK8SClusterObject(ctx, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetK8SClusterObject", reflect.TypeOf((*MockAPI)(nil).GetK8SClusterObject), ctx, c)
 }
