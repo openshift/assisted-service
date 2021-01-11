@@ -11,7 +11,7 @@ parameters:
 - name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
   value: ''
 - name: OPENSHIFT_VERSIONS
-  value: '{"4.6":{"display_name":"4.6.8","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.8-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","support_level":"production"},"4.7":{"display_name":"4.7-pre-release","release_image":"quay.io/openshift-release-dev/ocp-release@sha256:2419f9cd3ea9bd114764855653012e305ade2527210d332bfdd6dbdae538bd66","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","support_level":"beta"}}' # openshift version
+  value: '{"4.6":{"display_name":"4.6.8","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.8-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","support_level":"production"},"4.7":{"display_name":"4.7-pre-release","release_image":"quay.io/openshift-release-dev/ocp-release@sha256:2419f9cd3ea9bd114764855653012e305ade2527210d332bfdd6dbdae538bd66","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.7.0-fc.0/rhcos-4.7.0-fc.0-x86_64-live.x86_64.iso","support_level":"beta"}}' # openshift version
   required: false
 - name: OPENSHIFT_INSTALL_RELEASE_IMAGE
   value: ''
