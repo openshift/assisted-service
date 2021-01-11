@@ -4413,7 +4413,7 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
-        "user-managed-networking": {
+        "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
           "type": "boolean",
           "x-nullable": true
@@ -4520,7 +4520,7 @@ func init() {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string"
         },
-        "user-managed-networking": {
+        "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
           "type": "boolean",
           "default": false,
@@ -4717,7 +4717,7 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "user-managed-networking": {
+        "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
           "type": "boolean",
           "x-nullable": true
@@ -10675,7 +10675,7 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
-        "user-managed-networking": {
+        "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
           "type": "boolean",
           "x-nullable": true
@@ -10782,7 +10782,7 @@ func init() {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string"
         },
-        "user-managed-networking": {
+        "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
           "type": "boolean",
           "default": false,
@@ -10939,7 +10939,7 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "user-managed-networking": {
+        "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
           "type": "boolean",
           "x-nullable": true

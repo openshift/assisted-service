@@ -3207,7 +3207,7 @@ definitions:
         type: string
         description: An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
         x-nullable: true
-      user-managed-networking:
+      user_managed_networking:
         type: boolean
         description: Indicate if the networking is managed by the user.
         x-nullable: true
@@ -3346,7 +3346,7 @@ definitions:
               format: uuid
             machine_config_pool_name:
               type: string
-      user-managed-networking:
+      user_managed_networking:
         type: boolean
         description: Indicate if the networking is managed by the user.
         x-nullable: true
@@ -3572,7 +3572,7 @@ definitions:
         description: The time that the cluster was deleted.
         x-go-custom-tag: gorm:"type:timestamp with time zone"
         x-nullable: true
-      user-managed-networking:
+      user_managed_networking:
         type: boolean
         x-nullable: true
         description: Indicate if the networking is managed by the user.

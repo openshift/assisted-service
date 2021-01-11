@@ -82,7 +82,7 @@ type ClusterCreateParams struct {
 	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 
 	// Indicate if the networking is managed by the user.
-	UserManagedNetworking *bool `json:"user-managed-networking,omitempty"`
+	UserManagedNetworking *bool `json:"user_managed_networking,omitempty"`
 
 	// Indicate if virtual IP DHCP allocation mode is enabled.
 	VipDhcpAllocation *bool `json:"vip_dhcp_allocation,omitempty"`
